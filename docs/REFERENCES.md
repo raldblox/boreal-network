@@ -9,6 +9,12 @@ They explain where the structure and standards came from.
 
 - Diataxis framework: [https://diataxis.fr/](https://diataxis.fr/)
 
+## Workspace Architecture
+
+- Turborepo repository structure guide: [https://turborepo.com/docs/crafting-your-repository/structuring-a-repository](https://turborepo.com/docs/crafting-your-repository/structuring-a-repository)
+- Prisma pnpm workspaces guide: [https://www.prisma.io/docs/guides/deployment/pnpm-workspaces](https://www.prisma.io/docs/guides/deployment/pnpm-workspaces)
+- libp2p peers reference: [https://libp2p.io/docs/peers/](https://libp2p.io/docs/peers/)
+
 ## Contract Standards
 
 - JSON Schema: [https://json-schema.org/](https://json-schema.org/)

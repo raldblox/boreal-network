@@ -23,6 +23,12 @@ These files define how the canon stays aligned:
 - [TEST_MATRIX.md](TEST_MATRIX.md)
 - [REPO_STRUCTURE.md](REPO_STRUCTURE.md)
 
+## Decisions
+
+These files record accepted architecture and naming decisions that downstream workspaces must inherit:
+
+- [decisions/README.md](decisions/README.md)
+
 ## References
 
 This file records the main standards and pattern sources behind the canon:

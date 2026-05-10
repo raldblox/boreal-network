@@ -79,6 +79,7 @@ Examples:
 - new workspace under `skills/`
 - new workspace under `standards/`
 - renamed workspace
+- change to workspace naming rules or reserved role names
 
 Required updates:
 
@@ -161,6 +162,7 @@ Update:
 - `README.md`
 - `AGENTS.md`
 - `docs/REPO_STRUCTURE.md`
+- `docs/decisions/` when the naming decision is non-trivial
 - local workspace `README.md`
 - local workspace `AGENTS.md`
 

@@ -29,7 +29,8 @@ Purpose:
 - deployable or runnable products
 - product surfaces
 - operator surfaces
-- peer or node services
+- peer runtimes
+- gateways and bridges
 - interface-specific implementations
 
 Examples:
@@ -39,7 +40,9 @@ Examples:
 - `apps/extension/`
 - `apps/desktop/`
 - `apps/telegram-bot/`
-- `apps/network-node/`
+- `apps/peer/`
+- `apps/peer-relay/`
+- `apps/gateway-http/`
 - `apps/cli/`
 - `apps/marketing-site/`
 
@@ -59,6 +62,7 @@ Purpose:
 - npm packages
 - shared clients
 - generated clients
+- network libraries
 - transport libraries
 - shared configs
 - internal code packages
@@ -67,9 +71,11 @@ Examples:
 
 - `packages/sdk-js/`
 - `packages/protocol-client/`
+- `packages/network-core/`
 - `packages/libp2p-transport/`
 - `packages/config-eslint/`
 - `packages/ui/`
+- `packages/brand-system/`
 
 Rules:
 
@@ -109,20 +115,59 @@ Rules:
 - must inherit root canon
 - must not replace root canon
 
+## Workspace Naming Principle
+
+Name workspaces by product role or network role, not by vague infrastructure bucket.
+
+Good names answer one clear question:
+
+- what surface is this
+- what role does it play
+- is it runnable or reusable
+
+Prefer:
+
+- `web`
+- `desktop`
+- `mobile`
+- `telegram-bot`
+- `cli`
+- `peer`
+- `peer-relay`
+- `gateway-http`
+- `docs-site`
+- `marketing-site`
+
+Avoid:
+
+- `network-node`
+- `node2`
+- `server`
+- `service-box`
+- `tools2`
+- `misc`
+
+If the workspace joins a libp2p-style network directly, prefer `peer` as the canonical runtime word.
+
+Use `gateway` when the workspace mainly bridges protocols, exposes an HTTP edge, or adapts one runtime to another.
+
+Use `packages/network-*` or `packages/libp2p-*` for reusable networking code.
+
 ## Explicit Naming Decision
 
-`network-node/` is not a recommended top-level namespace.
+`network-node/` is not a recommended top-level namespace or preferred workspace name.
 
 Why:
 
-- it is too implementation-specific
-- it mixes deployable services with reusable libraries
-- it becomes awkward once the repo also contains CLI apps, desktop apps, bots, and npm packages
+- `network` is redundant inside `Boreal Network`
+- `node` is too generic once the repo also contains CLI apps, desktop apps, bots, gateways, and npm packages
+- it mixes network membership, deployment shape, and reusable transport concerns into one vague label
 
 Use instead:
 
-- `apps/network-node/` or `apps/peer-node/` for runnable node services
-- `packages/*` for shared libp2p, transport, or peer libraries
+- `apps/peer/` or `apps/peer-*` for runnable Boreal network participants
+- `apps/gateway-*` for protocol bridges and edge runtimes
+- `packages/network-*` or `packages/libp2p-*` for shared libp2p, transport, or peer libraries
 
 ## Branding and Marketing Rule
 

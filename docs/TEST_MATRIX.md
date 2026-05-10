@@ -63,7 +63,8 @@ Verify:
 - no unregistered top-level namespaces are introduced
 - every workspace root has `README.md` and `AGENTS.md`
 - workspace docs agree with root canon
-- client, node, skill, and standards workspaces do not redefine canonical root object names
+- app, package, skill, and standards workspaces do not redefine canonical root object names
+- generic workspace names such as `network-node`, `node2`, or `misc` are blocked unless explicitly approved in canon docs
 
 ### Risk governance tests
 

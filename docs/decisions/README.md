@@ -15,3 +15,7 @@ Each decision file should contain:
 
 Do not use the decision log as a brainstorming dump.
 Use it for accepted decisions that downstream implementations must respect.
+
+Accepted decisions:
+
+- [0001-workspace-taxonomy-and-peer-naming.md](0001-workspace-taxonomy-and-peer-naming.md)

@@ -213,10 +213,18 @@ Reserved top-level namespaces:
 
 Meaning:
 
-- `apps/` is for deployable or runnable workspaces such as `web`, `mobile`, `desktop`, `extension`, `telegram-bot`, `marketing-site`, `docs-site`, `network-node`, or `cli`.
+- `apps/` is for deployable or runnable workspaces such as `web`, `mobile`, `desktop`, `extension`, `telegram-bot`, `marketing-site`, `docs-site`, `peer`, `peer-relay`, `gateway-http`, or `cli`.
 - `packages/` is for reusable libraries, SDKs, npm packages, shared configs, generated clients, UI libraries, and shared transport code such as libp2p adapters.
 - `skills/` is for reusable agent skills, prompt packs, and task modules.
 - `standards/` is for Boreal-specific protocol profiles, implementation standards, and integration rules.
+
+Workspace naming rule:
+
+- name workspaces by product role or network role
+- do not use vague infrastructure bucket names when a clearer role name exists
+- if the workspace joins a libp2p-style network directly, prefer `peer` as the canonical runtime word
+- if the workspace mainly bridges protocols or exposes an edge adapter, prefer `gateway-*`
+- if the workspace is reusable code rather than a runnable surface, it belongs in `packages/*`
 
 Do not create a new top-level folder unless:
 
@@ -252,8 +260,8 @@ Branding rule:
 
 Do not place implementation code at the repo root when it clearly belongs in one of those namespaces.
 
-Do not create `network-node/` as a top-level namespace.
-Use `apps/network-node/` or `apps/peer-node/` for runnable node services, and `packages/*` for shared node or libp2p code.
+Do not create `network-node/` as a top-level namespace or preferred workspace name.
+Use `apps/peer/` or `apps/peer-*` for runnable network participants, `apps/gateway-*` for bridges, and `packages/network-*` or `packages/libp2p-*` for shared networking code.
 
 Do not create ad hoc top-level folders like `client`, `server`, `sdk`, `mobile-app`, `node2`, `tools2`, `bots`, or `marketing` when an existing namespace fits.
 

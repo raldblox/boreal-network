@@ -45,14 +45,18 @@ Read these files in order before making any meaningful change:
 
 Reserved top-level namespaces for future expansion:
 
-- `apps/` for deployable or runnable products such as web, mobile, desktop, extensions, bots, docs sites, marketing sites, CLI apps, and peer or node services
+- `apps/` for deployable or runnable products such as web, mobile, desktop, extensions, bots, docs sites, marketing sites, CLI apps, peer runtimes, and gateway services
 - `packages/` for reusable libraries, SDKs, npm packages, shared clients, transport libraries, shared configs, and internal code packages
 - `skills/` for reusable agent skills, prompt packs, or task modules
 - `standards/` for Boreal-specific protocol profiles, integration standards, and implementation rules
 
-Do not introduce `network-node/` as a top-level namespace.
-If you need a runnable node, place it under `apps/`.
-If you need reusable node or libp2p code, place it under `packages/`.
+Name workspaces by role, not vague infra labels.
+Prefer names like `peer`, `gateway-http`, `telegram-bot`, `desktop`, `cli`, and `marketing-site`.
+
+Do not introduce `network-node/` as a top-level namespace or preferred workspace name.
+If you need a runnable Boreal network participant, place it under `apps/peer` or `apps/peer-*`.
+If you need a protocol bridge, use `apps/gateway-*`.
+If you need reusable node or libp2p code, place it under `packages/network-*` or `packages/libp2p-*`.
 
 Do not create those namespaces ad hoc.
 Register and govern them through [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md) first.
