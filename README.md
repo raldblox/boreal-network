@@ -16,6 +16,8 @@ Its job is to define:
 - logical schema boundaries
 - the competitive and business-model truth
 - pitch-safe facts
+- live-versus-target claim boundaries
+- machine-readable schema baseline
 - test expectations
 - coding-agent guardrails
 
@@ -31,18 +33,19 @@ Read these files in order before making any meaningful change:
 3. [docs/PRODUCT_POSITIONING.md](docs/PRODUCT_POSITIONING.md)
 4. [docs/ICP_AND_WEDGE.md](docs/ICP_AND_WEDGE.md)
 5. [docs/WHY_NOW.md](docs/WHY_NOW.md)
-6. [docs/OBJECT_TAXONOMY.md](docs/OBJECT_TAXONOMY.md)
-7. [docs/STATE_MACHINES.md](docs/STATE_MACHINES.md)
-8. [docs/EVENT_MODEL.md](docs/EVENT_MODEL.md)
-9. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
-10. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
-11. [docs/COMPETITIVE_MAP.md](docs/COMPETITIVE_MAP.md)
-12. [docs/BUSINESS_MODEL.md](docs/BUSINESS_MODEL.md)
-13. [docs/PITCH_FACTS.md](docs/PITCH_FACTS.md)
-14. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
-15. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
-16. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
-17. [AGENTS.md](AGENTS.md)
+6. [docs/COMPETITIVE_MAP.md](docs/COMPETITIVE_MAP.md)
+7. [docs/BUSINESS_MODEL.md](docs/BUSINESS_MODEL.md)
+8. [docs/PITCH_FACTS.md](docs/PITCH_FACTS.md)
+9. [docs/LIVE_VS_TARGET.md](docs/LIVE_VS_TARGET.md)
+10. [docs/OBJECT_TAXONOMY.md](docs/OBJECT_TAXONOMY.md)
+11. [docs/STATE_MACHINES.md](docs/STATE_MACHINES.md)
+12. [docs/EVENT_MODEL.md](docs/EVENT_MODEL.md)
+13. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
+14. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
+15. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
+16. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
+17. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
+18. [AGENTS.md](AGENTS.md)
 
 ## Repository Layout
 
@@ -87,13 +90,15 @@ Start from:
 1. thesis
 2. commercial canon
 3. positioning and wedge
-4. taxonomy
-5. state machines
-6. event model
-7. API contracts
-8. logical schema
-9. physical schema
-10. implementation and tests
+4. live versus target boundary
+5. taxonomy
+6. state machines
+7. event model
+8. API contracts
+9. logical schema
+10. machine-readable schema
+11. physical schema
+12. implementation and tests
 
 ## Current Scope
 

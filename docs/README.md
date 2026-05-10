@@ -26,6 +26,7 @@ These files define what Boreal Network is as a business and what story downstrea
 - [COMPETITIVE_MAP.md](COMPETITIVE_MAP.md)
 - [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
 - [PITCH_FACTS.md](PITCH_FACTS.md)
+- [LIVE_VS_TARGET.md](LIVE_VS_TARGET.md)
 
 ## Governance
 
@@ -53,11 +54,13 @@ The structure intentionally separates:
 
 - thesis and explanation
 - commercial category and market truth
+- live-versus-target claim boundary
 - reference taxonomy
 - lifecycle behavior
 - event contracts
 - API contracts
 - logical schema
+- machine-readable baseline
 - verification and governance
 
 This keeps implementation work from redefining the domain accidentally.
@@ -71,14 +74,15 @@ Read the canon in this order:
 3. product positioning
 4. ICP and wedge
 5. why now
-6. taxonomy
-7. state machines
-8. event model
-9. API contracts
-10. logical schema
-11. competitive map
-12. business model
-13. pitch facts
-14. repo structure
-15. governance
-16. tests
+6. competitive map
+7. business model
+8. pitch facts
+9. live versus target
+10. taxonomy
+11. state machines
+12. event model
+13. API contracts
+14. logical schema
+15. repo structure
+16. governance
+17. tests

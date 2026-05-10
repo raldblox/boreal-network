@@ -14,6 +14,7 @@ This directory holds machine-readable contract artifacts.
 
 Recommended naming:
 
+- `common.schema.json`
 - `request.schema.json`
 - `supply.schema.json`
 - `commitment.schema.json`
@@ -35,6 +36,19 @@ Recommended naming:
 
 - `request-stream.asyncapi.yaml`
 - `payments.asyncapi.yaml`
+
+## Current Canonized Files
+
+- `json/common.schema.json`
+- `json/request.schema.json`
+- `json/supply.schema.json`
+- `json/commitment.schema.json`
+
+Pending next canonical files:
+
+- `json/fulfillment.schema.json`
+- `json/transaction.schema.json`
+- `json/request-event.schema.json`
 
 ## Rule
 

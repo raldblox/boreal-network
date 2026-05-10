@@ -19,8 +19,9 @@ When documents disagree, the precedence order is:
 11. `docs/COMPETITIVE_MAP.md`
 12. `docs/BUSINESS_MODEL.md`
 13. `docs/PITCH_FACTS.md`
-14. machine-readable schemas in `schemas/`
-15. implementation code in downstream repos
+14. `docs/LIVE_VS_TARGET.md`
+15. machine-readable schemas in `schemas/`
+16. implementation code in downstream repos
 
 Implementation code must not override the canon.
 
@@ -38,6 +39,7 @@ Examples:
 - changed commercial category
 - changed primary wedge
 - changed business-model boundary
+- changed live-versus-target public claim boundary
 
 Required updates:
 
@@ -46,6 +48,7 @@ Required updates:
 - product positioning
 - ICP and wedge
 - why now
+- live-versus-target boundary
 - taxonomy
 - state machines
 - event model
@@ -179,6 +182,7 @@ Update:
 - `docs/COMPETITIVE_MAP.md` when category boundaries changed
 - `docs/BUSINESS_MODEL.md`
 - `docs/PITCH_FACTS.md`
+- `docs/LIVE_VS_TARGET.md`
 - `README.md`
 - `docs/README.md`
 

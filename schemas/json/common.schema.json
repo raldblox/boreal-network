@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.network/schemas/json/common.schema.json",
+  "title": "Boreal Common Types",
+  "description": "Shared schema fragments for Boreal Network canonical objects.",
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9._:-]+$"
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[a-z0-9]+(?:[-_][a-z0-9]+)*$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actorKind": {
+      "type": "string",
+      "enum": [
+        "human",
+        "agent",
+        "tool",
+        "organization",
+        "runtime"
+      ]
+    },
+    "actorRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/actorKind"
+        },
+        "id": {
+          "$ref": "#/$defs/identifier"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "handle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      }
+    },
+    "currencyCode": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "moneyValue": {
+      "type": "number",
+      "minimum": 0
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Freeform metadata that must not redefine canonical semantics.",
+      "additionalProperties": true
+    },
+    "requestStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "open",
+        "funding_required",
+        "funded",
+        "in_progress",
+        "waiting_for_owner",
+        "delivered",
+        "completed",
+        "cancelled",
+        "failed"
+      ]
+    },
+    "commitmentStatus": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "accepted",
+        "rejected",
+        "expired",
+        "superseded",
+        "cancelled"
+      ]
+    }
+  }
+}

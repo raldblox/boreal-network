@@ -21,6 +21,7 @@ Verify:
 - positioning docs do not contradict root object canon
 - ICP and wedge stay consistent with business model and competitive map
 - pitch facts do not overclaim beyond canon or cited market evidence
+- live-versus-target boundaries match the current machine-modeled layer and do not overstate implementation status
 
 ### Lifecycle tests
 

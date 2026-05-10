@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.network/schemas/json/supply.schema.json",
+  "title": "Supply",
+  "description": "Canonical supply-side capability object for Boreal Network.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "key",
+    "owner",
+    "profile",
+    "capability",
+    "availability",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "key": {
+      "$ref": "common.schema.json#/$defs/key"
+    },
+    "owner": {
+      "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "displayName",
+        "summary"
+      ],
+      "properties": {
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "headline": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supplyKinds",
+        "fulfillmentActorKinds",
+        "outputKinds"
+      ],
+      "properties": {
+        "supplyKinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "fulfillmentActorKinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/actorKind"
+          }
+        },
+        "outputKinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "executionChannels": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acceptingRequests"
+      ],
+      "properties": {
+        "acceptingRequests": {
+          "type": "boolean"
+        },
+        "maxConcurrentRequests": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "currentLoad": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "responseTimeHours": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "quote",
+            "fixed",
+            "range",
+            "open"
+          ]
+        },
+        "currency": {
+          "$ref": "common.schema.json#/$defs/currencyCode"
+        },
+        "fixedAmount": {
+          "$ref": "common.schema.json#/$defs/moneyValue"
+        },
+        "minAmount": {
+          "$ref": "common.schema.json#/$defs/moneyValue"
+        },
+        "maxAmount": {
+          "$ref": "common.schema.json#/$defs/moneyValue"
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "metadata": {
+      "$ref": "common.schema.json#/$defs/metadata"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "publishedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "retiredAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "pricing": {
+            "properties": {
+              "mode": {
+                "const": "fixed"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "pricing": {
+            "required": [
+              "currency",
+              "fixedAmount"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "pricing": {
+            "properties": {
+              "mode": {
+                "const": "range"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "pricing": {
+            "required": [
+              "currency",
+              "minAmount",
+              "maxAmount"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.network/schemas/json/commitment.schema.json",
+  "title": "Commitment",
+  "description": "Canonical commercial or approval boundary object attached to a Request.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "key",
+    "requestId",
+    "kind",
+    "status",
+    "proposedBy",
+    "summary",
+    "terms",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "key": {
+      "$ref": "common.schema.json#/$defs/key"
+    },
+    "requestId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "quote",
+        "proposal",
+        "assignment",
+        "milestone",
+        "acceptance"
+      ]
+    },
+    "status": {
+      "$ref": "common.schema.json#/$defs/commitmentStatus"
+    },
+    "proposedBy": {
+      "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "acceptedBy": {
+      "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "supplyId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "terms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fundingRequired",
+        "amountMode"
+      ],
+      "properties": {
+        "fundingRequired": {
+          "type": "boolean"
+        },
+        "amountMode": {
+          "type": "string",
+          "enum": [
+            "none",
+            "fixed",
+            "range",
+            "open"
+          ]
+        },
+        "currency": {
+          "$ref": "common.schema.json#/$defs/currencyCode"
+        },
+        "fixedAmount": {
+          "$ref": "common.schema.json#/$defs/moneyValue"
+        },
+        "minAmount": {
+          "$ref": "common.schema.json#/$defs/moneyValue"
+        },
+        "maxAmount": {
+          "$ref": "common.schema.json#/$defs/moneyValue"
+        },
+        "deliverableSummary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paymentNotes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "supersedesCommitmentId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "activeFulfillmentId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "metadata": {
+      "$ref": "common.schema.json#/$defs/metadata"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "acceptedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "rejectedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "expiredAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "supersededAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "cancelledAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "terms": {
+            "properties": {
+              "amountMode": {
+                "const": "fixed"
+              }
+            },
+            "required": [
+              "amountMode"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "terms": {
+            "required": [
+              "currency",
+              "fixedAmount"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "terms": {
+            "properties": {
+              "amountMode": {
+                "const": "range"
+              }
+            },
+            "required": [
+              "amountMode"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "terms": {
+            "required": [
+              "currency",
+              "minAmount",
+              "maxAmount"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "accepted"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "acceptedAt",
+          "acceptedBy"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "rejected"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "rejectedAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "expired"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "expiredAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "superseded"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "supersededAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "cancelled"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "cancelledAt"
+        ]
+      }
+    }
+  ]
+}
