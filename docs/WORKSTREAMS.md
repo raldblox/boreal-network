@@ -61,6 +61,7 @@ Rules:
 
 - single-writer when topology changes are in flight
 - may run in parallel with `root-canon` only when semantics are already stable and write scopes stay disjoint
+- owns alignment-first setup when a new workspace or namespace still needs a framework, runtime, or boundary decision before scaffold work
 
 ### `web-foundation`
 
@@ -114,6 +115,7 @@ Rules:
 
 - may run in parallel with app work when contracts are already stable
 - executable shared code belongs in `packages/*`
+- if the skill shape, publishing model, or reusable behavior boundary is still unresolved, stop and route the task back through root alignment first
 
 ### `standards-foundation`
 
@@ -131,6 +133,7 @@ Rules:
 
 - inherits root canon
 - may not replace root canon
+- if the standard still needs research on profile shape, compatibility scope, or adapter boundary, align that in root canon before writing the standard itself
 
 ## Parallel Rules
 
@@ -140,6 +143,7 @@ Rules:
 - `Class A` and `Class B` changes should merge root canon first or in the same patch before dependent workspace work continues.
 - If a workspace depends on unmerged semantic changes, stop and merge the root canon lane first.
 - Namespace-root docs such as `apps/README.md` and `apps/AGENTS.md` belong to the `monorepo-topology` lane, not to any one child workspace lane.
+- If a task still needs research to choose a framework, runtime, skill shape, standards profile, or transport boundary, do the research and decision pass before opening parallel implementation lanes.
 
 ## Required Task Header
 

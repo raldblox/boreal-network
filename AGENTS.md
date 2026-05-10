@@ -119,6 +119,29 @@ When a concept is unclear:
 
 Do not guess.
 
+## Alignment-First Rule
+
+Not every task should start with implementation.
+
+If a task introduces a new framework, runtime, transport, protocol profile, reusable skill shape, shared package boundary, or standards profile, the agent must first decide whether root alignment is already explicit.
+
+If alignment is not already explicit, do this first:
+
+- run bounded research or repo-context review
+- summarize the tradeoff
+- record the decision or gap in root canon or `docs/decisions/`
+- then implement
+
+Research-first triggers include:
+
+- creating a new `skills/*` package with new behavior conventions
+- creating a new `standards/*` profile or adapter rule
+- choosing the first framework or runtime baseline for a workspace
+- introducing a new transport layer such as libp2p, gateway, or protocol bridge code
+- creating a shared package whose ownership or boundary is still ambiguous
+
+Do not scaffold first and rationalize later when the better move is to align first.
+
 ## Proactive Risk Rule
 
 Agents must proactively warn, stop, or ask when a task could break existing meaning, behavior, contracts, or workspace safety.
@@ -277,6 +300,7 @@ When adding schema or contracts, add corresponding fixture and test coverage pla
 - Implementation agents may not silently edit root semantic docs unless that write scope was assigned explicitly.
 - If a change is `Class A` or `Class B`, root canon must merge first or in the same patch before dependent implementation work continues.
 - If two agents need the same file, pick one owner and queue the other task.
+- If a workspace lane depends on an unresolved framework, runtime, skill, or standards decision, pause the workspace lane and route the task back through root alignment first.
 
 Use `docs/WORKSTREAMS.md` and `docs/OWNERSHIP.md` for the operating model.
 

@@ -243,6 +243,8 @@ Do not create a new top-level namespace or child workspace until:
 5. the workspace has a clear relationship to root canon
 6. the workspace root includes `README.md` and `AGENTS.md`
 
+If the new workspace introduces an unresolved framework, runtime, protocol, skill shape, or standards profile, align that decision first through root canon or `docs/decisions/` before deeper scaffold work begins.
+
 ## Required Files For Any New Workspace
 
 Every new workspace root must contain:
@@ -263,6 +265,7 @@ The local `AGENTS.md` must explain:
 - allowed abstractions
 - prohibited drift
 - local sync rules
+- whether research-first alignment is required before implementation in that workspace
 
 ## Ownership And Boundary Rules
 

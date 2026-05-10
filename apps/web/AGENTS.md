@@ -21,6 +21,7 @@ Before changing this workspace, read:
 
 This workspace is activated but not fully scaffolded.
 Do not pretend framework, runtime, or deployment decisions are already final unless a later explicit decision says so.
+If a task needs one of those choices and root alignment is still weak, do the research and decision pass first instead of scaffolding prematurely.
 
 ## Allowed Here
 
