@@ -69,6 +69,8 @@ Do not start from tables.
 Do not start from UI.
 Do not start from provider-specific glue.
 
+If a task could break canon, contracts, durable history, or workspace boundaries, the agent must stop and emit a visibly labeled `RISK ESCALATION` or `BLOCKING RISK ESCALATION` message before continuing.
+
 Start from:
 
 1. thesis

@@ -74,6 +74,7 @@ Verify:
 - changes that alter lifecycle states are blocked unless state and event docs are updated in the same patch
 - changes that add workspaces are blocked unless `docs/REPO_STRUCTURE.md` and local workspace guardrails exist
 - destructive or breaking actions require explicit escalation paths in agent instructions
+- risk escalations use the required visible format with `Risk`, `Impact`, `Scope`, `Safer path`, and `Question`
 
 ### Monetary integrity tests
 

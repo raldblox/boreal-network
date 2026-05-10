@@ -115,6 +115,21 @@ Escalation means:
 - point to the affected canon files or workspaces
 - ask for confirmation when the boundary is unclear or destructive
 
+Escalation must be visually obvious.
+
+Required format:
+
+- begin with `RISK ESCALATION`
+- begin with `BLOCKING RISK ESCALATION` when work must stop pending confirmation
+- include, in order:
+  - `Risk:`
+  - `Impact:`
+  - `Scope:`
+  - `Safer path:`
+  - `Question:`
+
+This format exists so the user can recognize a risky turn immediately instead of parsing a long explanation.
+
 This applies even when the user did not explicitly ask for a risk review.
 
 ## Sync Matrix

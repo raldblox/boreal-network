@@ -117,6 +117,30 @@ Required behavior:
 - ask a blocking question when the change is ambiguous, destructive, or likely to cause semantic drift
 - refuse silent breaking changes
 
+Required visible format:
+
+- start the message with `RISK ESCALATION`
+- if the action is destructive, ambiguous, or hard to reverse, start with `BLOCKING RISK ESCALATION`
+- keep the first five lines in this order:
+  - `Risk:` one-sentence summary
+  - `Impact:` what could break
+  - `Scope:` affected canon files, contracts, or workspaces
+  - `Safer path:` preferred lower-risk move
+  - `Question:` one direct blocking question
+- do not bury the risk below long explanation
+- do not phrase the risk as a soft suggestion
+
+Expected shape:
+
+```text
+BLOCKING RISK ESCALATION
+Risk: This rename would weaken the canonical `Request` root object.
+Impact: Taxonomy, state-machine, schema, and downstream workspace drift.
+Scope: docs/OBJECT_TAXONOMY.md, docs/STATE_MACHINES.md, schemas/json/, apps/*
+Safer path: Keep `Request` canonical and add the new term as UI language only.
+Question: Do you want to preserve `Request` as canon and use the new term only at the surface layer?
+```
+
 If the risk is real but manageable:
 
 - propose the safer path first
