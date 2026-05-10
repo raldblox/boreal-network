@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://boreal.network/schemas/json/commitment.schema.json",
+  "$id": "https://boreal.work/schemas/json/commitment.schema.json",
   "title": "Commitment",
   "description": "Canonical commercial or approval boundary object attached to a Request.",
   "type": "object",

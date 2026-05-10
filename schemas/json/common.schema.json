@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://boreal.network/schemas/json/common.schema.json",
+  "$id": "https://boreal.work/schemas/json/common.schema.json",
   "title": "Boreal Common Types",
   "description": "Shared schema fragments for Boreal Network canonical objects.",
   "$defs": {

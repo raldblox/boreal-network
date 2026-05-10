@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://boreal.network/schemas/json/supply.schema.json",
+  "$id": "https://boreal.work/schemas/json/supply.schema.json",
   "title": "Supply",
   "description": "Canonical supply-side capability object for Boreal Network.",
   "type": "object",
