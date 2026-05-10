@@ -28,9 +28,10 @@ Read these files in order before making any meaningful change:
 4. [docs/EVENT_MODEL.md](docs/EVENT_MODEL.md)
 5. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
 6. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
-7. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
-8. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
-9. [AGENTS.md](AGENTS.md)
+7. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
+8. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
+9. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
+10. [AGENTS.md](AGENTS.md)
 
 ## Repository Layout
 
@@ -42,7 +43,21 @@ Read these files in order before making any meaningful change:
 - `fixtures/` holds deterministic sample data grouped by aggregate.
 - `tests/` holds contract, lifecycle, and invariant verification assets.
 
-See [docs/README.md](docs/README.md) and [schemas/README.md](schemas/README.md) for structure details.
+Reserved top-level namespaces for future expansion:
+
+- `apps/` for deployable or runnable products such as web, mobile, desktop, extensions, bots, docs sites, marketing sites, CLI apps, and peer or node services
+- `packages/` for reusable libraries, SDKs, npm packages, shared clients, transport libraries, shared configs, and internal code packages
+- `skills/` for reusable agent skills, prompt packs, or task modules
+- `standards/` for Boreal-specific protocol profiles, integration standards, and implementation rules
+
+Do not introduce `network-node/` as a top-level namespace.
+If you need a runnable node, place it under `apps/`.
+If you need reusable node or libp2p code, place it under `packages/`.
+
+Do not create those namespaces ad hoc.
+Register and govern them through [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md) first.
+
+See [docs/README.md](docs/README.md), [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md), and [schemas/README.md](schemas/README.md) for structure details.
 
 ## Working Rule
 
@@ -75,3 +90,12 @@ This repo defines the durable network model for:
 - event history
 
 It does not exist to hold marketing copy, product launch material, or implementation-specific hacks.
+
+## Workspace Rule
+
+No new top-level workspace or namespace should be added until:
+
+1. its purpose is registered in `docs/REPO_STRUCTURE.md`
+2. its boundaries are compatible with the canon
+3. its required local `README.md` and `AGENTS.md` rules are defined
+4. the root docs and governance are updated in the same patch

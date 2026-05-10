@@ -21,6 +21,7 @@ These files define how the canon stays aligned:
 
 - [GOVERNANCE.md](GOVERNANCE.md)
 - [TEST_MATRIX.md](TEST_MATRIX.md)
+- [REPO_STRUCTURE.md](REPO_STRUCTURE.md)
 
 ## References
 
@@ -52,5 +53,6 @@ Read the canon in this order:
 4. event model
 5. API contracts
 6. logical schema
-7. governance
-8. tests
+7. repo structure
+8. governance
+9. tests

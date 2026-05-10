@@ -56,6 +56,24 @@ Verify:
 - event ordering is stable within a request
 - deleted projections can be rebuilt
 
+### Repository topology tests
+
+Verify:
+
+- no unregistered top-level namespaces are introduced
+- every workspace root has `README.md` and `AGENTS.md`
+- workspace docs agree with root canon
+- client, node, skill, and standards workspaces do not redefine canonical root object names
+
+### Risk governance tests
+
+Verify:
+
+- changes that alter canonical object names are blocked unless canon docs are updated in the same patch
+- changes that alter lifecycle states are blocked unless state and event docs are updated in the same patch
+- changes that add workspaces are blocked unless `docs/REPO_STRUCTURE.md` and local workspace guardrails exist
+- destructive or breaking actions require explicit escalation paths in agent instructions
+
 ### Monetary integrity tests
 
 Verify:

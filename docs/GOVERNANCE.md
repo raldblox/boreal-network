@@ -69,6 +69,26 @@ Required updates:
 - logical schema if durable implications exist
 - tests if observable behavior changes
 
+### Class D: workspace topology change
+
+Examples:
+
+- new top-level namespace
+- new workspace under `apps/`
+- new workspace under `packages/`
+- new workspace under `skills/`
+- new workspace under `standards/`
+- renamed workspace
+
+Required updates:
+
+- `README.md`
+- `AGENTS.md`
+- `docs/REPO_STRUCTURE.md`
+- local workspace `README.md` when the workspace exists
+- local workspace `AGENTS.md` when the workspace exists
+- tests if the workspace changes observable contracts or durable behavior
+
 ## Decision Discipline
 
 If a change introduces a non-trivial tradeoff, record it before or with the change.
@@ -82,6 +102,19 @@ Decision files should explain:
 - context
 - decision
 - consequences
+
+## Risk Escalation Rule
+
+When a task or proposed change could break semantics, contracts, workspace boundaries, or durable history, the agent must escalate before continuing silently.
+
+Escalation means:
+
+- flag the risk explicitly
+- identify the likely blast radius
+- point to the affected canon files or workspaces
+- ask for confirmation when the boundary is unclear or destructive
+
+This applies even when the user did not explicitly ask for a risk review.
 
 ## Sync Matrix
 
@@ -121,9 +154,21 @@ Update:
 - OpenAPI
 - tests
 
+### If you add or rename a workspace
+
+Update:
+
+- `README.md`
+- `AGENTS.md`
+- `docs/REPO_STRUCTURE.md`
+- local workspace `README.md`
+- local workspace `AGENTS.md`
+
 ## Drift Rules
 
 - Do not leave markdown and machine contracts out of sync.
 - Do not change names in one file only.
 - Do not keep legacy synonyms alive in new core work unless intentionally documented.
 - Do not land code first and canon later for semantic changes.
+- Do not add top-level folders without registering them in `docs/REPO_STRUCTURE.md`.
+- Do not make silent breaking moves when the blast radius is known or reasonably likely.

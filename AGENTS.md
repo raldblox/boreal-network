@@ -26,8 +26,9 @@ Before editing anything substantial, read:
 5. `docs/EVENT_MODEL.md`
 6. `docs/API_CONTRACTS.md`
 7. `docs/SCHEMA_LOGICAL.md`
-8. `docs/GOVERNANCE.md`
-9. `docs/TEST_MATRIX.md`
+8. `docs/REPO_STRUCTURE.md`
+9. `docs/GOVERNANCE.md`
+10. `docs/TEST_MATRIX.md`
 
 Do not skip this order.
 
@@ -89,6 +90,38 @@ When a concept is unclear:
 - then implement
 
 Do not guess.
+
+## Proactive Risk Rule
+
+Agents must proactively warn, stop, or ask when a task could break existing meaning, behavior, contracts, or workspace safety.
+
+Do not wait for the user to ask about risk.
+
+Trigger this rule when a proposed action could:
+
+- rename or weaken a canonical object
+- change lifecycle meaning or status semantics
+- change event names or payload meaning
+- change external API behavior
+- invalidate fixtures, tests, or projections
+- create cross-workspace drift
+- introduce an unregistered workspace or namespace
+- replace stable canon with implementation-local assumptions
+- perform destructive or hard-to-reverse repo actions
+
+Required behavior:
+
+- state the risk clearly
+- name what could break
+- name which canon files or workspaces are affected
+- ask a blocking question when the change is ambiguous, destructive, or likely to cause semantic drift
+- refuse silent breaking changes
+
+If the risk is real but manageable:
+
+- propose the safer path first
+- explain the tradeoff
+- then proceed only when the intended boundary is clear
 
 ## Required Sync Rules
 
@@ -169,6 +202,61 @@ When adding schema or contracts, add corresponding fixture and test coverage pla
 
 Do not scatter canonical domain definitions across random files.
 
+## Workspace Expansion Rules
+
+Reserved top-level namespaces:
+
+- `apps/`
+- `packages/`
+- `skills/`
+- `standards/`
+
+Meaning:
+
+- `apps/` is for deployable or runnable workspaces such as `web`, `mobile`, `desktop`, `extension`, `telegram-bot`, `marketing-site`, `docs-site`, `network-node`, or `cli`.
+- `packages/` is for reusable libraries, SDKs, npm packages, shared configs, generated clients, UI libraries, and shared transport code such as libp2p adapters.
+- `skills/` is for reusable agent skills, prompt packs, and task modules.
+- `standards/` is for Boreal-specific protocol profiles, implementation standards, and integration rules.
+
+Do not create a new top-level folder unless:
+
+- its purpose is registered in `docs/REPO_STRUCTURE.md`
+- its boundaries do not conflict with existing canonical objects
+- the root `README.md` and `AGENTS.md` are updated in the same patch
+- a local `README.md` and local `AGENTS.md` are defined for that workspace
+
+Every new workspace root must include:
+
+- `README.md`
+- `AGENTS.md`
+
+Every code-bearing workspace should also define:
+
+- how it relates to root canon
+- build and test commands
+- ownership boundaries
+- what it may and may not redefine
+
+Namespace-specific constraints:
+
+- `apps/*` may define deployable surfaces, UI flows, clients, bots, CLI applications, peer nodes, caches, and local UX abstractions, but must not redefine canonical domain objects or lifecycle states.
+- `packages/*` may define reusable code, SDKs, schemas, generated clients, shared transport libraries, and internal npm packages, but must not redefine request, commitment, fulfillment, transaction, or event semantics.
+- `skills/*` may define reusable agent behavior and task packaging, but must not introduce conflicting contract or lifecycle names. If a skill needs executable shared code, place that code in `packages/*` and keep the skill definition in `skills/*`.
+- `standards/*` may define recommended implementation profiles, compatibility rules, or adapter standards, but they must inherit root canon instead of overriding it.
+
+Branding rule:
+
+- brand guidance, naming, and lightweight messaging notes should stay in `docs/` until a dedicated asset-heavy workspace is justified
+- marketing or docs websites belong in `apps/*`
+- do not create a top-level `branding/` or `marketing/` namespace without first updating `docs/REPO_STRUCTURE.md`
+
+Do not place implementation code at the repo root when it clearly belongs in one of those namespaces.
+
+Do not create `network-node/` as a top-level namespace.
+Use `apps/network-node/` or `apps/peer-node/` for runnable node services, and `packages/*` for shared node or libp2p code.
+
+Do not create ad hoc top-level folders like `client`, `server`, `sdk`, `mobile-app`, `node2`, `tools2`, `bots`, or `marketing` when an existing namespace fits.
+
 ## Change Discipline
 
 - Prefer additive changes first.
@@ -176,6 +264,7 @@ Do not scatter canonical domain definitions across random files.
 - Keep files small, explicit, and cross-linked.
 - Use diagrams only when they clarify state or ownership better than prose.
 - Record unresolved decisions explicitly instead of burying them in comments.
+- When creating a new workspace, add its local guardrails before implementation code lands.
 
 ## What Not To Do
 
@@ -185,6 +274,7 @@ Do not scatter canonical domain definitions across random files.
 - Do not let code define the model before the docs do.
 - Do not add speculative abstractions "for later" without a concrete place in the taxonomy.
 - Do not treat roadmap ideas as current truth.
+- Do not silently continue when a requested action is likely to break canon, contracts, workspace boundaries, or durable history.
 
 ## Commits
 
