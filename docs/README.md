@@ -1,6 +1,6 @@
 # Documentation Map
 
-This repository follows a docs-first operating model.
+This repository follows a docs-first operating model at the root of the canonical Boreal monorepo.
 
 The documents are organized by purpose, not by chronology.
 
@@ -18,7 +18,7 @@ These files define what Boreal Network is:
 
 ## Commercial Canon
 
-These files define what Boreal Network is as a business and what story downstream roast or pitch workflows must preserve:
+These files define what Boreal Network is as a business and what story roast, pitch, and fundraising workflows must preserve:
 
 - [PRODUCT_POSITIONING.md](PRODUCT_POSITIONING.md)
 - [ICP_AND_WEDGE.md](ICP_AND_WEDGE.md)
@@ -28,17 +28,19 @@ These files define what Boreal Network is as a business and what story downstrea
 - [PITCH_FACTS.md](PITCH_FACTS.md)
 - [LIVE_VS_TARGET.md](LIVE_VS_TARGET.md)
 
-## Governance
+## Governance And Coordination
 
-These files define how the canon stays aligned:
+These files define how the canon stays aligned and how parallel work is kept safe:
 
 - [GOVERNANCE.md](GOVERNANCE.md)
-- [TEST_MATRIX.md](TEST_MATRIX.md)
 - [REPO_STRUCTURE.md](REPO_STRUCTURE.md)
+- [WORKSTREAMS.md](WORKSTREAMS.md)
+- [OWNERSHIP.md](OWNERSHIP.md)
+- [TEST_MATRIX.md](TEST_MATRIX.md)
 
 ## Decisions
 
-These files record accepted architecture and naming decisions that downstream workspaces must inherit:
+These files record accepted architecture and naming decisions that governed workspaces in this monorepo must inherit:
 
 - [decisions/README.md](decisions/README.md)
 
@@ -61,6 +63,7 @@ The structure intentionally separates:
 - API contracts
 - logical schema
 - machine-readable baseline
+- workspace topology and ownership
 - verification and governance
 
 This keeps implementation work from redefining the domain accidentally.
@@ -84,5 +87,7 @@ Read the canon in this order:
 13. API contracts
 14. logical schema
 15. repo structure
-16. governance
-17. tests
+16. workstreams
+17. ownership
+18. governance
+19. tests

@@ -1,26 +1,79 @@
 # Repository Structure
 
-This file defines the allowed top-level namespaces and workspace rules for Boreal Network.
+This file defines the allowed top-level namespaces, active workspaces, and boundary rules for Boreal Network.
 
-It exists so the repo can grow into multiple workspaces without losing semantic control.
+Boreal Network is now Boreal's canonical monorepo.
+The root holds canon and governance.  Governed workspaces hold runnable surfaces, shared code, skills, and implementation standards.
 
-## Current Top-Level Namespaces
+## Repo Model
 
-These namespaces already exist and are active:
+Use two layers only:
+
+- `Root canon layer` for domain truth, contracts, schemas, fixtures, decisions, and governance.
+- `Governed workspace layer` for product code, peer code, reusable libraries, skills, and implementation standards.
+
+The governed workspace layer may specialize implementation.
+It may not redefine root meaning.
+
+## Active Top-Level Namespaces
+
+These namespaces now exist and are active:
 
 - `docs/`
 - `schemas/`
 - `db/`
 - `fixtures/`
 - `tests/`
+- `apps/`
+- `packages/`
+- `skills/`
+- `standards/`
 
-These hold canon, machine contracts, physical schema work, deterministic samples, and validation assets.
+## Root Canon Layer
 
-## Reserved Expansion Namespaces
+The root canon layer includes:
 
-These names are reserved for future multi-workspace expansion.
+- `README.md`
+- `AGENTS.md`
+- `docs/`
+- `schemas/`
+- `db/`
+- `fixtures/`
+- `tests/`
+- `package.json`
+- `pnpm-workspace.yaml`
 
-They should not be created casually.
+Root is source of truth for:
+
+- object taxonomy
+- lifecycle semantics
+- event semantics
+- API semantics
+- logical schema boundaries
+- workspace topology
+- ownership rules
+- parallel-work safety rules
+
+## Governed Workspace Layer
+
+The governed workspace layer includes:
+
+- `apps/`
+- `packages/`
+- `skills/`
+- `standards/`
+
+These namespaces are now available for real implementation work, not only for future reservation.
+
+## Active Workspace Registry
+
+These child workspaces are currently activated:
+
+- `apps/web/` - first Boreal product workspace, activated as the primary web surface but intentionally scaffold-light while the initial runtime stack remains undecided.
+
+Every new child workspace must be added here in the same patch that creates it.
+
+## Namespace Rules
 
 ### `apps/`
 
@@ -160,7 +213,7 @@ Use `packages/network-*` or `packages/libp2p-*` for reusable networking code.
 Why:
 
 - `network` is redundant inside `Boreal Network`
-- `node` is too generic once the repo also contains CLI apps, desktop apps, bots, gateways, and npm packages
+- `node` is too generic once the repo contains CLI apps, desktop apps, bots, gateways, and npm packages
 - it mixes network membership, deployment shape, and reusable transport concerns into one vague label
 
 Use instead:
@@ -169,7 +222,7 @@ Use instead:
 - `apps/gateway-*` for protocol bridges and edge runtimes
 - `packages/network-*` or `packages/libp2p-*` for shared libp2p, transport, or peer libraries
 
-## Branding and Marketing Rule
+## Branding And Marketing Rule
 
 Brand support follows this rule:
 
@@ -181,12 +234,14 @@ Do not create top-level `branding/` or `marketing/` namespaces unless the repo g
 
 ## Workspace Creation Rules
 
-Do not create a new top-level namespace or workspace until:
+Do not create a new top-level namespace or child workspace until:
 
 1. the namespace and purpose are registered here
 2. the root `README.md` and root `AGENTS.md` are updated if needed
-3. the workspace has a clear relationship to root canon
-4. the workspace root includes `README.md` and `AGENTS.md`
+3. the workspace is added to the active workspace registry here
+4. `docs/WORKSTREAMS.md` and `docs/OWNERSHIP.md` are updated if coordination or ownership changes
+5. the workspace has a clear relationship to root canon
+6. the workspace root includes `README.md` and `AGENTS.md`
 
 ## Required Files For Any New Workspace
 
@@ -209,7 +264,7 @@ The local `AGENTS.md` must explain:
 - prohibited drift
 - local sync rules
 
-## Ownership and Boundary Rules
+## Ownership And Boundary Rules
 
 ### Root docs remain source of truth for:
 
@@ -218,6 +273,8 @@ The local `AGENTS.md` must explain:
 - event semantics
 - API semantics
 - logical schema boundaries
+- workspace topology
+- ownership rules
 
 ### Workspaces may specialize:
 
@@ -234,6 +291,7 @@ The local `AGENTS.md` must explain:
 - event meaning
 - payment meaning
 - fulfillment meaning
+- root ownership and workstream rules
 
 ## Forbidden Top-Level Drift
 
@@ -250,6 +308,6 @@ Do not introduce new top-level folders like:
 - `mobile-app/`
 - `extension-app/`
 
-when an existing reserved namespace already covers the use case.
+when an existing governed namespace already covers the use case.
 
 If a truly new namespace is needed, document why the existing ones are not enough before creating it.

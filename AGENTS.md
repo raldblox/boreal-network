@@ -4,15 +4,16 @@
 
 This `AGENTS.md` applies to the entire `C:\Users\raldb\boreal-network` repository unless a deeper directory adds a more specific `AGENTS.md`.
 
-This repo is the canonical domain and contract source for Boreal Network.
-Treat it as a control plane for meaning, not a scratchpad.
+This repo is Boreal's canonical monorepo.
+Treat the root as the semantic control layer inside that monorepo, not as a scratchpad.
 
 ## Mission
 
 - Keep Boreal Network request-native.
 - Keep the domain model durable and explicit.
 - Keep contracts machine-readable and human-readable in sync.
-- Prevent object drift, naming drift, status drift, and event drift.
+- Keep governed workspaces aligned with root canon.
+- Make parallel work safe through explicit ownership and disjoint write scopes.
 - Refuse speculative implementation changes when the canon is unclear.
 
 ## Required Read Order
@@ -29,8 +30,10 @@ Before editing anything substantial, read:
 8. `docs/API_CONTRACTS.md`
 9. `docs/SCHEMA_LOGICAL.md`
 10. `docs/REPO_STRUCTURE.md`
-11. `docs/GOVERNANCE.md`
-12. `docs/TEST_MATRIX.md`
+11. `docs/WORKSTREAMS.md`
+12. `docs/OWNERSHIP.md`
+13. `docs/GOVERNANCE.md`
+14. `docs/TEST_MATRIX.md`
 
 If the task affects positioning, pitch, go-to-market, wedge, revenue model, or competitive framing, also read:
 
@@ -76,8 +79,8 @@ Forbidden core synonyms:
 - Do not use `Job` as the root object name.
 - Do not use `Order` as the root object name.
 - Do not use `Issue` as the root object name.
-- Do not use `Offer` as a canonical schema object. `Offer` may exist as UI language only.
-- Do not use `Intent` as the durable root object. It is extraction or draft language only.
+- Do not use `Offer` as a canonical schema object.  `Offer` may exist as UI language only.
+- Do not use `Intent` as the durable root object.  It is extraction or draft language only.
 
 ## Non-Negotiable Domain Rules
 
@@ -85,7 +88,7 @@ Forbidden core synonyms:
 - One request should survive intake, routing, funding, execution, delivery, and review instead of spawning disconnected workflows.
 - Generated worker sub-work should default to `FulfillmentStep`, not a new `Request`.
 - Create a new `Request` only when separate funding, separate ownership, separate market routing, or separate review boundaries are required.
-- Do not store full message history, artifact history, and transaction history inline on the `Request` root. Keep summary state on the root and full history in `RequestEvent`, `Artifact`, and `Transaction`.
+- Do not store full message history, artifact history, and transaction history inline on the `Request` root.  Keep summary state on the root and full history in `RequestEvent`, `Artifact`, and `Transaction`.
 - Do not introduce root objects that duplicate `Commitment`, `Fulfillment`, or `Transaction` semantics without first updating the canon.
 
 ## Commercial Truth Rules
@@ -98,12 +101,12 @@ Forbidden core synonyms:
 - Do not pitch Boreal as a generic freelancer marketplace clone.
 - Do not pitch Boreal as an internal employee copilot suite.
 - Do not pitch Boreal as an agency-first services business.
-- Commercial docs are canon for roast, pitch, and fundraising tasks. Do not replace them with improvised copy.
+- Commercial docs are canon for roast, pitch, and fundraising tasks.  Do not replace them with improvised copy.
 - Use `docs/LIVE_VS_TARGET.md` to separate canon-locked truth, machine-modeled truth, and target direction before making product or fundraising claims.
 
 ## Documentation-First Rule
 
-This repo is docs-first.
+The root of this repo is docs-first.
 
 If a change affects meaning, lifecycle, naming, or contract behavior, update the canon first in the same patch.
 Do not write implementation code that relies on undocumented semantics.
@@ -214,6 +217,17 @@ If you add or change an external endpoint, webhook, or callback:
 - update event contracts under `schemas/events/` if async behavior changes
 - update `docs/TEST_MATRIX.md`
 
+If you activate, add, rename, or retire a workspace:
+
+- update `README.md`
+- update `docs/README.md`
+- update `docs/REPO_STRUCTURE.md`
+- update `docs/WORKSTREAMS.md`
+- update `docs/OWNERSHIP.md`
+- update local workspace `README.md`
+- update local workspace `AGENTS.md`
+- update `docs/decisions/` when the topology or naming decision is non-trivial
+
 If you change governance or contribution rules:
 
 - update `AGENTS.md`
@@ -237,7 +251,7 @@ Do not invent ad hoc machine-readable formats when these standards fit.
 - Events must be idempotent under replay.
 - Events must carry enough identifiers for causation, correlation, and audit.
 - Event payloads must not include secrets, private keys, or transient prompt internals that are not part of durable business truth.
-- If an event name changes, version it. Do not silently mutate history semantics.
+- If an event name changes, version it.  Do not silently mutate history semantics.
 
 ## Testing Rules
 
@@ -250,22 +264,39 @@ At minimum, this repo must preserve:
 - idempotency behavior
 - replay safety
 - transaction correctness
+- workspace topology and ownership safety
 
 When adding schema or contracts, add corresponding fixture and test coverage plans in the same patch.
 
-## File and Folder Rules
+## Multi-Agent Rules
+
+- Parallel work is allowed only with disjoint write scopes.
+- Root canon files are single-writer by default.
+- A task must declare its write scope before multi-agent work starts.
+- One primary owner should be responsible for each file inside one patch.
+- Implementation agents may not silently edit root semantic docs unless that write scope was assigned explicitly.
+- If a change is `Class A` or `Class B`, root canon must merge first or in the same patch before dependent implementation work continues.
+- If two agents need the same file, pick one owner and queue the other task.
+
+Use `docs/WORKSTREAMS.md` and `docs/OWNERSHIP.md` for the operating model.
+
+## File And Folder Rules
 
 - Canon docs live in `docs/`.
 - Machine-readable schemas live in `schemas/`.
 - Physical schema and migrations live in `db/`.
 - Deterministic samples live in `fixtures/`.
 - Validation assets live in `tests/`.
+- Runnable product and operator surfaces live in `apps/`.
+- Shared code lives in `packages/`.
+- Agent skill packages live in `skills/`.
+- Implementation standards live in `standards/`.
 
 Do not scatter canonical domain definitions across random files.
 
 ## Workspace Expansion Rules
 
-Reserved top-level namespaces:
+Governed top-level namespaces:
 
 - `apps/`
 - `packages/`
@@ -291,7 +322,7 @@ Do not create a new top-level folder unless:
 
 - its purpose is registered in `docs/REPO_STRUCTURE.md`
 - its boundaries do not conflict with existing canonical objects
-- the root `README.md` and `AGENTS.md` are updated in the same patch
+- the root `README.md`, `docs/WORKSTREAMS.md`, and `docs/OWNERSHIP.md` are updated in the same patch when needed
 - a local `README.md` and local `AGENTS.md` are defined for that workspace
 
 Every new workspace root must include:
@@ -310,7 +341,7 @@ Namespace-specific constraints:
 
 - `apps/*` may define deployable surfaces, UI flows, clients, bots, CLI applications, peer nodes, caches, and local UX abstractions, but must not redefine canonical domain objects or lifecycle states.
 - `packages/*` may define reusable code, SDKs, schemas, generated clients, shared transport libraries, and internal npm packages, but must not redefine request, commitment, fulfillment, transaction, or event semantics.
-- `skills/*` may define reusable agent behavior and task packaging, but must not introduce conflicting contract or lifecycle names. If a skill needs executable shared code, place that code in `packages/*` and keep the skill definition in `skills/*`.
+- `skills/*` may define reusable agent behavior and task packaging, but must not introduce conflicting contract or lifecycle names.  If a skill needs executable shared code, place that code in `packages/*` and keep the skill definition in `skills/*`.
 - `standards/*` may define recommended implementation profiles, compatibility rules, or adapter standards, but they must inherit root canon instead of overriding it.
 
 Branding rule:
@@ -318,39 +349,3 @@ Branding rule:
 - brand guidance, naming, and lightweight messaging notes should stay in `docs/` until a dedicated asset-heavy workspace is justified
 - marketing or docs websites belong in `apps/*`
 - do not create a top-level `branding/` or `marketing/` namespace without first updating `docs/REPO_STRUCTURE.md`
-
-Do not place implementation code at the repo root when it clearly belongs in one of those namespaces.
-
-Do not create `network-node/` as a top-level namespace or preferred workspace name.
-Use `apps/peer/` or `apps/peer-*` for runnable network participants, `apps/gateway-*` for bridges, and `packages/network-*` or `packages/libp2p-*` for shared networking code.
-
-Do not create ad hoc top-level folders like `client`, `server`, `sdk`, `mobile-app`, `node2`, `tools2`, `bots`, or `marketing` when an existing namespace fits.
-
-## Change Discipline
-
-- Prefer additive changes first.
-- When renaming a canonical concept, update every affected canon file in one patch.
-- Keep files small, explicit, and cross-linked.
-- Use diagrams only when they clarify state or ownership better than prose.
-- Record unresolved decisions explicitly instead of burying them in comments.
-- When creating a new workspace, add its local guardrails before implementation code lands.
-
-## What Not To Do
-
-- Do not implement from UI-first guesses.
-- Do not add provider-specific fields to root objects unless they are truly durable business state.
-- Do not collapse demand, commitment, fulfillment, and payment into one blob object.
-- Do not let code define the model before the docs do.
-- Do not add speculative abstractions "for later" without a concrete place in the taxonomy.
-- Do not treat roadmap ideas as current truth.
-- Do not silently continue when a requested action is likely to break canon, contracts, workspace boundaries, or durable history.
-
-## Commits
-
-Use imperative commit messages such as:
-
-- `Add Boreal Network thesis and taxonomy`
-- `Define request event envelope`
-- `Lock request and fulfillment state machines`
-
-Keep commits scoped to one conceptual change when practical.

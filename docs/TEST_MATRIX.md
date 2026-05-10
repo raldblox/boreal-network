@@ -71,10 +71,13 @@ Verify:
 Verify:
 
 - no unregistered top-level namespaces are introduced
-- every workspace root has `README.md` and `AGENTS.md`
+- every active namespace root has `README.md` and `AGENTS.md`
+- every active workspace root has `README.md` and `AGENTS.md`
+- active workspace registry matches actual folders
 - workspace docs agree with root canon
 - app, package, skill, and standards workspaces do not redefine canonical root object names
 - generic workspace names such as `network-node`, `node2`, or `misc` are blocked unless explicitly approved in canon docs
+- root manifests and workspace manifests agree on active JS or TS workspaces
 
 ### Risk governance tests
 
@@ -83,9 +86,10 @@ Verify:
 - changes that alter canonical object names are blocked unless canon docs are updated in the same patch
 - changes that alter category, wedge, or revenue model are blocked unless commercial canon docs are updated in the same patch
 - changes that alter lifecycle states are blocked unless state and event docs are updated in the same patch
-- changes that add workspaces are blocked unless `docs/REPO_STRUCTURE.md` and local workspace guardrails exist
+- changes that add workspaces are blocked unless `docs/REPO_STRUCTURE.md`, `docs/WORKSTREAMS.md`, `docs/OWNERSHIP.md`, and local workspace guardrails exist
 - destructive or breaking actions require explicit escalation paths in agent instructions
 - risk escalations use the required visible format with `Risk`, `Impact`, `Scope`, `Safer path`, and `Question`
+- parallel work requires disjoint write scopes or explicit single-owner assignment
 
 ### Monetary integrity tests
 

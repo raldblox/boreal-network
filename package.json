@@ -1,0 +1,5 @@
+{
+  "name": "boreal-network",
+  "private": true,
+  "packageManager": "pnpm@10"
+}

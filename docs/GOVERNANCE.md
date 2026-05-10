@@ -20,10 +20,14 @@ When documents disagree, the precedence order is:
 12. `docs/BUSINESS_MODEL.md`
 13. `docs/PITCH_FACTS.md`
 14. `docs/LIVE_VS_TARGET.md`
-15. machine-readable schemas in `schemas/`
-16. implementation code in downstream repos
+15. `docs/REPO_STRUCTURE.md`
+16. `docs/WORKSTREAMS.md`
+17. `docs/OWNERSHIP.md`
+18. machine-readable schemas in `schemas/`
+19. implementation code in governed workspaces inside this monorepo
+20. implementation code in any external companion repos
 
-Implementation code must not override the canon.
+Implementation code must not override root canon.
 
 ## Change Classes
 
@@ -80,11 +84,13 @@ Examples:
 - new index
 - new search strategy
 - new projection cache
+- new workspace-local cache or adapter that does not redefine canon
 
 Required updates:
 
 - logical schema if durable implications exist
 - tests if observable behavior changes
+- local workspace docs if commands or boundaries changed
 
 ### Class D: workspace topology change
 
@@ -96,13 +102,17 @@ Examples:
 - new workspace under `skills/`
 - new workspace under `standards/`
 - renamed workspace
+- retired workspace
 - change to workspace naming rules or reserved role names
 
 Required updates:
 
 - `README.md`
 - `AGENTS.md`
+- `docs/README.md`
 - `docs/REPO_STRUCTURE.md`
+- `docs/WORKSTREAMS.md`
+- `docs/OWNERSHIP.md`
 - local workspace `README.md` when the workspace exists
 - local workspace `AGENTS.md` when the workspace exists
 - tests if the workspace changes observable contracts or durable behavior
@@ -202,16 +212,27 @@ Update:
 - OpenAPI
 - tests
 
-### If you add or rename a workspace
+### If you add, rename, retire, or repurpose a workspace
 
 Update:
 
 - `README.md`
 - `AGENTS.md`
+- `docs/README.md`
 - `docs/REPO_STRUCTURE.md`
-- `docs/decisions/` when the naming decision is non-trivial
+- `docs/WORKSTREAMS.md`
+- `docs/OWNERSHIP.md`
+- `docs/decisions/` when the naming or topology decision is non-trivial
 - local workspace `README.md`
 - local workspace `AGENTS.md`
+
+### If you change workstream or ownership boundaries
+
+Update:
+
+- `docs/WORKSTREAMS.md`
+- `docs/OWNERSHIP.md`
+- relevant local workspace docs when responsibilities changed
 
 ## Drift Rules
 
@@ -220,4 +241,5 @@ Update:
 - Do not keep legacy synonyms alive in new core work unless intentionally documented.
 - Do not land code first and canon later for semantic changes.
 - Do not add top-level folders without registering them in `docs/REPO_STRUCTURE.md`.
+- Do not let active workspace docs drift from root canon.
 - Do not make silent breaking moves when the blast radius is known or reasonably likely.

@@ -1,0 +1,6 @@
+{
+  "name": "@boreal/web",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Primary Boreal web workspace in the Boreal monorepo."
+}

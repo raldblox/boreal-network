@@ -1,8 +1,8 @@
 # Boreal Network
 
-Boreal Network is the canonical modeling, commercial-canon, and contract repository for Boreal's request-native work network.
+Boreal Network is the canonical monorepo for Boreal.
 
-This repository is intentionally docs-first.
+The root stays canon-first and docs-first.  Governed implementation workspaces now live in the same repository under `apps/`, `packages/`, `skills/`, and `standards/`.
 
 Its job is to define:
 
@@ -18,10 +18,12 @@ Its job is to define:
 - pitch-safe facts
 - live-versus-target claim boundaries
 - machine-readable schema baseline
+- active workspace topology
+- workstream and ownership rules
 - test expectations
 - coding-agent guardrails
 
-Implementation repositories should follow this repo's canon.
+Implementation workspaces inside this repo, and any external companion repos, must follow root canon.
 They must not invent conflicting root objects, status names, event names, or API semantics without updating the canon here first.
 
 ## Read Order
@@ -43,26 +45,30 @@ Read these files in order before making any meaningful change:
 13. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
 14. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
 15. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
-16. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
-17. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
-18. [AGENTS.md](AGENTS.md)
+16. [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md)
+17. [docs/OWNERSHIP.md](docs/OWNERSHIP.md)
+18. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
+19. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
+20. [AGENTS.md](AGENTS.md)
 
 ## Repository Layout
 
-- `docs/` holds human-readable canon and governance.
+- `docs/` holds human-readable canon, decisions, governance, and coordination rules.
 - `schemas/json/` holds canonical object schemas.
 - `schemas/openapi/` holds HTTP and webhook contracts.
 - `schemas/events/` holds async event contracts.
 - `db/` holds physical schema, migrations, and indexing plans.
 - `fixtures/` holds deterministic sample data grouped by aggregate.
-- `tests/` holds contract, lifecycle, and invariant verification assets.
+- `tests/` holds contract, lifecycle, invariant, and topology verification assets.
+- `apps/` holds runnable product and operator surfaces.
+- `packages/` holds reusable shared code, SDKs, clients, configs, and transport libraries.
+- `skills/` holds reusable agent skills, prompt packs, and task modules.
+- `standards/` holds Boreal-specific implementation standards, protocol profiles, and compatibility rules.
+- `package.json` and `pnpm-workspace.yaml` hold the JS or TS workspace baseline for code-bearing workspaces.
 
-Reserved top-level namespaces for future expansion:
+Current activated workspace:
 
-- `apps/` for deployable or runnable products such as web, mobile, desktop, extensions, bots, docs sites, marketing sites, CLI apps, peer runtimes, and gateway services
-- `packages/` for reusable libraries, SDKs, npm packages, shared clients, transport libraries, shared configs, and internal code packages
-- `skills/` for reusable agent skills, prompt packs, or task modules
-- `standards/` for Boreal-specific protocol profiles, integration standards, and implementation rules
+- `apps/web/` is the first governed implementation workspace.  It is intentionally scaffold-light until the initial web runtime stack is chosen explicitly.
 
 Name workspaces by role, not vague infra labels.
 Prefer names like `peer`, `gateway-http`, `telegram-bot`, `desktop`, `cli`, and `marketing-site`.
@@ -72,16 +78,14 @@ If you need a runnable Boreal network participant, place it under `apps/peer` or
 If you need a protocol bridge, use `apps/gateway-*`.
 If you need reusable node or libp2p code, place it under `packages/network-*` or `packages/libp2p-*`.
 
-Do not create those namespaces ad hoc.
-Register and govern them through [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md) first.
-
-See [docs/README.md](docs/README.md), [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md), and [schemas/README.md](schemas/README.md) for structure details.
+See [docs/README.md](docs/README.md), [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md), [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md), [docs/OWNERSHIP.md](docs/OWNERSHIP.md), and [schemas/README.md](schemas/README.md) for structure details.
 
 ## Working Rule
 
 Do not start from tables.
 Do not start from UI.
 Do not start from provider-specific glue.
+Do not start a new workspace with code before its local `README.md` and `AGENTS.md` exist.
 
 If a task could break canon, contracts, durable history, or workspace boundaries, the agent must stop and emit a visibly labeled `RISK ESCALATION` or `BLOCKING RISK ESCALATION` message before continuing.
 
@@ -96,9 +100,10 @@ Start from:
 7. event model
 8. API contracts
 9. logical schema
-10. machine-readable schema
-11. physical schema
-12. implementation and tests
+10. workspace topology and ownership
+11. machine-readable schema
+12. physical schema
+13. implementation and tests
 
 ## Current Scope
 
@@ -113,6 +118,8 @@ This repo defines the durable network model for:
 - artifacts and proof
 - payments and payout records
 - event history
+- governed workspace topology
+- safe parallel implementation boundaries
 
 It also defines:
 
@@ -120,14 +127,17 @@ It also defines:
 - what Boreal wins first
 - why the business is a network instead of a point tool
 - how Boreal should make money without collapsing into agency economics
+- where Boreal product code, peer code, skills, and standards belong inside this monorepo
 
-It does not exist to hold marketing copy, product launch material, or implementation-specific hacks.
+It does not exist to hold random root-level implementation hacks.
+Put product and support code in governed workspaces.
 
 ## Workspace Rule
 
-No new top-level workspace or namespace should be added until:
+No new top-level namespace or child workspace should be added until:
 
-1. its purpose is registered in `docs/REPO_STRUCTURE.md`
-2. its boundaries are compatible with the canon
-3. its required local `README.md` and `AGENTS.md` rules are defined
-4. the root docs and governance are updated in the same patch
+1. its purpose fits [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
+2. the active workspace registry is updated
+3. [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md) and [docs/OWNERSHIP.md](docs/OWNERSHIP.md) are updated if scope or ownership changes
+4. its required local `README.md` and `AGENTS.md` rules are defined
+5. the root docs and governance are updated in the same patch when repo meaning or topology changes
