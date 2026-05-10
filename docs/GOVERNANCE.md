@@ -7,13 +7,20 @@ This file defines how Boreal Network canon changes without drifting.
 When documents disagree, the precedence order is:
 
 1. `docs/NETWORK_THESIS.md`
-2. `docs/OBJECT_TAXONOMY.md`
-3. `docs/STATE_MACHINES.md`
-4. `docs/EVENT_MODEL.md`
-5. `docs/API_CONTRACTS.md`
-6. `docs/SCHEMA_LOGICAL.md`
-7. machine-readable schemas in `schemas/`
-8. implementation code in downstream repos
+2. `docs/COMMERCIAL_CANON.md`
+3. `docs/PRODUCT_POSITIONING.md`
+4. `docs/ICP_AND_WEDGE.md`
+5. `docs/WHY_NOW.md`
+6. `docs/OBJECT_TAXONOMY.md`
+7. `docs/STATE_MACHINES.md`
+8. `docs/EVENT_MODEL.md`
+9. `docs/API_CONTRACTS.md`
+10. `docs/SCHEMA_LOGICAL.md`
+11. `docs/COMPETITIVE_MAP.md`
+12. `docs/BUSINESS_MODEL.md`
+13. `docs/PITCH_FACTS.md`
+14. machine-readable schemas in `schemas/`
+15. implementation code in downstream repos
 
 Implementation code must not override the canon.
 
@@ -28,16 +35,23 @@ Examples:
 - changed lifecycle state meaning
 - changed event meaning
 - changed payment or fulfillment boundary
+- changed commercial category
+- changed primary wedge
+- changed business-model boundary
 
 Required updates:
 
 - thesis if the category meaning changed
+- commercial canon
+- product positioning
+- ICP and wedge
+- why now
 - taxonomy
 - state machines
 - event model
 - logical schema
 - tests
-- machine-readable schemas
+- machine-readable schemas when canonical object, lifecycle, or contract semantics changed
 
 ### Class B: contract change
 
@@ -153,6 +167,20 @@ Update:
 - logical schema
 - API contracts if external surfaces changed
 - tests
+
+### If you change commercial category, wedge, or business model
+
+Update:
+
+- `docs/COMMERCIAL_CANON.md`
+- `docs/PRODUCT_POSITIONING.md`
+- `docs/ICP_AND_WEDGE.md`
+- `docs/WHY_NOW.md`
+- `docs/COMPETITIVE_MAP.md` when category boundaries changed
+- `docs/BUSINESS_MODEL.md`
+- `docs/PITCH_FACTS.md`
+- `README.md`
+- `docs/README.md`
 
 ### If you change event names or payloads
 

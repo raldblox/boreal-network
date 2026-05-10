@@ -21,14 +21,24 @@ Before editing anything substantial, read:
 
 1. `README.md`
 2. `docs/NETWORK_THESIS.md`
-3. `docs/OBJECT_TAXONOMY.md`
-4. `docs/STATE_MACHINES.md`
-5. `docs/EVENT_MODEL.md`
-6. `docs/API_CONTRACTS.md`
-7. `docs/SCHEMA_LOGICAL.md`
-8. `docs/REPO_STRUCTURE.md`
-9. `docs/GOVERNANCE.md`
-10. `docs/TEST_MATRIX.md`
+3. `docs/COMMERCIAL_CANON.md`
+4. `docs/OBJECT_TAXONOMY.md`
+5. `docs/STATE_MACHINES.md`
+6. `docs/EVENT_MODEL.md`
+7. `docs/API_CONTRACTS.md`
+8. `docs/SCHEMA_LOGICAL.md`
+9. `docs/REPO_STRUCTURE.md`
+10. `docs/GOVERNANCE.md`
+11. `docs/TEST_MATRIX.md`
+
+If the task affects positioning, pitch, go-to-market, wedge, revenue model, or competitive framing, also read:
+
+- `docs/PRODUCT_POSITIONING.md`
+- `docs/ICP_AND_WEDGE.md`
+- `docs/WHY_NOW.md`
+- `docs/COMPETITIVE_MAP.md`
+- `docs/BUSINESS_MODEL.md`
+- `docs/PITCH_FACTS.md`
 
 Do not skip this order.
 
@@ -75,6 +85,18 @@ Forbidden core synonyms:
 - Create a new `Request` only when separate funding, separate ownership, separate market routing, or separate review boundaries are required.
 - Do not store full message history, artifact history, and transaction history inline on the `Request` root. Keep summary state on the root and full history in `RequestEvent`, `Artifact`, and `Transaction`.
 - Do not introduce root objects that duplicate `Commitment`, `Fulfillment`, or `Transaction` semantics without first updating the canon.
+
+## Commercial Truth Rules
+
+- Pitch Boreal as `request-native work commerce`.
+- Treat `chat-native` as the interface layer, not the category layer.
+- Treat `intent-to-fulfillment` as thesis language, not the canonical root-object name.
+- Lead with buyer demand, fulfillment continuity, and monetizable work outcomes.
+- Do not lead with `libp2p`, `MCP`, `CRDT`, or transport as the business story.
+- Do not pitch Boreal as a generic freelancer marketplace clone.
+- Do not pitch Boreal as an internal employee copilot suite.
+- Do not pitch Boreal as an agency-first services business.
+- Commercial docs are canon for roast, pitch, and fundraising tasks. Do not replace them with improvised copy.
 
 ## Documentation-First Rule
 
@@ -155,6 +177,17 @@ If you change a root object:
 - update `docs/SCHEMA_LOGICAL.md`
 - update `docs/TEST_MATRIX.md`
 - update machine schemas in `schemas/json/` when they exist
+
+If you change commercial category, positioning, wedge, why-now logic, competitive framing, or revenue model:
+
+- update `docs/COMMERCIAL_CANON.md`
+- update `docs/PRODUCT_POSITIONING.md`
+- update `docs/ICP_AND_WEDGE.md`
+- update `docs/WHY_NOW.md`
+- update `docs/COMPETITIVE_MAP.md` if competitive implications changed
+- update `docs/BUSINESS_MODEL.md` if monetization implications changed
+- update `docs/PITCH_FACTS.md`
+- update `README.md` and `docs/README.md` if the read order or repo scope changed
 
 If you change a lifecycle or status:
 

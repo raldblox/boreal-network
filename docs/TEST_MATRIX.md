@@ -13,6 +13,15 @@ Verify:
 - AsyncAPI or event schema validity
 - sample payload compatibility
 
+### Commercial canon tests
+
+Verify:
+
+- commercial category matches thesis language
+- positioning docs do not contradict root object canon
+- ICP and wedge stay consistent with business model and competitive map
+- pitch facts do not overclaim beyond canon or cited market evidence
+
 ### Lifecycle tests
 
 Verify:
@@ -71,6 +80,7 @@ Verify:
 Verify:
 
 - changes that alter canonical object names are blocked unless canon docs are updated in the same patch
+- changes that alter category, wedge, or revenue model are blocked unless commercial canon docs are updated in the same patch
 - changes that alter lifecycle states are blocked unless state and event docs are updated in the same patch
 - changes that add workspaces are blocked unless `docs/REPO_STRUCTURE.md` and local workspace guardrails exist
 - destructive or breaking actions require explicit escalation paths in agent instructions

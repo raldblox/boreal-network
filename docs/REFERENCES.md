@@ -15,6 +15,17 @@ They explain where the structure and standards came from.
 - Prisma pnpm workspaces guide: [https://www.prisma.io/docs/guides/deployment/pnpm-workspaces](https://www.prisma.io/docs/guides/deployment/pnpm-workspaces)
 - libp2p peers reference: [https://libp2p.io/docs/peers/](https://libp2p.io/docs/peers/)
 
+## Commercial and Market Signals
+
+- Upwork Q4 and full year 2025 results: [https://investors.upwork.com/news-releases/news-release-details/upwork-reports-fourth-quarter-and-full-year-2025-financial](https://investors.upwork.com/news-releases/news-release-details/upwork-reports-fourth-quarter-and-full-year-2025-financial)
+- Upwork Spring 2026 SMB and execution updates: [https://investors.upwork.com/news-releases/news-release-details/upwork-updates-spring-2026-ai-powered-innovations-help-small](https://investors.upwork.com/news-releases/news-release-details/upwork-updates-spring-2026-ai-powered-innovations-help-small)
+- Upwork Summer 2025 Uma work-agent update: [https://investors.upwork.com/news-releases/news-release-details/upwork-evolves-uma-ai-ai-work-agent-advances-human-ai](https://investors.upwork.com/news-releases/news-release-details/upwork-evolves-uma-ai-ai-work-agent-advances-human-ai)
+- Upwork enterprise contingent-workforce expansion via Lifted: [https://investors.upwork.com/news-releases/news-release-details/upwork-inc-introduces-lifted-subsidiary-serving-enterprises-full](https://investors.upwork.com/news-releases/news-release-details/upwork-inc-introduces-lifted-subsidiary-serving-enterprises-full)
+- Fiverr Q1 2026 results: [https://www.fiverr.com/news/fiverr-q1-2026-earnings](https://www.fiverr.com/news/fiverr-q1-2026-earnings)
+- Fiverr Q2 2025 results: [https://investors.fiverr.com/news-releases/news-release-details/fiverr-announces-second-quarter-2025-results](https://investors.fiverr.com/news-releases/news-release-details/fiverr-announces-second-quarter-2025-results)
+- OpenAI on the next phase of enterprise AI: [https://openai.com/index/next-phase-of-enterprise-ai/](https://openai.com/index/next-phase-of-enterprise-ai/)
+- Microsoft Frontier Suite and Agent 365: [https://blogs.microsoft.com/blog/2026/03/09/introducing-the-first-frontier-suite-built-on-intelligence-trust/](https://blogs.microsoft.com/blog/2026/03/09/introducing-the-first-frontier-suite-built-on-intelligence-trust/)
+
 ## Contract Standards
 
 - JSON Schema: [https://json-schema.org/](https://json-schema.org/)

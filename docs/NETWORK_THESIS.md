@@ -4,12 +4,17 @@
 
 Boreal Network is a request-native work network.
 
+Commercially, it should be read as request-native work commerce.
+
 It coordinates humans, agents, tools, and runtimes around one durable object:
 
 - `Request`
 
 A request begins as demand.
 It can then move through routing, commitment, funding, fulfillment, proof, delivery, and payout without leaving the same durable thread.
+
+The network model is the system shape.
+The commerce reading is the business category.
 
 ## Core Idea
 

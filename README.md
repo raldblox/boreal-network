@@ -1,17 +1,21 @@
 # Boreal Network
 
-Boreal Network is the canonical modeling and contract repository for Boreal's request-native work network.
+Boreal Network is the canonical modeling, commercial-canon, and contract repository for Boreal's request-native work network.
 
 This repository is intentionally docs-first.
 
 Its job is to define:
 
 - the network thesis
+- the commercial category and positioning
+- the buyer wedge and market boundary
 - the canonical object taxonomy
 - lifecycle and state rules
 - event contracts
 - API contracts
 - logical schema boundaries
+- the competitive and business-model truth
+- pitch-safe facts
 - test expectations
 - coding-agent guardrails
 
@@ -23,15 +27,22 @@ They must not invent conflicting root objects, status names, event names, or API
 Read these files in order before making any meaningful change:
 
 1. [docs/NETWORK_THESIS.md](docs/NETWORK_THESIS.md)
-2. [docs/OBJECT_TAXONOMY.md](docs/OBJECT_TAXONOMY.md)
-3. [docs/STATE_MACHINES.md](docs/STATE_MACHINES.md)
-4. [docs/EVENT_MODEL.md](docs/EVENT_MODEL.md)
-5. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
-6. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
-7. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
-8. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
-9. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
-10. [AGENTS.md](AGENTS.md)
+2. [docs/COMMERCIAL_CANON.md](docs/COMMERCIAL_CANON.md)
+3. [docs/PRODUCT_POSITIONING.md](docs/PRODUCT_POSITIONING.md)
+4. [docs/ICP_AND_WEDGE.md](docs/ICP_AND_WEDGE.md)
+5. [docs/WHY_NOW.md](docs/WHY_NOW.md)
+6. [docs/OBJECT_TAXONOMY.md](docs/OBJECT_TAXONOMY.md)
+7. [docs/STATE_MACHINES.md](docs/STATE_MACHINES.md)
+8. [docs/EVENT_MODEL.md](docs/EVENT_MODEL.md)
+9. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
+10. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
+11. [docs/COMPETITIVE_MAP.md](docs/COMPETITIVE_MAP.md)
+12. [docs/BUSINESS_MODEL.md](docs/BUSINESS_MODEL.md)
+13. [docs/PITCH_FACTS.md](docs/PITCH_FACTS.md)
+14. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
+15. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
+16. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
+17. [AGENTS.md](AGENTS.md)
 
 ## Repository Layout
 
@@ -74,18 +85,21 @@ If a task could break canon, contracts, durable history, or workspace boundaries
 Start from:
 
 1. thesis
-2. taxonomy
-3. state machines
-4. event model
-5. API contracts
-6. logical schema
-7. physical schema
-8. implementation and tests
+2. commercial canon
+3. positioning and wedge
+4. taxonomy
+5. state machines
+6. event model
+7. API contracts
+8. logical schema
+9. physical schema
+10. implementation and tests
 
 ## Current Scope
 
 This repo defines the durable network model for:
 
+- commercial category and buyer truth
 - requests
 - supply
 - participants
@@ -94,6 +108,13 @@ This repo defines the durable network model for:
 - artifacts and proof
 - payments and payout records
 - event history
+
+It also defines:
+
+- who buys first
+- what Boreal wins first
+- why the business is a network instead of a point tool
+- how Boreal should make money without collapsing into agency economics
 
 It does not exist to hold marketing copy, product launch material, or implementation-specific hacks.
 
