@@ -1,4 +1,4 @@
-# Schema Layout
+﻿# Schema Layout
 
 This directory holds machine-readable contract artifacts.
 
@@ -43,12 +43,15 @@ Recommended naming:
 - `json/request.schema.json`
 - `json/supply.schema.json`
 - `json/commitment.schema.json`
-
-Pending next canonical files:
-
 - `json/fulfillment.schema.json`
 - `json/transaction.schema.json`
 - `json/request-event.schema.json`
+
+Pending next machine-readable areas:
+
+- OpenAPI request and supply contracts under `schemas/openapi/`
+- event stream contracts under `schemas/events/`
+- optional derived-object schemas for planner and matcher outputs if they become durable exchange contracts
 
 ## Rule
 

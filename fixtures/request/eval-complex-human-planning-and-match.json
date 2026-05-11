@@ -1,0 +1,112 @@
+﻿{
+  "fixtureType": "planner_matcher_eval",
+  "schemaVersion": 1,
+  "scenarioId": "eval-complex-human-planning-and-match",
+  "description": "Complex human-led operations migration with AI-assisted support should match a human lead first, then propose a bounded team plan.",
+  "requestInput": {
+    "actor": {
+      "kind": "human",
+      "id": "actor_nadia_cho",
+      "displayName": "Nadia Cho"
+    },
+    "rawAsk": "I need someone to own a support and sales ops migration for our startup. We run support in Notion and Airtable today, and we want HubSpot set up properly with automations, handoff docs, and operator training. Budget is around 6k to 9k. We need this done in about three weeks. AI support is fine, but I do not want a black-box setup that nobody on my team can run later."
+  },
+  "candidateSupplies": [
+    {
+      "supplyId": "sup_human_ops_migration_lead",
+      "title": "Revenue and Support Ops Migration Lead",
+      "actorKinds": ["human"],
+      "supplyKinds": ["operator", "migration_lead"],
+      "summary": "Owns CRM and support migrations, training, and operational rollout."
+    },
+    {
+      "supplyId": "sup_ai_automation_studio",
+      "title": "AI Automation Studio",
+      "actorKinds": ["agent", "human"],
+      "supplyKinds": ["automation_builder"],
+      "summary": "Builds automations, integrations, and internal tooling support."
+    },
+    {
+      "supplyId": "sup_copy_only_documentation_team",
+      "title": "Documentation Team",
+      "actorKinds": ["human"],
+      "supplyKinds": ["documentation_support"],
+      "summary": "Produces handoff documentation and enablement assets."
+    },
+    {
+      "supplyId": "sup_generic_chat_agent",
+      "title": "Generic Chat Agent",
+      "actorKinds": ["agent"],
+      "supplyKinds": ["generalist"],
+      "summary": "Generic text assistance with no clear migration ownership."
+    }
+  ],
+  "expectedExtraction": {
+    "title": "Own and execute support plus sales ops migration",
+    "summaryMustContain": ["HubSpot", "migration", "operator training"],
+    "outputKinds": ["migration_plan", "workflow_build", "handoff_doc", "operator_training"],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "budgetMin": 6000,
+      "budgetMax": 9000,
+      "deliveryWindowWeeks": 3,
+      "humanReviewRequired": true,
+      "allowAiSupport": true,
+      "disallowBlackBoxAutomation": true
+    }
+  },
+  "expectedRouting": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "high",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "expectedPlanning": {
+    "leadRole": "migration_lead",
+    "phaseCountMin": 3,
+    "phaseCountMax": 5,
+    "roleSlots": [
+      {
+        "roleKey": "migration_lead",
+        "requiredActorKinds": ["human"],
+        "required": true
+      },
+      {
+        "roleKey": "automation_builder",
+        "requiredActorKinds": ["human", "agent"],
+        "required": true
+      },
+      {
+        "roleKey": "documentation_support",
+        "requiredActorKinds": ["human"],
+        "required": false
+      }
+    ],
+    "noMicrotaskExplosion": true
+  },
+  "expectedMatching": {
+    "topLeadSupplyId": "sup_human_ops_migration_lead",
+    "top3MustInclude": ["sup_human_ops_migration_lead", "sup_ai_automation_studio"],
+    "mustRankBelowTop2": ["sup_generic_chat_agent"],
+    "roleMatches": {
+      "migration_lead": "sup_human_ops_migration_lead",
+      "automation_builder": "sup_ai_automation_studio",
+      "documentation_support": "sup_copy_only_documentation_team"
+    }
+  },
+  "expectedPolicy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  },
+  "negativeAssertions": [
+    "must_not_route_as_direct_tool",
+    "must_not_route_as_direct_specialist_without_plan",
+    "must_not_create_fulfillment_before_commitment",
+    "must_not_create_fulfillment_steps_before_fulfillment",
+    "must_not_choose_generic_chat_agent_as_lead"
+  ]
+}

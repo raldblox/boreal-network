@@ -1,462 +1,622 @@
 {
-  "scenarioId": "golden-external-ai-automation-thread",
-  "description": "A startup founder opens one request for AI-powered support triage automation, accepts one proposal from a listed supply, funds it, receives the delivered artifacts, and completes the same durable thread.",
-  "actors": [
-    {
-      "kind": "human",
-      "id": "act_human_mira_santos",
-      "displayName": "Mira Santos",
-      "handle": "mira"
-    },
-    {
-      "kind": "organization",
-      "id": "act_org_automation_ops_studio",
-      "displayName": "Automation Ops Studio",
-      "handle": "automation-ops-studio"
-    },
-    {
-      "kind": "human",
-      "id": "act_human_devin_hart",
-      "displayName": "Devin Hart",
-      "handle": "devin-hart"
-    },
-    {
-      "kind": "tool",
-      "id": "act_tool_boreal_payments",
-      "displayName": "Boreal Payments",
-      "handle": "boreal-payments"
-    }
-  ],
-  "supplies": [
-    {
-      "schemaVersion": 1,
-      "id": "sup_01jv4x8f2k8m5zp8hh6p6gcz1a",
-      "key": "automation-ops-studio",
-      "owner": {
-        "kind": "organization",
-        "id": "act_org_automation_ops_studio",
-        "displayName": "Automation Ops Studio",
-        "handle": "automation-ops-studio"
-      },
-      "profile": {
-        "displayName": "Automation Ops Studio",
-        "headline": "Operator-built AI automations for startup workflows",
-        "summary": "Designs and ships lightweight AI-driven automations for inbound ops, CRM triage, and founder workflows.",
-        "description": "Hybrid human plus agent supply focused on fast, documented workflow delivery for startup teams.",
-        "tags": [
-          "automation",
-          "crm",
-          "support-ops",
-          "ai-workflows"
-        ]
-      },
-      "capability": {
-        "supplyKinds": [
-          "ai_automation",
-          "operations_build"
-        ],
-        "fulfillmentActorKinds": [
-          "human",
-          "agent"
-        ],
-        "outputKinds": [
-          "workflow_map",
-          "automation_build",
-          "handoff_doc"
-        ],
-        "executionChannels": [
-          "async_thread",
-          "operator_review"
-        ]
-      },
-      "availability": {
-        "acceptingRequests": true,
-        "maxConcurrentRequests": 6,
-        "currentLoad": 2,
-        "responseTimeHours": 8
-      },
-      "pricing": {
-        "mode": "quote",
-        "notes": "Quoted after scope review and converted into one accepted commitment inside the request thread."
-      },
-      "metadata": {
-        "visibility": "market",
-        "region": "global"
-      },
-      "createdAt": "2026-05-01T08:00:00Z",
-      "updatedAt": "2026-05-01T08:00:00Z",
-      "publishedAt": "2026-05-01T08:00:00Z"
-    }
-  ],
-  "request": {
-    "schemaVersion": 1,
-    "id": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-    "key": "support-triage-automation-for-inbound-sales-and-support",
-    "status": "completed",
-    "createdBy": {
-      "kind": "human",
-      "id": "act_human_mira_santos",
-      "displayName": "Mira Santos",
-      "handle": "mira"
-    },
-    "owner": {
-      "kind": "human",
-      "id": "act_human_mira_santos",
-      "displayName": "Mira Santos",
-      "handle": "mira"
-    },
-    "brief": {
-      "title": "Build support triage automation",
-      "summary": "Route inbound founder, sales, and support requests into one documented triage workflow.",
-      "description": "Need one durable automation setup that classifies inbound form submissions, assigns priority, drafts first-response context, and pushes the right records into our CRM with a clean handoff doc for operators.",
-      "constraints": {
-        "tools": [
-          "HubSpot",
-          "Zapier",
-          "Gmail"
-        ],
-        "deliveryWindowDays": 5,
-        "mustProvideOperatorHandoff": true
-      },
-      "outputKinds": [
-        "workflow_map",
-        "automation_build",
-        "handoff_doc"
-      ],
-      "tags": [
-        "automation",
-        "crm",
-        "support-ops"
-      ]
-    },
-    "seeking": {
-      "actorKinds": [
-        "human",
-        "agent"
-      ],
-      "supplyKinds": [
-        "ai_automation",
-        "operations_build"
-      ],
-      "teamMode": "solo_or_team",
-      "notes": "Accept either a solo specialist or a tightly coordinated human-plus-agent supply."
-    },
-    "budget": {
-      "mode": "fixed",
-      "currency": "USD",
-      "fixedAmount": 750,
-      "notes": "Owner approved one fixed funded request after proposal review."
-    },
-    "activeRefs": {
-      "activeCommitmentId": "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
-      "activeFulfillmentId": "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
-      "latestArtifactId": "art_01jv4xkgp2kch6m9mzk07j9j1f",
-      "latestTransactionId": "txn_payout_01jv4xmn06b2g1xg2w0t1w6t9s"
-    },
-    "latest": {
-      "summary": "Automation delivered, handoff approved, and payout completed in the same request thread.",
-      "lastEventAt": "2026-05-06T17:35:00Z",
-      "lastActor": {
-        "kind": "human",
-        "id": "act_human_mira_santos",
-        "displayName": "Mira Santos",
-        "handle": "mira"
-      }
-    },
-    "parallelFulfillmentAllowed": false,
-    "metadata": {
-      "channel": "market",
-      "intakeMode": "chat_to_request",
-      "requestClass": "external_ai_automation"
-    },
-    "createdAt": "2026-05-02T09:00:00Z",
-    "updatedAt": "2026-05-06T17:35:00Z",
-    "openedAt": "2026-05-02T09:00:00Z",
-    "fundedAt": "2026-05-03T10:15:00Z",
-    "deliveredAt": "2026-05-05T18:40:00Z",
-    "completedAt": "2026-05-06T17:35:00Z"
-  },
-  "commitments": [
-    {
-      "schemaVersion": 1,
-      "id": "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
-      "key": "automation-ops-studio-proposal-001",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "kind": "proposal",
-      "status": "accepted",
-      "proposedBy": {
-        "kind": "organization",
-        "id": "act_org_automation_ops_studio",
-        "displayName": "Automation Ops Studio",
-        "handle": "automation-ops-studio"
-      },
-      "acceptedBy": {
-        "kind": "human",
-        "id": "act_human_mira_santos",
-        "displayName": "Mira Santos",
-        "handle": "mira"
-      },
-      "supplyId": "sup_01jv4x8f2k8m5zp8hh6p6gcz1a",
-      "summary": "Fixed-fee proposal for one CRM triage automation build, operator handoff document, and post-delivery review.",
-      "terms": {
-        "fundingRequired": true,
-        "amountMode": "fixed",
-        "currency": "USD",
-        "fixedAmount": 750,
-        "deliverableSummary": "Workflow map, live automation build, operator handoff document, and one review pass.",
-        "paymentNotes": "Fund once accepted. Release payout after owner marks request complete."
-      },
-      "activeFulfillmentId": "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
-      "metadata": {
-        "proposalVersion": 1
-      },
-      "createdAt": "2026-05-02T16:20:00Z",
-      "updatedAt": "2026-05-03T10:15:00Z",
-      "acceptedAt": "2026-05-03T10:15:00Z"
-    }
-  ],
-  "fulfillments": [
-    {
-      "id": "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "commitmentId": "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
-      "supplyId": "sup_01jv4x8f2k8m5zp8hh6p6gcz1a",
-      "status": "completed",
-      "lead": {
-        "kind": "human",
-        "id": "act_human_devin_hart",
-        "displayName": "Devin Hart",
-        "handle": "devin-hart"
-      },
-      "contributors": [
-        {
-          "kind": "organization",
-          "id": "act_org_automation_ops_studio",
-          "displayName": "Automation Ops Studio",
-          "handle": "automation-ops-studio"
-        }
-      ],
-      "summary": "Delivered the triage workflow, automation implementation, and operator handoff in one accepted fulfillment lane.",
-      "artifactIds": [
-        "art_01jv4xkgp2kch6m9mzk07j9j1f"
-      ],
-      "steps": [
-        {
-          "id": "fst_01jv4xh3ezk1vx0m1c5z3v6s4n",
-          "kind": "analysis",
-          "title": "Map intake fields and routing rules",
-          "status": "completed"
-        },
-        {
-          "id": "fst_01jv4xhrypjq6v2fsgf3svpm3m",
-          "kind": "build",
-          "title": "Implement Zapier and HubSpot automation",
-          "status": "completed"
-        },
-        {
-          "id": "fst_01jv4xj8atx1q7ed5a8e85m9jk",
-          "kind": "handoff",
-          "title": "Publish operator handoff and review notes",
-          "status": "completed"
-        }
-      ],
-      "startedAt": "2026-05-03T11:00:00Z",
-      "deliveredAt": "2026-05-05T18:40:00Z",
-      "completedAt": "2026-05-06T17:35:00Z"
-    }
-  ],
-  "artifacts": [
-    {
-      "id": "art_01jv4xkgp2kch6m9mzk07j9j1f",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "fulfillmentId": "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
-      "kind": "delivery",
-      "title": "Support triage automation handoff",
-      "summary": "Delivered workflow map, implementation notes, and operator checklist.",
-      "uri": "https://example.invalid/artifacts/support-triage-handoff",
-      "createdAt": "2026-05-05T18:30:00Z"
-    }
-  ],
-  "transactions": [
-    {
-      "id": "txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "commitmentId": "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
-      "kind": "settlement",
-      "status": "settled",
-      "currency": "USD",
-      "amount": 750,
-      "payer": {
-        "kind": "human",
-        "id": "act_human_mira_santos",
-        "displayName": "Mira Santos",
-        "handle": "mira"
-      },
-      "payee": {
-        "kind": "organization",
-        "id": "act_org_automation_ops_studio",
-        "displayName": "Automation Ops Studio",
-        "handle": "automation-ops-studio"
-      },
-      "settledAt": "2026-05-03T10:16:00Z"
-    },
-    {
-      "id": "txn_payout_01jv4xmn06b2g1xg2w0t1w6t9s",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "fulfillmentId": "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
-      "kind": "payout",
-      "status": "paid",
-      "currency": "USD",
-      "amount": 750,
-      "payer": {
-        "kind": "tool",
-        "id": "act_tool_boreal_payments",
-        "displayName": "Boreal Payments",
-        "handle": "boreal-payments"
-      },
-      "payee": {
-        "kind": "organization",
-        "id": "act_org_automation_ops_studio",
-        "displayName": "Automation Ops Studio",
-        "handle": "automation-ops-studio"
-      },
-      "paidAt": "2026-05-06T16:00:00Z"
-    }
-  ],
-  "events": [
-    {
-      "id": "evt_01jv4x7rj1pvdk4y10g95vjk7m",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "sequence": 1,
-      "name": "request.opened",
-      "actor": {
-        "kind": "human",
-        "id": "act_human_mira_santos",
-        "displayName": "Mira Santos",
-        "handle": "mira"
-      },
-      "occurredAt": "2026-05-02T09:00:00Z",
-      "payload": {
-        "summary": "Owner opened one request for support triage automation."
-      }
-    },
-    {
-      "id": "evt_01jv4xbkpq8x7znr6jv0a5er3d",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "sequence": 2,
-      "name": "commitment.proposed",
-      "actor": {
-        "kind": "organization",
-        "id": "act_org_automation_ops_studio",
-        "displayName": "Automation Ops Studio",
-        "handle": "automation-ops-studio"
-      },
-      "occurredAt": "2026-05-02T16:20:00Z",
-      "payload": {
-        "commitmentId": "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
-        "supplyId": "sup_01jv4x8f2k8m5zp8hh6p6gcz1a",
-        "amount": 750,
-        "currency": "USD"
-      }
-    },
-    {
-      "id": "evt_01jv4xc9zj3cpe5x1ah7dq0p1w",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "sequence": 3,
-      "name": "commitment.accepted",
-      "actor": {
-        "kind": "human",
-        "id": "act_human_mira_santos",
-        "displayName": "Mira Santos",
-        "handle": "mira"
-      },
-      "occurredAt": "2026-05-03T10:15:00Z",
-      "payload": {
-        "commitmentId": "cmt_01jv4xb9x53kdkfrqwmw0n3k3y"
-      }
-    },
-    {
-      "id": "evt_01jv4xcny9q7y8jhhv3h0ta0np",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "sequence": 4,
-      "name": "transaction.settled",
-      "actor": {
-        "kind": "tool",
-        "id": "act_tool_boreal_payments",
-        "displayName": "Boreal Payments",
-        "handle": "boreal-payments"
-      },
-      "occurredAt": "2026-05-03T10:16:00Z",
-      "payload": {
-        "transactionId": "txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
-        "amount": 750,
-        "currency": "USD"
-      }
-    },
-    {
-      "id": "evt_01jv4xg9k7wfj0t0m9f17r5j7x",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "sequence": 5,
-      "name": "fulfillment.started",
-      "actor": {
-        "kind": "human",
-        "id": "act_human_devin_hart",
-        "displayName": "Devin Hart",
-        "handle": "devin-hart"
-      },
-      "occurredAt": "2026-05-03T11:00:00Z",
-      "payload": {
-        "fulfillmentId": "ful_01jv4xfx3xmp9xhs6yy2bs6v6k"
-      }
-    },
-    {
-      "id": "evt_01jv4xkm4xhzvjc15r2eh7r1pv",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "sequence": 6,
-      "name": "artifact.published",
-      "actor": {
-        "kind": "human",
-        "id": "act_human_devin_hart",
-        "displayName": "Devin Hart",
-        "handle": "devin-hart"
-      },
-      "occurredAt": "2026-05-05T18:30:00Z",
-      "payload": {
-        "artifactId": "art_01jv4xkgp2kch6m9mzk07j9j1f"
-      }
-    },
-    {
-      "id": "evt_01jv4xkyrv0gj1f1w2n4xhcc3j",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "sequence": 7,
-      "name": "fulfillment.delivered",
-      "actor": {
-        "kind": "human",
-        "id": "act_human_devin_hart",
-        "displayName": "Devin Hart",
-        "handle": "devin-hart"
-      },
-      "occurredAt": "2026-05-05T18:40:00Z",
-      "payload": {
-        "fulfillmentId": "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
-        "artifactId": "art_01jv4xkgp2kch6m9mzk07j9j1f"
-      }
-    },
-    {
-      "id": "evt_01jv4xnyx8qg2tkhvf7ke8t1t0",
-      "requestId": "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
-      "sequence": 8,
-      "name": "request.completed",
-      "actor": {
-        "kind": "human",
-        "id": "act_human_mira_santos",
-        "displayName": "Mira Santos",
-        "handle": "mira"
-      },
-      "occurredAt": "2026-05-06T17:35:00Z",
-      "payload": {
-        "completionNote": "Owner approved the delivered automation and handoff package."
-      }
-    }
-  ]
+    "scenarioId":  "golden-external-ai-automation-thread",
+    "description":  "A startup founder opens one request for AI-powered support triage automation, accepts one proposal from a listed supply, funds it, receives the delivered artifacts, approves the fulfillment, and completes the same durable thread.",
+    "actors":  [
+                   {
+                       "kind":  "human",
+                       "id":  "act_human_mira_santos",
+                       "displayName":  "Mira Santos",
+                       "handle":  "mira"
+                   },
+                   {
+                       "kind":  "organization",
+                       "id":  "act_org_automation_ops_studio",
+                       "displayName":  "Automation Ops Studio",
+                       "handle":  "automation-ops-studio"
+                   },
+                   {
+                       "kind":  "human",
+                       "id":  "act_human_devin_hart",
+                       "displayName":  "Devin Hart",
+                       "handle":  "devin-hart"
+                   },
+                   {
+                       "kind":  "tool",
+                       "id":  "act_tool_boreal_payments",
+                       "displayName":  "Boreal Payments",
+                       "handle":  "boreal-payments"
+                   }
+               ],
+    "supplies":  [
+                     {
+                         "schemaVersion":  1,
+                         "id":  "sup_01jv4x8f2k8m5zp8hh6p6gcz1a",
+                         "key":  "automation-ops-studio",
+                         "owner":  {
+                                       "kind":  "organization",
+                                       "id":  "act_org_automation_ops_studio",
+                                       "displayName":  "Automation Ops Studio",
+                                       "handle":  "automation-ops-studio"
+                                   },
+                         "profile":  {
+                                         "displayName":  "Automation Ops Studio",
+                                         "headline":  "Operator-built AI automations for startup workflows",
+                                         "summary":  "Designs and ships lightweight AI-driven automations for inbound ops, CRM triage, and founder workflows.",
+                                         "description":  "Hybrid human plus agent supply focused on fast, documented workflow delivery for startup teams.",
+                                         "tags":  [
+                                                      "automation",
+                                                      "crm",
+                                                      "support-ops",
+                                                      "ai-workflows"
+                                                  ]
+                                     },
+                         "capability":  {
+                                            "supplyKinds":  [
+                                                                "ai_automation",
+                                                                "operations_build"
+                                                            ],
+                                            "fulfillmentActorKinds":  [
+                                                                          "human",
+                                                                          "agent"
+                                                                      ],
+                                            "outputKinds":  [
+                                                                "workflow_map",
+                                                                "automation_build",
+                                                                "handoff_doc"
+                                                            ],
+                                            "executionChannels":  [
+                                                                      "async_thread",
+                                                                      "operator_review"
+                                                                  ]
+                                        },
+                         "availability":  {
+                                              "acceptingRequests":  true,
+                                              "maxConcurrentRequests":  6,
+                                              "currentLoad":  2,
+                                              "responseTimeHours":  8
+                                          },
+                         "pricing":  {
+                                         "mode":  "quote",
+                                         "notes":  "Quoted after scope review and converted into one accepted commitment inside the request thread."
+                                     },
+                         "metadata":  {
+                                          "visibility":  "market",
+                                          "region":  "global"
+                                      },
+                         "createdAt":  "2026-05-01T08:00:00Z",
+                         "updatedAt":  "2026-05-01T08:00:00Z",
+                         "publishedAt":  "2026-05-01T08:00:00Z"
+                     }
+                 ],
+    "request":  {
+                    "schemaVersion":  1,
+                    "id":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                    "key":  "support-triage-automation-for-inbound-sales-and-support",
+                    "status":  "completed",
+                    "createdBy":  {
+                                      "kind":  "human",
+                                      "id":  "act_human_mira_santos",
+                                      "displayName":  "Mira Santos",
+                                      "handle":  "mira"
+                                  },
+                    "owner":  {
+                                  "kind":  "human",
+                                  "id":  "act_human_mira_santos",
+                                  "displayName":  "Mira Santos",
+                                  "handle":  "mira"
+                              },
+                    "brief":  {
+                                  "title":  "Build support triage automation",
+                                  "summary":  "Route inbound founder, sales, and support requests into one documented triage workflow.",
+                                  "description":  "Need one durable automation setup that classifies inbound form submissions, assigns priority, drafts first-response context, and pushes the right records into our CRM with a clean handoff doc for operators.",
+                                  "constraints":  {
+                                                      "tools":  [
+                                                                    "HubSpot",
+                                                                    "Zapier",
+                                                                    "Gmail"
+                                                                ],
+                                                      "deliveryWindowDays":  5,
+                                                      "mustProvideOperatorHandoff":  true
+                                                  },
+                                  "outputKinds":  [
+                                                      "workflow_map",
+                                                      "automation_build",
+                                                      "handoff_doc"
+                                                  ],
+                                  "tags":  [
+                                               "automation",
+                                               "crm",
+                                               "support-ops"
+                                           ]
+                              },
+                    "seeking":  {
+                                    "actorKinds":  [
+                                                       "human",
+                                                       "agent"
+                                                   ],
+                                    "supplyKinds":  [
+                                                        "ai_automation",
+                                                        "operations_build"
+                                                    ],
+                                    "teamMode":  "solo_or_team",
+                                    "notes":  "Accept either a solo specialist or a tightly coordinated human-plus-agent supply."
+                                },
+                    "budget":  {
+                                   "mode":  "fixed",
+                                   "currency":  "USD",
+                                   "fixedAmount":  750,
+                                   "notes":  "Owner approved one fixed funded request after proposal review."
+                               },
+                    "activeRefs":  {
+                                       "activeCommitmentId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                                       "activeFulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                                       "latestArtifactId":  "art_01jv4xkgp2kch6m9mzk07j9j1f",
+                                       "latestTransactionId":  "txn_payout_01jv4xmn06b2g1xg2w0t1w6t9s"
+                                   },
+                    "latest":  {
+                                   "summary":  "Fulfillment accepted, payout completed, and the request closed in the same durable thread.",
+                                   "lastEventAt":  "2026-05-06T17:35:00Z",
+                                   "lastActor":  {
+                                                     "kind":  "human",
+                                                     "id":  "act_human_mira_santos",
+                                                     "displayName":  "Mira Santos",
+                                                     "handle":  "mira"
+                                                 }
+                               },
+                    "parallelFulfillmentAllowed":  false,
+                    "metadata":  {
+                                     "channel":  "market",
+                                     "intakeMode":  "chat_to_request",
+                                     "requestClass":  "external_ai_automation"
+                                 },
+                    "createdAt":  "2026-05-02T09:00:00Z",
+                    "updatedAt":  "2026-05-06T17:35:00Z",
+                    "openedAt":  "2026-05-02T09:00:00Z",
+                    "fundedAt":  "2026-05-03T10:15:00Z",
+                    "deliveredAt":  "2026-05-05T18:40:00Z",
+                    "completedAt":  "2026-05-06T17:35:00Z"
+                },
+    "commitments":  [
+                        {
+                            "schemaVersion":  1,
+                            "id":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                            "key":  "automation-ops-studio-proposal-001",
+                            "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                            "kind":  "proposal",
+                            "status":  "accepted",
+                            "proposedBy":  {
+                                               "kind":  "organization",
+                                               "id":  "act_org_automation_ops_studio",
+                                               "displayName":  "Automation Ops Studio",
+                                               "handle":  "automation-ops-studio"
+                                           },
+                            "acceptedBy":  {
+                                               "kind":  "human",
+                                               "id":  "act_human_mira_santos",
+                                               "displayName":  "Mira Santos",
+                                               "handle":  "mira"
+                                           },
+                            "supplyId":  "sup_01jv4x8f2k8m5zp8hh6p6gcz1a",
+                            "summary":  "Fixed-fee proposal for one CRM triage automation build, operator handoff document, and post-delivery review.",
+                            "terms":  {
+                                          "fundingRequired":  true,
+                                          "amountMode":  "fixed",
+                                          "currency":  "USD",
+                                          "fixedAmount":  750,
+                                          "deliverableSummary":  "Workflow map, live automation build, operator handoff document, and one review pass.",
+                                          "paymentNotes":  "Fund once accepted. Release payout after owner marks request complete."
+                                      },
+                            "activeFulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                            "metadata":  {
+                                             "proposalVersion":  1
+                                         },
+                            "createdAt":  "2026-05-02T16:20:00Z",
+                            "updatedAt":  "2026-05-03T10:15:00Z",
+                            "acceptedAt":  "2026-05-03T10:15:00Z"
+                        }
+                    ],
+    "fulfillments":  [
+                         {
+                             "id":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                             "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                             "commitmentId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                             "supplyId":  "sup_01jv4x8f2k8m5zp8hh6p6gcz1a",
+                             "status":  "accepted",
+                             "lead":  {
+                                          "kind":  "human",
+                                          "id":  "act_human_devin_hart",
+                                          "displayName":  "Devin Hart",
+                                          "handle":  "devin-hart"
+                                      },
+                             "contributors":  [
+                                                  {
+                                                      "kind":  "organization",
+                                                      "id":  "act_org_automation_ops_studio",
+                                                      "displayName":  "Automation Ops Studio",
+                                                      "handle":  "automation-ops-studio"
+                                                  }
+                                              ],
+                             "summary":  "Delivered the triage workflow, automation implementation, and operator handoff in one accepted fulfillment lane.",
+                             "artifactIds":  [
+                                                 "art_01jv4xkgp2kch6m9mzk07j9j1f"
+                                             ],
+                             "steps":  [
+                                           {
+                                               "id":  "fst_01jv4xh3ezk1vx0m1c5z3v6s4n",
+                                               "kind":  "analysis",
+                                               "title":  "Map intake fields and routing rules",
+                                               "status":  "done"
+                                           },
+                                           {
+                                               "id":  "fst_01jv4xhrypjq6v2fsgf3svpm3m",
+                                               "kind":  "build",
+                                               "title":  "Implement Zapier and HubSpot automation",
+                                               "status":  "done"
+                                           },
+                                           {
+                                               "id":  "fst_01jv4xj8atx1q7ed5a8e85m9jk",
+                                               "kind":  "handoff",
+                                               "title":  "Publish operator handoff and review notes",
+                                               "status":  "done"
+                                           }
+                                       ],
+                             "startedAt":  "2026-05-03T11:00:00Z",
+                             "deliveredAt":  "2026-05-05T18:40:00Z",
+                             "schemaVersion":  1,
+                             "key":  "automation-ops-studio-fulfillment-001",
+                             "createdAt":  "2026-05-03T10:20:00Z",
+                             "updatedAt":  "2026-05-06T17:34:00Z",
+                             "readyAt":  "2026-05-03T10:45:00Z",
+                             "acceptedAt":  "2026-05-06T17:34:00Z"
+                         }
+                     ],
+    "artifacts":  [
+                      {
+                          "id":  "art_01jv4xkgp2kch6m9mzk07j9j1f",
+                          "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                          "fulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                          "kind":  "delivery",
+                          "title":  "Support triage automation handoff",
+                          "summary":  "Delivered workflow map, implementation notes, and operator checklist.",
+                          "uri":  "https://example.invalid/artifacts/support-triage-handoff",
+                          "createdAt":  "2026-05-05T18:30:00Z"
+                      }
+                  ],
+    "transactions":  [
+                         {
+                             "id":  "txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
+                             "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                             "commitmentId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                             "kind":  "settlement",
+                             "status":  "settled",
+                             "currency":  "USD",
+                             "amount":  750,
+                             "payer":  {
+                                           "kind":  "human",
+                                           "id":  "act_human_mira_santos",
+                                           "displayName":  "Mira Santos",
+                                           "handle":  "mira"
+                                       },
+                             "payee":  {
+                                           "kind":  "organization",
+                                           "id":  "act_org_automation_ops_studio",
+                                           "displayName":  "Automation Ops Studio",
+                                           "handle":  "automation-ops-studio"
+                                       },
+                             "settledAt":  "2026-05-03T10:16:00Z",
+                             "schemaVersion":  1,
+                             "key":  "settlement-automation-ops-studio-001",
+                             "reference":  "receipt_support_triage_automation_001",
+                             "createdAt":  "2026-05-03T10:15:00Z",
+                             "updatedAt":  "2026-05-03T10:16:00Z",
+                             "verifiedAt":  "2026-05-03T10:15:30Z"
+                         },
+                         {
+                             "id":  "txn_payout_01jv4xmn06b2g1xg2w0t1w6t9s",
+                             "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                             "fulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                             "kind":  "payout",
+                             "status":  "paid_out",
+                             "currency":  "USD",
+                             "amount":  750,
+                             "payer":  {
+                                           "kind":  "tool",
+                                           "id":  "act_tool_boreal_payments",
+                                           "displayName":  "Boreal Payments",
+                                           "handle":  "boreal-payments"
+                                       },
+                             "payee":  {
+                                           "kind":  "organization",
+                                           "id":  "act_org_automation_ops_studio",
+                                           "displayName":  "Automation Ops Studio",
+                                           "handle":  "automation-ops-studio"
+                                       },
+                             "schemaVersion":  1,
+                             "key":  "payout-automation-ops-studio-001",
+                             "reference":  "payout_batch_support_triage_001",
+                             "createdAt":  "2026-05-06T15:50:00Z",
+                             "updatedAt":  "2026-05-06T16:00:00Z",
+                             "verifiedAt":  "2026-05-06T15:52:00Z",
+                             "settledAt":  "2026-05-06T15:58:00Z",
+                             "paidOutAt":  "2026-05-06T16:00:00Z"
+                         }
+                     ],
+    "events":  [
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4x7rj1pvdk4y10g95vjk7m",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "request",
+                       "aggregateId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "sequence":  1,
+                       "eventType":  "request.opened",
+                       "occurredAt":  "2026-05-02T09:00:00Z",
+                       "recordedAt":  "2026-05-02T09:00:00Z",
+                       "actor":  {
+                                     "kind":  "human",
+                                     "id":  "act_human_mira_santos",
+                                     "displayName":  "Mira Santos",
+                                     "handle":  "mira"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_request_open_support_triage_001",
+                       "idempotencyKey":  "request.opened:req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "summary":  "Owner opened one request for support triage automation."
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xbkpq8x7znr6jv0a5er3d",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "commitment",
+                       "aggregateId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                       "sequence":  2,
+                       "eventType":  "commitment.proposed",
+                       "occurredAt":  "2026-05-02T16:20:00Z",
+                       "recordedAt":  "2026-05-02T16:20:00Z",
+                       "actor":  {
+                                     "kind":  "organization",
+                                     "id":  "act_org_automation_ops_studio",
+                                     "displayName":  "Automation Ops Studio",
+                                     "handle":  "automation-ops-studio"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_commitment_propose_support_triage_001",
+                       "idempotencyKey":  "commitment.proposed:cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "commitmentId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                                       "supplyId":  "sup_01jv4x8f2k8m5zp8hh6p6gcz1a",
+                                       "amount":  750,
+                                       "currency":  "USD"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xc9zj3cpe5x1ah7dq0p1w",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "commitment",
+                       "aggregateId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                       "sequence":  3,
+                       "eventType":  "commitment.accepted",
+                       "occurredAt":  "2026-05-03T10:15:00Z",
+                       "recordedAt":  "2026-05-03T10:15:00Z",
+                       "actor":  {
+                                     "kind":  "human",
+                                     "id":  "act_human_mira_santos",
+                                     "displayName":  "Mira Santos",
+                                     "handle":  "mira"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_commitment_accept_support_triage_001",
+                       "idempotencyKey":  "commitment.accepted:cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "commitmentId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xcap8z8d0r2d8g7d8t5y1",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "transaction",
+                       "aggregateId":  "txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
+                       "sequence":  4,
+                       "eventType":  "transaction.verified",
+                       "occurredAt":  "2026-05-03T10:15:30Z",
+                       "recordedAt":  "2026-05-03T10:15:30Z",
+                       "actor":  {
+                                     "kind":  "tool",
+                                     "id":  "act_tool_boreal_payments",
+                                     "displayName":  "Boreal Payments",
+                                     "handle":  "boreal-payments"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_transaction_verify_support_triage_001",
+                       "idempotencyKey":  "transaction.verified:txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "transactionId":  "txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
+                                       "amount":  750,
+                                       "currency":  "USD"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xcny9q7y8jhhv3h0ta0np",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "transaction",
+                       "aggregateId":  "txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
+                       "sequence":  5,
+                       "eventType":  "transaction.settled",
+                       "occurredAt":  "2026-05-03T10:16:00Z",
+                       "recordedAt":  "2026-05-03T10:16:00Z",
+                       "actor":  {
+                                     "kind":  "tool",
+                                     "id":  "act_tool_boreal_payments",
+                                     "displayName":  "Boreal Payments",
+                                     "handle":  "boreal-payments"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_transaction_settle_support_triage_001",
+                       "idempotencyKey":  "transaction.settled:txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "transactionId":  "txn_settle_01jv4xhtxj3d5m6v8f5n2z7y1a",
+                                       "commitmentId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
+                                       "amount":  750,
+                                       "currency":  "USD"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xg9k7wfj0t0m9f17r5j7x",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "fulfillment",
+                       "aggregateId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                       "sequence":  6,
+                       "eventType":  "fulfillment.started",
+                       "occurredAt":  "2026-05-03T11:00:00Z",
+                       "recordedAt":  "2026-05-03T11:00:00Z",
+                       "actor":  {
+                                     "kind":  "human",
+                                     "id":  "act_human_devin_hart",
+                                     "displayName":  "Devin Hart",
+                                     "handle":  "devin-hart"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_fulfillment_start_support_triage_001",
+                       "idempotencyKey":  "fulfillment.started:ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "fulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xkm4xhzvjc15r2eh7r1pv",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "artifact",
+                       "aggregateId":  "art_01jv4xkgp2kch6m9mzk07j9j1f",
+                       "sequence":  7,
+                       "eventType":  "artifact.added",
+                       "occurredAt":  "2026-05-05T18:30:00Z",
+                       "recordedAt":  "2026-05-05T18:30:00Z",
+                       "actor":  {
+                                     "kind":  "human",
+                                     "id":  "act_human_devin_hart",
+                                     "displayName":  "Devin Hart",
+                                     "handle":  "devin-hart"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_artifact_add_support_triage_001",
+                       "idempotencyKey":  "artifact.added:art_01jv4xkgp2kch6m9mzk07j9j1f",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "artifactId":  "art_01jv4xkgp2kch6m9mzk07j9j1f"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xkyrv0gj1f1w2n4xhcc3j",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "fulfillment",
+                       "aggregateId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                       "sequence":  8,
+                       "eventType":  "fulfillment.delivered",
+                       "occurredAt":  "2026-05-05T18:40:00Z",
+                       "recordedAt":  "2026-05-05T18:40:00Z",
+                       "actor":  {
+                                     "kind":  "human",
+                                     "id":  "act_human_devin_hart",
+                                     "displayName":  "Devin Hart",
+                                     "handle":  "devin-hart"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_fulfillment_deliver_support_triage_001",
+                       "idempotencyKey":  "fulfillment.delivered:ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "fulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                                       "artifactId":  "art_01jv4xkgp2kch6m9mzk07j9j1f"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xmfe3jvq4yn6s3n8x2m4a",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "transaction",
+                       "aggregateId":  "txn_payout_01jv4xmn06b2g1xg2w0t1w6t9s",
+                       "sequence":  9,
+                       "eventType":  "transaction.paid_out",
+                       "occurredAt":  "2026-05-06T16:00:00Z",
+                       "recordedAt":  "2026-05-06T16:00:00Z",
+                       "actor":  {
+                                     "kind":  "tool",
+                                     "id":  "act_tool_boreal_payments",
+                                     "displayName":  "Boreal Payments",
+                                     "handle":  "boreal-payments"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_transaction_payout_support_triage_001",
+                       "idempotencyKey":  "transaction.paid_out:txn_payout_01jv4xmn06b2g1xg2w0t1w6t9s",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "transactionId":  "txn_payout_01jv4xmn06b2g1xg2w0t1w6t9s",
+                                       "fulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                                       "amount":  750,
+                                       "currency":  "USD"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xnqvxxm6b4f8f6d0s3r2t",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "fulfillment",
+                       "aggregateId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                       "sequence":  10,
+                       "eventType":  "fulfillment.accepted",
+                       "occurredAt":  "2026-05-06T17:34:00Z",
+                       "recordedAt":  "2026-05-06T17:34:00Z",
+                       "actor":  {
+                                     "kind":  "human",
+                                     "id":  "act_human_mira_santos",
+                                     "displayName":  "Mira Santos",
+                                     "handle":  "mira"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_fulfillment_accept_support_triage_001",
+                       "idempotencyKey":  "fulfillment.accepted:ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "fulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k"
+                                   }
+                   },
+                   {
+                       "schemaVersion":  1,
+                       "eventId":  "evt_01jv4xnyx8qg2tkhvf7ke8t1t0",
+                       "requestId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "aggregateType":  "request",
+                       "aggregateId":  "req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "sequence":  11,
+                       "eventType":  "request.completed",
+                       "occurredAt":  "2026-05-06T17:35:00Z",
+                       "recordedAt":  "2026-05-06T17:35:00Z",
+                       "actor":  {
+                                     "kind":  "human",
+                                     "id":  "act_human_mira_santos",
+                                     "displayName":  "Mira Santos",
+                                     "handle":  "mira"
+                                 },
+                       "correlationId":  "corr_req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "causationId":  "cmd_request_complete_support_triage_001",
+                       "idempotencyKey":  "request.completed:req_01jv4x6n2q9h1hcnm2r8a8j1xv",
+                       "source":  "fixture",
+                       "payload":  {
+                                       "completionNote":  "Owner approved the delivered automation and handoff package."
+                                   }
+                   }
+               ]
 }

@@ -1,0 +1,270 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/fulfillment.schema.json",
+  "title": "Fulfillment",
+  "description": "Canonical execution lane object attached to a Request and authorized by a Commitment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "key",
+    "requestId",
+    "commitmentId",
+    "status",
+    "lead",
+    "summary",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "key": {
+      "$ref": "common.schema.json#/$defs/key"
+    },
+    "requestId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "commitmentId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "supplyId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "status": {
+      "$ref": "common.schema.json#/$defs/fulfillmentStatus"
+    },
+    "lead": {
+      "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "contributors": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/actorRef"
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "artifactIds": {
+      "type": "array",
+      "items": {
+        "$ref": "common.schema.json#/$defs/identifier"
+      },
+      "uniqueItems": true
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "common.schema.json#/$defs/identifier"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "status": {
+            "$ref": "common.schema.json#/$defs/fulfillmentStepStatus"
+          },
+          "dependsOnStepIds": {
+            "type": "array",
+            "items": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            },
+            "uniqueItems": true
+          },
+          "assignee": {
+            "$ref": "common.schema.json#/$defs/actorRef"
+          },
+          "metadata": {
+            "$ref": "common.schema.json#/$defs/metadata"
+          }
+        }
+      }
+    },
+    "metadata": {
+      "$ref": "common.schema.json#/$defs/metadata"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "plannedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "readyAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "startedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "blockedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "deliveredAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "acceptedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "cancelledAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "failedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "ready"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "readyAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "active",
+              "blocked",
+              "delivered",
+              "accepted"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "startedAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "blocked"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "blockedAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "delivered",
+              "accepted"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "deliveredAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "accepted"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "acceptedAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "cancelled"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "cancelledAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "failedAt"
+        ]
+      }
+    }
+  ]
+}

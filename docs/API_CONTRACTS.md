@@ -1,4 +1,4 @@
-# API Contracts
+﻿# API Contracts
 
 This file defines how Boreal Network exposes machine-facing contracts.
 
@@ -120,6 +120,17 @@ Should expose:
 - verification result
 - settlement status
 - payout status
+
+## Internal Tool Contracts
+
+Planner, matcher, policy, and mutation tool boundaries are part of Boreal's canonical machine-facing behavior.
+
+Use [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md) for:
+
+- read-only planner and matcher envelopes
+- policy next-action outputs
+- mutation-tool result envelopes
+- approval and idempotency boundaries
 
 ## Schema Discipline
 

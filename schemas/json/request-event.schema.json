@@ -1,0 +1,81 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/request-event.schema.json",
+  "title": "RequestEvent",
+  "description": "Canonical append-only durable event envelope for request-native work.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "requestId",
+    "aggregateType",
+    "aggregateId",
+    "sequence",
+    "eventType",
+    "occurredAt",
+    "recordedAt",
+    "actor",
+    "correlationId",
+    "causationId",
+    "idempotencyKey",
+    "payload"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "requestId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "aggregateType": {
+      "$ref": "common.schema.json#/$defs/aggregateType"
+    },
+    "aggregateId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "eventType": {
+      "$ref": "common.schema.json#/$defs/eventType"
+    },
+    "occurredAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "recordedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "actor": {
+      "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "correlationId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "causationId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "idempotencyKey": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "traceId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "spanId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}

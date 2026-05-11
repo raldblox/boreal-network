@@ -1,0 +1,92 @@
+﻿{
+  "schemaVersion": 1,
+  "scenarioId": "eval-complex-human-planning-and-match",
+  "extraction": {
+    "title": "Own and execute support plus sales ops migration",
+    "summary": "HubSpot migration with workflow build, operator training, and a documented migration plan for the team.",
+    "outputKinds": [
+      "migration_plan",
+      "workflow_build",
+      "handoff_doc",
+      "operator_training"
+    ],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "budgetMin": 6000,
+      "budgetMax": 9000,
+      "deliveryWindowWeeks": 3,
+      "humanReviewRequired": true,
+      "allowAiSupport": true,
+      "disallowBlackBoxAutomation": true
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "high",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "migration_lead",
+    "noMicrotaskExplosion": true,
+    "phases": [
+      {
+        "phaseKey": "audit",
+        "title": "Audit current support and sales workflows"
+      },
+      {
+        "phaseKey": "migration_build",
+        "title": "Configure HubSpot and automation flows"
+      },
+      {
+        "phaseKey": "handoff_training",
+        "title": "Publish handoff docs and train operators"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "migration_lead",
+        "requiredActorKinds": [
+          "human"
+        ],
+        "required": true
+      },
+      {
+        "roleKey": "automation_builder",
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
+        "required": true
+      },
+      {
+        "roleKey": "documentation_support",
+        "requiredActorKinds": [
+          "human"
+        ],
+        "required": false
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_human_ops_migration_lead",
+      "sup_ai_automation_studio",
+      "sup_copy_only_documentation_team",
+      "sup_generic_chat_agent"
+    ],
+    "roleMatches": {
+      "migration_lead": "sup_human_ops_migration_lead",
+      "automation_builder": "sup_ai_automation_studio",
+      "documentation_support": "sup_copy_only_documentation_team"
+    }
+  },
+  "policy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

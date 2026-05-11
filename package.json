@@ -1,11 +1,17 @@
-{
+﻿{
   "name": "boreal-network",
   "private": true,
   "packageManager": "pnpm@10.32.1",
   "scripts": {
+    "dev": "pnpm --parallel --filter @boreal/web --filter @boreal/desktop run dev",
+    "desktop:dev": "pnpm --filter @boreal/desktop dev",
+    "desktop:build": "pnpm --filter @boreal/desktop build",
+    "desktop:start": "pnpm --filter @boreal/desktop start",
     "web:dev": "pnpm --filter @boreal/web dev",
     "web:build": "pnpm --filter @boreal/web build",
     "web:db:migrate": "pnpm --filter @boreal/web db:migrate",
-    "web:test": "pnpm --filter @boreal/web test"
+    "web:test": "pnpm --filter @boreal/web test",
+    "evals:request-processing": "node tests/contracts/run-request-processing-evals.mjs",
+    "evals:request-processing:sample": "node tests/contracts/run-request-processing-evals.mjs --actual fixtures/request/eval-complex-human-planning-and-match.actual.sample.json"
   }
 }

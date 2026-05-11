@@ -1,4 +1,4 @@
-# Documentation Map
+﻿# Documentation Map
 
 This repository follows a docs-first operating model at the root of the canonical Boreal monorepo.
 
@@ -14,7 +14,9 @@ These files define what Boreal Network is:
 4. [STATE_MACHINES.md](STATE_MACHINES.md)
 5. [EVENT_MODEL.md](EVENT_MODEL.md)
 6. [API_CONTRACTS.md](API_CONTRACTS.md)
-7. [SCHEMA_LOGICAL.md](SCHEMA_LOGICAL.md)
+7. [REQUEST_PROCESSING.md](REQUEST_PROCESSING.md)
+8. [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md)
+9. [SCHEMA_LOGICAL.md](SCHEMA_LOGICAL.md)
 
 ## Commercial Canon
 
@@ -37,6 +39,9 @@ These files define how the canon stays aligned and how parallel work is kept saf
 - [WORKSTREAMS.md](WORKSTREAMS.md)
 - [OWNERSHIP.md](OWNERSHIP.md)
 - [TEST_MATRIX.md](TEST_MATRIX.md)
+- [EVALS.md](EVALS.md)
+
+Active workspace and shared-package activation still has to land through `README.md`, `REPO_STRUCTURE.md`, `WORKSTREAMS.md`, `OWNERSHIP.md`, and local workspace guardrails in the same patch.
 
 ## Decisions
 
@@ -85,9 +90,12 @@ Read the canon in this order:
 11. state machines
 12. event model
 13. API contracts
-14. logical schema
-15. repo structure
-16. workstreams
-17. ownership
-18. governance
-19. tests
+14. request processing
+15. tool calling contracts
+16. logical schema
+17. repo structure
+18. workstreams
+19. ownership
+20. governance
+21. tests
+22. evals

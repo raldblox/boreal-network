@@ -1,4 +1,4 @@
-{
+﻿{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://boreal.work/schemas/json/common.schema.json",
   "title": "Boreal Common Types",
@@ -94,6 +94,73 @@
         "superseded",
         "cancelled"
       ]
+    },
+    "fulfillmentStatus": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "ready",
+        "active",
+        "blocked",
+        "delivered",
+        "accepted",
+        "cancelled",
+        "failed"
+      ]
+    },
+    "fulfillmentStepStatus": {
+      "type": "string",
+      "enum": [
+        "todo",
+        "ready",
+        "active",
+        "blocked",
+        "done",
+        "cancelled",
+        "failed"
+      ]
+    },
+    "transactionKind": {
+      "type": "string",
+      "enum": [
+        "payment_requirement",
+        "authorization",
+        "verification",
+        "settlement",
+        "payout",
+        "refund",
+        "dispute"
+      ]
+    },
+    "transactionStatus": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "authorized",
+        "verified",
+        "settled",
+        "payout_pending",
+        "paid_out",
+        "refunded",
+        "disputed",
+        "failed"
+      ]
+    },
+    "aggregateType": {
+      "type": "string",
+      "enum": [
+        "request",
+        "request_participant",
+        "commitment",
+        "fulfillment",
+        "fulfillment_step",
+        "artifact",
+        "transaction"
+      ]
+    },
+    "eventType": {
+      "type": "string",
+      "pattern": "^[a-z]+(?:_[a-z]+)*\\.[a-z]+(?:_[a-z]+)*$"
     }
   }
 }

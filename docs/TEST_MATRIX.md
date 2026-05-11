@@ -1,4 +1,4 @@
-# Test Matrix
+﻿# Test Matrix
 
 This file defines what must be verifiable as Boreal Network evolves.
 
@@ -79,6 +79,39 @@ Verify:
 - generic workspace names such as `network-node`, `node2`, or `misc` are blocked unless explicitly approved in canon docs
 - root manifests and workspace manifests agree on active JS or TS workspaces
 
+### Request-processing contract tests
+
+Verify:
+
+- request draft extraction is deterministic for canonical fixtures
+- route classification follows canon and complexity policy
+- lead-match flow happens before decomposition for complex work
+- planner outputs stay derived and rebuildable
+
+### Planner evals
+
+Verify:
+
+- role slots are appropriate for the request
+- phase counts stay bounded
+- low-complexity requests do not explode into microtasks
+
+### Matcher evals
+
+Verify:
+
+- correct lead supply appears in top-k
+- collaborator slots map to sensible supplies
+- generic weak-fit supplies do not outrank strong specialists
+
+### Policy evals
+
+Verify:
+
+- next-action choice is safe and consistent with planner and matcher output
+- approval-gated writes are not triggered early
+- block-and-escalate behavior appears when canon or funding boundaries are violated
+
 ### Risk governance tests
 
 Verify:
@@ -100,6 +133,14 @@ Verify:
 - payout states derive correctly from settlement history
 
 ## Object-to-Test Coverage
+
+### Derived planning and matching objects
+
+- `RequestDraft` extraction stability
+- `MatchSpec` normalization stability
+- `RoutePlan` phase and role consistency
+- `RoleSlot` actor-kind and requiredness rules
+- `MatchCandidate` ranking and explanation quality
 
 ### `Request`
 
@@ -167,3 +208,5 @@ Fixtures should cover:
 - edge path
 - failure path
 - replay path
+- planner and matcher eval path
+- policy safety path

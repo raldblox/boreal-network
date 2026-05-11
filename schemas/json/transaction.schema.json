@@ -1,0 +1,245 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/transaction.schema.json",
+  "title": "Transaction",
+  "description": "Canonical payment, settlement, payout, refund, or dispute record attached to a Request.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "key",
+    "requestId",
+    "kind",
+    "status",
+    "currency",
+    "amount",
+    "payer",
+    "payee",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "key": {
+      "$ref": "common.schema.json#/$defs/key"
+    },
+    "requestId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "commitmentId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "fulfillmentId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/transactionKind"
+    },
+    "status": {
+      "$ref": "common.schema.json#/$defs/transactionStatus"
+    },
+    "currency": {
+      "$ref": "common.schema.json#/$defs/currencyCode"
+    },
+    "amount": {
+      "$ref": "common.schema.json#/$defs/moneyValue"
+    },
+    "payer": {
+      "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "payee": {
+      "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "metadata": {
+      "$ref": "common.schema.json#/$defs/metadata"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "authorizedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "verifiedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "settledAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "payoutPendingAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "paidOutAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "refundedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "disputedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "failedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "authorized"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "authorizedAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "verified",
+              "settled",
+              "payout_pending",
+              "paid_out"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "verifiedAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "settled",
+              "payout_pending",
+              "paid_out"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "settledAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "payout_pending"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "payoutPendingAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "paid_out"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "paidOutAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "refunded"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "refundedAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "disputed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "disputedAt"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "failedAt"
+        ]
+      }
+    }
+  ]
+}

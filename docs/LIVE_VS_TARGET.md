@@ -1,4 +1,4 @@
-# Live Vs Target
+﻿# Live Vs Target
 
 This file separates what Boreal Network can claim now from what it is still aiming toward.
 
@@ -32,6 +32,8 @@ These are safe to state as present canon truth:
 - The first commercial wedge is startup and SMB buyers of high-value digital work with fuzzy intake and mixed human-plus-AI fulfillment.
 - The primary business model is funded-request GMV take rate first, with premium workflow and private-supply layers later.
 - Risk escalation is mandatory when a change could break canon, contracts, durable history, or workspace boundaries.
+- Match the lead first, plan the work second, and decompose only when needed.
+- Planner, matcher, policy, and mutation boundaries are canonical Boreal processing layers.
 
 ## Machine-Modeled Now
 
@@ -41,7 +43,13 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/request.schema.json`
 - `schemas/json/supply.schema.json`
 - `schemas/json/commitment.schema.json`
+- `schemas/json/fulfillment.schema.json`
+- `schemas/json/transaction.schema.json`
+- `schemas/json/request-event.schema.json`
 - `fixtures/request/golden-external-ai-automation-thread.json`
+- `fixtures/request/eval-complex-human-planning-and-match.json`
+- `fixtures/request/eval-complex-human-planning-and-match.actual.sample.json`
+- `tests/contracts/run-request-processing-evals.mjs`
 - `package.json`
 - `pnpm-workspace.yaml`
 - `apps/web/package.json`
@@ -51,14 +59,15 @@ Today, the machine-readable baseline proves:
 - one durable `Request` can carry intake, funding, fulfillment, and completion state
 - one `Supply` can be expressed as a durable capability object
 - one `Commitment` can carry quoted or accepted commercial terms
+- canonical machine-readable shapes now exist for `Fulfillment`, `Transaction`, and `RequestEvent`
 - a deterministic end-to-end thread can be read without inventing missing IDs, statuses, or event names
 - the repo is structured to host governed JS or TS workspaces under shared workspace discovery rules
+- one complex human-led request can be evaluated deterministically across extraction, planning, matching, and policy outputs
 
 ## Target Direction
 
 These are intended next layers, not fully modeled proof yet:
 
-- canonical schemas for `Fulfillment`, `Transaction`, and `RequestEvent`
 - canonical event contracts under `schemas/events/`
 - canonical HTTP and webhook contracts under `schemas/openapi/`
 - richer golden fixtures for failure, replay, dispute, collective fulfillment, and private-supply paths
@@ -68,6 +77,7 @@ These are intended next layers, not fully modeled proof yet:
 - shared libraries under `packages/`
 - agent skills under `skills/`
 - implementation profiles under `standards/`
+- executable offline eval runners and score dashboards for planner, matcher, and policy quality against live model outputs
 
 ## Claiming Rules
 
@@ -76,13 +86,13 @@ Safe claim patterns:
 - `Boreal's canonical root object is Request.`
 - `Boreal is positioned as request-native work commerce.`
 - `Boreal Network is the canonical monorepo for Boreal.`
-- `The current machine-readable baseline covers Request, Supply, and Commitment.`
+- `The current machine-readable baseline covers Request, Supply, Commitment, Fulfillment, Transaction, and RequestEvent.`
 - `apps/web is activated as the first Boreal product workspace, with fuller implementation still ahead.`
-- `Fulfillment, Transaction, and RequestEvent are canonical objects, with fuller machine-readable modeling still in progress.`
+- `The repo contains a deterministic request-processing eval baseline for a complex human-led request.`
 
 Unsafe claim patterns:
 
-- `Every canonical object already has finished machine-readable schema coverage.`
+- `Every canonical object already has finished machine-readable schema coverage and live enforcement.`
 - `apps/web already contains the full Boreal product implementation.`
 - `Every target workspace in this repo already exists as a runnable product.`
 - `Peer, gateway, and enterprise operator surfaces are already fully implemented.`

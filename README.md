@@ -1,4 +1,4 @@
-# Boreal Network
+﻿# Boreal Network
 
 Boreal Network is the canonical monorepo for Boreal.
 
@@ -43,13 +43,16 @@ Read these files in order before making any meaningful change:
 11. [docs/STATE_MACHINES.md](docs/STATE_MACHINES.md)
 12. [docs/EVENT_MODEL.md](docs/EVENT_MODEL.md)
 13. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
-14. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
-15. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
-16. [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md)
-17. [docs/OWNERSHIP.md](docs/OWNERSHIP.md)
-18. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
-19. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
-20. [AGENTS.md](AGENTS.md)
+14. [docs/REQUEST_PROCESSING.md](docs/REQUEST_PROCESSING.md)
+15. [docs/TOOL_CALLING_CONTRACTS.md](docs/TOOL_CALLING_CONTRACTS.md)
+16. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
+17. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
+18. [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md)
+19. [docs/OWNERSHIP.md](docs/OWNERSHIP.md)
+20. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
+21. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
+22. [docs/EVALS.md](docs/EVALS.md)
+23. [AGENTS.md](AGENTS.md)
 
 ## Repository Layout
 
@@ -66,9 +69,11 @@ Read these files in order before making any meaningful change:
 - `standards/` holds Boreal-specific implementation standards, protocol profiles, and compatibility rules.
 - `package.json` and `pnpm-workspace.yaml` hold the JS or TS workspace baseline for code-bearing workspaces.
 
-Current activated workspace:
+Current activated workspaces:
 
 - `apps/web/` is the first governed implementation workspace.  Its initial baseline is now locked to `Next.js App Router` using the `Vercel Chatbot` starting scaffold with `Auth.js`, `Neon Postgres`, `Drizzle`, and `shadcn/ui`.
+- `apps/desktop/` is the Windows-first Electron desktop shell for Boreal's local operator and private execution surface.  It stays an execution participant, not a second system of record.
+- `packages/ui/` is the shared React and Tailwind component package for reusable Boreal UI primitives and theme styles across web and desktop.
 
 Name workspaces by role, not vague infra labels.
 Prefer names like `peer`, `gateway-http`, `telegram-bot`, `desktop`, `cli`, and `marketing-site`.
@@ -99,14 +104,17 @@ Start from:
 6. state machines
 7. event model
 8. API contracts
-9. logical schema
-10. workspace topology and ownership
-11. machine-readable schema
-12. physical schema
-13. implementation and tests
+9. request processing
+10. tool calling contracts
+11. logical schema
+12. workspace topology and ownership
+13. machine-readable schema
+14. eval fixtures and safety rules
+15. physical schema
+16. implementation and tests
+
 
 ## Current Scope
-
 This repo defines the durable network model for:
 
 - commercial category and buyer truth
@@ -141,3 +149,4 @@ No new top-level namespace or child workspace should be added until:
 3. [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md) and [docs/OWNERSHIP.md](docs/OWNERSHIP.md) are updated if scope or ownership changes
 4. its required local `README.md` and `AGENTS.md` rules are defined
 5. the root docs and governance are updated in the same patch when repo meaning or topology changes
+

@@ -1,4 +1,4 @@
-# Repository Guidelines
+﻿# Repository Guidelines
 
 ## Scope
 
@@ -28,12 +28,15 @@ Before editing anything substantial, read:
 6. `docs/STATE_MACHINES.md`
 7. `docs/EVENT_MODEL.md`
 8. `docs/API_CONTRACTS.md`
-9. `docs/SCHEMA_LOGICAL.md`
-10. `docs/REPO_STRUCTURE.md`
-11. `docs/WORKSTREAMS.md`
-12. `docs/OWNERSHIP.md`
-13. `docs/GOVERNANCE.md`
-14. `docs/TEST_MATRIX.md`
+9. `docs/REQUEST_PROCESSING.md`
+10. `docs/TOOL_CALLING_CONTRACTS.md`
+11. `docs/SCHEMA_LOGICAL.md`
+12. `docs/REPO_STRUCTURE.md`
+13. `docs/WORKSTREAMS.md`
+14. `docs/OWNERSHIP.md`
+15. `docs/GOVERNANCE.md`
+16. `docs/TEST_MATRIX.md`
+17. `docs/EVALS.md`
 
 If the task affects positioning, pitch, go-to-market, wedge, revenue model, or competitive framing, also read:
 
@@ -239,6 +242,14 @@ If you add or change an external endpoint, webhook, or callback:
 - update OpenAPI under `schemas/openapi/`
 - update event contracts under `schemas/events/` if async behavior changes
 - update `docs/TEST_MATRIX.md`
+
+If you change request intake, planner logic, matching logic, policy-gated next actions, or mutation-tool boundaries:
+
+- update `docs/REQUEST_PROCESSING.md`
+- update `docs/TOOL_CALLING_CONTRACTS.md`
+- update `docs/EVALS.md`
+- update `docs/TEST_MATRIX.md`
+- update deterministic fixtures under `fixtures/request/`
 
 If you activate, add, rename, or retire a workspace:
 
