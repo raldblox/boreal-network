@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@boreal/ui": "workspace:*",
+    "lucide-react": "^0.446.0",
     "react": "19.0.1",
     "react-dom": "19.0.1"
   },

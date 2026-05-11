@@ -13,6 +13,9 @@ importers:
       '@boreal/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      lucide-react:
+        specifier: ^0.446.0
+        version: 0.446.0(react@19.0.1)
       react:
         specifier: 19.0.1
         version: 19.0.1
