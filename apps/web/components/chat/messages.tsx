@@ -3,6 +3,7 @@ import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
+import type { RequestStatus } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDataStream } from "./data-stream-provider";
@@ -22,6 +23,7 @@ type MessagesProps = {
   isLoading?: boolean;
   selectedModelId: string;
   isRequestMode: boolean;
+  requestStatus?: RequestStatus | null;
   onEditMessage?: (message: ChatMessage) => void;
 };
 
@@ -37,6 +39,7 @@ function PureMessages({
   isArtifactVisible,
   isLoading,
   isRequestMode,
+  requestStatus,
   selectedModelId: _selectedModelId,
   onEditMessage,
 }: MessagesProps) {
@@ -65,7 +68,7 @@ function PureMessages({
     <div className="relative flex-1 bg-background">
       {messages.length === 0 && !isLoading && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <Greeting isRequestMode={isRequestMode} />
+          <Greeting isRequestMode={isRequestMode} requestStatus={requestStatus} />
         </div>
       )}
       <div

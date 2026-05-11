@@ -182,38 +182,57 @@ export function SidebarRequests({ user }: { user: User | undefined }) {
     paginatedRequestHistories?.flatMap((page) => page.requests) ?? [];
   const groupedRequests = groupRequestsByDate(requestsFromHistory);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const requestToDelete = deleteId;
-    setShowDeleteDialog(false);
+    if (!requestToDelete) {
+      return;
+    }
 
-    mutate((requestHistories) => {
-      if (!requestHistories) {
-        return requestHistories;
-      }
-
-      return requestHistories.map((requestHistory) => ({
+    const previousRequestHistories = paginatedRequestHistories ?? [];
+    const optimisticRequestHistories = previousRequestHistories.map(
+      (requestHistory) => ({
         ...requestHistory,
         requests: requestHistory.requests.filter(
           (request) => request.id !== requestToDelete
         ),
-      }));
-    });
+      })
+    );
+
+    setShowDeleteDialog(false);
+    setDeleteId(null);
+
+    await mutate(optimisticRequestHistories, { revalidate: false });
 
     const requestToDeleteRecord = requestsFromHistory.find(
       (request) => request.id === requestToDelete
     );
 
-    if (requestToDeleteRecord) {
-      void fetch(
+    try {
+      if (!requestToDeleteRecord) {
+        throw new Error("Failed to find request");
+      }
+
+      const response = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat?id=${requestToDeleteRecord.chatId}`,
         { method: "DELETE" }
       );
-    }
 
-    toast({
-      type: "success",
-      description: "Request deleted.",
-    });
+      if (!response.ok) {
+        throw new Error("Failed to delete request");
+      }
+
+      toast({
+        type: "success",
+        description: "Request deleted.",
+      });
+      await mutate();
+    } catch (_error) {
+      await mutate(previousRequestHistories, { revalidate: false });
+      toast({
+        type: "error",
+        description: "Failed to delete request.",
+      });
+    }
   };
 
   return (

@@ -180,9 +180,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       } else {
         mutate(unstable_serialize(getChatHistoryPaginationKey));
       }
-      if (!isNewChat) {
-        mutate(chatDataKey);
-      }
+      mutate(chatDataKey);
     },
     onError: (error) => {
       if (
@@ -324,20 +322,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       return null;
     }
   }, [chatData?.messages, chatData?.userId, chatDataKey, chatId, mutate, router, visibility]);
-
-  const hasAutoCreatedRequestRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!requestModeFromUrl || activeRequest || isReadonly) {
-      return;
-    }
-
-    if (hasAutoCreatedRequestRef.current === chatId) {
-      return;
-    }
-
-    hasAutoCreatedRequestRef.current = chatId;
-    void createRequest();
-  }, [activeRequest, chatId, createRequest, isReadonly, requestModeFromUrl]);
 
   const saveRequestDraft = useCallback(async () => {
     if (!activeRequest) {

@@ -89,6 +89,7 @@ function PureMultimodalInput({
   activeRequest,
   isRequestMode,
   onCreateRequest,
+  ensureRequestForSend,
 }: {
   chatId: string;
   input: string;
@@ -112,6 +113,7 @@ function PureMultimodalInput({
   activeRequest: BorealRequestDraft | null;
   isRequestMode: boolean;
   onCreateRequest: () => Promise<BorealRequestDraft | null>;
+  ensureRequestForSend: () => Promise<BorealRequestDraft | null>;
 }) {
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
@@ -224,7 +226,29 @@ function PureMultimodalInput({
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
 
-  const submitForm = useCallback(() => {
+  const handleRequestSuggestionSelect = useCallback(
+    (suggestion: string) => {
+      setInput(suggestion);
+
+      requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.setSelectionRange(
+          suggestion.length,
+          suggestion.length
+        );
+      });
+    },
+    [setInput]
+  );
+
+  const submitForm = useCallback(async () => {
+    if (isRequestMode && !activeRequest) {
+      const createdRequest = await ensureRequestForSend();
+      if (!createdRequest) {
+        return;
+      }
+    }
+
     window.history.pushState(
       {},
       "",
@@ -258,7 +282,10 @@ function PureMultimodalInput({
     input,
     setInput,
     attachments,
+    activeRequest,
     sendMessage,
+    ensureRequestForSend,
+    isRequestMode,
     setAttachments,
     setLocalStorageInput,
     width,
@@ -403,8 +430,11 @@ function PureMultimodalInput({
           <SuggestedActions
             chatId={chatId}
             isRequestMode={isRequestMode}
+            onRequestSuggestionSelect={handleRequestSuggestionSelect}
+            requestStatus={activeRequest?.status ?? null}
             selectedVisibilityType={selectedVisibilityType}
             sendMessage={sendMessage}
+            setInput={setInput}
           />
         )}
 
@@ -443,7 +473,7 @@ function PureMultimodalInput({
             return;
           }
           if (status === "ready" || status === "error") {
-            submitForm();
+            void submitForm();
           } else {
             toast.error("Please wait for the model to finish its response!");
           }
@@ -522,9 +552,13 @@ function PureMultimodalInput({
           placeholder={
             editingMessage
               ? "Edit your message..."
-              : isRequestMode
-                ? "Update the request object with title, summary, body, constraints, budget, or timing..."
-                : "Ask anything..."
+              : activeRequest?.status === "draft"
+                ? "Brief the request. Add the ask, budget, deadline, constraints, or deliverables..."
+                : activeRequest
+                  ? "Post an update, change request details, or ask what should happen next..."
+                  : isRequestMode
+                    ? "Write the first request message..."
+                    : "Ask anything..."
           }
           ref={textareaRef}
           value={input}
@@ -591,6 +625,17 @@ export const MultimodalInput = memo(
       return false;
     }
     if (prevProps.messages.length !== nextProps.messages.length) {
+      return false;
+    }
+    if (prevProps.isRequestMode !== nextProps.isRequestMode) {
+      return false;
+    }
+    if (prevProps.activeRequest?.id !== nextProps.activeRequest?.id) {
+      return false;
+    }
+    if (
+      prevProps.activeRequest?.status !== nextProps.activeRequest?.status
+    ) {
       return false;
     }
 

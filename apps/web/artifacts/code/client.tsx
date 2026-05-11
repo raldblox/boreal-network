@@ -114,27 +114,25 @@ export const codeArtifact = new Artifact<"code", Metadata>({
       }));
     }
   },
-  content: ({ metadata, setMetadata, ...props }) => {
-    return (
-      <>
-        <div className="relative min-h-[200px]">
-          <CodeEditor {...props} />
-        </div>
+  content: ({ metadata, setMetadata, ...props }) => (
+    <>
+      <div className="relative min-h-[200px]">
+        <CodeEditor {...props} />
+      </div>
 
-        {metadata?.outputs && (
-          <Console
-            consoleOutputs={metadata.outputs}
-            setConsoleOutputs={() => {
-              setMetadata({
-                ...metadata,
-                outputs: [],
-              });
-            }}
-          />
-        )}
-      </>
-    );
-  },
+      {metadata?.outputs && (
+        <Console
+          consoleOutputs={metadata.outputs}
+          setConsoleOutputs={() => {
+            setMetadata({
+              ...metadata,
+              outputs: [],
+            });
+          }}
+        />
+      )}
+    </>
+  ),
   actions: [
     {
       icon: <PlayIcon size={18} />,
@@ -269,7 +267,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
     },
     {
       icon: <CopyIcon size={18} />,
-      description: "Copy code to clipboard",
+      description: "Copy content to clipboard",
       onClick: ({ content }) => {
         navigator.clipboard.writeText(content);
         toast.success("Copied to clipboard!");

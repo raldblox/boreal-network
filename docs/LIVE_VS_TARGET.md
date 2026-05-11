@@ -59,6 +59,7 @@ Today, the machine-readable baseline proves:
 
 - one durable `Request` can carry intake, funding, fulfillment, and completion state
 - one durable `Request` may exist early in `draft` status while the brief is still being formed
+- one `open` plus `public` request can be exposed through a public-safe web pool listing
 - one `Supply` can be expressed as a durable capability object
 - one `Commitment` can carry quoted or accepted commercial terms
 - canonical machine-readable shapes now exist for `Fulfillment`, `Transaction`, and `RequestEvent`

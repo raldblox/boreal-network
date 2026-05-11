@@ -340,6 +340,10 @@ function PureArtifact({
       )
       .join("\n") || undefined;
 
+  const displayedContent = isCurrentVersion
+    ? artifact.content
+    : getDocumentContentById(currentVersionIndex);
+
   const artifactPanel = (
     <>
       {sidebarState !== "collapsed" && (
@@ -395,11 +399,7 @@ function PureArtifact({
         ref={artifactContentRef}
       >
         <artifactDefinition.content
-          content={
-            isCurrentVersion
-              ? artifact.content
-              : getDocumentContentById(currentVersionIndex)
-          }
+          content={displayedContent}
           currentVersionIndex={currentVersionIndex}
           getDocumentContentById={getDocumentContentById}
           isCurrentVersion={isCurrentVersion}

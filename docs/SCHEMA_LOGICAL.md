@@ -82,6 +82,12 @@ Stores current truth:
 - active references
 - latest summary
 
+Visibility rule:
+
+- `visibility` controls whether an opened request stays owner-private or becomes market-fetchable
+- `open` plus `public` is the first publishable request-pool boundary
+- public fetch views should be projections of `Request`, not a second durable object family
+
 Does not store:
 
 - full event history inline

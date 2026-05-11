@@ -84,8 +84,11 @@ Verify:
 Verify:
 
 - not every chat turn creates a durable request
-- explicit `New request` creation opens one draft request instead of a second root object
+- entering `New request` mode alone does not create a durable request
+- the first send in `New request` mode creates one draft request instead of a second root object
 - request draft extraction is deterministic for canonical fixtures
+- only `open` plus `public` requests appear in the public request pool
+- draft and private requests do not leak through public request fetch endpoints
 - draft request-object JSON accepts edits only while the request status is `draft`
 - non-draft request-object JSON is read-only and shows the full canonical object
 - `save draft` and `open request` normalize the latest draft-input projection before the durable `Request` is written

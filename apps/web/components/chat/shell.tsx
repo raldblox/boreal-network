@@ -64,12 +64,14 @@ export function ChatShell() {
   const stopRef = useRef(stop);
   stopRef.current = stop;
   const autoOpenedRequestRef = useRef<string | null>(null);
+  const suppressAutoOpenRequestRef = useRef<string | null>(null);
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
     if (prevChatIdRef.current !== chatId) {
       prevChatIdRef.current = chatId;
       autoOpenedRequestRef.current = null;
+      suppressAutoOpenRequestRef.current = null;
       stopRef.current();
       setArtifact(initialArtifactData);
       setEditingMessage(null);
@@ -78,11 +80,17 @@ export function ChatShell() {
   }, [chatId, setArtifact]);
 
   useEffect(() => {
-    if (!isRequestMode || !activeRequest) {
+    if (!isRequestMode || !activeRequest || activeRequest.status !== "draft") {
       return;
     }
 
     if (autoOpenedRequestRef.current === activeRequest.id) {
+      return;
+    }
+
+    if (suppressAutoOpenRequestRef.current === activeRequest.id) {
+      autoOpenedRequestRef.current = activeRequest.id;
+      suppressAutoOpenRequestRef.current = null;
       return;
     }
 
@@ -131,6 +139,16 @@ export function ChatShell() {
     return createdRequest;
   };
 
+  const ensureRequestForSend = async () => {
+    const createdRequest = await createRequest();
+    if (!createdRequest) {
+      return null;
+    }
+
+    suppressAutoOpenRequestRef.current = createdRequest.id;
+    return createdRequest;
+  };
+
   return (
     <>
       <div className="flex h-dvh w-full flex-row overflow-hidden">
@@ -144,6 +162,7 @@ export function ChatShell() {
             chatId={chatId}
             isReadonly={isReadonly}
             isRequestMode={isRequestMode}
+            requestStatus={activeRequest?.status ?? null}
             selectedVisibilityType={visibilityType}
           />
 
@@ -166,6 +185,7 @@ export function ChatShell() {
               isReadonly={isReadonly}
               isRequestMode={isRequestMode}
               messages={messages}
+              requestStatus={activeRequest?.status ?? null}
               onEditMessage={(msg) => {
                 const text = msg.parts
                   ?.filter((p) => p.type === "text")
@@ -193,6 +213,7 @@ export function ChatShell() {
                   isLoading={isLoading}
                   messages={messages}
                   onCreateRequest={handleCreateRequest}
+                  ensureRequestForSend={ensureRequestForSend}
                   onCancelEdit={() => {
                     setEditingMessage(null);
                     setInput("");

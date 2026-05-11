@@ -94,7 +94,9 @@ Should expose:
 
 For the first web slice, `Request` create and update must support:
 
-- explicit `New request` draft creation
+- explicit `New request` mode without a durable write until first send
+- first-send draft creation for request-mode intake
+- public-safe listing of `open` plus `public` requests for network or desktop pooling
 - explicit `save draft` normalization from the live request-input document surface
 - request-brief field updates
 - request-seeking field updates for structured matching intent
@@ -104,6 +106,7 @@ For the first web slice, `Request` create and update must support:
 - explicit transition from `draft` to `open`
 - manual request-object editing only while the request stays in `draft`
 - full canonical request-object projection as read-only once the request leaves `draft`
+- public request pool reads must exclude owner-only draft fields and should expose a public-safe request projection instead
 
 ### `Commitment`
 

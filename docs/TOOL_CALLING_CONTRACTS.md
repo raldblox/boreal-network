@@ -137,7 +137,7 @@ Every mutation call should return:
 
 The first Boreal slice should prove:
 
-1. explicit request draft creation from chat
+1. explicit request mode plus first-send request draft creation
 2. live request-brief updates through visible mutation tools
 3. complexity and route classification
 4. lead supply search and ranking

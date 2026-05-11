@@ -2,6 +2,7 @@ import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
 import {
   getChatById,
+  getPublicOpenRequests,
   getRequestByChatId,
   getRequestById,
   getRequestsByUserId,
@@ -26,6 +27,38 @@ const patchRequestSchema = z.object({
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get("chatId");
+  const scope = searchParams.get("scope");
+
+  if (scope === "public") {
+    const limit = Math.min(
+      Math.max(Number.parseInt(searchParams.get("limit") || "10", 10), 1),
+      50
+    );
+    const startingAfter = searchParams.get("starting_after");
+    const endingBefore = searchParams.get("ending_before");
+
+    if (chatId) {
+      return new ChatbotError(
+        "bad_request:api",
+        "chatId cannot be combined with scope=public."
+      ).toResponse();
+    }
+
+    if (startingAfter && endingBefore) {
+      return new ChatbotError(
+        "bad_request:api",
+        "Only one of starting_after or ending_before can be provided."
+      ).toResponse();
+    }
+
+    const requests = await getPublicOpenRequests({
+      limit,
+      startingAfter,
+      endingBefore,
+    });
+
+    return Response.json(requests, { status: 200 });
+  }
 
   const session = await auth();
   if (!session?.user) {

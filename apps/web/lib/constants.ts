@@ -19,9 +19,23 @@ export const suggestions = [
   "Help me structure the fulfillment checklist",
 ];
 
-export const requestSuggestions = [
-  "Draft a product design request for a React dashboard refresh",
-  "Turn this rough AI automation idea into a structured request brief",
-  "Help me write budget and timing for a website rebuild request",
-  "Update this request with missing constraints and deliverables",
+export const newRequestSuggestions = [
+  "Help me turn this idea into a request",
+  "Help me write the first brief for this request",
+  "What details should I include in the first request message?",
+  "Help me frame the outcome I want from this request",
+];
+
+export const requestDraftSuggestions = [
+  "Help me tighten the title and body of this request",
+  "Help me add budget and deadline to this draft",
+  "Help me list constraints and deliverables for this draft",
+  "What is still missing before I open this request?",
+];
+
+export const openRequestSuggestions = [
+  "Help me post a progress update on this request",
+  "Help me increase the budget on this request",
+  "Show me recent activity on this request",
+  "What should happen next on this request?",
 ];

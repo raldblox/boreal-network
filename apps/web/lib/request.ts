@@ -108,6 +108,35 @@ export type BorealRequestDraft = {
   updatedAt: string;
 };
 
+export type PublicRequestPoolEntry = {
+  id: string;
+  key: string;
+  status: RequestStatus;
+  visibility: "public";
+  brief: {
+    title: string;
+    summary: string;
+    body: string;
+    constraints: Record<string, unknown>;
+    outputKinds: string[];
+    tags: string[];
+  };
+  seeking: RequestSeeking;
+  budget: RequestBudget | null;
+  deadline: RequestDeadline | null;
+  derived: {
+    routeFamily: string | null;
+    executionKind: string | null;
+    paymentMode: string | null;
+    matchingMode: string | null;
+    missingDetails: string[];
+    readiness: RequestReadiness;
+    routeSummary: string | null;
+  };
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type EditableRequestDocument = {
   schemaVersion: 1;
   mode: "request_draft_input";
@@ -439,6 +468,39 @@ export function deriveRequestState(
 
 export function renderRequestObjectJson(draft: BorealRequestDraft): string {
   return JSON.stringify(toRequestDocumentObject(draft), null, 2);
+}
+
+export function toPublicRequestPoolEntry(
+  draft: BorealRequestDraft
+): PublicRequestPoolEntry {
+  return {
+    id: draft.id,
+    key: draft.key,
+    status: draft.status,
+    visibility: "public",
+    brief: {
+      title: draft.brief.title ?? "",
+      summary: draft.brief.summary ?? "",
+      body: draft.brief.body ?? "",
+      constraints: draft.brief.constraints ?? {},
+      outputKinds: draft.brief.outputKinds ?? [],
+      tags: draft.brief.tags ?? [],
+    },
+    seeking: normalizeSeeking(draft.seeking),
+    budget: draft.budget,
+    deadline: draft.deadline,
+    derived: {
+      routeFamily: draft.derived.routeFamily ?? null,
+      executionKind: draft.derived.executionKind ?? null,
+      paymentMode: draft.derived.paymentMode ?? null,
+      matchingMode: draft.derived.matchingMode ?? null,
+      missingDetails: draft.derived.missingDetails,
+      readiness: draft.derived.readiness,
+      routeSummary: draft.derived.routeSummary ?? null,
+    },
+    createdAt: draft.createdAt,
+    updatedAt: draft.updatedAt,
+  };
 }
 
 export function renderEditableRequestDocumentJson(

@@ -28,6 +28,8 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    Capture the raw ask plus actor context.
 2. Explicit request creation gate
    Stay chat-only until the owner or policy explicitly chooses to open a `Request`.
+   In the web `New request` mode, entering the mode alone must not create a durable `Request`.
+   The first durable draft should be created only when the owner sends the first request brief turn or uses another explicit create action.
 3. Request draft
    Produce a derived `RequestDraft`.
 4. Draft normalization
@@ -57,6 +59,13 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    Open one accepted execution lane.
 14. Delivery and resolution
    Publish `Artifact`, settle `Transaction`, and resolve the `Request`.
+
+## Visibility Rule
+
+- `draft` requests remain owner-scoped.
+- `open` plus `private` requests remain owner-controlled or invite-only.
+- `open` plus `public` requests may enter the public request pool and be fetched by outside supply or Boreal desktop participants.
+- Public pool reads should expose a public-safe projection, not owner-only draft fields.
 
 ## Complexity Policy
 

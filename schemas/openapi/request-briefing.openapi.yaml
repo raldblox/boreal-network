@@ -1,36 +1,76 @@
 openapi: 3.1.0
 info:
-  title: Boreal Web Request Briefing Surface
+  title: Boreal Web Request Surface
   version: 1.0.0
   description: >
-    First web-facing request briefing surface for explicit Request draft creation
-    and request-brief mutations inside apps/web.
+    First web-facing request surface for explicit Request draft creation,
+    request-brief mutations, and public-safe listing of open public requests
+    inside apps/web.
 paths:
   /api/requests:
     get:
-      summary: Get the active request draft for one chat thread.
+      summary: Get the active request draft for one chat thread or list public open requests.
       parameters:
         - in: query
           name: chatId
-          required: true
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: scope
+          required: false
+          schema:
+            type: string
+            enum:
+              - public
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+        - in: query
+          name: starting_after
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: ending_before
+          required: false
           schema:
             type: string
             format: uuid
       responses:
         "200":
-          description: The current request draft or null.
+          description: The current request draft or a public request pool page.
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: false
-                required:
-                  - request
-                properties:
-                  request:
-                    oneOf:
-                      - $ref: "#/components/schemas/WebRequestDraft"
-                      - type: "null"
+                oneOf:
+                  - type: object
+                    additionalProperties: false
+                    required:
+                      - request
+                    properties:
+                      request:
+                        oneOf:
+                          - $ref: "#/components/schemas/WebRequestDraft"
+                          - type: "null"
+                  - type: object
+                    additionalProperties: false
+                    required:
+                      - requests
+                      - hasMore
+                    properties:
+                      requests:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/WebPublicRequest"
+                      hasMore:
+                        type: boolean
     post:
       summary: Create an explicit draft Request for one chat thread.
       requestBody:
@@ -106,6 +146,159 @@ paths:
         rendered read-only.
 components:
   schemas:
+    WebPublicRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - key
+        - status
+        - visibility
+        - brief
+        - derived
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        status:
+          type: string
+          enum:
+            - open
+        visibility:
+          type: string
+          enum:
+            - public
+        brief:
+          type: object
+          additionalProperties: false
+          properties:
+            title:
+              type: string
+            summary:
+              type: string
+            body:
+              type: string
+            constraints:
+              type: object
+              additionalProperties: true
+            outputKinds:
+              type: array
+              items:
+                type: string
+            tags:
+              type: array
+              items:
+                type: string
+        seeking:
+          type: object
+          additionalProperties: false
+          properties:
+            actorKinds:
+              type: array
+              items:
+                type: string
+                enum:
+                  - human
+                  - agent
+                  - tool
+                  - organization
+                  - runtime
+            supplyKinds:
+              type: array
+              items:
+                type: string
+            teamMode:
+              type: string
+            notes:
+              type: string
+        budget:
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              required:
+                - mode
+              properties:
+                mode:
+                  type: string
+                  enum:
+                    - none
+                    - fixed
+                    - range
+                    - open
+                currency:
+                  type: string
+                fixedAmount:
+                  type: number
+                minAmount:
+                  type: number
+                maxAmount:
+                  type: number
+                notes:
+                  type: string
+        deadline:
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              properties:
+                targetAt:
+                  type: string
+                  format: date-time
+                notes:
+                  type: string
+        derived:
+          type: object
+          additionalProperties: false
+          required:
+            - missingDetails
+            - readiness
+          properties:
+            routeFamily:
+              type: string
+            executionKind:
+              type: string
+            paymentMode:
+              type: string
+            matchingMode:
+              type: string
+            missingDetails:
+              type: array
+              items:
+                type: string
+            readiness:
+              type: object
+              additionalProperties: false
+              required:
+                - state
+                - summary
+                - readyForOpen
+                - readyForMatch
+              properties:
+                state:
+                  type: string
+                  enum:
+                    - collecting_brief
+                    - ready_to_open
+                    - ready_to_match
+                summary:
+                  type: string
+                readyForOpen:
+                  type: boolean
+                readyForMatch:
+                  type: boolean
+            routeSummary:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     WebRequestDraft:
       type: object
       additionalProperties: false

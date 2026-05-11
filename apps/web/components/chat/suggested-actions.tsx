@@ -3,7 +3,13 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { motion } from "framer-motion";
 import { memo } from "react";
-import { requestSuggestions, suggestions } from "@/lib/constants";
+import type { RequestStatus } from "@/lib/request";
+import {
+  newRequestSuggestions,
+  openRequestSuggestions,
+  requestDraftSuggestions,
+  suggestions,
+} from "@/lib/constants";
 import type { ChatMessage } from "@/lib/types";
 import { Suggestion } from "../ai-elements/suggestion";
 import type { VisibilityType } from "./visibility-selector";
@@ -11,16 +17,29 @@ import type { VisibilityType } from "./visibility-selector";
 type SuggestedActionsProps = {
   chatId: string;
   sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
+  setInput: (value: string) => void;
+  onRequestSuggestionSelect?: (value: string) => void;
   selectedVisibilityType: VisibilityType;
   isRequestMode: boolean;
+  requestStatus?: RequestStatus | null;
 };
 
 function PureSuggestedActions({
   chatId,
   sendMessage,
+  setInput,
+  onRequestSuggestionSelect,
   isRequestMode,
+  requestStatus,
 }: SuggestedActionsProps) {
-  const suggestedActions = isRequestMode ? requestSuggestions : suggestions;
+  const isRequestSuggestionMode = isRequestMode || Boolean(requestStatus);
+  const suggestedActions = requestStatus
+    ? requestStatus === "draft"
+      ? requestDraftSuggestions
+      : openRequestSuggestions
+    : isRequestMode
+      ? newRequestSuggestions
+      : suggestions;
 
   return (
     <div
@@ -48,6 +67,14 @@ function PureSuggestedActions({
           <Suggestion
             className="h-auto w-full whitespace-nowrap rounded-xl border border-border/50 bg-card/30 px-4 py-3 text-left text-[12px] leading-relaxed text-muted-foreground transition-all duration-200 sm:whitespace-normal sm:p-4 sm:text-[13px] hover:-translate-y-0.5 hover:bg-card/60 hover:text-foreground hover:shadow-[var(--shadow-card)]"
             onClick={(suggestion) => {
+              if (isRequestSuggestionMode) {
+                onRequestSuggestionSelect?.(suggestion);
+                if (!onRequestSuggestionSelect) {
+                  setInput(suggestion);
+                }
+                return;
+              }
+
               window.history.pushState(
                 {},
                 "",
@@ -77,7 +104,19 @@ export const SuggestedActions = memo(
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) {
       return false;
     }
+    if (prevProps.setInput !== nextProps.setInput) {
+      return false;
+    }
+    if (
+      prevProps.onRequestSuggestionSelect !==
+      nextProps.onRequestSuggestionSelect
+    ) {
+      return false;
+    }
     if (prevProps.isRequestMode !== nextProps.isRequestMode) {
+      return false;
+    }
+    if (prevProps.requestStatus !== nextProps.requestStatus) {
       return false;
     }
 

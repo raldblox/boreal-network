@@ -5,6 +5,7 @@ import Link from "next/link";
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
+import type { RequestStatus } from "@/lib/request";
 import { SparklesIcon } from "./icons";
 import { VisibilitySelector, type VisibilityType } from "./visibility-selector";
 
@@ -13,11 +14,13 @@ function PureChatHeader({
   selectedVisibilityType,
   isReadonly,
   isRequestMode,
+  requestStatus,
 }: {
   chatId: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   isRequestMode: boolean;
+  requestStatus?: RequestStatus | null;
 }) {
   const { state, toggleSidebar, isMobile } = useSidebar();
 
@@ -48,7 +51,13 @@ function PureChatHeader({
             Boreal
           </span>
           <span className="truncate text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/[0.45]">
-            {isRequestMode ? "Request drafting" : "Chat"}
+            {requestStatus === "draft"
+              ? "Request drafting"
+              : requestStatus
+                ? "Request room"
+                : isRequestMode
+                  ? "Request"
+                  : "Chat"}
           </span>
         </div>
         <span className="text-[13px] font-medium text-sidebar-foreground sm:hidden">
@@ -71,6 +80,7 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
     prevProps.chatId === nextProps.chatId &&
     prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
     prevProps.isReadonly === nextProps.isReadonly &&
-    prevProps.isRequestMode === nextProps.isRequestMode
+    prevProps.isRequestMode === nextProps.isRequestMode &&
+    prevProps.requestStatus === nextProps.requestStatus
   );
 });

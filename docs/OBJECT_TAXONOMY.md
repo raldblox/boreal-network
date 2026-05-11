@@ -51,6 +51,7 @@ It carries:
 
 `Request` is the main object of the network.
 It may begin as an explicit draft before routing, funding, or fulfillment details are complete.
+When a request is both `open` and `public`, it may be exposed to external supply as a fetchable market request.
 
 ### `RequestParticipant`
 

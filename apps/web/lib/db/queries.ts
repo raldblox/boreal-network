@@ -17,15 +17,17 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
-import type {
-  BorealRequestDraft,
-  RequestBrief,
-  RequestBudget,
-  RequestDeadline,
-  RequestDerived,
-  RequestSeeking,
-  RequestStatus,
-  RequestVisibility,
+import {
+  type BorealRequestDraft,
+  type PublicRequestPoolEntry,
+  type RequestBrief,
+  type RequestBudget,
+  type RequestDeadline,
+  type RequestDerived,
+  type RequestSeeking,
+  type RequestStatus,
+  type RequestVisibility,
+  toPublicRequestPoolEntry,
 } from "@/lib/request";
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
@@ -437,6 +439,91 @@ export async function getRequestsByUserId({
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get requests by user id"
+    );
+  }
+}
+
+export async function getPublicOpenRequests({
+  limit,
+  startingAfter,
+  endingBefore,
+}: {
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}): Promise<{ requests: PublicRequestPoolEntry[]; hasMore: boolean }> {
+  try {
+    const extendedLimit = limit + 1;
+
+    const query = (whereCondition?: SQL<unknown>) =>
+      db
+        .select()
+        .from(request)
+        .where(
+          and(
+            eq(request.visibility, "public"),
+            eq(request.status, "open"),
+            ...(whereCondition ? [whereCondition] : [])
+          )
+        )
+        .orderBy(desc(request.updatedAt))
+        .limit(extendedLimit);
+
+    let filteredRequests: RequestRecord[] = [];
+
+    if (startingAfter) {
+      const [selectedRequest] = await db
+        .select()
+        .from(request)
+        .where(eq(request.id, startingAfter))
+        .limit(1);
+
+      if (!selectedRequest) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Request with id ${startingAfter} not found`
+        );
+      }
+
+      filteredRequests = await query(
+        gt(request.updatedAt, selectedRequest.updatedAt)
+      );
+    } else if (endingBefore) {
+      const [selectedRequest] = await db
+        .select()
+        .from(request)
+        .where(eq(request.id, endingBefore))
+        .limit(1);
+
+      if (!selectedRequest) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Request with id ${endingBefore} not found`
+        );
+      }
+
+      filteredRequests = await query(
+        lt(request.updatedAt, selectedRequest.updatedAt)
+      );
+    } else {
+      filteredRequests = await query();
+    }
+
+    const hasMore = filteredRequests.length > limit;
+    const visibleRequests = hasMore
+      ? filteredRequests.slice(0, limit)
+      : filteredRequests;
+
+    return {
+      requests: visibleRequests.map((record) =>
+        toPublicRequestPoolEntry(toRequestDraft(record))
+      ),
+      hasMore,
+    };
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get public open requests"
     );
   }
 }
