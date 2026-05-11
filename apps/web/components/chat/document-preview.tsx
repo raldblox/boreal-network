@@ -266,6 +266,7 @@ const DocumentContent = ({ document }: { document: Document }) => {
     content: document.content ?? "",
     isCurrentVersion: true,
     currentVersionIndex: 0,
+    isReadonly: true,
     status: artifact.status,
     saveContent: () => null,
     suggestions: [],

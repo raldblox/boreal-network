@@ -157,12 +157,12 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   if (!user) {
     return (
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-        <SidebarGroupContent>
-          <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-[13px] text-sidebar-foreground/60">
-            Login to save and revisit previous chats!
-          </div>
-        </SidebarGroupContent>
-      </SidebarGroup>
+          <SidebarGroupContent>
+            <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-[13px] text-sidebar-foreground/60">
+              Sign in to keep your Boreal chats and request drafts.
+            </div>
+          </SidebarGroupContent>
+        </SidebarGroup>
     );
   }
 
@@ -170,7 +170,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
-          History
+          Chats
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <div className="flex flex-col gap-0.5 px-1">
@@ -199,11 +199,11 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
-          History
+          Chats
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-[13px] text-sidebar-foreground/60">
-            Your conversations will appear here once you start chatting!
+            Your Boreal chats appear here after the first message.
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -214,7 +214,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     <>
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
-          History
+          Chats
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
@@ -345,7 +345,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
               <div className="animate-spin">
                 <LoaderIcon />
               </div>
-              <div className="text-[11px]">Loading...</div>
+              <div className="text-[11px]">Loading chats...</div>
             </div>
           )}
         </SidebarGroupContent>
@@ -354,16 +354,16 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       <AlertDialog onOpenChange={setShowDeleteDialog} open={showDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Remove this chat?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your
-              chat and remove it from our servers.
+              This action cannot be undone. This removes the chat from your
+              Boreal history.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete}>
-              Continue
+              Remove chat
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

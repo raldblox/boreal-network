@@ -37,6 +37,7 @@ type ArtifactContent<M = any> = {
   title: string;
   content: string;
   mode: "edit" | "diff";
+  isReadonly: boolean;
   isCurrentVersion: boolean;
   currentVersionIndex: number;
   status: "streaming" | "idle";

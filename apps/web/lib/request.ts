@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type RequestVisibility = "private" | "public";
 
 export type RequestStatus =
@@ -92,6 +94,61 @@ export type BorealRequestDraft = {
   updatedAt: string;
 };
 
+export type EditableRequestDocument = {
+  schemaVersion: 1;
+  mode: "request_draft_input";
+  visibility: RequestVisibility;
+  brief: {
+    title: string;
+    summary: string;
+    body: string;
+    constraints: Record<string, unknown>;
+    outputKinds: string[];
+    tags: string[];
+  };
+  budget: RequestBudget | null;
+  deadline: RequestDeadline | null;
+};
+
+type RequestDocumentObject = {
+  schemaVersion: 1;
+  id: string;
+  key: string;
+  status: RequestStatus;
+  createdBy: {
+    kind: "human";
+    id: string;
+  };
+  owner: {
+    kind: "human";
+    id: string;
+  };
+  visibility: RequestVisibility;
+  brief: {
+    title: string;
+    summary: string;
+    body: string;
+    constraints: Record<string, unknown>;
+    outputKinds: string[];
+    tags: string[];
+  };
+  budget: RequestBudget | null;
+  deadline: RequestDeadline | null;
+  derived: {
+    routeFamily: string | null;
+    executionKind: string | null;
+    paymentMode: string | null;
+    matchingMode: string | null;
+    candidatePool: string[];
+    missingDetails: string[];
+    readiness: RequestReadiness;
+    routeSummary: string | null;
+  };
+  parallelFulfillmentAllowed: false;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type RequestPatch = {
   status?: RequestStatus;
   visibility?: RequestVisibility;
@@ -100,6 +157,66 @@ export type RequestPatch = {
   deadline?: RequestDeadline | null;
   derived?: Partial<Omit<RequestDerived, "missingDetails" | "readiness">>;
 };
+
+const requestBudgetSchema = z.union([
+  z.object({
+    mode: z.literal("none"),
+    currency: z.string().optional(),
+    fixedAmount: z.number().optional(),
+    minAmount: z.number().optional(),
+    maxAmount: z.number().optional(),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    mode: z.literal("open"),
+    currency: z.string().optional(),
+    fixedAmount: z.number().optional(),
+    minAmount: z.number().optional(),
+    maxAmount: z.number().optional(),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    mode: z.literal("fixed"),
+    currency: z.string().optional(),
+    fixedAmount: z.number().optional(),
+    minAmount: z.number().optional(),
+    maxAmount: z.number().optional(),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    mode: z.literal("range"),
+    currency: z.string().optional(),
+    fixedAmount: z.number().optional(),
+    minAmount: z.number().optional(),
+    maxAmount: z.number().optional(),
+    notes: z.string().optional(),
+  }),
+]);
+
+const requestDeadlineSchema = z.object({
+  targetAt: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const requestBriefSchema = z.object({
+  title: z.string().optional(),
+  summary: z.string().optional(),
+  body: z.string().optional(),
+  constraints: z.record(z.unknown()).optional(),
+  outputKinds: z.array(z.string()).optional(),
+  tags: z.array(z.string()).optional(),
+});
+
+const editableRequestDocumentSchema = z
+  .object({
+    schemaVersion: z.number().optional(),
+    mode: z.string().optional(),
+    visibility: z.enum(["private", "public"]).optional(),
+    brief: requestBriefSchema.optional(),
+    budget: requestBudgetSchema.nullish(),
+    deadline: requestDeadlineSchema.nullish(),
+  })
+  .passthrough();
 
 export function createInitialRequestDraft({
   id,
@@ -275,40 +392,37 @@ export function deriveRequestState(
   };
 }
 
-export function renderRequestBriefMarkdown(draft: BorealRequestDraft): string {
-  const lines = [
-    `# ${draft.brief.title?.trim() || "Untitled request"}`,
-    "",
-    `Status: ${formatLabel(draft.status)}`,
-    `Visibility: ${formatLabel(draft.visibility)}`,
-    `Readiness: ${formatLabel(draft.derived.readiness.state)}`,
-    "",
-    "## Summary",
-    "",
-    draft.brief.summary?.trim() || "_Still drafting the summary._",
-    "",
-    "## Body",
-    "",
-    draft.brief.body?.trim() || "_Still drafting the full brief body._",
-    "",
-    "## Constraints",
-    "",
-    renderConstraintBlock(draft),
-    "",
-    "## Budget and timing",
-    "",
-    renderBudgetAndTiming(draft),
-    "",
-    "## Route summary",
-    "",
-    renderRouteSummary(draft),
-    "",
-    "## Missing details",
-    "",
-    renderMissingDetails(draft),
-  ];
+export function renderRequestObjectJson(draft: BorealRequestDraft): string {
+  return JSON.stringify(toRequestDocumentObject(draft), null, 2);
+}
 
-  return lines.join("\n");
+export function renderEditableRequestDocumentJson(
+  draft: BorealRequestDraft
+): string {
+  return JSON.stringify(toEditableRequestDocument(draft), null, 2);
+}
+
+export function renderRequestDocumentJson(draft: BorealRequestDraft): string {
+  return draft.status === "draft"
+    ? renderEditableRequestDocumentJson(draft)
+    : renderRequestObjectJson(draft);
+}
+
+export function extractEditableRequestPatchFromContent(
+  content: string
+): Pick<RequestPatch, "visibility" | "brief" | "budget" | "deadline"> {
+  const parsed = editableRequestDocumentSchema.parse(JSON.parse(content));
+
+  return {
+    visibility: parsed.visibility,
+    brief: normalizeEditableBrief(parsed.brief),
+    budget: normalizeBudget(parsed.budget),
+    deadline: normalizeDeadline(parsed.deadline),
+  };
+}
+
+export function getRequestTitle(draft: Pick<BorealRequestDraft, "brief">) {
+  return normalizeText(draft.brief.title) || "Untitled request";
 }
 
 export function slugifyRequestKey(title: string | undefined, id: string): string {
@@ -321,146 +435,177 @@ export function slugifyRequestKey(title: string | undefined, id: string): string
   return slug || `request-${id.slice(0, 8)}`;
 }
 
-function renderConstraintBlock(draft: BorealRequestDraft): string {
-  const lines: string[] = [];
-
-  const outputKinds = draft.brief.outputKinds ?? [];
-  if (outputKinds.length > 0) {
-    lines.push(`- Output kinds: ${outputKinds.join(", ")}`);
-  }
-
-  const tags = draft.brief.tags ?? [];
-  if (tags.length > 0) {
-    lines.push(`- Tags: ${tags.join(", ")}`);
-  }
-
-  const constraints = draft.brief.constraints ?? {};
-  const constraintEntries = Object.entries(constraints);
-  for (const [key, value] of constraintEntries) {
-    lines.push(`- ${formatLabel(key)}: ${formatConstraintValue(value)}`);
-  }
-
-  if (lines.length === 0) {
-    return "_No explicit constraints yet._";
-  }
-
-  return lines.join("\n");
-}
-
-function renderBudgetAndTiming(draft: BorealRequestDraft): string {
-  const lines: string[] = [];
-
-  if (draft.budget) {
-    lines.push(`- Budget mode: ${formatLabel(draft.budget.mode)}`);
-
-    if (draft.budget.mode === "fixed" && draft.budget.fixedAmount != null) {
-      lines.push(
-        `- Budget: ${draft.budget.currency ?? "USD"} ${draft.budget.fixedAmount}`
-      );
-    }
-
-    if (
-      draft.budget.mode === "range" &&
-      draft.budget.minAmount != null &&
-      draft.budget.maxAmount != null
-    ) {
-      lines.push(
-        `- Budget range: ${draft.budget.currency ?? "USD"} ${draft.budget.minAmount} to ${draft.budget.maxAmount}`
-      );
-    }
-
-    if (hasText(draft.budget.notes)) {
-      lines.push(`- Budget notes: ${draft.budget.notes}`);
-    }
-  }
-
-  if (draft.deadline?.targetAt) {
-    lines.push(`- Deadline: ${draft.deadline.targetAt}`);
-  }
-
-  if (hasText(draft.deadline?.notes)) {
-    lines.push(`- Timing notes: ${draft.deadline?.notes}`);
-  }
-
-  if (lines.length === 0) {
-    return "_Budget and timing are still open._";
-  }
-
-  return lines.join("\n");
-}
-
-function renderRouteSummary(draft: BorealRequestDraft): string {
-  const lines: string[] = [];
-
-  if (hasText(draft.derived.routeSummary)) {
-    lines.push(draft.derived.routeSummary as string);
-  }
-
-  if (hasText(draft.derived.routeFamily)) {
-    lines.push(
-      `- Route family: ${formatLabel(draft.derived.routeFamily as string)}`
-    );
-  }
-
-  if (hasText(draft.derived.executionKind)) {
-    lines.push(
-      `- Execution kind: ${formatLabel(draft.derived.executionKind as string)}`
-    );
-  }
-
-  if (hasText(draft.derived.paymentMode)) {
-    lines.push(
-      `- Payment mode: ${formatLabel(draft.derived.paymentMode as string)}`
-    );
-  }
-
-  if (hasText(draft.derived.matchingMode)) {
-    lines.push(
-      `- Matching mode: ${formatLabel(draft.derived.matchingMode as string)}`
-    );
-  }
-
-  if ((draft.derived.candidatePool ?? []).length > 0) {
-    lines.push(
-      `- Candidate pool: ${(draft.derived.candidatePool ?? []).join(", ")}`
-    );
-  }
-
-  if (lines.length === 0) {
-    return "_Routing has not been summarized yet._";
-  }
-
-  return lines.join("\n");
-}
-
-function renderMissingDetails(draft: BorealRequestDraft): string {
-  if (draft.derived.missingDetails.length === 0) {
-    return "_No blocking missing details right now._";
-  }
-
-  return draft.derived.missingDetails
-    .map((detail) => `- ${formatLabel(detail)}`)
-    .join("\n");
-}
-
-function formatLabel(value: string): string {
-  return value
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (match) => match.toUpperCase());
-}
-
 function hasText(value: string | undefined | null): boolean {
   return Boolean(value && value.trim().length > 0);
 }
 
-function formatConstraintValue(value: unknown): string {
-  if (Array.isArray(value)) {
-    return value.join(", ");
+function normalizeEditableBrief(
+  brief: z.infer<typeof requestBriefSchema> | undefined
+): RequestBrief {
+  return {
+    title: normalizeText(brief?.title),
+    summary: normalizeText(brief?.summary),
+    body: normalizeText(brief?.body),
+    constraints: normalizeRecord(brief?.constraints),
+    outputKinds: normalizeStringArray(brief?.outputKinds),
+    tags: normalizeStringArray(brief?.tags),
+  };
+}
+
+function normalizeBudget(
+  budget: z.infer<typeof requestBudgetSchema> | null | undefined
+): RequestBudget | null {
+  if (!budget) {
+    return null;
   }
 
-  if (typeof value === "object" && value !== null) {
-    return JSON.stringify(value);
+  const currency = normalizeText(budget.currency)?.toUpperCase();
+  const notes = normalizeText(budget.notes);
+  const fixedAmount = normalizeNumber(budget.fixedAmount);
+  const minAmount = normalizeNumber(budget.minAmount);
+  const maxAmount = normalizeNumber(budget.maxAmount);
+
+  switch (budget.mode) {
+    case "none":
+      return {
+        mode: "none",
+        ...(notes ? { notes } : {}),
+      };
+    case "open":
+      return {
+        mode: "open",
+        ...(currency ? { currency } : {}),
+        ...(notes ? { notes } : {}),
+      };
+    case "fixed":
+      return {
+        mode: "fixed",
+        ...(currency ? { currency } : {}),
+        ...(fixedAmount !== undefined ? { fixedAmount } : {}),
+        ...(notes ? { notes } : {}),
+      };
+    case "range":
+      return {
+        mode: "range",
+        ...(currency ? { currency } : {}),
+        ...(minAmount !== undefined ? { minAmount } : {}),
+        ...(maxAmount !== undefined ? { maxAmount } : {}),
+        ...(notes ? { notes } : {}),
+      };
+  }
+}
+
+function normalizeDeadline(
+  deadline: z.infer<typeof requestDeadlineSchema> | null | undefined
+): RequestDeadline | null {
+  if (!deadline) {
+    return null;
   }
 
-  return String(value);
+  const targetAt = normalizeText(deadline.targetAt);
+  const notes = normalizeText(deadline.notes);
+
+  if (!targetAt && !notes) {
+    return null;
+  }
+
+  return {
+    ...(targetAt ? { targetAt } : {}),
+    ...(notes ? { notes } : {}),
+  };
+}
+
+function normalizeText(value: string | undefined | null): string {
+  return value?.trim() ?? "";
+}
+
+function normalizeRecord(
+  value: Record<string, unknown> | undefined
+): Record<string, unknown> {
+  if (!value || Array.isArray(value)) {
+    return {};
+  }
+
+  return value;
+}
+
+function normalizeStringArray(value: string[] | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(value.map((entry) => entry.trim()).filter(Boolean))
+  );
+}
+
+function normalizeNumber(value: number | undefined): number | undefined {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return undefined;
+  }
+
+  return value;
+}
+
+function toEditableRequestDocument(
+  draft: BorealRequestDraft
+): EditableRequestDocument {
+  return {
+    schemaVersion: 1,
+    mode: "request_draft_input",
+    visibility: draft.visibility,
+    brief: {
+      title: draft.brief.title ?? "",
+      summary: draft.brief.summary ?? "",
+      body: draft.brief.body ?? "",
+      constraints: draft.brief.constraints ?? {},
+      outputKinds: draft.brief.outputKinds ?? [],
+      tags: draft.brief.tags ?? [],
+    },
+    budget: draft.budget,
+    deadline: draft.deadline,
+  };
+}
+
+function toRequestDocumentObject(
+  draft: BorealRequestDraft
+): RequestDocumentObject {
+  return {
+    schemaVersion: 1,
+    id: draft.id,
+    key: draft.key,
+    status: draft.status,
+    createdBy: {
+      kind: "human",
+      id: draft.createdById,
+    },
+    owner: {
+      kind: "human",
+      id: draft.ownerId,
+    },
+    visibility: draft.visibility,
+    brief: {
+      title: draft.brief.title ?? "",
+      summary: draft.brief.summary ?? "",
+      body: draft.brief.body ?? "",
+      constraints: draft.brief.constraints ?? {},
+      outputKinds: draft.brief.outputKinds ?? [],
+      tags: draft.brief.tags ?? [],
+    },
+    budget: draft.budget,
+    deadline: draft.deadline,
+    derived: {
+      routeFamily: draft.derived.routeFamily ?? null,
+      executionKind: draft.derived.executionKind ?? null,
+      paymentMode: draft.derived.paymentMode ?? null,
+      matchingMode: draft.derived.matchingMode ?? null,
+      candidatePool: draft.derived.candidatePool ?? [],
+      missingDetails: draft.derived.missingDetails,
+      readiness: draft.derived.readiness,
+      routeSummary: draft.derived.routeSummary ?? null,
+    },
+    parallelFulfillmentAllowed: false,
+    createdAt: draft.createdAt,
+    updatedAt: draft.updatedAt,
+  };
 }

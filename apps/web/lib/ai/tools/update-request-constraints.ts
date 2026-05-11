@@ -20,7 +20,7 @@ export const updateRequestConstraints = ({
 }: UpdateRequestConstraintsProps) =>
   tool({
     description:
-      "Update request constraints, expected outputs, and briefing tags for the active Request draft.",
+      "Update request constraints, expected outputs, and briefing tags for the active Request draft. Use this for explicit location, format, platform, style, or deliverable constraints the user already stated.",
     inputSchema: z.object({
       constraints: z.record(z.string(), z.unknown()).default({}),
       outputKinds: z.array(z.string().min(1)).optional(),

@@ -13,21 +13,31 @@ export function Preview() {
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-tl-2xl bg-background">
-      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border/20 px-5">
-        <div className="flex size-5 items-center justify-center rounded bg-muted/60 ring-1 ring-border/50">
-          <SparklesIcon size={10} />
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[2rem] border border-border/40 bg-[linear-gradient(160deg,rgba(255,255,255,0.96),rgba(245,245,245,0.92))] shadow-[0_32px_90px_rgba(15,23,42,0.12)] dark:bg-[linear-gradient(160deg,rgba(17,24,39,0.94),rgba(7,10,18,0.98))]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(180,210,255,0.35),transparent_65%)] dark:bg-[radial-gradient(circle_at_top,rgba(96,165,250,0.16),transparent_65%)]" />
+      <div className="relative flex h-16 shrink-0 items-center gap-3 border-b border-border/20 px-5">
+        <div className="flex size-8 items-center justify-center rounded-2xl border border-border/50 bg-background/60 ring-1 ring-border/30">
+          <SparklesIcon size={12} />
         </div>
-        <span className="text-[13px] text-muted-foreground">Chatbot</span>
+        <div className="flex flex-col leading-none">
+          <span className="text-[13px] font-medium text-foreground">Boreal</span>
+          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/[0.55]">
+            Chat shell
+          </span>
+        </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 px-8">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold tracking-tight">
-            What can I help with?
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-8 px-8 py-10">
+        <div className="max-w-lg text-center">
+          <div className="mb-4 inline-flex rounded-full border border-border/50 bg-background/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/70">
+            Request-native work commerce
+          </div>
+          <h2 className="text-3xl font-semibold tracking-tight text-balance text-foreground [font-family:var(--font-display)] md:text-4xl">
+            Bring the work into one chat.
           </h2>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Ask a question, write code, or explore ideas.
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            Start with an ask. Match it, execute it, prove it, and pay it in
+            the same place.
           </p>
         </div>
 
@@ -45,13 +55,13 @@ export function Preview() {
         </div>
       </div>
 
-      <div className="shrink-0 px-5 pb-5">
+      <div className="relative shrink-0 px-5 pb-5">
         <button
-          className="flex w-full items-center rounded-2xl border border-border/30 bg-card/30 px-4 py-3 text-left text-[13px] text-muted-foreground/40 transition-colors hover:border-border/50 hover:text-muted-foreground/60"
+          className="flex w-full items-center rounded-2xl border border-border/30 bg-card/[0.35] px-4 py-3 text-left text-[13px] text-muted-foreground/[0.45] transition-colors hover:border-border/50 hover:text-muted-foreground/[0.65]"
           onClick={() => handleAction()}
           type="button"
         >
-          Ask anything...
+          Describe the work you need...
         </button>
       </div>
     </div>

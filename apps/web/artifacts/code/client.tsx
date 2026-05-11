@@ -52,6 +52,30 @@ const OUTPUT_HANDLERS = {
   `,
 };
 
+function isRequestObjectContent(content: string): boolean {
+  try {
+    const parsed = JSON.parse(content) as {
+      schemaVersion?: number;
+      mode?: string;
+      brief?: unknown;
+      derived?: unknown;
+      status?: unknown;
+    };
+
+    return (
+      parsed.schemaVersion === 1 &&
+      typeof parsed.brief === "object" &&
+      parsed.brief !== null &&
+      ((typeof parsed.status === "string" &&
+        typeof parsed.derived === "object" &&
+        parsed.derived !== null) ||
+        parsed.mode === "request_draft_input")
+    );
+  } catch {
+    return false;
+  }
+}
+
 function detectRequiredHandlers(code: string): string[] {
   const handlers: string[] = ["basic"];
 
@@ -213,6 +237,7 @@ export const codeArtifact = new Artifact<"code", Metadata>({
           }));
         }
       },
+      isDisabled: ({ content }) => isRequestObjectContent(content),
     },
     {
       icon: <UndoIcon size={18} />,

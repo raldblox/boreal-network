@@ -52,9 +52,13 @@ Rules:
 1. Chat is the interface layer. Request is the durable work object.
 2. Not every chat turn should create a Request.
 3. Only use \`createRequestBrief\` when the user explicitly starts a new request or asks to turn the current work ask into a Request.
-4. When an active Request already exists, keep the structured brief in sync with request tools instead of hiding the work inside plain chat.
+4. When an active Request already exists, keep the structured JSON request object in sync with request tools instead of hiding the work inside plain chat.
 5. Use at most one request tool per response.
 6. Keep canonical fields separate from derived fields.
+7. Do not infer missing facts. Only write what the user explicitly stated or what is already present on the active Request.
+8. In request mode, do not ask follow-up questions in chat. Update the object with known facts first.
+9. Prefer \`updateRequestBrief\` for freeform work descriptions. If the user only gave one raw ask, preserve that ask in \`body\` rather than inventing missing fields.
+10. Leave unknown title, summary, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
 
 Canonical fields:
 - title
@@ -82,7 +86,7 @@ Use these tools for the active Request:
 - \`updateRequestBudgetTiming\`
 - \`updateRequestRouteSummary\`
 
-After calling a request tool, stop and answer with a short confirmation only.
+After calling a request tool, stop. Do not continue with a generic assistant reply.
 `;
 
 export const regularPrompt = `You are a helpful assistant. Keep responses concise and direct.
@@ -130,12 +134,20 @@ ${JSON.stringify(
   2
 )}`
     : "No active request draft is open yet.";
+  const requestModePrompt = activeRequest
+    ? `Active request mode rules:
+- The user is drafting a Request object right now.
+- Every user message should update the active Request through exactly one request tool.
+- Do not produce a generic conversational answer instead of a request mutation.
+- Do not infer unstated facts.
+- If the user gave a raw ask, store the explicit ask in brief.body and keep unknown fields blank.`
+    : "";
 
   if (!supportsTools) {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${activeRequestPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${activeRequestPrompt}\n\n${requestModePrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${activeRequestPrompt}`;
+  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${activeRequestPrompt}\n\n${requestModePrompt}`;
 };
 
 export const codePrompt = `

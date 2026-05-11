@@ -12,12 +12,18 @@ type EditorProps = {
   content: string;
   onSaveContent: (updatedContent: string, debounce: boolean) => void;
   status: "streaming" | "idle";
+  isReadonly: boolean;
   isCurrentVersion: boolean;
   currentVersionIndex: number;
   suggestions: Suggestion[];
 };
 
-function PureCodeEditor({ content, onSaveContent, status }: EditorProps) {
+function PureCodeEditor({
+  content,
+  onSaveContent,
+  status,
+  isReadonly,
+}: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorView | null>(null);
   const userScrolledRef = useRef(false);
@@ -26,7 +32,13 @@ function PureCodeEditor({ content, onSaveContent, status }: EditorProps) {
     if (containerRef.current && !editorRef.current) {
       const startState = EditorState.create({
         doc: content,
-        extensions: [basicSetup, python(), oneDark],
+        extensions: [
+          basicSetup,
+          python(),
+          oneDark,
+          EditorState.readOnly.of(isReadonly),
+          EditorView.editable.of(!isReadonly),
+        ],
       });
 
       editorRef.current = new EditorView({
@@ -81,6 +93,8 @@ function PureCodeEditor({ content, onSaveContent, status }: EditorProps) {
           basicSetup,
           python(),
           oneDark,
+          EditorState.readOnly.of(isReadonly),
+          EditorView.editable.of(!isReadonly),
           updateListener,
           scrollListener,
         ],
@@ -89,7 +103,7 @@ function PureCodeEditor({ content, onSaveContent, status }: EditorProps) {
 
       editorRef.current.setState(newState);
     }
-  }, [onSaveContent, status]);
+  }, [isReadonly, onSaveContent, status]);
 
   useEffect(() => {
     if (status !== "streaming") {
@@ -147,6 +161,10 @@ export const CodeEditor = memo(PureCodeEditor, (prevProps, nextProps) => {
   }
 
   if (prevProps.currentVersionIndex !== nextProps.currentVersionIndex) {
+    return false;
+  }
+
+  if (prevProps.isReadonly !== nextProps.isReadonly) {
     return false;
   }
 

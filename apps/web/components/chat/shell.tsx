@@ -50,6 +50,7 @@ export function ChatShell() {
     activeRequest,
     isRequestMode,
     createRequest,
+    saveRequestDraft,
     openRequest,
   } = useActiveChat();
 
@@ -91,7 +92,7 @@ export function ChatShell() {
       ...currentArtifact,
       documentId: activeRequest.documentId,
       title: activeRequest.brief.title?.trim() || "Untitled request",
-      kind: "text",
+      kind: "code",
       isVisible: true,
       status: "idle",
     }));
@@ -106,7 +107,7 @@ export function ChatShell() {
       ...currentArtifact,
       documentId: activeRequest.documentId,
       title: activeRequest.brief.title?.trim() || "Untitled request",
-      kind: "text",
+      kind: "code",
       isVisible: true,
       status: "idle",
     }));
@@ -122,7 +123,7 @@ export function ChatShell() {
       ...currentArtifact,
       documentId: createdRequest.documentId,
       title: createdRequest.brief.title?.trim() || "Untitled request",
-      kind: "text",
+      kind: "code",
       isVisible: true,
       status: "idle",
     }));
@@ -151,8 +152,8 @@ export function ChatShell() {
               isArtifactVisible={isArtifactVisible}
               isReadonly={isReadonly}
               isRequestMode={isRequestMode}
-              onCreateRequest={handleCreateRequest}
               onOpenDocument={openRequestDocument}
+              onSaveDraft={saveRequestDraft}
               onOpenRequest={openRequest}
               request={activeRequest}
             />
@@ -226,6 +227,7 @@ export function ChatShell() {
         </div>
 
         <Artifact
+          activeRequest={activeRequest}
           addToolApprovalResponse={addToolApprovalResponse}
           attachments={attachments}
           chatId={chatId}

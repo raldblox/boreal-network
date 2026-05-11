@@ -27,9 +27,19 @@ export function DataStreamHandler() {
         mutate(unstable_serialize(getChatHistoryPaginationKey));
         continue;
       }
+      const artifactKindForDelta =
+        delta.type === "data-codeDelta"
+          ? "code"
+          : delta.type === "data-sheetDelta"
+            ? "sheet"
+            : delta.type === "data-imageDelta"
+              ? "image"
+              : delta.type === "data-textDelta" || delta.type === "data-suggestion"
+                ? "text"
+                : artifact.kind;
       const artifactDefinition = artifactDefinitions.find(
         (currentArtifactDefinition) =>
-          currentArtifactDefinition.kind === artifact.kind
+          currentArtifactDefinition.kind === artifactKindForDelta
       );
 
       if (artifactDefinition?.onStreamPart) {

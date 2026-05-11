@@ -85,7 +85,7 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return "The request couldn't be processed. Please check your input and try again.";
 
     case "bad_request:activate_gateway":
-      return "AI Gateway requires a valid credit card on file to service requests. Please visit https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card to add a card and unlock your free credits.";
+      return "Boreal could not reach its configured model route. The owner needs to finish AI Gateway or BYOK setup before requests can run.";
 
     case "unauthorized:auth":
       return "You need to sign in before continuing.";
@@ -93,7 +93,7 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
       return "Your account does not have access to this feature.";
 
     case "rate_limit:chat":
-      return "You've reached the message limit. Come back in 1 hour to continue chatting.";
+      return "You've reached the message limit. Come back in 1 hour to continue the chat.";
     case "not_found:chat":
       return "The requested chat was not found. Please check the chat ID and try again.";
     case "forbidden:chat":

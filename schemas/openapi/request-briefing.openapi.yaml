@@ -65,7 +65,7 @@ paths:
                   request:
                     $ref: "#/components/schemas/WebRequestDraft"
     patch:
-      summary: Advance a draft Request into the canonical open state.
+      summary: Save a draft Request projection or advance it into the canonical open state.
       requestBody:
         required: true
         content:
@@ -83,6 +83,7 @@ paths:
                 action:
                   type: string
                   enum:
+                    - save_draft
                     - open_request
       responses:
         "200":
@@ -97,6 +98,12 @@ paths:
                 properties:
                   request:
                     $ref: "#/components/schemas/WebRequestDraft"
+      description: >
+        When the request is still in `draft`, the live request-object document
+        may be edited through a safe request-input subset only. `save_draft` and
+        `open_request` normalize that subset back into the durable `Request`.
+        Once the request leaves `draft`, the full canonical request object is
+        rendered read-only.
 components:
   schemas:
     WebRequestDraft:

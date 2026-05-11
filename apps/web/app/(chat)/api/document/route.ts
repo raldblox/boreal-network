@@ -4,6 +4,7 @@ import type { ArtifactKind } from "@/components/chat/artifact";
 import {
   deleteDocumentsByIdAfterTimestamp,
   getDocumentsById,
+  getRequestByDocumentId,
   saveDocument,
   updateDocumentContent,
 } from "@/lib/db/queries";
@@ -94,6 +95,21 @@ export async function POST(request: Request) {
   }
 
   if (isManualEdit && documents.length > 0) {
+    const requestRecord = await getRequestByDocumentId({ documentId: id });
+
+    if (requestRecord) {
+      if (requestRecord.ownerId !== session.user.id) {
+        return new ChatbotError("forbidden:document").toResponse();
+      }
+
+      if (requestRecord.status !== "draft") {
+        return new ChatbotError(
+          "bad_request:api",
+          "Only draft requests can be edited manually."
+        ).toResponse();
+      }
+    }
+
     const result = await updateDocumentContent({ id, content });
     return Response.json(result, { status: 200 });
   }

@@ -19,12 +19,14 @@ import { sheetArtifact } from "@/artifacts/sheet/client";
 import { textArtifact } from "@/artifacts/text/client";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { Document, Vote } from "@/lib/db/schema";
+import type { BorealRequestDraft } from "@/lib/request";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { fetcher } from "@/lib/utils";
 import { useSidebar } from "../ui/sidebar";
 import { ArtifactActions } from "./artifact-actions";
 import { ArtifactCloseButton } from "./artifact-close-button";
 import { LoaderIcon } from "./icons";
+import { toast } from "./toast";
 import { Toolbar } from "./toolbar";
 import { VersionFooter } from "./version-footer";
 import type { VisibilityType } from "./visibility-selector";
@@ -66,7 +68,8 @@ function PureArtifact({
   setMessages,
   regenerate: _regenerate,
   votes: _votes,
-  isReadonly: _isReadonly,
+  activeRequest,
+  isReadonly,
   selectedVisibilityType: _selectedVisibilityType,
   selectedModelId: _selectedModelId,
 }: {
@@ -83,6 +86,7 @@ function PureArtifact({
   votes: Vote[] | undefined;
   sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
+  activeRequest: BorealRequestDraft | null;
   isReadonly: boolean;
   selectedVisibilityType: VisibilityType;
   selectedModelId: string;
@@ -103,6 +107,16 @@ function PureArtifact({
   const [mode, setMode] = useState<"edit" | "diff">("edit");
   const [document, setDocument] = useState<Document | null>(null);
   const [currentVersionIndex, setCurrentVersionIndex] = useState(-1);
+  const isCurrentVersion =
+    documents && documents.length > 0
+      ? currentVersionIndex === documents.length - 1
+      : true;
+  const isActiveRequestArtifact =
+    activeRequest?.documentId === artifact.documentId;
+  const isArtifactReadonly =
+    isReadonly ||
+    !isCurrentVersion ||
+    (isActiveRequestArtifact && activeRequest?.status !== "draft");
 
   const { state: sidebarState } = useSidebar();
   const artifactContentRef = useRef<HTMLDivElement>(null);
@@ -148,55 +162,81 @@ function PureArtifact({
   const { mutate } = useSWRConfig();
 
   const handleContentChange = useCallback(
-    (updatedContent: string) => {
+    async (updatedContent: string) => {
       if (!artifact) {
         return;
       }
 
-      mutate<Document[]>(
-        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
-        async (currentDocuments) => {
-          if (!currentDocuments) {
-            return [];
-          }
+      if (isArtifactReadonly) {
+        setIsContentDirty(false);
+        return;
+      }
 
-          const currentDocument = currentDocuments.at(-1);
-
-          if (!currentDocument?.content) {
-            setIsContentDirty(false);
-            return currentDocuments;
-          }
-
-          if (currentDocument.content === updatedContent) {
-            setIsContentDirty(false);
-            return currentDocuments;
-          }
-
-          await fetch(
-            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
-            {
-              method: "POST",
-              body: JSON.stringify({
-                title: artifact.title,
-                content: updatedContent,
-                kind: artifact.kind,
-                isManualEdit: true,
-              }),
+      try {
+        await mutate<Document[]>(
+          `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
+          async (currentDocuments) => {
+            if (!currentDocuments) {
+              return [];
             }
-          );
 
-          setIsContentDirty(false);
+            const currentDocument = currentDocuments.at(-1);
 
-          return currentDocuments.map((doc, i) =>
-            i === currentDocuments.length - 1
-              ? { ...doc, content: updatedContent }
-              : doc
-          );
-        },
-        { revalidate: false }
-      );
+            if (!currentDocument?.content) {
+              setIsContentDirty(false);
+              return currentDocuments;
+            }
+
+            if (currentDocument.content === updatedContent) {
+              setIsContentDirty(false);
+              return currentDocuments;
+            }
+
+            const response = await fetch(
+              `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${artifact.documentId}`,
+              {
+                method: "POST",
+                body: JSON.stringify({
+                  title: artifact.title,
+                  content: updatedContent,
+                  kind: artifact.kind,
+                  isManualEdit: true,
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              const error = await response.json().catch(() => null);
+
+              throw new Error(
+                error?.cause ||
+                  error?.message ||
+                  "Failed to update the request document."
+              );
+            }
+
+            setIsContentDirty(false);
+
+            return currentDocuments.map((doc, i) =>
+              i === currentDocuments.length - 1
+                ? { ...doc, content: updatedContent }
+                : doc
+            );
+          },
+          { revalidate: false }
+        );
+      } catch (error) {
+        setIsContentDirty(false);
+        toast({
+          type: "error",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to update the request document.",
+        });
+      }
     },
-    [artifact, mutate]
+    [artifact, isArtifactReadonly, mutate]
   );
 
   const latestContentRef = useRef<string>("");
@@ -214,11 +254,11 @@ function PureArtifact({
 
       if (debounce) {
         saveTimerRef.current = setTimeout(() => {
-          handleContentChange(latestContentRef.current);
+          void handleContentChange(latestContentRef.current);
           saveTimerRef.current = null;
         }, 2000);
       } else {
-        handleContentChange(updatedContent);
+        void handleContentChange(updatedContent);
       }
     },
     [handleContentChange]
@@ -258,11 +298,6 @@ function PureArtifact({
   };
 
   const [isToolbarVisible, setIsToolbarVisible] = useState(true);
-
-  const isCurrentVersion =
-    documents && documents.length > 0
-      ? currentVersionIndex === documents.length - 1
-      : true;
 
   const { width: windowWidth, height: windowHeight } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
@@ -370,6 +405,7 @@ function PureArtifact({
           isCurrentVersion={isCurrentVersion}
           isInline={false}
           isLoading={isDocumentsFetching && !artifact.content}
+          isReadonly={isArtifactReadonly}
           metadata={metadata}
           mode={mode}
           onSaveContent={saveContent}
@@ -465,6 +501,9 @@ export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
   if (prevProps.status !== nextProps.status) {
     return false;
   }
+  if (prevProps.isReadonly !== nextProps.isReadonly) {
+    return false;
+  }
   if (!equal(prevProps.votes, nextProps.votes)) {
     return false;
   }
@@ -475,6 +514,12 @@ export const Artifact = memo(PureArtifact, (prevProps, nextProps) => {
     return false;
   }
   if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) {
+    return false;
+  }
+  if (
+    prevProps.activeRequest?.status !== nextProps.activeRequest?.status ||
+    prevProps.activeRequest?.documentId !== nextProps.activeRequest?.documentId
+  ) {
     return false;
   }
 

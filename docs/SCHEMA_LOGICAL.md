@@ -115,6 +115,8 @@ Draft rule:
 
 - a `Request` may be created early in `draft` status before routing, matching, commitment, or fulfillment details are complete
 - not every chat turn creates a `Request`; request creation must be explicit at the product layer or policy layer
+- draft-mode UI may expose only a safe editable request-input subset
+- system-owned fields such as ids, ownership refs, keys, status progression, timestamps, and derived projections stay server-owned and should be shown as a read-only projection outside `draft`
 
 ### `Fulfillment`
 

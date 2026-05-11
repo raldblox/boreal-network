@@ -45,7 +45,7 @@ export async function applyRequestBriefPatch({
     id: nextDraft.documentId,
     requestId: nextDraft.id,
     title: nextDraft.brief.title?.trim() || "Untitled request",
-    kind: "text" as const,
+    kind: "code" as const,
     status: nextDraft.status,
     readiness: nextDraft.derived.readiness,
     missingDetails: nextDraft.derived.missingDetails,

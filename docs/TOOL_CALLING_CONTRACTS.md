@@ -126,6 +126,7 @@ Every mutation call should return:
 - Policy tools must not bypass approval boundaries.
 - Mutation tools must be idempotent where retries are possible.
 - Request-briefing mutation tools must keep updating the same draft `Request` instead of creating a second durable demand object.
+- If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.
 - Tool-produced output should be recorded as `RequestEvent` when the thread needs durable explanation or auditability.
 

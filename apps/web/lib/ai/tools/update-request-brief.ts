@@ -20,7 +20,7 @@ export const updateRequestBrief = ({
 }: UpdateRequestBriefProps) =>
   tool({
     description:
-      "Update the live Request brief document with clearer title, summary, or body details. Use this when the user is still briefing the work.",
+      "Update the live Request object with explicit title, summary, or body details. Prefer this for freeform user asks. If the user only gave one raw work description, update body with that explicit wording and leave unknown fields untouched.",
     inputSchema: z.object({
       title: z.string().min(1).max(200).optional(),
       summary: z.string().min(1).max(1000).optional(),

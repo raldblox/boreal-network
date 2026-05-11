@@ -4,6 +4,7 @@ import {
   getChatById,
   getRequestByChatId,
   getRequestById,
+  getRequestsByUserId,
   toRequestDraft,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
@@ -19,23 +20,41 @@ const createRequestSchema = z.object({
 
 const patchRequestSchema = z.object({
   requestId: z.string().uuid(),
-  action: z.enum(["open_request"]),
+  action: z.enum(["save_draft", "open_request"]),
 });
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const chatId = searchParams.get("chatId");
 
-  if (!chatId) {
-    return new ChatbotError(
-      "bad_request:api",
-      "Parameter chatId is required."
-    ).toResponse();
-  }
-
   const session = await auth();
   if (!session?.user) {
     return new ChatbotError("unauthorized:chat").toResponse();
+  }
+
+  if (!chatId) {
+    const limit = Math.min(
+      Math.max(Number.parseInt(searchParams.get("limit") || "10", 10), 1),
+      50
+    );
+    const startingAfter = searchParams.get("starting_after");
+    const endingBefore = searchParams.get("ending_before");
+
+    if (startingAfter && endingBefore) {
+      return new ChatbotError(
+        "bad_request:api",
+        "Only one of starting_after or ending_before can be provided."
+      ).toResponse();
+    }
+
+    const requests = await getRequestsByUserId({
+      id: session.user.id,
+      limit,
+      startingAfter,
+      endingBefore,
+    });
+
+    return Response.json(requests, { status: 200 });
   }
 
   const requestDraft = await getRequestByChatId({ chatId });
@@ -104,19 +123,11 @@ export async function PATCH(request: Request) {
     return new ChatbotError("not_found:database").toResponse();
   }
 
-  const currentDraft = toRequestDraft(existingRequest);
-  if (!currentDraft.derived.readiness.readyForOpen) {
-    return new ChatbotError(
-      "bad_request:api",
-      "This request is still missing core briefing details."
-    ).toResponse();
-  }
-
   try {
     const nextDraft = await persistRequestPatch({
       requestId: body.requestId,
       userId: session.user.id,
-      patch: { status: "open" },
+      patch: body.action === "open_request" ? { status: "open" } : {},
     });
 
     return Response.json({ request: nextDraft }, { status: 200 });
@@ -129,9 +140,41 @@ export async function PATCH(request: Request) {
       return new ChatbotError("not_found:database").toResponse();
     }
 
+    if (
+      error instanceof Error &&
+      error.message === "Invalid request draft document"
+    ) {
+      return new ChatbotError(
+        "bad_request:api",
+        "The request draft JSON is invalid. Fix the object before continuing."
+      ).toResponse();
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "Request not ready to open"
+    ) {
+      return new ChatbotError(
+        "bad_request:api",
+        "This request is still missing core briefing details."
+      ).toResponse();
+    }
+
+    if (
+      error instanceof Error &&
+      error.message === "Only draft requests can be opened"
+    ) {
+      return new ChatbotError(
+        "bad_request:api",
+        "Only draft requests can be opened."
+      ).toResponse();
+    }
+
     return new ChatbotError(
       "bad_request:database",
-      "Failed to open request draft"
+      body.action === "open_request"
+        ? "Failed to open request draft"
+        : "Failed to save request draft"
     ).toResponse();
   }
 }

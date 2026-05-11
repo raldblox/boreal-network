@@ -48,7 +48,7 @@ function PureChatHeader({
             Boreal
           </span>
           <span className="truncate text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/[0.45]">
-            {isRequestMode ? "Request drafting" : "Work thread"}
+            {isRequestMode ? "Request drafting" : "Chat"}
           </span>
         </div>
         <span className="text-[13px] font-medium text-sidebar-foreground sm:hidden">

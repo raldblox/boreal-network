@@ -18,6 +18,10 @@ import {
   getChatHistoryPaginationKey,
   SidebarHistory,
 } from "@/components/chat/sidebar-history";
+import {
+  getRequestHistoryPaginationKey,
+  SidebarRequests,
+} from "@/components/chat/sidebar-requests";
 import { SidebarUserNav } from "@/components/chat/sidebar-user-nav";
 import {
   Sidebar,
@@ -57,6 +61,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     mutate(unstable_serialize(getChatHistoryPaginationKey), [], {
       revalidate: false,
     });
+    mutate(unstable_serialize(getRequestHistoryPaginationKey));
 
     fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/history`, {
       method: "DELETE",
@@ -112,10 +117,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       setOpenMobile(false);
                       router.push("/");
                     }}
-                    tooltip="New thread"
+                    tooltip="New chat"
                   >
                     <PenSquareIcon className="size-4" />
-                    <span className="font-medium">New thread</span>
+                    <span className="font-medium">New chat</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -134,18 +139,19 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 {user && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => setShowDeleteAllDialog(true)}
-                      tooltip="Clear thread history"
-                    >
-                      <TrashIcon className="size-4" />
-                      <span className="text-[13px]">Clear history</span>
+                    className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
+                    onClick={() => setShowDeleteAllDialog(true)}
+                    tooltip="Clear chat history"
+                  >
+                    <TrashIcon className="size-4" />
+                    <span className="text-[13px]">Clear history</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          <SidebarRequests user={user} />
           <SidebarHistory user={user} />
         </SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border pt-2 pb-3">
@@ -160,10 +166,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear thread history?</AlertDialogTitle>
+            <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. This removes every saved Boreal
-              thread from your account.
+              chat from your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

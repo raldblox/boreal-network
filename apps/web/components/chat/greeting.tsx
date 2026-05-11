@@ -23,7 +23,7 @@ export const Greeting = ({
       >
         {isRequestMode
           ? "Write the title, summary, body, constraints, budget, or timing. Boreal will keep the live request object visible beside the chat."
-          : "Describe the work, the outcome, or the specialist you need. Boreal keeps the thread accountable from intake to delivery."}
+          : "Describe the work, the outcome, or the specialist you need. Boreal keeps the chat connected to the request when real work starts."}
       </motion.div>
     </div>
   );

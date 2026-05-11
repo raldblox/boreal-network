@@ -20,6 +20,7 @@ import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
+import { getRequestHistoryPaginationKey } from "@/components/chat/sidebar-requests";
 import { toast } from "@/components/chat/toast";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { useAutoResume } from "@/hooks/use-auto-resume";
@@ -60,6 +61,7 @@ type ActiveChatContextValue = {
   activeRequest: BorealRequestDraft | null;
   isRequestMode: boolean;
   createRequest: () => Promise<BorealRequestDraft | null>;
+  saveRequestDraft: () => Promise<void>;
   openRequest: () => Promise<void>;
 };
 
@@ -112,6 +114,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const visibility: VisibilityType = isNewChat
     ? "private"
     : (chatData?.visibility ?? "private");
+  const activeRequest = chatData?.request ?? null;
+  const isRequestMode = requestModeFromUrl || activeRequest !== null;
 
   const {
     messages,
@@ -171,7 +175,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       setDataStream((ds) => (ds ? [...ds, dataPart] : []));
     },
     onFinish: () => {
-      mutate(unstable_serialize(getChatHistoryPaginationKey));
+      if (isRequestMode) {
+        mutate(unstable_serialize(getRequestHistoryPaginationKey));
+      } else {
+        mutate(unstable_serialize(getChatHistoryPaginationKey));
+      }
       if (!isNewChat) {
         mutate(chatDataKey);
       }
@@ -258,8 +266,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   });
 
   const isReadonly = isNewChat ? false : (chatData?.isReadonly ?? false);
-  const activeRequest = chatData?.request ?? null;
-  const isRequestMode = requestModeFromUrl || activeRequest !== null;
 
   const { data: votes } = useSWR<Vote[]>(
     !isReadonly && messages.length >= 2
@@ -297,7 +303,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       await mutate<ChatDataResponse>(
         chatDataKey,
         {
-          messages: chatData?.messages ?? [],
+          messages: [],
           visibility,
           userId: chatData?.userId ?? null,
           isReadonly: false,
@@ -307,6 +313,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           revalidate: false,
         }
       );
+      mutate(unstable_serialize(getRequestHistoryPaginationKey));
 
       return data.request;
     } catch (_error) {
@@ -331,6 +338,71 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     hasAutoCreatedRequestRef.current = chatId;
     void createRequest();
   }, [activeRequest, chatId, createRequest, isReadonly, requestModeFromUrl]);
+
+  const saveRequestDraft = useCallback(async () => {
+    if (!activeRequest) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            requestId: activeRequest.id,
+            action: "save_draft",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.cause || error?.message || "Failed to save draft");
+      }
+
+      const data = (await response.json()) as {
+        request: BorealRequestDraft | null;
+      };
+
+      if (data.request) {
+        await mutate<ChatDataResponse>(
+          chatDataKey,
+          {
+            messages: [],
+            visibility,
+            userId: chatData?.userId ?? null,
+            isReadonly: false,
+            request: data.request,
+          },
+          {
+            revalidate: false,
+          }
+        );
+
+        await mutate(
+          `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${data.request.documentId}`
+        );
+      }
+
+      mutate(unstable_serialize(getRequestHistoryPaginationKey));
+      toast({
+        type: "success",
+        description: "Request draft saved.",
+      });
+    } catch (error) {
+      toast({
+        type: "error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to save request draft.",
+      });
+    }
+  }, [activeRequest, chatData?.userId, chatDataKey, mutate, visibility]);
 
   const openRequest = useCallback(async () => {
     if (!activeRequest) {
@@ -360,12 +432,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       const data = (await response.json()) as {
         request: BorealRequestDraft | null;
       };
-      await mutate(chatDataKey);
       if (data.request) {
         await mutate<ChatDataResponse>(
           chatDataKey,
           {
-            messages: chatData?.messages ?? [],
+            messages: [],
             visibility,
             userId: chatData?.userId ?? null,
             isReadonly: false,
@@ -375,7 +446,12 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
             revalidate: false,
           }
         );
+
+        await mutate(
+          `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${data.request.documentId}`
+        );
       }
+      mutate(unstable_serialize(getRequestHistoryPaginationKey));
     } catch (error) {
       toast({
         type: "error",
@@ -417,6 +493,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       activeRequest,
       isRequestMode,
       createRequest,
+      saveRequestDraft,
       openRequest,
     }),
     [
@@ -439,6 +516,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       activeRequest,
       isRequestMode,
       createRequest,
+      saveRequestDraft,
       openRequest,
     ]
   );

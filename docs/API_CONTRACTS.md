@@ -95,11 +95,14 @@ Should expose:
 For the first web slice, `Request` create and update must support:
 
 - explicit `New request` draft creation
+- explicit `save draft` normalization from the live request-input document surface
 - request-brief field updates
 - request constraint updates
 - request budget and timing updates
 - request route-summary updates
 - explicit transition from `draft` to `open`
+- manual request-object editing only while the request stays in `draft`
+- full canonical request-object projection as read-only once the request leaves `draft`
 
 ### `Commitment`
 

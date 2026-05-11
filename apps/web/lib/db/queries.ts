@@ -9,6 +9,7 @@ import {
   gt,
   gte,
   inArray,
+  isNull,
   lt,
   type SQL,
 } from "drizzle-orm";
@@ -177,12 +178,21 @@ export async function getChatsByUserId({
 
     const query = (whereCondition?: SQL<unknown>) =>
       db
-        .select()
+        .select({
+          id: chat.id,
+          createdAt: chat.createdAt,
+          title: chat.title,
+          userId: chat.userId,
+          visibility: chat.visibility,
+        })
         .from(chat)
+        .leftJoin(request, eq(request.chatId, chat.id))
         .where(
-          whereCondition
-            ? and(whereCondition, eq(chat.userId, id))
-            : eq(chat.userId, id)
+          and(
+            eq(chat.userId, id),
+            isNull(request.id),
+            ...(whereCondition ? [whereCondition] : [])
+          )
         )
         .orderBy(desc(chat.createdAt))
         .limit(extendedLimit);
@@ -250,6 +260,38 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
+export async function deleteChatHistoryByUserId({ userId }: { userId: string }) {
+  try {
+    const userChats = await db
+      .select({ id: chat.id })
+      .from(chat)
+      .leftJoin(request, eq(request.chatId, chat.id))
+      .where(and(eq(chat.userId, userId), isNull(request.id)));
+
+    if (userChats.length === 0) {
+      return { deletedCount: 0 };
+    }
+
+    const chatIds = userChats.map((c) => c.id);
+
+    await db.delete(vote).where(inArray(vote.chatId, chatIds));
+    await db.delete(message).where(inArray(message.chatId, chatIds));
+    await db.delete(stream).where(inArray(stream.chatId, chatIds));
+
+    const deletedChats = await db
+      .delete(chat)
+      .where(inArray(chat.id, chatIds))
+      .returning();
+
+    return { deletedCount: deletedChats.length };
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to delete chat history by user id"
+    );
+  }
+}
+
 export async function getRequestByChatId({
   chatId,
 }: {
@@ -272,6 +314,28 @@ export async function getRequestByChatId({
   }
 }
 
+export async function getRequestByDocumentId({
+  documentId,
+}: {
+  documentId: string;
+}): Promise<RequestRecord | null> {
+  try {
+    const [selectedRequest] = await db
+      .select()
+      .from(request)
+      .where(eq(request.documentId, documentId))
+      .orderBy(desc(request.updatedAt))
+      .limit(1);
+
+    return selectedRequest ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get request by document id"
+    );
+  }
+}
+
 export async function getRequestById({
   id,
 }: {
@@ -289,6 +353,89 @@ export async function getRequestById({
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get request by id"
+    );
+  }
+}
+
+export async function getRequestsByUserId({
+  id,
+  limit,
+  startingAfter,
+  endingBefore,
+}: {
+  id: string;
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}) {
+  try {
+    const extendedLimit = limit + 1;
+
+    const query = (whereCondition?: SQL<unknown>) =>
+      db
+        .select()
+        .from(request)
+        .where(
+          and(
+            eq(request.ownerId, id),
+            ...(whereCondition ? [whereCondition] : [])
+          )
+        )
+        .orderBy(desc(request.updatedAt))
+        .limit(extendedLimit);
+
+    let filteredRequests: RequestRecord[] = [];
+
+    if (startingAfter) {
+      const [selectedRequest] = await db
+        .select()
+        .from(request)
+        .where(eq(request.id, startingAfter))
+        .limit(1);
+
+      if (!selectedRequest) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Request with id ${startingAfter} not found`
+        );
+      }
+
+      filteredRequests = await query(
+        gt(request.updatedAt, selectedRequest.updatedAt)
+      );
+    } else if (endingBefore) {
+      const [selectedRequest] = await db
+        .select()
+        .from(request)
+        .where(eq(request.id, endingBefore))
+        .limit(1);
+
+      if (!selectedRequest) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Request with id ${endingBefore} not found`
+        );
+      }
+
+      filteredRequests = await query(
+        lt(request.updatedAt, selectedRequest.updatedAt)
+      );
+    } else {
+      filteredRequests = await query();
+    }
+
+    const hasMore = filteredRequests.length > limit;
+
+    return {
+      requests: hasMore
+        ? filteredRequests.slice(0, limit).map(toRequestDraft)
+        : filteredRequests.map(toRequestDraft),
+      hasMore,
+    };
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get requests by user id"
     );
   }
 }

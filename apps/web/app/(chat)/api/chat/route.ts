@@ -53,6 +53,40 @@ import { type PostRequestBody, postRequestBodySchema } from "./schema";
 
 export const maxDuration = 60;
 
+const requestUpdateToolNames = [
+  "updateRequestBrief",
+  "updateRequestConstraints",
+  "updateRequestBudgetTiming",
+  "updateRequestRouteSummary",
+] satisfies Array<
+  | "updateRequestBrief"
+  | "updateRequestConstraints"
+  | "updateRequestBudgetTiming"
+  | "updateRequestRouteSummary"
+>;
+
+const defaultToolNames = [
+  "createRequestBrief",
+  "createDocument",
+  "editDocument",
+  "updateDocument",
+  "updateRequestBrief",
+  "updateRequestConstraints",
+  "updateRequestBudgetTiming",
+  "updateRequestRouteSummary",
+  "requestSuggestions",
+] satisfies Array<
+  | "createRequestBrief"
+  | "createDocument"
+  | "editDocument"
+  | "updateDocument"
+  | "updateRequestBrief"
+  | "updateRequestConstraints"
+  | "updateRequestBudgetTiming"
+  | "updateRequestRouteSummary"
+  | "requestSuggestions"
+>;
+
 function getStreamContext() {
   try {
     return createResumableStreamContext({ waitUntil: after });
@@ -117,7 +151,9 @@ export async function POST(request: Request) {
       if (chat.userId !== session.user.id) {
         return new ChatbotError("forbidden:chat").toResponse();
       }
-      messagesFromDb = await getMessagesByChatId({ id });
+      if (!activeRequest) {
+        messagesFromDb = await getMessagesByChatId({ id });
+      }
     } else if (message?.role === "user") {
       await saveChat({
         id,
@@ -175,7 +211,7 @@ export async function POST(request: Request) {
       country,
     };
 
-    if (message?.role === "user") {
+    if (message?.role === "user" && !activeRequest) {
       await saveMessages({
         messages: [
           {
@@ -195,6 +231,16 @@ export async function POST(request: Request) {
     const capabilities = modelCapabilities[chatModel];
     const isReasoningModel = capabilities?.reasoning === true;
     const supportsTools = capabilities?.tools === true;
+    const isActiveRequestMode = activeRequest !== null;
+    const activeToolNames =
+      isReasoningModel && !supportsTools
+        ? []
+        : isActiveRequestMode
+          ? requestUpdateToolNames
+          : defaultToolNames;
+    const requestToolChoice =
+      supportsTools && isActiveRequestMode ? "required" : undefined;
+    const stopCondition = isActiveRequestMode ? stepCountIs(1) : stepCountIs(5);
 
     const modelMessages = await convertToModelMessages(uiMessages);
 
@@ -209,21 +255,9 @@ export async function POST(request: Request) {
             activeRequest,
           }),
           messages: modelMessages,
-          stopWhen: stepCountIs(5),
-          experimental_activeTools:
-            isReasoningModel && !supportsTools
-              ? []
-              : [
-                  "createRequestBrief",
-                  "createDocument",
-                  "editDocument",
-                  "updateDocument",
-                  "updateRequestBrief",
-                  "updateRequestConstraints",
-                  "updateRequestBudgetTiming",
-                  "updateRequestRouteSummary",
-                  "requestSuggestions",
-                ],
+          stopWhen: stopCondition,
+          activeTools: activeToolNames,
+          toolChoice: requestToolChoice,
           providerOptions: {
             ...(modelConfig?.gatewayOrder && {
               gateway: { order: modelConfig.gatewayOrder },
@@ -298,6 +332,10 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onFinish: async ({ messages: finishedMessages }) => {
+        if (activeRequest) {
+          return;
+        }
+
         if (isToolApprovalFlow) {
           for (const finishedMsg of finishedMessages) {
             const existingMsg = uiMessages.find((m) => m.id === finishedMsg.id);

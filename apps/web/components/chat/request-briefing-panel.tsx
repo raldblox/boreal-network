@@ -3,14 +3,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { BorealRequestDraft } from "@/lib/request";
-import { toast } from "./toast";
 
 type RequestBriefingPanelProps = {
   request: BorealRequestDraft | null;
   isReadonly: boolean;
   isArtifactVisible: boolean;
   isRequestMode: boolean;
-  onCreateRequest: () => Promise<BorealRequestDraft | null>;
+  onSaveDraft: () => Promise<void>;
   onOpenRequest: () => Promise<void>;
   onOpenDocument: () => void;
 };
@@ -20,7 +19,7 @@ export function RequestBriefingPanel({
   isReadonly,
   isArtifactVisible,
   isRequestMode,
-  onCreateRequest,
+  onSaveDraft,
   onOpenRequest,
   onOpenDocument,
 }: RequestBriefingPanelProps) {
@@ -29,26 +28,20 @@ export function RequestBriefingPanel({
   }
 
   if (!request) {
+    if (!isRequestMode) {
+      return null;
+    }
+
     return (
       <div className="border-b border-border/50 bg-background/95 px-4 py-3">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3 rounded-2xl border border-dashed border-border/60 bg-card/40 p-4 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto flex max-w-4xl flex-col gap-3 rounded-2xl border border-dashed border-border/60 bg-card/40 p-4">
           <div className="space-y-1">
-            <div className="font-medium text-sm">
-              {isRequestMode
-                ? "Opening request draft"
-                : "Request mode stays explicit"}
-            </div>
+            <div className="font-medium text-sm">Opening request object</div>
             <div className="text-[13px] text-muted-foreground">
-              {isRequestMode
-                ? "Boreal is creating an untitled request object and loading its live brief beside the chat."
-                : "Start a durable Request when this thread should become real work."}
+              Boreal is creating an untitled request object and loading its live
+              JSON document beside the chat.
             </div>
           </div>
-          {!isRequestMode && (
-            <Button className="w-full md:w-auto" onClick={onCreateRequest}>
-              New request
-            </Button>
-          )}
         </div>
       </div>
     );
@@ -56,6 +49,7 @@ export function RequestBriefingPanel({
 
   const canOpenRequest =
     request.status === "draft" && request.derived.readiness.readyForOpen;
+  const isDraft = request.status === "draft";
 
   return (
     <div className="border-b border-border/50 bg-background/95 px-4 py-3">
@@ -78,22 +72,22 @@ export function RequestBriefingPanel({
 
           <div className="flex flex-wrap gap-2">
             <Button onClick={onOpenDocument} variant="outline">
-              {isArtifactVisible ? "Focus brief" : "Open brief"}
+              {isArtifactVisible ? "Focus object" : "Open object"}
             </Button>
-            <Button
-              onClick={() =>
-                toast({
-                  type: "success",
-                  description: "Draft already saved.",
-                })
-              }
-              variant="outline"
-            >
-              Save draft
-            </Button>
-            <Button disabled={!canOpenRequest} onClick={onOpenRequest}>
-              Open request
-            </Button>
+            {isDraft ? (
+              <>
+                <Button onClick={onSaveDraft} variant="outline">
+                  Save draft
+                </Button>
+                <Button disabled={!canOpenRequest} onClick={onOpenRequest}>
+                  Open request
+                </Button>
+              </>
+            ) : (
+              <Badge className="rounded-full px-3 py-1" variant="secondary">
+                Read-only canonical object
+              </Badge>
+            )}
           </div>
         </div>
 

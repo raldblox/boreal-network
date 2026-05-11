@@ -172,7 +172,7 @@ function PureMultimodalInput({
         void onCreateRequest();
         break;
       case "rename":
-        toast("Rename is available from the thread menu in the sidebar.");
+        toast("Rename is available from the chat menu in the sidebar.");
         break;
       case "model": {
         const modelBtn = document.querySelector<HTMLButtonElement>(
@@ -185,7 +185,7 @@ function PureMultimodalInput({
         setTheme(resolvedTheme === "dark" ? "light" : "dark");
         break;
       case "delete":
-        toast("Remove this thread?", {
+        toast("Remove this chat?", {
           action: {
             label: "Remove",
             onClick: () => {
@@ -194,13 +194,13 @@ function PureMultimodalInput({
                 { method: "DELETE" }
               );
               router.push("/");
-              toast.success("Thread deleted");
+              toast.success("Chat deleted");
             },
           },
         });
         break;
       case "purge":
-        toast("Clear saved thread history?", {
+        toast("Clear saved chat history?", {
           action: {
             label: "Clear",
             onClick: () => {
@@ -523,7 +523,7 @@ function PureMultimodalInput({
             editingMessage
               ? "Edit your message..."
               : isRequestMode
-                ? "Draft the request title, summary, body, or constraints..."
+                ? "Update the request object with title, summary, body, constraints, budget, or timing..."
                 : "Ask anything..."
           }
           ref={textareaRef}

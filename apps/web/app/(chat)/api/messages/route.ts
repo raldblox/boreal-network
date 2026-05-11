@@ -15,10 +15,9 @@ export async function GET(request: Request) {
     return Response.json({ error: "chatId required" }, { status: 400 });
   }
 
-  const [session, chat, messages, requestDraft] = await Promise.all([
+  const [session, chat, requestDraft] = await Promise.all([
     auth(),
     getChatById({ id: chatId }),
-    getMessagesByChatId({ id: chatId }),
     getRequestByChatId({ chatId }),
   ]);
 
@@ -40,6 +39,7 @@ export async function GET(request: Request) {
   }
 
   const isReadonly = !session?.user || session.user.id !== chat.userId;
+  const messages = requestDraft ? [] : await getMessagesByChatId({ id: chatId });
 
   return Response.json({
     messages: convertToUIMessages(messages),
