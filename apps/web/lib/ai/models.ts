@@ -1,11 +1,11 @@
-export const DEFAULT_CHAT_MODEL = "moonshotai/kimi-k2.5";
+export const DEFAULT_CHAT_MODEL = "openai/gpt-5.4-nano";
 
 export const titleModel = {
-  id: "mistral/mistral-small",
-  name: "Mistral Small",
-  provider: "mistral",
-  description: "Fast model for title generation",
-  gatewayOrder: ["mistral"],
+  id: "openai/gpt-4.1-nano",
+  name: "GPT-4.1 nano",
+  provider: "openai",
+  description: "Fast OpenAI model for title generation",
+  gatewayOrder: ["openai", "azure"],
 };
 
 export type ModelCapabilities = {
@@ -25,55 +25,47 @@ export type ChatModel = {
 
 export const chatModels: ChatModel[] = [
   {
-    id: "deepseek/deepseek-v3.2",
-    name: "DeepSeek V3.2",
-    provider: "deepseek",
-    description: "Fast and capable model with tool use",
-    gatewayOrder: ["bedrock", "deepinfra"],
-  },
-  {
-    id: "mistral/codestral",
-    name: "Codestral",
-    provider: "mistral",
-    description: "Code-focused model with tool use",
-    gatewayOrder: ["mistral"],
-  },
-  {
-    id: "mistral/mistral-small",
-    name: "Mistral Small",
-    provider: "mistral",
-    description: "Fast vision model with tool use",
-    gatewayOrder: ["mistral"],
-  },
-  {
-    id: "moonshotai/kimi-k2.5",
-    name: "Kimi K2.5",
-    provider: "moonshotai",
-    description: "Moonshot AI flagship model",
-    gatewayOrder: ["fireworks", "bedrock"],
-  },
-  {
-    id: "openai/gpt-oss-20b",
-    name: "GPT OSS 20B",
+    id: "openai/gpt-5.4-nano",
+    name: "GPT-5.4 nano",
     provider: "openai",
-    description: "Compact reasoning model",
-    gatewayOrder: ["groq", "bedrock"],
-    reasoningEffort: "low",
+    description: "Latest low-latency GPT-5.4-class model",
+    gatewayOrder: ["openai", "azure"],
   },
   {
-    id: "openai/gpt-oss-120b",
-    name: "GPT OSS 120B",
+    id: "openai/gpt-5.1-codex-mini",
+    name: "GPT-5.1 Codex mini",
     provider: "openai",
-    description: "Open-source 120B parameter model",
-    gatewayOrder: ["fireworks", "bedrock"],
-    reasoningEffort: "low",
+    description: "Compact GPT-5.1 Codex model for coding",
+    gatewayOrder: ["openai", "azure"],
   },
   {
-    id: "xai/grok-4.1-fast-non-reasoning",
-    name: "Grok 4.1 Fast",
-    provider: "xai",
-    description: "Fast non-reasoning model with tool use",
-    gatewayOrder: ["xai"],
+    id: "openai/gpt-5-pro",
+    name: "GPT-5 pro",
+    provider: "openai",
+    description: "High-compute GPT-5 model for harder tasks",
+    gatewayOrder: ["openai", "azure"],
+    reasoningEffort: "high",
+  },
+  {
+    id: "openai/gpt-5-mini",
+    name: "GPT-5 mini",
+    provider: "openai",
+    description: "Fast and cost-efficient GPT-5 model",
+    gatewayOrder: ["openai", "azure"],
+  },
+  {
+    id: "openai/o4-mini",
+    name: "o4-mini",
+    provider: "openai",
+    description: "Previous fast reasoning model, older than GPT-5 mini",
+    gatewayOrder: ["openai", "azure"],
+  },
+  {
+    id: "openai/gpt-4.1-nano",
+    name: "GPT-4.1 nano",
+    provider: "openai",
+    description: "Oldest fallback in the curated OpenAI list",
+    gatewayOrder: ["openai", "azure"],
   },
 ];
 
