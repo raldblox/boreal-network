@@ -41,7 +41,8 @@ It carries:
 
 - creator and owner
 - visibility
-- canonical brief fields: title, summary, and body
+- canonical brief fields: title and body, plus optional summary
+- optional structured `seeking` criteria for matching intent
 - optional budget and optional deadline
 - derived route, matching, and readiness projections
 - current lifecycle status

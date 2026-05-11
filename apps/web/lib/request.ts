@@ -1,6 +1,12 @@
 import { z } from "zod";
 
 export type RequestVisibility = "private" | "public";
+export type RequestActorKind =
+  | "human"
+  | "agent"
+  | "tool"
+  | "organization"
+  | "runtime";
 
 export type RequestStatus =
   | "draft"
@@ -54,6 +60,13 @@ export type RequestBrief = {
   tags?: string[];
 };
 
+export type RequestSeeking = {
+  actorKinds?: RequestActorKind[];
+  supplyKinds?: string[];
+  teamMode?: string;
+  notes?: string;
+};
+
 export type RequestReadinessState =
   | "collecting_brief"
   | "ready_to_open"
@@ -87,6 +100,7 @@ export type BorealRequestDraft = {
   createdById: string;
   ownerId: string;
   brief: RequestBrief;
+  seeking: RequestSeeking;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   derived: RequestDerived;
@@ -105,6 +119,12 @@ export type EditableRequestDocument = {
     constraints: Record<string, unknown>;
     outputKinds: string[];
     tags: string[];
+  };
+  seeking: {
+    actorKinds: RequestActorKind[];
+    supplyKinds: string[];
+    teamMode: string;
+    notes: string;
   };
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
@@ -132,6 +152,7 @@ type RequestDocumentObject = {
     outputKinds: string[];
     tags: string[];
   };
+  seeking: RequestSeeking;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   derived: {
@@ -153,6 +174,7 @@ export type RequestPatch = {
   status?: RequestStatus;
   visibility?: RequestVisibility;
   brief?: Partial<RequestBrief>;
+  seeking?: Partial<RequestSeeking>;
   budget?: RequestBudget | null;
   deadline?: RequestDeadline | null;
   derived?: Partial<Omit<RequestDerived, "missingDetails" | "readiness">>;
@@ -207,12 +229,24 @@ const requestBriefSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+const requestSeekingSchema = z.object({
+  actorKinds: z
+    .array(
+      z.enum(["human", "agent", "tool", "organization", "runtime"])
+    )
+    .optional(),
+  supplyKinds: z.array(z.string()).optional(),
+  teamMode: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 const editableRequestDocumentSchema = z
   .object({
     schemaVersion: z.number().optional(),
     mode: z.string().optional(),
     visibility: z.enum(["private", "public"]).optional(),
     brief: requestBriefSchema.optional(),
+    seeking: requestSeekingSchema.optional(),
     budget: requestBudgetSchema.nullish(),
     deadline: requestDeadlineSchema.nullish(),
   })
@@ -250,6 +284,7 @@ export function createInitialRequestDraft({
       outputKinds: [],
       tags: [],
     },
+    seeking: {},
     budget: null,
     deadline: null,
     derived: {
@@ -293,12 +328,25 @@ export function applyRequestPatch(
         ? (currentDraft.brief.tags ?? [])
         : patch.brief.tags,
   };
+  const nextSeeking = normalizeSeeking({
+    ...currentDraft.seeking,
+    ...patch.seeking,
+    actorKinds:
+      patch.seeking?.actorKinds === undefined
+        ? currentDraft.seeking.actorKinds
+        : patch.seeking.actorKinds,
+    supplyKinds:
+      patch.seeking?.supplyKinds === undefined
+        ? currentDraft.seeking.supplyKinds
+        : patch.seeking.supplyKinds,
+  });
 
   const nextDraft: BorealRequestDraft = {
     ...currentDraft,
     status: patch.status ?? currentDraft.status,
     visibility: patch.visibility ?? currentDraft.visibility,
     brief: nextBrief,
+    seeking: nextSeeking,
     budget: patch.budget === undefined ? currentDraft.budget : patch.budget,
     deadline:
       patch.deadline === undefined ? currentDraft.deadline : patch.deadline,
@@ -321,16 +369,15 @@ export function applyRequestPatch(
 }
 
 export function deriveRequestState(
-  draft: Pick<BorealRequestDraft, "brief" | "budget" | "deadline" | "derived">
+  draft: Pick<
+    BorealRequestDraft,
+    "brief" | "seeking" | "budget" | "deadline" | "derived"
+  >
 ): RequestDerived {
   const missingDetails: string[] = [];
 
   if (!hasText(draft.brief.title)) {
     missingDetails.push("title");
-  }
-
-  if (!hasText(draft.brief.summary)) {
-    missingDetails.push("summary");
   }
 
   if (!hasText(draft.brief.body)) {
@@ -354,9 +401,7 @@ export function deriveRequestState(
   }
 
   const hasBriefCore =
-    hasText(draft.brief.title) &&
-    hasText(draft.brief.summary) &&
-    hasText(draft.brief.body);
+    hasText(draft.brief.title) && hasText(draft.brief.body);
   const hasRouteReadiness =
     hasText(draft.derived.routeFamily) && hasText(draft.derived.routeSummary);
 
@@ -372,14 +417,14 @@ export function deriveRequestState(
       : {
           state: "ready_to_open",
           summary:
-            "Core briefing is present. This request can be opened now and refined further before matching.",
+            "Core briefing is present. This request can be opened now and refined further before matching. Summary is still optional.",
           readyForOpen: true,
           readyForMatch: false,
         }
     : {
         state: "collecting_brief",
         summary:
-          "Keep briefing the request. Boreal still needs the core title, summary, and body.",
+          "Keep briefing the request. Boreal still needs the core title and body.",
         readyForOpen: false,
         readyForMatch: false,
       };
@@ -410,12 +455,13 @@ export function renderRequestDocumentJson(draft: BorealRequestDraft): string {
 
 export function extractEditableRequestPatchFromContent(
   content: string
-): Pick<RequestPatch, "visibility" | "brief" | "budget" | "deadline"> {
+): Pick<RequestPatch, "visibility" | "brief" | "seeking" | "budget" | "deadline"> {
   const parsed = editableRequestDocumentSchema.parse(JSON.parse(content));
 
   return {
     visibility: parsed.visibility,
     brief: normalizeEditableBrief(parsed.brief),
+    seeking: normalizeSeeking(parsed.seeking),
     budget: normalizeBudget(parsed.budget),
     deadline: normalizeDeadline(parsed.deadline),
   };
@@ -449,6 +495,26 @@ function normalizeEditableBrief(
     constraints: normalizeRecord(brief?.constraints),
     outputKinds: normalizeStringArray(brief?.outputKinds),
     tags: normalizeStringArray(brief?.tags),
+  };
+}
+
+function normalizeSeeking(
+  seeking: z.infer<typeof requestSeekingSchema> | Partial<RequestSeeking> | undefined
+): RequestSeeking {
+  if (!seeking) {
+    return {};
+  }
+
+  const actorKinds = normalizeActorKinds(seeking.actorKinds);
+  const supplyKinds = normalizeStringArray(seeking.supplyKinds);
+  const teamMode = normalizeText(seeking.teamMode);
+  const notes = normalizeText(seeking.notes);
+
+  return {
+    ...(actorKinds.length > 0 ? { actorKinds } : {}),
+    ...(supplyKinds.length > 0 ? { supplyKinds } : {}),
+    ...(teamMode ? { teamMode } : {}),
+    ...(notes ? { notes } : {}),
   };
 }
 
@@ -539,6 +605,16 @@ function normalizeStringArray(value: string[] | undefined): string[] {
   );
 }
 
+function normalizeActorKinds(
+  value: RequestActorKind[] | undefined
+): RequestActorKind[] {
+  if (!value) {
+    return [];
+  }
+
+  return Array.from(new Set(value));
+}
+
 function normalizeNumber(value: number | undefined): number | undefined {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return undefined;
@@ -561,6 +637,12 @@ function toEditableRequestDocument(
       constraints: draft.brief.constraints ?? {},
       outputKinds: draft.brief.outputKinds ?? [],
       tags: draft.brief.tags ?? [],
+    },
+    seeking: {
+      actorKinds: draft.seeking.actorKinds ?? [],
+      supplyKinds: draft.seeking.supplyKinds ?? [],
+      teamMode: draft.seeking.teamMode ?? "",
+      notes: draft.seeking.notes ?? "",
     },
     budget: draft.budget,
     deadline: draft.deadline,
@@ -592,6 +674,7 @@ function toRequestDocumentObject(
       outputKinds: draft.brief.outputKinds ?? [],
       tags: draft.brief.tags ?? [],
     },
+    seeking: normalizeSeeking(draft.seeking),
     budget: draft.budget,
     deadline: draft.deadline,
     derived: {

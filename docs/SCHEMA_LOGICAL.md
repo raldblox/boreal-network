@@ -93,12 +93,26 @@ Does not store:
 Canonical fields on the durable root:
 
 - `brief.title`
-- `brief.summary`
 - `brief.body`
+- optional `brief.summary`
 - `owner`
 - `visibility`
+- optional `seeking`
 - optional `budget`
 - optional `deadline`
+
+Structured matching intent belongs in:
+
+- `seeking.actorKinds`
+- `seeking.supplyKinds`
+- `seeking.teamMode`
+- `seeking.notes`
+
+Label rule:
+
+- `brief.tags` may exist as optional human labels
+- `brief.tags` should not be treated as the primary structured matching surface
+- matching-facing structure should prefer `seeking`
 
 Derived fields kept separate from the canonical brief:
 
@@ -116,6 +130,8 @@ Draft rule:
 - a `Request` may be created early in `draft` status before routing, matching, commitment, or fulfillment details are complete
 - not every chat turn creates a `Request`; request creation must be explicit at the product layer or policy layer
 - draft-mode UI may expose only a safe editable request-input subset
+- `brief.summary` is optional compression, not a readiness gate
+- `seeking` may be partial while the request is still being formed
 - system-owned fields such as ids, ownership refs, keys, status progression, timestamps, and derived projections stay server-owned and should be shown as a read-only projection outside `draft`
 
 ### `Fulfillment`

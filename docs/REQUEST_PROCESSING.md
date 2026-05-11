@@ -35,6 +35,8 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    In the web request-briefing surface, manual editing may touch only the draft-input projection.
    Before `save draft`, request-tool mutation, or `open request`, normalize that draft-input projection back into the same durable `Request`.
    If one user turn explicitly includes brief text plus budget or deadline, the request-brief mutation layer should preserve both the narrative brief and the structured canonical fields in the same write.
+   Title and body are the first readiness-bearing brief fields. `brief.summary` is optional compression and should not be manufactured only to satisfy readiness.
+   Matching-facing structure should prefer top-level `seeking` criteria instead of overloading `brief.tags`.
 5. Complexity and route classification
    Decide complexity, route family, and whether clarification is required.
 6. Lead retrieval
@@ -87,5 +89,7 @@ These objects are derived and rebuildable, not durable roots:
 - Mutation tools are the only layer allowed to commit canonical writes.
 - Once a request draft exists, subsequent briefing updates should mutate the same `Request` instead of forking a second durable demand object.
 - Draft-mode manual editing must stay limited to user-editable request-input fields; system-owned fields remain server-owned and rebuildable.
+- `brief.summary` may stay blank without blocking `ready_to_open` when title and body are already present.
+- `brief.tags` may exist as optional labels, but matching prep should prefer `seeking`.
 - `FulfillmentStep` is the default home for generated sub-work.
 - A new `Request` is only justified by a new funding, ownership, routing, or review boundary.

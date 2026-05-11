@@ -16,6 +16,7 @@ import type {
   RequestBudget,
   RequestDeadline,
   RequestDerived,
+  RequestSeeking,
   RequestStatus,
   RequestVisibility,
 } from "@/lib/request";
@@ -87,6 +88,7 @@ export const request = pgTable(
       .notNull()
       .references(() => user.id),
     brief: json("brief").$type<RequestBrief>().notNull(),
+    seeking: json("seeking").$type<RequestSeeking>().notNull(),
     budget: json("budget").$type<RequestBudget | null>(),
     deadline: json("deadline").$type<RequestDeadline | null>(),
     derived: json("derived").$type<RequestDerived>().notNull(),

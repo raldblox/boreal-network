@@ -7,6 +7,7 @@ import {
   applyRequestBriefPatch,
   requestBudgetInputSchema,
   requestDeadlineInputSchema,
+  requestSeekingInputSchema,
 } from "./request-briefing-shared";
 
 type CreateRequestBriefProps = {
@@ -24,13 +25,13 @@ export const createRequestBrief = ({
 }: CreateRequestBriefProps) =>
   tool({
     description:
-      "Create or initialize a durable Boreal Request draft and open its live request brief document. Include same-turn structured facts like budget or deadline when the user explicitly stated them. Only use when the user explicitly wants a new request or wants to turn the current work ask into a Request.",
+      "Create or initialize a durable Boreal Request draft and open its live request brief document. Prefer raw body first. Title or summary may stay blank if the user has not clearly established them yet. Include same-turn structured facts like budget or deadline when the user explicitly stated them. Only use when the user explicitly wants a new request or wants to turn the current work ask into a Request.",
     inputSchema: z.object({
-      title: z.string().min(1).max(200),
-      summary: z.string().min(1).max(1000),
+      title: z.string().min(1).max(200).optional(),
+      summary: z.string().min(1).max(1000).optional(),
       body: z.string().min(1),
       outputKinds: z.array(z.string().min(1)).optional(),
-      tags: z.array(z.string().min(1)).optional(),
+      seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
       deadline: requestDeadlineInputSchema.optional(),
     }),
@@ -39,7 +40,7 @@ export const createRequestBrief = ({
       summary,
       body,
       outputKinds,
-      tags,
+      seeking,
       budget,
       deadline,
     }) =>
@@ -54,8 +55,8 @@ export const createRequestBrief = ({
             summary,
             body,
             outputKinds,
-            tags,
           },
+          ...(seeking !== undefined ? { seeking } : {}),
           ...(budget !== undefined ? { budget } : {}),
           ...(deadline !== undefined ? { deadline } : {}),
         },

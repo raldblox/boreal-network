@@ -4,6 +4,17 @@
   "extraction": {
     "title": "Own and execute support plus sales ops migration",
     "summary": "HubSpot migration with workflow build, operator training, and a documented migration plan for the team.",
+    "seeking": {
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "migration_lead",
+        "automation_builder",
+        "documentation_support"
+      ]
+    },
     "outputKinds": [
       "migration_plan",
       "workflow_build",

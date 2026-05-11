@@ -7,6 +7,7 @@ import {
   applyRequestBriefPatch,
   requestBudgetInputSchema,
   requestDeadlineInputSchema,
+  requestSeekingInputSchema,
 } from "./request-briefing-shared";
 
 type UpdateRequestBriefProps = {
@@ -24,13 +25,13 @@ export const updateRequestBrief = ({
 }: UpdateRequestBriefProps) =>
   tool({
     description:
-      "Update the live Request object with explicit title, summary, body, or same-turn structured briefing details like budget and deadline. Prefer this for freeform user asks. If the user only gave one raw work description, update body with that explicit wording and leave unknown fields untouched.",
+      "Update the live Request object with explicit title, body, optional summary, or same-turn structured briefing details like budget and deadline. Prefer this for freeform user asks. If the user only gave one raw work description, update body with that explicit wording and leave unknown fields untouched instead of manufacturing extra fields.",
     inputSchema: z.object({
       title: z.string().min(1).max(200).optional(),
       summary: z.string().min(1).max(1000).optional(),
       body: z.string().min(1).optional(),
       outputKinds: z.array(z.string().min(1)).optional(),
-      tags: z.array(z.string().min(1)).optional(),
+      seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
       deadline: requestDeadlineInputSchema.optional(),
     }),
@@ -39,7 +40,7 @@ export const updateRequestBrief = ({
       summary,
       body,
       outputKinds,
-      tags,
+      seeking,
       budget,
       deadline,
     }) =>
@@ -54,8 +55,8 @@ export const updateRequestBrief = ({
             summary,
             body,
             outputKinds,
-            tags,
           },
+          ...(seeking !== undefined ? { seeking } : {}),
           ...(budget !== undefined ? { budget } : {}),
           ...(deadline !== undefined ? { deadline } : {}),
         },

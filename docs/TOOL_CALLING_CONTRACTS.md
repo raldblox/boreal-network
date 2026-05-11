@@ -127,6 +127,8 @@ Every mutation call should return:
 - Mutation tools must be idempotent where retries are possible.
 - Request-briefing mutation tools must keep updating the same draft `Request` instead of creating a second durable demand object.
 - `create_request_brief` and `update_request_brief` may carry explicit same-turn canonical facts such as budget or deadline so one intake turn does not drop structured demand fields.
+- `create_request_brief` and `update_request_brief` should prefer title plus body first and must not fabricate `brief.summary` only to satisfy a shape.
+- Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.
 - Tool-produced output should be recorded as `RequestEvent` when the thread needs durable explanation or auditability.

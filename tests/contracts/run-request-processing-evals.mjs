@@ -117,6 +117,13 @@ function compareActual(fixture, actual, actualPath) {
     errors.push(`${label}: extraction.outputKinds missing expected values`);
   }
 
+  const actualSeeking = extraction.seeking || {};
+  for (const [key, expectedValue] of Object.entries(fixture.expectedExtraction.seeking || {})) {
+    if (!deepEqual(actualSeeking[key], expectedValue)) {
+      errors.push(`${label}: extraction.seeking.${key} mismatch`);
+    }
+  }
+
   const actualConstraints = extraction.constraints || {};
   for (const [key, expectedValue] of Object.entries(fixture.expectedExtraction.constraints || {})) {
     if (!deepEqual(actualConstraints[key], expectedValue)) {

@@ -75,6 +75,7 @@
           "uniqueItems": true
         },
         "tags": {
+          "description": "Optional human labels. Useful for display or owner-provided labeling, but not the primary structured matching surface.",
           "type": "array",
           "items": {
             "type": "string",
@@ -85,16 +86,12 @@
       }
     },
     "seeking": {
+      "description": "Structured matching intent. May be partial while the request is still being formed.",
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "actorKinds",
-        "supplyKinds"
-      ],
       "properties": {
         "actorKinds": {
           "type": "array",
-          "minItems": 1,
           "uniqueItems": true,
           "items": {
             "$ref": "common.schema.json#/$defs/actorKind"
@@ -102,7 +99,6 @@
         },
         "supplyKinds": {
           "type": "array",
-          "minItems": 1,
           "uniqueItems": true,
           "items": {
             "type": "string",

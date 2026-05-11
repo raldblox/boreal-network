@@ -23,6 +23,15 @@ export const requestDeadlineInputSchema = z.object({
   notes: z.string().min(1).optional(),
 });
 
+export const requestSeekingInputSchema = z.object({
+  actorKinds: z
+    .array(z.enum(["human", "agent", "tool", "organization", "runtime"]))
+    .optional(),
+  supplyKinds: z.array(z.string().min(1)).optional(),
+  teamMode: z.string().min(1).optional(),
+  notes: z.string().min(1).optional(),
+});
+
 type ApplyRequestPatchArgs = {
   session: Session;
   dataStream: UIMessageStreamWriter<ChatMessage>;

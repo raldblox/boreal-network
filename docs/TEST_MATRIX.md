@@ -89,7 +89,9 @@ Verify:
 - draft request-object JSON accepts edits only while the request status is `draft`
 - non-draft request-object JSON is read-only and shows the full canonical object
 - `save draft` and `open request` normalize the latest draft-input projection before the durable `Request` is written
+- title plus body should be enough for `ready_to_open`; `brief.summary` should stay optional
 - one-turn request briefing should preserve explicitly stated budget or deadline in structured canonical fields instead of only embedding them in freeform brief text
+- structured matching intent should land in top-level `seeking` rather than relying on generated `brief.tags`
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
 - planner outputs stay derived and rebuildable

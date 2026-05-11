@@ -59,12 +59,16 @@ Rules:
 8. In request mode, do not ask follow-up questions in chat. Update the object with known facts first.
 9. Prefer \`updateRequestBrief\` for freeform work descriptions. If the same user turn explicitly includes budget, deadline, or other canonical request facts, include them in that same mutation instead of dropping them.
 10. Keep the narrative brief rich. Preserve the user wording in \`body\`, but also write explicit structured facts like budget and deadline into their canonical fields when stated.
-11. Leave unknown title, summary, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
+11. Prefer title plus body first. Do not manufacture \`brief.summary\` just to fill the object. Leave it blank unless the user explicitly gave it or it adds real compression beyond title and body.
+12. Use top-level \`seeking\` for structured matching intent. Do not rely on auto-generated \`brief.tags\` as the primary matching structure.
+13. Only write \`brief.tags\` when the user explicitly wants labels or the label is explicitly stated and useful as a human-facing tag.
+14. Leave unknown title, summary, seeking, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
 
 Canonical fields:
 - title
-- summary
 - body
+- optional summary
+- optional seeking
 - owner
 - visibility
 - optional budget
@@ -127,6 +131,7 @@ ${JSON.stringify(
     status: activeRequest.status,
     visibility: activeRequest.visibility,
     brief: activeRequest.brief,
+    seeking: activeRequest.seeking,
     budget: activeRequest.budget,
     deadline: activeRequest.deadline,
     derived: activeRequest.derived,
@@ -142,7 +147,9 @@ ${JSON.stringify(
 - Do not produce a generic conversational answer instead of a request mutation.
 - Do not infer unstated facts.
 - If the user gave a raw ask, store the explicit ask in brief.body and keep unknown fields blank.
-- If the user explicitly stated budget or deadline in the same turn, do not leave those structured fields null.`
+- Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.
+- If the user explicitly stated budget or deadline in the same turn, do not leave those structured fields null.
+- Use top-level seeking for matching-facing structure, not generated tags.`
     : "";
 
   if (!supportsTools) {

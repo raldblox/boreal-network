@@ -11,7 +11,7 @@ A high-scoring match system that mutates too early is still failing.
 
 ### 1. Extraction evals
 
-Verify that a raw ask becomes the expected brief, constraints, output kinds, budget shape, and missing-field list.
+Verify that a raw ask becomes the expected brief, optional structured `seeking`, constraints, output kinds, budget shape, and missing-field list.
 
 ### 2. Route and complexity evals
 
@@ -70,6 +70,7 @@ Recommended subfields:
 - `extraction.title`
 - `extraction.summary`
 - `extraction.body`
+- `extraction.seeking`
 - `extraction.outputKinds[]`
 - `extraction.missingDetails[]`
 - `extraction.constraints`

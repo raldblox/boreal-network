@@ -44,6 +44,10 @@
   "expectedExtraction": {
     "title": "Own and execute support plus sales ops migration",
     "summaryMustContain": ["HubSpot", "migration", "operator training"],
+    "seeking": {
+      "actorKinds": ["human", "agent"],
+      "supplyKinds": ["migration_lead", "automation_builder", "documentation_support"]
+    },
     "outputKinds": ["migration_plan", "workflow_build", "handoff_doc", "operator_training"],
     "constraints": {
       "budgetCurrency": "USD",

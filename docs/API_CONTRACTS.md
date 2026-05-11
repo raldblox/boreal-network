@@ -97,6 +97,7 @@ For the first web slice, `Request` create and update must support:
 - explicit `New request` draft creation
 - explicit `save draft` normalization from the live request-input document surface
 - request-brief field updates
+- request-seeking field updates for structured matching intent
 - request constraint updates
 - request budget and timing updates
 - request route-summary updates

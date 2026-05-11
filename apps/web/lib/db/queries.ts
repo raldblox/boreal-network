@@ -23,6 +23,7 @@ import type {
   RequestBudget,
   RequestDeadline,
   RequestDerived,
+  RequestSeeking,
   RequestStatus,
   RequestVisibility,
 } from "@/lib/request";
@@ -450,6 +451,7 @@ export async function saveRequestDraft({
   createdById,
   ownerId,
   brief,
+  seeking,
   budget,
   deadline,
   derived,
@@ -463,6 +465,7 @@ export async function saveRequestDraft({
   createdById: string;
   ownerId: string;
   brief: RequestBrief;
+  seeking: RequestSeeking;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   derived: RequestDerived;
@@ -480,6 +483,7 @@ export async function saveRequestDraft({
         createdById,
         ownerId,
         brief,
+        seeking,
         budget,
         deadline,
         derived,
@@ -503,6 +507,7 @@ export async function updateRequestDraftById({
   status,
   visibility,
   brief,
+  seeking,
   budget,
   deadline,
   derived,
@@ -512,6 +517,7 @@ export async function updateRequestDraftById({
   status: RequestStatus;
   visibility: RequestVisibility;
   brief: RequestBrief;
+  seeking: RequestSeeking;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   derived: RequestDerived;
@@ -524,6 +530,7 @@ export async function updateRequestDraftById({
         status,
         visibility,
         brief,
+        seeking,
         budget,
         deadline,
         derived,
@@ -552,6 +559,7 @@ export function toRequestDraft(record: RequestRecord): BorealRequestDraft {
     createdById: record.createdById,
     ownerId: record.ownerId,
     brief: record.brief,
+    seeking: record.seeking ?? {},
     budget: record.budget,
     deadline: record.deadline,
     derived: record.derived,

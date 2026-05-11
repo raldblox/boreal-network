@@ -179,6 +179,28 @@ components:
               type: array
               items:
                 type: string
+        seeking:
+          type: object
+          additionalProperties: false
+          properties:
+            actorKinds:
+              type: array
+              items:
+                type: string
+                enum:
+                  - human
+                  - agent
+                  - tool
+                  - organization
+                  - runtime
+            supplyKinds:
+              type: array
+              items:
+                type: string
+            teamMode:
+              type: string
+            notes:
+              type: string
         budget:
           oneOf:
             - type: "null"

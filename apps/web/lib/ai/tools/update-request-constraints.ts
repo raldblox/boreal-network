@@ -3,7 +3,10 @@ import type { Session } from "next-auth";
 import { z } from "zod";
 import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
-import { applyRequestBriefPatch } from "./request-briefing-shared";
+import {
+  applyRequestBriefPatch,
+  requestSeekingInputSchema,
+} from "./request-briefing-shared";
 
 type UpdateRequestConstraintsProps = {
   session: Session;
@@ -20,13 +23,14 @@ export const updateRequestConstraints = ({
 }: UpdateRequestConstraintsProps) =>
   tool({
     description:
-      "Update request constraints, expected outputs, and briefing tags for the active Request draft. Use this for explicit location, format, platform, style, or deliverable constraints the user already stated.",
+      "Update request constraints, expected outputs, structured seeking criteria, and optional human labels for the active Request draft. Use this for explicit location, format, platform, style, deliverable, or matching-intent details the user already stated.",
     inputSchema: z.object({
       constraints: z.record(z.string(), z.unknown()).default({}),
       outputKinds: z.array(z.string().min(1)).optional(),
+      seeking: requestSeekingInputSchema.optional(),
       tags: z.array(z.string().min(1)).optional(),
     }),
-    execute: async ({ constraints, outputKinds, tags }) =>
+    execute: async ({ constraints, outputKinds, seeking, tags }) =>
       applyRequestBriefPatch({
         session,
         dataStream,
@@ -38,6 +42,7 @@ export const updateRequestConstraints = ({
             outputKinds,
             tags,
           },
+          ...(seeking !== undefined ? { seeking } : {}),
         },
       }),
   });

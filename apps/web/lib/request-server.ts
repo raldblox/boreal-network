@@ -72,6 +72,7 @@ export async function ensureRequestDraftForChat({
     createdById: draft.createdById,
     ownerId: draft.ownerId,
     brief: draft.brief,
+    seeking: draft.seeking,
     budget: draft.budget,
     deadline: draft.deadline,
     derived: draft.derived,
@@ -137,6 +138,7 @@ export async function persistRequestPatch({
     status: nextDraft.status,
     visibility: nextDraft.visibility,
     brief: nextDraft.brief,
+    seeking: nextDraft.seeking,
     budget: nextDraft.budget,
     deadline: nextDraft.deadline,
     derived: nextDraft.derived,
@@ -233,7 +235,7 @@ async function syncRequestDraftFromDocument({
 
   let documentPatch: Pick<
     RequestPatch,
-    "visibility" | "brief" | "budget" | "deadline"
+    "visibility" | "brief" | "seeking" | "budget" | "deadline"
   >;
 
   try {
@@ -273,6 +275,7 @@ async function syncRequestDraftFromDocument({
       status: normalizedDraft.status,
       visibility: normalizedDraft.visibility,
       brief: normalizedDraft.brief,
+      seeking: normalizedDraft.seeking,
       budget: normalizedDraft.budget,
       deadline: normalizedDraft.deadline,
       derived: normalizedDraft.derived,
@@ -312,6 +315,7 @@ function hasRootRequestChange(
     status: previousDraft.status,
     visibility: previousDraft.visibility,
     brief: previousDraft.brief,
+    seeking: previousDraft.seeking,
     budget: previousDraft.budget,
     deadline: previousDraft.deadline,
     derived: previousDraft.derived,
@@ -321,6 +325,7 @@ function hasRootRequestChange(
       status: nextDraft.status,
       visibility: nextDraft.visibility,
       brief: nextDraft.brief,
+      seeking: nextDraft.seeking,
       budget: nextDraft.budget,
       deadline: nextDraft.deadline,
       derived: nextDraft.derived,
