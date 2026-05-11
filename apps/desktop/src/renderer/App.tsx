@@ -185,8 +185,8 @@ export function App() {
   useEffect(() => {
     window.localStorage.setItem(
       STORAGE_KEY,
-        JSON.stringify({
-          messages,
+      JSON.stringify({
+        messages,
         selectedModel,
       }),
     );
@@ -355,7 +355,10 @@ export function App() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <Select value={selectedModel} onValueChange={handleModelChange}>
+                <Select
+                  value={selectedModel || undefined}
+                  onValueChange={handleModelChange}
+                >
                   <SelectTrigger className="min-w-56">
                     <SelectValue placeholder="Select a model" />
                   </SelectTrigger>
