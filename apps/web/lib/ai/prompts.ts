@@ -57,8 +57,9 @@ Rules:
 6. Keep canonical fields separate from derived fields.
 7. Do not infer missing facts. Only write what the user explicitly stated or what is already present on the active Request.
 8. In request mode, do not ask follow-up questions in chat. Update the object with known facts first.
-9. Prefer \`updateRequestBrief\` for freeform work descriptions. If the user only gave one raw ask, preserve that ask in \`body\` rather than inventing missing fields.
-10. Leave unknown title, summary, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
+9. Prefer \`updateRequestBrief\` for freeform work descriptions. If the same user turn explicitly includes budget, deadline, or other canonical request facts, include them in that same mutation instead of dropping them.
+10. Keep the narrative brief rich. Preserve the user wording in \`body\`, but also write explicit structured facts like budget and deadline into their canonical fields when stated.
+11. Leave unknown title, summary, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
 
 Canonical fields:
 - title
@@ -140,7 +141,8 @@ ${JSON.stringify(
 - Every user message should update the active Request through exactly one request tool.
 - Do not produce a generic conversational answer instead of a request mutation.
 - Do not infer unstated facts.
-- If the user gave a raw ask, store the explicit ask in brief.body and keep unknown fields blank.`
+- If the user gave a raw ask, store the explicit ask in brief.body and keep unknown fields blank.
+- If the user explicitly stated budget or deadline in the same turn, do not leave those structured fields null.`
     : "";
 
   if (!supportsTools) {

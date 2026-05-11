@@ -34,6 +34,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    Produce a derived `MatchSpec` with brief, output kinds, constraints, budget, urgency, and actor requirements.
    In the web request-briefing surface, manual editing may touch only the draft-input projection.
    Before `save draft`, request-tool mutation, or `open request`, normalize that draft-input projection back into the same durable `Request`.
+   If one user turn explicitly includes brief text plus budget or deadline, the request-brief mutation layer should preserve both the narrative brief and the structured canonical fields in the same write.
 5. Complexity and route classification
    Decide complexity, route family, and whether clarification is required.
 6. Lead retrieval
