@@ -69,7 +69,7 @@ These namespaces are now available for real implementation work, not only for fu
 
 These child workspaces are currently activated:
 
-- `apps/web/` - first Boreal product workspace, activated as the primary web surface but intentionally scaffold-light while the initial runtime stack remains undecided.
+- `apps/web/` - first Boreal product workspace, activated as the primary web surface with a `Next.js App Router` baseline imported from the `Vercel Chatbot` scaffold and adapted for Boreal.
 
 Every new child workspace must be added here in the same patch that creates it.
 

@@ -19,9 +19,12 @@ Before changing this workspace, read:
 
 ## Current Stage
 
-This workspace is activated but not fully scaffolded.
-Do not pretend framework, runtime, or deployment decisions are already final unless a later explicit decision says so.
-If a task needs one of those choices and root alignment is still weak, do the research and decision pass first instead of scaffolding prematurely.
+This workspace now has an explicit starting baseline.
+Use `Next.js App Router` with the imported `Vercel Chatbot` scaffold, `Auth.js`, `Neon Postgres`, `Drizzle`, and `shadcn/ui` unless a later explicit decision replaces part of that stack.
+
+The baseline decision is recorded in `../../docs/decisions/0004-web-stack-baseline-and-chatbot-starting-point.md`.
+
+Do not silently switch account auth, database stack, or workspace file layout without first updating root alignment.
 
 ## Allowed Here
 
@@ -40,11 +43,31 @@ If a task needs one of those choices and root alignment is still weak, do the re
 
 ## Local Structure Rule
 
-Prefer the following local shape unless a better explicit decision replaces it:
+This workspace now uses the following local shape:
 
-- `src/`
+- `app/`
+- `components/`
+- `hooks/`
+- `lib/`
 - `public/`
 - `tests/`
+
+Config files may live at the workspace root when required by Next.js, Drizzle, Auth.js, or Vercel deployment.
+
+Do not force shared abstractions into `apps/web` if they are clearly reusable outside this workspace.
+
+## Auth And Identity Rule
+
+`Auth.js` in this workspace is the account-auth baseline only.
+
+Do not collapse the following into one generic auth concept:
+
+- account identity
+- wallet identity
+- payout identity
+- runtime or desktop identity
+
+If a task touches wallet-linked identity or signing flows, align it against root Boreal product truth first instead of assuming the imported template auth model is enough.
 
 ## Sync Rule
 

@@ -68,7 +68,7 @@ Read these files in order before making any meaningful change:
 
 Current activated workspace:
 
-- `apps/web/` is the first governed implementation workspace.  It is intentionally scaffold-light until the initial web runtime stack is chosen explicitly.
+- `apps/web/` is the first governed implementation workspace.  Its initial baseline is now locked to `Next.js App Router` using the `Vercel Chatbot` starting scaffold with `Auth.js`, `Neon Postgres`, `Drizzle`, and `shadcn/ui`.
 
 Name workspaces by role, not vague infra labels.
 Prefer names like `peer`, `gateway-http`, `telegram-bot`, `desktop`, `cli`, and `marketing-site`.

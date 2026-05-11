@@ -5,11 +5,26 @@ This workspace is the primary Boreal web product surface inside the Boreal monor
 ## Current State
 
 - workspace is activated
-- runtime scaffold is intentionally minimal
-- framework and initial app bootstrap are not locked yet
+- runtime baseline is locked
+- initial scaffold now starts from `Vercel Chatbot`
 - root canon already applies
 
-## Planned Scope
+## Stack Baseline
+
+- `Next.js App Router`
+- `Auth.js`
+- `Neon Postgres`
+- `Drizzle ORM`
+- `shadcn/ui`
+- optional Redis-backed rate limiting or ephemeral coordination later
+
+Important identity rule:
+
+- account auth lives here through `Auth.js`
+- Boreal wallet identity still remains a separate product-layer concern
+- imported starter auth currently uses `credentials` plus `guest` flows, not social login by default
+
+## Scope
 
 This workspace should eventually hold Boreal's web surfaces for:
 
@@ -19,24 +34,42 @@ This workspace should eventually hold Boreal's web surfaces for:
 - account and operator surfaces
 - public product-facing web experiences that belong to the main Boreal web surface
 
-## Planned Local Structure
+## Local Structure
 
-- `src/`
+- `app/`
+- `components/`
+- `hooks/`
+- `lib/`
 - `public/`
 - `tests/`
+- workspace config files at root such as `next.config.ts`, `proxy.ts`, `drizzle.config.ts`, and `tsconfig.json`
 
 ## Commands
 
-No runtime commands exist yet.
+Run from the monorepo root after dependencies are installed:
 
-When the initial scaffold lands:
+- `pnpm web:dev`
+- `pnpm web:build`
+- `pnpm web:db:migrate`
+- `pnpm web:test`
 
-- define local build, dev, lint, and test commands here
-- update the root `README.md` in the same patch if shared monorepo workflow changes
+Or run directly against the workspace:
+
+- `pnpm --filter @boreal/web dev`
+- `pnpm --filter @boreal/web build`
+- `pnpm --filter @boreal/web db:migrate`
+- `pnpm --filter @boreal/web test`
+
+Account setup notes:
+
+- `Neon` account needed for `POSTGRES_URL`
+- `Vercel` account needed for deployment and easiest env flow
+- `Auth.js` is package code, not a separate hosted account
+- Redis is optional and should not block first local scaffold work
 
 ## Canon Boundary
 
 This workspace may implement web-specific flows and UX.
 It may not redefine root domain objects, lifecycle states, event meaning, or commercial category.
 
-If the first framework or runtime baseline is chosen here, record the decision explicitly in `docs/decisions/` unless the user directly instructs the exact stack in the same task.
+The first framework and runtime baseline are now recorded in `../../docs/decisions/0004-web-stack-baseline-and-chatbot-starting-point.md`.
