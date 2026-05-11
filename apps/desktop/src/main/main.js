@@ -1,6 +1,11 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  createDesktopResponse,
+  getCodexAuthState,
+  listCodexModels,
+} from "./codex-runtime.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceDir = path.resolve(__dirname, "../..");
@@ -45,6 +50,14 @@ ipcMain.handle("desktop:get-shell-info", async () => ({
     node: process.versions.node,
   },
 }));
+
+ipcMain.handle("desktop:get-codex-auth-state", async () => getCodexAuthState());
+
+ipcMain.handle("desktop:list-codex-models", async () => listCodexModels());
+
+ipcMain.handle("desktop:send-message", async (_event, payload) =>
+  createDesktopResponse(payload),
+);
 
 app.whenReady().then(() => {
   createMainWindow();

@@ -7,12 +7,15 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - local operator surface
 - native desktop shell for Boreal execution participation
 - secure bridge to local filesystem, process, and runtime access
+- local-first chat lane backed by Codex auth without exposing tokens to the renderer
 
 ## Boundary
 
 - desktop is not a second Boreal system of record
 - root canon still defines request, commitment, fulfillment, artifact, transaction, and event meaning
 - reusable UI primitives belong in `../../packages/ui/`
+- desktop chat history stays local by default unless work is explicitly promoted
+- current Codex chat execution is read-only until the desktop app has an explicit approval flow for write actions
 
 ## Initial Stack
 
