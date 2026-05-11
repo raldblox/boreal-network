@@ -65,7 +65,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                   }}
                 />
                 <span className="truncate text-[13px]" data-testid="user-email">
-                  {isGuest ? "Guest" : user?.email}
+                  {isGuest ? "Guest access" : user?.email}
                 </span>
                 <ChevronUp className="ml-auto size-3.5 text-sidebar-foreground/50" />
               </SidebarMenuButton>
@@ -83,7 +83,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                 setTheme(resolvedTheme === "dark" ? "light" : "dark")
               }
             >
-              {`Toggle ${resolvedTheme === "light" ? "dark" : "light"} mode`}
+              {`Switch to ${resolvedTheme === "light" ? "dark" : "light"} mode`}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild data-testid="user-nav-item-auth">
@@ -94,7 +94,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                     toast({
                       type: "error",
                       description:
-                        "Checking authentication status, please try again!",
+                        "Checking account status. Try again in a moment.",
                     });
 
                     return;
@@ -110,7 +110,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                 }}
                 type="button"
               >
-                {isGuest ? "Login to your account" : "Sign out"}
+                {isGuest ? "Sign in to Boreal" : "Sign out"}
               </button>
             </DropdownMenuItem>
           </DropdownMenuContent>

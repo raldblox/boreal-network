@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -7,9 +7,13 @@ import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://chat.vercel.ai"),
-  title: "Next.js Chatbot Template",
-  description: "Next.js chatbot template using the AI SDK.",
+  metadataBase: new URL("https://boreal.work"),
+  title: {
+    default: "Boreal",
+    template: "%s | Boreal",
+  },
+  description:
+    "Request-native work commerce for routing, executing, proving, and paying for real work across humans and AI.",
 };
 
 export const viewport = {
@@ -26,6 +30,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-geist-mono",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  display: "swap",
+  weight: "400",
+  variable: "--font-display",
 });
 
 const LIGHT_THEME_COLOR = "hsl(0 0% 100%)";
@@ -55,7 +66,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      className={`${geist.variable} ${geistMono.variable}`}
+      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
       lang="en"
       suppressHydrationWarning
     >

@@ -47,12 +47,18 @@ export default function Page() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
-      <p className="text-sm text-muted-foreground">Get started for free</p>
+      <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
+        Create a Boreal account
+      </h1>
+      <p className="text-sm text-muted-foreground">
+        Open work threads and keep fulfillment, proof, and payout in one place.
+      </p>
       <AuthForm action={handleSubmit} defaultEmail={email}>
-        <SubmitButton isSuccessful={isSuccessful}>Sign up</SubmitButton>
+        <SubmitButton isSuccessful={isSuccessful}>
+          Create account
+        </SubmitButton>
         <p className="text-center text-[13px] text-muted-foreground">
-          {"Have an account? "}
+          {"Already inside Boreal? "}
           <Link
             className="text-foreground underline-offset-4 hover:underline"
             href="/login"

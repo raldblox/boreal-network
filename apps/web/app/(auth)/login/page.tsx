@@ -45,19 +45,21 @@ export default function Page() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+      <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
+        Sign in to Boreal
+      </h1>
       <p className="text-sm text-muted-foreground">
-        Sign in to your account to continue
+        Reopen request threads, specialists, and delivery history.
       </p>
       <AuthForm action={handleSubmit} defaultEmail={email}>
         <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>
         <p className="text-center text-[13px] text-muted-foreground">
-          {"No account? "}
+          {"New to Boreal? "}
           <Link
             className="text-foreground underline-offset-4 hover:underline"
             href="/register"
           >
-            Sign up
+            Create an account
           </Link>
         </p>
       </AuthForm>
