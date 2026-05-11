@@ -1,5 +1,10 @@
 import { auth } from "@/app/(auth)/auth";
-import { getChatById, getMessagesByChatId } from "@/lib/db/queries";
+import {
+  getChatById,
+  getMessagesByChatId,
+  getRequestByChatId,
+  toRequestDraft,
+} from "@/lib/db/queries";
 import { convertToUIMessages } from "@/lib/utils";
 
 export async function GET(request: Request) {
@@ -10,10 +15,11 @@ export async function GET(request: Request) {
     return Response.json({ error: "chatId required" }, { status: 400 });
   }
 
-  const [session, chat, messages] = await Promise.all([
+  const [session, chat, messages, requestDraft] = await Promise.all([
     auth(),
     getChatById({ id: chatId }),
     getMessagesByChatId({ id: chatId }),
+    getRequestByChatId({ chatId }),
   ]);
 
   if (!chat) {
@@ -22,6 +28,7 @@ export async function GET(request: Request) {
       visibility: "private",
       userId: null,
       isReadonly: false,
+      request: null,
     });
   }
 
@@ -39,5 +46,6 @@ export async function GET(request: Request) {
     visibility: chat.visibility,
     userId: chat.userId,
     isReadonly,
+    request: requestDraft ? toRequestDraft(requestDraft) : null,
   });
 }

@@ -73,9 +73,12 @@ Stores current truth:
 - creator
 - owner
 - brief
+- visibility
 - budget
+- deadline
 - lifecycle status
 - seeking criteria
+- derived readiness and route summary
 - active references
 - latest summary
 
@@ -84,6 +87,34 @@ Does not store:
 - full event history inline
 - every artifact inline
 - every transaction inline
+
+### `Request` Object Spec
+
+Canonical fields on the durable root:
+
+- `brief.title`
+- `brief.summary`
+- `brief.body`
+- `owner`
+- `visibility`
+- optional `budget`
+- optional `deadline`
+
+Derived fields kept separate from the canonical brief:
+
+- `derived.routeFamily`
+- `derived.executionKind`
+- `derived.paymentMode`
+- `derived.matchingMode`
+- `derived.candidatePool`
+- `derived.missingDetails`
+- `derived.readiness`
+- `derived.routeSummary`
+
+Draft rule:
+
+- a `Request` may be created early in `draft` status before routing, matching, commitment, or fulfillment details are complete
+- not every chat turn creates a `Request`; request creation must be explicit at the product layer or policy layer
 
 ### `Fulfillment`
 

@@ -46,6 +46,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/fulfillment.schema.json`
 - `schemas/json/transaction.schema.json`
 - `schemas/json/request-event.schema.json`
+- `schemas/openapi/request-briefing.openapi.yaml`
 - `fixtures/request/golden-external-ai-automation-thread.json`
 - `fixtures/request/eval-complex-human-planning-and-match.json`
 - `fixtures/request/eval-complex-human-planning-and-match.actual.sample.json`
@@ -57,6 +58,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 Today, the machine-readable baseline proves:
 
 - one durable `Request` can carry intake, funding, fulfillment, and completion state
+- one durable `Request` may exist early in `draft` status while the brief is still being formed
 - one `Supply` can be expressed as a durable capability object
 - one `Commitment` can carry quoted or accepted commercial terms
 - canonical machine-readable shapes now exist for `Fulfillment`, `Transaction`, and `RequestEvent`
@@ -69,9 +71,9 @@ Today, the machine-readable baseline proves:
 These are intended next layers, not fully modeled proof yet:
 
 - canonical event contracts under `schemas/events/`
-- canonical HTTP and webhook contracts under `schemas/openapi/`
+- broader canonical HTTP and webhook coverage under `schemas/openapi/`
 - richer golden fixtures for failure, replay, dispute, collective fulfillment, and private-supply paths
-- the actual web runtime scaffold and first shipped Boreal web code in `apps/web/`
+- deeper web runtime coverage beyond the first request-briefing slice in `apps/web/`
 - deeper supply lifecycle canon for onboarding, capacity, visibility, and retirement
 - additional runnable workspaces such as `apps/desktop/`, `apps/mobile/`, `apps/extension/`, `apps/peer-*`, and `apps/gateway-*`
 - shared libraries under `packages/`

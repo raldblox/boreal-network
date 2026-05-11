@@ -41,6 +41,7 @@ import {
   DEFAULT_CHAT_MODEL,
   type ModelCapabilities,
 } from "@/lib/ai/models";
+import type { BorealRequestDraft } from "@/lib/request";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -85,6 +86,8 @@ function PureMultimodalInput({
   editingMessage,
   onCancelEdit,
   isLoading,
+  activeRequest,
+  onCreateRequest,
 }: {
   chatId: string;
   input: string;
@@ -105,6 +108,8 @@ function PureMultimodalInput({
   editingMessage?: ChatMessage | null;
   onCancelEdit?: () => void;
   isLoading?: boolean;
+  activeRequest: BorealRequestDraft | null;
+  onCreateRequest: () => Promise<BorealRequestDraft | null>;
 }) {
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
@@ -161,8 +166,11 @@ function PureMultimodalInput({
       case "clear":
         setMessages(() => []);
         break;
+      case "request":
+        void onCreateRequest();
+        break;
       case "rename":
-        toast("Rename is available from the sidebar chat menu.");
+        toast("Rename is available from the thread menu in the sidebar.");
         break;
       case "model": {
         const modelBtn = document.querySelector<HTMLButtonElement>(
@@ -175,30 +183,30 @@ function PureMultimodalInput({
         setTheme(resolvedTheme === "dark" ? "light" : "dark");
         break;
       case "delete":
-        toast("Delete this chat?", {
+        toast("Remove this thread?", {
           action: {
-            label: "Delete",
+            label: "Remove",
             onClick: () => {
               fetch(
                 `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat?id=${chatId}`,
                 { method: "DELETE" }
               );
               router.push("/");
-              toast.success("Chat deleted");
+              toast.success("Thread deleted");
             },
           },
         });
         break;
       case "purge":
-        toast("Delete all chats?", {
+        toast("Clear saved thread history?", {
           action: {
-            label: "Delete all",
+            label: "Clear",
             onClick: () => {
               fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/history`, {
                 method: "DELETE",
               });
               router.push("/");
-              toast.success("All chats deleted");
+              toast.success("History cleared");
             },
           },
         });
@@ -509,7 +517,11 @@ function PureMultimodalInput({
             }
           }}
           placeholder={
-            editingMessage ? "Edit your message..." : "Ask anything..."
+            editingMessage
+              ? "Edit your message..."
+              : activeRequest
+                ? "Brief this request..."
+                : "Ask anything..."
           }
           ref={textareaRef}
           value={input}

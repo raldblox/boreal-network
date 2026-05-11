@@ -68,7 +68,9 @@ Recommended subfields:
 
 - `extraction.title`
 - `extraction.summary`
+- `extraction.body`
 - `extraction.outputKinds[]`
+- `extraction.missingDetails[]`
 - `extraction.constraints`
 - `routing.routeFamily`
 - `routing.complexityLevel`

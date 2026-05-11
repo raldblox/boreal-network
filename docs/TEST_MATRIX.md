@@ -83,6 +83,8 @@ Verify:
 
 Verify:
 
+- not every chat turn creates a durable request
+- explicit `New request` creation opens one draft request instead of a second root object
 - request draft extraction is deterministic for canonical fixtures
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
@@ -145,6 +147,7 @@ Verify:
 ### `Request`
 
 - creation
+- draft briefing updates
 - status transitions
 - summary projection
 - participant visibility

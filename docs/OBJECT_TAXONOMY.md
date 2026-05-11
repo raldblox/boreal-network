@@ -40,14 +40,16 @@ Represents the durable demand-side root object and the canonical work thread.
 It carries:
 
 - creator and owner
-- brief and constraints
-- budget and payment mode
-- who the request is looking for
+- visibility
+- canonical brief fields: title, summary, and body
+- optional budget and optional deadline
+- derived route, matching, and readiness projections
 - current lifecycle status
 - active commitment and fulfillment references
 - latest progress summary
 
 `Request` is the main object of the network.
+It may begin as an explicit draft before routing, funding, or fulfillment details are complete.
 
 ### `RequestParticipant`
 

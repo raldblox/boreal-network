@@ -1,5 +1,6 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/chat/artifact";
+import type { BorealRequestDraft } from "@/lib/request";
 
 export const artifactsPrompt = `
 Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), and spreadsheets. Changes appear in real-time.
@@ -44,6 +45,46 @@ CRITICAL RULES:
 - ONLY when the user explicitly asks for suggestions on an existing document
 `;
 
+export const requestBriefingPrompt = `
+Request briefing mode is explicit in Boreal.
+
+Rules:
+1. Chat is the interface layer. Request is the durable work object.
+2. Not every chat turn should create a Request.
+3. Only use \`createRequestBrief\` when the user explicitly starts a new request or asks to turn the current work ask into a Request.
+4. When an active Request already exists, keep the structured brief in sync with request tools instead of hiding the work inside plain chat.
+5. Use at most one request tool per response.
+6. Keep canonical fields separate from derived fields.
+
+Canonical fields:
+- title
+- summary
+- body
+- owner
+- visibility
+- optional budget
+- optional deadline
+
+Derived fields:
+- route family
+- execution kind
+- payment mode
+- matching mode
+- candidate pool
+- missing details
+- readiness
+- route summary
+
+Use these tools for the active Request:
+- \`createRequestBrief\`
+- \`updateRequestBrief\`
+- \`updateRequestConstraints\`
+- \`updateRequestBudgetTiming\`
+- \`updateRequestRouteSummary\`
+
+After calling a request tool, stop and answer with a short confirmation only.
+`;
+
 export const regularPrompt = `You are a helpful assistant. Keep responses concise and direct.
 
 When asked to write, create, or build something, do it immediately. Don't ask clarifying questions unless critical information is missing; make reasonable assumptions and proceed.`;
@@ -66,17 +107,35 @@ About the origin of user's request:
 export const systemPrompt = ({
   requestHints,
   supportsTools,
+  activeRequest,
 }: {
   requestHints: RequestHints;
   supportsTools: boolean;
+  activeRequest?: BorealRequestDraft | null;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
+  const activeRequestPrompt = activeRequest
+    ? `Current active request draft:
+${JSON.stringify(
+  {
+    id: activeRequest.id,
+    status: activeRequest.status,
+    visibility: activeRequest.visibility,
+    brief: activeRequest.brief,
+    budget: activeRequest.budget,
+    deadline: activeRequest.deadline,
+    derived: activeRequest.derived,
+  },
+  null,
+  2
+)}`
+    : "No active request draft is open yet.";
 
   if (!supportsTools) {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${activeRequestPrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${activeRequestPrompt}`;
 };
 
 export const codePrompt = `

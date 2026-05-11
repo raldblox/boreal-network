@@ -3,8 +3,9 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
+  useCallback,
   createContext,
   type Dispatch,
   type ReactNode,
@@ -23,10 +24,19 @@ import { toast } from "@/components/chat/toast";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import type { BorealRequestDraft } from "@/lib/request";
 import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import type { ChatMessage } from "@/lib/types";
 import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
+
+type ChatDataResponse = {
+  messages: ChatMessage[];
+  visibility: VisibilityType;
+  userId: string | null;
+  isReadonly: boolean;
+  request: BorealRequestDraft | null;
+};
 
 type ActiveChatContextValue = {
   chatId: string;
@@ -45,8 +55,11 @@ type ActiveChatContextValue = {
   votes: Vote[] | undefined;
   currentModelId: string;
   setCurrentModelId: (id: string) => void;
-  showCreditCardAlert: boolean;
-  setShowCreditCardAlert: Dispatch<SetStateAction<boolean>>;
+  showModelAccessAlert: boolean;
+  setShowModelAccessAlert: Dispatch<SetStateAction<boolean>>;
+  activeRequest: BorealRequestDraft | null;
+  createRequest: () => Promise<BorealRequestDraft | null>;
+  openRequest: () => Promise<void>;
 };
 
 const ActiveChatContext = createContext<ActiveChatContextValue | null>(null);
@@ -58,6 +71,7 @@ function extractChatId(pathname: string): string | null {
 
 export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { setDataStream } = useDataStream();
   const { mutate } = useSWRConfig();
 
@@ -80,12 +94,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   }, [currentModelId]);
 
   const [input, setInput] = useState("");
-  const [showCreditCardAlert, setShowCreditCardAlert] = useState(false);
+  const [showModelAccessAlert, setShowModelAccessAlert] = useState(false);
+  const chatDataKey = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/messages?chatId=${chatId}`;
 
-  const { data: chatData, isLoading } = useSWR(
-    isNewChat
-      ? null
-      : `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/messages?chatId=${chatId}`,
+  const { data: chatData, isLoading } = useSWR<ChatDataResponse>(
+    isNewChat ? null : chatDataKey,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -156,10 +169,17 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     },
     onFinish: () => {
       mutate(unstable_serialize(getChatHistoryPaginationKey));
+      if (!isNewChat) {
+        mutate(chatDataKey);
+      }
     },
     onError: (error) => {
-      if (error.message?.includes("AI Gateway requires a valid credit card")) {
-        setShowCreditCardAlert(true);
+      if (
+        (error instanceof ChatbotError &&
+          error.surface === "activate_gateway") ||
+        error.message?.includes("AI Gateway requires a valid credit card")
+      ) {
+        setShowModelAccessAlert(true);
       } else if (error instanceof ChatbotError) {
         toast({ type: "error", description: error.message });
       } else {
@@ -235,6 +255,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   });
 
   const isReadonly = isNewChat ? false : (chatData?.isReadonly ?? false);
+  const activeRequest = chatData?.request ?? null;
 
   const { data: votes } = useSWR<Vote[]>(
     !isReadonly && messages.length >= 2
@@ -243,6 +264,117 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     fetcher,
     { revalidateOnFocus: false }
   );
+
+  const createRequest = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chatId,
+            visibility,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create request");
+      }
+
+      const data = (await response.json()) as {
+        request: BorealRequestDraft | null;
+      };
+
+      router.push(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}`);
+      await mutate<ChatDataResponse>(
+        chatDataKey,
+        {
+          messages: chatData?.messages ?? [],
+          visibility,
+          userId: chatData?.userId ?? null,
+          isReadonly: false,
+          request: data.request,
+        },
+        {
+          revalidate: false,
+        }
+      );
+
+      return data.request;
+    } catch (_error) {
+      toast({
+        type: "error",
+        description: "Failed to start a new request.",
+      });
+      return null;
+    }
+  }, [chatData?.messages, chatData?.userId, chatDataKey, chatId, mutate, router, visibility]);
+
+  const openRequest = useCallback(async () => {
+    if (!activeRequest) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            requestId: activeRequest.id,
+            action: "open_request",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.message || "Failed to open request");
+      }
+
+      const data = (await response.json()) as {
+        request: BorealRequestDraft | null;
+      };
+      await mutate(chatDataKey);
+      if (data.request) {
+        await mutate<ChatDataResponse>(
+          chatDataKey,
+          {
+            messages: chatData?.messages ?? [],
+            visibility,
+            userId: chatData?.userId ?? null,
+            isReadonly: false,
+            request: data.request,
+          },
+          {
+            revalidate: false,
+          }
+        );
+      }
+    } catch (error) {
+      toast({
+        type: "error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to open request.",
+      });
+    }
+  }, [
+    activeRequest,
+    chatData?.messages,
+    chatData?.userId,
+    chatDataKey,
+    mutate,
+    visibility,
+  ]);
 
   const value = useMemo<ActiveChatContextValue>(
     () => ({
@@ -262,8 +394,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       votes,
       currentModelId,
       setCurrentModelId,
-      showCreditCardAlert,
-      setShowCreditCardAlert,
+      showModelAccessAlert,
+      setShowModelAccessAlert,
+      activeRequest,
+      createRequest,
+      openRequest,
     }),
     [
       chatId,
@@ -281,7 +416,10 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       isLoading,
       votes,
       currentModelId,
-      showCreditCardAlert,
+      showModelAccessAlert,
+      activeRequest,
+      createRequest,
+      openRequest,
     ]
   );
 

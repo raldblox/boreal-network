@@ -7,9 +7,18 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import type {
+  RequestBrief,
+  RequestBudget,
+  RequestDeadline,
+  RequestDerived,
+  RequestStatus,
+  RequestVisibility,
+} from "@/lib/request";
 
 export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -38,6 +47,58 @@ export const chat = pgTable("Chat", {
 });
 
 export type Chat = InferSelectModel<typeof chat>;
+
+export const request = pgTable(
+  "Request",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    chatId: uuid("chatId")
+      .notNull()
+      .references(() => chat.id),
+    documentId: uuid("documentId").notNull(),
+    key: text("key").notNull(),
+    status: varchar("status", {
+      enum: [
+        "draft",
+        "open",
+        "funding_required",
+        "funded",
+        "in_progress",
+        "waiting_for_owner",
+        "delivered",
+        "completed",
+        "cancelled",
+        "failed",
+      ],
+    })
+      .$type<RequestStatus>()
+      .notNull()
+      .default("draft"),
+    visibility: varchar("visibility", {
+      enum: ["public", "private"],
+    })
+      .$type<RequestVisibility>()
+      .notNull()
+      .default("private"),
+    createdById: uuid("createdById")
+      .notNull()
+      .references(() => user.id),
+    ownerId: uuid("ownerId")
+      .notNull()
+      .references(() => user.id),
+    brief: json("brief").$type<RequestBrief>().notNull(),
+    budget: json("budget").$type<RequestBudget | null>(),
+    deadline: json("deadline").$type<RequestDeadline | null>(),
+    derived: json("derived").$type<RequestDerived>().notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    chatIdUnique: uniqueIndex("Request_chatId_unique").on(table.chatId),
+  })
+);
+
+export type RequestRecord = InferSelectModel<typeof request>;
 
 export const message = pgTable("Message_v2", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),

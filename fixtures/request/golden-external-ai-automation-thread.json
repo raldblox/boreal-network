@@ -105,10 +105,11 @@
                                   "displayName":  "Mira Santos",
                                   "handle":  "mira"
                               },
+                    "visibility":  "public",
                     "brief":  {
                                   "title":  "Build support triage automation",
                                   "summary":  "Route inbound founder, sales, and support requests into one documented triage workflow.",
-                                  "description":  "Need one durable automation setup that classifies inbound form submissions, assigns priority, drafts first-response context, and pushes the right records into our CRM with a clean handoff doc for operators.",
+                                  "body":  "Need one durable automation setup that classifies inbound form submissions, assigns priority, drafts first-response context, and pushes the right records into our CRM with a clean handoff doc for operators.",
                                   "constraints":  {
                                                       "tools":  [
                                                                     "HubSpot",
@@ -147,12 +148,34 @@
                                    "fixedAmount":  750,
                                    "notes":  "Owner approved one fixed funded request after proposal review."
                                },
+                    "deadline":  {
+                                     "targetAt":  "2026-05-07T17:00:00Z",
+                                     "notes":  "Requested delivery inside five days."
+                                 },
                     "activeRefs":  {
                                        "activeCommitmentId":  "cmt_01jv4xb9x53kdkfrqwmw0n3k3y",
                                        "activeFulfillmentId":  "ful_01jv4xfx3xmp9xhs6yy2bs6v6k",
                                        "latestArtifactId":  "art_01jv4xkgp2kch6m9mzk07j9j1f",
                                        "latestTransactionId":  "txn_payout_01jv4xmn06b2g1xg2w0t1w6t9s"
                                    },
+                    "derived":  {
+                                    "routeFamily":  "worker_market",
+                                    "executionKind":  "hybrid_human_agent",
+                                    "paymentMode":  "fixed_funded_request",
+                                    "matchingMode":  "lead_first_then_collaborators",
+                                    "candidatePool":  [
+                                                          "automation-ops-studio"
+                                                      ],
+                                    "missingDetails":  [
+                                                       ],
+                                    "readiness":  {
+                                                      "state":  "ready_to_match",
+                                                      "summary":  "The brief is complete and the route summary is ready for matching.",
+                                                      "readyForOpen":  true,
+                                                      "readyForMatch":  true
+                                                  },
+                                    "routeSummary":  "Route this through the worker market with one lead automation specialist and optional AI-assisted collaborators under one fixed funded request."
+                                },
                     "latest":  {
                                    "summary":  "Fulfillment accepted, payout completed, and the request closed in the same durable thread.",
                                    "lastEventAt":  "2026-05-06T17:35:00Z",

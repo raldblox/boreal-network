@@ -127,6 +127,60 @@ const PurePreviewMessage = ({
       );
     }
 
+    if (
+      type === "tool-createRequestBrief" ||
+      type === "tool-updateRequestBrief" ||
+      type === "tool-updateRequestConstraints" ||
+      type === "tool-updateRequestBudgetTiming" ||
+      type === "tool-updateRequestRouteSummary"
+    ) {
+      const { toolCallId, state } = part;
+      const titleByType: Record<string, string> = {
+        "tool-createRequestBrief": "New request brief",
+        "tool-updateRequestBrief": "Update request brief",
+        "tool-updateRequestConstraints": "Update constraints",
+        "tool-updateRequestBudgetTiming": "Update budget and timing",
+        "tool-updateRequestRouteSummary": "Update route summary",
+      };
+
+      return (
+        <Tool
+          className="w-[min(100%,450px)]"
+          defaultOpen={state !== "output-available"}
+          key={toolCallId}
+        >
+          <ToolHeader
+            state={state}
+            title={titleByType[type]}
+            type={type}
+          />
+          <ToolContent>
+            {state === "input-available" && <ToolInput input={part.input} />}
+            {state === "output-available" && part.output && (
+              <ToolOutput
+                errorText={undefined}
+                output={
+                  "error" in part.output ? (
+                    <div className="rounded border p-2 text-red-500">
+                      Error: {String(part.output.error)}
+                    </div>
+                  ) : (
+                    <DocumentToolResult
+                      isReadonly={isReadonly}
+                      result={part.output}
+                      type={
+                        type === "tool-createRequestBrief" ? "create" : "update"
+                      }
+                    />
+                  )
+                }
+              />
+            )}
+          </ToolContent>
+        </Tool>
+      );
+    }
+
     if (type === "tool-createDocument") {
       const { toolCallId } = part;
 

@@ -25,6 +25,7 @@ import { DataStreamHandler } from "./data-stream-handler";
 import { submitEditedMessage } from "./message-editor";
 import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
+import { RequestBriefingPanel } from "./request-briefing-panel";
 
 export function ChatShell() {
   const {
@@ -44,8 +45,11 @@ export function ChatShell() {
     votes,
     currentModelId,
     setCurrentModelId,
-    showCreditCardAlert,
-    setShowCreditCardAlert,
+    showModelAccessAlert,
+    setShowModelAccessAlert,
+    activeRequest,
+    createRequest,
+    openRequest,
   } = useActiveChat();
 
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
@@ -69,6 +73,39 @@ export function ChatShell() {
     }
   }, [chatId, setArtifact]);
 
+  const openRequestDocument = () => {
+    if (!activeRequest) {
+      return;
+    }
+
+    setArtifact((currentArtifact) => ({
+      ...currentArtifact,
+      documentId: activeRequest.documentId,
+      title: activeRequest.brief.title?.trim() || "Untitled request",
+      kind: "text",
+      isVisible: true,
+      status: "idle",
+    }));
+  };
+
+  const handleCreateRequest = async () => {
+    const createdRequest = await createRequest();
+    if (!createdRequest) {
+      return null;
+    }
+
+    setArtifact((currentArtifact) => ({
+      ...currentArtifact,
+      documentId: createdRequest.documentId,
+      title: createdRequest.brief.title?.trim() || "Untitled request",
+      kind: "text",
+      isVisible: true,
+      status: "idle",
+    }));
+
+    return createdRequest;
+  };
+
   return (
     <>
       <div className="flex h-dvh w-full flex-row overflow-hidden">
@@ -85,6 +122,15 @@ export function ChatShell() {
           />
 
           <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-tl-[12px] md:border-t md:border-l md:border-border/40">
+            <RequestBriefingPanel
+              isArtifactVisible={isArtifactVisible}
+              isReadonly={isReadonly}
+              onCreateRequest={handleCreateRequest}
+              onOpenDocument={openRequestDocument}
+              onOpenRequest={openRequest}
+              request={activeRequest}
+            />
+
             <Messages
               addToolApprovalResponse={addToolApprovalResponse}
               chatId={chatId}
@@ -114,8 +160,10 @@ export function ChatShell() {
                   chatId={chatId}
                   editingMessage={editingMessage}
                   input={input}
+                  activeRequest={activeRequest}
                   isLoading={isLoading}
                   messages={messages}
+                  onCreateRequest={handleCreateRequest}
                   onCancelEdit={() => {
                     setEditingMessage(null);
                     setInput("");
@@ -172,20 +220,21 @@ export function ChatShell() {
       <DataStreamHandler />
 
       <AlertDialog
-        onOpenChange={setShowCreditCardAlert}
-        open={showCreditCardAlert}
+        onOpenChange={setShowModelAccessAlert}
+        open={showModelAccessAlert}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Activate AI Gateway</AlertDialogTitle>
+            <AlertDialogTitle>Model access unavailable</AlertDialogTitle>
             <AlertDialogDescription>
-              This application requires{" "}
-              {process.env.NODE_ENV === "production" ? "the owner" : "you"} to
-              activate Vercel AI Gateway.
+              Boreal could not reach the configured model route.{" "}
+              {process.env.NODE_ENV === "production" ? "The owner" : "You"}{" "}
+              may need to finish AI Gateway or BYOK setup before new replies
+              can run.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Close</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 window.open(
@@ -195,7 +244,7 @@ export function ChatShell() {
                 window.location.href = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/`;
               }}
             >
-              Activate
+              Open model settings
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

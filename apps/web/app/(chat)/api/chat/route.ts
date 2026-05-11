@@ -20,9 +20,14 @@ import {
 } from "@/lib/ai/models";
 import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
+import { createRequestBrief } from "@/lib/ai/tools/create-request-brief";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { editDocument } from "@/lib/ai/tools/edit-document";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
+import { updateRequestBrief } from "@/lib/ai/tools/update-request-brief";
+import { updateRequestBudgetTiming } from "@/lib/ai/tools/update-request-budget-timing";
+import { updateRequestConstraints } from "@/lib/ai/tools/update-request-constraints";
+import { updateRequestRouteSummary } from "@/lib/ai/tools/update-request-route-summary";
 import { updateDocument } from "@/lib/ai/tools/update-document";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
@@ -31,8 +36,10 @@ import {
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
+  getRequestByChatId,
   saveChat,
   saveMessages,
+  toRequestDraft,
   updateChatTitleById,
   updateMessage,
 } from "@/lib/db/queries";
@@ -99,6 +106,10 @@ export async function POST(request: Request) {
     const isToolApprovalFlow = Boolean(messages);
 
     const chat = await getChatById({ id });
+    const activeRequestRecord = await getRequestByChatId({ chatId: id });
+    const activeRequest = activeRequestRecord
+      ? toRequestDraft(activeRequestRecord)
+      : null;
     let messagesFromDb: DBMessage[] = [];
     let titlePromise: Promise<string> | null = null;
 
@@ -192,16 +203,25 @@ export async function POST(request: Request) {
       execute: async ({ writer: dataStream }) => {
         const result = streamText({
           model: getLanguageModel(chatModel),
-          system: systemPrompt({ requestHints, supportsTools }),
+          system: systemPrompt({
+            requestHints,
+            supportsTools,
+            activeRequest,
+          }),
           messages: modelMessages,
           stopWhen: stepCountIs(5),
           experimental_activeTools:
             isReasoningModel && !supportsTools
               ? []
               : [
+                  "createRequestBrief",
                   "createDocument",
                   "editDocument",
                   "updateDocument",
+                  "updateRequestBrief",
+                  "updateRequestConstraints",
+                  "updateRequestBudgetTiming",
+                  "updateRequestRouteSummary",
                   "requestSuggestions",
                 ],
           providerOptions: {
@@ -213,6 +233,12 @@ export async function POST(request: Request) {
             }),
           },
           tools: {
+            createRequestBrief: createRequestBrief({
+              session,
+              dataStream,
+              chatId: id,
+              visibility: selectedVisibilityType,
+            }),
             createDocument: createDocument({
               session,
               dataStream,
@@ -223,6 +249,30 @@ export async function POST(request: Request) {
               session,
               dataStream,
               modelId: chatModel,
+            }),
+            updateRequestBrief: updateRequestBrief({
+              session,
+              dataStream,
+              chatId: id,
+              visibility: selectedVisibilityType,
+            }),
+            updateRequestConstraints: updateRequestConstraints({
+              session,
+              dataStream,
+              chatId: id,
+              visibility: selectedVisibilityType,
+            }),
+            updateRequestBudgetTiming: updateRequestBudgetTiming({
+              session,
+              dataStream,
+              chatId: id,
+              visibility: selectedVisibilityType,
+            }),
+            updateRequestRouteSummary: updateRequestRouteSummary({
+              session,
+              dataStream,
+              chatId: id,
+              visibility: selectedVisibilityType,
             }),
             requestSuggestions: requestSuggestions({
               session,
@@ -291,7 +341,7 @@ export async function POST(request: Request) {
             "AI Gateway requires a valid credit card on file to service requests"
           )
         ) {
-          return "AI Gateway requires a valid credit card on file to service requests. Please visit https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dadd-credit-card to add a card and unlock your free credits.";
+          return "Boreal model access is unavailable right now.";
         }
         return "Oops, an error occurred!";
       },

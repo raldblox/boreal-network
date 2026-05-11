@@ -23,19 +23,25 @@ export type SlashCommand = {
 export const slashCommands: SlashCommand[] = [
   {
     name: "new",
-    description: "Start a new chat",
+    description: "Start a new thread",
     icon: <PenSquareIcon className="size-3.5" />,
     action: "new",
   },
   {
+    name: "request",
+    description: "Start a new request",
+    icon: <PenSquareIcon className="size-3.5" />,
+    action: "request",
+  },
+  {
     name: "clear",
-    description: "Clear current chat",
+    description: "Clear current thread",
     icon: <Trash2Icon className="size-3.5" />,
     action: "clear",
   },
   {
     name: "rename",
-    description: "Rename current chat",
+    description: "Rename current thread",
     icon: <PenLineIcon className="size-3.5" />,
     action: "rename",
   },
@@ -53,13 +59,13 @@ export const slashCommands: SlashCommand[] = [
   },
   {
     name: "delete",
-    description: "Delete current chat",
+    description: "Delete current thread",
     icon: <XIcon className="size-3.5" />,
     action: "delete",
   },
   {
     name: "purge",
-    description: "Delete all chats",
+    description: "Clear saved thread history",
     icon: <BombIcon className="size-3.5" />,
     action: "purge",
   },

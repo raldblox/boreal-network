@@ -92,6 +92,15 @@ Should expose:
 - update allowed mutable fields
 - append messages or actions through event-safe surfaces
 
+For the first web slice, `Request` create and update must support:
+
+- explicit `New request` draft creation
+- request-brief field updates
+- request constraint updates
+- request budget and timing updates
+- request route-summary updates
+- explicit transition from `draft` to `open`
+
 ### `Commitment`
 
 Should expose:

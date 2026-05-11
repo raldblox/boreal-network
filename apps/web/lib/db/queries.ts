@@ -16,6 +16,15 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
+import type {
+  BorealRequestDraft,
+  RequestBrief,
+  RequestBudget,
+  RequestDeadline,
+  RequestDerived,
+  RequestStatus,
+  RequestVisibility,
+} from "@/lib/request";
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
 import {
@@ -24,6 +33,8 @@ import {
   type DBMessage,
   document,
   message,
+  request,
+  type RequestRecord,
   type Suggestion,
   stream,
   suggestion,
@@ -100,6 +111,7 @@ export async function saveChat({
 
 export async function deleteChatById({ id }: { id: string }) {
   try {
+    await db.delete(request).where(eq(request.chatId, id));
     await db.delete(vote).where(eq(vote.chatId, id));
     await db.delete(message).where(eq(message.chatId, id));
     await db.delete(stream).where(eq(stream.chatId, id));
@@ -130,6 +142,7 @@ export async function deleteAllChatsByUserId({ userId }: { userId: string }) {
 
     const chatIds = userChats.map((c) => c.id);
 
+    await db.delete(request).where(inArray(request.chatId, chatIds));
     await db.delete(vote).where(inArray(vote.chatId, chatIds));
     await db.delete(message).where(inArray(message.chatId, chatIds));
     await db.delete(stream).where(inArray(stream.chatId, chatIds));
@@ -235,6 +248,169 @@ export async function getChatById({ id }: { id: string }) {
   } catch (_error) {
     throw new ChatbotError("bad_request:database", "Failed to get chat by id");
   }
+}
+
+export async function getRequestByChatId({
+  chatId,
+}: {
+  chatId: string;
+}): Promise<RequestRecord | null> {
+  try {
+    const [selectedRequest] = await db
+      .select()
+      .from(request)
+      .where(eq(request.chatId, chatId))
+      .orderBy(desc(request.createdAt))
+      .limit(1);
+
+    return selectedRequest ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get request by chat id"
+    );
+  }
+}
+
+export async function getRequestById({
+  id,
+}: {
+  id: string;
+}): Promise<RequestRecord | null> {
+  try {
+    const [selectedRequest] = await db
+      .select()
+      .from(request)
+      .where(eq(request.id, id))
+      .limit(1);
+
+    return selectedRequest ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get request by id"
+    );
+  }
+}
+
+export async function saveRequestDraft({
+  id,
+  chatId,
+  documentId,
+  key,
+  status,
+  visibility,
+  createdById,
+  ownerId,
+  brief,
+  budget,
+  deadline,
+  derived,
+}: {
+  id: string;
+  chatId: string;
+  documentId: string;
+  key: string;
+  status: RequestStatus;
+  visibility: RequestVisibility;
+  createdById: string;
+  ownerId: string;
+  brief: RequestBrief;
+  budget: RequestBudget | null;
+  deadline: RequestDeadline | null;
+  derived: RequestDerived;
+}) {
+  try {
+    const [createdRequest] = await db
+      .insert(request)
+      .values({
+        id,
+        chatId,
+        documentId,
+        key,
+        status,
+        visibility,
+        createdById,
+        ownerId,
+        brief,
+        budget,
+        deadline,
+        derived,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return createdRequest;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save request draft"
+    );
+  }
+}
+
+export async function updateRequestDraftById({
+  id,
+  key,
+  status,
+  visibility,
+  brief,
+  budget,
+  deadline,
+  derived,
+}: {
+  id: string;
+  key: string;
+  status: RequestStatus;
+  visibility: RequestVisibility;
+  brief: RequestBrief;
+  budget: RequestBudget | null;
+  deadline: RequestDeadline | null;
+  derived: RequestDerived;
+}) {
+  try {
+    const [updatedRequest] = await db
+      .update(request)
+      .set({
+        key,
+        status,
+        visibility,
+        brief,
+        budget,
+        deadline,
+        derived,
+        updatedAt: new Date(),
+      })
+      .where(eq(request.id, id))
+      .returning();
+
+    return updatedRequest ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update request draft"
+    );
+  }
+}
+
+export function toRequestDraft(record: RequestRecord): BorealRequestDraft {
+  return {
+    id: record.id,
+    chatId: record.chatId,
+    documentId: record.documentId,
+    key: record.key,
+    status: record.status,
+    visibility: record.visibility,
+    createdById: record.createdById,
+    ownerId: record.ownerId,
+    brief: record.brief,
+    budget: record.budget,
+    deadline: record.deadline,
+    derived: record.derived,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
 }
 
 export async function saveMessages({ messages }: { messages: DBMessage[] }) {

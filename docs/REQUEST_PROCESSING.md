@@ -8,6 +8,9 @@ Match the lead first.
 Plan the work second.
 Decompose only when needed.
 
+Do not silently turn ordinary chat into a durable request.
+`Request` creation must stay explicit.
+
 Do not explode a raw ask into a task tree before Boreal knows who should own the work.
 
 ## Processing Layers
@@ -23,29 +26,31 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
 
 1. Intake
    Capture the raw ask plus actor context.
-2. Request draft
+2. Explicit request creation gate
+   Stay chat-only until the owner or policy explicitly chooses to open a `Request`.
+3. Request draft
    Produce a derived `RequestDraft`.
-3. Draft normalization
+4. Draft normalization
    Produce a derived `MatchSpec` with brief, output kinds, constraints, budget, urgency, and actor requirements.
-4. Complexity and route classification
+5. Complexity and route classification
    Decide complexity, route family, and whether clarification is required.
-5. Lead retrieval
+6. Lead retrieval
    Search `Supply` for lead-owner candidates first.
-6. Lead ranking
+7. Lead ranking
    Rank lead candidates by capability fit, budget fit, deadline fit, trust, and route confidence.
-7. Clarification gate
+8. Clarification gate
    Ask only for missing fields that materially change routing or funding.
-8. Fulfillment planning
+9. Fulfillment planning
    For medium or high complexity work, derive a `RoutePlan` with `RoleSlot` and `PhasePlan` outputs.
-9. Team assembly
+10. Team assembly
    Match optional collaborator slots only after a credible lead route exists, except bounded direct-tool routes.
-10. Commitment drafting
+11. Commitment drafting
    Produce the commercial shape Boreal wants the owner to review.
-11. Funding gate
+12. Funding gate
    If the route requires funding, move through `Commitment` before execution.
-12. Fulfillment creation
+13. Fulfillment creation
    Open one accepted execution lane.
-13. Delivery and resolution
+14. Delivery and resolution
    Publish `Artifact`, settle `Transaction`, and resolve the `Request`.
 
 ## Complexity Policy
@@ -77,5 +82,6 @@ These objects are derived and rebuildable, not durable roots:
 - Planner and matcher outputs are read-only.
 - Policy selects the next safe action.
 - Mutation tools are the only layer allowed to commit canonical writes.
+- Once a request draft exists, subsequent briefing updates should mutate the same `Request` instead of forking a second durable demand object.
 - `FulfillmentStep` is the default home for generated sub-work.
 - A new `Request` is only justified by a new funding, ownership, routing, or review boundary.

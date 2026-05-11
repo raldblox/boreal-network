@@ -1,0 +1,262 @@
+openapi: 3.1.0
+info:
+  title: Boreal Web Request Briefing Surface
+  version: 1.0.0
+  description: >
+    First web-facing request briefing surface for explicit Request draft creation
+    and request-brief mutations inside apps/web.
+paths:
+  /api/requests:
+    get:
+      summary: Get the active request draft for one chat thread.
+      parameters:
+        - in: query
+          name: chatId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The current request draft or null.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                properties:
+                  request:
+                    oneOf:
+                      - $ref: "#/components/schemas/WebRequestDraft"
+                      - type: "null"
+    post:
+      summary: Create an explicit draft Request for one chat thread.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - chatId
+              properties:
+                chatId:
+                  type: string
+                  format: uuid
+                visibility:
+                  type: string
+                  enum:
+                    - private
+                    - public
+      responses:
+        "200":
+          description: The newly created or existing request draft.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                properties:
+                  request:
+                    $ref: "#/components/schemas/WebRequestDraft"
+    patch:
+      summary: Advance a draft Request into the canonical open state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - requestId
+                - action
+              properties:
+                requestId:
+                  type: string
+                  format: uuid
+                action:
+                  type: string
+                  enum:
+                    - open_request
+      responses:
+        "200":
+          description: The updated request draft.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                properties:
+                  request:
+                    $ref: "#/components/schemas/WebRequestDraft"
+components:
+  schemas:
+    WebRequestDraft:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - chatId
+        - documentId
+        - key
+        - status
+        - visibility
+        - createdById
+        - ownerId
+        - brief
+        - derived
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        chatId:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        key:
+          type: string
+        status:
+          type: string
+          enum:
+            - draft
+            - open
+            - funding_required
+            - funded
+            - in_progress
+            - waiting_for_owner
+            - delivered
+            - completed
+            - cancelled
+            - failed
+        visibility:
+          type: string
+          enum:
+            - private
+            - public
+        createdById:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        brief:
+          type: object
+          additionalProperties: false
+          properties:
+            title:
+              type: string
+            summary:
+              type: string
+            body:
+              type: string
+            constraints:
+              type: object
+              additionalProperties: true
+            outputKinds:
+              type: array
+              items:
+                type: string
+            tags:
+              type: array
+              items:
+                type: string
+        budget:
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              required:
+                - mode
+              properties:
+                mode:
+                  type: string
+                  enum:
+                    - none
+                    - fixed
+                    - range
+                    - open
+                currency:
+                  type: string
+                fixedAmount:
+                  type: number
+                minAmount:
+                  type: number
+                maxAmount:
+                  type: number
+                notes:
+                  type: string
+        deadline:
+          oneOf:
+            - type: "null"
+            - type: object
+              additionalProperties: false
+              properties:
+                targetAt:
+                  type: string
+                  format: date-time
+                notes:
+                  type: string
+        derived:
+          type: object
+          additionalProperties: false
+          required:
+            - missingDetails
+            - readiness
+          properties:
+            routeFamily:
+              type: string
+            executionKind:
+              type: string
+            paymentMode:
+              type: string
+            matchingMode:
+              type: string
+            candidatePool:
+              type: array
+              items:
+                type: string
+            missingDetails:
+              type: array
+              items:
+                type: string
+            readiness:
+              type: object
+              additionalProperties: false
+              required:
+                - state
+                - summary
+                - readyForOpen
+                - readyForMatch
+              properties:
+                state:
+                  type: string
+                  enum:
+                    - collecting_brief
+                    - ready_to_open
+                    - ready_to_match
+                summary:
+                  type: string
+                readyForOpen:
+                  type: boolean
+                readyForMatch:
+                  type: boolean
+            routeSummary:
+              type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

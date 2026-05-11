@@ -80,6 +80,11 @@ They are approval-gated where needed and emit canonical events.
 First set:
 
 - `open_request`
+- `create_request_brief`
+- `update_request_brief`
+- `update_request_constraints`
+- `update_request_budget_and_timing`
+- `update_request_route_summary`
 - `attach_match_shortlist`
 - `draft_commitment`
 - `accept_commitment`
@@ -120,6 +125,7 @@ Every mutation call should return:
 - Matcher tools must not mutate ranking history or canonical objects.
 - Policy tools must not bypass approval boundaries.
 - Mutation tools must be idempotent where retries are possible.
+- Request-briefing mutation tools must keep updating the same draft `Request` instead of creating a second durable demand object.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.
 - Tool-produced output should be recorded as `RequestEvent` when the thread needs durable explanation or auditability.
 
@@ -127,10 +133,11 @@ Every mutation call should return:
 
 The first Boreal slice should prove:
 
-1. request draft preparation
-2. complexity and route classification
-3. lead supply search and ranking
-4. optional fulfillment planning for complex work
-5. policy choosing `draft_commitment`
+1. explicit request draft creation from chat
+2. live request-brief updates through visible mutation tools
+3. complexity and route classification
+4. lead supply search and ranking
+5. optional fulfillment planning for complex work
+6. policy choosing `draft_commitment`
 
 Do not start by automating payout, dispute, or deep multi-step execution before this core loop is stable.

@@ -13,10 +13,7 @@
     "createdBy",
     "owner",
     "brief",
-    "seeking",
-    "budget",
-    "activeRefs",
-    "latest",
+    "visibility",
     "parallelFulfillmentAllowed",
     "createdAt",
     "updatedAt"
@@ -40,12 +37,16 @@
     "owner": {
       "$ref": "common.schema.json#/$defs/actorRef"
     },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "public"
+      ]
+    },
     "brief": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "summary"
-      ],
       "properties": {
         "title": {
           "type": "string",
@@ -57,7 +58,7 @@
           "minLength": 1,
           "maxLength": 1000
         },
-        "description": {
+        "body": {
           "type": "string",
           "minLength": 1
         },
@@ -153,6 +154,19 @@
         }
       }
     },
+    "deadline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "targetAt": {
+          "$ref": "common.schema.json#/$defs/timestamp"
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "activeRefs": {
       "type": "object",
       "additionalProperties": false,
@@ -184,6 +198,82 @@
         },
         "lastActor": {
           "$ref": "common.schema.json#/$defs/actorRef"
+        }
+      }
+    },
+    "derived": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "routeFamily": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "executionKind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "paymentMode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "matchingMode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "candidatePool": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "missingDetails": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "readiness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "summary",
+            "readyForOpen",
+            "readyForMatch"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "collecting_brief",
+                "ready_to_open",
+                "ready_to_match"
+              ]
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "readyForOpen": {
+              "type": "boolean"
+            },
+            "readyForMatch": {
+              "type": "boolean"
+            }
+          }
+        },
+        "routeSummary": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -220,6 +310,39 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "open",
+              "funding_required",
+              "funded",
+              "in_progress",
+              "waiting_for_owner",
+              "delivered",
+              "completed",
+              "cancelled",
+              "failed"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "brief": {
+            "required": [
+              "title",
+              "summary",
+              "body"
+            ]
+          }
+        }
+      }
+    },
     {
       "if": {
         "properties": {
