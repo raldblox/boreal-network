@@ -3,7 +3,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   useCallback,
   createContext,
@@ -58,6 +58,7 @@ type ActiveChatContextValue = {
   showModelAccessAlert: boolean;
   setShowModelAccessAlert: Dispatch<SetStateAction<boolean>>;
   activeRequest: BorealRequestDraft | null;
+  isRequestMode: boolean;
   createRequest: () => Promise<BorealRequestDraft | null>;
   openRequest: () => Promise<void>;
 };
@@ -72,11 +73,13 @@ function extractChatId(pathname: string): string | null {
 export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setDataStream } = useDataStream();
   const { mutate } = useSWRConfig();
 
   const chatIdFromUrl = extractChatId(pathname);
   const isNewChat = !chatIdFromUrl;
+  const requestModeFromUrl = searchParams.get("mode") === "request";
   const newChatIdRef = useRef(generateUUID());
   const prevPathnameRef = useRef(pathname);
 
@@ -256,6 +259,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
 
   const isReadonly = isNewChat ? false : (chatData?.isReadonly ?? false);
   const activeRequest = chatData?.request ?? null;
+  const isRequestMode = requestModeFromUrl || activeRequest !== null;
 
   const { data: votes } = useSWR<Vote[]>(
     !isReadonly && messages.length >= 2
@@ -313,6 +317,20 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       return null;
     }
   }, [chatData?.messages, chatData?.userId, chatDataKey, chatId, mutate, router, visibility]);
+
+  const hasAutoCreatedRequestRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!requestModeFromUrl || activeRequest || isReadonly) {
+      return;
+    }
+
+    if (hasAutoCreatedRequestRef.current === chatId) {
+      return;
+    }
+
+    hasAutoCreatedRequestRef.current = chatId;
+    void createRequest();
+  }, [activeRequest, chatId, createRequest, isReadonly, requestModeFromUrl]);
 
   const openRequest = useCallback(async () => {
     if (!activeRequest) {
@@ -397,6 +415,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       showModelAccessAlert,
       setShowModelAccessAlert,
       activeRequest,
+      isRequestMode,
       createRequest,
       openRequest,
     }),
@@ -418,6 +437,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       currentModelId,
       showModelAccessAlert,
       activeRequest,
+      isRequestMode,
       createRequest,
       openRequest,
     ]

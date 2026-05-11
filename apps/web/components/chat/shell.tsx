@@ -48,6 +48,7 @@ export function ChatShell() {
     showModelAccessAlert,
     setShowModelAccessAlert,
     activeRequest,
+    isRequestMode,
     createRequest,
     openRequest,
   } = useActiveChat();
@@ -61,17 +62,40 @@ export function ChatShell() {
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
+  const autoOpenedRequestRef = useRef<string | null>(null);
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
     if (prevChatIdRef.current !== chatId) {
       prevChatIdRef.current = chatId;
+      autoOpenedRequestRef.current = null;
       stopRef.current();
       setArtifact(initialArtifactData);
       setEditingMessage(null);
       setAttachments([]);
     }
   }, [chatId, setArtifact]);
+
+  useEffect(() => {
+    if (!isRequestMode || !activeRequest) {
+      return;
+    }
+
+    if (autoOpenedRequestRef.current === activeRequest.id) {
+      return;
+    }
+
+    autoOpenedRequestRef.current = activeRequest.id;
+
+    setArtifact((currentArtifact) => ({
+      ...currentArtifact,
+      documentId: activeRequest.documentId,
+      title: activeRequest.brief.title?.trim() || "Untitled request",
+      kind: "text",
+      isVisible: true,
+      status: "idle",
+    }));
+  }, [activeRequest, isRequestMode, setArtifact]);
 
   const openRequestDocument = () => {
     if (!activeRequest) {
@@ -118,6 +142,7 @@ export function ChatShell() {
           <ChatHeader
             chatId={chatId}
             isReadonly={isReadonly}
+            isRequestMode={isRequestMode}
             selectedVisibilityType={visibilityType}
           />
 
@@ -125,6 +150,7 @@ export function ChatShell() {
             <RequestBriefingPanel
               isArtifactVisible={isArtifactVisible}
               isReadonly={isReadonly}
+              isRequestMode={isRequestMode}
               onCreateRequest={handleCreateRequest}
               onOpenDocument={openRequestDocument}
               onOpenRequest={openRequest}
@@ -137,6 +163,7 @@ export function ChatShell() {
               isArtifactVisible={isArtifactVisible}
               isLoading={isLoading}
               isReadonly={isReadonly}
+              isRequestMode={isRequestMode}
               messages={messages}
               onEditMessage={(msg) => {
                 const text = msg.parts
@@ -161,6 +188,7 @@ export function ChatShell() {
                   editingMessage={editingMessage}
                   input={input}
                   activeRequest={activeRequest}
+                  isRequestMode={isRequestMode}
                   isLoading={isLoading}
                   messages={messages}
                   onCreateRequest={handleCreateRequest}

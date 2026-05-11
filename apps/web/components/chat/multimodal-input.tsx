@@ -87,6 +87,7 @@ function PureMultimodalInput({
   onCancelEdit,
   isLoading,
   activeRequest,
+  isRequestMode,
   onCreateRequest,
 }: {
   chatId: string;
@@ -109,6 +110,7 @@ function PureMultimodalInput({
   onCancelEdit?: () => void;
   isLoading?: boolean;
   activeRequest: BorealRequestDraft | null;
+  isRequestMode: boolean;
   onCreateRequest: () => Promise<BorealRequestDraft | null>;
 }) {
   const router = useRouter();
@@ -400,6 +402,7 @@ function PureMultimodalInput({
         uploadQueue.length === 0 && (
           <SuggestedActions
             chatId={chatId}
+            isRequestMode={isRequestMode}
             selectedVisibilityType={selectedVisibilityType}
             sendMessage={sendMessage}
           />
@@ -519,8 +522,8 @@ function PureMultimodalInput({
           placeholder={
             editingMessage
               ? "Edit your message..."
-              : activeRequest
-                ? "Brief this request..."
+              : isRequestMode
+                ? "Draft the request title, summary, body, or constraints..."
                 : "Ask anything..."
           }
           ref={textareaRef}

@@ -9,6 +9,7 @@ type RequestBriefingPanelProps = {
   request: BorealRequestDraft | null;
   isReadonly: boolean;
   isArtifactVisible: boolean;
+  isRequestMode: boolean;
   onCreateRequest: () => Promise<BorealRequestDraft | null>;
   onOpenRequest: () => Promise<void>;
   onOpenDocument: () => void;
@@ -18,6 +19,7 @@ export function RequestBriefingPanel({
   request,
   isReadonly,
   isArtifactVisible,
+  isRequestMode,
   onCreateRequest,
   onOpenRequest,
   onOpenDocument,
@@ -31,14 +33,22 @@ export function RequestBriefingPanel({
       <div className="border-b border-border/50 bg-background/95 px-4 py-3">
         <div className="mx-auto flex max-w-4xl flex-col gap-3 rounded-2xl border border-dashed border-border/60 bg-card/40 p-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <div className="font-medium text-sm">Request mode stays explicit</div>
+            <div className="font-medium text-sm">
+              {isRequestMode
+                ? "Opening request draft"
+                : "Request mode stays explicit"}
+            </div>
             <div className="text-[13px] text-muted-foreground">
-              Start a durable Request when this thread should become real work.
+              {isRequestMode
+                ? "Boreal is creating an untitled request object and loading its live brief beside the chat."
+                : "Start a durable Request when this thread should become real work."}
             </div>
           </div>
-          <Button className="w-full md:w-auto" onClick={onCreateRequest}>
-            New request
-          </Button>
+          {!isRequestMode && (
+            <Button className="w-full md:w-auto" onClick={onCreateRequest}>
+              New request
+            </Button>
+          )}
         </div>
       </div>
     );

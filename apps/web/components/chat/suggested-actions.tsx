@@ -3,7 +3,7 @@
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { motion } from "framer-motion";
 import { memo } from "react";
-import { suggestions } from "@/lib/constants";
+import { requestSuggestions, suggestions } from "@/lib/constants";
 import type { ChatMessage } from "@/lib/types";
 import { Suggestion } from "../ai-elements/suggestion";
 import type { VisibilityType } from "./visibility-selector";
@@ -12,10 +12,15 @@ type SuggestedActionsProps = {
   chatId: string;
   sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
   selectedVisibilityType: VisibilityType;
+  isRequestMode: boolean;
 };
 
-function PureSuggestedActions({ chatId, sendMessage }: SuggestedActionsProps) {
-  const suggestedActions = suggestions;
+function PureSuggestedActions({
+  chatId,
+  sendMessage,
+  isRequestMode,
+}: SuggestedActionsProps) {
+  const suggestedActions = isRequestMode ? requestSuggestions : suggestions;
 
   return (
     <div
@@ -70,6 +75,9 @@ export const SuggestedActions = memo(
       return false;
     }
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType) {
+      return false;
+    }
+    if (prevProps.isRequestMode !== nextProps.isRequestMode) {
       return false;
     }
 
