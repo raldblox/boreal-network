@@ -70,6 +70,8 @@ These namespaces are now available for real implementation work, not only for fu
 These child workspaces are currently activated:
 
 - `apps/web/` - first Boreal product workspace, activated as the primary web surface with a `Next.js App Router` baseline imported from the `Vercel Chatbot` scaffold and adapted for Boreal.
+- `apps/desktop/` - Windows-first Electron desktop shell for Boreal local operator flows, preload-safe native access, and future private execution participation without becoming a second system of record.
+- `packages/ui/` - shared React and Tailwind component package for Boreal UI primitives, hooks, and theme styles reused across web and desktop.
 
 Every new child workspace must be added here in the same patch that creates it.
 

@@ -5,6 +5,7 @@ This namespace holds Boreal's runnable product and operator surfaces.
 ## Current Active Workspaces
 
 - `web/`
+- `desktop/`
 
 ## Rules
 

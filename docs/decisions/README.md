@@ -22,3 +22,4 @@ Accepted decisions:
 - [0002-boreal-category-and-commercial-wedge.md](0002-boreal-category-and-commercial-wedge.md)
 - [0003-canonical-monorepo-and-workspace-activation.md](0003-canonical-monorepo-and-workspace-activation.md)
 - [0004-web-stack-baseline-and-chatbot-starting-point.md](0004-web-stack-baseline-and-chatbot-starting-point.md)
+- [0005-electron-desktop-and-shared-ui-baseline.md](0005-electron-desktop-and-shared-ui-baseline.md)

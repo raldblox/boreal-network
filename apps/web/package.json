@@ -19,6 +19,7 @@
     "test": "pnpm exec playwright test"
   },
   "dependencies": {
+    "@boreal/ui": "workspace:*",
     "@ai-sdk/provider": "^3.0.3",
     "@ai-sdk/react": "3.0.118",
     "@codemirror/lang-python": "^6.1.6",

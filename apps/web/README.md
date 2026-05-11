@@ -44,6 +44,12 @@ This workspace should eventually hold Boreal's web surfaces for:
 - `tests/`
 - workspace config files at root such as `next.config.ts`, `proxy.ts`, `drizzle.config.ts`, and `tsconfig.json`
 
+Shared UI note:
+
+- reusable component primitives and shared theme styles now live in `../../packages/ui/`
+- local `components/ui/*` files remain compatibility entrypoints for this workspace
+- web-specific flows should not copy reusable primitives back into `apps/web`
+
 ## Commands
 
 Run from the monorepo root after dependencies are installed:

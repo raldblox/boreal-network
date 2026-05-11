@@ -25,6 +25,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   poweredByHeader: false,
   reactCompiler: true,
+  transpilePackages: ["@boreal/ui"],
   logging: {
     fetches: {
       fullUrl: false,

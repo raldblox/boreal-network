@@ -1,0 +1,31 @@
+{
+  "name": "@boreal/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Windows-first Electron desktop shell for Boreal.",
+  "main": "src/main/main.js",
+  "scripts": {
+    "dev": "node ./scripts/dev.mjs",
+    "build": "vite build --configLoader runner",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "@boreal/ui": "workspace:*",
+    "react": "19.0.1",
+    "react-dom": "19.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "@types/node": "^22.8.6",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.2",
+    "electron": "^38.0.0",
+    "postcss": "^8",
+    "tailwindcss": "^4.1.13",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.6.3",
+    "vite": "^7.1.4"
+  }
+}

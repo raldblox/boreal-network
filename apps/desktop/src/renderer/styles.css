@@ -1,0 +1,6 @@
+@import "tailwindcss";
+@import "@boreal/ui/styles.css";
+
+body {
+  margin: 0;
+}

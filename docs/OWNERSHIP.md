@@ -65,6 +65,31 @@ Owner responsibilities:
 - local structure
 - local implementation detail
 
+### Desktop workspace zone
+
+Write scope:
+
+- `apps/desktop/*`
+
+Owner responsibilities:
+
+- Electron shell structure
+- preload and native bridge boundaries
+- desktop-local commands and packaging shape
+- renderer integration with shared UI
+
+### UI package zone
+
+Write scope:
+
+- `packages/ui/*`
+
+Owner responsibilities:
+
+- shared component primitives
+- shared theme styles and UI hooks
+- cross-app UI reuse boundaries
+
 ### Future workspace zones
 
 Reserve one ownership zone per future child workspace under:

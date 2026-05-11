@@ -1,0 +1,27 @@
+{
+  "name": "@boreal/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared Boreal React UI primitives and Tailwind styles.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "peerDependencies": {
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "lucide-react": "^0.446.0",
+    "radix-ui": "^1.4.3",
+    "tailwind-merge": "^2.5.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "typescript": "^5.6.3"
+  }
+}

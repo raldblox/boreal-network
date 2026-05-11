@@ -81,6 +81,24 @@ Rules:
 - must stop if root canon changes the same semantics in flight
 - shared abstractions belong in `packages/*`, not directly in `apps/web/*`
 
+### `desktop-foundation`
+
+Write scope:
+
+- `apps/desktop/*`
+
+Purpose:
+
+- Boreal Windows-first desktop shell
+- Electron main, preload, and renderer boundaries
+- local desktop operator UX and runtime attachment
+
+Rules:
+
+- desktop stays an execution participant, not a second system of record
+- native access must stay behind preload-safe IPC boundaries
+- shared UI belongs in `packages/ui/*`, not duplicated inside `apps/desktop/*`
+
 ### `packages-foundation`
 
 Write scope:
@@ -98,6 +116,24 @@ Rules:
 
 - may run in parallel with app work when package ownership is explicit
 - must not redefine root semantic contracts
+
+### `ui-package`
+
+Write scope:
+
+- `packages/ui/*`
+
+Purpose:
+
+- shared React component primitives
+- shared Tailwind theme tokens and styles
+- reusable hooks or helpers required by the shared UI layer
+
+Rules:
+
+- package code must remain app-agnostic and free of Boreal business semantics
+- web and desktop may wrap the shared UI locally, but the reusable primitive source should live here
+- package changes that force app-specific behavior back into the shared layer should stop and be re-scoped
 
 ### `skills-foundation`
 
@@ -163,5 +199,7 @@ Until more workspaces exist, the default active lanes are:
 - `root-canon`
 - `monorepo-topology`
 - `web-foundation`
+- `desktop-foundation`
+- `ui-package`
 
 Create a new lane only when a real new workspace or durable ownership zone exists.

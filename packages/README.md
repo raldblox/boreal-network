@@ -11,3 +11,7 @@ Typical contents include:
 - shared configs
 
 Child workspaces here must inherit root canon and avoid redefining business semantics.
+
+## Current Active Workspaces
+
+- `ui/`

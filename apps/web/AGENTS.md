@@ -73,3 +73,4 @@ If a task touches wallet-linked identity or signing flows, align it against root
 
 If this workspace needs a new root semantic rule, stop and update the root canon first in the same patch.
 If this workspace needs a shared abstraction, move that abstraction into `packages/*` instead of cloning it here.
+Reusable UI primitives and theme styles should stay sourced from `../../packages/ui/`, with local `components/ui/*` files used only as compatibility wrappers when needed.
