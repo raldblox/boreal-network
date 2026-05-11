@@ -11,6 +11,7 @@ import {
 import { ChatbotError } from "@/lib/errors";
 import {
   ensureRequestDraftForChat,
+  openRequestDraft,
   persistRequestPatch,
 } from "@/lib/request-server";
 
@@ -157,11 +158,17 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const nextDraft = await persistRequestPatch({
-      requestId: body.requestId,
-      userId: session.user.id,
-      patch: body.action === "open_request" ? { status: "open" } : {},
-    });
+    const nextDraft =
+      body.action === "open_request"
+        ? await openRequestDraft({
+            requestId: body.requestId,
+            userId: session.user.id,
+          })
+        : await persistRequestPatch({
+            requestId: body.requestId,
+            userId: session.user.id,
+            patch: {},
+          });
 
     return Response.json({ request: nextDraft }, { status: 200 });
   } catch (error) {

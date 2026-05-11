@@ -132,7 +132,9 @@ const PurePreviewMessage = ({
       type === "tool-updateRequestBrief" ||
       type === "tool-updateRequestConstraints" ||
       type === "tool-updateRequestBudgetTiming" ||
-      type === "tool-updateRequestRouteSummary"
+      type === "tool-updateRequestRouteSummary" ||
+      type === "tool-proposeCommitment" ||
+      type === "tool-publishArtifact"
     ) {
       const { toolCallId, state } = part;
       const titleByType: Record<string, string> = {
@@ -141,6 +143,8 @@ const PurePreviewMessage = ({
         "tool-updateRequestConstraints": "Update constraints",
         "tool-updateRequestBudgetTiming": "Update budget and timing",
         "tool-updateRequestRouteSummary": "Update route summary",
+        "tool-proposeCommitment": "Propose commitment",
+        "tool-publishArtifact": "Publish artifact",
       };
 
       return (
@@ -163,6 +167,30 @@ const PurePreviewMessage = ({
                   "error" in part.output ? (
                     <div className="rounded border p-2 text-red-500">
                       Error: {String(part.output.error)}
+                    </div>
+                  ) : type === "tool-proposeCommitment" ? (
+                    <div className="rounded-xl border bg-background px-3 py-2 text-sm">
+                      <div className="font-medium">{part.output.summary}</div>
+                      <div className="mt-1 text-muted-foreground text-xs">
+                        {part.output.status.replace(/_/g, " ")}
+                      </div>
+                    </div>
+                  ) : type === "tool-publishArtifact" ? (
+                    <div className="flex flex-col gap-2">
+                      <DocumentToolResult
+                        isReadonly={isReadonly}
+                        result={{
+                          id: part.output.documentId,
+                          title: part.output.title,
+                          kind: part.output.kind,
+                        }}
+                        type="create"
+                      />
+                      {part.output.summary ? (
+                        <div className="text-muted-foreground text-xs">
+                          {part.output.summary}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <DocumentToolResult

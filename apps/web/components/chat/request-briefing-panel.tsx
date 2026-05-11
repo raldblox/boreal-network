@@ -39,6 +39,7 @@ export function RequestBriefingPanel({
   if (request.status !== "draft") {
     const title = request.brief.title?.trim() || "Untitled request";
     const summary =
+      request.latest.summary?.trim() ||
       request.derived.routeSummary?.trim() ||
       request.derived.readiness.summary ||
       "This request is active in Boreal.";

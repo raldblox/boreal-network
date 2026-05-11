@@ -8,6 +8,13 @@ export type RequestActorKind =
   | "organization"
   | "runtime";
 
+export type RequestActorRef = {
+  kind: RequestActorKind;
+  id: string;
+  displayName?: string;
+  handle?: string;
+};
+
 export type RequestStatus =
   | "draft"
   | "open"
@@ -90,6 +97,99 @@ export type RequestDerived = {
   routeSummary?: string;
 };
 
+export type RequestActiveRefs = {
+  activeCommitmentId?: string;
+  activeFulfillmentId?: string;
+  latestArtifactId?: string;
+  latestTransactionId?: string;
+};
+
+export type RequestLatest = {
+  summary?: string;
+  lastEventAt?: string;
+  lastActor?: RequestActorRef;
+};
+
+export type CommitmentKind =
+  | "quote"
+  | "proposal"
+  | "assignment"
+  | "milestone"
+  | "acceptance";
+
+export type CommitmentStatus =
+  | "proposed"
+  | "accepted"
+  | "rejected"
+  | "expired"
+  | "superseded"
+  | "cancelled";
+
+export type CommitmentTerms = {
+  fundingRequired: boolean;
+  amountMode: "none" | "fixed" | "range" | "open";
+  currency?: string;
+  fixedAmount?: number;
+  minAmount?: number;
+  maxAmount?: number;
+  deliverableSummary?: string;
+  paymentNotes?: string;
+};
+
+export type RequestArtifactKind =
+  | "brief"
+  | "plan"
+  | "draft"
+  | "file"
+  | "media"
+  | "delivery"
+  | "evidence"
+  | "receipt"
+  | "signature"
+  | "link";
+
+export type RequestArtifactContainer = {
+  kind: "document";
+  documentId: string;
+  documentKind: "text" | "code" | "image" | "sheet";
+};
+
+export type RequestActivityEntry = {
+  eventId: string;
+  requestId: string;
+  sequence: number;
+  eventType: string;
+  aggregateType:
+    | "request"
+    | "request_participant"
+    | "commitment"
+    | "fulfillment"
+    | "fulfillment_step"
+    | "artifact"
+    | "transaction";
+  aggregateId: string;
+  occurredAt: string;
+  recordedAt: string;
+  actor: RequestActorRef;
+  summary: string;
+  detail?: string;
+  requestStatus?: RequestStatus;
+  commitment?: {
+    id: string;
+    kind: CommitmentKind;
+    status: CommitmentStatus;
+    summary: string;
+    terms: CommitmentTerms;
+  };
+  artifact?: {
+    id: string;
+    kind: RequestArtifactKind;
+    title: string;
+    summary?: string;
+    container: RequestArtifactContainer;
+  };
+};
+
 export type BorealRequestDraft = {
   id: string;
   chatId: string;
@@ -104,6 +204,8 @@ export type BorealRequestDraft = {
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   derived: RequestDerived;
+  activeRefs: RequestActiveRefs;
+  latest: RequestLatest;
   createdAt: string;
   updatedAt: string;
 };
@@ -124,6 +226,8 @@ export type PublicRequestPoolEntry = {
   seeking: RequestSeeking;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
+  activeRefs: RequestActiveRefs;
+  latest: RequestLatest;
   derived: {
     routeFamily: string | null;
     executionKind: string | null;
@@ -184,6 +288,8 @@ type RequestDocumentObject = {
   seeking: RequestSeeking;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
+  activeRefs: RequestActiveRefs;
+  latest: RequestLatest;
   derived: {
     routeFamily: string | null;
     executionKind: string | null;
@@ -207,6 +313,8 @@ export type RequestPatch = {
   budget?: RequestBudget | null;
   deadline?: RequestDeadline | null;
   derived?: Partial<Omit<RequestDerived, "missingDetails" | "readiness">>;
+  activeRefs?: Partial<RequestActiveRefs>;
+  latest?: RequestLatest;
 };
 
 const requestBudgetSchema = z.union([
@@ -269,6 +377,13 @@ const requestSeekingSchema = z.object({
   notes: z.string().optional(),
 });
 
+const requestActorRefSchema = z.object({
+  kind: z.enum(["human", "agent", "tool", "organization", "runtime"]),
+  id: z.string().min(1),
+  displayName: z.string().optional(),
+  handle: z.string().optional(),
+});
+
 const editableRequestDocumentSchema = z
   .object({
     schemaVersion: z.number().optional(),
@@ -316,6 +431,8 @@ export function createInitialRequestDraft({
     seeking: {},
     budget: null,
     deadline: null,
+    activeRefs: {},
+    latest: {},
     derived: {
       candidatePool: [],
       missingDetails: [],
@@ -379,6 +496,11 @@ export function applyRequestPatch(
     budget: patch.budget === undefined ? currentDraft.budget : patch.budget,
     deadline:
       patch.deadline === undefined ? currentDraft.deadline : patch.deadline,
+    activeRefs: normalizeActiveRefs({
+      ...currentDraft.activeRefs,
+      ...patch.activeRefs,
+    }),
+    latest: normalizeLatest(patch.latest ?? currentDraft.latest),
     updatedAt,
     key: slugifyRequestKey(nextBrief.title, currentDraft.id),
     derived: {
@@ -489,6 +611,8 @@ export function toPublicRequestPoolEntry(
     seeking: normalizeSeeking(draft.seeking),
     budget: draft.budget,
     deadline: draft.deadline,
+    activeRefs: normalizeActiveRefs(draft.activeRefs),
+    latest: normalizeLatest(draft.latest),
     derived: {
       routeFamily: draft.derived.routeFamily ?? null,
       executionKind: draft.derived.executionKind ?? null,
@@ -677,6 +801,70 @@ function normalizeActorKinds(
   return Array.from(new Set(value));
 }
 
+function normalizeActiveRefs(
+  value: Partial<RequestActiveRefs> | undefined
+): RequestActiveRefs {
+  if (!value) {
+    return {};
+  }
+
+  const activeCommitmentId = normalizeText(value.activeCommitmentId);
+  const activeFulfillmentId = normalizeText(value.activeFulfillmentId);
+  const latestArtifactId = normalizeText(value.latestArtifactId);
+  const latestTransactionId = normalizeText(value.latestTransactionId);
+
+  return {
+    ...(activeCommitmentId ? { activeCommitmentId } : {}),
+    ...(activeFulfillmentId ? { activeFulfillmentId } : {}),
+    ...(latestArtifactId ? { latestArtifactId } : {}),
+    ...(latestTransactionId ? { latestTransactionId } : {}),
+  };
+}
+
+function normalizeLatest(value: RequestLatest | undefined): RequestLatest {
+  if (!value) {
+    return {};
+  }
+
+  const summary = normalizeText(value.summary);
+  const lastEventAt = normalizeText(value.lastEventAt);
+  const lastActor = normalizeActorRef(value.lastActor);
+
+  return {
+    ...(summary ? { summary } : {}),
+    ...(lastEventAt ? { lastEventAt } : {}),
+    ...(lastActor ? { lastActor } : {}),
+  };
+}
+
+function normalizeActorRef(
+  actor: RequestActorRef | undefined
+): RequestActorRef | undefined {
+  if (!actor) {
+    return undefined;
+  }
+
+  const parsed = requestActorRefSchema.safeParse(actor);
+  if (!parsed.success) {
+    return undefined;
+  }
+
+  const id = normalizeText(parsed.data.id);
+  if (!id) {
+    return undefined;
+  }
+
+  const displayName = normalizeText(parsed.data.displayName);
+  const handle = normalizeText(parsed.data.handle);
+
+  return {
+    kind: parsed.data.kind,
+    id,
+    ...(displayName ? { displayName } : {}),
+    ...(handle ? { handle } : {}),
+  };
+}
+
 function normalizeNumber(value: number | undefined): number | undefined {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return undefined;
@@ -739,6 +927,8 @@ function toRequestDocumentObject(
     seeking: normalizeSeeking(draft.seeking),
     budget: draft.budget,
     deadline: draft.deadline,
+    activeRefs: normalizeActiveRefs(draft.activeRefs),
+    latest: normalizeLatest(draft.latest),
     derived: {
       routeFamily: draft.derived.routeFamily ?? null,
       executionKind: draft.derived.executionKind ?? null,

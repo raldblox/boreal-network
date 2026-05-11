@@ -23,6 +23,8 @@ import { getLanguageModel } from "@/lib/ai/providers";
 import { createRequestBrief } from "@/lib/ai/tools/create-request-brief";
 import { createDocument } from "@/lib/ai/tools/create-document";
 import { editDocument } from "@/lib/ai/tools/edit-document";
+import { proposeCommitment } from "@/lib/ai/tools/propose-commitment";
+import { publishArtifact } from "@/lib/ai/tools/publish-artifact";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
 import { updateRequestBrief } from "@/lib/ai/tools/update-request-brief";
 import { updateRequestBudgetTiming } from "@/lib/ai/tools/update-request-budget-timing";
@@ -36,6 +38,7 @@ import {
   getChatById,
   getMessageCountByUserId,
   getMessagesByChatId,
+  getRequestActivityByRequestId,
   getRequestByChatId,
   saveChat,
   saveMessages,
@@ -46,6 +49,7 @@ import {
 import type { DBMessage } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import { checkIpRateLimit } from "@/lib/ratelimit";
+import { canRespondToRequest } from "@/lib/request-server";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
@@ -64,6 +68,23 @@ const requestUpdateToolNames = [
   | "updateRequestBudgetTiming"
   | "updateRequestRouteSummary"
 >;
+
+const openOwnerRequestToolNames = [
+  "proposeCommitment",
+  "publishArtifact",
+  "updateRequestBudgetTiming",
+  "updateRequestRouteSummary",
+] satisfies Array<
+  | "proposeCommitment"
+  | "publishArtifact"
+  | "updateRequestBudgetTiming"
+  | "updateRequestRouteSummary"
+>;
+
+const openResponderRequestToolNames = [
+  "proposeCommitment",
+  "publishArtifact",
+] satisfies Array<"proposeCommitment" | "publishArtifact">;
 
 const defaultToolNames = [
   "createRequestBrief",
@@ -108,8 +129,14 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { id, message, messages, selectedChatModel, selectedVisibilityType } =
-      requestBody;
+    const {
+      id,
+      message,
+      messages,
+      requestMode,
+      selectedChatModel,
+      selectedVisibilityType,
+    } = requestBody;
 
     const [, session] = await Promise.all([
       checkBotId().catch(() => null),
@@ -144,11 +171,17 @@ export async function POST(request: Request) {
     const activeRequest = activeRequestRecord
       ? toRequestDraft(activeRequestRecord)
       : null;
+    const canUsePublicRequestRoom =
+      activeRequest !== null &&
+      canRespondToRequest({
+        request: activeRequest,
+        userId: session.user.id,
+      });
     let messagesFromDb: DBMessage[] = [];
     let titlePromise: Promise<string> | null = null;
 
     if (chat) {
-      if (chat.userId !== session.user.id) {
+      if (chat.userId !== session.user.id && !canUsePublicRequestRoom) {
         return new ChatbotError("forbidden:chat").toResponse();
       }
       if (!activeRequest) {
@@ -211,7 +244,7 @@ export async function POST(request: Request) {
       country,
     };
 
-    if (message?.role === "user" && !activeRequest) {
+    if (message?.role === "user" && !activeRequest && !requestMode) {
       await saveMessages({
         messages: [
           {
@@ -232,15 +265,38 @@ export async function POST(request: Request) {
     const isReasoningModel = capabilities?.reasoning === true;
     const supportsTools = capabilities?.tools === true;
     const isActiveRequestMode = activeRequest !== null;
+    const isDraftRequestMode = activeRequest?.status === "draft";
+    const isOpenRequestMode =
+      activeRequest !== null && activeRequest.status !== "draft";
+    const isOpenRequestOwner =
+      isOpenRequestMode && activeRequest.ownerId === session.user.id;
+    const requestRoomRole = isDraftRequestMode
+      ? "draft_owner"
+      : isOpenRequestOwner
+        ? "open_owner"
+        : isOpenRequestMode
+          ? "open_responder"
+          : null;
+    const recentActivity =
+      isOpenRequestMode && activeRequest
+        ? await getRequestActivityByRequestId({
+            requestId: activeRequest.id,
+            limit: 8,
+          })
+        : [];
     const activeToolNames =
       isReasoningModel && !supportsTools
         ? []
-        : isActiveRequestMode
+        : isDraftRequestMode
           ? requestUpdateToolNames
-          : defaultToolNames;
+          : isOpenRequestMode
+            ? isOpenRequestOwner
+              ? openOwnerRequestToolNames
+              : openResponderRequestToolNames
+            : defaultToolNames;
     const requestToolChoice =
-      supportsTools && isActiveRequestMode ? "required" : undefined;
-    const stopCondition = isActiveRequestMode ? stepCountIs(1) : stepCountIs(5);
+      supportsTools && isDraftRequestMode ? "required" : undefined;
+    const stopCondition = isDraftRequestMode ? stepCountIs(1) : stepCountIs(5);
 
     const modelMessages = await convertToModelMessages(uiMessages);
 
@@ -253,6 +309,8 @@ export async function POST(request: Request) {
             requestHints,
             supportsTools,
             activeRequest,
+            recentActivity,
+            requestRoomRole,
           }),
           messages: modelMessages,
           stopWhen: stopCondition,
@@ -307,6 +365,15 @@ export async function POST(request: Request) {
               dataStream,
               chatId: id,
               visibility: selectedVisibilityType,
+            }),
+            proposeCommitment: proposeCommitment({
+              chatId: id,
+              actorUserId: session.user.id,
+            }),
+            publishArtifact: publishArtifact({
+              chatId: id,
+              actorUserId: session.user.id,
+              dataStream,
             }),
             requestSuggestions: requestSuggestions({
               session,

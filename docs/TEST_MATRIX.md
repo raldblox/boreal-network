@@ -95,6 +95,9 @@ Verify:
 - title plus body should be enough for `ready_to_open`; `brief.summary` should stay optional
 - one-turn request briefing should preserve explicitly stated budget or deadline in structured canonical fields instead of only embedding them in freeform brief text
 - structured matching intent should land in top-level `seeking` rather than relying on generated `brief.tags`
+- open request rooms should not force every user message through draft brief mutation tools
+- public open request activity should be fetchable from a durable request activity endpoint
+- timeline cards should be reconstructible from `RequestEvent` plus related object refs
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
 - planner outputs stay derived and rebuildable
@@ -188,6 +191,7 @@ Verify:
 ### `Artifact`
 
 - attach
+- publish through a stable container reference
 - resolve references
 - visibility and integrity
 

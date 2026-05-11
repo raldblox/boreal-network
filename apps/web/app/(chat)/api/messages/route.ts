@@ -7,8 +7,8 @@ import {
 } from "@/lib/db/queries";
 import { convertToUIMessages } from "@/lib/utils";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
+export async function GET(httpRequest: Request) {
+  const { searchParams } = new URL(httpRequest.url);
   const chatId = searchParams.get("chatId");
 
   if (!chatId) {
@@ -38,7 +38,17 @@ export async function GET(request: Request) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const isReadonly = !session?.user || session.user.id !== chat.userId;
+  const activeRequest = requestDraft ? toRequestDraft(requestDraft) : null;
+  const canRespondToPublicRequest =
+    Boolean(session?.user) &&
+    Boolean(
+      activeRequest &&
+        activeRequest.visibility === "public" &&
+        activeRequest.status !== "draft"
+    );
+  const isReadonly =
+    !session?.user ||
+    (session.user.id !== chat.userId && !canRespondToPublicRequest);
   const messages = requestDraft ? [] : await getMessagesByChatId({ id: chatId });
 
   return Response.json({
@@ -46,6 +56,6 @@ export async function GET(request: Request) {
     visibility: chat.visibility,
     userId: chat.userId,
     isReadonly,
-    request: requestDraft ? toRequestDraft(requestDraft) : null,
+    request: activeRequest,
   });
 }

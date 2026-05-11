@@ -1,0 +1,328 @@
+asyncapi: 2.6.0
+info:
+  title: Boreal Request Room Events
+  version: 0.1.0
+  description: >
+    Durable request-room event contract for the first Boreal web slice.
+    These events describe request opening, commitment proposal, and artifact
+    publication activity that can be replayed into request-room timeline cards
+    and request root projections.
+defaultContentType: application/json
+channels:
+  requests/{requestId}/events:
+    description: Durable event stream for one request room.
+    parameters:
+      requestId:
+        description: Durable request identifier.
+        schema:
+          type: string
+          format: uuid
+    subscribe:
+      summary: Consume request-room activity events.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/RequestOpened'
+          - $ref: '#/components/messages/CommitmentProposed'
+          - $ref: '#/components/messages/ArtifactAdded'
+components:
+  messages:
+    RequestOpened:
+      name: request.opened
+      title: Request opened
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: request
+              eventType:
+                const: request.opened
+              payload:
+                $ref: '#/components/schemas/RequestOpenedPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    CommitmentProposed:
+      name: commitment.proposed
+      title: Commitment proposed
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: commitment
+              eventType:
+                const: commitment.proposed
+              payload:
+                $ref: '#/components/schemas/CommitmentProposedPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    ArtifactAdded:
+      name: artifact.added
+      title: Artifact added
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: artifact
+              eventType:
+                const: artifact.added
+              payload:
+                $ref: '#/components/schemas/ArtifactAddedPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+  schemas:
+    RequestEventEnvelope:
+      type: object
+      additionalProperties: false
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        aggregateType:
+          type: string
+          enum:
+            - request
+            - commitment
+            - artifact
+        aggregateId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+          minimum: 1
+        eventType:
+          type: string
+        schemaVersion:
+          type: integer
+          minimum: 1
+        occurredAt:
+          type: string
+          format: date-time
+        recordedAt:
+          type: string
+          format: date-time
+        actor:
+          $ref: '#/components/schemas/ActorRef'
+        correlationId:
+          type: string
+          format: uuid
+        causationId:
+          type: string
+          format: uuid
+        idempotencyKey:
+          type: string
+        traceId:
+          type: string
+        spanId:
+          type: string
+        source:
+          type: string
+        payload:
+          type: object
+      required:
+        - eventId
+        - requestId
+        - aggregateType
+        - aggregateId
+        - sequence
+        - eventType
+        - schemaVersion
+        - occurredAt
+        - recordedAt
+        - actor
+        - correlationId
+        - causationId
+        - idempotencyKey
+        - payload
+    ActorRef:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+            - human
+            - organization
+            - agent
+            - runtime
+            - provider
+        id:
+          type: string
+        displayName:
+          type: string
+        handle:
+          type: string
+      required:
+        - kind
+        - id
+    RequestOpenedPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        summary:
+          type: string
+        detail:
+          type: string
+        requestStatus:
+          type: string
+          enum:
+            - open
+      required:
+        - summary
+        - detail
+        - requestStatus
+    CommitmentTerms:
+      type: object
+      additionalProperties: false
+      properties:
+        fundingRequired:
+          type: boolean
+        amountMode:
+          type: string
+          enum:
+            - none
+            - fixed
+            - range
+        currency:
+          type: string
+        fixedAmount:
+          type: number
+        minAmount:
+          type: number
+        maxAmount:
+          type: number
+        deliverableSummary:
+          type: string
+        paymentNotes:
+          type: string
+      required:
+        - fundingRequired
+        - amountMode
+    CommitmentProposedPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        summary:
+          type: string
+        detail:
+          type: string
+        requestStatus:
+          type: string
+        commitment:
+          type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+              format: uuid
+            kind:
+              type: string
+              enum:
+                - quote
+                - proposal
+                - assignment
+                - milestone
+                - acceptance
+            status:
+              type: string
+              enum:
+                - proposed
+                - accepted
+                - rejected
+                - superseded
+                - expired
+                - cancelled
+            summary:
+              type: string
+            terms:
+              $ref: '#/components/schemas/CommitmentTerms'
+          required:
+            - id
+            - kind
+            - status
+            - summary
+            - terms
+      required:
+        - summary
+        - detail
+        - commitment
+    ArtifactContainer:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+            - document
+        documentId:
+          type: string
+          format: uuid
+        documentKind:
+          type: string
+          enum:
+            - text
+            - code
+            - image
+            - sheet
+      required:
+        - kind
+        - documentId
+        - documentKind
+    ArtifactAddedPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        summary:
+          type: string
+        detail:
+          type: string
+        requestStatus:
+          type: string
+        artifact:
+          type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+              format: uuid
+            kind:
+              type: string
+              enum:
+                - brief
+                - plan
+                - draft
+                - file
+                - media
+                - delivery
+                - evidence
+                - receipt
+                - signature
+                - link
+            title:
+              type: string
+            summary:
+              type: string
+            container:
+              $ref: '#/components/schemas/ArtifactContainer'
+          required:
+            - id
+            - kind
+            - title
+            - container
+      required:
+        - summary
+        - detail
+        - artifact

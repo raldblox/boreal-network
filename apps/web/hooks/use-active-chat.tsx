@@ -25,7 +25,7 @@ import { toast } from "@/components/chat/toast";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
-import type { BorealRequestDraft } from "@/lib/request";
+import type { BorealRequestDraft, RequestActivityEntry } from "@/lib/request";
 import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import type { ChatMessage } from "@/lib/types";
@@ -42,6 +42,7 @@ type ChatDataResponse = {
 type ActiveChatContextValue = {
   chatId: string;
   messages: ChatMessage[];
+  activities: RequestActivityEntry[];
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
   status: UseChatHelpers<ChatMessage>["status"];
@@ -116,6 +117,15 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     : (chatData?.visibility ?? "private");
   const activeRequest = chatData?.request ?? null;
   const isRequestMode = requestModeFromUrl || activeRequest !== null;
+  const requestActivityKey = activeRequest
+    ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests/${activeRequest.id}/activity`
+    : null;
+  const { data: activityData } = useSWR<{ activity: RequestActivityEntry[] }>(
+    requestActivityKey,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const activities = activityData?.activity ?? [];
 
   const {
     messages,
@@ -164,6 +174,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
             ...(isToolApprovalContinuation
               ? { messages: request.messages }
               : { message: lastMessage }),
+            requestMode: isRequestMode,
             selectedChatModel: currentModelIdRef.current,
             selectedVisibilityType: visibility,
             ...request.body,
@@ -177,6 +188,9 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     onFinish: () => {
       if (isRequestMode) {
         mutate(unstable_serialize(getRequestHistoryPaginationKey));
+        if (requestActivityKey) {
+          mutate(requestActivityKey);
+        }
       } else {
         mutate(unstable_serialize(getChatHistoryPaginationKey));
       }
@@ -458,6 +472,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     () => ({
       chatId,
       messages,
+      activities,
       setMessages,
       sendMessage,
       status,
@@ -483,6 +498,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     [
       chatId,
       messages,
+      activities,
       setMessages,
       sendMessage,
       status,
@@ -490,6 +506,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       regenerate,
       addToolApprovalResponse,
       input,
+      activities,
       visibility,
       isReadonly,
       isNewChat,
@@ -502,6 +519,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       createRequest,
       saveRequestDraft,
       openRequest,
+      requestActivityKey,
     ]
   );
 

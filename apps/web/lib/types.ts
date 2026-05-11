@@ -4,6 +4,8 @@ import type { ArtifactKind } from "@/components/chat/artifact";
 import type { createRequestBrief } from "./ai/tools/create-request-brief";
 import type { createDocument } from "./ai/tools/create-document";
 import type { requestSuggestions } from "./ai/tools/request-suggestions";
+import type { proposeCommitment } from "./ai/tools/propose-commitment";
+import type { publishArtifact } from "./ai/tools/publish-artifact";
 import type { updateRequestBrief } from "./ai/tools/update-request-brief";
 import type { updateRequestBudgetTiming } from "./ai/tools/update-request-budget-timing";
 import type { updateRequestConstraints } from "./ai/tools/update-request-constraints";
@@ -30,6 +32,8 @@ type updateRequestBudgetTimingTool = InferUITool<
 type updateRequestRouteSummaryTool = InferUITool<
   ReturnType<typeof updateRequestRouteSummary>
 >;
+type proposeCommitmentTool = InferUITool<ReturnType<typeof proposeCommitment>>;
+type publishArtifactTool = InferUITool<ReturnType<typeof publishArtifact>>;
 type requestSuggestionsTool = InferUITool<
   ReturnType<typeof requestSuggestions>
 >;
@@ -42,6 +46,8 @@ export type ChatTools = {
   updateRequestConstraints: updateRequestConstraintsTool;
   updateRequestBudgetTiming: updateRequestBudgetTimingTool;
   updateRequestRouteSummary: updateRequestRouteSummaryTool;
+  proposeCommitment: proposeCommitmentTool;
+  publishArtifact: publishArtifactTool;
   requestSuggestions: requestSuggestionsTool;
 };
 

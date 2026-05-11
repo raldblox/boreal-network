@@ -3,15 +3,17 @@ import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
-import type { RequestStatus } from "@/lib/request";
+import type { RequestActivityEntry, RequestStatus } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
 import { PreviewMessage, ThinkingMessage } from "./message";
+import { RequestActivityTimeline } from "./request-activity-timeline";
 
 type MessagesProps = {
   addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
+  activities: RequestActivityEntry[];
   chatId: string;
   status: UseChatHelpers<ChatMessage>["status"];
   votes: Vote[] | undefined;
@@ -29,6 +31,7 @@ type MessagesProps = {
 
 function PureMessages({
   addToolApprovalResponse,
+  activities,
   chatId,
   status,
   votes,
@@ -66,7 +69,7 @@ function PureMessages({
 
   return (
     <div className="relative flex-1 bg-background">
-      {messages.length === 0 && !isLoading && (
+      {messages.length === 0 && activities.length === 0 && !isLoading && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
           <Greeting isRequestMode={isRequestMode} requestStatus={requestStatus} />
         </div>
@@ -80,6 +83,10 @@ function PureMessages({
         style={isArtifactVisible ? { scrollbarWidth: "none" } : undefined}
       >
         <div className="mx-auto flex min-h-full min-w-0 max-w-4xl flex-col gap-5 px-2 py-6 md:gap-7 md:px-4">
+          {requestStatus && requestStatus !== "draft" && (
+            <RequestActivityTimeline activities={activities} />
+          )}
+
           {messages.map((message, index) => (
             <PreviewMessage
               addToolApprovalResponse={addToolApprovalResponse}

@@ -107,6 +107,7 @@ For the first web slice, `Request` create and update must support:
 - manual request-object editing only while the request stays in `draft`
 - full canonical request-object projection as read-only once the request leaves `draft`
 - public request pool reads must exclude owner-only draft fields and should expose a public-safe request projection instead
+- request activity reads through `/requests/{id}/activity` so open request rooms can render durable timeline cards without replaying chat transcript
 
 ### `Commitment`
 
@@ -116,6 +117,8 @@ Should expose:
 - accept
 - reject
 - supersede
+
+In the first open-request room slice, commitment proposal may be created as durable activity without forcing a rewrite of the request brief.
 
 ### `Fulfillment`
 
@@ -147,6 +150,8 @@ Use [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md) for:
 - policy next-action outputs
 - mutation-tool result envelopes
 - approval and idempotency boundaries
+
+Open request room behavior should prefer `Commitment`, `Artifact`, and `RequestEvent` writes over draft-style brief mutation.
 
 ## Schema Discipline
 

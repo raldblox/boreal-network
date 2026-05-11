@@ -34,6 +34,7 @@ Examples: clarify, show shortlist, draft commitment, or block and escalate.
 
 Verify that Boreal does not create `Fulfillment`, `FulfillmentStep`, `Artifact`, or settlement-side writes before approval and required commercial gates.
 Verify that manual request-input edits cannot mutate system-owned request fields directly and must normalize through the same durable `Request`.
+Verify that open request room behavior does not fall back to draft-only brief mutation when the safer durable write is a `Commitment`, `Artifact`, or `RequestEvent`.
 
 ## Fixture Shape
 

@@ -94,6 +94,9 @@ Does not store:
 - every artifact inline
 - every transaction inline
 
+`activeRefs` is the clean place for current accepted lane or latest durable related object pointers.
+`latest` is the clean place for current room summary without replaying the whole event stream inline.
+
 ### `Request` Object Spec
 
 Canonical fields on the durable root:
@@ -159,6 +162,12 @@ Stores immutable business history:
 - fulfillment activity
 - artifact publication
 - payment progression
+
+### `Artifact`
+
+Stores durable output or proof with a stable container reference.
+
+It should not force the request root to inline large delivery bodies.
 
 ## Derived Views
 

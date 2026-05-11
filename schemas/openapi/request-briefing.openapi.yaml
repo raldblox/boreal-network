@@ -144,8 +144,137 @@ paths:
         `open_request` normalize that subset back into the durable `Request`.
         Once the request leaves `draft`, the full canonical request object is
         rendered read-only.
+  /api/requests/{id}/activity:
+    get:
+      summary: Get recent activity for one request room.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Recent request activity entries in newest-first order.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - activity
+                properties:
+                  activity:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/WebRequestActivity"
 components:
   schemas:
+    WebRequestActiveRefs:
+      type: object
+      additionalProperties: false
+      properties:
+        activeCommitmentId:
+          type: string
+          format: uuid
+        activeFulfillmentId:
+          type: string
+          format: uuid
+        latestArtifactId:
+          type: string
+          format: uuid
+        latestTransactionId:
+          type: string
+          format: uuid
+    WebRequestLatest:
+      type: object
+      additionalProperties: false
+      properties:
+        summary:
+          type: string
+        lastEventAt:
+          type: string
+          format: date-time
+        lastActor:
+          type: object
+          additionalProperties: false
+          properties:
+            kind:
+              type: string
+              enum:
+                - human
+                - agent
+                - tool
+                - organization
+                - runtime
+            id:
+              type: string
+    WebRequestActivity:
+      type: object
+      additionalProperties: false
+      required:
+        - eventId
+        - requestId
+        - sequence
+        - eventType
+        - aggregateType
+        - aggregateId
+        - occurredAt
+        - recordedAt
+        - actor
+        - summary
+      properties:
+        eventId:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        sequence:
+          type: integer
+        eventType:
+          type: string
+        aggregateType:
+          type: string
+        aggregateId:
+          type: string
+          format: uuid
+        occurredAt:
+          type: string
+          format: date-time
+        recordedAt:
+          type: string
+          format: date-time
+        actor:
+          type: object
+          additionalProperties: false
+          required:
+            - kind
+            - id
+          properties:
+            kind:
+              type: string
+              enum:
+                - human
+                - agent
+                - tool
+                - organization
+                - runtime
+            id:
+              type: string
+        summary:
+          type: string
+        detail:
+          type: string
+        requestStatus:
+          type: string
+        commitment:
+          type: object
+          additionalProperties: true
+        artifact:
+          type: object
+          additionalProperties: true
     WebPublicRequest:
       type: object
       additionalProperties: false
@@ -251,6 +380,10 @@ components:
                   format: date-time
                 notes:
                   type: string
+        activeRefs:
+          $ref: "#/components/schemas/WebRequestActiveRefs"
+        latest:
+          $ref: "#/components/schemas/WebRequestLatest"
         derived:
           type: object
           additionalProperties: false
@@ -430,6 +563,10 @@ components:
                   format: date-time
                 notes:
                   type: string
+        activeRefs:
+          $ref: "#/components/schemas/WebRequestActiveRefs"
+        latest:
+          $ref: "#/components/schemas/WebRequestLatest"
         derived:
           type: object
           additionalProperties: false

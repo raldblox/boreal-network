@@ -2,6 +2,7 @@ import type { InferSelectModel } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
+  integer,
   json,
   pgTable,
   primaryKey,
@@ -12,10 +13,18 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import type {
+  CommitmentKind,
+  CommitmentStatus,
+  CommitmentTerms,
+  RequestActiveRefs,
+  RequestActorRef,
+  RequestArtifactContainer,
+  RequestArtifactKind,
   RequestBrief,
   RequestBudget,
   RequestDeadline,
   RequestDerived,
+  RequestLatest,
   RequestSeeking,
   RequestStatus,
   RequestVisibility,
@@ -91,6 +100,8 @@ export const request = pgTable(
     seeking: json("seeking").$type<RequestSeeking>().notNull(),
     budget: json("budget").$type<RequestBudget | null>(),
     deadline: json("deadline").$type<RequestDeadline | null>(),
+    activeRefs: json("activeRefs").$type<RequestActiveRefs>().notNull(),
+    latest: json("latest").$type<RequestLatest>().notNull(),
     derived: json("derived").$type<RequestDerived>().notNull(),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt").notNull().defaultNow(),
@@ -101,6 +112,125 @@ export const request = pgTable(
 );
 
 export type RequestRecord = InferSelectModel<typeof request>;
+
+export const commitment = pgTable("Commitment", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  key: text("key").notNull(),
+  requestId: uuid("requestId")
+    .notNull()
+    .references(() => request.id, { onDelete: "cascade" }),
+  kind: varchar("kind", {
+    enum: ["quote", "proposal", "assignment", "milestone", "acceptance"],
+  })
+    .$type<CommitmentKind>()
+    .notNull(),
+  status: varchar("status", {
+    enum: [
+      "proposed",
+      "accepted",
+      "rejected",
+      "expired",
+      "superseded",
+      "cancelled",
+    ],
+  })
+    .$type<CommitmentStatus>()
+    .notNull()
+    .default("proposed"),
+  proposedBy: json("proposedBy").$type<RequestActorRef>().notNull(),
+  acceptedBy: json("acceptedBy").$type<RequestActorRef | null>(),
+  summary: text("summary").notNull(),
+  terms: json("terms").$type<CommitmentTerms>().notNull(),
+  supplyId: uuid("supplyId"),
+  supersedesCommitmentId: uuid("supersedesCommitmentId"),
+  activeFulfillmentId: uuid("activeFulfillmentId"),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  acceptedAt: timestamp("acceptedAt"),
+  rejectedAt: timestamp("rejectedAt"),
+  expiredAt: timestamp("expiredAt"),
+  supersededAt: timestamp("supersededAt"),
+  cancelledAt: timestamp("cancelledAt"),
+});
+
+export type CommitmentRecord = InferSelectModel<typeof commitment>;
+
+export const artifactRecord = pgTable("Artifact", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  key: text("key").notNull(),
+  requestId: uuid("requestId")
+    .notNull()
+    .references(() => request.id, { onDelete: "cascade" }),
+  kind: varchar("kind", {
+    enum: [
+      "brief",
+      "plan",
+      "draft",
+      "file",
+      "media",
+      "delivery",
+      "evidence",
+      "receipt",
+      "signature",
+      "link",
+    ],
+  })
+    .$type<RequestArtifactKind>()
+    .notNull(),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  container: json("container").$type<RequestArtifactContainer>().notNull(),
+  createdBy: json("createdBy").$type<RequestActorRef>().notNull(),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export type ArtifactRecord = InferSelectModel<typeof artifactRecord>;
+
+export const requestEvent = pgTable(
+  "RequestEvent",
+  {
+    eventId: uuid("eventId").primaryKey().notNull().defaultRandom(),
+    requestId: uuid("requestId")
+      .notNull()
+      .references(() => request.id, { onDelete: "cascade" }),
+    aggregateType: varchar("aggregateType", {
+      enum: [
+        "request",
+        "request_participant",
+        "commitment",
+        "fulfillment",
+        "fulfillment_step",
+        "artifact",
+        "transaction",
+      ],
+    }).notNull(),
+    aggregateId: uuid("aggregateId").notNull(),
+    sequence: integer("sequence").notNull(),
+    eventType: text("eventType").notNull(),
+    schemaVersion: integer("schemaVersion").notNull().default(1),
+    occurredAt: timestamp("occurredAt").notNull(),
+    recordedAt: timestamp("recordedAt").notNull().defaultNow(),
+    actor: json("actor").$type<RequestActorRef>().notNull(),
+    correlationId: uuid("correlationId").notNull(),
+    causationId: uuid("causationId").notNull(),
+    idempotencyKey: uuid("idempotencyKey").notNull(),
+    traceId: uuid("traceId"),
+    spanId: uuid("spanId"),
+    source: text("source"),
+    payload: json("payload").$type<Record<string, unknown>>().notNull(),
+  },
+  (table) => ({
+    requestSequenceUnique: uniqueIndex("RequestEvent_request_sequence_unique").on(
+      table.requestId,
+      table.sequence
+    ),
+  })
+);
+
+export type RequestEventRecord = InferSelectModel<typeof requestEvent>;
 
 export const message = pgTable("Message_v2", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),

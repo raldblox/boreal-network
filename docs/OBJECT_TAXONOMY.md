@@ -120,6 +120,9 @@ New root requests are reserved for new business boundaries.
 
 Represents output or proof.
 
+Artifacts should point to stable containers or references.
+They should not force large delivery bodies inline onto the `Request` root.
+
 Use `kind` to distinguish:
 
 - brief

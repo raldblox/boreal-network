@@ -85,6 +85,8 @@ First set:
 - `update_request_constraints`
 - `update_request_budget_and_timing`
 - `update_request_route_summary`
+- `propose_commitment`
+- `publish_artifact`
 - `attach_match_shortlist`
 - `draft_commitment`
 - `accept_commitment`
@@ -126,6 +128,8 @@ Every mutation call should return:
 - Policy tools must not bypass approval boundaries.
 - Mutation tools must be idempotent where retries are possible.
 - Request-briefing mutation tools must keep updating the same draft `Request` instead of creating a second durable demand object.
+- Draft request mode and open request mode should not share one forced mutation policy.
+- Open request room tools should prefer `Commitment`, `Artifact`, and `RequestEvent` writes over `brief` rewrites.
 - `create_request_brief` and `update_request_brief` may carry explicit same-turn canonical facts such as budget or deadline so one intake turn does not drop structured demand fields.
 - `create_request_brief` and `update_request_brief` should prefer title plus body first and must not fabricate `brief.summary` only to satisfy a shape.
 - Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.

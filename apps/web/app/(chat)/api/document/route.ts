@@ -3,7 +3,9 @@ import { auth } from "@/app/(auth)/auth";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import {
   deleteDocumentsByIdAfterTimestamp,
+  getArtifactByDocumentId,
   getDocumentsById,
+  getRequestById,
   getRequestByDocumentId,
   saveDocument,
   updateDocumentContent,
@@ -30,10 +32,6 @@ export async function GET(request: Request) {
 
   const session = await auth();
 
-  if (!session?.user) {
-    return new ChatbotError("unauthorized:document").toResponse();
-  }
-
   const documents = await getDocumentsById({ id });
 
   const [document] = documents;
@@ -42,7 +40,34 @@ export async function GET(request: Request) {
     return new ChatbotError("not_found:document").toResponse();
   }
 
-  if (document.userId !== session.user.id) {
+  const requestRecord = await getRequestByDocumentId({ documentId: id });
+  const artifactRecord = requestRecord
+    ? null
+    : await getArtifactByDocumentId({ documentId: id });
+  const artifactRequestRecord = artifactRecord
+    ? await getRequestById({ id: artifactRecord.requestId })
+    : null;
+
+  const canReadPublicRequestDocument = Boolean(
+    requestRecord &&
+      requestRecord.visibility === "public" &&
+      requestRecord.status !== "draft"
+  );
+  const canReadPublicArtifactDocument = Boolean(
+    artifactRequestRecord &&
+      artifactRequestRecord.visibility === "public" &&
+      artifactRequestRecord.status !== "draft"
+  );
+
+  if (!session?.user) {
+    if (!canReadPublicRequestDocument) {
+      return new ChatbotError("unauthorized:document").toResponse();
+    }
+  } else if (
+    document.userId !== session.user.id &&
+    !canReadPublicRequestDocument &&
+    !canReadPublicArtifactDocument
+  ) {
     return new ChatbotError("forbidden:document").toResponse();
   }
 

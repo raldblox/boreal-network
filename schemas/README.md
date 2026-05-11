@@ -46,11 +46,13 @@ Recommended naming:
 - `json/fulfillment.schema.json`
 - `json/transaction.schema.json`
 - `json/request-event.schema.json`
+- `json/artifact.schema.json`
+- `events/request-room.asyncapi.yaml`
 
 Pending next machine-readable areas:
 
 - OpenAPI request and supply contracts under `schemas/openapi/`
-- event stream contracts under `schemas/events/`
+- broader event stream contracts under `schemas/events/`
 - optional derived-object schemas for planner and matcher outputs if they become durable exchange contracts
 
 ## Rule

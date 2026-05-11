@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/artifact.schema.json",
+  "title": "Artifact",
+  "description": "Canonical output or proof object attached to a Request and backed by a stable container reference.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "key",
+    "requestId",
+    "kind",
+    "title",
+    "container",
+    "createdBy",
+    "createdAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "key": {
+      "$ref": "common.schema.json#/$defs/key"
+    },
+    "requestId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "fulfillmentId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "stepId": {
+      "$ref": "common.schema.json#/$defs/identifier"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "brief",
+        "plan",
+        "draft",
+        "file",
+        "media",
+        "delivery",
+        "evidence",
+        "receipt",
+        "signature",
+        "link"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
+    "container": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "documentId",
+        "documentKind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "document"
+        },
+        "documentId": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "documentKind": {
+          "type": "string",
+          "enum": [
+            "text",
+            "code",
+            "image",
+            "sheet"
+          ]
+        }
+      }
+    },
+    "createdBy": {
+      "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "metadata": {
+      "$ref": "common.schema.json#/$defs/metadata"
+    },
+    "createdAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    },
+    "updatedAt": {
+      "$ref": "common.schema.json#/$defs/timestamp"
+    }
+  }
+}

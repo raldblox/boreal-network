@@ -11,6 +11,7 @@ import {
   inArray,
   isNull,
   lt,
+  sql,
   type SQL,
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
@@ -18,12 +19,21 @@ import postgres from "postgres";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import {
+  type CommitmentKind,
+  type CommitmentStatus,
+  type CommitmentTerms,
   type BorealRequestDraft,
   type PublicRequestPoolEntry,
+  type RequestActiveRefs,
+  type RequestActivityEntry,
+  type RequestActorRef,
+  type RequestArtifactContainer,
+  type RequestArtifactKind,
   type RequestBrief,
   type RequestBudget,
   type RequestDeadline,
   type RequestDerived,
+  type RequestLatest,
   type RequestSeeking,
   type RequestStatus,
   type RequestVisibility,
@@ -32,12 +42,18 @@ import {
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
 import {
+  artifactRecord,
+  type ArtifactRecord,
   type Chat,
   chat,
+  commitment,
+  type CommitmentRecord,
   type DBMessage,
   document,
   message,
   request,
+  requestEvent,
+  type RequestEventRecord,
   type RequestRecord,
   type Suggestion,
   stream,
@@ -115,6 +131,20 @@ export async function saveChat({
 
 export async function deleteChatById({ id }: { id: string }) {
   try {
+    const existingRequest = await getRequestByChatId({ chatId: id });
+
+    if (existingRequest) {
+      await db
+        .delete(requestEvent)
+        .where(eq(requestEvent.requestId, existingRequest.id));
+      await db
+        .delete(artifactRecord)
+        .where(eq(artifactRecord.requestId, existingRequest.id));
+      await db
+        .delete(commitment)
+        .where(eq(commitment.requestId, existingRequest.id));
+    }
+
     await db.delete(request).where(eq(request.chatId, id));
     await db.delete(vote).where(eq(vote.chatId, id));
     await db.delete(message).where(eq(message.chatId, id));
@@ -145,6 +175,18 @@ export async function deleteAllChatsByUserId({ userId }: { userId: string }) {
     }
 
     const chatIds = userChats.map((c) => c.id);
+
+    const requestRows = await db
+      .select({ id: request.id })
+      .from(request)
+      .where(inArray(request.chatId, chatIds));
+    const requestIds = requestRows.map((row) => row.id);
+
+    if (requestIds.length > 0) {
+      await db.delete(requestEvent).where(inArray(requestEvent.requestId, requestIds));
+      await db.delete(artifactRecord).where(inArray(artifactRecord.requestId, requestIds));
+      await db.delete(commitment).where(inArray(commitment.requestId, requestIds));
+    }
 
     await db.delete(request).where(inArray(request.chatId, chatIds));
     await db.delete(vote).where(inArray(vote.chatId, chatIds));
@@ -541,6 +583,8 @@ export async function saveRequestDraft({
   seeking,
   budget,
   deadline,
+  activeRefs,
+  latest,
   derived,
 }: {
   id: string;
@@ -555,6 +599,8 @@ export async function saveRequestDraft({
   seeking: RequestSeeking;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
+  activeRefs: RequestActiveRefs;
+  latest: RequestLatest;
   derived: RequestDerived;
 }) {
   try {
@@ -573,6 +619,8 @@ export async function saveRequestDraft({
         seeking,
         budget,
         deadline,
+        activeRefs,
+        latest,
         derived,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -597,6 +645,8 @@ export async function updateRequestDraftById({
   seeking,
   budget,
   deadline,
+  activeRefs,
+  latest,
   derived,
 }: {
   id: string;
@@ -607,6 +657,8 @@ export async function updateRequestDraftById({
   seeking: RequestSeeking;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
+  activeRefs: RequestActiveRefs;
+  latest: RequestLatest;
   derived: RequestDerived;
 }) {
   try {
@@ -620,6 +672,8 @@ export async function updateRequestDraftById({
         seeking,
         budget,
         deadline,
+        activeRefs,
+        latest,
         derived,
         updatedAt: new Date(),
       })
@@ -649,10 +703,359 @@ export function toRequestDraft(record: RequestRecord): BorealRequestDraft {
     seeking: record.seeking ?? {},
     budget: record.budget,
     deadline: record.deadline,
+    activeRefs: record.activeRefs ?? {},
+    latest: record.latest ?? {},
     derived: record.derived,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };
+}
+
+export async function saveCommitment({
+  id,
+  key,
+  requestId,
+  kind,
+  status,
+  proposedBy,
+  summary,
+  terms,
+}: {
+  id: string;
+  key: string;
+  requestId: string;
+  kind: CommitmentKind;
+  status: CommitmentStatus;
+  proposedBy: RequestActorRef;
+  summary: string;
+  terms: CommitmentTerms;
+}) {
+  try {
+    const [createdCommitment] = await db
+      .insert(commitment)
+      .values({
+        id,
+        key,
+        requestId,
+        kind,
+        status,
+        proposedBy,
+        summary,
+        terms,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return createdCommitment;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save commitment"
+    );
+  }
+}
+
+export async function saveArtifactRecord({
+  id,
+  key,
+  requestId,
+  kind,
+  title,
+  summary,
+  container,
+  createdBy,
+}: {
+  id: string;
+  key: string;
+  requestId: string;
+  kind: RequestArtifactKind;
+  title: string;
+  summary?: string;
+  container: RequestArtifactContainer;
+  createdBy: RequestActorRef;
+}) {
+  try {
+    const [createdArtifact] = await db
+      .insert(artifactRecord)
+      .values({
+        id,
+        key,
+        requestId,
+        kind,
+        title,
+        summary,
+        container,
+        createdBy,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+
+    return createdArtifact;
+  } catch (_error) {
+    throw new ChatbotError("bad_request:database", "Failed to save artifact");
+  }
+}
+
+export async function getArtifactByDocumentId({
+  documentId,
+}: {
+  documentId: string;
+}): Promise<ArtifactRecord | null> {
+  try {
+    const [artifact] = await db
+      .select()
+      .from(artifactRecord)
+      .where(
+        sql`${artifactRecord.container} ->> 'kind' = 'document' and ${artifactRecord.container} ->> 'documentId' = ${documentId}`
+      )
+      .limit(1);
+
+    return artifact ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get artifact by document id"
+    );
+  }
+}
+
+export async function appendRequestEvent({
+  eventId,
+  requestId,
+  aggregateType,
+  aggregateId,
+  eventType,
+  actor,
+  correlationId,
+  causationId,
+  idempotencyKey,
+  source,
+  payload,
+  occurredAt,
+}: {
+  eventId: string;
+  requestId: string;
+  aggregateType: RequestActivityEntry["aggregateType"];
+  aggregateId: string;
+  eventType: string;
+  actor: RequestActorRef;
+  correlationId: string;
+  causationId: string;
+  idempotencyKey: string;
+  source?: string;
+  payload: Record<string, unknown>;
+  occurredAt: Date;
+}) {
+  try {
+    const [latestEvent] = await db
+      .select({ sequence: requestEvent.sequence })
+      .from(requestEvent)
+      .where(eq(requestEvent.requestId, requestId))
+      .orderBy(desc(requestEvent.sequence))
+      .limit(1);
+
+    const [createdEvent] = await db
+      .insert(requestEvent)
+      .values({
+        eventId,
+        requestId,
+        aggregateType,
+        aggregateId,
+        sequence: (latestEvent?.sequence ?? 0) + 1,
+        eventType,
+        schemaVersion: 1,
+        occurredAt,
+        recordedAt: new Date(),
+        actor,
+        correlationId,
+        causationId,
+        idempotencyKey,
+        source,
+        payload,
+      })
+      .returning();
+
+    return createdEvent;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to append request event"
+    );
+  }
+}
+
+export async function getRequestActivityByRequestId({
+  requestId,
+  limit = 20,
+}: {
+  requestId: string;
+  limit?: number;
+}): Promise<RequestActivityEntry[]> {
+  try {
+    const rows = await db
+      .select()
+      .from(requestEvent)
+      .where(eq(requestEvent.requestId, requestId))
+      .orderBy(desc(requestEvent.sequence))
+      .limit(limit);
+
+    return rows.map(toRequestActivityEntry);
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get request activity"
+    );
+  }
+}
+
+function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntry {
+  const payload = normalizeObject(record.payload) ?? {};
+  const commitmentPayload = normalizeObject(payload.commitment);
+  const artifactPayload = normalizeObject(payload.artifact);
+
+  return {
+    eventId: record.eventId,
+    requestId: record.requestId,
+    sequence: record.sequence,
+    eventType: record.eventType,
+    aggregateType: record.aggregateType as RequestActivityEntry["aggregateType"],
+    aggregateId: record.aggregateId,
+    occurredAt: record.occurredAt.toISOString(),
+    recordedAt: record.recordedAt.toISOString(),
+    actor: normalizeActivityActor(record.actor),
+    summary:
+      normalizeOptionalString(payload.summary) ??
+      fallbackActivitySummary(record.eventType),
+    detail: normalizeOptionalString(payload.detail),
+    requestStatus: normalizeRequestStatus(payload.requestStatus),
+    commitment:
+      commitmentPayload &&
+      normalizeOptionalString(commitmentPayload.id) &&
+      normalizeOptionalString(commitmentPayload.kind) &&
+      normalizeOptionalString(commitmentPayload.status) &&
+      normalizeOptionalString(commitmentPayload.summary) &&
+      normalizeObject(commitmentPayload.terms)
+        ? {
+            id: String(commitmentPayload.id),
+            kind: commitmentPayload.kind as CommitmentKind,
+            status: commitmentPayload.status as CommitmentStatus,
+            summary: String(commitmentPayload.summary),
+            terms: normalizeCommitmentTerms(
+              normalizeObject(commitmentPayload.terms) as Record<string, unknown>
+            ),
+          }
+        : undefined,
+    artifact:
+      artifactPayload &&
+      normalizeOptionalString(artifactPayload.id) &&
+      normalizeOptionalString(artifactPayload.kind) &&
+      normalizeOptionalString(artifactPayload.title) &&
+      normalizeObject(artifactPayload.container)
+        ? {
+            id: String(artifactPayload.id),
+            kind: artifactPayload.kind as RequestArtifactKind,
+            title: String(artifactPayload.title),
+            summary: normalizeOptionalString(artifactPayload.summary),
+            container: normalizeArtifactContainer(
+              normalizeObject(artifactPayload.container) as Record<string, unknown>
+            ),
+          }
+        : undefined,
+  };
+}
+
+function normalizeActivityActor(actor: RequestActorRef): RequestActorRef {
+  return {
+    kind: actor.kind,
+    id: actor.id,
+    ...(actor.displayName ? { displayName: actor.displayName } : {}),
+    ...(actor.handle ? { handle: actor.handle } : {}),
+  };
+}
+
+function normalizeCommitmentTerms(
+  terms: Record<string, unknown>
+): CommitmentTerms {
+  return {
+    fundingRequired: Boolean(terms.fundingRequired),
+    amountMode: ((terms.amountMode as CommitmentTerms["amountMode"]) ?? "none"),
+    ...(typeof terms.currency === "string" ? { currency: terms.currency } : {}),
+    ...(typeof terms.fixedAmount === "number"
+      ? { fixedAmount: terms.fixedAmount }
+      : {}),
+    ...(typeof terms.minAmount === "number" ? { minAmount: terms.minAmount } : {}),
+    ...(typeof terms.maxAmount === "number" ? { maxAmount: terms.maxAmount } : {}),
+    ...(typeof terms.deliverableSummary === "string"
+      ? { deliverableSummary: terms.deliverableSummary }
+      : {}),
+    ...(typeof terms.paymentNotes === "string"
+      ? { paymentNotes: terms.paymentNotes }
+      : {}),
+  };
+}
+
+function normalizeArtifactContainer(
+  container: Record<string, unknown>
+): RequestArtifactContainer {
+  return {
+    kind: "document",
+    documentId: String(container.documentId ?? ""),
+    documentKind: (container.documentKind as RequestArtifactContainer["documentKind"]) ?? "text",
+  };
+}
+
+function normalizeObject(
+  value: unknown
+): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function normalizeOptionalString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function normalizeRequestStatus(value: unknown): RequestStatus | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const statuses: RequestStatus[] = [
+    "draft",
+    "open",
+    "funding_required",
+    "funded",
+    "in_progress",
+    "waiting_for_owner",
+    "delivered",
+    "completed",
+    "cancelled",
+    "failed",
+  ];
+
+  return statuses.includes(value as RequestStatus)
+    ? (value as RequestStatus)
+    : undefined;
+}
+
+function fallbackActivitySummary(eventType: string) {
+  switch (eventType) {
+    case "request.opened":
+      return "Request opened";
+    case "commitment.proposed":
+      return "Commitment proposed";
+    case "artifact.added":
+      return "Artifact published";
+    default:
+      return eventType.replace(/\./g, " ");
+  }
 }
 
 export async function saveMessages({ messages }: { messages: DBMessage[] }) {

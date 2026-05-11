@@ -31,6 +31,7 @@ export function ChatShell() {
   const {
     chatId,
     messages,
+    activities,
     setMessages,
     sendMessage,
     status,
@@ -179,6 +180,7 @@ export function ChatShell() {
 
             <Messages
               addToolApprovalResponse={addToolApprovalResponse}
+              activities={activities}
               chatId={chatId}
               isArtifactVisible={isArtifactVisible}
               isLoading={isLoading}

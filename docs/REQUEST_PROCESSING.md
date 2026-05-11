@@ -60,6 +60,24 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
 14. Delivery and resolution
    Publish `Artifact`, settle `Transaction`, and resolve the `Request`.
 
+## Open Request Room Rule
+
+Once a request leaves `draft`, the room should stop behaving like request-brief intake.
+
+Open request room behavior should prefer:
+
+- `Commitment` for pricing, quotes, and formal proposals
+- `Artifact` for drafts, proof, files, and deliveries
+- `RequestEvent` for durable visible activity
+
+The request root should update through:
+
+- lifecycle status
+- `activeRefs`
+- `latest`
+
+Do not treat every open-room message as a brief rewrite.
+
 ## Visibility Rule
 
 - `draft` requests remain owner-scoped.
@@ -102,3 +120,4 @@ These objects are derived and rebuildable, not durable roots:
 - `brief.tags` may exist as optional labels, but matching prep should prefer `seeking`.
 - `FulfillmentStep` is the default home for generated sub-work.
 - A new `Request` is only justified by a new funding, ownership, routing, or review boundary.
+- open request rooms should prefer adjacent durable objects plus request projection updates over inlining response history on the request root

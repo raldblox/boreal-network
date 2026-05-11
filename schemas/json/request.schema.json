@@ -332,7 +332,6 @@
           "brief": {
             "required": [
               "title",
-              "summary",
               "body"
             ]
           }

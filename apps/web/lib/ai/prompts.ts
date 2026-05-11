@@ -1,6 +1,6 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/chat/artifact";
-import type { BorealRequestDraft } from "@/lib/request";
+import type { BorealRequestDraft, RequestActivityEntry } from "@/lib/request";
 
 export const artifactsPrompt = `
 Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), and spreadsheets. Changes appear in real-time.
@@ -64,6 +64,11 @@ Rules:
 13. Only write \`brief.tags\` when the user explicitly wants labels or the label is explicitly stated and useful as a human-facing tag.
 14. Leave unknown title, summary, seeking, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
 
+Mode split:
+- Draft request mode is for forming the Request root object.
+- Open request mode is for moving the request forward through commitments, artifacts, and activity.
+- Do not treat an open request room like a draft request.
+
 Canonical fields:
 - title
 - body
@@ -90,6 +95,8 @@ Use these tools for the active Request:
 - \`updateRequestConstraints\`
 - \`updateRequestBudgetTiming\`
 - \`updateRequestRouteSummary\`
+- \`proposeCommitment\`
+- \`publishArtifact\`
 
 After calling a request tool, stop. Do not continue with a generic assistant reply.
 `;
@@ -117,10 +124,14 @@ export const systemPrompt = ({
   requestHints,
   supportsTools,
   activeRequest,
+  recentActivity,
+  requestRoomRole,
 }: {
   requestHints: RequestHints;
   supportsTools: boolean;
   activeRequest?: BorealRequestDraft | null;
+  recentActivity?: RequestActivityEntry[];
+  requestRoomRole?: "draft_owner" | "open_owner" | "open_responder" | null;
 }) => {
   const requestPrompt = getRequestPromptFromHints(requestHints);
   const activeRequestPrompt = activeRequest
@@ -130,33 +141,70 @@ ${JSON.stringify(
     id: activeRequest.id,
     status: activeRequest.status,
     visibility: activeRequest.visibility,
-    brief: activeRequest.brief,
-    seeking: activeRequest.seeking,
-    budget: activeRequest.budget,
-    deadline: activeRequest.deadline,
-    derived: activeRequest.derived,
-  },
+        brief: activeRequest.brief,
+        seeking: activeRequest.seeking,
+        budget: activeRequest.budget,
+        deadline: activeRequest.deadline,
+        activeRefs: activeRequest.activeRefs,
+        latest: activeRequest.latest,
+        derived: activeRequest.derived,
+      },
+      null,
+      2
+)}`
+    : "No active request draft is open yet.";
+  const recentActivityPrompt =
+    activeRequest && recentActivity && recentActivity.length > 0
+      ? `Recent request activity:
+${JSON.stringify(
+  recentActivity.map((entry) => ({
+    eventType: entry.eventType,
+    occurredAt: entry.occurredAt,
+    actor: entry.actor,
+    summary: entry.summary,
+    detail: entry.detail,
+    commitment: entry.commitment,
+    artifact: entry.artifact
+      ? {
+          id: entry.artifact.id,
+          kind: entry.artifact.kind,
+          title: entry.artifact.title,
+        }
+      : undefined,
+  })),
   null,
   2
 )}`
-    : "No active request draft is open yet.";
-  const requestModePrompt = activeRequest
-    ? `Active request mode rules:
+      : "";
+  const requestModePrompt = !activeRequest
+    ? ""
+    : activeRequest.status === "draft"
+      ? `Draft request mode rules:
 - The user is drafting a Request object right now.
-- Every user message should update the active Request through exactly one request tool.
+- Every user message should update the draft Request through exactly one draft request tool.
 - Do not produce a generic conversational answer instead of a request mutation.
 - Do not infer unstated facts.
 - If the user gave a raw ask, store the explicit ask in brief.body and keep unknown fields blank.
 - Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.
 - If the user explicitly stated budget or deadline in the same turn, do not leave those structured fields null.
 - Use top-level seeking for matching-facing structure, not generated tags.`
-    : "";
+      : `Open request room rules:
+- This Request is already open. Do not treat it like a draft request.
+- You may answer directly when the user asks about progress, recent activity, blockers, or what should happen next.
+- Use \`proposeCommitment\` for quotes, proposals, pricing positions, or formal terms that should become durable request activity.
+- Use \`publishArtifact\` for drafts, proofs, files, or deliveries that should become durable request activity.
+- ${
+          requestRoomRole === "open_responder"
+            ? "The current user is responding to another user's public request. Do not rewrite owner-authored brief, budget, deadline, or visibility fields."
+            : "The current user owns this open request room. Root request edits should be explicit and rare; prefer commitments, artifacts, and activity over rewriting the brief."
+        }
+- If you reference recent activity, use only the provided request activity context.`;
 
   if (!supportsTools) {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${activeRequestPrompt}\n\n${requestModePrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${activeRequestPrompt}\n\n${requestModePrompt}`;
+  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
 };
 
 export const codePrompt = `
