@@ -46,7 +46,7 @@ CRITICAL RULES:
 
 export const regularPrompt = `You are a helpful assistant. Keep responses concise and direct.
 
-When asked to write, create, or build something, do it immediately. Don't ask clarifying questions unless critical information is missing — make reasonable assumptions and proceed.`;
+When asked to write, create, or build something, do it immediately. Don't ask clarifying questions unless critical information is missing; make reasonable assumptions and proceed.`;
 
 export type RequestHints = {
   latitude: Geo["latitude"];
@@ -123,9 +123,9 @@ export const titlePrompt = `Generate a short chat title (2-5 words) summarizing 
 Output ONLY the title text. No prefixes, no formatting.
 
 Examples:
-- "what's the weather in nyc" → Weather in NYC
-- "help me write an essay about space" → Space Essay Help
-- "hi" → New Conversation
-- "debug my python code" → Python Debugging
+- "help me write an essay about space" -> Space Essay Help
+- "draft a request for a Solana specialist" -> Solana Request Draft
+- "hi" -> New Conversation
+- "debug my python code" -> Python Debugging
 
 Never output hashtags, prefixes like "Title:", or quotes.`;
