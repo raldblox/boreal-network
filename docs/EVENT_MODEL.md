@@ -102,6 +102,9 @@ Rules:
 - cancelled
 - failed
 
+Owner-private desktop auto-fulfillment may emit `fulfillment.created`, `artifact.added`, and later fulfillment events without a prior `commitment.accepted` event.
+In that lane, event payloads may omit `commitmentId`.
+
 ### Step events
 
 - created
@@ -151,6 +154,24 @@ If sensitive payload must be referenced:
 - store a stable reference
 - store safe metadata
 - keep the sensitive body elsewhere under stricter control
+
+## Ephemeral Transport Signals
+
+Not every realtime signal is a durable `RequestEvent`.
+
+These signal classes are ephemeral by default:
+
+- typing indicators
+- token deltas
+- progress ticks
+- heartbeats
+- presence updates
+- transient runtime logs
+- raw tool stdout
+- raw tool stderr
+
+They may flow through WebSocket, SSE, peer streams, or local IPC.
+They should not create default durable event history unless Boreal explicitly promotes a summarized or business-meaningful outcome into a canonical event or adjacent durable object.
 
 ## Projection Rule
 

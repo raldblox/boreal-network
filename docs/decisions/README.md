@@ -23,3 +23,6 @@ Accepted decisions:
 - [0003-canonical-monorepo-and-workspace-activation.md](0003-canonical-monorepo-and-workspace-activation.md)
 - [0004-web-stack-baseline-and-chatbot-starting-point.md](0004-web-stack-baseline-and-chatbot-starting-point.md)
 - [0005-electron-desktop-and-shared-ui-baseline.md](0005-electron-desktop-and-shared-ui-baseline.md)
+- [0006-resolver-identity-and-device-approval-flow.md](0006-resolver-identity-and-device-approval-flow.md)
+- [0007-owner-private-direct-auto-fulfillment.md](0007-owner-private-direct-auto-fulfillment.md)
+- [0008-ephemeral-realtime-lane-and-peer-runtime-identity.md](0008-ephemeral-realtime-lane-and-peer-runtime-identity.md)

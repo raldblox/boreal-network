@@ -71,6 +71,7 @@ This file defines the canonical lifecycle states for Boreal Network aggregates.
 - A request in `funding_required` must have an active commitment reference.
 - A request in `funded` or later must have at least one funding or approval event proving the boundary.
 - A request in `in_progress` or later must have an active fulfillment.
+- A request in `in_progress` or later may omit `activeCommitmentId` only when the fulfillment was authorized through the owner-private direct auto-fulfillment lane.
 - `completed`, `cancelled`, and `failed` are terminal.
 
 ## `Commitment`
@@ -132,7 +133,7 @@ This file defines the canonical lifecycle states for Boreal Network aggregates.
 ### Invariants
 
 - A fulfillment should point to exactly one request.
-- A fulfillment should point to the commitment or route that authorized it.
+- A fulfillment should point to the commitment that authorized it, or remain direct-owner authorized for the owner-private desktop lane.
 - `accepted`, `cancelled`, and `failed` are terminal.
 
 ## `FulfillmentStep`

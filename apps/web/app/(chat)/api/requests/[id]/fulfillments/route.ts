@@ -14,7 +14,7 @@ const actorRefSchema = z.object({
 });
 
 const createFulfillmentSchema = z.object({
-  commitmentId: z.string().uuid(),
+  commitmentId: z.string().uuid().optional(),
   summary: z.string().min(1).max(1000),
   lead: actorRefSchema.optional(),
   contributors: z.array(actorRefSchema).max(20).optional(),
@@ -95,6 +95,8 @@ export async function POST(
       [
         "Request cannot create fulfillment",
         "Accepted commitment required",
+        "Owner-private direct fulfillment only",
+        "Owner-private direct fulfillment requires open request",
         "Active fulfillment already exists",
         "Funding required before starting fulfillment",
       ].includes(error.message)

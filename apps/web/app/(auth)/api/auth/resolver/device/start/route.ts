@@ -25,7 +25,19 @@ export async function POST(request: Request) {
 
   try {
     const authorization = await startResolverAuthorization(body);
-    return Response.json(authorization, { status: 200 });
+    const verificationUrl = new URL(
+      authorization.verificationUriComplete,
+      request.url
+    ).toString();
+
+    return Response.json(
+      {
+        ...authorization,
+        verificationUri: verificationUrl,
+        verificationUriComplete: verificationUrl,
+      },
+      { status: 200 }
+    );
   } catch {
     return new ChatbotError(
       "bad_request:database",

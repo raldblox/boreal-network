@@ -24,6 +24,12 @@ Location:
 
 Use for async event channels, streaming notifications, and replayable event contracts.
 
+Not every streaming channel is durable history.
+Async transport may expose both:
+
+- durable replayable event streams
+- ephemeral realtime channels for operator feedback and live execution state
+
 Location:
 
 - `schemas/events/`
@@ -79,6 +85,7 @@ At minimum, the network should be able to expose contracts for:
 - fulfillment progress and delivery
 - payment verification and payout visibility
 - event subscription or replay
+- ephemeral realtime transport for live execution feedback
 - resolver identity and scoped runtime auth
 
 ## Example Contract Boundaries
@@ -132,6 +139,8 @@ The first resolver-facing web slice now exposes:
 
 in addition to chat tool-calling.
 
+Desktop may drive those same routes through Boreal-issued resolver bearer auth after web approval instead of depending on browser cookies.
+
 ### `Fulfillment`
 
 Should expose:
@@ -148,6 +157,9 @@ The first resolver-facing web slice now exposes:
 - `POST /api/requests/{id}/fulfillments`
 - `GET /api/fulfillments/{id}`
 - `PATCH /api/fulfillments/{id}`
+
+Accepted responder lanes may create fulfillment after owner acceptance.
+Owned private resolver lanes may create fulfillment without `commitmentId` when the same Boreal owner is authorizing direct desktop execution.
 
 ### `Transaction`
 
@@ -172,6 +184,8 @@ Use [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md) for:
 Open request room behavior should prefer `Commitment`, `Artifact`, and `RequestEvent` writes over draft-style brief mutation.
 Resolver-facing request APIs should return JSON auth or permission errors instead of depending on browser-only guest-login redirects.
 Direct resolver APIs should preserve the same durable request-side effects as chat mutation tools for commitment acceptance, fulfillment creation, and fulfillment updates.
+Execution-grade artifact writes should require an accepted commercial lane or active fulfillment role.
+Owner-private desktop auto-resolution is the one direct-fulfillment exception and should still emit the same durable fulfillment and artifact events.
 
 ## Resolver Auth Surface
 
@@ -188,6 +202,8 @@ The runtime proof and Boreal actor proof stay separate:
 
 - Codex auth proves the local runtime is connected
 - Boreal resolver approval binds that runtime to one Boreal account and one scoped actor context
+
+If a desktop or peer runtime later exposes ephemeral realtime transport, that transport should stay scoped to runtime or session authorization and must not be treated as proof of Boreal actor identity by itself.
 
 ## Schema Discipline
 

@@ -64,6 +64,8 @@ Today, the machine-readable baseline proves:
 - one `open` plus `public` request can be exposed through a public-safe web pool listing
 - one public-safe request detail view can be fetched directly by request id
 - one open request room can expose request activity derived from durable `RequestEvent`, `Commitment`, and `Artifact` records
+- one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
+- one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
 - one `Supply` can be expressed as a durable capability object
 - one `Commitment` can carry quoted or accepted commercial terms
 - one `Artifact` can point to a stable document-backed container instead of inflating the request root
@@ -85,7 +87,10 @@ These are intended next layers, not fully modeled proof yet:
 - richer golden fixtures for failure, replay, dispute, collective fulfillment, and private-supply paths
 - deeper web runtime coverage beyond the first request-briefing slice in `apps/web/`
 - deeper supply lifecycle canon for onboarding, capacity, visibility, and retirement
-- additional runnable workspaces such as `apps/desktop/`, `apps/mobile/`, `apps/extension/`, `apps/peer-*`, and `apps/gateway-*`
+- deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
+- ephemeral realtime channels for typing, token deltas, progress, heartbeats, presence, and transient runtime output that stay outside durable request history unless promoted
+- peer-capable runtime identity bound through resolver approval without replacing Boreal actor identity
+- additional runnable workspaces such as `apps/mobile/`, `apps/extension/`, `apps/peer-*`, and `apps/gateway-*`
 - shared libraries under `packages/`
 - agent skills under `skills/`
 - implementation profiles under `standards/`

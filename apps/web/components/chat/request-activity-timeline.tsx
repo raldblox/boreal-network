@@ -1,132 +1,217 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import {
-  CheckSquare2Icon,
-  FileTextIcon,
-  HandCoinsIcon,
-  SparklesIcon,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { FileTextIcon } from "lucide-react";
+import { useMemo } from "react";
+import { MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Button } from "@/components/ui/button";
 import { useArtifact } from "@/hooks/use-artifact";
 import type { RequestActivityEntry } from "@/lib/request";
+import { cn } from "@/lib/utils";
+import { DocumentPreview } from "./document-preview";
+import { SparklesIcon } from "./icons";
 
 export function RequestActivityTimeline({
   activities,
+  ownerUserId,
+  isReadonly,
 }: {
   activities: RequestActivityEntry[];
+  ownerUserId: string | null;
+  isReadonly: boolean;
 }) {
-  const { setArtifact } = useArtifact();
+  const orderedActivities = useMemo(
+    () => [...activities].sort((left, right) => left.sequence - right.sequence),
+    [activities]
+  );
 
-  if (activities.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border/50 bg-card/20 px-4 py-4 text-sm text-muted-foreground">
-        No request activity yet.
-      </div>
-    );
+  if (orderedActivities.length === 0) {
+    return null;
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <div className="font-medium text-sm">Request activity</div>
-        <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-          latest first
+    <>
+      {orderedActivities.map((activity) => (
+        <RequestActivityMessage
+          activity={activity}
+          ownerUserId={ownerUserId}
+          isReadonly={isReadonly}
+          key={activity.eventId}
+        />
+      ))}
+    </>
+  );
+}
+
+export function RequestActivityMessage({
+  activity,
+  ownerUserId,
+  isReadonly,
+}: {
+  activity: RequestActivityEntry;
+  ownerUserId: string | null;
+  isReadonly: boolean;
+}) {
+  const isOwnerActivity =
+    Boolean(ownerUserId) && activity.actor.id === ownerUserId;
+  const text = getPrimaryActivityText(activity);
+  const secondaryDetail = getSecondaryActivityDetail(activity);
+  const documentArtifact = getDocumentArtifactPreview(activity);
+
+  const content = (
+    <>
+      {text ? (
+        <MessageContent
+          className="text-[13px] leading-[1.65]"
+          data-testid="request-activity-content"
+        >
+          <MessageResponse>{text}</MessageResponse>
+        </MessageContent>
+      ) : null}
+
+      {secondaryDetail ? (
+        <div className="px-1 text-[12px] text-muted-foreground">
+          <MessageResponse>{secondaryDetail}</MessageResponse>
         </div>
-      </div>
+      ) : null}
 
-      <div className="flex flex-col gap-2">
-        {activities.map((activity) => {
-          const artifact = activity.artifact;
+      {documentArtifact ? (
+        <DocumentPreview
+          isReadonly={isReadonly}
+          result={documentArtifact}
+        />
+      ) : activity.artifact ? (
+        <NonDocumentArtifactButton
+          activity={activity}
+          isReadonly={isReadonly}
+        />
+      ) : null}
 
-          return (
-            <div
-              className="rounded-2xl border border-border/50 bg-card/35 px-4 py-3"
-              key={activity.eventId}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 gap-3">
-                  <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl bg-muted/70 text-muted-foreground">
-                    {activity.aggregateType === "commitment" ? (
-                      <HandCoinsIcon className="size-4" />
-                    ) : activity.aggregateType === "artifact" ? (
-                      <FileTextIcon className="size-4" />
-                    ) : activity.eventType === "request.opened" ? (
-                      <CheckSquare2Icon className="size-4" />
-                    ) : (
-                      <SparklesIcon className="size-4" />
-                    )}
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="font-medium text-sm">{activity.summary}</div>
-                      <Badge className="rounded-full" variant="secondary">
-                        {formatActivityLabel(activity)}
-                      </Badge>
-                    </div>
-
-                    {activity.detail ? (
-                      <div className="mt-1 text-[13px] text-muted-foreground">
-                        {activity.detail}
-                      </div>
-                    ) : null}
-
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                      <span>{activity.actor.id}</span>
-                      <span>/</span>
-                      <span>
-                        {formatDistanceToNow(new Date(activity.occurredAt), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                      {activity.requestStatus ? (
-                        <>
-                          <span>/</span>
-                          <span>{activity.requestStatus.replace(/_/g, " ")}</span>
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                {artifact ? (
-                  <Button
-                    className="shrink-0"
-                    onClick={() => {
-                      setArtifact((currentArtifact) => ({
-                        ...currentArtifact,
-                        documentId: artifact.container.documentId,
-                        title: artifact.title,
-                        kind: artifact.container.documentKind,
-                        isVisible: true,
-                        status: "idle",
-                      }));
-                    }}
-                    size="sm"
-                    variant="outline"
-                  >
-                    Open artifact
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          );
+      <div className="px-1 text-[11px] text-muted-foreground/60 opacity-0 transition-opacity duration-150 group-hover/message:opacity-100">
+        {formatDistanceToNow(new Date(activity.occurredAt), {
+          addSuffix: true,
         })}
+      </div>
+    </>
+  );
+
+  return (
+    <div
+      className="group/message w-full"
+      data-role="assistant"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
+          <div
+            className={cn(
+              "flex size-7 items-center justify-center rounded-lg ring-1 ring-border/50",
+              isOwnerActivity
+                ? "bg-secondary/80 text-foreground"
+                : "bg-muted/60 text-muted-foreground"
+            )}
+          >
+            <SparklesIcon size={13} />
+          </div>
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-2">{content}</div>
       </div>
     </div>
   );
 }
 
-function formatActivityLabel(activity: RequestActivityEntry) {
-  if (activity.aggregateType === "commitment" && activity.commitment) {
-    return `${activity.commitment.kind} ${activity.commitment.status}`;
+function NonDocumentArtifactButton({
+  activity,
+  isReadonly,
+}: {
+  activity: RequestActivityEntry;
+  isReadonly: boolean;
+}) {
+  const artifact = activity.artifact;
+  const { setArtifact } = useArtifact();
+
+  if (!artifact || artifact.container.kind !== "document") {
+    return null;
   }
 
-  if (activity.aggregateType === "artifact" && activity.artifact) {
-    return activity.artifact.kind;
+  return (
+    <Button
+      className="w-fit rounded-xl"
+      onClick={(event) => {
+        if (isReadonly) {
+          return;
+        }
+
+        const rect = event.currentTarget.getBoundingClientRect();
+
+        setArtifact((currentArtifact) => ({
+          ...currentArtifact,
+          documentId: artifact.container.documentId,
+          kind: artifact.container.documentKind,
+          title: artifact.title,
+          isVisible: true,
+          status: "idle",
+          boundingBox: {
+            left: rect.x,
+            top: rect.y,
+            width: rect.width,
+            height: rect.height,
+          },
+        }));
+      }}
+      type="button"
+      variant="outline"
+    >
+      <FileTextIcon className="mr-2 size-4" />
+      Open {artifact.kind}
+    </Button>
+  );
+}
+
+function getPrimaryActivityText(activity: RequestActivityEntry) {
+  return activity.summary.trim();
+}
+
+function getSecondaryActivityDetail(activity: RequestActivityEntry) {
+  const detail = activity.detail?.trim();
+
+  if (!detail) {
+    return null;
   }
 
-  return activity.eventType.replace(/\./g, " ");
+  if (
+    activity.eventType === "request.opened" ||
+    activity.eventType.startsWith("fulfillment.")
+  ) {
+    return null;
+  }
+
+  if (detail === activity.summary.trim()) {
+    return null;
+  }
+
+  return detail;
+}
+
+function getDocumentArtifactPreview(activity: RequestActivityEntry) {
+  const artifact = activity.artifact;
+
+  if (!artifact || artifact.container.kind !== "document") {
+    return null;
+  }
+
+  if (
+    artifact.container.documentKind !== "text" &&
+    artifact.container.documentKind !== "code" &&
+    artifact.container.documentKind !== "sheet" &&
+    artifact.container.documentKind !== "image"
+  ) {
+    return null;
+  }
+
+  return {
+    id: artifact.container.documentId,
+    title: artifact.title,
+    kind: artifact.container.documentKind,
+  } as const;
 }

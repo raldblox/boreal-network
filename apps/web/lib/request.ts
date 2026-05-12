@@ -169,7 +169,7 @@ export type RequestFulfillment = {
   id: string;
   key: string;
   requestId: string;
-  commitmentId: string;
+  commitmentId?: string;
   supplyId?: string;
   status: FulfillmentStatus;
   lead: RequestActorRef;
@@ -237,7 +237,7 @@ export type RequestActivityEntry = {
   };
   fulfillment?: {
     id: string;
-    commitmentId: string;
+    commitmentId?: string;
     status: FulfillmentStatus;
     summary: string;
   };

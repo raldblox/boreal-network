@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
   },
   cacheComponents: true,
   devIndicators: false,
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   poweredByHeader: false,
   reactCompiler: true,
   transpilePackages: ["@boreal/ui"],

@@ -12,6 +12,7 @@ Verify:
 - OpenAPI validity
 - AsyncAPI or event schema validity
 - sample payload compatibility
+- ephemeral realtime channel shapes do not drift into durable event schemas accidentally
 
 ### Commercial canon tests
 
@@ -51,6 +52,7 @@ Verify:
 - payment and payout visibility respect ownership and role boundaries
 - resolver bearer scopes are enforced independently from browser sessions
 - raw runtime identity cannot be treated as Boreal request ownership without Boreal-issued resolver approval
+- peer or localhost realtime session auth cannot be treated as Boreal actor auth by itself
 
 ### Idempotency tests
 
@@ -105,11 +107,18 @@ Verify:
 - direct commitment accept endpoints should honor idempotency keys on retry
 - direct fulfillment create and update endpoints should honor idempotency keys on retry
 - direct fulfillment create should require an accepted commitment
+- direct fulfillment create may omit commitment only for owned private requests driven by the same owner through the desktop auto-resolution lane
+- accepted responder lanes should be able to create fulfillment after owner acceptance
 - direct fulfillment updates should reject invalid state transitions
 - funding-required requests should not start fulfillment directly in `active`
+- execution-grade artifacts should require an accepted commitment or active fulfillment role instead of arbitrary public responder access
+- typing, token deltas, progress ticks, heartbeats, presence, transient runtime logs, and raw tool stdout or stderr should not create default durable request history
 - resolver device approval should not issue tokens before explicit Boreal account approval
 - resolver refresh rotation should revoke or replace the previous refresh token
 - revoked resolver tokens should fail on subsequent request writes
+- desktop resolver flows should preserve auth separation between Codex runtime identity and Boreal request-actor identity
+- desktop auto-resolve toggle should only act on owned private requests when the auto mode is enabled
+- desktop auto-resolve should create durable fulfillment and artifact events even when it skips commitment creation
 - timeline cards should be reconstructible from `RequestEvent` plus related object refs
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work

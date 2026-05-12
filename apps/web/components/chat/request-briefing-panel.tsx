@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageSquareIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type {
@@ -14,9 +15,13 @@ type RequestBriefingPanelProps = {
   isReadonly: boolean;
   isArtifactVisible: boolean;
   isRequestMode: boolean;
+  isChatOpen?: boolean;
+  isResolvingDeliveredRequest?: boolean;
   onSaveDraft: () => Promise<void>;
   onOpenRequest: () => Promise<void>;
   onOpenDocument: () => void;
+  onToggleChat?: () => void;
+  onResolveDeliveredRequest?: () => Promise<void>;
 };
 
 export function RequestBriefingPanel({
@@ -24,9 +29,13 @@ export function RequestBriefingPanel({
   isReadonly,
   isArtifactVisible,
   isRequestMode,
+  isChatOpen = false,
+  isResolvingDeliveredRequest = false,
   onSaveDraft,
   onOpenRequest,
   onOpenDocument,
+  onToggleChat,
+  onResolveDeliveredRequest,
 }: RequestBriefingPanelProps) {
   if (isReadonly) {
     return null;
@@ -48,6 +57,10 @@ export function RequestBriefingPanel({
     const statusLabel = request.status.replace(/_/g, " ");
     const currentStepIndex = getTrackingStepIndex(request.status);
     const nextStepLabel = getNextStepLabel(request.status);
+    const canResolveDelivery =
+      request.status === "delivered" &&
+      Boolean(request.activeRefs.activeFulfillmentId) &&
+      typeof onResolveDeliveredRequest === "function";
 
     return (
       <div className="border-b border-border/50 bg-background/95 px-4 py-2.5">
@@ -75,9 +88,23 @@ export function RequestBriefingPanel({
               <Badge className="rounded-full" variant="secondary">
                 {deadline}
               </Badge>
+              {onToggleChat ? (
+                <Button onClick={onToggleChat} variant="outline">
+                  <MessageSquareIcon className="mr-2 size-4" />
+                  {isChatOpen ? "Hide chat" : "Chat"}
+                </Button>
+              ) : null}
               <Button onClick={onOpenDocument} variant="outline">
                 {isArtifactVisible ? "Focus raw object" : "View raw object"}
               </Button>
+              {canResolveDelivery ? (
+                <Button
+                  disabled={isResolvingDeliveredRequest}
+                  onClick={() => void onResolveDeliveredRequest?.()}
+                >
+                  {isResolvingDeliveredRequest ? "Resolving..." : "Confirm delivery"}
+                </Button>
+              ) : null}
             </div>
           </div>
 

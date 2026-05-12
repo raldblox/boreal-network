@@ -416,13 +416,7 @@
       "if": {
         "properties": {
           "status": {
-            "enum": [
-              "funded",
-              "in_progress",
-              "waiting_for_owner",
-              "delivered",
-              "completed"
-            ]
+            "const": "funded"
           }
         },
         "required": [

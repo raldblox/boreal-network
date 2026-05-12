@@ -203,9 +203,9 @@ export const fulfillment = pgTable("Fulfillment", {
   requestId: uuid("requestId")
     .notNull()
     .references(() => request.id, { onDelete: "cascade" }),
-  commitmentId: uuid("commitmentId")
-    .notNull()
-    .references(() => commitment.id, { onDelete: "cascade" }),
+  commitmentId: uuid("commitmentId").references(() => commitment.id, {
+    onDelete: "cascade",
+  }),
   supplyId: uuid("supplyId"),
   status: varchar("status", {
     enum: [

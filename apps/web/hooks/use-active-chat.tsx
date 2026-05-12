@@ -34,7 +34,8 @@ import { fetcher, fetchWithErrorHandlers, generateUUID } from "@/lib/utils";
 type ChatDataResponse = {
   messages: ChatMessage[];
   visibility: VisibilityType;
-  userId: string | null;
+  ownerUserId: string | null;
+  viewerUserId: string | null;
   isReadonly: boolean;
   request: BorealRequestDraft | null;
 };
@@ -43,6 +44,7 @@ type ActiveChatContextValue = {
   chatId: string;
   messages: ChatMessage[];
   activities: RequestActivityEntry[];
+  requestOwnerUserId: string | null;
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
   status: UseChatHelpers<ChatMessage>["status"];
@@ -64,6 +66,7 @@ type ActiveChatContextValue = {
   createRequest: () => Promise<BorealRequestDraft | null>;
   saveRequestDraft: () => Promise<void>;
   openRequest: () => Promise<void>;
+  resolveDeliveredFulfillment: () => Promise<void>;
 };
 
 const ActiveChatContext = createContext<ActiveChatContextValue | null>(null);
@@ -106,7 +109,24 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const { data: chatData, isLoading } = useSWR<ChatDataResponse>(
     isNewChat ? null : chatDataKey,
     fetcher,
-    { revalidateOnFocus: false }
+    {
+      revalidateOnFocus: false,
+      refreshInterval: (currentData) => {
+        const request = currentData?.request;
+
+        if (
+          !request ||
+          request.status === "draft" ||
+          request.status === "completed" ||
+          request.status === "cancelled" ||
+          request.status === "failed"
+        ) {
+          return 0;
+        }
+
+        return 4000;
+      },
+    }
   );
 
   const initialMessages: ChatMessage[] = isNewChat
@@ -125,7 +145,16 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const { data: activityData } = useSWR<{ activity: RequestActivityEntry[] }>(
     requestActivityKey,
     fetcher,
-    { revalidateOnFocus: false }
+    {
+      revalidateOnFocus: false,
+      refreshInterval: activeRequest
+        ? activeRequest.status === "completed" ||
+          activeRequest.status === "cancelled" ||
+          activeRequest.status === "failed"
+          ? 0
+          : 4000
+        : 0,
+    }
   );
   const activities = activityData?.activity ?? [];
 
@@ -242,6 +271,18 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [chatId, isNewChat, setMessages]);
 
+  const prevRequestStatusRef = useRef(activeRequest?.status ?? null);
+  useEffect(() => {
+    const previousStatus = prevRequestStatusRef.current;
+    const nextStatus = activeRequest?.status ?? null;
+
+    if (previousStatus === "draft" && nextStatus && nextStatus !== "draft") {
+      setMessages([]);
+    }
+
+    prevRequestStatusRef.current = nextStatus;
+  }, [activeRequest?.status, setMessages]);
+
   useEffect(() => {
     if (chatData && !isNewChat) {
       const cookieModel = document.cookie
@@ -319,7 +360,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         {
           messages: [],
           visibility: data.request?.visibility ?? visibility,
-          userId: chatData?.userId ?? null,
+          ownerUserId: chatData?.ownerUserId ?? null,
+          viewerUserId: chatData?.viewerUserId ?? null,
           isReadonly: false,
           request: data.request,
         },
@@ -337,7 +379,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       });
       return null;
     }
-  }, [chatData?.messages, chatData?.userId, chatDataKey, chatId, mutate, router, visibility]);
+  }, [chatData?.messages, chatData?.ownerUserId, chatData?.viewerUserId, chatDataKey, chatId, mutate, router, visibility]);
 
   const saveRequestDraft = useCallback(async () => {
     if (!activeRequest) {
@@ -374,7 +416,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           {
             messages: [],
             visibility: data.request.visibility,
-            userId: chatData?.userId ?? null,
+            ownerUserId: chatData?.ownerUserId ?? null,
+            viewerUserId: chatData?.viewerUserId ?? null,
             isReadonly: false,
             request: data.request,
           },
@@ -402,7 +445,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
             : "Failed to save request draft.",
       });
     }
-  }, [activeRequest, chatData?.userId, chatDataKey, mutate, visibility]);
+  }, [activeRequest, chatData?.ownerUserId, chatData?.viewerUserId, chatDataKey, mutate, visibility]);
 
   const openRequest = useCallback(async () => {
     if (!activeRequest) {
@@ -438,7 +481,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           {
             messages: [],
             visibility: data.request.visibility,
-            userId: chatData?.userId ?? null,
+            ownerUserId: chatData?.ownerUserId ?? null,
+            viewerUserId: chatData?.viewerUserId ?? null,
             isReadonly: false,
             request: data.request,
           },
@@ -464,7 +508,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   }, [
     activeRequest,
     chatData?.messages,
-    chatData?.userId,
+    chatData?.ownerUserId,
+    chatData?.viewerUserId,
     chatDataKey,
     mutate,
     visibility,
@@ -475,6 +520,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       chatId,
       messages,
       activities,
+      requestOwnerUserId: chatData?.ownerUserId ?? null,
       setMessages,
       sendMessage,
       status,
@@ -496,11 +542,39 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       createRequest,
       saveRequestDraft,
       openRequest,
+      resolveDeliveredFulfillment: async () => {
+        if (!activeRequest?.activeRefs.activeFulfillmentId) {
+          throw new Error("No delivered fulfillment is available to resolve.");
+        }
+
+        await fetchWithErrorHandlers(
+          `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/fulfillments/${activeRequest.activeRefs.activeFulfillmentId}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              idempotencyKey: generateUUID(),
+              status: "accepted",
+              summary: "Owner accepted delivery and resolved this request.",
+            }),
+          }
+        );
+
+        if (requestActivityKey) {
+          await mutate(requestActivityKey);
+        }
+        await mutate(chatDataKey);
+        await mutate(unstable_serialize(getRequestHistoryPaginationKey));
+      },
     }),
     [
       chatId,
       messages,
       activities,
+      chatData?.ownerUserId,
+      chatData?.viewerUserId,
       setMessages,
       sendMessage,
       status,
@@ -521,6 +595,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       createRequest,
       saveRequestDraft,
       openRequest,
+      mutate,
+      chatDataKey,
       requestActivityKey,
     ]
   );

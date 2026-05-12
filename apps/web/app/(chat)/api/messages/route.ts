@@ -25,7 +25,8 @@ export async function GET(httpRequest: Request) {
     return Response.json({
       messages: [],
       visibility: "private",
-      userId: null,
+      ownerUserId: null,
+      viewerUserId: session?.user?.id ?? null,
       isReadonly: false,
       request: null,
     });
@@ -54,7 +55,8 @@ export async function GET(httpRequest: Request) {
   return Response.json({
     messages: convertToUIMessages(messages),
     visibility: activeRequest?.visibility ?? chat.visibility,
-    userId: chat.userId,
+    ownerUserId: chat.userId,
+    viewerUserId: session?.user?.id ?? null,
     isReadonly,
     request: activeRequest,
   });

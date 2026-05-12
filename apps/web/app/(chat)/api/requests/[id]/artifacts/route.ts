@@ -93,6 +93,16 @@ export async function POST(
       ).toResponse();
     }
 
+    if (
+      error instanceof Error &&
+      error.message === "Execution artifact requires accepted lane"
+    ) {
+      return new ChatbotError(
+        "bad_request:api",
+        "Execution artifacts require an accepted commitment or active fulfillment lane."
+      ).toResponse();
+    }
+
     return new ChatbotError(
       "bad_request:database",
       "Failed to publish artifact"

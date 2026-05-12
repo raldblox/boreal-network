@@ -70,6 +70,32 @@ Open request room behavior should prefer:
 - `Artifact` for drafts, proof, files, and deliveries
 - `RequestEvent` for durable visible activity
 
+Realtime execution feedback may use an ephemeral transport lane for:
+
+- typing
+- token deltas
+- progress ticks
+- heartbeats
+- presence
+- transient runtime logs
+- raw tool stdout or stderr
+
+Those signals should not mutate the request root or create default durable `RequestEvent` history unless Boreal explicitly promotes a summarized business outcome.
+
+Owner-private desktop auto-resolution may use a lower-friction lane:
+
+- `Request` -> `Fulfillment` -> `Artifact`
+
+That shortcut is only valid when:
+
+- the request is owner-controlled
+- the request is `private`
+- the resolver runtime is acting for the same owner through Boreal-issued resolver auth
+
+Public or cross-actor execution should still prefer:
+
+- `Request` -> `Commitment` -> `Fulfillment` -> `Artifact`
+
 If a resolver runtime does not share chat context, it should prefer direct request resource APIs for these writes instead of going through the chat mutation layer.
 That runtime should authenticate with a Boreal-issued resolver token after explicit web approval, not by treating raw Codex auth as the request actor.
 
@@ -80,6 +106,18 @@ The first direct resolver lane in `apps/web` should support:
 - `POST /api/requests/{id}/fulfillments`
 - `PATCH /api/fulfillments/{id}`
 
+Desktop may use that lane after Boreal resolver approval to:
+
+- browse `public` request pool entries
+- browse owned requests
+- inspect durable request activity
+- propose commitments
+- accept commitments on owned requests
+- create fulfillment from an accepted commitment
+- publish artifacts
+- update fulfillment through delivery and acceptance
+- auto-resolve owned private requests directly into fulfillment when desktop owner policy enables it
+
 The request root should update through:
 
 - lifecycle status
@@ -87,6 +125,10 @@ The request root should update through:
 - `latest`
 
 Do not start fulfillment in `active` state while the request is still `funding_required`.
+
+Accepted responder lanes may create fulfillment after the owner accepts their commitment.
+Owned private desktop lanes may create fulfillment without a commitment object.
+Execution-grade artifacts such as delivery, evidence, receipt, and signature should require an accepted lane or active fulfillment role instead of being open to arbitrary public responders.
 
 Do not treat every open-room message as a brief rewrite.
 
@@ -133,4 +175,6 @@ These objects are derived and rebuildable, not durable roots:
 - `FulfillmentStep` is the default home for generated sub-work.
 - A new `Request` is only justified by a new funding, ownership, routing, or review boundary.
 - open request rooms should prefer adjacent durable objects plus request projection updates over inlining response history on the request root
+- ephemeral realtime signals should stay outside default durable history unless promoted
 - direct resolver APIs and chat mutation tools should map to the same durable request-side writes
+- owner-private desktop auto-resolution creates one fulfillment directly without creating a commitment object first when desktop owner policy enables it

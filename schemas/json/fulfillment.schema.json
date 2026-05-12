@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://boreal.work/schemas/json/fulfillment.schema.json",
   "title": "Fulfillment",
-  "description": "Canonical execution lane object attached to a Request and authorized by a Commitment.",
+  "description": "Canonical execution lane object attached to a Request and authorized by a Commitment or by direct owner-private execution.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,7 +10,6 @@
     "id",
     "key",
     "requestId",
-    "commitmentId",
     "status",
     "lead",
     "summary",

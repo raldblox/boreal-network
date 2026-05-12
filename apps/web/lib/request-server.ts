@@ -552,6 +552,33 @@ export async function publishArtifactForRequestById({
     throw new Error("Forbidden");
   }
 
+  if (isExecutionArtifactKind(artifactKind)) {
+    const activeFulfillment = requestDraft.activeRefs.activeFulfillmentId
+      ? await getFulfillmentById({
+          id: requestDraft.activeRefs.activeFulfillmentId,
+        })
+      : null;
+    const activeCommitment = requestDraft.activeRefs.activeCommitmentId
+      ? await getCommitmentById({
+          id: requestDraft.activeRefs.activeCommitmentId,
+        })
+      : null;
+    const isOwner = requestDraft.ownerId === actorUserId;
+    const isFulfillmentActor = activeFulfillment
+      ? activeFulfillment.lead.id === actorUserId ||
+        activeFulfillment.contributors.some(
+          (contributor) => contributor.id === actorUserId
+        )
+      : false;
+    const isAcceptedCommitmentActor =
+      activeCommitment?.status === "accepted" &&
+      activeCommitment.proposedBy.id === actorUserId;
+
+    if (!isOwner && !isFulfillmentActor && !isAcceptedCommitmentActor) {
+      throw new Error("Execution artifact requires accepted lane");
+    }
+  }
+
   const actor = toHumanActorRef(actorUserId);
   const now = new Date();
   const normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
@@ -843,7 +870,7 @@ export async function createFulfillmentForRequestById({
   source = "api.requests.fulfillments.create",
 }: {
   requestId: string;
-  commitmentId: string;
+  commitmentId?: string;
   actorUserId: string;
   summary: string;
   lead?: RequestActorRef;
@@ -854,17 +881,32 @@ export async function createFulfillmentForRequestById({
   idempotencyKey?: string;
   source?: string;
 }) {
-  const [existingRequest, existingCommitment] = await Promise.all([
-    getRequestById({ id: requestId }),
-    getCommitmentById({ id: commitmentId }),
-  ]);
-
-  if (!existingRequest || !existingCommitment) {
-    throw new Error("Request or commitment not found");
+  const existingRequest = await getRequestById({ id: requestId });
+  if (!existingRequest) {
+    throw new Error("Request not found");
   }
 
   const requestDraft = toRequestDraft(existingRequest);
-  if (requestDraft.ownerId !== actorUserId) {
+  const isOwner = requestDraft.ownerId === actorUserId;
+  const useDirectOwnerPrivateLane =
+    !commitmentId && isOwner && requestDraft.visibility === "private";
+  const existingCommitment = commitmentId
+    ? await getCommitmentById({ id: commitmentId })
+    : null;
+
+  if (commitmentId && !existingCommitment) {
+    throw new Error("Request or commitment not found");
+  }
+
+  if (!commitmentId && !useDirectOwnerPrivateLane) {
+    throw new Error("Owner-private direct fulfillment only");
+  }
+
+  const isAcceptedCommitmentActor =
+    existingCommitment?.status === "accepted" &&
+    existingCommitment.proposedBy.id === actorUserId;
+
+  if (!useDirectOwnerPrivateLane && !isOwner && !isAcceptedCommitmentActor) {
     throw new Error("Forbidden");
   }
 
@@ -884,12 +926,18 @@ export async function createFulfillmentForRequestById({
     throw new Error("Funding required before starting fulfillment");
   }
 
-  if (existingCommitment.requestId !== requestDraft.id) {
-    throw new Error("Commitment does not belong to request");
+  if (useDirectOwnerPrivateLane && requestDraft.status !== "open") {
+    throw new Error("Owner-private direct fulfillment requires open request");
   }
 
-  if (existingCommitment.status !== "accepted") {
-    throw new Error("Accepted commitment required");
+  if (existingCommitment) {
+    if (existingCommitment.requestId !== requestDraft.id) {
+      throw new Error("Commitment does not belong to request");
+    }
+
+    if (existingCommitment.status !== "accepted") {
+      throw new Error("Accepted commitment required");
+    }
   }
 
   const normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
@@ -929,7 +977,7 @@ export async function createFulfillmentForRequestById({
     id: fulfillmentId,
     key: buildObjectKey("fulfillment", summary, fulfillmentId),
     requestId: requestDraft.id,
-    commitmentId: existingCommitment.id,
+    commitmentId: existingCommitment?.id ?? null,
     ...(supplyId ? { supplyId } : {}),
     status: initialStatus,
     lead: nextLead,
@@ -943,11 +991,13 @@ export async function createFulfillmentForRequestById({
     ...(initialStatus === "active" ? { startedAt: now } : {}),
   });
 
-  await updateCommitmentById({
-    id: existingCommitment.id,
-    status: existingCommitment.status,
-    activeFulfillmentId: createdFulfillment.id,
-  });
+  if (existingCommitment) {
+    await updateCommitmentById({
+      id: existingCommitment.id,
+      status: existingCommitment.status,
+      activeFulfillmentId: createdFulfillment.id,
+    });
+  }
 
   const nextRequestStatus = requestStatusAfterFulfillmentStatus(
     requestDraft.status,
@@ -960,7 +1010,9 @@ export async function createFulfillmentForRequestById({
     patch: {
       status: nextRequestStatus,
       activeRefs: {
-        activeCommitmentId: existingCommitment.id,
+        ...(existingCommitment
+          ? { activeCommitmentId: existingCommitment.id }
+          : {}),
         activeFulfillmentId: createdFulfillment.id,
       },
       latest: {
@@ -988,7 +1040,9 @@ export async function createFulfillmentForRequestById({
       requestStatus: nextDraft.status,
       fulfillment: {
         id: createdFulfillment.id,
-        commitmentId: createdFulfillment.commitmentId,
+        ...(createdFulfillment.commitmentId
+          ? { commitmentId: createdFulfillment.commitmentId }
+          : {}),
         status: createdFulfillment.status,
         summary: createdFulfillment.summary,
       },
@@ -1102,7 +1156,9 @@ export async function updateFulfillmentForRequestById({
     patch: {
       status: nextRequestStatus,
       activeRefs: {
-        activeCommitmentId: existingFulfillment.commitmentId,
+        ...(existingFulfillment.commitmentId
+          ? { activeCommitmentId: existingFulfillment.commitmentId }
+          : {}),
         activeFulfillmentId: clearActiveFulfillment
           ? undefined
           : updatedFulfillment.id,
@@ -1137,7 +1193,9 @@ export async function updateFulfillmentForRequestById({
       requestStatus: nextDraft.status,
       fulfillment: {
         id: updatedFulfillment.id,
-        commitmentId: updatedFulfillment.commitmentId,
+        ...(updatedFulfillment.commitmentId
+          ? { commitmentId: updatedFulfillment.commitmentId }
+          : {}),
         status: updatedFulfillment.status,
         summary: updatedFulfillment.summary,
       },
@@ -1145,11 +1203,13 @@ export async function updateFulfillmentForRequestById({
     occurredAt: now,
   });
 
-  await updateCommitmentById({
-    id: updatedFulfillment.commitmentId,
-    status: "accepted",
-    activeFulfillmentId: clearActiveFulfillment ? null : updatedFulfillment.id,
-  });
+  if (updatedFulfillment.commitmentId) {
+    await updateCommitmentById({
+      id: updatedFulfillment.commitmentId,
+      status: "accepted",
+      activeFulfillmentId: clearActiveFulfillment ? null : updatedFulfillment.id,
+    });
+  }
 
   return toRequestFulfillment(updatedFulfillment);
 }
@@ -1271,6 +1331,15 @@ function buildObjectKey(prefix: string, label: string, id: string) {
 function normalizeIdempotencyKey(value: string | undefined) {
   const normalized = value?.trim();
   return normalized && normalized.length > 0 ? normalized : undefined;
+}
+
+function isExecutionArtifactKind(kind: RequestArtifactKind) {
+  return (
+    kind === "delivery" ||
+    kind === "evidence" ||
+    kind === "receipt" ||
+    kind === "signature"
+  );
 }
 
 function formatCommitmentDetail(terms: CommitmentTerms) {

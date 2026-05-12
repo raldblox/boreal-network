@@ -33,6 +33,7 @@ Examples: clarify, show shortlist, draft commitment, or block and escalate.
 ### 6. Mutation safety evals
 
 Verify that Boreal does not create `Fulfillment`, `FulfillmentStep`, `Artifact`, or settlement-side writes before approval and required commercial gates.
+Verify that the one owner-private desktop auto-fulfillment lane can create `Fulfillment` directly without `Commitment`, while public or cross-actor lanes still require the commitment gate.
 Verify that manual request-input edits cannot mutate system-owned request fields directly and must normalize through the same durable `Request`.
 Verify that open request room behavior does not fall back to draft-only brief mutation when the safer durable write is a `Commitment`, `Artifact`, or `RequestEvent`.
 Verify that direct resolver APIs and chat mutation tools produce equivalent durable request-side outcomes for commitment and artifact writes.

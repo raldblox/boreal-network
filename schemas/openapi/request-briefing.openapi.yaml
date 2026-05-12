@@ -725,7 +725,6 @@ components:
         - id
         - key
         - requestId
-        - commitmentId
         - status
         - lead
         - contributors
@@ -746,6 +745,7 @@ components:
         commitmentId:
           type: string
           format: uuid
+          nullable: true
         supplyId:
           type: string
           format: uuid
@@ -814,12 +814,12 @@ components:
       type: object
       additionalProperties: false
       required:
-        - commitmentId
         - summary
       properties:
         commitmentId:
           type: string
           format: uuid
+          nullable: true
         summary:
           type: string
         lead:

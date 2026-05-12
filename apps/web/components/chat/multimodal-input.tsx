@@ -225,6 +225,7 @@ function PureMultimodalInput({
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
+  const isOpenedRequest = Boolean(activeRequest && activeRequest.status !== "draft");
 
   const handleRequestSuggestionSelect = useCallback(
     (suggestion: string) => {
@@ -426,7 +427,8 @@ function PureMultimodalInput({
         !isLoading &&
         messages.length === 0 &&
         attachments.length === 0 &&
-        uploadQueue.length === 0 && (
+        uploadQueue.length === 0 &&
+        !isOpenedRequest && (
           <SuggestedActions
             chatId={chatId}
             isRequestMode={isRequestMode}
@@ -513,7 +515,10 @@ function PureMultimodalInput({
           </div>
         )}
         <PromptInputTextarea
-          className="min-h-24 text-[13px] leading-relaxed px-4 pt-3.5 pb-1.5 placeholder:text-muted-foreground/35"
+          className={cn(
+            "text-[13px] leading-relaxed px-4 pt-3.5 pb-1.5 placeholder:text-muted-foreground/35",
+            isOpenedRequest ? "min-h-16" : "min-h-24"
+          )}
           data-testid="multimodal-input"
           onChange={handleInput}
           onKeyDown={(e) => {

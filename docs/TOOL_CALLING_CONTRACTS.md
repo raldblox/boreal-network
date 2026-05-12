@@ -136,9 +136,11 @@ Every mutation call should return:
 - Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.
+- The one exception is the owner-private desktop auto-resolution lane, where the owner's private request may authorize direct fulfillment without a separate commitment object.
 - Tool-produced output should be recorded as `RequestEvent` when the thread needs durable explanation or auditability.
 - When a non-chat resolver runtime uses direct request APIs, those APIs must preserve the same durable behavior as the corresponding chat mutation tools.
 - Direct resolver APIs should support the same commercial and lifecycle gates as tools: accepted commitment before fulfillment, valid fulfillment-state transitions, and idempotent retries.
+- Direct resolver APIs may omit commitment creation only for owner-private direct auto-fulfillment.
 - Direct resolver APIs should accept Boreal-issued scoped bearer tokens rather than assuming browser session cookies or raw runtime credentials.
 
 ## First Implementation Target

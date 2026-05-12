@@ -11,6 +11,10 @@ import {
   updateDocumentContent,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
+import {
+  getRequestActorContext,
+  hasResolverScope,
+} from "@/lib/resolver-session";
 
 const documentSchema = z.object({
   content: z.string(),
@@ -30,7 +34,7 @@ export async function GET(request: Request) {
     ).toResponse();
   }
 
-  const session = await auth();
+  const actor = await getRequestActorContext(request);
 
   const documents = await getDocumentsById({ id });
 
@@ -59,12 +63,30 @@ export async function GET(request: Request) {
       artifactRequestRecord.status !== "draft"
   );
 
-  if (!session?.user) {
-    if (!canReadPublicRequestDocument) {
+  const canReadOwnedPrivateDocument = Boolean(
+    actor &&
+      (document.userId === actor.userId ||
+        requestRecord?.ownerId === actor.userId ||
+        artifactRequestRecord?.ownerId === actor.userId)
+  );
+
+  if (!actor) {
+    if (!canReadPublicRequestDocument && !canReadPublicArtifactDocument) {
       return new ChatbotError("unauthorized:document").toResponse();
     }
+  } else if (actor.kind === "resolver") {
+    const canReadPublic =
+      (canReadPublicRequestDocument || canReadPublicArtifactDocument) &&
+      hasResolverScope(actor, "requests:read_public");
+    const canReadPrivate =
+      canReadOwnedPrivateDocument &&
+      hasResolverScope(actor, "requests:read_private");
+
+    if (!canReadPublic && !canReadPrivate) {
+      return new ChatbotError("forbidden:document").toResponse();
+    }
   } else if (
-    document.userId !== session.user.id &&
+    document.userId !== actor.userId &&
     !canReadPublicRequestDocument &&
     !canReadPublicArtifactDocument
   ) {

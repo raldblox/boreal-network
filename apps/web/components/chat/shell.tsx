@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageSquareIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
@@ -26,12 +27,14 @@ import { submitEditedMessage } from "./message-editor";
 import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
 import { RequestBriefingPanel } from "./request-briefing-panel";
+import { toast } from "./toast";
 
 export function ChatShell() {
   const {
     chatId,
     messages,
     activities,
+    requestOwnerUserId,
     setMessages,
     sendMessage,
     status,
@@ -53,12 +56,16 @@ export function ChatShell() {
     createRequest,
     saveRequestDraft,
     openRequest,
+    resolveDeliveredFulfillment,
   } = useActiveChat();
 
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(
     null
   );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isOpenRequestChatVisible, setIsOpenRequestChatVisible] = useState(false);
+  const [isResolvingDeliveredRequest, setIsResolvingDeliveredRequest] =
+    useState(false);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
   const { setArtifact } = useArtifact();
 
@@ -79,6 +86,14 @@ export function ChatShell() {
       setAttachments([]);
     }
   }, [chatId, setArtifact]);
+
+  const isOpenedRequest = Boolean(activeRequest && activeRequest.status !== "draft");
+
+  useEffect(() => {
+    if (!isOpenedRequest) {
+      setIsOpenRequestChatVisible(false);
+    }
+  }, [isOpenedRequest]);
 
   useEffect(() => {
     if (!isRequestMode || !activeRequest || activeRequest.status !== "draft") {
@@ -150,6 +165,32 @@ export function ChatShell() {
     return createdRequest;
   };
 
+  const handleResolveDeliveredRequest = async () => {
+    if (!activeRequest || activeRequest.status !== "delivered") {
+      return;
+    }
+
+    setIsResolvingDeliveredRequest(true);
+
+    try {
+      await resolveDeliveredFulfillment();
+      toast({
+        type: "success",
+        description: "Delivery confirmed. Request resolved.",
+      });
+    } catch (error) {
+      toast({
+        type: "error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to confirm delivery.",
+      });
+    } finally {
+      setIsResolvingDeliveredRequest(false);
+    }
+  };
+
   return (
     <>
       <div className="flex h-dvh w-full flex-row overflow-hidden">
@@ -170,12 +211,18 @@ export function ChatShell() {
 
           <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-tl-[12px] md:border-t md:border-l md:border-border/40">
             <RequestBriefingPanel
+              isChatOpen={isOpenRequestChatVisible}
               isArtifactVisible={isArtifactVisible}
               isReadonly={isReadonly}
+              isResolvingDeliveredRequest={isResolvingDeliveredRequest}
               isRequestMode={isRequestMode}
+              onResolveDeliveredRequest={handleResolveDeliveredRequest}
               onOpenDocument={openRequestDocument}
               onSaveDraft={saveRequestDraft}
               onOpenRequest={openRequest}
+              onToggleChat={() =>
+                setIsOpenRequestChatVisible((current) => !current)
+              }
               request={activeRequest}
             />
 
@@ -183,6 +230,7 @@ export function ChatShell() {
               addToolApprovalResponse={addToolApprovalResponse}
               activities={activities}
               chatId={chatId}
+              requestOwnerUserId={activeRequest?.ownerId ?? requestOwnerUserId}
               isArtifactVisible={isArtifactVisible}
               isLoading={isLoading}
               isReadonly={isReadonly}
@@ -204,49 +252,128 @@ export function ChatShell() {
               votes={votes}
             />
 
-            <div className="sticky bottom-0 z-1 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4">
-              {!isReadonly && (
-                <MultimodalInput
-                  attachments={attachments}
-                  chatId={chatId}
-                  editingMessage={editingMessage}
-                  input={input}
-                  activeRequest={activeRequest}
-                  isRequestMode={isRequestMode}
-                  isLoading={isLoading}
-                  messages={messages}
-                  onCreateRequest={handleCreateRequest}
-                  ensureRequestForSend={ensureRequestForSend}
-                  onCancelEdit={() => {
-                    setEditingMessage(null);
-                    setInput("");
-                  }}
-                  onModelChange={setCurrentModelId}
-                  selectedModelId={currentModelId}
-                  selectedVisibilityType={visibilityType}
-                  sendMessage={
-                    editingMessage
-                      ? async () => {
-                          const msg = editingMessage;
+            {!isReadonly && (
+              <>
+                {isOpenedRequest && !isOpenRequestChatVisible ? (
+                  <div className="pointer-events-none absolute right-4 bottom-4 z-20">
+                    <button
+                      className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/50 bg-card/95 text-foreground shadow-[var(--shadow-float)] backdrop-blur transition-transform duration-200 hover:scale-[1.02]"
+                      onClick={() => setIsOpenRequestChatVisible(true)}
+                      type="button"
+                    >
+                      <MessageSquareIcon className="size-4" />
+                    </button>
+                  </div>
+                ) : null}
+
+                <div
+                  className={cn(
+                    "sticky bottom-0 z-10 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4",
+                    isOpenedRequest &&
+                      "pointer-events-none absolute right-4 bottom-4 left-auto z-20 w-[min(100%-2rem,28rem)] max-w-none rounded-2xl border border-border/60 bg-background/96 p-3 shadow-[var(--shadow-float)] backdrop-blur",
+                    isOpenedRequest &&
+                      !isOpenRequestChatVisible &&
+                      "hidden",
+                  )}
+                >
+                  {isOpenedRequest ? (
+                    <div className="pointer-events-auto flex w-full flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                          Chat
+                        </div>
+                        <button
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          onClick={() => setIsOpenRequestChatVisible(false)}
+                          type="button"
+                        >
+                          <XIcon className="size-4" />
+                        </button>
+                      </div>
+                      <MultimodalInput
+                        attachments={attachments}
+                        chatId={chatId}
+                        editingMessage={editingMessage}
+                        input={input}
+                        activeRequest={activeRequest}
+                        isRequestMode={isRequestMode}
+                        isLoading={isLoading}
+                        messages={messages}
+                        onCreateRequest={handleCreateRequest}
+                        ensureRequestForSend={ensureRequestForSend}
+                        onCancelEdit={() => {
                           setEditingMessage(null);
-                          await submitEditedMessage({
-                            message: msg,
-                            text: input,
-                            setMessages,
-                            regenerate,
-                          });
                           setInput("");
+                        }}
+                        onModelChange={setCurrentModelId}
+                        selectedModelId={currentModelId}
+                        selectedVisibilityType={visibilityType}
+                        sendMessage={
+                          editingMessage
+                            ? async () => {
+                                const msg = editingMessage;
+                                setEditingMessage(null);
+                                await submitEditedMessage({
+                                  message: msg,
+                                  text: input,
+                                  setMessages,
+                                  regenerate,
+                                });
+                                setInput("");
+                              }
+                            : sendMessage
                         }
-                      : sendMessage
-                  }
-                  setAttachments={setAttachments}
-                  setInput={setInput}
-                  setMessages={setMessages}
-                  status={status}
-                  stop={stop}
-                />
-              )}
-            </div>
+                        setAttachments={setAttachments}
+                        setInput={setInput}
+                        setMessages={setMessages}
+                        status={status}
+                        stop={stop}
+                      />
+                    </div>
+                  ) : (
+                    <MultimodalInput
+                      attachments={attachments}
+                      chatId={chatId}
+                      editingMessage={editingMessage}
+                      input={input}
+                      activeRequest={activeRequest}
+                      isRequestMode={isRequestMode}
+                      isLoading={isLoading}
+                      messages={messages}
+                      onCreateRequest={handleCreateRequest}
+                      ensureRequestForSend={ensureRequestForSend}
+                      onCancelEdit={() => {
+                        setEditingMessage(null);
+                        setInput("");
+                      }}
+                      onModelChange={setCurrentModelId}
+                      selectedModelId={currentModelId}
+                      selectedVisibilityType={visibilityType}
+                      sendMessage={
+                        editingMessage
+                          ? async () => {
+                              const msg = editingMessage;
+                              setEditingMessage(null);
+                              await submitEditedMessage({
+                                message: msg,
+                                text: input,
+                                setMessages,
+                                regenerate,
+                              });
+                              setInput("");
+                            }
+                          : sendMessage
+                      }
+                      setAttachments={setAttachments}
+                      setInput={setInput}
+                      setMessages={setMessages}
+                      status={status}
+                      stop={stop}
+                    />
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
 

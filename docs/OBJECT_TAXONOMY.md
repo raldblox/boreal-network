@@ -83,6 +83,10 @@ Use one object with `kind`, such as:
 
 This unifies direct specialist flows and market proposal flows under one durable concept.
 
+`Commitment` remains canonical for public, external, funded, or approval-gated work.
+
+Owner-private desktop auto-resolution may skip a visible `Commitment` object and authorize execution directly from the owner-bound `Request`.
+
 ### `Fulfillment`
 
 Represents an accepted execution lane for a request.
@@ -90,7 +94,7 @@ Represents an accepted execution lane for a request.
 It answers:
 
 - who is doing the work
-- under which accepted commitment
+- under which accepted commitment, or under direct owner-private authorization
 - with what status
 - toward what delivery
 

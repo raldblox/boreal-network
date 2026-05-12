@@ -951,7 +951,7 @@ export async function saveFulfillment({
   id: string;
   key: string;
   requestId: string;
-  commitmentId: string;
+  commitmentId?: string | null;
   supplyId?: string;
   status: FulfillmentStatus;
   lead: RequestActorRef;
@@ -976,7 +976,7 @@ export async function saveFulfillment({
         id,
         key,
         requestId,
-        commitmentId,
+        commitmentId: commitmentId ?? null,
         ...(supplyId ? { supplyId } : {}),
         status,
         lead,
@@ -1619,7 +1619,7 @@ export function toRequestFulfillment(
     id: record.id,
     key: record.key,
     requestId: record.requestId,
-    commitmentId: record.commitmentId,
+    ...(record.commitmentId ? { commitmentId: record.commitmentId } : {}),
     ...(record.supplyId ? { supplyId: record.supplyId } : {}),
     status: record.status,
     lead: record.lead,
@@ -1686,12 +1686,15 @@ function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntr
     fulfillment:
       fulfillmentPayload &&
       normalizeOptionalString(fulfillmentPayload.id) &&
-      normalizeOptionalString(fulfillmentPayload.commitmentId) &&
       normalizeOptionalString(fulfillmentPayload.status) &&
       normalizeOptionalString(fulfillmentPayload.summary)
         ? {
             id: String(fulfillmentPayload.id),
-            commitmentId: String(fulfillmentPayload.commitmentId),
+            ...(normalizeOptionalString(fulfillmentPayload.commitmentId)
+              ? {
+                  commitmentId: String(fulfillmentPayload.commitmentId),
+                }
+              : {}),
             status: fulfillmentPayload.status as FulfillmentStatus,
             summary: String(fulfillmentPayload.summary),
           }

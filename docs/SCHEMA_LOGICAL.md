@@ -49,6 +49,7 @@ Support auth aggregates for resolver runtimes:
 
 - one request can have zero to many fulfillments over time
 - usually one fulfillment lane is active at a time unless the request explicitly supports parallel accepted lanes
+- owner-private direct auto-fulfillment may open one fulfillment without first creating a commitment object
 
 ### `Fulfillment` -> `FulfillmentStep`
 
@@ -102,6 +103,7 @@ Does not store:
 
 `activeRefs` is the clean place for current accepted lane or latest durable related object pointers.
 `latest` is the clean place for current room summary without replaying the whole event stream inline.
+`activeRefs.activeCommitmentId` is optional when the owner-private direct auto-fulfillment lane is active.
 
 ### `Request` Object Spec
 
@@ -154,7 +156,8 @@ Draft rule:
 Stores accepted execution truth:
 
 - selected actor or team
-- accepted commitment reference
+- accepted commitment reference when one exists
+- or direct owner-private authorization when desktop auto-resolution starts from the request itself
 - execution status
 - delivery summary
 
