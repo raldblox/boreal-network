@@ -23,6 +23,7 @@ const CODEX_COMMAND = isWindows
 let appServerClient = null;
 let appServerClientPromise = null;
 let cachedModels = null;
+let cachedCliVersion = null;
 const threadSessions = new Map();
 
 function buildDesktopSystemPrompt() {
@@ -631,17 +632,82 @@ function launchCodexLoginWindow() {
 
 function normalizeAuthState(payload, stat) {
   const tokens = payload?.tokens ?? {};
+  const accountId =
+    typeof tokens.account_id === "string" && tokens.account_id.trim().length > 0
+      ? tokens.account_id.trim()
+      : null;
+  const authMode =
+    typeof payload?.auth_mode === "string" && payload.auth_mode.trim().length > 0
+      ? payload.auth_mode.trim()
+      : null;
 
   return {
-    authMode: payload?.auth_mode ?? null,
+    accountIdMasked: maskAccountId(accountId),
+    authMode,
+    authProvider: inferAuthProviderLabel(authMode),
     authenticated: Boolean(tokens.access_token),
     hasAccessToken: Boolean(tokens.access_token),
     hasRefreshToken: Boolean(tokens.refresh_token),
-    accountIdPresent: Boolean(tokens.account_id),
+    accountIdPresent: Boolean(accountId),
     hasOpenAiApiKey: Boolean(payload?.OPENAI_API_KEY),
     authPath: AUTH_PATH,
     updatedAt: stat.mtime.toISOString(),
+    workerIdentity: buildWorkerIdentity({
+      accountId,
+      authMode,
+      authenticated: Boolean(tokens.access_token),
+    }),
   };
+}
+
+function maskAccountId(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+
+  const normalized = value.trim();
+
+  if (normalized.length <= 8) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, 4)}...${normalized.slice(-4)}`;
+}
+
+function inferAuthProviderLabel(authMode) {
+  if (typeof authMode !== "string" || authMode.trim().length === 0) {
+    return null;
+  }
+
+  const normalized = authMode.toLowerCase();
+
+  if (normalized.includes("chatgpt")) {
+    return "ChatGPT";
+  }
+
+  if (normalized.includes("openai")) {
+    return "OpenAI";
+  }
+
+  return authMode;
+}
+
+function buildWorkerIdentity({
+  accountId,
+  authMode,
+  authenticated,
+}) {
+  if (!authenticated) {
+    return null;
+  }
+
+  const provider = inferAuthProviderLabel(authMode)?.toLowerCase() ?? "codex";
+
+  if (typeof accountId === "string" && accountId.trim().length > 0) {
+    return `codex/${provider}/${maskAccountId(accountId)}`;
+  }
+
+  return `codex/${provider}/connected`;
 }
 
 function normalizeDebugReasoningLevels(entry) {
@@ -1080,6 +1146,21 @@ async function listCodexModelsViaDebugCommand() {
   };
 }
 
+export async function getCodexCliVersion() {
+  if (cachedCliVersion) {
+    return cachedCliVersion;
+  }
+
+  try {
+    const { stdout } = await runCodexCommand(["--version"]);
+    cachedCliVersion = stdout.trim() || null;
+    return cachedCliVersion;
+  } catch {
+    cachedCliVersion = null;
+    return null;
+  }
+}
+
 async function startAppServerThread({
   client,
   model,
@@ -1363,7 +1444,9 @@ export async function getCodexAuthState() {
   } catch (error) {
     if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
       return {
+        accountIdMasked: null,
         authMode: null,
+        authProvider: null,
         authenticated: false,
         hasAccessToken: false,
         hasRefreshToken: false,
@@ -1371,6 +1454,7 @@ export async function getCodexAuthState() {
         hasOpenAiApiKey: false,
         authPath: AUTH_PATH,
         updatedAt: null,
+        workerIdentity: null,
       };
     }
 

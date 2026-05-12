@@ -2,8 +2,13 @@ import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  getBorealWebBaseUrl,
+  listPublicRequests,
+} from "./boreal-web-client.js";
+import {
   connectCodex,
   createDesktopResponse,
+  getCodexCliVersion,
   getCodexAuthState,
   listCodexModels,
   shutdownCodexRuntime,
@@ -74,6 +79,8 @@ function createMainWindow() {
 }
 
 ipcMain.handle("desktop:get-shell-info", async () => ({
+  borealWebBaseUrl: getBorealWebBaseUrl(),
+  codexCliVersion: await getCodexCliVersion(),
   name: "Boreal Desktop",
   platform: process.platform,
   versions: {
@@ -88,6 +95,10 @@ ipcMain.handle("desktop:get-codex-auth-state", async () => getCodexAuthState());
 ipcMain.handle("desktop:list-codex-models", async () => listCodexModels());
 
 ipcMain.handle("desktop:connect-codex", async () => connectCodex());
+
+ipcMain.handle("desktop:list-public-requests", async (_event, payload) =>
+  listPublicRequests(payload ?? {}),
+);
 
 ipcMain.handle("desktop:get-project-state", async () =>
   getDesktopProjectState(),

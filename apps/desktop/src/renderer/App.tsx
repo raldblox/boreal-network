@@ -7,6 +7,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  Badge,
   Button,
   Select,
   SelectContent,
@@ -17,13 +18,16 @@ import {
   Textarea,
 } from "@boreal/ui";
 import {
-  FolderIcon,
-  FolderOpenIcon,
-  FolderPlusIcon,
+  CalendarDaysIcon,
+  CircleDollarSignIcon,
+  FolderOpenDotIcon,
+  Globe2Icon,
   Link2Icon,
   MessageSquareIcon,
   PanelLeftIcon,
   PlusIcon,
+  RefreshCwIcon,
+  SparklesIcon,
   Trash2Icon,
 } from "lucide-react";
 import { MessageMarkdown } from "./message-markdown";
@@ -31,6 +35,8 @@ import { MessageMarkdown } from "./message-markdown";
 type NoticeTone = "error" | "info" | "success";
 
 type AuthState = {
+  accountIdMasked: string | null;
+  authProvider: string | null;
   authMode: string | null;
   authenticated: boolean;
   hasAccessToken: boolean;
@@ -39,6 +45,19 @@ type AuthState = {
   hasOpenAiApiKey: boolean;
   authPath: string;
   updatedAt: string | null;
+  workerIdentity: string | null;
+};
+
+type ShellInfo = {
+  borealWebBaseUrl: string;
+  codexCliVersion: string | null;
+  name: string;
+  platform: string;
+  versions: {
+    chrome: string;
+    electron: string;
+    node: string;
+  };
 };
 
 type ProjectOption = {
@@ -159,6 +178,68 @@ type LocalChatState = {
   threads: LocalChatThread[];
 };
 
+type PublicRequestBudget = {
+  currency: string | null;
+  fixedAmount: number | null;
+  maxAmount: number | null;
+  minAmount: number | null;
+  mode: string;
+};
+
+type PublicRequestDeadline = {
+  notes: string;
+  targetAt: string | null;
+};
+
+type PublicRequestEntry = {
+  brief: {
+    body: string;
+    constraints: Record<string, unknown>;
+    outputKinds: string[];
+    summary: string;
+    tags: string[];
+    title: string;
+  };
+  budget: PublicRequestBudget | null;
+  createdAt: string;
+  deadline: PublicRequestDeadline | null;
+  derived: {
+    executionKind: string | null;
+    matchingMode: string | null;
+    missingDetails: string[];
+    paymentMode: string | null;
+    readiness: {
+      readyForMatch: boolean;
+      readyForOpen: boolean;
+      state: string;
+      summary: string;
+    };
+    routeFamily: string | null;
+    routeSummary: string | null;
+  };
+  id: string;
+  key: string;
+  latest: {
+    summary: string;
+  };
+  seeking: {
+    actorKinds: string[];
+    notes: string;
+    supplyKinds: string[];
+    teamMode: string;
+  };
+  status: string;
+  updatedAt: string;
+  visibility: "public";
+};
+
+type PublicRequestListResult = {
+  fetchedAt: string;
+  hasMore: boolean;
+  requests: PublicRequestEntry[];
+  sourceBaseUrl: string;
+};
+
 type SendMessagePayload = {
   messages: Array<Pick<LocalMessage, "content" | "role">>;
   model: string;
@@ -183,6 +264,8 @@ type PendingThreadDelete = {
   title: string;
 } | null;
 
+type AppSurface = "chat" | "public-requests";
+
 const MAX_STREAM_ACTIVITIES = 6;
 
 declare global {
@@ -204,6 +287,12 @@ declare global {
         projectId: string;
       }) => Promise<LocalChatState>;
       getProjectState: () => Promise<ProjectStateResult>;
+      getShellInfo: () => Promise<ShellInfo>;
+      listPublicRequests: (payload?: {
+        endingBefore?: string;
+        limit?: number;
+        startingAfter?: string;
+      }) => Promise<PublicRequestListResult>;
       listCodexModels: () => Promise<ModelListResult>;
       onCodexEvent?: (
         listener: (event: DesktopStreamEvent) => void,
@@ -242,6 +331,79 @@ function formatDuration(durationMs?: number) {
   return `${seconds}s`;
 }
 
+function formatTimestamp(value?: string | null) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "Unavailable";
+  }
+
+  const timestamp = new Date(value);
+
+  if (Number.isNaN(timestamp.getTime())) {
+    return value;
+  }
+
+  return timestamp.toLocaleString();
+}
+
+function formatBudgetSummary(budget: PublicRequestBudget | null) {
+  if (!budget) {
+    return "Budget unset";
+  }
+
+  if (budget.mode === "fixed" && budget.fixedAmount != null) {
+    return `${budget.currency ?? ""} ${budget.fixedAmount}`.trim();
+  }
+
+  if (
+    budget.mode === "range" &&
+    (budget.minAmount != null || budget.maxAmount != null)
+  ) {
+    return `${budget.currency ?? ""} ${budget.minAmount ?? "?"}-${budget.maxAmount ?? "?"}`.trim();
+  }
+
+  if (budget.mode === "open") {
+    return "Open budget";
+  }
+
+  if (budget.mode === "none") {
+    return "No budget";
+  }
+
+  return "Budget set";
+}
+
+function formatDeadlineSummary(deadline: PublicRequestDeadline | null) {
+  if (!deadline?.targetAt) {
+    return "No deadline";
+  }
+
+  const target = new Date(deadline.targetAt);
+
+  if (Number.isNaN(target.getTime())) {
+    return "Deadline set";
+  }
+
+  return target.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getPublicRequestTitle(request: PublicRequestEntry) {
+  return request.brief.title.trim() || request.key || "Untitled request";
+}
+
+function getPublicRequestSummary(request: PublicRequestEntry) {
+  return (
+    request.latest.summary.trim() ||
+    request.derived.routeSummary?.trim() ||
+    request.brief.summary.trim() ||
+    request.derived.readiness.summary.trim() ||
+    "Open public request."
+  );
+}
+
 function buildActivityToneClassName(
   state: StreamActivity["state"],
 ) {
@@ -262,14 +424,14 @@ function buildActivityToneClassName(
 
 function buildNoticeClassName(tone: NoticeTone) {
   if (tone === "error") {
-    return "border-destructive/30 bg-destructive/10 text-destructive";
+    return "border-destructive/30 bg-destructive/95 text-destructive-foreground";
   }
 
   if (tone === "success") {
-    return "border-emerald-400/20 bg-emerald-500/10 text-emerald-100";
+    return "border-emerald-400/30 bg-emerald-500/95 text-emerald-50";
   }
 
-  return "border-sky-400/20 bg-sky-500/10 text-sky-100";
+  return "border-sky-400/30 bg-sky-500/95 text-sky-50";
 }
 
 function resolveModelSelection(currentModel: string, nextModels: ModelOption[]) {
@@ -497,6 +659,7 @@ export function App() {
   const shouldStickToBottomRef = useRef(true);
   const streamFlushTimerRef = useRef<number | null>(null);
   const streamingTextBufferRef = useRef("");
+  const [activeSurface, setActiveSurface] = useState<AppSurface>("chat");
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [appHomePath, setAppHomePath] = useState<string | null>(null);
   const [authState, setAuthState] = useState<AuthState | null>(null);
@@ -505,9 +668,11 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [isConnectingCodex, setIsConnectingCodex] = useState(false);
+  const [isCodexInfoOpen, setIsCodexInfoOpen] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [isDeletingThread, setIsDeletingThread] = useState(false);
+  const [isLoadingPublicRequests, setIsLoadingPublicRequests] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isWaitingForCodexAuth, setIsWaitingForCodexAuth] = useState(false);
@@ -521,24 +686,41 @@ export function App() {
   const [preferredModel, setPreferredModel] = useState("");
   const [preferredReasoning, setPreferredReasoning] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
+  const [selectedPublicRequestId, setSelectedPublicRequestId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedReasoning, setSelectedReasoning] = useState("");
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
+  const [shellInfo, setShellInfo] = useState<ShellInfo | null>(null);
   const [streamNotice, setStreamNotice] = useState<StreamNotice | null>(null);
   const [streamActivities, setStreamActivities] = useState<StreamActivity[]>([]);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [streamingAssistantText, setStreamingAssistantText] = useState("");
   const [threads, setThreads] = useState<LocalChatThread[]>([]);
   const [projects, setProjects] = useState<ProjectOption[]>([]);
+  const [publicRequests, setPublicRequests] = useState<PublicRequestListResult | null>(null);
 
   const selectedProject =
     projects.find((project) => project.id === selectedProjectId) ?? null;
   const activeThread =
     threads.find((thread) => thread.id === selectedThreadId) ?? null;
+  const selectedPublicRequest =
+    publicRequests?.requests.find((request) => request.id === selectedPublicRequestId) ??
+    publicRequests?.requests[0] ??
+    null;
   const groupedThreads = useMemo(() => groupThreadsByDate(threads), [threads]);
   const selectedModelEntry = getSelectedModelEntry(models, selectedModel);
   const latestStreamActivity =
     streamActivities[streamActivities.length - 1] ?? null;
+  const workerIdentityLabel =
+    authState?.workerIdentity ??
+    (authState?.accountIdMasked
+      ? `codex/${authState.authProvider?.toLowerCase() ?? "chatgpt"}/${authState.accountIdMasked}`
+      : "No ChatGPT account connected");
+  const workerIdentityMeta = authState?.authenticated
+    ? `${authState.authProvider ?? "Codex"} account connected${
+        shellInfo?.codexCliVersion ? ` · ${shellInfo.codexCliVersion}` : ""
+      }`
+    : "Sign in with ChatGPT to spin up a valid worker.";
 
   function updateScrollStickiness(target: HTMLDivElement) {
     const distanceFromBottom =
@@ -595,9 +777,10 @@ export function App() {
     const boot = async () => {
       try {
         const desktop = getDesktopBridge();
-        const [projectState, nextAuthState] = await Promise.all([
+        const [projectState, nextAuthState, nextShellInfo] = await Promise.all([
           desktop.getProjectState(),
           desktop.getCodexAuthState(),
+          desktop.getShellInfo(),
         ]);
 
         if (cancelled) {
@@ -617,6 +800,10 @@ export function App() {
         setPreferredModel(nextDefaultModel);
         setPreferredReasoning(nextDefaultReasoning);
         setAuthState(nextAuthState);
+        setShellInfo(nextShellInfo);
+
+        let bootModelHint = nextDefaultModel;
+        let bootReasoningHint = nextDefaultReasoning;
 
         if (nextProjectId) {
           const chatState = await desktop.getLocalChatState({
@@ -645,11 +832,22 @@ export function App() {
               nextDefaultReasoning ||
               chatState.selectedReasoning,
           );
+          bootModelHint =
+            nextActiveThread?.model ||
+            nextDefaultModel ||
+            chatState.selectedModel;
+          bootReasoningHint =
+            nextActiveThread?.reasoning ||
+            nextDefaultReasoning ||
+            chatState.selectedReasoning;
         }
 
         if (nextAuthState.authenticated) {
           await connectCodex({
+            modelHint: bootModelHint,
+            reasoningHint: bootReasoningHint,
             silent: true,
+            updatePreferredDefaults: false,
           });
         }
       } catch (nextError) {
@@ -893,6 +1091,34 @@ export function App() {
   }, [isBooting, preferredModel, preferredReasoning]);
 
   useEffect(() => {
+    if (!notice) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setNotice((current) => (current === notice ? null : current));
+    }, notice.tone === "error" ? 6000 : 3200);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [notice]);
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setError((current) => (current === error ? null : current));
+    }, 6500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [error]);
+
+  useEffect(() => {
     const container = conversationScrollRef.current;
 
     if (!container || !shouldStickToBottomRef.current) {
@@ -902,8 +1128,18 @@ export function App() {
     container.scrollTop = container.scrollHeight;
   }, [messages, isSending, streamingAssistantText]);
 
-  async function connectCodex(options?: { silent?: boolean }) {
+  async function connectCodex(options?: {
+    modelHint?: string;
+    reasoningHint?: string;
+    silent?: boolean;
+    updatePreferredDefaults?: boolean;
+  }) {
+    const modelHint =
+      typeof options?.modelHint === "string" ? options.modelHint : "";
+    const reasoningHint =
+      typeof options?.reasoningHint === "string" ? options.reasoningHint : "";
     const silent = options?.silent === true;
+    const updatePreferredDefaults = options?.updatePreferredDefaults !== false;
     setIsConnectingCodex(true);
     setError(null);
     setStreamActivities([]);
@@ -912,13 +1148,13 @@ export function App() {
     try {
       const result = await getDesktopBridge().connectCodex();
       const nextModel = resolveModelSelection(
-        selectedModel || preferredModel,
+        modelHint || selectedModel || preferredModel,
         result.models,
       );
       const nextModelEntry = getSelectedModelEntry(result.models, nextModel);
       const nextReasoning = resolveReasoningSelection(
         nextModelEntry,
-        selectedReasoning || preferredReasoning,
+        reasoningHint || selectedReasoning || preferredReasoning,
       );
 
       setAuthState(result.authState);
@@ -926,11 +1162,11 @@ export function App() {
       setSelectedModel(nextModel);
       setSelectedReasoning(nextReasoning);
 
-      if (!preferredModel && nextModel) {
+      if (updatePreferredDefaults && !preferredModel && nextModel) {
         setPreferredModel(nextModel);
       }
 
-      if (!preferredReasoning && nextReasoning) {
+      if (updatePreferredDefaults && !preferredReasoning && nextReasoning) {
         setPreferredReasoning(nextReasoning);
       }
 
@@ -960,6 +1196,65 @@ export function App() {
       );
     } finally {
       setIsConnectingCodex(false);
+    }
+  }
+
+  async function loadPublicRequests(options?: {
+    focus?: boolean;
+    silent?: boolean;
+  }) {
+    if (isLoadingPublicRequests) {
+      return;
+    }
+
+    const focus = options?.focus === true;
+    const silent = options?.silent === true;
+
+    setIsLoadingPublicRequests(true);
+
+    if (!silent) {
+      setError(null);
+      setNotice(null);
+    }
+
+    try {
+      const result = await getDesktopBridge().listPublicRequests({
+        limit: 20,
+      });
+      const nextSelectedRequestId =
+        result.requests.some((request) => request.id === selectedPublicRequestId)
+          ? selectedPublicRequestId
+          : result.requests[0]?.id ?? null;
+
+      setPublicRequests(result);
+      setSelectedPublicRequestId(nextSelectedRequestId);
+
+      if (focus) {
+        setActiveSurface("public-requests");
+      }
+
+      if (!silent) {
+        setNotice({
+          message:
+            result.requests.length > 0
+              ? `Loaded ${result.requests.length} public requests from Boreal web.`
+              : "No public requests are open right now.",
+          tone: "info",
+        });
+      }
+    } catch (nextError) {
+      if (focus) {
+        setActiveSurface("public-requests");
+      }
+
+      const message =
+        nextError instanceof Error
+          ? nextError.message
+          : "Public requests failed to load.";
+
+      setError(message);
+    } finally {
+      setIsLoadingPublicRequests(false);
     }
   }
 
@@ -1144,6 +1439,7 @@ export function App() {
       nextReasoning || preferredReasoning || selectedReasoning;
 
     shouldStickToBottomRef.current = true;
+    setActiveSurface("chat");
     setSelectedThreadId(null);
     startTransition(() => {
       setMessages([]);
@@ -1177,6 +1473,7 @@ export function App() {
     }
 
     shouldStickToBottomRef.current = true;
+    setActiveSurface("chat");
     setSelectedThreadId(nextThread.id);
     startTransition(() => {
       setMessages(nextThread.messages);
@@ -1223,6 +1520,12 @@ export function App() {
           : thread,
       ),
     );
+  }
+
+  function handleOpenPublicRequests() {
+    void loadPublicRequests({
+      focus: true,
+    });
   }
 
   function handleReasoningChange(nextReasoning: string) {
@@ -1377,11 +1680,17 @@ export function App() {
       ? "Reconnect Codex"
       : "Connect Codex";
   const connectBusy = isBooting || isConnectingCodex || isWaitingForCodexAuth;
-  const connectStatusMessage = isBooting
+  const topToast = error
+    ? {
+        message: error,
+        tone: "error" as NoticeTone,
+      }
+    : notice;
+  const connectHelperText = isBooting
     ? "Checking local Codex auth..."
     : isWaitingForCodexAuth
       ? "Finish Codex login in the terminal window. Desktop will attach automatically."
-      : notice?.message ?? null;
+      : null;
   const activeThreadTitle = activeThread ? getThreadTitle(activeThread) : "New chat";
   const pendingProjectDeleteVerb =
     pendingProjectDelete?.kind === "linked" ? "Remove project" : "Delete project";
@@ -1389,6 +1698,18 @@ export function App() {
   if (!connected) {
     return (
       <main className="h-screen overflow-hidden bg-background text-foreground">
+        {topToast ? (
+          <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+            <div
+              className={`pointer-events-auto w-full max-w-md rounded-xl border px-4 py-3 text-sm shadow-lg ${buildNoticeClassName(
+                topToast.tone,
+              )}`}
+            >
+              {topToast.message}
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex h-full items-center justify-center px-4">
           <section className="w-full max-w-md rounded-xl border border-border bg-card p-6">
             <div className="space-y-5">
@@ -1410,20 +1731,22 @@ export function App() {
                 Start new threads from the sidebar after Codex connects.
               </div>
 
-              {error ? (
-                <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {error}
-                </div>
-              ) : null}
+              <div className="rounded-lg border border-border/80 bg-card/50 px-3 py-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Worker identity
+                </p>
+                <p className="mt-1 truncate text-sm font-medium text-foreground">
+                  {workerIdentityLabel}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {workerIdentityMeta}
+                </p>
+              </div>
 
-              {connectStatusMessage ? (
-                <div
-                  className={`rounded-lg border px-3 py-2 text-sm ${buildNoticeClassName(
-                    notice?.tone ?? "info",
-                  )}`}
-                >
-                  {connectStatusMessage}
-                </div>
+              {connectHelperText ? (
+                <p className="text-center text-sm text-muted-foreground">
+                  {connectHelperText}
+                </p>
               ) : null}
 
               <Button
@@ -1444,6 +1767,18 @@ export function App() {
 
   return (
     <main className="h-screen overflow-hidden bg-background text-foreground">
+      {topToast ? (
+        <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
+          <div
+            className={`pointer-events-auto w-full max-w-md rounded-xl border px-4 py-3 text-sm shadow-lg ${buildNoticeClassName(
+              topToast.tone,
+            )}`}
+          >
+            {topToast.message}
+          </div>
+        </div>
+      ) : null}
+
       <div className="flex h-full">
         <aside
           className={`shrink-0 overflow-hidden border-r border-border/80 bg-card/55 transition-[width] duration-200 ${
@@ -1473,6 +1808,19 @@ export function App() {
                 >
                   <PlusIcon className="size-4" />
                   New thread
+                </Button>
+                <Button
+                  variant={activeSurface === "public-requests" ? "default" : "outline"}
+                  onClick={handleOpenPublicRequests}
+                  disabled={isLoadingPublicRequests}
+                  className="w-full justify-start"
+                >
+                  {isLoadingPublicRequests ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <Globe2Icon className="size-4" />
+                  )}
+                  Public requests
                 </Button>
               </div>
             </div>
@@ -1551,207 +1899,516 @@ export function App() {
             </div>
 
             <div className="border-t border-border/80 px-3 py-3">
-              <p className="flex items-center gap-2 truncate text-xs text-muted-foreground">
-                <Link2Icon className="size-3.5 shrink-0" />
-                {appHomePath ?? "~/.boreal-work"}
-              </p>
+              <div className="flex items-start gap-2">
+                <Link2Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium text-foreground">
+                    {workerIdentityLabel}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {workerIdentityMeta}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-3">
-            <Button
-              variant="ghost"
-              onClick={() => setIsSidebarOpen((current) => !current)}
-              className="px-3"
-              aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
-              title={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
-            >
-              <PanelLeftIcon className="size-4" />
-            </Button>
-
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-sm font-semibold tracking-tight">
-                {activeThreadTitle}
-              </h1>
-              <p className="truncate text-xs text-muted-foreground">
-                Chats
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Select
-                value={selectedModel || undefined}
-                onValueChange={handleModelChange}
-              >
-                <SelectTrigger className="min-w-40">
-                  <SelectValue placeholder="Model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {models.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.displayName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {selectedModelEntry &&
-              selectedModelEntry.supportedReasoningLevels.length > 0 ? (
-                <Select
-                  value={selectedReasoning || undefined}
-                  onValueChange={handleReasoningChange}
+          {activeSurface === "public-requests" ? (
+            <>
+              <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsSidebarOpen((current) => !current)}
+                  className="px-3"
+                  aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                  title={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
                 >
-                  <SelectTrigger className="min-w-28">
-                    <SelectValue placeholder="Effort" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {selectedModelEntry.supportedReasoningLevels.map((level) => (
-                      <SelectItem key={level.effort} value={level.effort}>
-                        {level.effort}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
-            </div>
-          </header>
+                  <PanelLeftIcon className="size-4" />
+                </Button>
 
-          {error ? (
-            <div className="shrink-0 border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-              {error}
-            </div>
-          ) : null}
-
-          {notice ? (
-            <div
-              className={`shrink-0 border-b px-4 py-2 text-sm ${buildNoticeClassName(
-                notice.tone,
-              )}`}
-            >
-              {notice.message}
-            </div>
-          ) : null}
-
-          <div
-            ref={conversationScrollRef}
-            onScroll={(event) => {
-              updateScrollStickiness(event.currentTarget);
-            }}
-            className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-behavior-contain px-4 py-4"
-          >
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-              {messages.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-                  Start a local chat.
-                </div>
-              ) : null}
-
-              {messages.map((message) => (
-                <article
-                  key={message.id}
-                  className={
-                    message.role === "assistant"
-                      ? "max-w-[min(46rem,100%)] rounded-2xl border border-border bg-card px-4 py-3"
-                      : "max-w-[min(46rem,100%)] self-end rounded-2xl border border-border bg-secondary px-4 py-3"
-                  }
-                >
-                  {message.role === "assistant" ? (
-                    <MessageMarkdown content={message.content} />
-                  ) : (
-                    <div className="whitespace-pre-wrap text-sm leading-6">
-                      {message.content}
-                    </div>
-                  )}
-                  {message.role === "assistant" && message.durationMs ? (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      {formatDuration(message.durationMs)}
-                    </p>
-                  ) : null}
-                </article>
-              ))}
-
-              {isSending ? (
-                <article className="max-w-[min(46rem,100%)] rounded-2xl border border-border bg-card px-4 py-3">
-                  {streamingAssistantText ? (
-                    <MessageMarkdown content={streamingAssistantText} />
-                  ) : null}
-
-                  <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                    <Spinner className="size-4" />
-                    <span>
-                      {streamStatus ||
-                        `Running local Codex turn on ${selectedModel || "selected model"}...`}
-                    </span>
-                  </div>
-
-                  {latestStreamActivity ? (
-                    <div
-                      className={`mt-2 rounded-lg border px-3 py-2 text-xs ${buildActivityToneClassName(
-                        latestStreamActivity.state,
-                      )}`}
-                    >
-                      <p>{latestStreamActivity.message}</p>
-                      {latestStreamActivity.detail ? (
-                        <p className="mt-1 font-mono opacity-85">
-                          {latestStreamActivity.detail}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {streamNotice ? (
-                    <p
-                      className={`mt-2 text-xs ${
-                        streamNotice.tone === "error"
-                          ? "text-destructive"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {streamNotice.message}
-                    </p>
-                  ) : null}
-                </article>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="shrink-0 border-t border-border px-4 py-3">
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
-              <Textarea
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault();
-                    void sendMessage();
-                  }
-                }}
-                placeholder="Ask anything..."
-                className="min-h-24 resize-none rounded-xl border border-border bg-card px-3 py-3 shadow-none focus-visible:ring-0"
-                disabled={!chatReady || isSending}
-              />
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <span>Chats</span>
-                  <span>{selectedModel}</span>
-                  {selectedReasoning ? <span>{selectedReasoning}</span> : null}
-                  {latestAssistantDuration ? (
-                    <span>Last turn {formatDuration(latestAssistantDuration)}.</span>
-                  ) : null}
+                <div className="min-w-0 flex-1">
+                  <h1 className="truncate text-sm font-semibold tracking-tight">
+                    Public requests
+                  </h1>
+                  <p className="truncate text-xs text-muted-foreground">
+                    Live from Boreal web
+                  </p>
                 </div>
 
                 <Button
-                  onClick={() => void sendMessage()}
-                  disabled={!chatReady || isSending || draft.trim().length === 0}
+                  variant="outline"
+                  onClick={() =>
+                    void loadPublicRequests({
+                      focus: true,
+                      silent: true,
+                    })
+                  }
+                  disabled={isLoadingPublicRequests}
                 >
-                  {isSending ? <Spinner className="size-4" /> : null}
-                  Send
+                  {isLoadingPublicRequests ? (
+                    <Spinner className="size-4" />
+                  ) : (
+                    <RefreshCwIcon className="size-4" />
+                  )}
+                  Refresh
                 </Button>
+              </header>
+
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                <div className="mx-auto grid w-full max-w-6xl gap-4 lg:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
+                  <section className="min-h-0 rounded-2xl border border-border bg-card/55 p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3 border-b border-border/80 px-1 pb-3">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          Open public requests
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {publicRequests
+                            ? `${publicRequests.requests.length} loaded from ${publicRequests.sourceBaseUrl}`
+                            : shellInfo?.borealWebBaseUrl
+                              ? `Waiting on ${shellInfo.borealWebBaseUrl}`
+                              : "Waiting on Boreal web"}
+                        </p>
+                      </div>
+                      {publicRequests?.hasMore ? (
+                        <Badge variant="secondary" className="rounded-full">
+                          More on web
+                        </Badge>
+                      ) : null}
+                    </div>
+
+                    {isLoadingPublicRequests && !publicRequests ? (
+                      <div className="flex min-h-40 items-center justify-center text-sm text-muted-foreground">
+                        <Spinner className="mr-2 size-4" />
+                        Loading public requests...
+                      </div>
+                    ) : null}
+
+                    {!isLoadingPublicRequests &&
+                    (!publicRequests || publicRequests.requests.length === 0) ? (
+                      <div className="rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
+                        No public requests available. Start `pnpm web:dev` if the web app is not running.
+                      </div>
+                    ) : null}
+
+                    {publicRequests && publicRequests.requests.length > 0 ? (
+                      <div className="space-y-2">
+                        {publicRequests.requests.map((request) => {
+                          const isActive = request.id === selectedPublicRequest?.id;
+
+                          return (
+                            <button
+                              key={request.id}
+                              type="button"
+                              onClick={() => setSelectedPublicRequestId(request.id)}
+                              className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
+                                isActive
+                                  ? "border-border bg-background text-foreground"
+                                  : "border-transparent bg-transparent text-foreground hover:border-border/70 hover:bg-background/70"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium">
+                                    {getPublicRequestTitle(request)}
+                                  </p>
+                                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                    {getPublicRequestSummary(request)}
+                                  </p>
+                                </div>
+                                <Badge variant="secondary" className="rounded-full">
+                                  {request.status.replace(/_/g, " ")}
+                                </Badge>
+                              </div>
+                              <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                                <span className="inline-flex items-center gap-1">
+                                  <CircleDollarSignIcon className="size-3.5" />
+                                  {formatBudgetSummary(request.budget)}
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <CalendarDaysIcon className="size-3.5" />
+                                  {formatDeadlineSummary(request.deadline)}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </section>
+
+                  <section className="min-h-[24rem] rounded-2xl border border-border bg-card/55 p-4">
+                    {selectedPublicRequest ? (
+                      <div className="flex h-full flex-col">
+                        <div className="border-b border-border/80 pb-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                                  {getPublicRequestTitle(selectedPublicRequest)}
+                                </h2>
+                                <Badge variant="secondary" className="rounded-full">
+                                  {selectedPublicRequest.status.replace(/_/g, " ")}
+                                </Badge>
+                              </div>
+                              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                                {getPublicRequestSummary(selectedPublicRequest)}
+                              </p>
+                            </div>
+
+                            <div className="text-right text-xs text-muted-foreground">
+                              <p>Updated {formatTimestamp(selectedPublicRequest.updatedAt)}</p>
+                              <p className="mt-1">Key {selectedPublicRequest.key}</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <Badge variant="secondary" className="rounded-full">
+                              <CircleDollarSignIcon className="mr-1 size-3.5" />
+                              {formatBudgetSummary(selectedPublicRequest.budget)}
+                            </Badge>
+                            <Badge variant="secondary" className="rounded-full">
+                              <CalendarDaysIcon className="mr-1 size-3.5" />
+                              {formatDeadlineSummary(selectedPublicRequest.deadline)}
+                            </Badge>
+                            {selectedPublicRequest.derived.routeFamily ? (
+                              <Badge variant="secondary" className="rounded-full">
+                                <FolderOpenDotIcon className="mr-1 size-3.5" />
+                                {selectedPublicRequest.derived.routeFamily}
+                              </Badge>
+                            ) : null}
+                            {selectedPublicRequest.derived.executionKind ? (
+                              <Badge variant="secondary" className="rounded-full">
+                                <SparklesIcon className="mr-1 size-3.5" />
+                                {selectedPublicRequest.derived.executionKind}
+                              </Badge>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 py-4 lg:grid-cols-[minmax(0,1fr)_18rem]">
+                          <div className="space-y-4">
+                            {selectedPublicRequest.brief.body.trim() ? (
+                              <article className="rounded-xl border border-border/80 bg-background/60 px-4 py-4">
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                  Brief
+                                </p>
+                                <MessageMarkdown content={selectedPublicRequest.brief.body} />
+                              </article>
+                            ) : null}
+
+                            <article className="rounded-xl border border-border/80 bg-background/60 px-4 py-4">
+                              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                Route signal
+                              </p>
+                              <p className="text-sm leading-6 text-foreground">
+                                {selectedPublicRequest.derived.routeSummary?.trim() ||
+                                  selectedPublicRequest.derived.readiness.summary}
+                              </p>
+                              {selectedPublicRequest.latest.summary.trim() ? (
+                                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                                  Latest: {selectedPublicRequest.latest.summary.trim()}
+                                </p>
+                              ) : null}
+                            </article>
+
+                            {selectedPublicRequest.derived.missingDetails.length > 0 ? (
+                              <article className="rounded-xl border border-border/80 bg-background/60 px-4 py-4">
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                  Missing details
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedPublicRequest.derived.missingDetails.map((detail) => (
+                                    <Badge
+                                      key={detail}
+                                      variant="secondary"
+                                      className="rounded-full"
+                                    >
+                                      {detail.replace(/_/g, " ")}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </article>
+                            ) : null}
+                          </div>
+
+                          <div className="space-y-4">
+                            <article className="rounded-xl border border-border/80 bg-background/60 px-4 py-4">
+                              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                Seeking
+                              </p>
+                              <div className="space-y-3 text-sm">
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Actors</p>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {selectedPublicRequest.seeking.actorKinds.length > 0 ? (
+                                      selectedPublicRequest.seeking.actorKinds.map((actorKind) => (
+                                        <Badge
+                                          key={actorKind}
+                                          variant="secondary"
+                                          className="rounded-full"
+                                        >
+                                          {actorKind}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-muted-foreground">Unspecified</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Supply</p>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {selectedPublicRequest.seeking.supplyKinds.length > 0 ? (
+                                      selectedPublicRequest.seeking.supplyKinds.map((supplyKind) => (
+                                        <Badge
+                                          key={supplyKind}
+                                          variant="secondary"
+                                          className="rounded-full"
+                                        >
+                                          {supplyKind}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-muted-foreground">Unspecified</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {selectedPublicRequest.seeking.teamMode ? (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Team mode</p>
+                                    <p className="mt-1 text-foreground">
+                                      {selectedPublicRequest.seeking.teamMode}
+                                    </p>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </article>
+
+                            {(selectedPublicRequest.brief.tags.length > 0 ||
+                              selectedPublicRequest.brief.outputKinds.length > 0) ? (
+                              <article className="rounded-xl border border-border/80 bg-background/60 px-4 py-4">
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                  Tags and outputs
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {selectedPublicRequest.brief.tags.map((tag) => (
+                                    <Badge
+                                      key={`tag-${tag}`}
+                                      variant="secondary"
+                                      className="rounded-full"
+                                    >
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                  {selectedPublicRequest.brief.outputKinds.map((outputKind) => (
+                                    <Badge
+                                      key={`output-${outputKind}`}
+                                      variant="secondary"
+                                      className="rounded-full"
+                                    >
+                                      {outputKind}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </article>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
+                        Pick a public request to inspect it here.
+                      </div>
+                    )}
+                  </section>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-4 py-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsSidebarOpen((current) => !current)}
+                  className="px-3"
+                  aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                  title={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
+                >
+                  <PanelLeftIcon className="size-4" />
+                </Button>
+
+                <div className="min-w-0 flex-1">
+                  <h1 className="truncate text-sm font-semibold tracking-tight">
+                    {activeThreadTitle}
+                  </h1>
+                  <p className="truncate text-xs text-muted-foreground">
+                    Chats
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={selectedModel || undefined}
+                    onValueChange={handleModelChange}
+                  >
+                    <SelectTrigger className="min-w-40">
+                      <SelectValue placeholder="Model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {models.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {selectedModelEntry &&
+                  selectedModelEntry.supportedReasoningLevels.length > 0 ? (
+                    <Select
+                      value={selectedReasoning || undefined}
+                      onValueChange={handleReasoningChange}
+                    >
+                      <SelectTrigger className="min-w-28">
+                        <SelectValue placeholder="Effort" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectedModelEntry.supportedReasoningLevels.map((level) => (
+                          <SelectItem key={level.effort} value={level.effort}>
+                            {level.effort}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                </div>
+              </header>
+
+              <div
+                ref={conversationScrollRef}
+                onScroll={(event) => {
+                  updateScrollStickiness(event.currentTarget);
+                }}
+                className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-behavior-contain px-4 py-4"
+              >
+                <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+                  {messages.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+                      Start a local chat.
+                    </div>
+                  ) : null}
+
+                  {messages.map((message) => (
+                    <article
+                      key={message.id}
+                      className={
+                        message.role === "assistant"
+                          ? "max-w-[min(46rem,100%)] rounded-2xl border border-border bg-card px-4 py-3"
+                          : "max-w-[min(46rem,100%)] self-end rounded-2xl border border-border bg-secondary px-4 py-3"
+                      }
+                    >
+                      {message.role === "assistant" ? (
+                        <MessageMarkdown content={message.content} />
+                      ) : (
+                        <div className="whitespace-pre-wrap text-sm leading-6">
+                          {message.content}
+                        </div>
+                      )}
+                      {message.role === "assistant" && message.durationMs ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          {formatDuration(message.durationMs)}
+                        </p>
+                      ) : null}
+                    </article>
+                  ))}
+
+                  {isSending ? (
+                    <article className="max-w-[min(46rem,100%)] rounded-2xl border border-border bg-card px-4 py-3">
+                      {streamingAssistantText ? (
+                        <MessageMarkdown content={streamingAssistantText} />
+                      ) : null}
+
+                      <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                        <Spinner className="size-4" />
+                        <span>
+                          {streamStatus ||
+                            `Running local Codex turn on ${selectedModel || "selected model"}...`}
+                        </span>
+                      </div>
+
+                      {latestStreamActivity ? (
+                        <div
+                          className={`mt-2 rounded-lg border px-3 py-2 text-xs ${buildActivityToneClassName(
+                            latestStreamActivity.state,
+                          )}`}
+                        >
+                          <p>{latestStreamActivity.message}</p>
+                          {latestStreamActivity.detail ? (
+                            <p className="mt-1 font-mono opacity-85">
+                              {latestStreamActivity.detail}
+                            </p>
+                          ) : null}
+                        </div>
+                      ) : null}
+
+                      {streamNotice ? (
+                        <p
+                          className={`mt-2 text-xs ${
+                            streamNotice.tone === "error"
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {streamNotice.message}
+                        </p>
+                      ) : null}
+                    </article>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="shrink-0 border-t border-border px-4 py-3">
+                <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+                  <Textarea
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        void sendMessage();
+                      }
+                    }}
+                    placeholder="Ask anything..."
+                    className="min-h-24 resize-none rounded-xl border border-border bg-card px-3 py-3 shadow-none focus-visible:ring-0"
+                    disabled={!chatReady || isSending}
+                  />
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>Chats</span>
+                      <span>{selectedModel}</span>
+                      {selectedReasoning ? <span>{selectedReasoning}</span> : null}
+                      {latestAssistantDuration ? (
+                        <span>Last turn {formatDuration(latestAssistantDuration)}.</span>
+                      ) : null}
+                    </div>
+
+                    <Button
+                      onClick={() => void sendMessage()}
+                      disabled={!chatReady || isSending || draft.trim().length === 0}
+                    >
+                      {isSending ? <Spinner className="size-4" /> : null}
+                      Send
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

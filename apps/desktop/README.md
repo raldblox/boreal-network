@@ -42,6 +42,7 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop now uses one built-in local lane named `Chats`
 - there is no desktop project creation flow in this shell
 - after connect, desktop switches to a chat-first shell with a local sidebar history and `New thread`
+- desktop sidebar now also exposes `Public requests`, which reads the live public-safe Boreal web pool through `GET /api/requests?scope=public`
 - local chat threads can be deleted from the desktop shell
 - desktop remembers your last chosen model and reasoning level across restarts and new threads
 - model and reasoning choices come from the live local Codex catalog, including effort levels such as `low`, `medium`, `high`, and `xhigh` when the selected model supports them
@@ -49,7 +50,9 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - prompt turns prefer that persistent `codex app-server` path with a `workspace-write` sandbox and fall back to one-shot `codex exec` only if the persistent lane fails
 - desktop shows live turn status, compact command/reasoning activity, and early assistant text when the local Codex stream exposes it
 - chat history and thread selection stay local-only under `.boreal-work` and are not synced to Boreal backend by default
+- public request browsing is read-only and stays sourced from Boreal web truth rather than creating a desktop-local request cache
 - this machine currently defaults to software rendering because Electron GPU startup can crash on some Windows setups here; if you want to test hardware rendering after fixing that environment issue, launch with `BOREAL_DESKTOP_ENABLE_GPU=1`
+- if the desktop should read a non-default Boreal web origin, set `BOREAL_DESKTOP_WEB_BASE_URL`; otherwise it defaults to `http://127.0.0.1:3000`
 
 ## Commands
 

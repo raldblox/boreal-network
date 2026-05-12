@@ -7,7 +7,10 @@ contextBridge.exposeInMainWorld("borealDesktop", {
   deleteChatThread: (payload) =>
     ipcRenderer.invoke("desktop:delete-chat-thread", payload),
   getProjectState: () => ipcRenderer.invoke("desktop:get-project-state"),
+  getShellInfo: () => ipcRenderer.invoke("desktop:get-shell-info"),
   getWorkspaceState: () => ipcRenderer.invoke("desktop:get-workspace-state"),
+  listPublicRequests: (payload) =>
+    ipcRenderer.invoke("desktop:list-public-requests", payload),
   getLocalChatState: (payload) =>
     ipcRenderer.invoke("desktop:get-local-chat-state", payload),
   saveLocalChatState: (payload) =>
