@@ -69,6 +69,7 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - runtime mode is stored in `~/.boreal-work/desktop/settings.json`, and changing it forces the current local Codex runtime session to restart before the next turn
 - this machine currently defaults to software rendering because Electron GPU startup can crash on some Windows setups here; if you want to test hardware rendering after fixing that environment issue, launch with `BOREAL_DESKTOP_ENABLE_GPU=1`
 - if the desktop should read a non-default Boreal web origin, set `BOREAL_DESKTOP_WEB_BASE_URL`; otherwise it defaults to `http://127.0.0.1:3000`
+- localhost browser bridging and peer runtime transport remain later `0008` phases and are now gated by `0009`
 
 ## Commands
 
