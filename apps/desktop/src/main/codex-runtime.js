@@ -12,6 +12,7 @@ const REPO_ROOT = path.resolve(__dirname, "../../../../");
 const MODEL_CACHE_TTL_MS = 60 * 1000;
 const MAX_TRANSCRIPT_MESSAGES = 12;
 const APP_SERVER_TURN_TIMEOUT_MS = 15 * 60 * 1000;
+const DIRECT_ANSWER_TURN_TIMEOUT_MS = 90 * 1000;
 const RECONNECTING_ERROR_PATTERN = /^Reconnecting\.\.\./u;
 const WINDOWS_CLEANUP_SUCCESS_PATTERN =
   /^SUCCESS: The process with PID \d+ \(child process of PID \d+\) has been terminated\.$/u;
@@ -37,6 +38,18 @@ function buildDesktopSystemPrompt() {
     "Use lightweight inspection commands first before heavier work.",
     "This desktop runs on Windows. Prefer `npm.cmd`, `pnpm.cmd`, and `npx.cmd` over PowerShell shims when invoking Node package manager commands.",
     "If work should become durable, collaborative, assigned, paid, or cross-device, recommend promotion to a tracked Boreal request instead of syncing the whole local transcript.",
+  ].join("\n");
+}
+
+function buildDirectAnswerSystemPrompt() {
+  return [
+    "You are Boreal Desktop fulfilling one owner-private request.",
+    "Return only the final deliverable content.",
+    "Do not describe your process.",
+    "Do not mention Boreal, desktop, runtime, files, commands, or system state.",
+    "Do not inspect the workspace or run commands unless the user explicitly asked for code or file work.",
+    "For simple writing, brainstorming, or answer tasks, reply directly in plain text.",
+    "Do not wrap the final answer in markdown fences unless the request explicitly asks for code.",
   ].join("\n");
 }
 
@@ -87,7 +100,10 @@ async function runCodexCommand(args, options = {}) {
       stderr += chunk.toString();
     });
 
-    child.on("error", reject);
+    child.on("error", (error) => {
+      clearTimeout(timeoutId);
+      reject(error);
+    });
 
     child.on("close", (code) => {
       if (code === 0) {
@@ -113,24 +129,47 @@ async function runCodexCommand(args, options = {}) {
 }
 
 function createCodexExecArgs({
+  additionalWritableRoots = [],
+  approvalPolicy = "never",
   model,
+  networkAccess = false,
   outputPath,
   reasoningEffort,
+  sandboxMode,
   workspaceRoot,
 }) {
-  const args = [
-    "-a",
-    "never",
-    "exec",
-    "--skip-git-repo-check",
-    "-C",
+  const normalizedAdditionalWritableRoots = normalizeAdditionalWritableRoots(
     workspaceRoot,
-    "-s",
-    "workspace-write",
-    "--json",
-    "-m",
-    model,
-  ];
+    additionalWritableRoots,
+  );
+  const bypassApprovalsAndSandbox =
+    sandboxMode === "danger-full-access" &&
+    approvalPolicy === "never" &&
+    networkAccess === true;
+  const args = bypassApprovalsAndSandbox
+    ? [
+        "exec",
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--skip-git-repo-check",
+        "-C",
+        workspaceRoot,
+      ]
+    : [
+        "-a",
+        approvalPolicy,
+        "exec",
+        "--skip-git-repo-check",
+        "-C",
+        workspaceRoot,
+        "-s",
+        sandboxMode,
+      ];
+
+  for (const writableRoot of normalizedAdditionalWritableRoots) {
+    args.push("--add-dir", writableRoot);
+  }
+
+  args.push("--json", "-m", model);
 
   if (typeof reasoningEffort === "string" && reasoningEffort.trim().length > 0) {
     args.push("-c", `model_reasoning_effort="${reasoningEffort}"`);
@@ -297,9 +336,13 @@ function buildConversationContextPrompt({ messages, workspaceRoot }) {
   ].join("\n");
 }
 
-function buildExecTranscriptPrompt({ messages, workspaceRoot }) {
+function buildExecTranscriptPrompt({
+  messages,
+  workspaceRoot,
+  developerInstructions = buildDesktopSystemPrompt(),
+}) {
   return [
-    buildDesktopSystemPrompt(),
+    developerInstructions,
     "",
     buildConversationContextPrompt({
       messages,
@@ -497,19 +540,29 @@ function handleCodexExecStreamEvent(event, state) {
 }
 
 async function runCodexExec({
+  additionalWritableRoots = [],
+  approvalPolicy = "never",
+  developerInstructions,
   messages,
   model,
+  networkAccess = false,
   onEvent,
   outputPath,
   reasoningEffort,
   requestId,
+  sandboxMode,
+  timeoutMs,
   workspaceRoot,
 }) {
   return new Promise((resolve, reject) => {
     const args = createCodexExecArgs({
+      additionalWritableRoots,
+      approvalPolicy,
       model,
+      networkAccess,
       outputPath,
       reasoningEffort,
+      sandboxMode,
       workspaceRoot,
     });
     const child = isWindows
@@ -538,6 +591,10 @@ async function runCodexExec({
     };
     let stderr = "";
     let stdoutBuffer = "";
+    const timeoutId = setTimeout(() => {
+      state.fatalError = `Codex direct answer timed out after ${Math.ceil(timeoutMs / 1000)} seconds.`;
+      child.kill();
+    }, timeoutMs);
 
     const flushStdoutBuffer = () => {
       let newlineIndex = stdoutBuffer.indexOf("\n");
@@ -570,6 +627,7 @@ async function runCodexExec({
     child.on("error", reject);
 
     child.on("close", (code) => {
+      clearTimeout(timeoutId);
       if (stdoutBuffer.trim().length > 0) {
         try {
           handleCodexExecStreamEvent(JSON.parse(stdoutBuffer.trim()), state);
@@ -599,6 +657,7 @@ async function runCodexExec({
 
     child.stdin.end(
       buildExecTranscriptPrompt({
+        developerInstructions,
         messages,
         workspaceRoot,
       }),
@@ -771,18 +830,76 @@ function resolveReasoningEffort(modelEntry, requestedReasoningEffort) {
   return supportedLevels[0]?.effort ?? "";
 }
 
-function buildWorkspaceWriteSandboxPolicy(workspaceRoot) {
+function normalizeAdditionalWritableRoots(workspaceRoot, additionalWritableRoots) {
+  if (!Array.isArray(additionalWritableRoots)) {
+    return [];
+  }
+
+  const normalizedWorkspaceRoot = path.normalize(workspaceRoot);
+
+  return Array.from(
+    new Set(
+      additionalWritableRoots
+        .filter((entry) => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0)
+        .map((entry) => path.normalize(entry))
+        .filter(
+          (entry) =>
+            path.isAbsolute(entry) && entry !== normalizedWorkspaceRoot,
+        ),
+    ),
+  );
+}
+
+function buildSandboxPolicy({
+  additionalWritableRoots = [],
+  networkAccess = false,
+  sandboxMode = "workspace-write",
+  workspaceRoot,
+}) {
+  if (sandboxMode === "danger-full-access") {
+    return {
+      type: "dangerFullAccess",
+    };
+  }
+
+  if (sandboxMode === "read-only") {
+    return {
+      networkAccess,
+      type: "readOnly",
+    };
+  }
+
   return {
     excludeSlashTmp: false,
     excludeTmpdirEnvVar: false,
-    networkAccess: false,
+    networkAccess,
     type: "workspaceWrite",
-    writableRoots: [workspaceRoot],
+    writableRoots: [
+      path.normalize(workspaceRoot),
+      ...normalizeAdditionalWritableRoots(
+        workspaceRoot,
+        additionalWritableRoots,
+      ),
+    ],
   };
 }
 
-function createThreadSessionKey({ model, reasoningEffort, workspaceRoot }) {
-  return `${workspaceRoot}::${model}::${reasoningEffort}`;
+function createThreadSessionKey({
+  additionalWritableRoots = [],
+  approvalPolicy = "never",
+  model,
+  networkAccess = false,
+  reasoningEffort,
+  sandboxMode = "workspace-write",
+  workspaceRoot,
+}) {
+  const writableRootsSignature = normalizeAdditionalWritableRoots(
+    workspaceRoot,
+    additionalWritableRoots,
+  ).join("|");
+  return `${workspaceRoot}::${model}::${reasoningEffort}::${sandboxMode}::${approvalPolicy}::${networkAccess ? "net" : "offline"}::${writableRootsSignature}`;
 }
 
 function resetRuntimeCaches() {
@@ -1162,18 +1279,21 @@ export async function getCodexCliVersion() {
 }
 
 async function startAppServerThread({
+  approvalPolicy = "never",
   client,
+  developerInstructions = buildDesktopSystemPrompt(),
   model,
   reasoningEffort,
+  sandboxMode = "workspace-write",
   workspaceRoot,
 }) {
   const response = await client.request("thread/start", {
-    approvalPolicy: "never",
+    approvalPolicy,
     cwd: workspaceRoot,
-    developerInstructions: buildDesktopSystemPrompt(),
+    developerInstructions,
     ephemeral: true,
     model,
-    sandbox: "workspace-write",
+    sandbox: sandboxMode,
   });
 
   return {
@@ -1186,13 +1306,18 @@ async function startAppServerThread({
 }
 
 async function runAppServerTurn({
+  additionalWritableRoots = [],
+  approvalPolicy = "never",
   client,
   inputText,
   model,
+  networkAccess = false,
   onEvent,
   reasoningEffort,
   requestId,
+  sandboxMode = "workspace-write",
   threadId,
+  timeoutMs = APP_SERVER_TURN_TIMEOUT_MS,
   workspaceRoot,
 }) {
   const startedAt = Date.now();
@@ -1218,7 +1343,7 @@ async function runAppServerTurn({
 
       settled = true;
       reject(new Error("Codex app-server turn timed out before completion."));
-    }, APP_SERVER_TURN_TIMEOUT_MS);
+    }, timeoutMs);
 
     const settle = {
       reject: (error) => {
@@ -1250,7 +1375,7 @@ async function runAppServerTurn({
     const turnStartResponse = await client.request(
       "turn/start",
       {
-        approvalPolicy: "never",
+        approvalPolicy,
         cwd: workspaceRoot,
         effort: reasoningEffort || null,
         input: [
@@ -1261,11 +1386,16 @@ async function runAppServerTurn({
           },
         ],
         model,
-        sandboxPolicy: buildWorkspaceWriteSandboxPolicy(workspaceRoot),
+        sandboxPolicy: buildSandboxPolicy({
+          additionalWritableRoots,
+          networkAccess,
+          sandboxMode,
+          workspaceRoot,
+        }),
         threadId,
       },
       {
-        timeoutMs: APP_SERVER_TURN_TIMEOUT_MS,
+        timeoutMs,
       },
     );
 
@@ -1287,21 +1417,34 @@ async function runAppServerTurn({
 }
 
 async function createDesktopResponseViaAppServer({
+  allowThreadReuse = true,
+  additionalWritableRoots = [],
+  approvalPolicy = "never",
+  developerInstructions = buildDesktopSystemPrompt(),
   messages,
   model,
   modelEntry,
+  networkAccess = false,
   onEvent,
   reasoningEffort,
   requestId,
+  sandboxMode = "workspace-write",
+  timeoutMs = APP_SERVER_TURN_TIMEOUT_MS,
   workspaceRoot,
 }) {
   const client = await ensureCodexAppServerClient();
   const sessionKey = createThreadSessionKey({
+    additionalWritableRoots,
+    approvalPolicy,
     model,
+    networkAccess,
     reasoningEffort,
+    sandboxMode,
     workspaceRoot,
   });
-  const existingSession = threadSessions.get(sessionKey) ?? null;
+  const existingSession = allowThreadReuse
+    ? threadSessions.get(sessionKey) ?? null
+    : null;
   const canContinueThread =
     existingSession != null &&
     existingSession.threadId.length > 0 &&
@@ -1316,9 +1459,12 @@ async function createDesktopResponseViaAppServer({
     canContinueThread && existingSession
       ? existingSession
       : await startAppServerThread({
+          approvalPolicy,
           client,
+          developerInstructions,
           model,
           reasoningEffort,
+          sandboxMode,
           workspaceRoot,
         });
 
@@ -1330,12 +1476,17 @@ async function createDesktopResponseViaAppServer({
 
   try {
     const result = await runAppServerTurn({
+      additionalWritableRoots,
+      approvalPolicy,
       client,
       inputText,
       model,
+      networkAccess,
       onEvent,
       reasoningEffort,
       requestId,
+      sandboxMode,
+      timeoutMs,
       threadId: session.threadId,
       workspaceRoot,
     });
@@ -1362,11 +1513,17 @@ async function createDesktopResponseViaAppServer({
 }
 
 async function createDesktopResponseViaExec({
+  developerInstructions = buildDirectAnswerSystemPrompt(),
+  additionalWritableRoots = [],
+  approvalPolicy = "never",
   messages,
   model,
+  networkAccess = false,
   onEvent,
   reasoningEffort,
   requestId,
+  sandboxMode = "workspace-write",
+  timeoutMs = APP_SERVER_TURN_TIMEOUT_MS,
   workspaceRoot,
 }) {
   const outputPath = path.join(
@@ -1383,12 +1540,18 @@ async function createDesktopResponseViaExec({
 
   try {
     const execResult = await runCodexExec({
+      additionalWritableRoots,
+      approvalPolicy,
+      developerInstructions,
       messages,
       model,
+      networkAccess,
       onEvent,
       outputPath,
       reasoningEffort,
       requestId,
+      sandboxMode,
+      timeoutMs,
       workspaceRoot,
     });
     const outputText =
@@ -1487,11 +1650,18 @@ export async function listCodexModels(options = {}) {
 }
 
 export async function createDesktopResponse({
+  allowThreadReuse = true,
+  additionalWritableRoots = [],
+  approvalPolicy = "never",
+  developerInstructions = buildDesktopSystemPrompt(),
   model,
   messages,
+  networkAccess = false,
   onEvent,
   requestId = randomUUID(),
   reasoningEffort = "",
+  sandboxMode = "workspace-write",
+  timeoutMs = APP_SERVER_TURN_TIMEOUT_MS,
   workspaceRoot = REPO_ROOT,
 }) {
   if (typeof model !== "string" || model.trim().length === 0) {
@@ -1517,21 +1687,34 @@ export async function createDesktopResponse({
 
   try {
     return await createDesktopResponseViaAppServer({
+      allowThreadReuse,
+      additionalWritableRoots,
+      approvalPolicy,
+      developerInstructions,
       messages,
       model,
       modelEntry,
+      networkAccess,
       onEvent,
       reasoningEffort: resolvedReasoningEffort,
       requestId,
+      sandboxMode,
+      timeoutMs,
       workspaceRoot,
     });
   } catch {
     return createDesktopResponseViaExec({
+      additionalWritableRoots,
+      approvalPolicy,
+      developerInstructions,
       messages,
       model,
+      networkAccess,
       onEvent,
       reasoningEffort: resolvedReasoningEffort,
       requestId,
+      sandboxMode,
+      timeoutMs,
       workspaceRoot,
     });
   }

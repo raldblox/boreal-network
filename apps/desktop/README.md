@@ -17,7 +17,11 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - root canon still defines request, commitment, fulfillment, artifact, transaction, and event meaning
 - reusable UI primitives belong in `../../packages/ui/`
 - desktop chat history stays local by default unless work is explicitly promoted
-- current Codex chat execution uses a `workspace-write` sandbox so normal local inspection commands work, but the desktop prompt still tells Codex not to modify files unless the owner explicitly asks
+- desktop now exposes a persisted runtime mode instead of hardcoding one Codex policy for every turn
+- `Safe` mode keeps desktop on `workspace-write` with network disabled
+- `Full` mode uses `danger-full-access` with network enabled for owner-approved local work
+- desktop does not expose interactive Codex approval prompts yet, so the current runtime presets keep approval on `never`
+- auto-resolve for owned private requests stays on its safer read-only lane even if chat runtime is set to `Full`
 - desktop uses `.boreal-work` as its app-owned home for local chat state only
 
 ## Initial Stack
@@ -43,14 +47,23 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - there is no desktop project creation flow in this shell
 - after connect, desktop switches to a chat-first shell with a local sidebar history and `New thread`
 - desktop sidebar now also exposes `Public requests`, which reads the live public-safe Boreal web pool through `GET /api/requests?scope=public`
+- desktop can now connect a Boreal account through the resolver device approval flow and keep that Boreal actor separate from local Codex auth
+- desktop now also exposes `My requests`, which reads owned Boreal requests through resolver bearer auth
+- desktop can inspect request detail and durable activity, then drive direct commitment, artifact, and fulfillment APIs without exposing Boreal tokens to the renderer
+- desktop now exposes an owner-private auto-resolve lane where Boreal Desktop and Codex can create fulfillment directly, do the work, and publish delivery for owned private requests
+- desktop now exposes a toggle to auto-resolve owned private open requests without creating a commitment object first
 - local chat threads can be deleted from the desktop shell
 - desktop remembers your last chosen model and reasoning level across restarts and new threads
 - model and reasoning choices come from the live local Codex catalog, including effort levels such as `low`, `medium`, `high`, and `xhigh` when the selected model supports them
 - desktop now keeps one persistent `codex app-server` session alive in Electron main for lower-latency local chat turns
-- prompt turns prefer that persistent `codex app-server` path with a `workspace-write` sandbox and fall back to one-shot `codex exec` only if the persistent lane fails
+- prompt turns prefer that persistent `codex app-server` path with the currently selected desktop runtime mode and fall back to one-shot `codex exec` only if the persistent lane fails
 - desktop shows live turn status, compact command/reasoning activity, and early assistant text when the local Codex stream exposes it
 - chat history and thread selection stay local-only under `.boreal-work` and are not synced to Boreal backend by default
 - public request browsing is read-only and stays sourced from Boreal web truth rather than creating a desktop-local request cache
+- request execution still reads and writes Boreal web truth; desktop does not become a second request ledger
+- owner-private auto-resolution should use the same web truth and emit the same durable fulfillment and artifact events instead of storing desktop-local shadow state
+- participant-scoped engaged-request inbox is not implemented yet, so a responder may still need the current request id to revisit work after it leaves the public pool
+- runtime mode is stored in `~/.boreal-work/desktop/settings.json`, and changing it forces the current local Codex runtime session to restart before the next turn
 - this machine currently defaults to software rendering because Electron GPU startup can crash on some Windows setups here; if you want to test hardware rendering after fixing that environment issue, launch with `BOREAL_DESKTOP_ENABLE_GPU=1`
 - if the desktop should read a non-default Boreal web origin, set `BOREAL_DESKTOP_WEB_BASE_URL`; otherwise it defaults to `http://127.0.0.1:3000`
 

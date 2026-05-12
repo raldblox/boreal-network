@@ -26,10 +26,112 @@ const DEFAULT_CHAT_STATE = {
   threads: [],
 };
 const DEFAULT_DESKTOP_SETTINGS = {
+  autoResolveOwnedPrivate: false,
   defaultModel: "",
   defaultReasoning: "",
+  runtimeAdditionalWritableRoots: [],
+  runtimeApprovalPolicy: "never",
+  runtimeMode: "safe",
+  runtimeNetworkAccess: false,
+  runtimeSandboxMode: "workspace-write",
   selectedProjectId: CHAT_PROJECT.id,
 };
+const RUNTIME_MODE_PRESETS = Object.freeze({
+  full: Object.freeze({
+    runtimeApprovalPolicy: "never",
+    runtimeNetworkAccess: true,
+    runtimeSandboxMode: "danger-full-access",
+  }),
+  safe: Object.freeze({
+    runtimeApprovalPolicy: "never",
+    runtimeNetworkAccess: false,
+    runtimeSandboxMode: "workspace-write",
+  }),
+});
+
+function sanitizeRuntimeMode(value) {
+  return value === "full" ? "full" : "safe";
+}
+
+function sanitizeApprovalPolicy(value, fallbackValue) {
+  return value === "never" ||
+    value === "on-failure" ||
+    value === "on-request" ||
+    value === "untrusted"
+    ? value
+    : fallbackValue;
+}
+
+function sanitizeSandboxMode(value, fallbackValue) {
+  return value === "danger-full-access" ||
+    value === "read-only" ||
+    value === "workspace-write"
+    ? value
+    : fallbackValue;
+}
+
+function sanitizeAdditionalWritableRoots(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .filter((entry) => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0 && path.isAbsolute(entry))
+        .map((entry) => path.normalize(entry)),
+    ),
+  );
+}
+
+function normalizeRuntimeSettings(parsed, currentSettings = null) {
+  const currentMode = sanitizeRuntimeMode(currentSettings?.runtimeMode);
+  const mode = sanitizeRuntimeMode(
+    typeof parsed?.runtimeMode === "string"
+      ? parsed.runtimeMode
+      : typeof parsed?.runtimeSandboxMode === "string" &&
+          parsed.runtimeSandboxMode === "danger-full-access"
+        ? "full"
+        : currentMode || DEFAULT_DESKTOP_SETTINGS.runtimeMode,
+  );
+  const preset = RUNTIME_MODE_PRESETS[mode] ?? RUNTIME_MODE_PRESETS.safe;
+  const fallbackApproval =
+    currentSettings?.runtimeMode === mode
+      ? currentSettings.runtimeApprovalPolicy
+      : preset.runtimeApprovalPolicy;
+  const fallbackNetwork =
+    currentSettings?.runtimeMode === mode
+      ? currentSettings.runtimeNetworkAccess
+      : preset.runtimeNetworkAccess;
+  const fallbackSandbox =
+    currentSettings?.runtimeMode === mode
+      ? currentSettings.runtimeSandboxMode
+      : preset.runtimeSandboxMode;
+  const fallbackWritableRoots =
+    currentSettings?.runtimeAdditionalWritableRoots ??
+    DEFAULT_DESKTOP_SETTINGS.runtimeAdditionalWritableRoots;
+
+  return {
+    runtimeAdditionalWritableRoots: sanitizeAdditionalWritableRoots(
+      parsed?.runtimeAdditionalWritableRoots ?? fallbackWritableRoots,
+    ),
+    runtimeApprovalPolicy: sanitizeApprovalPolicy(
+      parsed?.runtimeApprovalPolicy,
+      fallbackApproval,
+    ),
+    runtimeMode: mode,
+    runtimeNetworkAccess:
+      typeof parsed?.runtimeNetworkAccess === "boolean"
+        ? parsed.runtimeNetworkAccess
+        : fallbackNetwork,
+    runtimeSandboxMode: sanitizeSandboxMode(
+      parsed?.runtimeSandboxMode,
+      fallbackSandbox,
+    ),
+  };
+}
 
 async function pathExists(targetPath) {
   try {
@@ -267,7 +369,9 @@ export async function readDesktopSettings() {
   await ensureDesktopHome();
 
   const parsed = await readJsonFile(SETTINGS_PATH, {});
+  const runtimeSettings = normalizeRuntimeSettings(parsed);
   return {
+    autoResolveOwnedPrivate: parsed?.autoResolveOwnedPrivate === true,
     defaultModel:
       typeof parsed?.defaultModel === "string"
         ? parsed.defaultModel
@@ -280,6 +384,12 @@ export async function readDesktopSettings() {
         : typeof parsed?.selectedReasoning === "string"
           ? parsed.selectedReasoning
           : DEFAULT_DESKTOP_SETTINGS.defaultReasoning,
+    runtimeAdditionalWritableRoots:
+      runtimeSettings.runtimeAdditionalWritableRoots,
+    runtimeApprovalPolicy: runtimeSettings.runtimeApprovalPolicy,
+    runtimeMode: runtimeSettings.runtimeMode,
+    runtimeNetworkAccess: runtimeSettings.runtimeNetworkAccess,
+    runtimeSandboxMode: runtimeSettings.runtimeSandboxMode,
     selectedProjectId: CHAT_PROJECT.id,
   };
 }
@@ -288,9 +398,14 @@ export async function writeDesktopSettings(nextSettings) {
   await ensureDesktopHome();
 
   const current = await readDesktopSettings();
+  const runtimeSettings = normalizeRuntimeSettings(nextSettings, current);
   const merged = {
     ...current,
     ...nextSettings,
+    autoResolveOwnedPrivate:
+      typeof nextSettings?.autoResolveOwnedPrivate === "boolean"
+        ? nextSettings.autoResolveOwnedPrivate
+        : current.autoResolveOwnedPrivate,
     defaultModel:
       typeof nextSettings?.defaultModel === "string"
         ? nextSettings.defaultModel
@@ -299,6 +414,12 @@ export async function writeDesktopSettings(nextSettings) {
       typeof nextSettings?.defaultReasoning === "string"
         ? nextSettings.defaultReasoning
         : current.defaultReasoning,
+    runtimeAdditionalWritableRoots:
+      runtimeSettings.runtimeAdditionalWritableRoots,
+    runtimeApprovalPolicy: runtimeSettings.runtimeApprovalPolicy,
+    runtimeMode: runtimeSettings.runtimeMode,
+    runtimeNetworkAccess: runtimeSettings.runtimeNetworkAccess,
+    runtimeSandboxMode: runtimeSettings.runtimeSandboxMode,
     selectedProjectId: CHAT_PROJECT.id,
   };
 
@@ -313,10 +434,17 @@ export async function getDesktopProjectState() {
   });
 
   return {
+    autoResolveOwnedPrivate: settings.autoResolveOwnedPrivate,
     defaultModel: settings.defaultModel,
     defaultReasoning: settings.defaultReasoning,
     ...homePaths,
     projects: [CHAT_PROJECT],
+    runtimeAdditionalWritableRoots:
+      settings.runtimeAdditionalWritableRoots,
+    runtimeApprovalPolicy: settings.runtimeApprovalPolicy,
+    runtimeMode: settings.runtimeMode,
+    runtimeNetworkAccess: settings.runtimeNetworkAccess,
+    runtimeSandboxMode: settings.runtimeSandboxMode,
     selectedProjectId: CHAT_PROJECT.id,
   };
 }
@@ -327,16 +455,38 @@ export async function getDesktopProjectById() {
 }
 
 export async function saveDesktopPreferences({
+  autoResolveOwnedPrivate,
   defaultModel,
   defaultReasoning,
+  runtimeAdditionalWritableRoots,
+  runtimeApprovalPolicy,
+  runtimeMode,
+  runtimeNetworkAccess,
+  runtimeSandboxMode,
 }) {
   return writeDesktopSettings({
+    ...(typeof autoResolveOwnedPrivate === "boolean"
+      ? { autoResolveOwnedPrivate }
+      : {}),
     defaultModel:
       typeof defaultModel === "string" ? defaultModel : DEFAULT_DESKTOP_SETTINGS.defaultModel,
     defaultReasoning:
       typeof defaultReasoning === "string"
         ? defaultReasoning
         : DEFAULT_DESKTOP_SETTINGS.defaultReasoning,
+    ...(Array.isArray(runtimeAdditionalWritableRoots)
+      ? { runtimeAdditionalWritableRoots }
+      : {}),
+    ...(typeof runtimeApprovalPolicy === "string"
+      ? { runtimeApprovalPolicy }
+      : {}),
+    ...(typeof runtimeMode === "string" ? { runtimeMode } : {}),
+    ...(typeof runtimeNetworkAccess === "boolean"
+      ? { runtimeNetworkAccess }
+      : {}),
+    ...(typeof runtimeSandboxMode === "string"
+      ? { runtimeSandboxMode }
+      : {}),
   });
 }
 
