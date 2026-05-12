@@ -16,6 +16,7 @@ import type {
   CommitmentKind,
   CommitmentStatus,
   CommitmentTerms,
+  FulfillmentStatus,
   RequestActiveRefs,
   RequestActorRef,
   RequestArtifactContainer,
@@ -24,11 +25,18 @@ import type {
   RequestBudget,
   RequestDeadline,
   RequestDerived,
+  RequestFulfillmentStep,
   RequestLatest,
   RequestSeeking,
   RequestStatus,
   RequestVisibility,
 } from "@/lib/request";
+import type {
+  ResolverAuthorizationStatus,
+  ResolverClientStatus,
+  ResolverScope,
+  ResolverTokenKind,
+} from "@/lib/resolver";
 
 export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -189,6 +197,51 @@ export const artifactRecord = pgTable("Artifact", {
 
 export type ArtifactRecord = InferSelectModel<typeof artifactRecord>;
 
+export const fulfillment = pgTable("Fulfillment", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  key: text("key").notNull(),
+  requestId: uuid("requestId")
+    .notNull()
+    .references(() => request.id, { onDelete: "cascade" }),
+  commitmentId: uuid("commitmentId")
+    .notNull()
+    .references(() => commitment.id, { onDelete: "cascade" }),
+  supplyId: uuid("supplyId"),
+  status: varchar("status", {
+    enum: [
+      "planned",
+      "ready",
+      "active",
+      "blocked",
+      "delivered",
+      "accepted",
+      "cancelled",
+      "failed",
+    ],
+  })
+    .$type<FulfillmentStatus>()
+    .notNull()
+    .default("planned"),
+  lead: json("lead").$type<RequestActorRef>().notNull(),
+  contributors: json("contributors").$type<RequestActorRef[]>().notNull(),
+  summary: text("summary").notNull(),
+  artifactIds: json("artifactIds").$type<string[]>().notNull(),
+  steps: json("steps").$type<RequestFulfillmentStep[]>().notNull(),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  plannedAt: timestamp("plannedAt"),
+  readyAt: timestamp("readyAt"),
+  startedAt: timestamp("startedAt"),
+  blockedAt: timestamp("blockedAt"),
+  deliveredAt: timestamp("deliveredAt"),
+  acceptedAt: timestamp("acceptedAt"),
+  cancelledAt: timestamp("cancelledAt"),
+  failedAt: timestamp("failedAt"),
+});
+
+export type FulfillmentRecord = InferSelectModel<typeof fulfillment>;
+
 export const requestEvent = pgTable(
   "RequestEvent",
   {
@@ -231,6 +284,100 @@ export const requestEvent = pgTable(
 );
 
 export type RequestEventRecord = InferSelectModel<typeof requestEvent>;
+
+export const resolverClient = pgTable("ResolverClient", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").references(() => user.id),
+  status: varchar("status", {
+    enum: ["pending", "active", "revoked"],
+  })
+    .$type<ResolverClientStatus>()
+    .notNull()
+    .default("pending"),
+  deviceName: text("deviceName").notNull(),
+  runtimeName: text("runtimeName").notNull(),
+  codexAuthProvider: text("codexAuthProvider"),
+  codexAccountLabel: text("codexAccountLabel"),
+  scopes: json("scopes").$type<ResolverScope[]>().notNull(),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  authorizedAt: timestamp("authorizedAt"),
+  lastSeenAt: timestamp("lastSeenAt"),
+  revokedAt: timestamp("revokedAt"),
+});
+
+export type ResolverClientRecord = InferSelectModel<typeof resolverClient>;
+
+export const resolverAuthorization = pgTable(
+  "ResolverAuthorization",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    clientId: uuid("clientId")
+      .notNull()
+      .references(() => resolverClient.id, { onDelete: "cascade" }),
+    status: varchar("status", {
+      enum: ["pending", "approved", "denied", "expired"],
+    })
+      .$type<ResolverAuthorizationStatus>()
+      .notNull()
+      .default("pending"),
+    deviceCodeHash: text("deviceCodeHash").notNull(),
+    userCode: varchar("userCode", { length: 16 }).notNull(),
+    requestedScopes: json("requestedScopes").$type<ResolverScope[]>().notNull(),
+    approvedByUserId: uuid("approvedByUserId").references(() => user.id),
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+    approvedAt: timestamp("approvedAt"),
+    deniedAt: timestamp("deniedAt"),
+  },
+  (table) => ({
+    deviceCodeHashUnique: uniqueIndex(
+      "ResolverAuthorization_deviceCodeHash_unique"
+    ).on(table.deviceCodeHash),
+    userCodeUnique: uniqueIndex("ResolverAuthorization_userCode_unique").on(
+      table.userCode
+    ),
+  })
+);
+
+export type ResolverAuthorizationRecord = InferSelectModel<
+  typeof resolverAuthorization
+>;
+
+export const resolverToken = pgTable(
+  "ResolverToken",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    clientId: uuid("clientId")
+      .notNull()
+      .references(() => resolverClient.id, { onDelete: "cascade" }),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: varchar("kind", {
+      enum: ["access", "refresh"],
+    })
+      .$type<ResolverTokenKind>()
+      .notNull(),
+    tokenHash: text("tokenHash").notNull(),
+    scopes: json("scopes").$type<ResolverScope[]>().notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+    lastUsedAt: timestamp("lastUsedAt"),
+    revokedAt: timestamp("revokedAt"),
+    replacedByTokenId: uuid("replacedByTokenId"),
+  },
+  (table) => ({
+    tokenHashUnique: uniqueIndex("ResolverToken_tokenHash_unique").on(
+      table.tokenHash
+    ),
+  })
+);
+
+export type ResolverTokenRecord = InferSelectModel<typeof resolverToken>;
 
 export const message = pgTable("Message_v2", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),

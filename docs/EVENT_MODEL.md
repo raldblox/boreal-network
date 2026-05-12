@@ -93,11 +93,13 @@ Rules:
 ### Fulfillment events
 
 - created
+- updated
 - started
 - blocked
 - resumed
 - delivered
 - accepted
+- cancelled
 - failed
 
 ### Step events

@@ -23,6 +23,7 @@ import {
   type CommitmentStatus,
   type CommitmentTerms,
   type BorealRequestDraft,
+  type FulfillmentStatus,
   type PublicRequestPoolEntry,
   type RequestActiveRefs,
   type RequestActivityEntry,
@@ -33,12 +34,20 @@ import {
   type RequestBudget,
   type RequestDeadline,
   type RequestDerived,
+  type RequestFulfillment,
+  type RequestFulfillmentStep,
   type RequestLatest,
   type RequestSeeking,
   type RequestStatus,
   type RequestVisibility,
   toPublicRequestPoolEntry,
 } from "@/lib/request";
+import type {
+  ResolverAuthorizationStatus,
+  ResolverClientStatus,
+  ResolverScope,
+  ResolverTokenKind,
+} from "@/lib/resolver";
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
 import {
@@ -50,11 +59,19 @@ import {
   type CommitmentRecord,
   type DBMessage,
   document,
+  fulfillment,
+  type FulfillmentRecord,
   message,
   request,
   requestEvent,
   type RequestEventRecord,
   type RequestRecord,
+  resolverAuthorization,
+  type ResolverAuthorizationRecord,
+  resolverClient,
+  type ResolverClientRecord,
+  resolverToken,
+  type ResolverTokenRecord,
   type Suggestion,
   stream,
   suggestion,
@@ -305,6 +322,406 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
+export async function getUserById({
+  id,
+}: {
+  id: string;
+}): Promise<User | null> {
+  try {
+    const [selectedUser] = await db.select().from(user).where(eq(user.id, id));
+    return selectedUser ?? null;
+  } catch (_error) {
+    throw new ChatbotError("bad_request:database", "Failed to get user by id");
+  }
+}
+
+export async function saveResolverClient({
+  id,
+  userId,
+  status,
+  deviceName,
+  runtimeName,
+  codexAuthProvider,
+  codexAccountLabel,
+  scopes,
+  metadata,
+  authorizedAt,
+  lastSeenAt,
+  revokedAt,
+}: {
+  id: string;
+  userId?: string;
+  status: ResolverClientStatus;
+  deviceName: string;
+  runtimeName: string;
+  codexAuthProvider?: string;
+  codexAccountLabel?: string;
+  scopes: ResolverScope[];
+  metadata?: Record<string, unknown>;
+  authorizedAt?: Date | null;
+  lastSeenAt?: Date | null;
+  revokedAt?: Date | null;
+}) {
+  try {
+    const [createdClient] = await db
+      .insert(resolverClient)
+      .values({
+        id,
+        ...(userId ? { userId } : {}),
+        status,
+        deviceName,
+        runtimeName,
+        ...(codexAuthProvider ? { codexAuthProvider } : {}),
+        ...(codexAccountLabel ? { codexAccountLabel } : {}),
+        scopes,
+        ...(metadata ? { metadata } : {}),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        authorizedAt,
+        lastSeenAt,
+        revokedAt,
+      })
+      .returning();
+
+    return createdClient;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save resolver client"
+    );
+  }
+}
+
+export async function getResolverClientById({
+  id,
+}: {
+  id: string;
+}): Promise<ResolverClientRecord | null> {
+  try {
+    const [selectedClient] = await db
+      .select()
+      .from(resolverClient)
+      .where(eq(resolverClient.id, id))
+      .limit(1);
+
+    return selectedClient ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get resolver client"
+    );
+  }
+}
+
+export async function updateResolverClientById({
+  id,
+  userId,
+  status,
+  scopes,
+  authorizedAt,
+  lastSeenAt,
+  revokedAt,
+}: {
+  id: string;
+  userId?: string | null;
+  status?: ResolverClientStatus;
+  scopes?: ResolverScope[];
+  authorizedAt?: Date | null;
+  lastSeenAt?: Date | null;
+  revokedAt?: Date | null;
+}) {
+  try {
+    const [updatedClient] = await db
+      .update(resolverClient)
+      .set({
+        ...(userId !== undefined ? { userId } : {}),
+        ...(status !== undefined ? { status } : {}),
+        ...(scopes !== undefined ? { scopes } : {}),
+        ...(authorizedAt !== undefined ? { authorizedAt } : {}),
+        ...(lastSeenAt !== undefined ? { lastSeenAt } : {}),
+        ...(revokedAt !== undefined ? { revokedAt } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(resolverClient.id, id))
+      .returning();
+
+    return updatedClient ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update resolver client"
+    );
+  }
+}
+
+export async function touchResolverClientById({ id }: { id: string }) {
+  return updateResolverClientById({ id, lastSeenAt: new Date() });
+}
+
+export async function saveResolverAuthorization({
+  id,
+  clientId,
+  status,
+  deviceCodeHash,
+  userCode,
+  requestedScopes,
+  approvedByUserId,
+  expiresAt,
+  approvedAt,
+  deniedAt,
+}: {
+  id: string;
+  clientId: string;
+  status: ResolverAuthorizationStatus;
+  deviceCodeHash: string;
+  userCode: string;
+  requestedScopes: ResolverScope[];
+  approvedByUserId?: string;
+  expiresAt: Date;
+  approvedAt?: Date | null;
+  deniedAt?: Date | null;
+}) {
+  try {
+    const [createdAuthorization] = await db
+      .insert(resolverAuthorization)
+      .values({
+        id,
+        clientId,
+        status,
+        deviceCodeHash,
+        userCode,
+        requestedScopes,
+        ...(approvedByUserId ? { approvedByUserId } : {}),
+        expiresAt,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        approvedAt,
+        deniedAt,
+      })
+      .returning();
+
+    return createdAuthorization;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save resolver authorization"
+    );
+  }
+}
+
+export async function getResolverAuthorizationByUserCode({
+  userCode,
+}: {
+  userCode: string;
+}): Promise<ResolverAuthorizationRecord | null> {
+  try {
+    const [selectedAuthorization] = await db
+      .select()
+      .from(resolverAuthorization)
+      .where(eq(resolverAuthorization.userCode, userCode))
+      .limit(1);
+
+    return selectedAuthorization ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get resolver authorization by user code"
+    );
+  }
+}
+
+export async function getResolverAuthorizationByDeviceCodeHash({
+  deviceCodeHash,
+}: {
+  deviceCodeHash: string;
+}): Promise<ResolverAuthorizationRecord | null> {
+  try {
+    const [selectedAuthorization] = await db
+      .select()
+      .from(resolverAuthorization)
+      .where(eq(resolverAuthorization.deviceCodeHash, deviceCodeHash))
+      .limit(1);
+
+    return selectedAuthorization ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get resolver authorization by device code"
+    );
+  }
+}
+
+export async function updateResolverAuthorizationById({
+  id,
+  status,
+  approvedByUserId,
+  approvedAt,
+  deniedAt,
+}: {
+  id: string;
+  status?: ResolverAuthorizationStatus;
+  approvedByUserId?: string | null;
+  approvedAt?: Date | null;
+  deniedAt?: Date | null;
+}) {
+  try {
+    const [updatedAuthorization] = await db
+      .update(resolverAuthorization)
+      .set({
+        ...(status !== undefined ? { status } : {}),
+        ...(approvedByUserId !== undefined ? { approvedByUserId } : {}),
+        ...(approvedAt !== undefined ? { approvedAt } : {}),
+        ...(deniedAt !== undefined ? { deniedAt } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(resolverAuthorization.id, id))
+      .returning();
+
+    return updatedAuthorization ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update resolver authorization"
+    );
+  }
+}
+
+export async function saveResolverToken({
+  id,
+  clientId,
+  userId,
+  kind,
+  tokenHash,
+  scopes,
+  expiresAt,
+  lastUsedAt,
+  revokedAt,
+  replacedByTokenId,
+}: {
+  id: string;
+  clientId: string;
+  userId: string;
+  kind: ResolverTokenKind;
+  tokenHash: string;
+  scopes: ResolverScope[];
+  expiresAt: Date;
+  lastUsedAt?: Date | null;
+  revokedAt?: Date | null;
+  replacedByTokenId?: string | null;
+}) {
+  try {
+    const [createdToken] = await db
+      .insert(resolverToken)
+      .values({
+        id,
+        clientId,
+        userId,
+        kind,
+        tokenHash,
+        scopes,
+        expiresAt,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastUsedAt,
+        revokedAt,
+        replacedByTokenId,
+      })
+      .returning();
+
+    return createdToken;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save resolver token"
+    );
+  }
+}
+
+export async function getResolverTokenByHash({
+  tokenHash,
+  kind,
+}: {
+  tokenHash: string;
+  kind: ResolverTokenKind;
+}): Promise<ResolverTokenRecord | null> {
+  try {
+    const [selectedToken] = await db
+      .select()
+      .from(resolverToken)
+      .where(
+        and(eq(resolverToken.tokenHash, tokenHash), eq(resolverToken.kind, kind))
+      )
+      .limit(1);
+
+    return selectedToken ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get resolver token"
+    );
+  }
+}
+
+export async function updateResolverTokenById({
+  id,
+  lastUsedAt,
+  revokedAt,
+  replacedByTokenId,
+}: {
+  id: string;
+  lastUsedAt?: Date | null;
+  revokedAt?: Date | null;
+  replacedByTokenId?: string | null;
+}) {
+  try {
+    const [updatedToken] = await db
+      .update(resolverToken)
+      .set({
+        ...(lastUsedAt !== undefined ? { lastUsedAt } : {}),
+        ...(revokedAt !== undefined ? { revokedAt } : {}),
+        ...(replacedByTokenId !== undefined ? { replacedByTokenId } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(resolverToken.id, id))
+      .returning();
+
+    return updatedToken ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update resolver token"
+    );
+  }
+}
+
+export async function touchResolverTokenById({ id }: { id: string }) {
+  return updateResolverTokenById({ id, lastUsedAt: new Date() });
+}
+
+export async function revokeResolverTokensByClientId({
+  clientId,
+}: {
+  clientId: string;
+}) {
+  try {
+    return await db
+      .update(resolverToken)
+      .set({
+        revokedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(eq(resolverToken.clientId, clientId), isNull(resolverToken.revokedAt))
+      )
+      .returning();
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to revoke resolver tokens"
+    );
+  }
+}
+
 export async function deleteChatHistoryByUserId({ userId }: { userId: string }) {
   try {
     const userChats = await db
@@ -398,6 +815,256 @@ export async function getRequestById({
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get request by id"
+    );
+  }
+}
+
+export async function getCommitmentById({
+  id,
+}: {
+  id: string;
+}): Promise<CommitmentRecord | null> {
+  try {
+    const [selectedCommitment] = await db
+      .select()
+      .from(commitment)
+      .where(eq(commitment.id, id))
+      .limit(1);
+
+    return selectedCommitment ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get commitment by id ${id}`
+    );
+  }
+}
+
+export async function updateCommitmentById({
+  id,
+  status,
+  acceptedBy,
+  activeFulfillmentId,
+  acceptedAt,
+  rejectedAt,
+  supersededAt,
+  cancelledAt,
+}: {
+  id: string;
+  status: CommitmentStatus;
+  acceptedBy?: RequestActorRef | null;
+  activeFulfillmentId?: string | null;
+  acceptedAt?: Date | null;
+  rejectedAt?: Date | null;
+  supersededAt?: Date | null;
+  cancelledAt?: Date | null;
+}) {
+  try {
+    const [updatedCommitment] = await db
+      .update(commitment)
+      .set({
+        status,
+        ...(acceptedBy !== undefined ? { acceptedBy } : {}),
+        ...(activeFulfillmentId !== undefined ? { activeFulfillmentId } : {}),
+        ...(acceptedAt !== undefined ? { acceptedAt } : {}),
+        ...(rejectedAt !== undefined ? { rejectedAt } : {}),
+        ...(supersededAt !== undefined ? { supersededAt } : {}),
+        ...(cancelledAt !== undefined ? { cancelledAt } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(commitment.id, id))
+      .returning();
+
+    return updatedCommitment ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update commitment"
+    );
+  }
+}
+
+export async function getArtifactById({
+  id,
+}: {
+  id: string;
+}): Promise<ArtifactRecord | null> {
+  try {
+    const [selectedArtifact] = await db
+      .select()
+      .from(artifactRecord)
+      .where(eq(artifactRecord.id, id))
+      .limit(1);
+
+    return selectedArtifact ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get artifact by id ${id}`
+    );
+  }
+}
+
+export async function getFulfillmentById({
+  id,
+}: {
+  id: string;
+}): Promise<FulfillmentRecord | null> {
+  try {
+    const [selectedFulfillment] = await db
+      .select()
+      .from(fulfillment)
+      .where(eq(fulfillment.id, id))
+      .limit(1);
+
+    return selectedFulfillment ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get fulfillment by id ${id}`
+    );
+  }
+}
+
+export async function saveFulfillment({
+  id,
+  key,
+  requestId,
+  commitmentId,
+  supplyId,
+  status,
+  lead,
+  contributors,
+  summary,
+  artifactIds,
+  steps,
+  metadata,
+  plannedAt,
+  readyAt,
+  startedAt,
+  blockedAt,
+  deliveredAt,
+  acceptedAt,
+  cancelledAt,
+  failedAt,
+}: {
+  id: string;
+  key: string;
+  requestId: string;
+  commitmentId: string;
+  supplyId?: string;
+  status: FulfillmentStatus;
+  lead: RequestActorRef;
+  contributors: RequestActorRef[];
+  summary: string;
+  artifactIds: string[];
+  steps: RequestFulfillmentStep[];
+  metadata?: Record<string, unknown>;
+  plannedAt?: Date | null;
+  readyAt?: Date | null;
+  startedAt?: Date | null;
+  blockedAt?: Date | null;
+  deliveredAt?: Date | null;
+  acceptedAt?: Date | null;
+  cancelledAt?: Date | null;
+  failedAt?: Date | null;
+}) {
+  try {
+    const [createdFulfillment] = await db
+      .insert(fulfillment)
+      .values({
+        id,
+        key,
+        requestId,
+        commitmentId,
+        ...(supplyId ? { supplyId } : {}),
+        status,
+        lead,
+        contributors,
+        summary,
+        artifactIds,
+        steps,
+        ...(metadata ? { metadata } : {}),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        plannedAt,
+        readyAt,
+        startedAt,
+        blockedAt,
+        deliveredAt,
+        acceptedAt,
+        cancelledAt,
+        failedAt,
+      })
+      .returning();
+
+    return createdFulfillment;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save fulfillment"
+    );
+  }
+}
+
+export async function updateFulfillmentById({
+  id,
+  status,
+  summary,
+  artifactIds,
+  steps,
+  contributors,
+  metadata,
+  readyAt,
+  startedAt,
+  blockedAt,
+  deliveredAt,
+  acceptedAt,
+  cancelledAt,
+  failedAt,
+}: {
+  id: string;
+  status: FulfillmentStatus;
+  summary: string;
+  artifactIds: string[];
+  steps: RequestFulfillmentStep[];
+  contributors: RequestActorRef[];
+  metadata?: Record<string, unknown>;
+  readyAt?: Date | null;
+  startedAt?: Date | null;
+  blockedAt?: Date | null;
+  deliveredAt?: Date | null;
+  acceptedAt?: Date | null;
+  cancelledAt?: Date | null;
+  failedAt?: Date | null;
+}) {
+  try {
+    const [updatedFulfillment] = await db
+      .update(fulfillment)
+      .set({
+        status,
+        summary,
+        artifactIds,
+        steps,
+        contributors,
+        ...(metadata !== undefined ? { metadata } : {}),
+        ...(readyAt !== undefined ? { readyAt } : {}),
+        ...(startedAt !== undefined ? { startedAt } : {}),
+        ...(blockedAt !== undefined ? { blockedAt } : {}),
+        ...(deliveredAt !== undefined ? { deliveredAt } : {}),
+        ...(acceptedAt !== undefined ? { acceptedAt } : {}),
+        ...(cancelledAt !== undefined ? { cancelledAt } : {}),
+        ...(failedAt !== undefined ? { failedAt } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(fulfillment.id, id))
+      .returning();
+
+    return updatedFulfillment ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update fulfillment"
     );
   }
 }
@@ -886,6 +1553,41 @@ export async function appendRequestEvent({
   }
 }
 
+export async function getRequestEventByIdempotencyKey({
+  requestId,
+  idempotencyKey,
+  eventType,
+}: {
+  requestId: string;
+  idempotencyKey: string;
+  eventType?: string;
+}): Promise<RequestEventRecord | null> {
+  try {
+    const clauses = [
+      eq(requestEvent.requestId, requestId),
+      eq(requestEvent.idempotencyKey, idempotencyKey),
+    ];
+
+    if (eventType) {
+      clauses.push(eq(requestEvent.eventType, eventType));
+    }
+
+    const [selectedEvent] = await db
+      .select()
+      .from(requestEvent)
+      .where(and(...clauses))
+      .orderBy(desc(requestEvent.recordedAt))
+      .limit(1);
+
+    return selectedEvent ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get request event by idempotency key"
+    );
+  }
+}
+
 export async function getRequestActivityByRequestId({
   requestId,
   limit = 20,
@@ -910,9 +1612,43 @@ export async function getRequestActivityByRequestId({
   }
 }
 
+export function toRequestFulfillment(
+  record: FulfillmentRecord
+): RequestFulfillment {
+  return {
+    id: record.id,
+    key: record.key,
+    requestId: record.requestId,
+    commitmentId: record.commitmentId,
+    ...(record.supplyId ? { supplyId: record.supplyId } : {}),
+    status: record.status,
+    lead: record.lead,
+    contributors: record.contributors ?? [],
+    summary: record.summary,
+    artifactIds: record.artifactIds ?? [],
+    steps: record.steps ?? [],
+    ...(record.metadata ? { metadata: record.metadata } : {}),
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    ...(record.plannedAt ? { plannedAt: record.plannedAt.toISOString() } : {}),
+    ...(record.readyAt ? { readyAt: record.readyAt.toISOString() } : {}),
+    ...(record.startedAt ? { startedAt: record.startedAt.toISOString() } : {}),
+    ...(record.blockedAt ? { blockedAt: record.blockedAt.toISOString() } : {}),
+    ...(record.deliveredAt
+      ? { deliveredAt: record.deliveredAt.toISOString() }
+      : {}),
+    ...(record.acceptedAt ? { acceptedAt: record.acceptedAt.toISOString() } : {}),
+    ...(record.cancelledAt
+      ? { cancelledAt: record.cancelledAt.toISOString() }
+      : {}),
+    ...(record.failedAt ? { failedAt: record.failedAt.toISOString() } : {}),
+  };
+}
+
 function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntry {
   const payload = normalizeObject(record.payload) ?? {};
   const commitmentPayload = normalizeObject(payload.commitment);
+  const fulfillmentPayload = normalizeObject(payload.fulfillment);
   const artifactPayload = normalizeObject(payload.artifact);
 
   return {
@@ -945,6 +1681,19 @@ function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntr
             terms: normalizeCommitmentTerms(
               normalizeObject(commitmentPayload.terms) as Record<string, unknown>
             ),
+          }
+        : undefined,
+    fulfillment:
+      fulfillmentPayload &&
+      normalizeOptionalString(fulfillmentPayload.id) &&
+      normalizeOptionalString(fulfillmentPayload.commitmentId) &&
+      normalizeOptionalString(fulfillmentPayload.status) &&
+      normalizeOptionalString(fulfillmentPayload.summary)
+        ? {
+            id: String(fulfillmentPayload.id),
+            commitmentId: String(fulfillmentPayload.commitmentId),
+            status: fulfillmentPayload.status as FulfillmentStatus,
+            summary: String(fulfillmentPayload.summary),
           }
         : undefined,
     artifact:
@@ -1051,6 +1800,26 @@ function fallbackActivitySummary(eventType: string) {
       return "Request opened";
     case "commitment.proposed":
       return "Commitment proposed";
+    case "commitment.accepted":
+      return "Commitment accepted";
+    case "fulfillment.created":
+      return "Fulfillment created";
+    case "fulfillment.updated":
+      return "Fulfillment updated";
+    case "fulfillment.started":
+      return "Fulfillment started";
+    case "fulfillment.blocked":
+      return "Fulfillment blocked";
+    case "fulfillment.resumed":
+      return "Fulfillment resumed";
+    case "fulfillment.delivered":
+      return "Fulfillment delivered";
+    case "fulfillment.accepted":
+      return "Fulfillment accepted";
+    case "fulfillment.cancelled":
+      return "Fulfillment cancelled";
+    case "fulfillment.failed":
+      return "Fulfillment failed";
     case "artifact.added":
       return "Artifact published";
     default:

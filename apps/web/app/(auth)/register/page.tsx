@@ -1,18 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useActionState, useEffect, useState } from "react";
+import { Suspense, useActionState, useEffect, useState } from "react";
 import { AuthForm } from "@/components/chat/auth-form";
 import { SubmitButton } from "@/components/chat/submit-button";
 import { toast } from "@/components/chat/toast";
 import { type RegisterActionState, register } from "../actions";
 
 export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterPageContent />
+    </Suspense>
+  );
+}
+
+function RegisterPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
+  const rawCallbackUrl = searchParams.get("callbackUrl")?.trim() || "/";
+  const callbackUrl =
+    rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : "/";
 
   const [state, formAction] = useActionState<RegisterActionState, FormData>(
     register,
@@ -36,9 +50,10 @@ export default function Page() {
       toast({ type: "success", description: "Account created!" });
       setIsSuccessful(true);
       updateSession();
+      router.replace(callbackUrl);
       router.refresh();
     }
-  }, [state.status]);
+  }, [callbackUrl, state.status]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get("email") as string);
@@ -54,6 +69,7 @@ export default function Page() {
         Open work threads and keep fulfillment, proof, and payout in one place.
       </p>
       <AuthForm action={handleSubmit} defaultEmail={email}>
+        <input name="callbackUrl" type="hidden" value={callbackUrl} />
         <SubmitButton isSuccessful={isSuccessful}>
           Create account
         </SubmitButton>
@@ -61,7 +77,7 @@ export default function Page() {
           {"Already inside Boreal? "}
           <Link
             className="text-foreground underline-offset-4 hover:underline"
-            href="/login"
+            href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
           >
             Sign in
           </Link>

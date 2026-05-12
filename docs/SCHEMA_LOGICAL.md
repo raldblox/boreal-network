@@ -22,6 +22,12 @@ Append-only ledger aggregate:
 
 - `RequestEvent`
 
+Support auth aggregates for resolver runtimes:
+
+- `ResolverClient`
+- `ResolverAuthorization`
+- `ResolverToken`
+
 ## Logical Relationships
 
 ### `Actor` -> `Supply`
@@ -168,6 +174,16 @@ Stores immutable business history:
 Stores durable output or proof with a stable container reference.
 
 It should not force the request root to inline large delivery bodies.
+
+## Resolver Auth Support Objects
+
+These are support auth objects, not canonical commerce roots:
+
+- `ResolverClient`
+- `ResolverAuthorization`
+- `ResolverToken`
+
+They exist so a non-browser runtime can be approved against one Boreal account and then call resolver APIs through scoped bearer auth without collapsing runtime identity into account identity.
 
 ## Derived Views
 

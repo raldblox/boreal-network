@@ -49,6 +49,8 @@ Verify:
 - only authorized actors can mutate a request
 - participant roles are enforced
 - payment and payout visibility respect ownership and role boundaries
+- resolver bearer scopes are enforced independently from browser sessions
+- raw runtime identity cannot be treated as Boreal request ownership without Boreal-issued resolver approval
 
 ### Idempotency tests
 
@@ -97,6 +99,17 @@ Verify:
 - structured matching intent should land in top-level `seeking` rather than relying on generated `brief.tags`
 - open request rooms should not force every user message through draft brief mutation tools
 - public open request activity should be fetchable from a durable request activity endpoint
+- public open request detail should be fetchable by id through a direct request API surface
+- direct request commitment and artifact endpoints should create durable activity without going through the chat route
+- direct request commitment and artifact endpoints should honor idempotency keys on retry
+- direct commitment accept endpoints should honor idempotency keys on retry
+- direct fulfillment create and update endpoints should honor idempotency keys on retry
+- direct fulfillment create should require an accepted commitment
+- direct fulfillment updates should reject invalid state transitions
+- funding-required requests should not start fulfillment directly in `active`
+- resolver device approval should not issue tokens before explicit Boreal account approval
+- resolver refresh rotation should revoke or replace the previous refresh token
+- revoked resolver tokens should fail on subsequent request writes
 - timeline cards should be reconstructible from `RequestEvent` plus related object refs
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
@@ -178,8 +191,10 @@ Verify:
 - create
 - start
 - block
+- resume
 - deliver
 - accept
+- cancel
 - fail
 
 ### `FulfillmentStep`

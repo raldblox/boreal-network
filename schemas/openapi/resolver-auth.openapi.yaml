@@ -1,0 +1,223 @@
+openapi: 3.1.0
+info:
+  title: Boreal Resolver Auth Surface
+  version: 1.0.0
+  description: >
+    Boreal-issued resolver identity flow for desktop or other non-browser
+    runtimes that need scoped access to resolver APIs.
+paths:
+  /api/auth/resolver/device/start:
+    post:
+      summary: Start a device approval flow for one resolver runtime.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolverDeviceStartRequest"
+      responses:
+        "200":
+          description: Pending device approval details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolverDeviceStartResponse"
+  /api/auth/resolver/device/poll:
+    post:
+      summary: Poll one pending resolver device approval.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolverDevicePollRequest"
+      responses:
+        "200":
+          description: Approved token payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolverTokenResponse"
+        "202":
+          description: Approval still pending.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolverDevicePendingResponse"
+  /api/auth/resolver/token/refresh:
+    post:
+      summary: Rotate one resolver refresh token into a new access and refresh pair.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolverRefreshRequest"
+      responses:
+        "200":
+          description: Rotated token payload.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResolverTokenResponse"
+  /api/auth/resolver/token/revoke:
+    post:
+      summary: Revoke one resolver session by refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResolverRevokeRequest"
+      responses:
+        "200":
+          description: Revocation acknowledgment.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - revoked
+                properties:
+                  revoked:
+                    type: boolean
+components:
+  schemas:
+    ResolverScope:
+      type: string
+      enum:
+        - requests:read_public
+        - requests:read_private
+        - requests:read_activity
+        - commitments:propose
+        - commitments:accept
+        - artifacts:publish
+        - fulfillments:read
+        - fulfillments:create
+        - fulfillments:update
+    ResolverDeviceStartRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - deviceName
+        - runtimeName
+        - requestedScopes
+      properties:
+        deviceName:
+          type: string
+        runtimeName:
+          type: string
+        codexAuthProvider:
+          type: string
+        codexAccountLabel:
+          type: string
+        requestedScopes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResolverScope"
+        metadata:
+          type: object
+          additionalProperties: true
+    ResolverDeviceStartResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - deviceCode
+        - userCode
+        - verificationUri
+        - verificationUriComplete
+        - intervalSeconds
+        - expiresAt
+      properties:
+        deviceCode:
+          type: string
+        userCode:
+          type: string
+        verificationUri:
+          type: string
+        verificationUriComplete:
+          type: string
+        intervalSeconds:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time
+    ResolverDevicePollRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - deviceCode
+      properties:
+        deviceCode:
+          type: string
+    ResolverDevicePendingResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - intervalSeconds
+        - expiresAt
+      properties:
+        status:
+          type: string
+          enum:
+            - pending
+        intervalSeconds:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time
+    ResolverTokenResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - accessToken
+        - accessTokenExpiresAt
+        - refreshToken
+        - refreshTokenExpiresAt
+        - clientId
+        - userId
+        - scopes
+      properties:
+        status:
+          type: string
+          enum:
+            - approved
+        accessToken:
+          type: string
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+        refreshToken:
+          type: string
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+        clientId:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        scopes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ResolverScope"
+    ResolverRefreshRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+    ResolverRevokeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string

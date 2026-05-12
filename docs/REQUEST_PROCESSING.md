@@ -70,11 +70,23 @@ Open request room behavior should prefer:
 - `Artifact` for drafts, proof, files, and deliveries
 - `RequestEvent` for durable visible activity
 
+If a resolver runtime does not share chat context, it should prefer direct request resource APIs for these writes instead of going through the chat mutation layer.
+That runtime should authenticate with a Boreal-issued resolver token after explicit web approval, not by treating raw Codex auth as the request actor.
+
+The first direct resolver lane in `apps/web` should support:
+
+- `POST /api/requests/{id}/commitments`
+- `PATCH /api/commitments/{id}` with `accept`
+- `POST /api/requests/{id}/fulfillments`
+- `PATCH /api/fulfillments/{id}`
+
 The request root should update through:
 
 - lifecycle status
 - `activeRefs`
 - `latest`
+
+Do not start fulfillment in `active` state while the request is still `funding_required`.
 
 Do not treat every open-room message as a brief rewrite.
 
@@ -121,3 +133,4 @@ These objects are derived and rebuildable, not durable roots:
 - `FulfillmentStep` is the default home for generated sub-work.
 - A new `Request` is only justified by a new funding, ownership, routing, or review boundary.
 - open request rooms should prefer adjacent durable objects plus request projection updates over inlining response history on the request root
+- direct resolver APIs and chat mutation tools should map to the same durable request-side writes

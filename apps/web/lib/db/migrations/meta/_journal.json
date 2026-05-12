@@ -29,6 +29,20 @@
       "when": 1710259200000,
       "tag": "0003_request_room_activity",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1710345600000,
+      "tag": "0004_request_fulfillment",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1710432000000,
+      "tag": "0005_resolver_auth",
+      "breakpoints": true
     }
   ]
 }

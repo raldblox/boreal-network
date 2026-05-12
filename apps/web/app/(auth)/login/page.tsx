@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useActionState, useEffect, useState } from "react";
+import { Suspense, useActionState, useEffect, useState } from "react";
 
 import { AuthForm } from "@/components/chat/auth-form";
 import { SubmitButton } from "@/components/chat/submit-button";
@@ -11,9 +11,23 @@ import { toast } from "@/components/chat/toast";
 import { type LoginActionState, login } from "../actions";
 
 export default function Page() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
+  const rawCallbackUrl = searchParams.get("callbackUrl")?.trim() || "/";
+  const callbackUrl =
+    rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
+      ? rawCallbackUrl
+      : "/";
 
   const [state, formAction] = useActionState<LoginActionState, FormData>(
     login,
@@ -34,9 +48,10 @@ export default function Page() {
     } else if (state.status === "success") {
       setIsSuccessful(true);
       updateSession();
+      router.replace(callbackUrl);
       router.refresh();
     }
-  }, [state.status]);
+  }, [callbackUrl, state.status]);
 
   const handleSubmit = (formData: FormData) => {
     setEmail(formData.get("email") as string);
@@ -52,12 +67,13 @@ export default function Page() {
         Reopen request threads, specialists, and delivery history.
       </p>
       <AuthForm action={handleSubmit} defaultEmail={email}>
+        <input name="callbackUrl" type="hidden" value={callbackUrl} />
         <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>
         <p className="text-center text-[13px] text-muted-foreground">
           {"New to Boreal? "}
           <Link
             className="text-foreground underline-offset-4 hover:underline"
-            href="/register"
+            href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
           >
             Create an account
           </Link>

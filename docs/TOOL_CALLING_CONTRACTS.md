@@ -91,6 +91,7 @@ First set:
 - `draft_commitment`
 - `accept_commitment`
 - `create_fulfillment`
+- `update_fulfillment`
 - `create_fulfillment_steps`
 - `publish_artifact`
 - `resolve_request`
@@ -136,6 +137,9 @@ Every mutation call should return:
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.
 - Tool-produced output should be recorded as `RequestEvent` when the thread needs durable explanation or auditability.
+- When a non-chat resolver runtime uses direct request APIs, those APIs must preserve the same durable behavior as the corresponding chat mutation tools.
+- Direct resolver APIs should support the same commercial and lifecycle gates as tools: accepted commitment before fulfillment, valid fulfillment-state transitions, and idempotent retries.
+- Direct resolver APIs should accept Boreal-issued scoped bearer tokens rather than assuming browser session cookies or raw runtime credentials.
 
 ## First Implementation Target
 

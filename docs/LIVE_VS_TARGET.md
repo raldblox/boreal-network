@@ -48,6 +48,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/transaction.schema.json`
 - `schemas/json/request-event.schema.json`
 - `schemas/openapi/request-briefing.openapi.yaml`
+- `schemas/openapi/resolver-auth.openapi.yaml`
 - `fixtures/request/golden-external-ai-automation-thread.json`
 - `fixtures/request/eval-complex-human-planning-and-match.json`
 - `fixtures/request/eval-complex-human-planning-and-match.actual.sample.json`
@@ -61,11 +62,15 @@ Today, the machine-readable baseline proves:
 - one durable `Request` can carry intake, funding, fulfillment, and completion state
 - one durable `Request` may exist early in `draft` status while the brief is still being formed
 - one `open` plus `public` request can be exposed through a public-safe web pool listing
+- one public-safe request detail view can be fetched directly by request id
 - one open request room can expose request activity derived from durable `RequestEvent`, `Commitment`, and `Artifact` records
 - one `Supply` can be expressed as a durable capability object
 - one `Commitment` can carry quoted or accepted commercial terms
 - one `Artifact` can point to a stable document-backed container instead of inflating the request root
-- one request-room event stream contract now exists under `schemas/events/`
+- one open request can accept direct HTTP commitment and artifact writes in addition to chat tool-calling
+- one accepted commitment can be advanced through direct HTTP acceptance and into a direct fulfillment lane
+- one non-browser resolver runtime can bind to a Boreal account through a web approval flow and receive scoped Boreal-issued bearer tokens
+- one request-room event stream contract now exists under `schemas/events/`, including commitment and fulfillment lifecycle coverage for the first resolver lane
 - canonical machine-readable shapes now exist for `Fulfillment`, `Transaction`, and `RequestEvent`
 - a deterministic end-to-end thread can be read without inventing missing IDs, statuses, or event names
 - the repo is structured to host governed JS or TS workspaces under shared workspace discovery rules
@@ -76,7 +81,7 @@ Today, the machine-readable baseline proves:
 These are intended next layers, not fully modeled proof yet:
 
 - broader canonical event coverage under `schemas/events/`
-- broader canonical HTTP and webhook coverage under `schemas/openapi/`
+- broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
 - richer golden fixtures for failure, replay, dispute, collective fulfillment, and private-supply paths
 - deeper web runtime coverage beyond the first request-briefing slice in `apps/web/`
 - deeper supply lifecycle canon for onboarding, capacity, visibility, and retirement

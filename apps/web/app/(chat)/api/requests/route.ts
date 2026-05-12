@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { auth } from "@/app/(auth)/auth";
 import {
   getChatById,
   getPublicOpenRequests,
@@ -9,6 +8,10 @@ import {
   toRequestDraft,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
+import {
+  getRequestActorContext,
+  hasResolverScope,
+} from "@/lib/resolver-session";
 import {
   ensureRequestDraftForChat,
   openRequestDraft,
@@ -61,12 +64,18 @@ export async function GET(request: Request) {
     return Response.json(requests, { status: 200 });
   }
 
-  const session = await auth();
-  if (!session?.user) {
+  const actor = await getRequestActorContext(request);
+  if (!actor) {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
   if (!chatId) {
+    if (actor.kind === "resolver") {
+      if (!hasResolverScope(actor, "requests:read_private")) {
+        return new ChatbotError("forbidden:chat").toResponse();
+      }
+    }
+
     const limit = Math.min(
       Math.max(Number.parseInt(searchParams.get("limit") || "10", 10), 1),
       50
@@ -82,7 +91,7 @@ export async function GET(request: Request) {
     }
 
     const requests = await getRequestsByUserId({
-      id: session.user.id,
+      id: actor.userId,
       limit,
       startingAfter,
       endingBefore,
@@ -96,8 +105,14 @@ export async function GET(request: Request) {
     return Response.json({ request: null }, { status: 200 });
   }
 
-  if (requestDraft.ownerId !== session.user.id) {
+  if (requestDraft.ownerId !== actor.userId) {
     return new ChatbotError("forbidden:chat").toResponse();
+  }
+
+  if (actor.kind === "resolver") {
+    if (!hasResolverScope(actor, "requests:read_private")) {
+      return new ChatbotError("forbidden:chat").toResponse();
+    }
   }
 
   return Response.json(
@@ -107,8 +122,8 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user) {
+  const actor = await getRequestActorContext(request);
+  if (!actor || actor.kind !== "session") {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
@@ -123,13 +138,13 @@ export async function POST(request: Request) {
   }
 
   const chat = await getChatById({ id: body.chatId });
-  if (chat && chat.userId !== session.user.id) {
+  if (chat && chat.userId !== actor.userId) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
   const requestDraft = await ensureRequestDraftForChat({
     chatId: body.chatId,
-    userId: session.user.id,
+    userId: actor.userId,
     visibility: body.visibility,
   });
 
@@ -137,8 +152,8 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const session = await auth();
-  if (!session?.user) {
+  const actor = await getRequestActorContext(request);
+  if (!actor || actor.kind !== "session") {
     return new ChatbotError("unauthorized:chat").toResponse();
   }
 
@@ -162,11 +177,11 @@ export async function PATCH(request: Request) {
       body.action === "open_request"
         ? await openRequestDraft({
             requestId: body.requestId,
-            userId: session.user.id,
+            userId: actor.userId,
           })
         : await persistRequestPatch({
             requestId: body.requestId,
-            userId: session.user.id,
+            userId: actor.userId,
             patch: {},
           });
 

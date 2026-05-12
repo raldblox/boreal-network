@@ -136,6 +136,60 @@ export type CommitmentTerms = {
   paymentNotes?: string;
 };
 
+export type FulfillmentStatus =
+  | "planned"
+  | "ready"
+  | "active"
+  | "blocked"
+  | "delivered"
+  | "accepted"
+  | "cancelled"
+  | "failed";
+
+export type FulfillmentStepStatus =
+  | "todo"
+  | "ready"
+  | "active"
+  | "blocked"
+  | "done"
+  | "cancelled"
+  | "failed";
+
+export type RequestFulfillmentStep = {
+  id: string;
+  kind: string;
+  title: string;
+  status: FulfillmentStepStatus;
+  dependsOnStepIds?: string[];
+  assignee?: RequestActorRef;
+  metadata?: Record<string, unknown>;
+};
+
+export type RequestFulfillment = {
+  id: string;
+  key: string;
+  requestId: string;
+  commitmentId: string;
+  supplyId?: string;
+  status: FulfillmentStatus;
+  lead: RequestActorRef;
+  contributors: RequestActorRef[];
+  summary: string;
+  artifactIds: string[];
+  steps: RequestFulfillmentStep[];
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+  plannedAt?: string;
+  readyAt?: string;
+  startedAt?: string;
+  blockedAt?: string;
+  deliveredAt?: string;
+  acceptedAt?: string;
+  cancelledAt?: string;
+  failedAt?: string;
+};
+
 export type RequestArtifactKind =
   | "brief"
   | "plan"
@@ -180,6 +234,12 @@ export type RequestActivityEntry = {
     status: CommitmentStatus;
     summary: string;
     terms: CommitmentTerms;
+  };
+  fulfillment?: {
+    id: string;
+    commitmentId: string;
+    status: FulfillmentStatus;
+    summary: string;
   };
   artifact?: {
     id: string;

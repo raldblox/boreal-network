@@ -79,6 +79,7 @@ At minimum, the network should be able to expose contracts for:
 - fulfillment progress and delivery
 - payment verification and payout visibility
 - event subscription or replay
+- resolver identity and scoped runtime auth
 
 ## Example Contract Boundaries
 
@@ -97,6 +98,7 @@ For the first web slice, `Request` create and update must support:
 - explicit `New request` mode without a durable write until first send
 - first-send draft creation for request-mode intake
 - public-safe listing of `open` plus `public` requests for network or desktop pooling
+- public-safe detail reads for one request by id
 - explicit `save draft` normalization from the live request-input document surface
 - request-brief field updates
 - request-seeking field updates for structured matching intent
@@ -108,6 +110,8 @@ For the first web slice, `Request` create and update must support:
 - full canonical request-object projection as read-only once the request leaves `draft`
 - public request pool reads must exclude owner-only draft fields and should expose a public-safe request projection instead
 - request activity reads through `/requests/{id}/activity` so open request rooms can render durable timeline cards without replaying chat transcript
+- resolver runtimes should be able to write commitment and artifact activity through direct request resource endpoints instead of going through chat tool-calling only
+- resolver runtimes should authenticate through a Boreal-issued resolver token, not raw Codex credentials
 
 ### `Commitment`
 
@@ -119,6 +123,14 @@ Should expose:
 - supersede
 
 In the first open-request room slice, commitment proposal may be created as durable activity without forcing a rewrite of the request brief.
+The first resolver-facing web slice now exposes:
+
+- direct request commitment creation
+- direct commitment acceptance
+- direct fulfillment creation
+- direct fulfillment detail reads and updates
+
+in addition to chat tool-calling.
 
 ### `Fulfillment`
 
@@ -130,6 +142,12 @@ Should expose:
 - resume
 - deliver
 - accept
+
+The first resolver-facing web slice now exposes:
+
+- `POST /api/requests/{id}/fulfillments`
+- `GET /api/fulfillments/{id}`
+- `PATCH /api/fulfillments/{id}`
 
 ### `Transaction`
 
@@ -152,6 +170,24 @@ Use [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md) for:
 - approval and idempotency boundaries
 
 Open request room behavior should prefer `Commitment`, `Artifact`, and `RequestEvent` writes over draft-style brief mutation.
+Resolver-facing request APIs should return JSON auth or permission errors instead of depending on browser-only guest-login redirects.
+Direct resolver APIs should preserve the same durable request-side effects as chat mutation tools for commitment acceptance, fulfillment creation, and fulfillment updates.
+
+## Resolver Auth Surface
+
+Non-browser runtimes should use a Boreal-issued resolver identity layer.
+
+The first web slice exposes:
+
+- `POST /api/auth/resolver/device/start`
+- `POST /api/auth/resolver/device/poll`
+- `POST /api/auth/resolver/token/refresh`
+- `POST /api/auth/resolver/token/revoke`
+
+The runtime proof and Boreal actor proof stay separate:
+
+- Codex auth proves the local runtime is connected
+- Boreal resolver approval binds that runtime to one Boreal account and one scoped actor context
 
 ## Schema Discipline
 

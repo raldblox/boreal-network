@@ -1,9 +1,9 @@
 import {
-  getRequestActivityByRequestId,
   getRequestById,
   toRequestDraft,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
+import { toPublicRequestPoolEntry } from "@/lib/request";
 import {
   getRequestActorContext,
   hasResolverScope,
@@ -24,26 +24,28 @@ export async function GET(
   }
 
   const requestDraft = toRequestDraft(requestRecord);
-  const canReadPublicActivity =
+  const canReadPublicRequest =
     requestDraft.visibility === "public" && requestDraft.status !== "draft";
   const isOwner = actor?.userId === requestDraft.ownerId;
 
-  if (!isOwner && !canReadPublicActivity) {
+  if (!isOwner && !canReadPublicRequest) {
     return new ChatbotError(
       actor ? "forbidden:chat" : "unauthorized:chat"
     ).toResponse();
   }
 
   if (actor?.kind === "resolver" && isOwner) {
-    if (!hasResolverScope(actor, "requests:read_activity")) {
+    if (!hasResolverScope(actor, "requests:read_private")) {
       return new ChatbotError("forbidden:chat").toResponse();
     }
   }
 
-  const activity = await getRequestActivityByRequestId({
-    requestId: requestDraft.id,
-    limit: 40,
-  });
-
-  return Response.json({ activity }, { status: 200 });
+  return Response.json(
+    {
+      request: isOwner
+        ? requestDraft
+        : toPublicRequestPoolEntry(requestDraft),
+    },
+    { status: 200 }
+  );
 }

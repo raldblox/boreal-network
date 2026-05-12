@@ -9,6 +9,22 @@ export async function proxy(request: NextRequest) {
     return new Response("pong", { status: 200 });
   }
 
+  if (pathname.startsWith("/api/requests")) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/commitments")) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/fulfillments")) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/document")) {
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }

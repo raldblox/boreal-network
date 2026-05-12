@@ -4,9 +4,9 @@ info:
   version: 0.1.0
   description: >
     Durable request-room event contract for the first Boreal web slice.
-    These events describe request opening, commitment proposal, and artifact
-    publication activity that can be replayed into request-room timeline cards
-    and request root projections.
+    These events describe request opening, commitment proposal and acceptance,
+    fulfillment lifecycle activity, and artifact publication activity that can
+    be replayed into request-room timeline cards and request root projections.
 defaultContentType: application/json
 channels:
   requests/{requestId}/events:
@@ -23,6 +23,16 @@ channels:
         oneOf:
           - $ref: '#/components/messages/RequestOpened'
           - $ref: '#/components/messages/CommitmentProposed'
+          - $ref: '#/components/messages/CommitmentAccepted'
+          - $ref: '#/components/messages/FulfillmentCreated'
+          - $ref: '#/components/messages/FulfillmentUpdated'
+          - $ref: '#/components/messages/FulfillmentStarted'
+          - $ref: '#/components/messages/FulfillmentBlocked'
+          - $ref: '#/components/messages/FulfillmentResumed'
+          - $ref: '#/components/messages/FulfillmentDelivered'
+          - $ref: '#/components/messages/FulfillmentAccepted'
+          - $ref: '#/components/messages/FulfillmentCancelled'
+          - $ref: '#/components/messages/FulfillmentFailed'
           - $ref: '#/components/messages/ArtifactAdded'
 components:
   messages:
@@ -62,6 +72,186 @@ components:
               - aggregateType
               - eventType
               - payload
+    CommitmentAccepted:
+      name: commitment.accepted
+      title: Commitment accepted
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: commitment
+              eventType:
+                const: commitment.accepted
+              payload:
+                $ref: '#/components/schemas/CommitmentAcceptedPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentCreated:
+      name: fulfillment.created
+      title: Fulfillment created
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.created
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentUpdated:
+      name: fulfillment.updated
+      title: Fulfillment updated
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.updated
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentStarted:
+      name: fulfillment.started
+      title: Fulfillment started
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.started
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentBlocked:
+      name: fulfillment.blocked
+      title: Fulfillment blocked
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.blocked
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentResumed:
+      name: fulfillment.resumed
+      title: Fulfillment resumed
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.resumed
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentDelivered:
+      name: fulfillment.delivered
+      title: Fulfillment delivered
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.delivered
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentAccepted:
+      name: fulfillment.accepted
+      title: Fulfillment accepted
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.accepted
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentCancelled:
+      name: fulfillment.cancelled
+      title: Fulfillment cancelled
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.cancelled
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    FulfillmentFailed:
+      name: fulfillment.failed
+      title: Fulfillment failed
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: fulfillment
+              eventType:
+                const: fulfillment.failed
+              payload:
+                $ref: '#/components/schemas/FulfillmentEventPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
     ArtifactAdded:
       name: artifact.added
       title: Artifact added
@@ -96,6 +286,7 @@ components:
           enum:
             - request
             - commitment
+            - fulfillment
             - artifact
         aggregateId:
           type: string
@@ -157,8 +348,8 @@ components:
             - human
             - organization
             - agent
+            - tool
             - runtime
-            - provider
         id:
           type: string
         displayName:
@@ -259,6 +450,94 @@ components:
         - summary
         - detail
         - commitment
+    CommitmentAcceptedPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        summary:
+          type: string
+        detail:
+          type: string
+        requestStatus:
+          type: string
+        commitment:
+          type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+              format: uuid
+            kind:
+              type: string
+              enum:
+                - quote
+                - proposal
+                - assignment
+                - milestone
+                - acceptance
+            status:
+              type: string
+              enum:
+                - proposed
+                - accepted
+                - rejected
+                - superseded
+                - expired
+                - cancelled
+            summary:
+              type: string
+            terms:
+              $ref: '#/components/schemas/CommitmentTerms'
+          required:
+            - id
+            - kind
+            - status
+            - summary
+            - terms
+      required:
+        - summary
+        - commitment
+    FulfillmentEventPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        summary:
+          type: string
+        detail:
+          type: string
+        requestStatus:
+          type: string
+        fulfillment:
+          type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+              format: uuid
+            commitmentId:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum:
+                - planned
+                - ready
+                - active
+                - blocked
+                - delivered
+                - accepted
+                - cancelled
+                - failed
+            summary:
+              type: string
+          required:
+            - id
+            - commitmentId
+            - status
+            - summary
+      required:
+        - summary
+        - fulfillment
     ArtifactContainer:
       type: object
       additionalProperties: false

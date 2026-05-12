@@ -169,8 +169,212 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/WebRequestActivity"
+  /api/requests/{id}:
+    get:
+      summary: Get one request detail view for an owner or public responder runtime.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Owner-full request detail or public-safe request detail.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebRequestDetailResponse"
+  /api/requests/{id}/commitments:
+    post:
+      summary: Propose one durable commitment on an open request.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebCommitmentCreate"
+      responses:
+        "200":
+          description: The created or idempotently replayed commitment proposal.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebCommitmentMutation"
+  /api/commitments/{id}:
+    patch:
+      summary: Accept one durable commitment as the request owner.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebCommitmentAction"
+      responses:
+        "200":
+          description: The accepted or idempotently replayed commitment.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebCommitmentMutation"
+  /api/requests/{id}/fulfillments:
+    post:
+      summary: Create one durable fulfillment lane from an accepted commitment.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebFulfillmentCreate"
+      responses:
+        "200":
+          description: The created or idempotently replayed fulfillment.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - fulfillment
+                properties:
+                  fulfillment:
+                    $ref: "#/components/schemas/WebFulfillment"
+  /api/requests/{id}/artifacts:
+    post:
+      summary: Publish one durable artifact on an open request.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebArtifactCreate"
+      responses:
+        "200":
+          description: The created or idempotently replayed artifact publication.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebArtifactMutation"
+  /api/fulfillments/{id}:
+    get:
+      summary: Get one fulfillment detail view for an owner, participant, or public responder runtime.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: One fulfillment detail view.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - fulfillment
+                properties:
+                  fulfillment:
+                    $ref: "#/components/schemas/WebFulfillment"
+    patch:
+      summary: Update one durable fulfillment lane.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebFulfillmentMutation"
+      responses:
+        "200":
+          description: The updated or idempotently replayed fulfillment.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - fulfillment
+                properties:
+                  fulfillment:
+                    $ref: "#/components/schemas/WebFulfillment"
 components:
   schemas:
+    WebRequestDetailResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - request
+      properties:
+        request:
+          oneOf:
+            - $ref: "#/components/schemas/WebRequestDraft"
+            - $ref: "#/components/schemas/WebPublicRequest"
     WebRequestActiveRefs:
       type: object
       additionalProperties: false
@@ -272,9 +476,412 @@ components:
         commitment:
           type: object
           additionalProperties: true
+        fulfillment:
+          type: object
+          additionalProperties: true
         artifact:
           type: object
           additionalProperties: true
+    WebActorRef:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - id
+      properties:
+        kind:
+          type: string
+          enum:
+            - human
+            - agent
+            - tool
+            - organization
+            - runtime
+        id:
+          type: string
+        displayName:
+          type: string
+        handle:
+          type: string
+    WebCommitmentTerms:
+      type: object
+      additionalProperties: false
+      required:
+        - fundingRequired
+        - amountMode
+      properties:
+        fundingRequired:
+          type: boolean
+        amountMode:
+          type: string
+          enum:
+            - none
+            - fixed
+            - range
+            - open
+        currency:
+          type: string
+        fixedAmount:
+          type: number
+        minAmount:
+          type: number
+        maxAmount:
+          type: number
+        deliverableSummary:
+          type: string
+        paymentNotes:
+          type: string
+    WebCommitmentCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - summary
+        - terms
+      properties:
+        kind:
+          type: string
+          enum:
+            - quote
+            - proposal
+            - assignment
+            - milestone
+            - acceptance
+        summary:
+          type: string
+        terms:
+          $ref: "#/components/schemas/WebCommitmentTerms"
+        idempotencyKey:
+          type: string
+          format: uuid
+    WebCommitmentAction:
+      type: object
+      additionalProperties: false
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum:
+            - accept
+        idempotencyKey:
+          type: string
+          format: uuid
+    WebCommitmentMutation:
+      type: object
+      additionalProperties: false
+      required:
+        - requestId
+        - commitmentId
+        - summary
+        - status
+        - terms
+        - requestStatus
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        commitmentId:
+          type: string
+          format: uuid
+        summary:
+          type: string
+        status:
+          type: string
+          enum:
+            - proposed
+            - accepted
+            - rejected
+            - expired
+            - superseded
+            - cancelled
+        terms:
+          $ref: "#/components/schemas/WebCommitmentTerms"
+        requestStatus:
+          type: string
+    WebArtifactCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - artifactKind
+        - documentKind
+        - title
+        - content
+      properties:
+        artifactKind:
+          type: string
+          enum:
+            - brief
+            - plan
+            - draft
+            - file
+            - media
+            - delivery
+            - evidence
+            - receipt
+            - signature
+            - link
+        documentKind:
+          type: string
+          enum:
+            - text
+            - code
+            - image
+            - sheet
+        title:
+          type: string
+        summary:
+          type: string
+        content:
+          type: string
+        idempotencyKey:
+          type: string
+          format: uuid
+    WebArtifactMutation:
+      type: object
+      additionalProperties: false
+      required:
+        - requestId
+        - artifactId
+        - documentId
+        - title
+        - kind
+        - artifactKind
+        - requestStatus
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        artifactId:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        summary:
+          type: string
+        kind:
+          type: string
+          enum:
+            - text
+            - code
+            - image
+            - sheet
+        artifactKind:
+          type: string
+          enum:
+            - brief
+            - plan
+            - draft
+            - file
+            - media
+            - delivery
+            - evidence
+            - receipt
+            - signature
+            - link
+        requestStatus:
+          type: string
+    WebFulfillmentStep:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - title
+        - status
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - todo
+            - ready
+            - active
+            - blocked
+            - done
+            - cancelled
+            - failed
+        dependsOnStepIds:
+          type: array
+          items:
+            type: string
+        assignee:
+          $ref: "#/components/schemas/WebActorRef"
+        metadata:
+          type: object
+          additionalProperties: true
+    WebFulfillment:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - key
+        - requestId
+        - commitmentId
+        - status
+        - lead
+        - contributors
+        - summary
+        - artifactIds
+        - steps
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        requestId:
+          type: string
+          format: uuid
+        commitmentId:
+          type: string
+          format: uuid
+        supplyId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - planned
+            - ready
+            - active
+            - blocked
+            - delivered
+            - accepted
+            - cancelled
+            - failed
+        lead:
+          $ref: "#/components/schemas/WebActorRef"
+        contributors:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebActorRef"
+        summary:
+          type: string
+        artifactIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebFulfillmentStep"
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        plannedAt:
+          type: string
+          format: date-time
+        readyAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+        blockedAt:
+          type: string
+          format: date-time
+        deliveredAt:
+          type: string
+          format: date-time
+        acceptedAt:
+          type: string
+          format: date-time
+        cancelledAt:
+          type: string
+          format: date-time
+        failedAt:
+          type: string
+          format: date-time
+    WebFulfillmentCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - commitmentId
+        - summary
+      properties:
+        commitmentId:
+          type: string
+          format: uuid
+        summary:
+          type: string
+        lead:
+          $ref: "#/components/schemas/WebActorRef"
+        contributors:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebActorRef"
+        supplyId:
+          type: string
+          format: uuid
+        initialStatus:
+          type: string
+          enum:
+            - planned
+            - ready
+            - active
+        metadata:
+          type: object
+          additionalProperties: true
+        idempotencyKey:
+          type: string
+          format: uuid
+    WebFulfillmentMutation:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - summary
+      properties:
+        status:
+          type: string
+          enum:
+            - planned
+            - ready
+            - active
+            - blocked
+            - delivered
+            - accepted
+            - cancelled
+            - failed
+        summary:
+          type: string
+        contributors:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebActorRef"
+        artifactIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebFulfillmentStep"
+        metadata:
+          type: object
+          additionalProperties: true
+        idempotencyKey:
+          type: string
+          format: uuid
     WebPublicRequest:
       type: object
       additionalProperties: false
