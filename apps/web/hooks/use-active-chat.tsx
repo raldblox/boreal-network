@@ -112,10 +112,12 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const initialMessages: ChatMessage[] = isNewChat
     ? []
     : (chatData?.messages ?? []);
-  const visibility: VisibilityType = isNewChat
-    ? "private"
-    : (chatData?.visibility ?? "private");
   const activeRequest = chatData?.request ?? null;
+  const visibility: VisibilityType = activeRequest?.visibility
+    ? activeRequest.visibility
+    : isNewChat
+      ? "private"
+      : (chatData?.visibility ?? "private");
   const isRequestMode = requestModeFromUrl || activeRequest !== null;
   const requestActivityKey = activeRequest
     ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests/${activeRequest.id}/activity`
@@ -316,7 +318,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         chatDataKey,
         {
           messages: [],
-          visibility,
+          visibility: data.request?.visibility ?? visibility,
           userId: chatData?.userId ?? null,
           isReadonly: false,
           request: data.request,
@@ -371,7 +373,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           chatDataKey,
           {
             messages: [],
-            visibility,
+            visibility: data.request.visibility,
             userId: chatData?.userId ?? null,
             isReadonly: false,
             request: data.request,
@@ -435,7 +437,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           chatDataKey,
           {
             messages: [],
-            visibility,
+            visibility: data.request.visibility,
             userId: chatData?.userId ?? null,
             isReadonly: false,
             request: data.request,

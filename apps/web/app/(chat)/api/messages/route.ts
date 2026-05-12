@@ -31,21 +31,21 @@ export async function GET(httpRequest: Request) {
     });
   }
 
+  const activeRequest = requestDraft ? toRequestDraft(requestDraft) : null;
+  const canReadPublicRequestRoom =
+    activeRequest?.visibility === "public" && activeRequest.status !== "draft";
+
   if (
     chat.visibility === "private" &&
+    !canReadPublicRequestRoom &&
     (!session?.user || session.user.id !== chat.userId)
   ) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
 
-  const activeRequest = requestDraft ? toRequestDraft(requestDraft) : null;
   const canRespondToPublicRequest =
     Boolean(session?.user) &&
-    Boolean(
-      activeRequest &&
-        activeRequest.visibility === "public" &&
-        activeRequest.status !== "draft"
-    );
+    Boolean(canReadPublicRequestRoom);
   const isReadonly =
     !session?.user ||
     (session.user.id !== chat.userId && !canRespondToPublicRequest);
@@ -53,7 +53,7 @@ export async function GET(httpRequest: Request) {
 
   return Response.json({
     messages: convertToUIMessages(messages),
-    visibility: chat.visibility,
+    visibility: activeRequest?.visibility ?? chat.visibility,
     userId: chat.userId,
     isReadonly,
     request: activeRequest,

@@ -11,8 +11,10 @@ import {
   deleteMessagesByChatIdAfterTimestamp,
   getChatById,
   getMessageById,
+  getRequestById,
   updateChatVisibilityById,
 } from "@/lib/db/queries";
+import { persistRequestPatch } from "@/lib/request-server";
 import { getTextFromMessage } from "@/lib/utils";
 
 export async function saveChatModelAsCookie(model: string) {
@@ -63,9 +65,11 @@ export async function deleteTrailingMessages({ id }: { id: string }) {
 
 export async function updateChatVisibility({
   chatId,
+  requestId,
   visibility,
 }: {
   chatId: string;
+  requestId?: string | null;
   visibility: VisibilityType;
 }) {
   const session = await auth();
@@ -78,5 +82,31 @@ export async function updateChatVisibility({
     throw new Error("Unauthorized");
   }
 
+  if (requestId) {
+    const request = await getRequestById({ id: requestId });
+
+    if (!request || request.chatId !== chatId || request.ownerId !== session.user.id) {
+      throw new Error("Unauthorized");
+    }
+
+    const updatedRequest = await persistRequestPatch({
+      requestId,
+      userId: session.user.id,
+      patch: {
+        visibility,
+      },
+    });
+
+    return {
+      request: updatedRequest,
+      visibility: updatedRequest.visibility,
+    };
+  }
+
   await updateChatVisibilityById({ chatId, visibility });
+
+  return {
+    request: null,
+    visibility,
+  };
 }

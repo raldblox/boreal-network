@@ -42,9 +42,11 @@ const visibilities: Array<{
 export function VisibilitySelector({
   chatId,
   className,
+  requestId,
   selectedVisibilityType,
 }: {
   chatId: string;
+  requestId?: string | null;
   selectedVisibilityType: VisibilityType;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
@@ -52,6 +54,7 @@ export function VisibilitySelector({
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId,
     initialVisibilityType: selectedVisibilityType,
+    requestId,
   });
 
   const selectedVisibility = useMemo(

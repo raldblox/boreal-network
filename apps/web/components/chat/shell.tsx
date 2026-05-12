@@ -163,6 +163,7 @@ export function ChatShell() {
             chatId={chatId}
             isReadonly={isReadonly}
             isRequestMode={isRequestMode}
+            requestId={activeRequest?.id ?? null}
             requestStatus={activeRequest?.status ?? null}
             selectedVisibilityType={visibilityType}
           />
