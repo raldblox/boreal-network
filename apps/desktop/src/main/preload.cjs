@@ -1,5 +1,80 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
+function subscribe(channel, listener) {
+  const subscription = (_event, payload) => {
+    listener(payload);
+  };
+
+  ipcRenderer.on(channel, subscription);
+
+  return () => {
+    ipcRenderer.removeListener(channel, subscription);
+  };
+}
+
+function projectLegacyCodexEvent(envelope) {
+  if (!envelope || typeof envelope !== "object") {
+    return null;
+  }
+
+  const payload =
+    envelope.payload && typeof envelope.payload === "object"
+      ? envelope.payload
+      : {};
+  const requestId =
+    typeof envelope.requestId === "string" ? envelope.requestId : "";
+
+  if (
+    envelope.channelKind === "token-delta" &&
+    typeof payload.delta === "string"
+  ) {
+    return {
+      delta: payload.delta,
+      requestId,
+      type: "text-delta",
+    };
+  }
+
+  if (
+    (envelope.channelKind === "progress" ||
+      envelope.channelKind === "tool-stdout" ||
+      envelope.channelKind === "tool-stderr") &&
+    typeof payload.message === "string"
+  ) {
+    if (typeof payload.activityId === "string") {
+      return {
+        activityId: payload.activityId,
+        detail:
+          typeof payload.detail === "string" ? payload.detail : undefined,
+        message: payload.message,
+        requestId,
+        state:
+          typeof payload.state === "string" ? payload.state : "info",
+        type: "activity",
+      };
+    }
+
+    return {
+      message: payload.message,
+      requestId,
+      type: "status",
+    };
+  }
+
+  if (
+    envelope.channelKind === "runtime-log" &&
+    typeof payload.message === "string"
+  ) {
+    return {
+      message: payload.message,
+      requestId,
+      type: "warning",
+    };
+  }
+
+  return null;
+}
+
 contextBridge.exposeInMainWorld("borealDesktop", {
   getCodexAuthState: () => ipcRenderer.invoke("desktop:get-codex-auth-state"),
   listCodexModels: () => ipcRenderer.invoke("desktop:list-codex-models"),
@@ -42,15 +117,15 @@ contextBridge.exposeInMainWorld("borealDesktop", {
   sendMessage: (payload) => ipcRenderer.invoke("desktop:send-message", payload),
   updateFulfillment: (payload) =>
     ipcRenderer.invoke("desktop:update-fulfillment", payload),
+  onEphemeralEvent: (listener) =>
+    subscribe("desktop:ephemeral-event", listener),
   onCodexEvent: (listener) => {
-    const subscription = (_event, payload) => {
-      listener(payload);
-    };
+    return subscribe("desktop:ephemeral-event", (payload) => {
+      const legacyEvent = projectLegacyCodexEvent(payload);
 
-    ipcRenderer.on("desktop:codex-event", subscription);
-
-    return () => {
-      ipcRenderer.removeListener("desktop:codex-event", subscription);
-    };
+      if (legacyEvent) {
+        listener(legacyEvent);
+      }
+    });
   },
 });

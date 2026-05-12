@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -37,6 +38,7 @@ import {
   saveDesktopPreferences,
   writeLocalChatState,
 } from "./desktop-home.js";
+import { createDesktopEphemeralStreamBus } from "./ephemeral-stream-bus.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceDir = path.resolve(__dirname, "../..");
@@ -47,6 +49,7 @@ const AUTO_RESOLVE_RUNTIME_LABEL = "Boreal Desktop (Codex)";
 
 let autoResolveTimer = null;
 let autoResolveRunPromise = null;
+const ephemeralBus = createDesktopEphemeralStreamBus();
 
 function didRuntimePolicyChange(previousSettings, nextSettings) {
   const previousWritableRoots = Array.isArray(
@@ -398,6 +401,8 @@ function createMainWindow() {
     },
   });
 
+  ephemeralBus.registerWebContents(window.webContents);
+
   if (process.env.BOREAL_DESKTOP_START_URL) {
     window.loadURL(process.env.BOREAL_DESKTOP_START_URL);
   } else {
@@ -422,6 +427,46 @@ function createMainWindow() {
   });
 }
 
+function publishCodexPresence(result) {
+  ephemeralBus.publishPresence({
+    payload: {
+      accountIdMasked: result?.authState?.accountIdMasked ?? null,
+      authenticated: result?.authState?.authenticated === true,
+      launchedLogin: result?.launchedLogin === true,
+      provider: result?.authState?.authProvider ?? null,
+      runtime: "codex",
+      state:
+        result?.authState?.authenticated === true
+          ? "connected"
+          : result?.launchedLogin === true
+            ? "pending-auth"
+            : "disconnected",
+      workerIdentity: result?.authState?.workerIdentity ?? null,
+    },
+    source: "desktop-main",
+  });
+}
+
+function publishResolverPresence(state) {
+  ephemeralBus.publishPresence({
+    payload: {
+      actorUserIdMasked: state?.actorUserIdMasked ?? null,
+      connected: state?.connected === true,
+      pendingApproval: state?.pendingApproval === true,
+      runtime: "resolver",
+      sourceBaseUrl: state?.sourceBaseUrl ?? null,
+      state:
+        state?.connected === true
+          ? "connected"
+          : state?.pendingApproval === true
+            ? "pending-auth"
+            : "disconnected",
+      userCode: state?.userCode ?? null,
+    },
+    source: "resolver-runtime",
+  });
+}
+
 ipcMain.handle("desktop:get-shell-info", async () => ({
   borealWebBaseUrl: getBorealWebBaseUrl(),
   codexCliVersion: await getCodexCliVersion(),
@@ -441,6 +486,7 @@ ipcMain.handle("desktop:list-codex-models", async () => listCodexModels());
 ipcMain.handle("desktop:connect-codex", async () => {
   const result = await connectCodex();
   scheduleAutoResolve(1000);
+  publishCodexPresence(result);
   return result;
 });
 
@@ -476,18 +522,21 @@ ipcMain.handle("desktop:connect-resolver", async () => {
     openExternalUrl: (url) => shell.openExternal(url),
   });
   scheduleAutoResolve(1000);
+  publishResolverPresence(result);
   return result;
 });
 
 ipcMain.handle("desktop:poll-resolver-auth", async () => {
   const result = await pollResolverAuth();
   scheduleAutoResolve(1000);
+  publishResolverPresence(result);
   return result;
 });
 
 ipcMain.handle("desktop:disconnect-resolver", async () => {
   const result = await disconnectResolver();
   scheduleAutoResolve();
+  publishResolverPresence(result);
   return result;
 });
 
@@ -558,18 +607,84 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
       throw new Error("Select a valid project before sending a message.");
     }
 
-    return createDesktopResponse({
-      ...payload,
-      additionalWritableRoots:
-        settings.runtimeAdditionalWritableRoots,
-      approvalPolicy: settings.runtimeApprovalPolicy,
-      networkAccess: settings.runtimeNetworkAccess,
-      onEvent: (streamEvent) => {
-        event.sender.send("desktop:codex-event", streamEvent);
+    ephemeralBus.registerWebContents(event.sender);
+
+    const agentSessionId = randomUUID();
+    const correlationId = randomUUID();
+    const requestId =
+      typeof payload?.requestId === "string" ? payload.requestId : null;
+    const stopHeartbeat = ephemeralBus.startHeartbeat({
+      agentSessionId,
+      correlationId,
+      payload: {
+        requestId,
+        workspaceRoot: project.rootPath,
       },
-      sandboxMode: settings.runtimeSandboxMode,
-      workspaceRoot: project.rootPath,
+      requestId,
+      source: "desktop-main",
     });
+
+    ephemeralBus.publish({
+      agentSessionId,
+      channelKind: "typing",
+      correlationId,
+      payload: {
+        role: "user",
+        state: "submitted",
+      },
+      requestId,
+      source: "desktop-main",
+    });
+
+    try {
+      const response = await createDesktopResponse({
+        ...payload,
+        additionalWritableRoots:
+          settings.runtimeAdditionalWritableRoots,
+        approvalPolicy: settings.runtimeApprovalPolicy,
+        networkAccess: settings.runtimeNetworkAccess,
+        onEvent: (streamEvent) => {
+          ephemeralBus.publishCodexStreamEvent(
+            {
+              agentSessionId,
+              correlationId,
+              requestId,
+            },
+            streamEvent,
+          );
+        },
+        sandboxMode: settings.runtimeSandboxMode,
+        workspaceRoot: project.rootPath,
+      });
+
+      stopHeartbeat({
+        state: "completed",
+      });
+      return response;
+    } catch (error) {
+      stopHeartbeat({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Desktop turn failed.",
+        state: "failed",
+      });
+      ephemeralBus.publish({
+        agentSessionId,
+        channelKind: "runtime-log",
+        correlationId,
+        payload: {
+          level: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Desktop turn failed.",
+        },
+        requestId,
+        source: "desktop-main",
+      });
+      throw error;
+    }
   })(),
 );
 

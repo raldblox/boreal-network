@@ -34,6 +34,7 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 ## Local Structure
 
 - `src/main/` for Electron main-process code
+- `src/main/ephemeral-stream-bus.js` for the phase-1 local-only ephemeral realtime lane
 - `src/main/preload.cjs` for the typed renderer bridge
 - `src/renderer/` for the React desktop shell
 - `scripts/` for local development helpers
@@ -58,7 +59,9 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop now keeps one persistent `codex app-server` session alive in Electron main for lower-latency local chat turns
 - prompt turns prefer that persistent `codex app-server` path with the currently selected desktop runtime mode and fall back to one-shot `codex exec` only if the persistent lane fails
 - desktop shows live turn status, compact command/reasoning activity, and early assistant text when the local Codex stream exposes it
+- desktop phase 1 of `0008` is now a local-only ephemeral stream bus in Electron main for typing submission, token deltas, progress, heartbeats, presence, transient runtime logs, and tool output summaries
 - chat history and thread selection stay local-only under `.boreal-work` and are not synced to Boreal backend by default
+- that ephemeral lane is not durable Boreal truth by default and does not create request history unless later work explicitly promotes a business-relevant outcome
 - public request browsing is read-only and stays sourced from Boreal web truth rather than creating a desktop-local request cache
 - request execution still reads and writes Boreal web truth; desktop does not become a second request ledger
 - owner-private auto-resolution should use the same web truth and emit the same durable fulfillment and artifact events instead of storing desktop-local shadow state

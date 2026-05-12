@@ -34,6 +34,8 @@ These are safe to state as present canon truth:
 - Risk escalation is mandatory when a change could break canon, contracts, durable history, or workspace boundaries.
 - Match the lead first, plan the work second, and decompose only when needed.
 - Planner, matcher, policy, and mutation boundaries are canonical Boreal processing layers.
+- desktop-local ephemeral realtime traffic is separate from durable Boreal request history unless it is explicitly promoted
+- the first ephemeral realtime hub is the Electron main process inside `apps/desktop`
 
 ## Machine-Modeled Now
 
@@ -88,7 +90,7 @@ These are intended next layers, not fully modeled proof yet:
 - deeper web runtime coverage beyond the first request-briefing slice in `apps/web/`
 - deeper supply lifecycle canon for onboarding, capacity, visibility, and retirement
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
-- ephemeral realtime channels for typing, token deltas, progress, heartbeats, presence, and transient runtime output that stay outside durable request history unless promoted
+- browser-facing or peer-facing ephemeral realtime lanes beyond the local desktop-main hub
 - peer-capable runtime identity bound through resolver approval without replacing Boreal actor identity
 - additional runnable workspaces such as `apps/mobile/`, `apps/extension/`, `apps/peer-*`, and `apps/gateway-*`
 - shared libraries under `packages/`

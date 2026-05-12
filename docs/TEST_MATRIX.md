@@ -13,6 +13,7 @@ Verify:
 - AsyncAPI or event schema validity
 - sample payload compatibility
 - ephemeral realtime channel shapes do not drift into durable event schemas accidentally
+- desktop-local ephemeral IPC envelopes keep stable lane, channel-kind, correlation, and source fields without pretending to be durable request events
 
 ### Commercial canon tests
 
