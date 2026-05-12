@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquareIcon, XIcon } from "lucide-react";
+import { BracesIcon, MessageSquareIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   AlertDialog,
@@ -12,6 +12,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useActiveChat } from "@/hooks/use-active-chat";
 import {
   initialArtifactData,
@@ -230,6 +237,10 @@ export function ChatShell() {
               addToolApprovalResponse={addToolApprovalResponse}
               activities={activities}
               chatId={chatId}
+              contentClassName={
+                isOpenedRequest ? "max-w-[56rem] px-3 pb-8 md:px-5" : undefined
+              }
+              displayMode={isOpenedRequest ? "activity" : "timeline"}
               requestOwnerUserId={activeRequest?.ownerId ?? requestOwnerUserId}
               isArtifactVisible={isArtifactVisible}
               isLoading={isLoading}
@@ -252,125 +263,77 @@ export function ChatShell() {
               votes={votes}
             />
 
-            {!isReadonly && (
-              <>
-                {isOpenedRequest && !isOpenRequestChatVisible ? (
-                  <div className="pointer-events-none absolute right-4 bottom-4 z-20">
-                    <button
-                      className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/50 bg-card/95 text-foreground shadow-[var(--shadow-float)] backdrop-blur transition-transform duration-200 hover:scale-[1.02]"
-                      onClick={() => setIsOpenRequestChatVisible(true)}
-                      type="button"
-                    >
-                      <MessageSquareIcon className="size-4" />
-                    </button>
-                  </div>
-                ) : null}
+            {isOpenedRequest ? (
+              <div className="pointer-events-none absolute right-4 bottom-4 z-20 flex flex-col gap-2">
+                <button
+                  className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-float)] transition-transform duration-200 hover:scale-[1.02]"
+                  onClick={openRequestDocument}
+                  type="button"
+                >
+                  <BracesIcon className="size-4" />
+                </button>
+                <button
+                  aria-pressed={isOpenRequestChatVisible}
+                  className={cn(
+                    "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/50 shadow-[var(--shadow-float)] backdrop-blur transition-transform duration-200 hover:scale-[1.02]",
+                    isOpenRequestChatVisible
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-card/95 text-foreground"
+                  )}
+                  onClick={() => setIsOpenRequestChatVisible(true)}
+                  type="button"
+                >
+                  <MessageSquareIcon className="size-4" />
+                </button>
+              </div>
+            ) : null}
 
+            {!isReadonly && !isOpenedRequest && (
+              <>
                 <div
                   className={cn(
                     "sticky bottom-0 z-10 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4",
-                    isOpenedRequest &&
-                      "pointer-events-none absolute right-4 bottom-4 left-auto z-20 w-[min(100%-2rem,28rem)] max-w-none rounded-2xl border border-border/60 bg-background/96 p-3 shadow-[var(--shadow-float)] backdrop-blur",
-                    isOpenedRequest &&
-                      !isOpenRequestChatVisible &&
-                      "hidden",
                   )}
                 >
-                  {isOpenedRequest ? (
-                    <div className="pointer-events-auto flex w-full flex-col gap-3">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                          Chat
-                        </div>
-                        <button
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                          onClick={() => setIsOpenRequestChatVisible(false)}
-                          type="button"
-                        >
-                          <XIcon className="size-4" />
-                        </button>
-                      </div>
-                      <MultimodalInput
-                        attachments={attachments}
-                        chatId={chatId}
-                        editingMessage={editingMessage}
-                        input={input}
-                        activeRequest={activeRequest}
-                        isRequestMode={isRequestMode}
-                        isLoading={isLoading}
-                        messages={messages}
-                        onCreateRequest={handleCreateRequest}
-                        ensureRequestForSend={ensureRequestForSend}
-                        onCancelEdit={() => {
-                          setEditingMessage(null);
-                          setInput("");
-                        }}
-                        onModelChange={setCurrentModelId}
-                        selectedModelId={currentModelId}
-                        selectedVisibilityType={visibilityType}
-                        sendMessage={
-                          editingMessage
-                            ? async () => {
-                                const msg = editingMessage;
-                                setEditingMessage(null);
-                                await submitEditedMessage({
-                                  message: msg,
-                                  text: input,
-                                  setMessages,
-                                  regenerate,
-                                });
-                                setInput("");
-                              }
-                            : sendMessage
-                        }
-                        setAttachments={setAttachments}
-                        setInput={setInput}
-                        setMessages={setMessages}
-                        status={status}
-                        stop={stop}
-                      />
-                    </div>
-                  ) : (
-                    <MultimodalInput
-                      attachments={attachments}
-                      chatId={chatId}
-                      editingMessage={editingMessage}
-                      input={input}
-                      activeRequest={activeRequest}
-                      isRequestMode={isRequestMode}
-                      isLoading={isLoading}
-                      messages={messages}
-                      onCreateRequest={handleCreateRequest}
-                      ensureRequestForSend={ensureRequestForSend}
-                      onCancelEdit={() => {
-                        setEditingMessage(null);
-                        setInput("");
-                      }}
-                      onModelChange={setCurrentModelId}
-                      selectedModelId={currentModelId}
-                      selectedVisibilityType={visibilityType}
-                      sendMessage={
-                        editingMessage
-                          ? async () => {
-                              const msg = editingMessage;
-                              setEditingMessage(null);
-                              await submitEditedMessage({
-                                message: msg,
-                                text: input,
-                                setMessages,
-                                regenerate,
-                              });
-                              setInput("");
-                            }
-                          : sendMessage
-                      }
-                      setAttachments={setAttachments}
-                      setInput={setInput}
-                      setMessages={setMessages}
-                      status={status}
-                      stop={stop}
-                    />
-                  )}
+                  <MultimodalInput
+                    attachments={attachments}
+                    chatId={chatId}
+                    editingMessage={editingMessage}
+                    input={input}
+                    activeRequest={activeRequest}
+                    isRequestMode={isRequestMode}
+                    isLoading={isLoading}
+                    messages={messages}
+                    onCreateRequest={handleCreateRequest}
+                    ensureRequestForSend={ensureRequestForSend}
+                    onCancelEdit={() => {
+                      setEditingMessage(null);
+                      setInput("");
+                    }}
+                    onModelChange={setCurrentModelId}
+                    selectedModelId={currentModelId}
+                    selectedVisibilityType={visibilityType}
+                    sendMessage={
+                      editingMessage
+                        ? async () => {
+                            const msg = editingMessage;
+                            setEditingMessage(null);
+                            await submitEditedMessage({
+                              message: msg,
+                              text: input,
+                              setMessages,
+                              regenerate,
+                            });
+                            setInput("");
+                          }
+                        : sendMessage
+                    }
+                    setAttachments={setAttachments}
+                    setInput={setInput}
+                    setMessages={setMessages}
+                    status={status}
+                    stop={stop}
+                  />
                 </div>
               </>
             )}
@@ -397,6 +360,110 @@ export function ChatShell() {
           votes={votes}
         />
       </div>
+
+      {isOpenedRequest ? (
+        <Sheet
+          onOpenChange={setIsOpenRequestChatVisible}
+          open={isOpenRequestChatVisible}
+        >
+          <SheetContent
+            className="w-[min(100vw,34rem)] border-l border-border/70 bg-background/98 p-0 sm:max-w-[34rem]"
+            showCloseButton={false}
+            side="right"
+          >
+            <div className="flex h-full min-h-0 flex-col">
+              <SheetHeader className="shrink-0 border-b border-border/60 pb-4 pr-16">
+                <SheetTitle>Request chat</SheetTitle>
+                <SheetDescription>
+                  Conversation stays here so the main room can stay focused on
+                  durable request activity.
+                </SheetDescription>
+                <button
+                  className="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  onClick={() => setIsOpenRequestChatVisible(false)}
+                  type="button"
+                >
+                  <XIcon className="size-4" />
+                </button>
+              </SheetHeader>
+
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <Messages
+                  addToolApprovalResponse={addToolApprovalResponse}
+                  activities={activities}
+                  chatId={chatId}
+                  contentClassName="max-w-none px-4 py-5 md:px-5"
+                  displayMode="chat"
+                  requestOwnerUserId={activeRequest?.ownerId ?? requestOwnerUserId}
+                  isArtifactVisible={false}
+                  isLoading={isLoading}
+                  isReadonly={isReadonly}
+                  isRequestMode={isRequestMode}
+                  messages={messages}
+                  requestStatus={activeRequest?.status ?? null}
+                  onEditMessage={(msg) => {
+                    const text = msg.parts
+                      ?.filter((p) => p.type === "text")
+                      .map((p) => p.text)
+                      .join("");
+                    setInput(text ?? "");
+                    setEditingMessage(msg);
+                  }}
+                  regenerate={regenerate}
+                  selectedModelId={currentModelId}
+                  setMessages={setMessages}
+                  status={status}
+                  votes={votes}
+                />
+              </div>
+
+              {!isReadonly ? (
+                <div className="shrink-0 border-t border-border/60 px-4 py-3 md:px-5">
+                  <MultimodalInput
+                    attachments={attachments}
+                    chatId={chatId}
+                    editingMessage={editingMessage}
+                    input={input}
+                    activeRequest={activeRequest}
+                    isRequestMode={isRequestMode}
+                    isLoading={isLoading}
+                    messages={messages}
+                    onCreateRequest={handleCreateRequest}
+                    ensureRequestForSend={ensureRequestForSend}
+                    onCancelEdit={() => {
+                      setEditingMessage(null);
+                      setInput("");
+                    }}
+                    onModelChange={setCurrentModelId}
+                    selectedModelId={currentModelId}
+                    selectedVisibilityType={visibilityType}
+                    sendMessage={
+                      editingMessage
+                        ? async () => {
+                            const msg = editingMessage;
+                            setEditingMessage(null);
+                            await submitEditedMessage({
+                              message: msg,
+                              text: input,
+                              setMessages,
+                              regenerate,
+                            });
+                            setInput("");
+                          }
+                        : sendMessage
+                    }
+                    setAttachments={setAttachments}
+                    setInput={setInput}
+                    setMessages={setMessages}
+                    status={status}
+                    stop={stop}
+                  />
+                </div>
+              ) : null}
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : null}
 
       <DataStreamHandler />
 

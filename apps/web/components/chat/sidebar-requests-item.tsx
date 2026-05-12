@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { memo } from "react";
 import type { BorealRequestDraft } from "@/lib/request";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,13 +54,19 @@ const PureSidebarRequestItem = ({
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        className="h-auto min-h-8 rounded-none py-1.5 text-[13px] text-sidebar-foreground/50 transition-all duration-150 hover:bg-transparent hover:text-sidebar-foreground data-active:bg-transparent data-active:font-normal data-active:text-sidebar-foreground/50 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium data-[active=true]:border-b data-[active=true]:border-dashed data-[active=true]:border-sidebar-foreground/50"
+        className="h-auto min-h-8 rounded-lg py-1.5 text-[13px] text-sidebar-foreground/55 transition-colors duration-150 hover:bg-sidebar-accent/45 hover:text-sidebar-foreground data-active:bg-sidebar-accent/50 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/55 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium"
         isActive={isActive}
       >
         <Link href={`/chat/${request.chatId}`} onClick={() => setOpenMobile(false)}>
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="truncate">{requestTitle}</span>
-            <span className="truncate text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">
+            <span className="inline-flex items-center gap-1 truncate text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">
+              <span
+                className={cn(
+                  "size-1.5 shrink-0 rounded-full",
+                  getRequestStatusDotClassName(request.status)
+                )}
+              />
               {requestStatus}
             </span>
           </div>
@@ -132,3 +139,27 @@ export const SidebarRequestItem = memo(
     return true;
   }
 );
+
+function getRequestStatusDotClassName(status: BorealRequestDraft["status"]) {
+  switch (status) {
+    case "draft":
+      return "bg-zinc-400";
+    case "open":
+    case "in_progress":
+      return "bg-sky-400";
+    case "funding_required":
+    case "waiting_for_owner":
+      return "bg-amber-400";
+    case "funded":
+    case "completed":
+      return "bg-emerald-400";
+    case "delivered":
+      return "bg-violet-400";
+    case "failed":
+      return "bg-rose-400";
+    case "cancelled":
+      return "bg-zinc-500";
+    default:
+      return "bg-zinc-400";
+  }
+}

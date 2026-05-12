@@ -1,7 +1,11 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
-import { FileTextIcon } from "lucide-react";
+import {
+  ExternalLinkIcon,
+  FileTextIcon,
+  HardDriveDownloadIcon,
+} from "lucide-react";
 import { useMemo } from "react";
 import { MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import { Button } from "@/components/ui/button";
@@ -57,9 +61,23 @@ export function RequestActivityMessage({
   const text = getPrimaryActivityText(activity);
   const secondaryDetail = getSecondaryActivityDetail(activity);
   const documentArtifact = getDocumentArtifactPreview(activity);
+  const artifactPreview = documentArtifact ? (
+    <DocumentPreview
+      isReadonly={isReadonly}
+      result={documentArtifact}
+    />
+  ) : activity.artifact ? (
+    <NonDocumentArtifactButton
+      activity={activity}
+      isReadonly={isReadonly}
+    />
+  ) : null;
+  const showArtifactFirst = Boolean(activity.artifact);
 
   const content = (
     <>
+      {showArtifactFirst ? artifactPreview : null}
+
       {text ? (
         <MessageContent
           className="text-[13px] leading-[1.65]"
@@ -75,17 +93,7 @@ export function RequestActivityMessage({
         </div>
       ) : null}
 
-      {documentArtifact ? (
-        <DocumentPreview
-          isReadonly={isReadonly}
-          result={documentArtifact}
-        />
-      ) : activity.artifact ? (
-        <NonDocumentArtifactButton
-          activity={activity}
-          isReadonly={isReadonly}
-        />
-      ) : null}
+      {!showArtifactFirst ? artifactPreview : null}
 
       <div className="px-1 text-[11px] text-muted-foreground/60 opacity-0 transition-opacity duration-150 group-hover/message:opacity-100">
         {formatDistanceToNow(new Date(activity.occurredAt), {
@@ -130,9 +138,55 @@ function NonDocumentArtifactButton({
   const artifact = activity.artifact;
   const { setArtifact } = useArtifact();
 
-  if (!artifact || artifact.container.kind !== "document") {
+  if (!artifact) {
     return null;
   }
+
+  const container = artifact.container;
+
+  if (container.kind !== "document") {
+    return (
+      <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-3 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-foreground">
+          <HardDriveDownloadIcon className="size-4" />
+          <span className="font-medium">{artifact.title}</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded-full border border-border/70 px-2 py-0.5">
+            {artifact.kind}
+          </span>
+          {container.mediaKind ? (
+            <span className="rounded-full border border-border/70 px-2 py-0.5">
+              {container.mediaKind}
+            </span>
+          ) : null}
+          {container.mimeType ? (
+            <span className="rounded-full border border-border/70 px-2 py-0.5">
+              {container.mimeType}
+            </span>
+          ) : null}
+        </div>
+        {container.kind === "external_ref" ? (
+          <a
+            className="inline-flex w-fit items-center gap-1 text-primary hover:underline"
+            href={container.uri}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <ExternalLinkIcon className="size-3.5" />
+            Open external artifact
+          </a>
+        ) : (
+          <div className="space-y-1">
+            <div>Provider: {container.storageProvider}</div>
+            <div className="break-all">Key: {container.objectKey}</div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const documentContainer = container;
 
   return (
     <Button
@@ -146,8 +200,8 @@ function NonDocumentArtifactButton({
 
         setArtifact((currentArtifact) => ({
           ...currentArtifact,
-          documentId: artifact.container.documentId,
-          kind: artifact.container.documentKind,
+          documentId: documentContainer.documentId,
+          kind: documentContainer.documentKind,
           title: artifact.title,
           isVisible: true,
           status: "idle",

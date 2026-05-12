@@ -28,6 +28,8 @@ type MessagesProps = {
   isRequestMode: boolean;
   requestStatus?: RequestStatus | null;
   onEditMessage?: (message: ChatMessage) => void;
+  displayMode?: "timeline" | "activity" | "chat";
+  contentClassName?: string;
 };
 
 function PureMessages({
@@ -47,6 +49,8 @@ function PureMessages({
   requestStatus,
   selectedModelId: _selectedModelId,
   onEditMessage,
+  displayMode = "timeline",
+  contentClassName,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -104,6 +108,14 @@ function PureMessages({
           }))
         : [];
 
+    if (displayMode === "chat") {
+      return messageItems;
+    }
+
+    if (displayMode === "activity") {
+      return activityItems;
+    }
+
     return [...messageItems, ...activityItems].sort((left, right) => {
       if (left.timestamp !== right.timestamp) {
         return left.timestamp - right.timestamp;
@@ -123,24 +135,57 @@ function PureMessages({
 
       return left.index - right.index;
     });
-  }, [activities, messages, requestStatus]);
+  }, [activities, displayMode, messages, requestStatus]);
+
+  const showEmptyGreeting =
+    displayMode === "timeline" &&
+    messages.length === 0 &&
+    activities.length === 0 &&
+    !isLoading;
+
+  const showEmptyActivityState =
+    displayMode === "activity" && activities.length === 0 && !isLoading;
+
+  const showEmptyChatState =
+    displayMode === "chat" && messages.length === 0 && !isLoading;
 
   return (
     <div className="relative flex-1 bg-background">
-      {messages.length === 0 && activities.length === 0 && !isLoading && (
+      {showEmptyGreeting && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
           <Greeting isRequestMode={isRequestMode} requestStatus={requestStatus} />
         </div>
       )}
+      {showEmptyActivityState ? (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center">
+          <div className="max-w-sm rounded-2xl border border-border/50 bg-card/55 px-5 py-4 text-sm text-muted-foreground">
+            Durable request activity will stack here as work progresses.
+          </div>
+        </div>
+      ) : null}
+      {showEmptyChatState ? (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center">
+          <div className="max-w-sm rounded-2xl border border-border/50 bg-card/55 px-5 py-4 text-sm text-muted-foreground">
+            Use chat to refine the request, ask for next steps, or post an update.
+          </div>
+        </div>
+      ) : null}
       <div
         className={cn(
           "absolute inset-0 touch-pan-y overflow-y-auto",
-          messages.length > 0 ? "bg-background" : "bg-transparent"
+          (displayMode === "chat" ? messages.length > 0 : timelineItems.length > 0)
+            ? "bg-background"
+            : "bg-transparent"
         )}
         ref={messagesContainerRef}
         style={isArtifactVisible ? { scrollbarWidth: "none" } : undefined}
       >
-        <div className="mx-auto flex min-h-full min-w-0 max-w-4xl flex-col gap-5 px-2 py-6 md:gap-7 md:px-4">
+        <div
+          className={cn(
+            "mx-auto flex min-h-full min-w-0 max-w-4xl flex-col gap-5 px-2 py-6 md:gap-7 md:px-4",
+            contentClassName
+          )}
+        >
           {timelineItems.map((item) =>
             item.type === "activity" ? (
               <RequestActivityMessage

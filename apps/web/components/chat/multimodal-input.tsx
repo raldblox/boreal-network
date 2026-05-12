@@ -52,6 +52,7 @@ import {
   PromptInputTools,
 } from "../ai-elements/prompt-input";
 import { Button } from "../ui/button";
+import { Spinner } from "../ui/spinner";
 import { PaperclipIcon, StopIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
 import {
@@ -225,7 +226,9 @@ function PureMultimodalInput({
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
+  const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isOpenedRequest = Boolean(activeRequest && activeRequest.status !== "draft");
+  const showSubmitPending = isSubmitPending && status === "ready";
 
   const handleRequestSuggestionSelect = useCallback(
     (suggestion: string) => {
@@ -246,6 +249,7 @@ function PureMultimodalInput({
     if (isRequestMode && !activeRequest) {
       const createdRequest = await ensureRequestForSend();
       if (!createdRequest) {
+        setIsSubmitPending(false);
         return;
       }
     }
@@ -292,6 +296,26 @@ function PureMultimodalInput({
     width,
     chatId,
   ]);
+
+  useEffect(() => {
+    if (status === "submitted" || status === "streaming" || status === "error") {
+      setIsSubmitPending(false);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (!isSubmitPending) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsSubmitPending(false);
+    }, 1500);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isSubmitPending]);
 
   const uploadFile = useCallback(async (file: File) => {
     const formData = new FormData();
@@ -475,6 +499,7 @@ function PureMultimodalInput({
             return;
           }
           if (status === "ready" || status === "error") {
+            setIsSubmitPending(true);
             void submitForm();
           } else {
             toast.error("Please wait for the model to finish its response!");
@@ -587,16 +612,22 @@ function PureMultimodalInput({
             <PromptInputSubmit
               className={cn(
                 "h-7 w-7 rounded-xl transition-all duration-200",
-                input.trim()
+                showSubmitPending
+                  ? "bg-foreground text-background"
+                  : input.trim()
                   ? "bg-foreground text-background hover:opacity-85 active:scale-95"
                   : "bg-muted text-muted-foreground/25 cursor-not-allowed"
               )}
               data-testid="send-button"
-              disabled={!input.trim() || uploadQueue.length > 0}
+              disabled={showSubmitPending || !input.trim() || uploadQueue.length > 0}
               status={status}
               variant="secondary"
             >
-              <ArrowUpIcon className="size-4" />
+              {showSubmitPending ? (
+                <Spinner className="size-4" />
+              ) : (
+                <ArrowUpIcon className="size-4" />
+              )}
             </PromptInputSubmit>
           )}
         </PromptInputFooter>
@@ -740,7 +771,7 @@ function PureModelSelectorCompact({
                       className={cn(
                         "flex w-full",
                         model.id === selectedModel.id &&
-                          "border-b border-dashed border-foreground/50"
+                          "rounded-md bg-accent/60 text-foreground"
                       )}
                       key={model.id}
                       onSelect={() => {

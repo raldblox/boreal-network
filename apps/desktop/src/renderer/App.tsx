@@ -9,6 +9,11 @@ import {
   AlertDialogTitle,
   Badge,
   Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
   Input,
   Skeleton,
   Select,
@@ -21,7 +26,9 @@ import {
 } from "@boreal/ui";
 import {
   CalendarDaysIcon,
+  ChevronDownIcon,
   CircleDollarSignIcon,
+  ExternalLinkIcon,
   FolderOpenDotIcon,
   Globe2Icon,
   Link2Icon,
@@ -29,6 +36,7 @@ import {
   PanelLeftIcon,
   PlusIcon,
   RefreshCwIcon,
+  Settings2Icon,
   SparklesIcon,
   Trash2Icon,
 } from "lucide-react";
@@ -55,6 +63,13 @@ type ShellInfo = {
   codexCliVersion: string | null;
   name: string;
   platform: string;
+  runtimeIdentity: {
+    createdAt: string;
+    id: string;
+    peerReady: boolean;
+    scope: string;
+    shortId: string;
+  };
   versions: {
     chrome: string;
     electron: string;
@@ -148,6 +163,41 @@ type DesktopStreamEvent =
       type: "warning";
     };
 
+type DesktopEphemeralChannelKind =
+  | "heartbeat"
+  | "presence"
+  | "progress"
+  | "runtime-log"
+  | "token-delta"
+  | "tool-stderr"
+  | "tool-stdout"
+  | "typing";
+
+type DesktopEphemeralEnvelope = {
+  agentSessionId: string | null;
+  channelKind: DesktopEphemeralChannelKind;
+  correlationId: string;
+  lane: string;
+  occurredAt: string;
+  payload: Record<string, unknown>;
+  requestId: string | null;
+  sequence: number;
+  source: string;
+  threadId: string | null;
+};
+
+type DesktopEphemeralPayload = {
+  activityId?: string;
+  activityKind?: string;
+  command?: string;
+  delta?: string;
+  detail?: string;
+  eventType?: string;
+  message?: string;
+  outputPreview?: string;
+  state?: string;
+};
+
 type StreamNoticeTone = "error" | "info";
 
 type StreamNotice = {
@@ -162,6 +212,19 @@ type StreamActivity = {
   state: "blocked" | "completed" | "failed" | "info" | "running";
 };
 
+type StreamConsoleEntry = {
+  activityKind?: string;
+  channelKind: DesktopEphemeralChannelKind;
+  command?: string;
+  detail?: string;
+  id: string;
+  label: string;
+  message: string;
+  occurredAt: string;
+  outputPreview?: string;
+  state: "blocked" | "completed" | "failed" | "info" | "running";
+};
+
 type LocalMessage = {
   content: string;
   createdAt: string;
@@ -169,6 +232,43 @@ type LocalMessage = {
   id: string;
   model?: string;
   role: "assistant" | "user";
+  turnMeta?: {
+    consoleEntries: StreamConsoleEntry[];
+  };
+};
+
+type TrackedRequestContext = {
+  mode: "tracked_request";
+  fulfillment: {
+    commitmentId?: string;
+    id: string;
+    status: string;
+    summary: string;
+  } | null;
+  recentActivity: Array<{
+    actorLabel: string;
+    detail?: string;
+    eventType: string;
+    occurredAt: string;
+    summary: string;
+  }>;
+  request: {
+    actorKinds: string[];
+    body: string;
+    budgetSummary: string;
+    constraints: Record<string, unknown>;
+    deadlineSummary: string;
+    id: string;
+    key: string;
+    notes: string;
+    outputKinds: string[];
+    status: string;
+    summary: string;
+    supplyKinds: string[];
+    teamMode: string;
+    title: string;
+    visibility: "private" | "public";
+  };
 };
 
 type LocalChatThread = {
@@ -177,6 +277,7 @@ type LocalChatThread = {
   messages: LocalMessage[];
   model: string;
   reasoning: string;
+  trackedRequest?: TrackedRequestContext | null;
   updatedAt: string;
 };
 
@@ -280,11 +381,52 @@ type ResolverAuthState = {
   verificationUriComplete: string | null;
 };
 
-type RequestArtifactContainer = {
+type RequestArtifactDocumentKind = "code" | "image" | "sheet" | "text";
+
+type RequestArtifactMediaKind =
+  | "image"
+  | "audio"
+  | "video"
+  | "pdf"
+  | "binary"
+  | "archive"
+  | "other";
+
+type RequestArtifactDocumentContainer = {
   documentId: string;
-  documentKind: "code" | "image" | "sheet" | "text";
+  documentKind: RequestArtifactDocumentKind;
   kind: "document";
 };
+
+type RequestArtifactExternalRefContainer = {
+  byteSize?: number;
+  filename?: string;
+  kind: "external_ref";
+  mediaKind?: RequestArtifactMediaKind;
+  mimeType?: string;
+  previewDocumentId?: string;
+  sha256?: string;
+  uri: string;
+};
+
+type RequestArtifactObjectRefContainer = {
+  byteSize?: number;
+  filename?: string;
+  kind: "object_ref";
+  mediaKind?: RequestArtifactMediaKind;
+  mimeType?: string;
+  objectKey: string;
+  previewDocumentId?: string;
+  sha256?: string;
+  sourceUri?: string;
+  storageBucket?: string;
+  storageProvider: string;
+};
+
+type RequestArtifactContainer =
+  | RequestArtifactDocumentContainer
+  | RequestArtifactExternalRefContainer
+  | RequestArtifactObjectRefContainer;
 
 type RequestActivityEntry = {
   actor: {
@@ -297,8 +439,10 @@ type RequestActivityEntry = {
   aggregateType: string;
   artifact: {
     container: RequestArtifactContainer | null;
+    fulfillmentId?: string;
     id: string;
     kind: string;
+    stepId?: string;
     summary: string;
     title: string;
   } | null;
@@ -352,6 +496,8 @@ type SendMessagePayload = {
   projectId: string;
   reasoningEffort: string;
   requestId: string;
+  threadId: string;
+  trackedRequest?: TrackedRequestContext | null;
 };
 
 type NoticeState = {
@@ -373,6 +519,7 @@ type PendingThreadDelete = {
 type AppSurface = "chat" | "public-requests" | "owned-requests";
 
 const MAX_STREAM_ACTIVITIES = 6;
+const MAX_STREAM_CONSOLE_ENTRIES = 14;
 const OWNED_REQUEST_POLL_MS = 12000;
 const AUTO_RESOLVE_RUNTIME_ID = "boreal-desktop-codex";
 const AUTO_RESOLVE_RUNTIME_LABEL = "Boreal Desktop (Codex)";
@@ -443,6 +590,9 @@ declare global {
         startingAfter?: string;
       }) => Promise<PublicRequestListResult>;
       listCodexModels: () => Promise<ModelListResult>;
+      onEphemeralEvent?: (
+        listener: (event: DesktopEphemeralEnvelope) => void,
+      ) => () => void;
       onCodexEvent?: (
         listener: (event: DesktopStreamEvent) => void,
       ) => () => void;
@@ -471,9 +621,14 @@ declare global {
           | "plan"
           | "receipt"
           | "signature";
-        content: string;
-        documentKind?: "code" | "image" | "sheet" | "text";
+        container?:
+          | RequestArtifactExternalRefContainer
+          | RequestArtifactObjectRefContainer;
+        content?: string;
+        documentKind?: RequestArtifactDocumentKind;
+        fulfillmentId?: string;
         requestId: string;
+        stepId?: string;
         summary?: string;
         title: string;
       }) => Promise<unknown>;
@@ -598,6 +753,64 @@ function formatDeadlineSummary(deadline: PublicRequestDeadline | null) {
   });
 }
 
+function buildRequestStatusBadgeClassName(status: string) {
+  switch (status) {
+    case "draft":
+      return "border-zinc-500/30 bg-zinc-500/10 text-zinc-200";
+    case "open":
+    case "in_progress":
+      return "border-sky-500/30 bg-sky-500/10 text-sky-200";
+    case "funding_required":
+    case "waiting_for_owner":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+    case "funded":
+    case "completed":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+    case "delivered":
+      return "border-violet-500/30 bg-violet-500/10 text-violet-200";
+    case "failed":
+      return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+    case "cancelled":
+      return "border-zinc-500/30 bg-zinc-500/10 text-zinc-300";
+    default:
+      return "border-border/70 bg-background text-muted-foreground";
+  }
+}
+
+function buildCommitmentStatusBadgeClassName(status: string) {
+  switch (status) {
+    case "proposed":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+    case "accepted":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+    case "rejected":
+    case "withdrawn":
+      return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+    default:
+      return "border-border/70 bg-background text-muted-foreground";
+  }
+}
+
+function buildFulfillmentStatusBadgeClassName(status: string) {
+  switch (status) {
+    case "active":
+    case "in_progress":
+      return "border-sky-500/30 bg-sky-500/10 text-sky-200";
+    case "blocked":
+      return "border-amber-500/30 bg-amber-500/10 text-amber-200";
+    case "delivered":
+      return "border-violet-500/30 bg-violet-500/10 text-violet-200";
+    case "accepted":
+    case "completed":
+      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+    case "failed":
+    case "cancelled":
+      return "border-rose-500/30 bg-rose-500/10 text-rose-200";
+    default:
+      return "border-border/70 bg-background text-muted-foreground";
+  }
+}
+
 function getPublicRequestTitle(request: PublicRequestEntry) {
   return request.brief.title.trim() || request.key || "Untitled request";
 }
@@ -631,7 +844,7 @@ function getRequestActorLabel(actor?: RequestActivityEntry["actor"] | null) {
 
 function getRequestArtifactContainer(
   artifact?: RequestActivityEntry["artifact"] | null,
-): RequestArtifactContainer | null {
+): RequestArtifactDocumentContainer | null {
   const container = artifact?.container;
 
   if (
@@ -643,6 +856,18 @@ function getRequestArtifactContainer(
       container.documentKind !== "sheet" &&
       container.documentKind !== "text")
   ) {
+    return null;
+  }
+
+  return container;
+}
+
+function getArtifactReferenceContainer(
+  artifact?: RequestActivityEntry["artifact"] | null,
+): Exclude<RequestArtifactContainer, { kind: "document" }> | null {
+  const container = artifact?.container;
+
+  if (!container || container.kind === "document") {
     return null;
   }
 
@@ -666,6 +891,82 @@ function shouldLoadRequestArtifactDocument(
       artifact.kind === "brief" ||
       artifact.kind === "plan")
   );
+}
+
+function getTrackedRequestHeadline(
+  trackedRequest: TrackedRequestContext | null | undefined,
+) {
+  if (!trackedRequest) {
+    return "Local chat";
+  }
+
+  return trackedRequest.request.title || trackedRequest.request.key;
+}
+
+function getTrackedRequestMeta(
+  trackedRequest: TrackedRequestContext | null | undefined,
+) {
+  if (!trackedRequest) {
+    return "Local chat only";
+  }
+
+  const parts = [
+    trackedRequest.request.status,
+    trackedRequest.request.visibility,
+    trackedRequest.fulfillment
+      ? `fulfillment ${trackedRequest.fulfillment.status}`
+      : null,
+  ].filter(Boolean);
+
+  return parts.join(" · ");
+}
+
+function buildTrackedRequestContext({
+  request,
+  activity,
+  fulfillment,
+}: {
+  request: PublicRequestEntry;
+  activity: RequestActivityEntry[];
+  fulfillment: RequestActivityEntry["fulfillment"] | null;
+}): TrackedRequestContext {
+  return {
+    mode: "tracked_request",
+    fulfillment: fulfillment
+      ? {
+          ...(fulfillment.commitmentId
+            ? { commitmentId: fulfillment.commitmentId }
+            : {}),
+          id: fulfillment.id,
+          status: fulfillment.status,
+          summary: fulfillment.summary,
+        }
+      : null,
+    recentActivity: activity.slice(-6).map((entry) => ({
+      actorLabel: getRequestActorLabel(entry.actor),
+      ...(entry.detail ? { detail: entry.detail } : {}),
+      eventType: entry.eventType,
+      occurredAt: entry.occurredAt,
+      summary: entry.summary,
+    })),
+    request: {
+      actorKinds: request.seeking.actorKinds,
+      body: request.brief.body,
+      budgetSummary: formatBudgetSummary(request.budget),
+      constraints: request.brief.constraints,
+      deadlineSummary: formatDeadlineSummary(request.deadline),
+      id: request.id,
+      key: request.key,
+      notes: request.seeking.notes,
+      outputKinds: request.brief.outputKinds,
+      status: request.status,
+      summary: getPublicRequestSummary(request),
+      supplyKinds: request.seeking.supplyKinds,
+      teamMode: request.seeking.teamMode,
+      title: getPublicRequestTitle(request),
+      visibility: request.visibility,
+    },
+  };
 }
 
 function parseOptionalNumber(value: string) {
@@ -709,6 +1010,56 @@ function buildNoticeClassName(tone: NoticeTone) {
   return "border-sky-400/30 bg-sky-500/95 text-sky-50";
 }
 
+function buildConsoleLabel(entry: StreamConsoleEntry) {
+  if (entry.message === "Command blocked by policy") {
+    return "Permission";
+  }
+
+  return entry.label;
+}
+
+function buildConsoleOutputLabel(entry: StreamConsoleEntry) {
+  if (entry.message === "Command blocked by policy") {
+    return "policy";
+  }
+
+  return entry.channelKind === "tool-stderr" ? "stderr" : "stdout";
+}
+
+function formatWorkedDuration(durationMs?: number) {
+  if (typeof durationMs !== "number" || !Number.isFinite(durationMs)) {
+    return "Worked";
+  }
+
+  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const parts = [];
+
+  if (hours > 0) {
+    parts.push(`${hours}h`);
+  }
+
+  if (minutes > 0) {
+    parts.push(`${minutes}m`);
+  }
+
+  if (seconds > 0 || parts.length === 0) {
+    parts.push(`${seconds}s`);
+  }
+
+  return `Worked for ${parts.join(" ")}`;
+}
+
+function countWorkedCommands(entries: StreamConsoleEntry[]) {
+  return new Set(
+    entries
+      .filter((entry) => entry.activityKind === "command" || Boolean(entry.command))
+      .map((entry) => entry.id),
+  ).size;
+}
+
 function resolveModelSelection(currentModel: string, nextModels: ModelOption[]) {
   if (currentModel && nextModels.some((model) => model.id === currentModel)) {
     return currentModel;
@@ -749,6 +1100,16 @@ function trimInlineText(value: string, maxLength: number) {
   }
 
   return `${normalized.slice(0, Math.max(0, maxLength - 3))}...`;
+}
+
+function findPreviousUserMessage(messages: LocalMessage[], endIndex: number) {
+  for (let index = endIndex - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") {
+      return messages[index];
+    }
+  }
+
+  return null;
 }
 
 function RequestListSkeleton() {
@@ -952,6 +1313,205 @@ function RequestArtifactInlinePreview({
   );
 }
 
+function RequestArtifactReferenceCard({
+  activity,
+}: {
+  activity: RequestActivityEntry;
+}) {
+  const artifact = activity.artifact;
+  const container = getArtifactReferenceContainer(artifact);
+
+  if (!artifact || !container) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3 rounded-2xl border border-border/70 bg-background/85 px-4 py-4 text-sm text-foreground">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="secondary" className="rounded-full">
+          {artifact.kind}
+        </Badge>
+        {container.mediaKind ? (
+          <Badge variant="secondary" className="rounded-full">
+            {container.mediaKind}
+          </Badge>
+        ) : null}
+        {container.mimeType ? (
+          <Badge variant="secondary" className="rounded-full">
+            {container.mimeType}
+          </Badge>
+        ) : null}
+      </div>
+
+      {container.filename ? (
+        <p className="mt-3 text-sm font-medium text-foreground">
+          {container.filename}
+        </p>
+      ) : null}
+
+      {container.kind === "external_ref" ? (
+        <a
+          href={container.uri}
+          rel="noreferrer"
+          target="_blank"
+          className="mt-3 inline-flex items-center gap-2 text-sm text-sky-300 hover:text-sky-200"
+        >
+          <ExternalLinkIcon className="size-4" />
+          Open external artifact
+        </a>
+      ) : (
+        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+          <p>Provider: {container.storageProvider}</p>
+          <p className="break-all">Key: {container.objectKey}</p>
+          {container.storageBucket ? <p>Bucket: {container.storageBucket}</p> : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AgentActivityConsole({
+  entries,
+  maxHeightClassName = "max-h-64",
+  openCommands = false,
+}: {
+  entries: StreamConsoleEntry[];
+  maxHeightClassName?: string;
+  openCommands?: boolean;
+}) {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border/70 bg-background/70">
+      <div className="flex items-center justify-between border-b border-border/70 px-3 py-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+        <span>Agent activity</span>
+        <span>{entries.length} events</span>
+      </div>
+      <div className={`${maxHeightClassName} overflow-y-auto divide-y divide-border/60`}>
+        {entries.map((entry) => (
+          <div key={entry.id} className="px-3 py-2 text-xs">
+            {entry.activityKind === "command" || entry.command ? (
+              <details
+                className="rounded-lg border border-border/60 bg-card/70"
+                open={openCommands || entry.state !== "completed"}
+              >
+                <summary className="flex cursor-pointer list-none items-start gap-2 px-3 py-2">
+                  <span
+                    className={`mt-1 size-2 shrink-0 rounded-full ${
+                      entry.state === "failed" || entry.state === "blocked"
+                        ? "bg-destructive"
+                        : entry.state === "completed"
+                          ? "bg-emerald-400"
+                          : entry.state === "running"
+                            ? "bg-sky-400"
+                            : "bg-muted-foreground"
+                    }`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className="rounded-full border border-border/70 bg-background px-2 py-0 text-[10px] text-muted-foreground"
+                      >
+                        {buildConsoleLabel(entry)}
+                      </Badge>
+                      <p className="text-foreground">{entry.message}</p>
+                    </div>
+                    {entry.command ? (
+                      <p className="mt-1 break-all font-mono text-muted-foreground">
+                        {entry.command}
+                      </p>
+                    ) : null}
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className={`shrink-0 rounded-full border text-[10px] ${buildActivityToneClassName(
+                      entry.state,
+                    )}`}
+                  >
+                    {entry.state}
+                  </Badge>
+                </summary>
+                <div className="space-y-2 border-t border-border/60 px-3 py-3">
+                  {entry.command ? (
+                    <div>
+                      <p className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                        command
+                      </p>
+                      <pre className="overflow-x-auto rounded-md border border-border/60 bg-background px-2 py-2 font-mono text-[11px] leading-5 text-foreground">
+                        <code>{entry.command}</code>
+                      </pre>
+                    </div>
+                  ) : null}
+                  {entry.outputPreview ? (
+                    <div>
+                      <p className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                        {buildConsoleOutputLabel(entry)}
+                      </p>
+                      <pre className="overflow-x-auto rounded-md border border-border/60 bg-background px-2 py-2 font-mono text-[11px] leading-5 text-muted-foreground">
+                        <code>{entry.outputPreview}</code>
+                      </pre>
+                    </div>
+                  ) : entry.detail && entry.detail !== entry.command ? (
+                    <div>
+                      <p className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                        detail
+                      </p>
+                      <pre className="overflow-x-auto rounded-md border border-border/60 bg-background px-2 py-2 font-mono text-[11px] leading-5 text-muted-foreground">
+                        <code>{entry.detail}</code>
+                      </pre>
+                    </div>
+                  ) : null}
+                </div>
+              </details>
+            ) : (
+              <div className="flex items-start gap-2">
+                <span
+                  className={`mt-1 size-2 shrink-0 rounded-full ${
+                    entry.state === "failed" || entry.state === "blocked"
+                      ? "bg-destructive"
+                      : entry.state === "completed"
+                        ? "bg-emerald-400"
+                        : entry.state === "running"
+                          ? "bg-sky-400"
+                          : "bg-muted-foreground"
+                  }`}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full border border-border/70 bg-background px-2 py-0 text-[10px] text-muted-foreground"
+                    >
+                      {buildConsoleLabel(entry)}
+                    </Badge>
+                    <p className="text-foreground">{entry.message}</p>
+                  </div>
+                  {entry.detail ? (
+                    <p className="mt-1 break-all font-mono text-muted-foreground">
+                      {entry.detail}
+                    </p>
+                  ) : null}
+                </div>
+                <Badge
+                  variant="secondary"
+                  className={`shrink-0 rounded-full border text-[10px] ${buildActivityToneClassName(
+                    entry.state,
+                  )}`}
+                >
+                  {entry.state}
+                </Badge>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function RequestActivityBubble({
   activity,
   activeSurface,
@@ -969,6 +1529,7 @@ function RequestActivityBubble({
     activity.actor.kind === "agent" ||
     activity.actor.kind === "runtime" ||
     activity.actor.kind === "tool";
+  const hasArtifactPreview = Boolean(activity.artifact);
 
   return (
     <div className={`flex ${isOperatorBubble ? "justify-start" : "justify-end"}`}>
@@ -977,8 +1538,15 @@ function RequestActivityBubble({
           isOperatorBubble
             ? "border-border/70 bg-background/80 text-foreground"
             : "border-sky-500/20 bg-sky-500/10 text-foreground"
-        }`}
+          }`}
       >
+        {hasArtifactPreview ? (
+          <>
+            <RequestArtifactInlinePreview activity={activity} />
+            <RequestArtifactReferenceCard activity={activity} />
+          </>
+        ) : null}
+
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -986,18 +1554,38 @@ function RequestActivityBubble({
                 {activity.summary}
               </p>
               {activity.commitment ? (
-                <Badge variant="secondary" className="rounded-full">
+                <Badge
+                  variant="secondary"
+                  className={`rounded-full border ${buildCommitmentStatusBadgeClassName(
+                    activity.commitment.status,
+                  )}`}
+                >
                   {activity.commitment.kind} {activity.commitment.status}
                 </Badge>
               ) : null}
               {activity.fulfillment ? (
-                <Badge variant="secondary" className="rounded-full">
+                <Badge
+                  variant="secondary"
+                  className={`rounded-full border ${buildFulfillmentStatusBadgeClassName(
+                    activity.fulfillment.status,
+                  )}`}
+                >
                   fulfillment {activity.fulfillment.status}
                 </Badge>
               ) : null}
               {activity.artifact ? (
                 <Badge variant="secondary" className="rounded-full">
                   {activity.artifact.kind}
+                </Badge>
+              ) : null}
+              {activity.artifact?.fulfillmentId ? (
+                <Badge variant="secondary" className="rounded-full">
+                  lane {activity.artifact.fulfillmentId.slice(0, 8)}
+                </Badge>
+              ) : null}
+              {activity.artifact?.stepId ? (
+                <Badge variant="secondary" className="rounded-full">
+                  step {activity.artifact.stepId}
                 </Badge>
               ) : null}
             </div>
@@ -1018,7 +1606,12 @@ function RequestActivityBubble({
           </div>
         ) : null}
 
-        <RequestArtifactInlinePreview activity={activity} />
+        {!hasArtifactPreview ? (
+          <>
+            <RequestArtifactInlinePreview activity={activity} />
+            <RequestArtifactReferenceCard activity={activity} />
+          </>
+        ) : null}
 
         {activeSurface === "owned-requests" &&
         resolverConnected &&
@@ -1175,6 +1768,130 @@ function upsertStreamActivity(
   return [...currentActivities, nextActivity].slice(-MAX_STREAM_ACTIVITIES);
 }
 
+function normalizeStreamState(
+  value: unknown,
+  fallback: StreamActivity["state"] = "info",
+): StreamActivity["state"] {
+  return value === "blocked" ||
+    value === "completed" ||
+    value === "failed" ||
+    value === "info" ||
+    value === "running"
+    ? value
+    : fallback;
+}
+
+function inferConsoleLabel(
+  channelKind: DesktopEphemeralChannelKind,
+  message: string,
+) {
+  const normalized = message.toLowerCase();
+
+  if (channelKind === "tool-stdout" || channelKind === "tool-stderr") {
+    return "Command";
+  }
+
+  if (normalized.includes("reason") || normalized.includes("analyz")) {
+    return "Reasoning";
+  }
+
+  if (normalized.includes("reply")) {
+    return "Reply";
+  }
+
+  if (normalized.includes("thread") || normalized.includes("session")) {
+    return "Session";
+  }
+
+  if (channelKind === "runtime-log") {
+    return "Runtime";
+  }
+
+  return "Progress";
+}
+
+function toStreamConsoleEntry(
+  envelope: DesktopEphemeralEnvelope,
+): StreamConsoleEntry | null {
+  if (
+    envelope.channelKind === "heartbeat" ||
+    envelope.channelKind === "presence" ||
+    envelope.channelKind === "token-delta" ||
+    envelope.channelKind === "typing"
+  ) {
+    return null;
+  }
+
+  const payload =
+    envelope.payload && typeof envelope.payload === "object"
+      ? (envelope.payload as DesktopEphemeralPayload)
+      : {};
+  const message =
+    typeof payload.message === "string" && payload.message.trim().length > 0
+      ? payload.message.trim()
+      : envelope.channelKind === "runtime-log"
+        ? "Runtime event"
+        : "Agent activity";
+  const detail =
+    typeof payload.detail === "string" && payload.detail.trim().length > 0
+      ? payload.detail.trim()
+      : undefined;
+  const command =
+    typeof payload.command === "string" && payload.command.trim().length > 0
+      ? payload.command.trim()
+      : undefined;
+  const outputPreview =
+    typeof payload.outputPreview === "string" &&
+    payload.outputPreview.trim().length > 0
+      ? payload.outputPreview.trim()
+      : undefined;
+  const id =
+    typeof payload.activityId === "string" && payload.activityId.trim().length > 0
+      ? payload.activityId
+      : `${envelope.channelKind}:${envelope.sequence}`;
+  const fallbackState =
+    envelope.channelKind === "tool-stdout"
+      ? "completed"
+      : envelope.channelKind === "tool-stderr"
+        ? "failed"
+        : envelope.channelKind === "runtime-log"
+          ? "failed"
+          : "info";
+
+  return {
+    ...(typeof payload.activityKind === "string" &&
+    payload.activityKind.trim().length > 0
+      ? { activityKind: payload.activityKind.trim() }
+      : {}),
+    channelKind: envelope.channelKind,
+    ...(command ? { command } : {}),
+    ...(detail ? { detail } : {}),
+    id,
+    label: inferConsoleLabel(envelope.channelKind, message),
+    message,
+    occurredAt: envelope.occurredAt,
+    ...(outputPreview ? { outputPreview } : {}),
+    state: normalizeStreamState(payload.state, fallbackState),
+  };
+}
+
+function upsertStreamConsoleEntry(
+  currentEntries: StreamConsoleEntry[],
+  nextEntry: StreamConsoleEntry,
+) {
+  const existingIndex = currentEntries.findIndex(
+    (entry) => entry.id === nextEntry.id,
+  );
+
+  if (existingIndex >= 0) {
+    const updated = [...currentEntries];
+    updated[existingIndex] = nextEntry;
+    return updated.slice(-MAX_STREAM_CONSOLE_ENTRIES);
+  }
+
+  return [...currentEntries, nextEntry].slice(-MAX_STREAM_CONSOLE_ENTRIES);
+}
+
 function resolveReasoningSelection(
   model: ModelOption | null,
   currentReasoning: string,
@@ -1240,6 +1957,7 @@ export function App() {
   const activeRequestIdRef = useRef<string | null>(null);
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const shouldStickToBottomRef = useRef(true);
+  const streamConsoleEntriesRef = useRef<StreamConsoleEntry[]>([]);
   const streamFlushTimerRef = useRef<number | null>(null);
   const streamingTextBufferRef = useRef("");
   const [activeSurface, setActiveSurface] = useState<AppSurface>("chat");
@@ -1247,12 +1965,29 @@ export function App() {
   const [appHomePath, setAppHomePath] = useState<string | null>(null);
   const [autoResolveOwnedPrivate, setAutoResolveOwnedPrivate] = useState(false);
   const [authState, setAuthState] = useState<AuthState | null>(null);
+  const [artifactContainerMode, setArtifactContainerMode] = useState<
+    "document" | "external_ref" | "object_ref"
+  >("document");
   const [artifactContent, setArtifactContent] = useState("");
+  const [artifactDocumentKind, setArtifactDocumentKind] =
+    useState<RequestArtifactDocumentKind>("text");
+  const [artifactByteSize, setArtifactByteSize] = useState("");
+  const [artifactFilename, setArtifactFilename] = useState("");
   const [artifactKind, setArtifactKind] = useState<
     "brief" | "delivery" | "draft" | "evidence" | "file" | "link" | "media" | "plan" | "receipt" | "signature"
   >("draft");
+  const [artifactMediaKind, setArtifactMediaKind] =
+    useState<RequestArtifactMediaKind>("other");
+  const [artifactMimeType, setArtifactMimeType] = useState("");
+  const [artifactObjectKey, setArtifactObjectKey] = useState("");
+  const [artifactSha256, setArtifactSha256] = useState("");
+  const [artifactSourceUri, setArtifactSourceUri] = useState("");
+  const [artifactStepId, setArtifactStepId] = useState("");
+  const [artifactStorageBucket, setArtifactStorageBucket] = useState("");
+  const [artifactStorageProvider, setArtifactStorageProvider] = useState("");
   const [artifactSummary, setArtifactSummary] = useState("");
   const [artifactTitle, setArtifactTitle] = useState("");
+  const [artifactUri, setArtifactUri] = useState("");
   const [commitmentAmountMode, setCommitmentAmountMode] = useState<
     "fixed" | "none" | "open" | "range"
   >("open");
@@ -1264,11 +1999,12 @@ export function App() {
   const [commitmentSummary, setCommitmentSummary] = useState("");
   const [createProjectName, setCreateProjectName] = useState("");
   const [draft, setDraft] = useState("");
+  const [draftTrackedRequestContext, setDraftTrackedRequestContext] =
+    useState<TrackedRequestContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isBooting, setIsBooting] = useState(true);
   const [isConnectingCodex, setIsConnectingCodex] = useState(false);
   const [isConnectingResolver, setIsConnectingResolver] = useState(false);
-  const [isCodexInfoOpen, setIsCodexInfoOpen] = useState(false);
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [isDeletingThread, setIsDeletingThread] = useState(false);
@@ -1281,6 +2017,7 @@ export function App() {
   const [isSavingAutoResolveOwnedPrivate, setIsSavingAutoResolveOwnedPrivate] = useState(false);
   const [isSubmittingRequestAction, setIsSubmittingRequestAction] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isWaitingForCodexAuth, setIsWaitingForCodexAuth] = useState(false);
   const [isWaitingForResolverAuth, setIsWaitingForResolverAuth] = useState(false);
   const [messages, setMessages] = useState<LocalMessage[]>([]);
@@ -1320,6 +2057,9 @@ export function App() {
   const [shellInfo, setShellInfo] = useState<ShellInfo | null>(null);
   const [streamNotice, setStreamNotice] = useState<StreamNotice | null>(null);
   const [streamActivities, setStreamActivities] = useState<StreamActivity[]>([]);
+  const [streamConsoleEntries, setStreamConsoleEntries] = useState<
+    StreamConsoleEntry[]
+  >([]);
   const [streamStatus, setStreamStatus] = useState<string | null>(null);
   const [streamingAssistantText, setStreamingAssistantText] = useState("");
   const [threads, setThreads] = useState<LocalChatThread[]>([]);
@@ -1336,6 +2076,8 @@ export function App() {
     projects.find((project) => project.id === selectedProjectId) ?? null;
   const activeThread =
     threads.find((thread) => thread.id === selectedThreadId) ?? null;
+  const activeTrackedRequest =
+    activeThread?.trackedRequest ?? draftTrackedRequestContext;
   const selectedPublicRequest =
     publicRequests?.requests.find((request) => request.id === selectedPublicRequestId) ??
     (selectedPublicRequestId ? null : publicRequests?.requests[0] ?? null);
@@ -1358,8 +2100,6 @@ export function App() {
     [selectedRequestActivity],
   );
   const selectedModelEntry = getSelectedModelEntry(models, selectedModel);
-  const latestStreamActivity =
-    streamActivities[streamActivities.length - 1] ?? null;
   const requestCommitments = useMemo(() => {
     const values = new Map<string, NonNullable<RequestActivityEntry["commitment"]>>();
 
@@ -1388,6 +2128,47 @@ export function App() {
 
     return [...values.values()];
   }, [orderedRequestActivity]);
+  const selectedRequestLocalAuditEntries = useMemo(() => {
+    if (!selectedResolverRequest) {
+      return [];
+    }
+
+    const requestId = selectedResolverRequest.id;
+    const entries: Array<{
+      assistantMessage: LocalMessage;
+      promptMessage: LocalMessage | null;
+      threadId: string;
+      threadTitle: string;
+    }> = [];
+
+    for (const thread of threads) {
+      if (thread.trackedRequest?.request.id !== requestId) {
+        continue;
+      }
+
+      for (let index = 0; index < thread.messages.length; index += 1) {
+        const message = thread.messages[index];
+
+        if (
+          message.role !== "assistant" ||
+          !message.turnMeta?.consoleEntries.length
+        ) {
+          continue;
+        }
+
+        entries.push({
+          assistantMessage: message,
+          promptMessage: findPreviousUserMessage(thread.messages, index),
+          threadId: thread.id,
+          threadTitle: getThreadTitle(thread),
+        });
+      }
+    }
+
+    return entries.sort((left, right) =>
+      right.assistantMessage.createdAt.localeCompare(left.assistantMessage.createdAt),
+    );
+  }, [selectedResolverRequest, threads]);
   const selectedFulfillmentId =
     selectedResolverRequest?.activeRefs.activeFulfillmentId ??
     requestFulfillments[requestFulfillments.length - 1]?.id ??
@@ -1411,7 +2192,180 @@ export function App() {
       }`
     : "Sign in with ChatGPT to spin up a valid worker.";
 
+  const runtimeIdentityLabel =
+    shellInfo?.runtimeIdentity?.shortId ?? "Generating local runtime ID...";
+  const runtimeIdentityMeta = shellInfo?.runtimeIdentity
+    ? `${shellInfo.runtimeIdentity.scope} runtime${
+        shellInfo.runtimeIdentity.peerReady ? " · peer-ready" : " · pre-peer"
+      }`
+    : "Local-only runtime identity.";
   const resolverConnected = resolverAuthState?.connected === true;
+  const resolverStatusLabel = resolverConnected
+    ? `Connected to ${resolverAuthState?.sourceBaseUrl ?? shellInfo?.borealWebBaseUrl ?? "Boreal web"}`
+    : resolverAuthState?.pendingApproval
+      ? `Approval pending${resolverAuthState.userCode ? ` · ${resolverAuthState.userCode}` : ""}`
+      : "Not connected";
+  const environmentDetails = [
+    {
+      label: "Codex CLI",
+      value: shellInfo?.codexCliVersion ?? "Unavailable",
+    },
+    {
+      label: "Boreal web",
+      value: resolverAuthState?.sourceBaseUrl ?? shellInfo?.borealWebBaseUrl ?? "Unavailable",
+    },
+    {
+      label: "Desktop home",
+      value: appHomePath ?? "~/.boreal-work",
+    },
+  ];
+  function renderSettingsDialog() {
+    return (
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-3xl border border-border/80 p-0 shadow-2xl">
+          <DialogHeader className="border-b border-border/80 px-5 py-5">
+            <DialogTitle>Desktop settings</DialogTitle>
+            <DialogDescription>
+              Worker identity, runtime policy, and Boreal connection.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="max-h-[min(72vh,42rem)] overflow-y-auto overscroll-contain px-4 py-4">
+            <div className="space-y-4">
+              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Desktop runtime ID
+                </p>
+                <p
+                  className="mt-2 break-all font-mono text-sm text-foreground"
+                  title={shellInfo?.runtimeIdentity?.id ?? runtimeIdentityLabel}
+                >
+                  {shellInfo?.runtimeIdentity?.id ?? runtimeIdentityLabel}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {runtimeIdentityMeta}
+                </p>
+              </section>
+
+              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Worker identity
+                </p>
+                <p className="mt-2 break-all text-sm font-medium text-foreground">
+                  {workerIdentityLabel}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {workerIdentityMeta}
+                </p>
+              </section>
+
+              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      Runtime mode
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-foreground">
+                      {runtimeModeLabel}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="rounded-full">
+                    {runtimeModeLabel}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {runtimeModeDescription}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {runtimeModeMeta}
+                </p>
+                <div className="mt-3">
+                  <Select
+                    value={runtimeMode}
+                    onValueChange={(value) =>
+                      void handleRuntimeModeChange(value as RuntimeMode)
+                    }
+                    disabled={isSavingRuntimeMode || isConnectingCodex || isSending}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Runtime mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="safe">Safe</SelectItem>
+                      <SelectItem value="full">Full</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Boreal resolver
+                </p>
+                <p className="mt-2 text-sm font-medium text-foreground">
+                  {resolverStatusLabel}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Resolver auth stays separate from local Codex auth.
+                </p>
+                <div className="mt-3">
+                  {resolverConnected ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => void disconnectResolver()}
+                      disabled={resolverConnectBusy}
+                      className="w-full"
+                    >
+                      {resolverConnectBusy ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <Link2Icon className="size-4" />
+                      )}
+                      Disconnect Boreal
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      onClick={() => void connectResolver()}
+                      disabled={resolverConnectBusy || !connected}
+                      className="w-full"
+                    >
+                      {resolverConnectBusy ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <Link2Icon className="size-4" />
+                      )}
+                      Connect Boreal
+                    </Button>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Environment
+                </p>
+                <div className="mt-3 space-y-3">
+                  {environmentDetails.map((item) => (
+                    <div key={item.label} className="space-y-1">
+                      <p className="text-[11px] font-medium text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <p className="break-all text-xs text-foreground">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  useEffect(() => {
+    streamConsoleEntriesRef.current = streamConsoleEntries;
+  }, [streamConsoleEntries]);
 
   function updateScrollStickiness(target: HTMLDivElement) {
     const distanceFromBottom =
@@ -1426,6 +2380,16 @@ export function App() {
     }
 
     streamingTextBufferRef.current = "";
+  }
+
+  function resetPendingStreamState() {
+    streamConsoleEntriesRef.current = [];
+    setStreamActivities([]);
+    setStreamConsoleEntries([]);
+    setStreamNotice(null);
+    setStreamStatus(null);
+    clearStreamingBuffer();
+    setStreamingAssistantText("");
   }
 
   function queueStreamingDelta(delta: string) {
@@ -1575,52 +2539,78 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    let unsubscribe = () => {};
+    let unsubscribeLegacy = () => {};
+    let unsubscribeRaw = () => {};
 
     try {
       const desktop = getDesktopBridge();
 
-      if (typeof desktop.onCodexEvent !== "function") {
+      if (
+        typeof desktop.onCodexEvent !== "function" &&
+        typeof desktop.onEphemeralEvent !== "function"
+      ) {
         setError(
           "Desktop event bridge unavailable. Restart Boreal Desktop so the preload bridge can attach.",
         );
-        return unsubscribe;
+        return () => {};
       }
 
-      unsubscribe = desktop.onCodexEvent((streamEvent) => {
-        if (streamEvent.requestId !== activeRequestIdRef.current) {
-          return;
-        }
+      if (typeof desktop.onEphemeralEvent === "function") {
+        unsubscribeRaw = desktop.onEphemeralEvent((envelope) => {
+          if (envelope.requestId !== activeRequestIdRef.current) {
+            return;
+          }
 
-        if (streamEvent.type === "activity") {
+          const nextEntry = toStreamConsoleEntry(envelope);
+
+          if (!nextEntry) {
+            return;
+          }
+
           startTransition(() => {
-            setStreamActivities((current) =>
-              upsertStreamActivity(current, {
-                detail: streamEvent.detail,
-                id: streamEvent.activityId,
-                message: streamEvent.message,
-                state: streamEvent.state,
-              }),
+            setStreamConsoleEntries((current) =>
+              upsertStreamConsoleEntry(current, nextEntry),
             );
           });
-          return;
-        }
-
-        if (streamEvent.type === "status") {
-          setStreamStatus(streamEvent.message);
-          return;
-        }
-
-        if (streamEvent.type === "text-delta") {
-          queueStreamingDelta(streamEvent.delta);
-          return;
-        }
-
-        setStreamNotice({
-          message: streamEvent.message,
-          tone: "info",
         });
-      });
+      }
+
+      if (typeof desktop.onCodexEvent === "function") {
+        unsubscribeLegacy = desktop.onCodexEvent((streamEvent) => {
+          if (streamEvent.requestId !== activeRequestIdRef.current) {
+            return;
+          }
+
+          if (streamEvent.type === "activity") {
+            startTransition(() => {
+              setStreamActivities((current) =>
+                upsertStreamActivity(current, {
+                  detail: streamEvent.detail,
+                  id: streamEvent.activityId,
+                  message: streamEvent.message,
+                  state: streamEvent.state,
+                }),
+              );
+            });
+            return;
+          }
+
+          if (streamEvent.type === "status") {
+            setStreamStatus(streamEvent.message);
+            return;
+          }
+
+          if (streamEvent.type === "text-delta") {
+            queueStreamingDelta(streamEvent.delta);
+            return;
+          }
+
+          setStreamNotice({
+            message: streamEvent.message,
+            tone: "info",
+          });
+        });
+      }
     } catch (nextError) {
       setError(
         nextError instanceof Error
@@ -1630,7 +2620,8 @@ export function App() {
     }
 
     return () => {
-      unsubscribe();
+      unsubscribeLegacy();
+      unsubscribeRaw();
     };
   }, []);
 
@@ -2017,6 +3008,7 @@ export function App() {
     setIsConnectingCodex(true);
     setError(null);
     setStreamActivities([]);
+    setStreamConsoleEntries([]);
     setStreamNotice(null);
 
     try {
@@ -2215,7 +3207,6 @@ export function App() {
     }
 
     if (selectedRequestDetail?.id !== requestId) {
-      setSelectedRequestDetail(null);
       setSelectedRequestActivity([]);
     }
 
@@ -2433,24 +3424,118 @@ export function App() {
     }
 
     const title = artifactTitle.trim();
-    const content = artifactContent.trim();
+    const fulfillmentId =
+      selectedFulfillmentId ??
+      selectedResolverRequest?.activeRefs.activeFulfillmentId ??
+      undefined;
+    const stepId = artifactStepId.trim() || undefined;
 
-    if (!title || !content) {
-      setError("Artifact title and content are required.");
+    if (!title) {
+      setError("Artifact title is required.");
       return;
     }
 
     await submitRequestAction(async () => {
-      await getDesktopBridge().publishRequestArtifact({
-        artifactKind,
-        content,
-        requestId: selectedResolverRequestId,
-        summary: artifactSummary.trim() || undefined,
-        title,
-      });
+      if (artifactContainerMode === "document") {
+        const content = artifactContent.trim();
+
+        if (!content) {
+          throw new Error("Artifact content is required.");
+        }
+
+        await getDesktopBridge().publishRequestArtifact({
+          artifactKind,
+          content,
+          documentKind: artifactDocumentKind,
+          ...(fulfillmentId ? { fulfillmentId } : {}),
+          requestId: selectedResolverRequestId,
+          ...(stepId ? { stepId } : {}),
+          summary: artifactSummary.trim() || undefined,
+          title,
+        });
+      } else if (artifactContainerMode === "external_ref") {
+        const uri = artifactUri.trim();
+
+        if (!uri) {
+          throw new Error("External artifact URL is required.");
+        }
+
+        await getDesktopBridge().publishRequestArtifact({
+          artifactKind,
+          container: {
+            kind: "external_ref",
+            uri,
+            ...(artifactMediaKind ? { mediaKind: artifactMediaKind } : {}),
+            ...(artifactMimeType.trim()
+              ? { mimeType: artifactMimeType.trim() }
+              : {}),
+            ...(artifactFilename.trim()
+              ? { filename: artifactFilename.trim() }
+              : {}),
+            ...(parseOptionalNumber(artifactByteSize) !== undefined
+              ? { byteSize: parseOptionalNumber(artifactByteSize) }
+              : {}),
+            ...(artifactSha256.trim() ? { sha256: artifactSha256.trim() } : {}),
+          },
+          ...(fulfillmentId ? { fulfillmentId } : {}),
+          requestId: selectedResolverRequestId,
+          ...(stepId ? { stepId } : {}),
+          summary: artifactSummary.trim() || undefined,
+          title,
+        });
+      } else {
+        const objectKey = artifactObjectKey.trim();
+        const storageProvider = artifactStorageProvider.trim();
+
+        if (!objectKey || !storageProvider) {
+          throw new Error("Object key and storage provider are required.");
+        }
+
+        await getDesktopBridge().publishRequestArtifact({
+          artifactKind,
+          container: {
+            kind: "object_ref",
+            objectKey,
+            storageProvider,
+            ...(artifactStorageBucket.trim()
+              ? { storageBucket: artifactStorageBucket.trim() }
+              : {}),
+            ...(artifactMediaKind ? { mediaKind: artifactMediaKind } : {}),
+            ...(artifactMimeType.trim()
+              ? { mimeType: artifactMimeType.trim() }
+              : {}),
+            ...(artifactFilename.trim()
+              ? { filename: artifactFilename.trim() }
+              : {}),
+            ...(parseOptionalNumber(artifactByteSize) !== undefined
+              ? { byteSize: parseOptionalNumber(artifactByteSize) }
+              : {}),
+            ...(artifactSha256.trim() ? { sha256: artifactSha256.trim() } : {}),
+            ...(artifactSourceUri.trim()
+              ? { sourceUri: artifactSourceUri.trim() }
+              : {}),
+          },
+          ...(fulfillmentId ? { fulfillmentId } : {}),
+          requestId: selectedResolverRequestId,
+          ...(stepId ? { stepId } : {}),
+          summary: artifactSummary.trim() || undefined,
+          title,
+        });
+      }
+
       setArtifactTitle("");
       setArtifactSummary("");
       setArtifactContent("");
+      setArtifactUri("");
+      setArtifactObjectKey("");
+      setArtifactStorageProvider("");
+      setArtifactStorageBucket("");
+      setArtifactMimeType("");
+      setArtifactFilename("");
+      setArtifactByteSize("");
+      setArtifactSha256("");
+      setArtifactSourceUri("");
+      setArtifactStepId("");
       await refreshActiveRequestSurface(selectedResolverRequestId);
       setNotice({
         message:
@@ -2693,6 +3778,7 @@ export function App() {
     shouldStickToBottomRef.current = true;
     setThreads(chatState.threads);
     setSelectedThreadId(chatState.selectedThreadId);
+    setDraftTrackedRequestContext(nextActiveThread?.trackedRequest ?? null);
     startTransition(() => {
       setMessages(nextActiveThread?.messages ?? []);
     });
@@ -2708,11 +3794,7 @@ export function App() {
         chatState.selectedReasoning,
     );
     setDraft("");
-    setStreamActivities([]);
-    setStreamNotice(null);
-    setStreamStatus(null);
-    clearStreamingBuffer();
-    setStreamingAssistantText("");
+    resetPendingStreamState();
   }
 
   async function handleDeleteProject() {
@@ -2796,7 +3878,11 @@ export function App() {
     }
   }
 
-  function startNewThread(nextModel?: string, nextReasoning?: string) {
+  function startNewThread(
+    nextModel?: string,
+    nextReasoning?: string,
+    trackedRequest?: TrackedRequestContext | null,
+  ) {
     const resolvedModel = nextModel || preferredModel || selectedModel;
     const resolvedReasoning =
       nextReasoning || preferredReasoning || selectedReasoning;
@@ -2804,16 +3890,13 @@ export function App() {
     shouldStickToBottomRef.current = true;
     setActiveSurface("chat");
     setSelectedThreadId(null);
+    setDraftTrackedRequestContext(trackedRequest ?? null);
     startTransition(() => {
       setMessages([]);
     });
     setDraft("");
     setError(null);
-    setStreamActivities([]);
-    setStreamNotice(null);
-    setStreamStatus(null);
-    clearStreamingBuffer();
-    setStreamingAssistantText("");
+    resetPendingStreamState();
 
     if (resolvedModel) {
       setSelectedModel(resolvedModel);
@@ -2838,6 +3921,7 @@ export function App() {
     shouldStickToBottomRef.current = true;
     setActiveSurface("chat");
     setSelectedThreadId(nextThread.id);
+    setDraftTrackedRequestContext(nextThread.trackedRequest ?? null);
     startTransition(() => {
       setMessages(nextThread.messages);
     });
@@ -2848,11 +3932,7 @@ export function App() {
     setDraft("");
     setError(null);
     setNotice(null);
-    setStreamActivities([]);
-    setStreamNotice(null);
-    setStreamStatus(null);
-    clearStreamingBuffer();
-    setStreamingAssistantText("");
+    resetPendingStreamState();
   }
 
   function handleModelChange(nextModel: string) {
@@ -2888,6 +3968,28 @@ export function App() {
   function handleOpenPublicRequests() {
     void loadPublicRequests({
       focus: true,
+    });
+  }
+
+  function handleTrackSelectedRequestInChat() {
+    if (!selectedResolverRequest) {
+      return;
+    }
+
+    const activeFulfillment =
+      requestFulfillments.find((fulfillment) => fulfillment.id === selectedFulfillmentId) ??
+      null;
+    const trackedRequest = buildTrackedRequestContext({
+      request: selectedResolverRequest,
+      activity: orderedRequestActivity,
+      fulfillment: activeFulfillment,
+    });
+
+    startNewThread(selectedModel, selectedReasoning, trackedRequest);
+    setActiveSurface("chat");
+    setNotice({
+      message: "Request bound to a new local chat thread.",
+      tone: "success",
     });
   }
 
@@ -2938,6 +4040,7 @@ export function App() {
 
     const currentMessages = messages;
     const currentThread = activeThread;
+    const trackedRequest = currentThread?.trackedRequest ?? activeTrackedRequest ?? null;
     const userMessage: LocalMessage = {
       content: prompt,
       createdAt: new Date().toISOString(),
@@ -2945,6 +4048,7 @@ export function App() {
       model: selectedModel,
       role: "user",
     };
+    const nextThreadId = currentThread?.id ?? crypto.randomUUID();
 
     startTransition(() => {
       setMessages((current) => [...current, userMessage]);
@@ -2952,12 +4056,9 @@ export function App() {
     setDraft("");
     setError(null);
     setNotice(null);
-    setStreamActivities([]);
-    setStreamNotice(null);
+    resetPendingStreamState();
     setIsSending(true);
     shouldStickToBottomRef.current = true;
-    clearStreamingBuffer();
-    setStreamingAssistantText("");
 
     const requestId = crypto.randomUUID();
     setActiveRequestId(requestId);
@@ -2973,7 +4074,10 @@ export function App() {
         projectId: selectedProjectId,
         reasoningEffort: selectedReasoning,
         requestId,
+        threadId: nextThreadId,
+        ...(trackedRequest ? { trackedRequest } : {}),
       });
+      const finishedConsoleEntries = [...streamConsoleEntriesRef.current];
 
       const assistantMessage: LocalMessage = {
         content: response.outputText,
@@ -2982,8 +4086,14 @@ export function App() {
         id: crypto.randomUUID(),
         model: response.model,
         role: "assistant",
+        ...(finishedConsoleEntries.length > 0
+          ? {
+              turnMeta: {
+                consoleEntries: finishedConsoleEntries,
+              },
+            }
+          : {}),
       };
-      const nextThreadId = currentThread?.id ?? crypto.randomUUID();
       const nextMessages = [...currentMessages, userMessage, assistantMessage];
       const nextThread: LocalChatThread = {
         createdAt:
@@ -2994,6 +4104,7 @@ export function App() {
         messages: nextMessages,
         model: selectedModel,
         reasoning: selectedReasoning,
+        ...(trackedRequest ? { trackedRequest } : {}),
         updatedAt: assistantMessage.createdAt,
       };
 
@@ -3001,6 +4112,7 @@ export function App() {
         setMessages(nextMessages);
       });
       setSelectedThreadId(nextThreadId);
+      setDraftTrackedRequestContext(trackedRequest);
       setThreads((current) => upsertThread(current, nextThread));
       setNotice({
         message: `Codex replied in ${formatDuration(response.elapsedMs) ?? "a local turn"}.`,
@@ -3081,13 +4193,18 @@ export function App() {
     activeSurface === "owned-requests"
       ? selectedOwnedRequestId
       : selectedPublicRequestId;
-  const activeThreadTitle = activeThread ? getThreadTitle(activeThread) : "New chat";
+  const activeThreadTitle = activeThread
+    ? getThreadTitle(activeThread)
+    : activeTrackedRequest
+      ? getTrackedRequestHeadline(activeTrackedRequest)
+      : "New chat";
   const pendingProjectDeleteVerb =
     pendingProjectDelete?.kind === "linked" ? "Remove project" : "Delete project";
 
   if (!connected) {
     return (
       <main className="h-screen overflow-hidden bg-background text-foreground">
+        {renderSettingsDialog()}
         {topToast ? (
           <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
             <div
@@ -3121,57 +4238,6 @@ export function App() {
                 Start new threads from the sidebar after Codex connects.
               </div>
 
-              <div className="rounded-lg border border-border/80 bg-card/50 px-3 py-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Worker identity
-                </p>
-                <p className="mt-1 truncate text-sm font-medium text-foreground">
-                  {workerIdentityLabel}
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {workerIdentityMeta}
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-border/80 bg-card/50 px-3 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                      Runtime mode
-                    </p>
-                    <p className="mt-1 text-sm font-medium text-foreground">
-                      {runtimeModeLabel}
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="rounded-full">
-                    {runtimeModeLabel}
-                  </Badge>
-                </div>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                  {runtimeModeDescription}
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  {runtimeModeMeta}
-                </p>
-                <div className="mt-3">
-                  <Select
-                    value={runtimeMode}
-                    onValueChange={(value) =>
-                      void handleRuntimeModeChange(value as RuntimeMode)
-                    }
-                    disabled={isSavingRuntimeMode || isConnectingCodex}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Runtime mode" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="safe">Safe</SelectItem>
-                      <SelectItem value="full">Full</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
               {connectHelperText ? (
                 <p className="text-center text-sm text-muted-foreground">
                   {connectHelperText}
@@ -3187,6 +4253,32 @@ export function App() {
                 {connectBusy ? <Spinner className="size-4" /> : null}
                 {primaryConnectLabel}
               </Button>
+
+              <div className="flex items-center justify-between rounded-lg border border-border/80 bg-card/50 px-3 py-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    Desktop runtime ID
+                  </p>
+                  <p
+                    className="mt-1 truncate text-sm font-medium text-foreground"
+                    title={shellInfo?.runtimeIdentity?.id ?? runtimeIdentityLabel}
+                  >
+                    {runtimeIdentityLabel}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {runtimeIdentityMeta}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="h-9 w-9 shrink-0 px-0"
+                  aria-label="Open desktop settings"
+                  title="Open desktop settings"
+                >
+                  <Settings2Icon className="size-4" />
+                </Button>
+              </div>
             </div>
           </section>
         </div>
@@ -3196,6 +4288,7 @@ export function App() {
 
   return (
     <main className="h-screen overflow-hidden bg-background text-foreground">
+      {renderSettingsDialog()}
       {topToast ? (
         <div className="pointer-events-none fixed inset-x-0 top-4 z-50 flex justify-center px-4">
           <div
@@ -3341,65 +4434,30 @@ export function App() {
             </div>
 
             <div className="border-t border-border/80 px-3 py-3">
-              <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <Link2Icon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-background/50 px-3 py-2.5">
+                <div className="flex min-w-0 items-start gap-2">
+                  <SparklesIcon className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" />
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-medium text-foreground">
-                      {workerIdentityLabel}
+                    <p
+                      className="truncate text-xs font-medium text-foreground"
+                      title={shellInfo?.runtimeIdentity?.id ?? runtimeIdentityLabel}
+                    >
+                      {runtimeIdentityLabel}
                     </p>
                     <p className="truncate text-[11px] text-muted-foreground">
-                      {workerIdentityMeta}
+                      {runtimeIdentityMeta}
                     </p>
                   </div>
                 </div>
-                <div className="rounded-lg border border-border/70 bg-background/50 px-2.5 py-2">
-                  <p className="text-[11px] font-medium text-foreground">
-                    Boreal resolver
-                  </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    {resolverConnected
-                      ? `Connected to ${resolverAuthState?.sourceBaseUrl ?? shellInfo?.borealWebBaseUrl ?? "Boreal web"}`
-                      : resolverAuthState?.pendingApproval
-                        ? `Approval pending${resolverAuthState.userCode ? ` · ${resolverAuthState.userCode}` : ""}`
-                        : "Not connected"}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border/70 bg-background/50 px-2.5 py-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-[11px] font-medium text-foreground">
-                        Runtime
-                      </p>
-                      <p className="mt-1 text-[11px] text-muted-foreground">
-                        {runtimeModeDescription}
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="rounded-full">
-                      {runtimeModeLabel}
-                    </Badge>
-                  </div>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    {runtimeModeMeta}
-                  </p>
-                  <div className="mt-2">
-                    <Select
-                      value={runtimeMode}
-                      onValueChange={(value) =>
-                        void handleRuntimeModeChange(value as RuntimeMode)
-                      }
-                      disabled={isSavingRuntimeMode || isSending}
-                    >
-                      <SelectTrigger className="h-8 text-[11px]">
-                        <SelectValue placeholder="Runtime mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="safe">Safe</SelectItem>
-                        <SelectItem value="full">Full</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="h-9 w-9 shrink-0 px-0 text-muted-foreground"
+                  aria-label="Open desktop settings"
+                  title="Open desktop settings"
+                >
+                  <Settings2Icon className="size-4" />
+                </Button>
               </div>
             </div>
           </div>
@@ -3513,10 +4571,13 @@ export function App() {
                         Boreal account approval is required before desktop can load your private request list, accept commitments, or complete fulfillment lanes.
                       </p>
                       {resolverAuthState?.pendingApproval && resolverAuthState.userCode ? (
-                        <div className="mt-4 rounded-xl border border-border/80 bg-background/60 px-4 py-3 text-sm text-muted-foreground">
-                          Approval pending. Code:{" "}
-                          <span className="font-medium text-foreground">
-                            {resolverAuthState.userCode}
+                        <div className="mt-4 flex items-center gap-2 rounded-xl border border-sky-500/20 bg-sky-500/8 px-4 py-3 text-sm text-sky-100">
+                          <Spinner className="size-4" />
+                          <span>
+                            Approval pending. Code:{" "}
+                            <span className="font-medium text-foreground">
+                              {resolverAuthState.userCode}
+                            </span>
                           </span>
                         </div>
                       ) : null}
@@ -3603,7 +4664,12 @@ export function App() {
                                       {getPublicRequestSummary(request)}
                                     </p>
                                   </div>
-                                  <Badge variant="secondary" className="rounded-full">
+                                  <Badge
+                                    variant="secondary"
+                                    className={`rounded-full border ${buildRequestStatusBadgeClassName(
+                                      request.status,
+                                    )}`}
+                                  >
                                     {request.status.replace(/_/g, " ")}
                                   </Badge>
                                 </div>
@@ -3629,7 +4695,9 @@ export function App() {
                     </section>
 
                     <section className="min-h-[24rem] rounded-2xl border border-border bg-card/55 p-4">
-                      {isLoadingRequestContext && selectedResolverRequestId ? (
+                      {isLoadingRequestContext &&
+                      selectedResolverRequestId &&
+                      !selectedResolverRequest ? (
                         <RequestDetailSkeleton />
                       ) : selectedResolverRequest ? (
                         <div className="space-y-4">
@@ -3640,7 +4708,12 @@ export function App() {
                                   <h2 className="text-lg font-semibold tracking-tight text-foreground">
                                     {getPublicRequestTitle(selectedResolverRequest)}
                                   </h2>
-                                  <Badge variant="secondary" className="rounded-full">
+                                  <Badge
+                                    variant="secondary"
+                                    className={`rounded-full border ${buildRequestStatusBadgeClassName(
+                                      selectedResolverRequest.status,
+                                    )}`}
+                                  >
                                     {selectedResolverRequest.status.replace(/_/g, " ")}
                                   </Badge>
                                   <Badge variant="secondary" className="rounded-full">
@@ -3679,6 +4752,14 @@ export function App() {
                                   {selectedResolverRequest.derived.executionKind}
                                 </Badge>
                               ) : null}
+                              <Button
+                                variant="outline"
+                                onClick={handleTrackSelectedRequestInChat}
+                                className="rounded-full"
+                              >
+                                <MessageSquareIcon className="size-4" />
+                                Work in chat
+                              </Button>
                             </div>
                           </div>
 
@@ -3692,6 +4773,109 @@ export function App() {
                                   <MessageMarkdown content={selectedResolverRequest.brief.body} />
                                 </article>
                               ) : null}
+
+                              <article className="rounded-xl border border-border/80 bg-background/60 px-4 py-4">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                      Local audit
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      Stored only on this desktop.
+                                    </p>
+                                  </div>
+                                  <Badge variant="secondary" className="rounded-full">
+                                    {selectedRequestLocalAuditEntries.length} turns
+                                  </Badge>
+                                </div>
+
+                                {selectedRequestLocalAuditEntries.length === 0 ? (
+                                  <p className="mt-3 text-sm text-muted-foreground">
+                                    No local Codex audit logs for this request yet.
+                                  </p>
+                                ) : (
+                                  <div className="mt-3 space-y-4">
+                                    {selectedRequestLocalAuditEntries.map((entry) => (
+                                      <article
+                                        key={entry.assistantMessage.id}
+                                        className="rounded-xl border border-border/70 bg-card/70 px-4 py-4"
+                                      >
+                                        <div className="flex flex-wrap items-start justify-between gap-3">
+                                          <div className="min-w-0">
+                                            <p className="text-sm font-medium text-foreground">
+                                              {formatWorkedDuration(entry.assistantMessage.durationMs)}
+                                              {countWorkedCommands(
+                                                entry.assistantMessage.turnMeta?.consoleEntries ?? [],
+                                              ) > 0
+                                                ? ` · Ran ${countWorkedCommands(
+                                                    entry.assistantMessage.turnMeta?.consoleEntries ?? [],
+                                                  )} commands`
+                                                : ""}
+                                            </p>
+                                            <p className="mt-1 text-xs text-muted-foreground">
+                                              {formatTimestamp(entry.assistantMessage.createdAt)}
+                                              {entry.assistantMessage.model
+                                                ? ` · ${entry.assistantMessage.model}`
+                                                : ""}
+                                              {entry.threadTitle
+                                                ? ` · ${entry.threadTitle}`
+                                                : ""}
+                                            </p>
+                                          </div>
+                                          <Button
+                                            variant="outline"
+                                            className="rounded-full"
+                                            onClick={() => handleSelectThread(entry.threadId)}
+                                          >
+                                            <MessageSquareIcon className="size-4" />
+                                            Open chat
+                                          </Button>
+                                        </div>
+
+                                        {entry.promptMessage ? (
+                                          <div className="mt-3 rounded-lg border border-border/60 bg-background/60 px-3 py-3">
+                                            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                                              Prompt sent
+                                            </p>
+                                            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground">
+                                              {entry.promptMessage.content}
+                                            </p>
+                                          </div>
+                                        ) : null}
+
+                                        {entry.assistantMessage.turnMeta?.consoleEntries.length ? (
+                                          <details className="mt-3 group" open={false}>
+                                            <summary className="flex cursor-pointer list-none items-center gap-2 text-sm text-muted-foreground">
+                                              <ChevronDownIcon className="size-4 transition-transform group-open:rotate-180" />
+                                              <span>Worked activity</span>
+                                            </summary>
+                                            <div className="mt-3">
+                                              <AgentActivityConsole
+                                                entries={
+                                                  entry.assistantMessage.turnMeta.consoleEntries
+                                                }
+                                                maxHeightClassName="max-h-56"
+                                                openCommands={false}
+                                              />
+                                            </div>
+                                          </details>
+                                        ) : null}
+
+                                        <div className="mt-3 rounded-lg border border-border/60 bg-background/60 px-3 py-3">
+                                          <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                                            Final reply
+                                          </p>
+                                          <div className="mt-2">
+                                            <MessageMarkdown
+                                              content={entry.assistantMessage.content}
+                                            />
+                                          </div>
+                                        </div>
+                                      </article>
+                                    ))}
+                                  </div>
+                                )}
+                              </article>
 
                               <article className="rounded-xl border border-border/80 bg-background/60 px-4 py-4">
                                 <div className="flex items-center justify-between gap-3">
@@ -3950,6 +5134,26 @@ export function App() {
                                         </p>
                                         <div className="space-y-3">
                                           <Select
+                                            value={artifactContainerMode}
+                                            onValueChange={(value) =>
+                                              setArtifactContainerMode(
+                                                value as
+                                                  | "document"
+                                                  | "external_ref"
+                                                  | "object_ref",
+                                              )
+                                            }
+                                          >
+                                            <SelectTrigger>
+                                              <SelectValue placeholder="Artifact source" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="document">Document content</SelectItem>
+                                              <SelectItem value="external_ref">External URL</SelectItem>
+                                              <SelectItem value="object_ref">Object storage ref</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                          <Select
                                             value={artifactKind}
                                             onValueChange={(value) =>
                                               setArtifactKind(
@@ -3995,14 +5199,146 @@ export function App() {
                                             }
                                             placeholder="Optional summary"
                                           />
-                                          <Textarea
-                                            value={artifactContent}
+                                          {selectedFulfillmentId ? (
+                                            <div className="rounded-lg border border-border/70 bg-card/60 px-3 py-2 text-xs text-muted-foreground">
+                                              Attaches to active fulfillment {selectedFulfillmentId}
+                                            </div>
+                                          ) : null}
+                                          <Input
+                                            value={artifactStepId}
                                             onChange={(event) =>
-                                              setArtifactContent(event.target.value)
+                                              setArtifactStepId(event.target.value)
                                             }
-                                            placeholder="Write the draft, delivery, or evidence content here."
-                                            rows={5}
+                                            placeholder="Optional fulfillment step id"
                                           />
+                                          {artifactContainerMode === "document" ? (
+                                            <>
+                                              <Select
+                                                value={artifactDocumentKind}
+                                                onValueChange={(value) =>
+                                                  setArtifactDocumentKind(
+                                                    value as RequestArtifactDocumentKind,
+                                                  )
+                                                }
+                                              >
+                                                <SelectTrigger>
+                                                  <SelectValue placeholder="Document kind" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="text">text</SelectItem>
+                                                  <SelectItem value="code">code</SelectItem>
+                                                  <SelectItem value="image">image</SelectItem>
+                                                  <SelectItem value="sheet">sheet</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                              <Textarea
+                                                value={artifactContent}
+                                                onChange={(event) =>
+                                                  setArtifactContent(event.target.value)
+                                                }
+                                                placeholder="Write the artifact content here."
+                                                rows={5}
+                                              />
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Select
+                                                value={artifactMediaKind}
+                                                onValueChange={(value) =>
+                                                  setArtifactMediaKind(
+                                                    value as RequestArtifactMediaKind,
+                                                  )
+                                                }
+                                              >
+                                                <SelectTrigger>
+                                                  <SelectValue placeholder="Media kind" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="image">image</SelectItem>
+                                                  <SelectItem value="audio">audio</SelectItem>
+                                                  <SelectItem value="video">video</SelectItem>
+                                                  <SelectItem value="pdf">pdf</SelectItem>
+                                                  <SelectItem value="binary">binary</SelectItem>
+                                                  <SelectItem value="archive">archive</SelectItem>
+                                                  <SelectItem value="other">other</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                              {artifactContainerMode === "external_ref" ? (
+                                                <Input
+                                                  value={artifactUri}
+                                                  onChange={(event) =>
+                                                    setArtifactUri(event.target.value)
+                                                  }
+                                                  placeholder="https://..."
+                                                />
+                                              ) : (
+                                                <>
+                                                  <Input
+                                                    value={artifactObjectKey}
+                                                    onChange={(event) =>
+                                                      setArtifactObjectKey(event.target.value)
+                                                    }
+                                                    placeholder="Object key"
+                                                  />
+                                                  <Input
+                                                    value={artifactStorageProvider}
+                                                    onChange={(event) =>
+                                                      setArtifactStorageProvider(
+                                                        event.target.value,
+                                                      )
+                                                    }
+                                                    placeholder="Storage provider"
+                                                  />
+                                                  <Input
+                                                    value={artifactStorageBucket}
+                                                    onChange={(event) =>
+                                                      setArtifactStorageBucket(
+                                                        event.target.value,
+                                                      )
+                                                    }
+                                                    placeholder="Optional bucket"
+                                                  />
+                                                  <Input
+                                                    value={artifactSourceUri}
+                                                    onChange={(event) =>
+                                                      setArtifactSourceUri(event.target.value)
+                                                    }
+                                                    placeholder="Optional source URL"
+                                                  />
+                                                </>
+                                              )}
+                                              <div className="grid gap-3 sm:grid-cols-2">
+                                                <Input
+                                                  value={artifactMimeType}
+                                                  onChange={(event) =>
+                                                    setArtifactMimeType(event.target.value)
+                                                  }
+                                                  placeholder="MIME type"
+                                                />
+                                                <Input
+                                                  value={artifactFilename}
+                                                  onChange={(event) =>
+                                                    setArtifactFilename(event.target.value)
+                                                  }
+                                                  placeholder="Filename"
+                                                />
+                                                <Input
+                                                  value={artifactByteSize}
+                                                  onChange={(event) =>
+                                                    setArtifactByteSize(event.target.value)
+                                                  }
+                                                  placeholder="Byte size"
+                                                />
+                                                <Input
+                                                  value={artifactSha256}
+                                                  onChange={(event) =>
+                                                    setArtifactSha256(event.target.value)
+                                                  }
+                                                  placeholder="SHA-256"
+                                                />
+                                              </div>
+                                            </>
+                                          )}
                                           <Button
                                             onClick={() => void handlePublishArtifact()}
                                             disabled={isSubmittingRequestAction}
@@ -4216,7 +5552,7 @@ export function App() {
                     {activeThreadTitle}
                   </h1>
                   <p className="truncate text-xs text-muted-foreground">
-                    Chats
+                    {getTrackedRequestMeta(activeTrackedRequest)}
                   </p>
                 </div>
 
@@ -4268,7 +5604,46 @@ export function App() {
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
                   {messages.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
-                      Start a local chat.
+                      {activeTrackedRequest
+                        ? `This thread is bound to ${getTrackedRequestHeadline(activeTrackedRequest)}.`
+                        : "Start a local chat."}
+                    </div>
+                  ) : null}
+
+                  {activeTrackedRequest ? (
+                    <div className="rounded-xl border border-border/80 bg-card px-4 py-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className="rounded-full">
+                          tracked request
+                        </Badge>
+                        <Badge
+                          variant="secondary"
+                          className={`rounded-full border ${buildRequestStatusBadgeClassName(
+                            activeTrackedRequest.request.status,
+                          )}`}
+                        >
+                          {activeTrackedRequest.request.status}
+                        </Badge>
+                        <Badge variant="secondary" className="rounded-full">
+                          {activeTrackedRequest.request.visibility}
+                        </Badge>
+                        {activeTrackedRequest.fulfillment ? (
+                          <Badge
+                            variant="secondary"
+                            className={`rounded-full border ${buildFulfillmentStatusBadgeClassName(
+                              activeTrackedRequest.fulfillment.status,
+                            )}`}
+                          >
+                            fulfillment {activeTrackedRequest.fulfillment.status}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 text-sm font-medium text-foreground">
+                        {getTrackedRequestHeadline(activeTrackedRequest)}
+                      </p>
+                      <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                        {activeTrackedRequest.request.summary}
+                      </p>
                     </div>
                   ) : null}
 
@@ -4281,6 +5656,29 @@ export function App() {
                           : "max-w-[min(46rem,100%)] self-end rounded-2xl border border-border bg-secondary px-4 py-3"
                       }
                     >
+                      {message.role === "assistant" &&
+                      message.turnMeta?.consoleEntries.length ? (
+                        <details className="mb-3 group" open={false}>
+                          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm text-muted-foreground">
+                            <ChevronDownIcon className="size-4 transition-transform group-open:rotate-180" />
+                            <span>
+                              {formatWorkedDuration(message.durationMs)}
+                              {countWorkedCommands(message.turnMeta.consoleEntries) > 0
+                                ? ` · Ran ${countWorkedCommands(
+                                    message.turnMeta.consoleEntries,
+                                  )} commands`
+                                : ""}
+                            </span>
+                          </summary>
+                          <div className="mt-3">
+                            <AgentActivityConsole
+                              entries={message.turnMeta.consoleEntries}
+                              maxHeightClassName="max-h-56"
+                              openCommands={false}
+                            />
+                          </div>
+                        </details>
+                      ) : null}
                       {message.role === "assistant" ? (
                         <MessageMarkdown content={message.content} />
                       ) : (
@@ -4310,18 +5708,13 @@ export function App() {
                         </span>
                       </div>
 
-                      {latestStreamActivity ? (
-                        <div
-                          className={`mt-2 rounded-lg border px-3 py-2 text-xs ${buildActivityToneClassName(
-                            latestStreamActivity.state,
-                          )}`}
-                        >
-                          <p>{latestStreamActivity.message}</p>
-                          {latestStreamActivity.detail ? (
-                            <p className="mt-1 font-mono opacity-85">
-                              {latestStreamActivity.detail}
-                            </p>
-                          ) : null}
+                      {streamConsoleEntries.length > 0 ? (
+                        <div className="mt-3">
+                          <AgentActivityConsole
+                            entries={streamConsoleEntries}
+                            maxHeightClassName="max-h-64"
+                            openCommands
+                          />
                         </div>
                       ) : null}
 
@@ -4359,6 +5752,9 @@ export function App() {
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>Chats</span>
+                      {activeTrackedRequest ? (
+                        <span>{activeTrackedRequest.request.key}</span>
+                      ) : null}
                       <span>{selectedModel}</span>
                       {selectedReasoning ? <span>{selectedReasoning}</span> : null}
                       {latestAssistantDuration ? (
