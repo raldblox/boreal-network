@@ -4,6 +4,7 @@ import path from "node:path";
 import { ensureDesktopHome } from "./desktop-home.js";
 
 const DEFAULT_BOREAL_WEB_BASE_URL = "http://127.0.0.1:3000";
+let resolvedBorealWebBaseUrl = null;
 const DEFAULT_PUBLIC_REQUEST_LIMIT = 20;
 const DEFAULT_OWNED_REQUEST_LIMIT = 20;
 const DEFAULT_OWNED_SUPPLY_LIMIT = 50;
@@ -40,9 +41,55 @@ function normalizeBaseUrl(rawBaseUrl) {
 }
 
 export function getBorealWebBaseUrl() {
+  return resolvedBorealWebBaseUrl ?? getConfiguredBorealWebBaseUrl();
+}
+
+function getConfiguredBorealWebBaseUrl() {
   return normalizeBaseUrl(
     process.env.BOREAL_DESKTOP_WEB_BASE_URL ?? DEFAULT_BOREAL_WEB_BASE_URL,
   );
+}
+
+function getLoopbackFallbackBaseUrl(baseUrl) {
+  try {
+    const url = new URL(baseUrl);
+
+    if (url.hostname === "127.0.0.1") {
+      url.hostname = "localhost";
+      return url.toString();
+    }
+
+    if (url.hostname === "localhost") {
+      url.hostname = "127.0.0.1";
+      return url.toString();
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function getBorealWebBaseUrlCandidates() {
+  const configuredBaseUrl = getConfiguredBorealWebBaseUrl();
+  const fallbackBaseUrl = getLoopbackFallbackBaseUrl(configuredBaseUrl);
+  const candidates = [
+    resolvedBorealWebBaseUrl,
+    configuredBaseUrl,
+    fallbackBaseUrl,
+  ].filter((value) => typeof value === "string" && value.trim().length > 0);
+
+  return [...new Set(candidates)];
+}
+
+function buildBorealUnavailableMessage() {
+  const candidates = getBorealWebBaseUrlCandidates();
+
+  if (candidates.length === 1) {
+    return `Boreal web unavailable. Start Boreal web at ${candidates[0]} or set BOREAL_DESKTOP_WEB_BASE_URL.`;
+  }
+
+  return `Boreal web unavailable. Start Boreal web at ${candidates.join(" or ")} or set BOREAL_DESKTOP_WEB_BASE_URL.`;
 }
 
 async function getResolverSessionPath() {
@@ -316,23 +363,29 @@ async function parseBorealResponse(response, fallbackPrefix) {
 }
 
 async function fetchBoreal(relativePath, init = {}) {
-  let url;
+  const candidates = getBorealWebBaseUrlCandidates();
 
-  try {
-    url = new URL(relativePath, getBorealWebBaseUrl());
-  } catch {
-    throw new Error(
-      `Boreal web unavailable. Start Boreal web at ${getBorealWebBaseUrl()} or set BOREAL_DESKTOP_WEB_BASE_URL.`,
-    );
+  for (const baseUrl of candidates) {
+    let url;
+
+    try {
+      url = new URL(relativePath, baseUrl);
+    } catch {
+      continue;
+    }
+
+    try {
+      const response = await fetch(url, init);
+      resolvedBorealWebBaseUrl = baseUrl;
+      return response;
+    } catch {
+      if (resolvedBorealWebBaseUrl === baseUrl) {
+        resolvedBorealWebBaseUrl = null;
+      }
+    }
   }
 
-  try {
-    return await fetch(url, init);
-  } catch {
-    throw new Error(
-      `Boreal web unavailable. Start Boreal web at ${getBorealWebBaseUrl()} or set BOREAL_DESKTOP_WEB_BASE_URL.`,
-    );
-  }
+  throw new Error(buildBorealUnavailableMessage());
 }
 
 async function refreshResolverSession(session) {

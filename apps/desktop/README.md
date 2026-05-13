@@ -20,6 +20,8 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop now exposes a persisted runtime mode instead of hardcoding one Codex policy for every turn
 - `Safe` mode keeps desktop on `workspace-write` with network disabled
 - `Full` mode uses `danger-full-access` with network enabled for owner-approved local work
+- `Full` is hard-blocked for public or external tracked request lanes
+- public or external tracked request lanes now run from a dedicated `.boreal-work/desktop/request-workspaces/<request-id>/` workspace instead of the app repo root
 - desktop does not expose interactive Codex approval prompts yet, so the current runtime presets keep approval on `never`
 - auto-resolve for owned private requests stays on its safer read-only lane even if chat runtime is set to `Full`
 - desktop uses `.boreal-work` as its app-owned home for local chat state only
@@ -62,6 +64,7 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop now exposes a toggle to auto-resolve owned private open requests without creating a commitment object first
 - request lists now refresh on explicit surface open, auth completion, action completion, or the manual `Refresh` button instead of a tight background poll loop
 - switching from `Safe` to `Full` now requires an explicit confirmation dialog, and public or tracked-public request surfaces show extra caution text while `Full` is active
+- public or external tracked request lanes now show a hard block instead of a soft warning when `Full` is active
 - local chat threads can be deleted from the desktop shell
 - desktop remembers your last chosen model and reasoning level across restarts and new threads
 - model and reasoning choices come from the live local Codex catalog, including effort levels such as `low`, `medium`, `high`, and `xhigh` when the selected model supports them
@@ -70,6 +73,10 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop shows live turn status, compact command/reasoning activity, and early assistant text when the local Codex stream exposes it
 - desktop phase 1 of `0008` is now a local-only ephemeral stream bus in Electron main for typing submission, token deltas, progress, heartbeats, presence, transient runtime logs, and tool output summaries
 - desktop phase 2 now also starts a localhost-only SSE bridge on `127.0.0.1` for browser-visible ephemeral events, guarded by a random desktop session token and localhost-origin checks
+- that localhost bridge now also exposes guarded read-only `/health` and `/models` endpoints so Boreal web surfaces can inspect bridge state and the connected desktop model catalog without exposing desktop auth tokens
+- desktop now also exposes a localhost-only `/discover` read on a fixed local port so Boreal web can auto-link the running desktop runtime without sending users through a separate bridge setup page
+- that `/discover` payload now separates bridge link, Codex worker readiness, and Boreal resolver readiness instead of collapsing them into one generic connected flag
+- desktop now registers the `boreal-desktop://connect-runtime` app protocol so Boreal web can request that the local desktop shell open or focus before the browser retries bridge discovery
 - desktop now also starts an embedded Pear or Hyperswarm peer runtime in Electron main, listens on the Boreal control topic, and surfaces live peer status in desktop settings
 - chat history and thread selection stay local-only under `.boreal-work` and are not synced to Boreal backend by default
 - that ephemeral lane is not durable Boreal truth by default and does not create request history unless later work explicitly promotes a business-relevant outcome
@@ -80,10 +87,11 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - participant-scoped engaged-request inbox is not implemented yet, so a responder may still need the current request id to revisit work after it leaves the public pool
 - runtime mode is stored in `~/.boreal-work/desktop/settings.json`, and changing it forces the current local Codex runtime session to restart before the next turn
 - this machine currently defaults to software rendering because Electron GPU startup can crash on some Windows setups here; if you want to test hardware rendering after fixing that environment issue, launch with `BOREAL_DESKTOP_ENABLE_GPU=1`
-- if the desktop should read a non-default Boreal web origin, set `BOREAL_DESKTOP_WEB_BASE_URL`; otherwise it defaults to `http://127.0.0.1:3000`
+- if the desktop should read a non-default Boreal web origin, set `BOREAL_DESKTOP_WEB_BASE_URL`; otherwise it tries the local Boreal web loopback on both `http://127.0.0.1:3000` and `http://localhost:3000`
 - localhost bridge status, SSE URL, and restart control now appear in desktop settings
 - peer runtime status, control topic, request-topic count, and restart control now also appear in desktop settings
 - peer foundation is live, but peer transport still does not replace Boreal request truth, browser surfaces still use the localhost bridge, and Hyperdrive remains deferred
+- untrusted request execution is narrowed today, but full isolated worker mode and encrypted-at-rest external trace handling are still target direction rather than finished implementation
 
 ## Commands
 

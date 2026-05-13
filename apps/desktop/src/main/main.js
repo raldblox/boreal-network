@@ -54,12 +54,77 @@ const rendererEntry = path.join(workspaceDir, "dist", "renderer", "index.html");
 const AUTO_RESOLVE_POLL_MS = 5000;
 const AUTO_RESOLVE_RUNTIME_ID = "boreal-desktop-codex";
 const AUTO_RESOLVE_RUNTIME_LABEL = "Boreal Desktop (Codex)";
+const DESKTOP_RUNTIME_PROTOCOL = "boreal-desktop";
 
 let autoResolveTimer = null;
 let autoResolveRunPromise = null;
 const ephemeralBus = createDesktopEphemeralStreamBus();
+let mainWindow = null;
+let pendingProtocolUrl = null;
+
+async function getDesktopModelAccessSnapshot() {
+  const authState = await getCodexAuthState();
+
+  if (!authState.authenticated) {
+    return {
+      authProvider: authState.authProvider,
+      connected: false,
+      fetchedAt: null,
+      models: [],
+      source: "codex-desktop",
+      workerIdentity: authState.workerIdentity,
+    };
+  }
+
+  const modelPayload = await listCodexModels();
+
+  return {
+    authProvider: authState.authProvider,
+    connected: true,
+    fetchedAt: modelPayload.fetchedAt,
+    models: modelPayload.models,
+    source: "codex-desktop",
+    workerIdentity: authState.workerIdentity,
+  };
+}
+
+async function getDesktopBridgeDiscoverySnapshot() {
+  const [access, resolverState] = await Promise.all([
+    getDesktopModelAccessSnapshot(),
+    getResolverAuthState().catch(() => null),
+  ]);
+
+  const resolver =
+    resolverState && typeof resolverState === "object"
+      ? {
+          actorUserIdMasked: resolverState.actorUserIdMasked ?? null,
+          connected: resolverState.connected === true,
+          pendingApproval: resolverState.pendingApproval === true,
+          sourceBaseUrl: resolverState.sourceBaseUrl ?? null,
+        }
+      : {
+          actorUserIdMasked: null,
+          connected: false,
+          pendingApproval: false,
+          sourceBaseUrl: null,
+        };
+
+  return {
+    access,
+    readiness: {
+      borealResolverReady: resolver.connected === true,
+      modelAccessReady: access.connected === true,
+      requestLaneReady:
+        access.connected === true && resolver.connected === true,
+    },
+    resolver,
+  };
+}
+
 const localhostBridge = createDesktopLocalhostBridge({
   ephemeralBus,
+  getDesktopBridgeDiscovery: getDesktopBridgeDiscoverySnapshot,
+  getDesktopModelAccess: getDesktopModelAccessSnapshot,
 });
 let peerHost = null;
 let peerHostLastError = null;
@@ -775,6 +840,11 @@ async function runAutoResolveLoop() {
 
 const shouldForceSoftwareRendering =
   process.env.BOREAL_DESKTOP_ENABLE_GPU !== "1";
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
 
 if (shouldForceSoftwareRendering) {
   app.disableHardwareAcceleration();
@@ -825,6 +895,69 @@ function createMainWindow() {
       void shell.openExternal(url);
     }
   });
+
+  window.on("closed", () => {
+    if (mainWindow === window) {
+      mainWindow = null;
+    }
+  });
+
+  mainWindow = window;
+  return window;
+}
+
+function findDesktopProtocolUrl(argv = []) {
+  return (
+    argv.find(
+      (value) =>
+        typeof value === "string" &&
+        value.startsWith(`${DESKTOP_RUNTIME_PROTOCOL}://`),
+    ) ?? null
+  );
+}
+
+function focusMainWindow() {
+  if (mainWindow?.isDestroyed()) {
+    mainWindow = null;
+  }
+
+  if (!mainWindow) {
+    return createMainWindow();
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  mainWindow.show();
+  mainWindow.focus();
+  return mainWindow;
+}
+
+function registerDesktopRuntimeProtocol() {
+  if (process.defaultApp && process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(DESKTOP_RUNTIME_PROTOCOL, process.execPath, [
+      path.resolve(process.argv[1]),
+    ]);
+    return;
+  }
+
+  app.setAsDefaultProtocolClient(DESKTOP_RUNTIME_PROTOCOL);
+}
+
+async function handleDesktopProtocolUrl(url) {
+  if (
+    typeof url !== "string" ||
+    !url.startsWith(`${DESKTOP_RUNTIME_PROTOCOL}://`)
+  ) {
+    return;
+  }
+
+  focusMainWindow();
+
+  if (url.startsWith(`${DESKTOP_RUNTIME_PROTOCOL}://connect-runtime`)) {
+    await localhostBridge.start().catch(() => undefined);
+  }
 }
 
 function publishCodexPresence(result) {
@@ -1132,7 +1265,30 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
   })(),
 );
 
+if (gotSingleInstanceLock) {
+  pendingProtocolUrl = findDesktopProtocolUrl(process.argv);
+
+  app.on("second-instance", (_event, argv) => {
+    const protocolUrl = findDesktopProtocolUrl(argv);
+
+    if (protocolUrl) {
+      pendingProtocolUrl = protocolUrl;
+      void handleDesktopProtocolUrl(protocolUrl);
+      return;
+    }
+
+    focusMainWindow();
+  });
+
+  app.on("open-url", (event, url) => {
+    event.preventDefault();
+    pendingProtocolUrl = url;
+    void handleDesktopProtocolUrl(url);
+  });
+}
+
 app.whenReady().then(() => {
+  registerDesktopRuntimeProtocol();
   void ensurePeerHostStarted().catch((error) => {
     console.error("[boreal-desktop] peer runtime failed to start:", error);
   });
@@ -1144,11 +1300,18 @@ app.whenReady().then(() => {
   });
   createMainWindow();
   scheduleAutoResolve(3000);
+  if (pendingProtocolUrl) {
+    void handleDesktopProtocolUrl(pendingProtocolUrl);
+    pendingProtocolUrl = null;
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow();
+      return;
     }
+
+    focusMainWindow();
   });
 });
 

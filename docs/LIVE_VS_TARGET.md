@@ -71,7 +71,7 @@ Today, the machine-readable baseline proves:
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
 - one private request may carry an owner-scoped preferred supply, and one resolver-approved desktop may read owned supplies and bind direct auto-fulfillment to a published owned supply when the request override or desktop default selects it
 - one `Supply` can be expressed as a durable capability object
-- one owner-scoped `Supply` draft can be created, updated, and published through the first private or unlisted supply-management lane
+- one owner-scoped `Supply` draft can be created, updated, deleted, and published through the first private or unlisted supply-management lane
 - one `Supply` may carry runtime or resolver binding metadata without collapsing runtime identity into supply ownership
 - one `Commitment` can carry quoted or accepted commercial terms
 - one `Artifact` can point to a stable document, external reference, or object reference instead of inflating the request root
@@ -84,7 +84,10 @@ Today, the machine-readable baseline proves:
 - the repo is structured to host governed JS or TS workspaces under shared workspace discovery rules
 - one complex human-led request can be evaluated deterministically across extraction, planning, matching, and policy outputs
 - one desktop-local browser bridge can expose ephemeral SSE events from Electron main over `127.0.0.1` with session-token and localhost-origin checks
+- one desktop-local browser bridge can expose the connected desktop runtime model catalog through a guarded localhost-only `/models` read surface for browser model selectors
+- one localhost Boreal web surface can auto-discover and link the running desktop runtime through a localhost-only bridge discovery read, without forcing a separate manual bridge page flow
 - one runnable Pear or Hyperswarm peer foundation now exists under `apps/peer/` and `packages/network-*`, with a real peer keypair, control-topic host, and desktop-embedded peer runtime status
+- one desktop tracked request lane can distinguish owner-private versus public or external trust tiers and block `Full` runtime on untrusted lanes while moving them onto a dedicated `.boreal-work` request workspace
 
 ## Target Direction
 
@@ -98,6 +101,7 @@ These are intended next layers, not fully modeled proof yet:
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
 - peer-facing ephemeral realtime lanes beyond the local desktop-main hub
 - peer-capable runtime identity bound through resolver approval without replacing Boreal actor identity
+- isolated worker mode for public or external untrusted request execution
 - additional runnable workspaces such as `apps/mobile/`, `apps/extension/`, `apps/peer-*`, and `apps/gateway-*`
 - shared libraries under `packages/`
 - agent skills under `skills/`

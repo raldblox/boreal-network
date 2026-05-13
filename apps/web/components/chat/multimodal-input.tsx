@@ -5,8 +5,12 @@ import type { UIMessage } from "ai";
 import equal from "fast-deep-equal";
 import {
   ArrowUpIcon,
+  ArrowUpRightIcon,
   BrainIcon,
   EyeIcon,
+  LaptopMinimalIcon,
+  Link2Icon,
+  LoaderCircleIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -31,6 +35,7 @@ import {
   ModelSelectorInput,
   ModelSelectorItem,
   ModelSelectorList,
+  ModelSelectorSeparator,
   ModelSelectorLogo,
   ModelSelectorName,
   ModelSelectorTrigger,
@@ -41,6 +46,19 @@ import {
   DEFAULT_CHAT_MODEL,
   type ModelCapabilities,
 } from "@/lib/ai/models";
+import {
+  buildDesktopBridgeModelsUrl,
+  clearStoredDesktopBridgeUrl,
+  DESKTOP_BRIDGE_STORAGE_KEY,
+  type DesktopRuntimeAccessSnapshot,
+  discoverDesktopRuntime,
+  type DesktopRuntimeDiscoveryPayload,
+  isDesktopBridgeSupportedOrigin,
+  readStoredDesktopBridgeUrl,
+  type DesktopRuntimeModelOption,
+  storeDesktopBridgeUrl,
+  tryOpenDesktopRuntimeApp,
+} from "@/lib/desktop-runtime-bridge";
 import type { BorealRequestDraft } from "@/lib/request";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -52,6 +70,13 @@ import {
   PromptInputTools,
 } from "../ai-elements/prompt-input";
 import { Button } from "../ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import { Spinner } from "../ui/spinner";
 import { PaperclipIcon, StopIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
@@ -67,6 +92,48 @@ function setCookie(name: string, value: string) {
   const maxAge = 60 * 60 * 24 * 365;
   // biome-ignore lint/suspicious/noDocumentCookie: needed for client-side cookie setting
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAge}`;
+}
+
+const DESKTOP_MODEL_PROVIDER = "codex-desktop";
+
+function toDesktopModelId(modelId: string) {
+  return `${DESKTOP_MODEL_PROVIDER}/${modelId}`;
+}
+
+function mapDesktopRuntimeModels(models: DesktopRuntimeModelOption[]): ChatModel[] {
+  return models.map((model) => ({
+    description:
+      model.description?.trim() ||
+      "Available through the connected Boreal Desktop Codex runtime",
+    id: toDesktopModelId(model.id),
+    name: model.displayName,
+    provider: DESKTOP_MODEL_PROVIDER,
+  }));
+}
+
+function mapDesktopRuntimeCapabilities(
+  models: DesktopRuntimeModelOption[],
+): Record<string, ModelCapabilities> {
+  return Object.fromEntries(
+    models.map((model) => [
+      toDesktopModelId(model.id),
+      {
+        reasoning: Array.isArray(model.supportedReasoningLevels)
+          ? model.supportedReasoningLevels.length > 0
+          : false,
+        tools: true,
+        vision: false,
+      },
+    ]),
+  );
+}
+
+function ModelProviderMark({ provider }: { provider: string }) {
+  if (provider === DESKTOP_MODEL_PROVIDER) {
+    return <LaptopMinimalIcon className="size-4 text-muted-foreground" />;
+  }
+
+  return <ModelSelectorLogo provider={provider} />;
 }
 
 function PureMultimodalInput({
@@ -114,7 +181,7 @@ function PureMultimodalInput({
   activeRequest: BorealRequestDraft | null;
   isRequestMode: boolean;
   onCreateRequest: () => Promise<BorealRequestDraft | null>;
-  ensureRequestForSend: () => Promise<BorealRequestDraft | null>;
+  ensureRequestForSend: () => Promise<void>;
 }) {
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
@@ -247,11 +314,7 @@ function PureMultimodalInput({
 
   const submitForm = useCallback(async () => {
     if (isRequestMode && !activeRequest) {
-      const createdRequest = await ensureRequestForSend();
-      if (!createdRequest) {
-        setIsSubmitPending(false);
-        return;
-      }
+      await ensureRequestForSend();
     }
 
     window.history.pushState(
@@ -289,8 +352,8 @@ function PureMultimodalInput({
     attachments,
     activeRequest,
     sendMessage,
-    ensureRequestForSend,
-    isRequestMode,
+  ensureRequestForSend,
+  isRequestMode,
     setAttachments,
     setLocalStorageInput,
     width,
@@ -485,7 +548,7 @@ function PureMultimodalInput({
       </div>
 
       <PromptInput
-        className="[&>div]:rounded-2xl [&>div]:border [&>div]:border-border/30 [&>div]:bg-card/70 [&>div]:shadow-[var(--shadow-composer)] [&>div]:transition-shadow [&>div]:duration-300 [&>div]:focus-within:shadow-[var(--shadow-composer-focus)]"
+        className="[&>div]:rounded-[28px] [&>div]:border [&>div]:border-border/60 [&>div]:bg-background/92 [&>div]:shadow-[0_18px_55px_rgba(15,23,42,0.06)] [&>div]:transition-shadow [&>div]:duration-300 [&>div]:focus-within:shadow-[0_22px_70px_rgba(15,23,42,0.1)]"
         onSubmit={() => {
           if (input.startsWith("/")) {
             const query = input.slice(1).trim();
@@ -541,7 +604,7 @@ function PureMultimodalInput({
         )}
         <PromptInputTextarea
           className={cn(
-            "text-[13px] leading-relaxed px-4 pt-3.5 pb-1.5 placeholder:text-muted-foreground/35",
+            "px-4 pb-1.5 pt-4 text-[13px] leading-7 placeholder:text-muted-foreground/35",
             isOpenedRequest ? "min-h-16" : "min-h-24"
           )}
           data-testid="multimodal-input"
@@ -728,7 +791,20 @@ function PureModelSelectorCompact({
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
 }) {
+  type DesktopRuntimeLoadResult = {
+    linked: boolean;
+    modelAccessReady: boolean;
+    requestLaneReady: boolean;
+    resolverReady: boolean;
+  };
+
   const [open, setOpen] = useState(false);
+  const [isDesktopRuntimeConnectDialogOpen, setIsDesktopRuntimeConnectDialogOpen] =
+    useState(false);
+  const [isConnectingDesktopRuntime, setIsConnectingDesktopRuntime] =
+    useState(false);
+  const [desktopRuntimeConnectMessage, setDesktopRuntimeConnectMessage] =
+    useState("Desktop runtime not linked yet.");
   const { data: modelsData } = useSWR(
     `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/models`,
     (url: string) => fetch(url).then((r) => r.json()),
@@ -738,78 +814,463 @@ function PureModelSelectorCompact({
   const capabilities: Record<string, ModelCapabilities> | undefined =
     modelsData?.capabilities ?? modelsData;
   const dynamicModels: ChatModel[] | undefined = modelsData?.models;
-  const activeModels = dynamicModels ?? chatModels;
+  const webModels = dynamicModels ?? chatModels;
+  const [desktopRuntimeModels, setDesktopRuntimeModels] = useState<ChatModel[]>(
+    [],
+  );
+  const [desktopRuntimeCapabilities, setDesktopRuntimeCapabilities] = useState<
+    Record<string, ModelCapabilities>
+  >({});
+  const [desktopRuntimeAccessLabel, setDesktopRuntimeAccessLabel] = useState(
+    "Open Boreal Desktop to connect local runtime access",
+  );
+  const [desktopRuntimeLinked, setDesktopRuntimeLinked] = useState(false);
+  const [desktopRuntimeModelAccessReady, setDesktopRuntimeModelAccessReady] =
+    useState(false);
+  const [desktopRuntimeResolverReady, setDesktopRuntimeResolverReady] =
+    useState(false);
+  const [desktopRuntimeRequestLaneReady, setDesktopRuntimeRequestLaneReady] =
+    useState(false);
+
+  const applyDesktopRuntimeDiscovery = useCallback(
+    (
+      payload: Pick<
+        DesktopRuntimeDiscoveryPayload,
+        "access" | "readiness" | "resolver"
+      >,
+    ): DesktopRuntimeLoadResult => {
+      const access = payload.access ?? null;
+      const runtimeModels = Array.isArray(access?.models) ? access.models : [];
+      const authProvider =
+        typeof access?.authProvider === "string" && access.authProvider.length > 0
+          ? access.authProvider
+          : "Codex";
+      const modelAccessReady =
+        payload.readiness?.modelAccessReady === true || access?.connected === true;
+      const resolverReady =
+        payload.readiness?.borealResolverReady === true ||
+        payload.resolver?.connected === true;
+      const requestLaneReady =
+        payload.readiness?.requestLaneReady === true ||
+        (modelAccessReady && resolverReady);
+
+      setDesktopRuntimeLinked(true);
+      setDesktopRuntimeModelAccessReady(modelAccessReady);
+      setDesktopRuntimeResolverReady(resolverReady);
+      setDesktopRuntimeRequestLaneReady(requestLaneReady);
+      setDesktopRuntimeAccessLabel(
+        requestLaneReady
+          ? `${authProvider} desktop + Boreal ready`
+          : modelAccessReady
+            ? `${authProvider} ready, Boreal disconnected`
+            : "Desktop runtime found, worker auth missing",
+      );
+      setDesktopRuntimeModels(mapDesktopRuntimeModels(runtimeModels));
+      setDesktopRuntimeCapabilities(mapDesktopRuntimeCapabilities(runtimeModels));
+
+      return {
+        linked: true,
+        modelAccessReady,
+        requestLaneReady,
+        resolverReady,
+      };
+    },
+    [],
+  );
+
+  const resetDesktopRuntimeAccess = useCallback((message?: string) => {
+    setDesktopRuntimeLinked(false);
+    setDesktopRuntimeModelAccessReady(false);
+    setDesktopRuntimeResolverReady(false);
+    setDesktopRuntimeRequestLaneReady(false);
+    setDesktopRuntimeAccessLabel(
+      message ?? "Open Boreal Desktop to connect local runtime access",
+    );
+    setDesktopRuntimeModels([]);
+    setDesktopRuntimeCapabilities({});
+  }, []);
+
+  const loadDesktopRuntimeModels = useCallback(
+    async (): Promise<DesktopRuntimeLoadResult> => {
+      const discovery = await discoverDesktopRuntime();
+
+      if (discovery?.bridge?.sseUrl) {
+        storeDesktopBridgeUrl(discovery.bridge.sseUrl);
+        return applyDesktopRuntimeDiscovery(discovery);
+      }
+
+      const bridgeUrl = readStoredDesktopBridgeUrl();
+
+      if (bridgeUrl) {
+        try {
+          const response = await fetch(buildDesktopBridgeModelsUrl(bridgeUrl), {
+            cache: "no-store",
+          });
+
+          if (!response.ok) {
+            throw new Error(
+              `Desktop runtime model fetch failed with ${response.status}.`,
+            );
+          }
+
+          const payload = (await response.json()) as {
+            access?: DesktopRuntimeAccessSnapshot | null;
+          };
+          return applyDesktopRuntimeDiscovery({
+            access: payload.access ?? null,
+            readiness: {
+              borealResolverReady: false,
+              modelAccessReady: payload.access?.connected === true,
+              requestLaneReady: false,
+            },
+            resolver: {
+              connected: false,
+            },
+          });
+        } catch {
+          clearStoredDesktopBridgeUrl();
+        }
+      }
+
+      resetDesktopRuntimeAccess(
+        isDesktopBridgeSupportedOrigin()
+          ? "Desktop runtime not running on this machine yet"
+          : "Desktop runtime bridge only works from localhost",
+      );
+      return {
+        linked: false,
+        modelAccessReady: false,
+        requestLaneReady: false,
+        resolverReady: false,
+      };
+    },
+    [applyDesktopRuntimeDiscovery, resetDesktopRuntimeAccess],
+  );
+
+  const connectDesktopRuntime = useCallback(async () => {
+    setIsDesktopRuntimeConnectDialogOpen(true);
+
+    if (!isDesktopBridgeSupportedOrigin()) {
+      setDesktopRuntimeConnectMessage(
+        "Run Boreal web on localhost to link the desktop runtime.",
+      );
+      return;
+    }
+
+    if (isConnectingDesktopRuntime) {
+      return;
+    }
+
+    setIsConnectingDesktopRuntime(true);
+    setDesktopRuntimeConnectMessage("Looking for a running Boreal Desktop...");
+
+    try {
+      const initialState = await loadDesktopRuntimeModels();
+
+      if (initialState.requestLaneReady) {
+        setDesktopRuntimeConnectMessage(
+          "Desktop runtime and Boreal auth connected.",
+        );
+        toast.success("Desktop runtime and Boreal auth connected.");
+        setTimeout(() => {
+          setIsDesktopRuntimeConnectDialogOpen(false);
+        }, 700);
+        return;
+      }
+
+      if (initialState.modelAccessReady && !initialState.resolverReady) {
+        setDesktopRuntimeConnectMessage(
+          "Desktop model access is ready, but Boreal is still disconnected on desktop.",
+        );
+        toast.info("Desktop model access ready, but Boreal is disconnected.");
+      } else if (initialState.linked && !initialState.modelAccessReady) {
+        setDesktopRuntimeConnectMessage(
+          "Desktop bridge is reachable, but the Codex worker is not connected yet.",
+        );
+      }
+
+      if (!initialState.linked) {
+        setDesktopRuntimeConnectMessage("Opening Boreal Desktop...");
+      }
+      tryOpenDesktopRuntimeApp();
+
+      const startedAt = Date.now();
+      while (Date.now() - startedAt < 15000) {
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+        const state = await loadDesktopRuntimeModels();
+
+        if (state.requestLaneReady) {
+          setDesktopRuntimeConnectMessage(
+            "Desktop runtime and Boreal auth connected.",
+          );
+          toast.success("Desktop runtime and Boreal auth connected.");
+          setTimeout(() => {
+            setIsDesktopRuntimeConnectDialogOpen(false);
+          }, 700);
+          return;
+        }
+
+        if (state.modelAccessReady && !state.resolverReady) {
+          setDesktopRuntimeConnectMessage(
+            "Desktop model access is ready, but Boreal is still disconnected on desktop.",
+          );
+        } else if (state.linked && !state.modelAccessReady) {
+          setDesktopRuntimeConnectMessage(
+            "Desktop bridge is reachable, but the Codex worker is not connected yet.",
+          );
+        }
+      }
+
+      setDesktopRuntimeConnectMessage(
+        "Desktop runtime still unavailable. Open Boreal Desktop, then try again.",
+      );
+    } finally {
+      setIsConnectingDesktopRuntime(false);
+    }
+  }, [isConnectingDesktopRuntime, loadDesktopRuntimeModels]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      const state = await loadDesktopRuntimeModels();
+      if (cancelled || state.linked) {
+        return;
+      }
+    };
+
+    void run();
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === DESKTOP_BRIDGE_STORAGE_KEY) {
+        void run();
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [loadDesktopRuntimeModels, open]);
+
+  const activeModels = [...webModels, ...desktopRuntimeModels];
+  const mergedCapabilities: Record<string, ModelCapabilities> = {
+    ...(capabilities ?? {}),
+    ...desktopRuntimeCapabilities,
+  };
 
   const selectedModel =
     activeModels.find((m: ChatModel) => m.id === selectedModelId) ??
-    activeModels.find((m: ChatModel) => m.id === DEFAULT_CHAT_MODEL) ??
-    activeModels[0];
+    webModels.find((m: ChatModel) => m.id === DEFAULT_CHAT_MODEL) ??
+    webModels[0];
   const [provider] = selectedModel.id.split("/");
+  const desktopRuntimeActionLabel =
+    desktopRuntimeRequestLaneReady
+      ? "Reconnect desktop runtime"
+      : desktopRuntimeLinked
+        ? "Finish desktop connection"
+      : "Connect desktop runtime";
 
   return (
-    <ModelSelector onOpenChange={setOpen} open={open}>
-      <ModelSelectorTrigger asChild>
-        <Button
-          className="h-7 max-w-[200px] justify-between gap-1.5 rounded-lg px-2 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
-          data-testid="model-selector"
-          variant="ghost"
-        >
-          {provider && <ModelSelectorLogo provider={provider} />}
-          <ModelSelectorName>{selectedModel.name}</ModelSelectorName>
-        </Button>
-      </ModelSelectorTrigger>
-      <ModelSelectorContent>
-        <ModelSelectorInput placeholder="Search models..." />
-        <ModelSelectorList>
-          {(() => {
-            return (
-              <ModelSelectorGroup heading="OpenAI">
-                {activeModels.map((model) => {
-                  const logoProvider = model.id.split("/")[0];
-                  return (
-                    <ModelSelectorItem
-                      className={cn(
-                        "flex w-full",
-                        model.id === selectedModel.id &&
-                          "rounded-md bg-accent/60 text-foreground"
+    <>
+      <ModelSelector onOpenChange={setOpen} open={open}>
+        <ModelSelectorTrigger asChild>
+          <Button
+            className="h-7 max-w-[200px] justify-between gap-1.5 rounded-lg px-2 text-[12px] text-muted-foreground transition-colors hover:text-foreground"
+            data-testid="model-selector"
+            variant="ghost"
+          >
+            {provider && <ModelProviderMark provider={provider} />}
+            <ModelSelectorName>{selectedModel.name}</ModelSelectorName>
+          </Button>
+        </ModelSelectorTrigger>
+        <ModelSelectorContent>
+          <ModelSelectorInput placeholder="Search models..." />
+          <ModelSelectorList>
+            <ModelSelectorGroup heading="OpenAI">
+              {webModels.map((model) => {
+                const logoProvider = model.id.split("/")[0];
+                return (
+                  <ModelSelectorItem
+                    className={cn(
+                      "flex w-full",
+                      model.id === selectedModel.id &&
+                        "rounded-md bg-accent/60 text-foreground"
+                    )}
+                    key={model.id}
+                    onSelect={() => {
+                      onModelChange?.(model.id);
+                      setCookie("chat-model", model.id);
+                      setOpen(false);
+                      setTimeout(() => {
+                        document
+                          .querySelector<HTMLTextAreaElement>(
+                            "[data-testid='multimodal-input']"
+                          )
+                          ?.focus();
+                      }, 50);
+                    }}
+                    value={model.id}
+                  >
+                    <ModelProviderMark provider={logoProvider} />
+                    <ModelSelectorName>{model.name}</ModelSelectorName>
+                    <div className="ml-auto flex items-center gap-2 text-foreground/70">
+                      {mergedCapabilities?.[model.id]?.tools && (
+                        <WrenchIcon className="size-3.5" />
                       )}
+                      {mergedCapabilities?.[model.id]?.vision && (
+                        <EyeIcon className="size-3.5" />
+                      )}
+                      {mergedCapabilities?.[model.id]?.reasoning && (
+                        <BrainIcon className="size-3.5" />
+                      )}
+                    </div>
+                  </ModelSelectorItem>
+                );
+              })}
+            </ModelSelectorGroup>
+
+            <ModelSelectorSeparator />
+
+            <ModelSelectorGroup heading="Codex/Desktop">
+              <ModelSelectorItem
+                className="flex w-full"
+                onSelect={() => {
+                  setOpen(false);
+                  void connectDesktopRuntime();
+                }}
+                value={
+                  desktopRuntimeLinked
+                    ? "desktop-runtime-reconnect"
+                    : "desktop-runtime-connect"
+                }
+              >
+                <LaptopMinimalIcon className="size-4 text-muted-foreground" />
+                <div className="min-w-0 flex flex-1 flex-col">
+                  <ModelSelectorName>{desktopRuntimeActionLabel}</ModelSelectorName>
+                  <span className="truncate text-[11px] text-muted-foreground">
+                    {desktopRuntimeAccessLabel}
+                  </span>
+                </div>
+                <div className="ml-auto flex items-center gap-2 text-foreground/70">
+                  <Link2Icon className="size-3.5" />
+                </div>
+              </ModelSelectorItem>
+
+              {desktopRuntimeModels.length > 0 ? (
+                <>
+                  <ModelSelectorSeparator />
+                  {desktopRuntimeModels.map((model) => (
+                    <ModelSelectorItem
+                      className="flex w-full opacity-80"
+                      disabled
                       key={model.id}
-                      onSelect={() => {
-                        onModelChange?.(model.id);
-                        setCookie("chat-model", model.id);
-                        setOpen(false);
-                        setTimeout(() => {
-                          document
-                            .querySelector<HTMLTextAreaElement>(
-                              "[data-testid='multimodal-input']"
-                            )
-                            ?.focus();
-                        }, 50);
-                      }}
                       value={model.id}
                     >
-                      <ModelSelectorLogo provider={logoProvider} />
-                      <ModelSelectorName>{model.name}</ModelSelectorName>
+                      <ModelProviderMark provider={DESKTOP_MODEL_PROVIDER} />
+                      <div className="min-w-0 flex flex-1 flex-col">
+                        <ModelSelectorName>{model.name}</ModelSelectorName>
+                        <span className="truncate text-[11px] text-muted-foreground">
+                          {desktopRuntimeAccessLabel}
+                        </span>
+                      </div>
                       <div className="ml-auto flex items-center gap-2 text-foreground/70">
-                        {capabilities?.[model.id]?.tools && (
+                        {mergedCapabilities?.[model.id]?.tools && (
                           <WrenchIcon className="size-3.5" />
                         )}
-                        {capabilities?.[model.id]?.vision && (
-                          <EyeIcon className="size-3.5" />
-                        )}
-                        {capabilities?.[model.id]?.reasoning && (
+                        {mergedCapabilities?.[model.id]?.reasoning && (
                           <BrainIcon className="size-3.5" />
                         )}
                       </div>
                     </ModelSelectorItem>
+                  ))}
+                </>
+              ) : (
+                <div className="px-2 py-2 text-[11px] text-muted-foreground">
+                  {desktopRuntimeModelAccessReady
+                    ? desktopRuntimeResolverReady
+                      ? "Desktop catalog is linked. Web chat dispatch through desktop is still not enabled here."
+                      : "Desktop model access is ready, but Boreal is still disconnected on desktop."
+                    : "Desktop models appear here only after the local desktop worker is reachable."}
+                </div>
+              )}
+            </ModelSelectorGroup>
+          </ModelSelectorList>
+        </ModelSelectorContent>
+      </ModelSelector>
+
+      <Dialog
+        open={isDesktopRuntimeConnectDialogOpen}
+        onOpenChange={setIsDesktopRuntimeConnectDialogOpen}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Connect desktop runtime</DialogTitle>
+            <DialogDescription>
+              Link the running Boreal Desktop worker to this web app without
+              leaving the chat composer.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-4">
+              <div className="flex items-start gap-3">
+                {isConnectingDesktopRuntime ? (
+                  <LoaderCircleIcon className="mt-0.5 size-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <LaptopMinimalIcon className="mt-0.5 size-4 text-muted-foreground" />
+                )}
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {isConnectingDesktopRuntime
+                      ? "Trying local desktop runtime"
+                      : "Desktop runtime status"}
+                  </p>
+                  <p className="text-sm leading-6 text-muted-foreground">
+                    {desktopRuntimeConnectMessage}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={() => void connectDesktopRuntime()}
+                disabled={isConnectingDesktopRuntime}
+              >
+                {isConnectingDesktopRuntime ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <Link2Icon className="size-4" />
+                )}
+                Connect now
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  tryOpenDesktopRuntimeApp();
+                  setDesktopRuntimeConnectMessage(
+                    "Boreal Desktop launch requested. Waiting for local bridge...",
                   );
-                })}
-              </ModelSelectorGroup>
-            );
-          })()}
-        </ModelSelectorList>
-      </ModelSelectorContent>
-    </ModelSelector>
+                }}
+              >
+                <ArrowUpRightIcon className="size-4" />
+                Open desktop
+              </Button>
+            </div>
+
+            <p className="text-xs leading-5 text-muted-foreground">
+              If Boreal Desktop is already open on this machine, this should
+              connect automatically. If it is not running yet, open it once and
+              the bridge will attach here.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

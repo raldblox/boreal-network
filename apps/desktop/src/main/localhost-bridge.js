@@ -2,6 +2,7 @@ import http from "node:http";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 
 const LOCAL_HOST = "127.0.0.1";
+const DISCOVERY_PORT = 43179;
 const KEEPALIVE_INTERVAL_MS = 15000;
 const ALLOWED_ORIGIN_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
@@ -93,7 +94,13 @@ function writeJson(response, statusCode, payload, origin) {
   response.end(JSON.stringify(payload));
 }
 
-export function createDesktopLocalhostBridge({ ephemeralBus }) {
+export function createDesktopLocalhostBridge({
+  ephemeralBus,
+  getDesktopBridgeDiscovery,
+  getDesktopModelAccess,
+}) {
+  let discoveryServer = null;
+  let discoveryLastError = null;
   let keepaliveTimer = null;
   let lastError = null;
   let server = null;
@@ -118,8 +125,9 @@ export function createDesktopLocalhostBridge({ ephemeralBus }) {
     return {
       allowedOrigins: ["http://127.0.0.1:*", "http://localhost:*"],
       baseUrl,
+      discoveryUrl: `http://${LOCAL_HOST}:${DISCOVERY_PORT}/discover`,
       host: LOCAL_HOST,
-      lastError,
+      lastError: lastError ?? discoveryLastError,
       port,
       ready: port != null,
       sessionToken: port ? sessionToken : null,
@@ -157,7 +165,70 @@ export function createDesktopLocalhostBridge({ ephemeralBus }) {
     }
   }
 
-  function handleRequest(request, response) {
+  async function readDesktopModelAccess() {
+    if (typeof getDesktopModelAccess !== "function") {
+      return null;
+    }
+
+    try {
+      return await getDesktopModelAccess();
+    } catch (error) {
+      return {
+        connected: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Desktop model access failed.",
+        fetchedAt: null,
+        models: [],
+        source: "codex-desktop",
+      };
+    }
+  }
+
+  async function readDesktopBridgeDiscovery() {
+    if (typeof getDesktopBridgeDiscovery === "function") {
+      try {
+        return await getDesktopBridgeDiscovery();
+      } catch (error) {
+        return {
+          access: await readDesktopModelAccess(),
+          readiness: {
+            borealResolverReady: false,
+            modelAccessReady: false,
+            requestLaneReady: false,
+          },
+          resolver: {
+            actorUserIdMasked: null,
+            connected: false,
+            pendingApproval: false,
+            sourceBaseUrl: null,
+          },
+          error:
+            error instanceof Error
+              ? error.message
+              : "Desktop bridge discovery failed.",
+        };
+      }
+    }
+
+    return {
+      access: await readDesktopModelAccess(),
+      readiness: {
+        borealResolverReady: false,
+        modelAccessReady: false,
+        requestLaneReady: false,
+      },
+      resolver: {
+        actorUserIdMasked: null,
+        connected: false,
+        pendingApproval: false,
+        sourceBaseUrl: null,
+      },
+    };
+  }
+
+  async function handleRequest(request, response) {
     const origin =
       typeof request.headers.origin === "string" ? request.headers.origin : null;
 
@@ -230,6 +301,48 @@ export function createDesktopLocalhostBridge({ ephemeralBus }) {
       return;
     }
 
+    if (requestUrl.pathname === "/models") {
+      if (typeof getDesktopModelAccess !== "function") {
+        writeJson(
+          response,
+          503,
+          {
+            error: "desktop_model_access_unavailable",
+            message: "Desktop model access is unavailable.",
+          },
+          origin,
+        );
+        return;
+      }
+
+      try {
+        const access = await getDesktopModelAccess();
+        writeJson(
+          response,
+          200,
+          {
+            access,
+            ok: true,
+          },
+          origin,
+        );
+      } catch (error) {
+        writeJson(
+          response,
+          500,
+          {
+            error: "desktop_model_access_failed",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Desktop model access failed.",
+          },
+          origin,
+        );
+      }
+      return;
+    }
+
     if (requestUrl.pathname !== "/events") {
       writeJson(
         response,
@@ -261,6 +374,104 @@ export function createDesktopLocalhostBridge({ ephemeralBus }) {
     });
   }
 
+  async function handleDiscoveryRequest(request, response) {
+    const origin =
+      typeof request.headers.origin === "string" ? request.headers.origin : null;
+
+    if (!isAllowedOrigin(origin)) {
+      writeJson(
+        response,
+        403,
+        {
+          error: "origin_not_allowed",
+          message: "Localhost bridge discovery only accepts localhost origins.",
+        },
+        origin,
+      );
+      return;
+    }
+
+    if (request.method === "OPTIONS") {
+      setCorsHeaders(response, origin);
+      response.writeHead(204, {
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+      });
+      response.end();
+      return;
+    }
+
+    if (request.method !== "GET") {
+      writeJson(
+        response,
+        405,
+        {
+          error: "method_not_allowed",
+          message: "Desktop bridge discovery only supports GET requests.",
+        },
+        origin,
+      );
+      return;
+    }
+
+    const requestUrl = new URL(
+      request.url ?? "/",
+      `http://${request.headers.host ?? LOCAL_HOST}`,
+    );
+
+    if (requestUrl.pathname !== "/discover") {
+      writeJson(
+        response,
+        404,
+        {
+          error: "not_found",
+          message: `Unknown bridge discovery path: ${normalizeUrlPath(
+            request.url,
+          )}`,
+        },
+        origin,
+      );
+      return;
+    }
+
+    const discovery = await readDesktopBridgeDiscovery();
+    writeJson(
+      response,
+      200,
+      {
+        access: discovery.access ?? null,
+        bridge: buildState(),
+        readiness: discovery.readiness ?? null,
+        resolver: discovery.resolver ?? null,
+        ok: true,
+      },
+      origin,
+    );
+  }
+
+  async function startDiscoveryServer() {
+    if (discoveryServer) {
+      return;
+    }
+
+    discoveryLastError = null;
+    discoveryServer = http.createServer(handleDiscoveryRequest);
+
+    try {
+      await new Promise((resolve, reject) => {
+        discoveryServer.once("error", reject);
+        discoveryServer.listen(DISCOVERY_PORT, LOCAL_HOST, resolve);
+      });
+    } catch (error) {
+      discoveryLastError =
+        error instanceof Error
+          ? error.message
+          : "Desktop bridge discovery failed to start.";
+      discoveryServer?.removeAllListeners();
+      discoveryServer = null;
+    }
+  }
+
   async function start() {
     if (server) {
       return buildState();
@@ -269,6 +480,7 @@ export function createDesktopLocalhostBridge({ ephemeralBus }) {
     sessionToken = createSessionToken();
     lastError = null;
     startedAt = new Date().toISOString();
+    await startDiscoveryServer();
 
     server = http.createServer(handleRequest);
 
@@ -330,6 +542,14 @@ export function createDesktopLocalhostBridge({ ephemeralBus }) {
   async function dispose() {
     unsubscribe();
     await stop();
+
+    if (discoveryServer) {
+      const activeDiscoveryServer = discoveryServer;
+      discoveryServer = null;
+      await new Promise((resolve) => {
+        activeDiscoveryServer.close(() => resolve(undefined));
+      });
+    }
   }
 
   return {

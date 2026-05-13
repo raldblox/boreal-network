@@ -230,9 +230,10 @@ export default function BorealDesktopDownloadPage() {
               </p>
               <p className="mt-3 text-sm leading-7 text-foreground">
                 Boreal Desktop now exposes a tokenized localhost bridge and a
-                real peer-backed runtime identity. The browser monitor below can
-                subscribe directly from the full SSE URL shown in desktop
-                settings.
+                real peer-backed runtime identity. The main web chat can now
+                auto-link a running desktop runtime directly from the model
+                picker, while the browser monitor below stays available as an
+                optional diagnostics surface.
               </p>
             </div>
           </aside>
@@ -244,7 +245,7 @@ export default function BorealDesktopDownloadPage() {
           <SectionHeading
             eyebrow="Local monitor"
             title="See desktop runtime state in the browser without turning the browser into the worker."
-            body="Use the full SSE URL from Boreal Desktop settings to attach this localhost page to the desktop bridge. That lets the browser observe peer presence, Codex worker state, resolver presence, and live ephemeral events while Boreal web remains the canonical durable thread."
+            body="Use this page for optional localhost diagnostics when you want to inspect the bridge directly. Routine desktop linking should now happen from the web chat model picker without a separate setup page."
           />
 
           <div className="mt-10">

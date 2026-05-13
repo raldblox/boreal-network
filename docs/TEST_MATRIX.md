@@ -95,7 +95,9 @@ Verify:
 - not every chat turn creates a durable request
 - entering `New request` mode alone does not create a durable request
 - the first send in `New request` mode creates one draft request instead of a second root object
+- request-briefing assist or optimizer profiles in request mode must still create at most one draft request on first send
 - request draft extraction is deterministic for canonical fixtures
+- request-briefing assist or optimizer profiles may improve wording clarity but must not invent budget, deadline, deliverables, actor requirements, or constraints
 - only `open` plus `public` requests appear in the public request pool
 - draft and private requests do not leak through public request fetch endpoints
 - draft request-object JSON accepts edits only while the request status is `draft`
@@ -132,7 +134,12 @@ Verify:
 - request-level preferred supply should outrank the desktop default supply during auto-resolve
 - configured but unavailable request override or desktop default supply should block auto-resolve instead of silently falling back
 - desktop tracked-request execution should bind one local thread to one selected `Request` and optional `Fulfillment` lane without syncing the full local transcript by default
+- desktop should block `Full` runtime for public or external tracked request lanes
+- desktop should force public or external tracked request lanes onto a dedicated `.boreal-work` request workspace instead of the app repo root
+- desktop should clear extra writable roots and keep network off for public or external tracked request lanes even if broader local settings exist
 - desktop localhost bridge should bind to `127.0.0.1` only, require a valid session token, and reject non-localhost origins
+- desktop localhost bridge `/discover` should stay localhost-origin constrained, expose only local bridge-link metadata plus separate local readiness states for bridge, Codex worker, and Boreal resolver, and never become a durable Boreal identity or request ledger
+- desktop localhost bridge `/models` should require the same valid session token, stay localhost-origin constrained, and return only the connected desktop runtime model catalog instead of a second Boreal model ledger
 - desktop peer runtime should create or reuse one stable peer keypair under `.boreal-work/desktop/peer-runtime.json`
 - desktop peer runtime should listen on the Boreal control topic and expose its listening state without changing Boreal actor identity semantics
 - request-bound desktop turns should be able to join a Boreal request topic through the embedded peer host without promoting peer transport state into durable request truth
@@ -148,6 +155,9 @@ Verify:
 - entering the new-supply route alone does not publish supply automatically
 - explicit supply draft creation creates one durable supply row
 - draft updates mutate the same supply row instead of creating replacements
+- delete should allow draft supply and unused retired supply only
+- delete should reject published or paused supply
+- delete should reject retired supply that already has durable commitment or fulfillment activity
 - publish requires the minimum profile and capability fields
 - private and unlisted publish succeed through the first supply lane
 - public supply publish remains blocked until the broader market lane is enabled

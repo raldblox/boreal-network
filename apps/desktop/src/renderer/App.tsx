@@ -18,7 +18,10 @@ import {
   Skeleton,
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
   Spinner,
@@ -1301,6 +1304,25 @@ function resolveProjectSelection(
 
 function getSelectedModelEntry(models: ModelOption[], selectedModel: string) {
   return models.find((model) => model.id === selectedModel) ?? null;
+}
+
+function formatModelReasoningSummary(model: ModelOption) {
+  const levels = model.supportedReasoningLevels.map((level) => level.effort);
+
+  if (levels.length === 0) {
+    return model.description || "No explicit reasoning controls";
+  }
+
+  const supportedLabel = levels.join(", ");
+
+  if (
+    typeof model.defaultReasoningLevel === "string" &&
+    model.defaultReasoningLevel.trim().length > 0
+  ) {
+    return `Default ${model.defaultReasoningLevel} / ${supportedLabel}`;
+  }
+
+  return supportedLabel;
 }
 
 function trimInlineText(value: string, maxLength: number) {
@@ -3547,7 +3569,7 @@ export function App() {
     try {
       setIsLoadingOwnedSupplies(true);
 
-      const [requestResult, supplyResult] = await Promise.all([
+      const [requestResultState, supplyResultState] = await Promise.allSettled([
         getDesktopBridge().listOwnedRequests({
           limit: 20,
         }),
@@ -3555,6 +3577,12 @@ export function App() {
           limit: 50,
         }),
       ]);
+
+      if (requestResultState.status !== "fulfilled") {
+        throw requestResultState.reason;
+      }
+
+      const requestResult = requestResultState.value;
       const nextSelectedRequestId = focus
         ? null
         : requestResult.requests.some((request) => request.id === selectedOwnedRequestId)
@@ -3562,7 +3590,9 @@ export function App() {
           : requestResult.requests[0]?.id ?? null;
 
       setOwnedRequests(requestResult);
-      setOwnedSupplies(supplyResult);
+      setOwnedSupplies(
+        supplyResultState.status === "fulfilled" ? supplyResultState.value : null,
+      );
       setSelectedOwnedRequestId(nextSelectedRequestId);
       setSelectedResolverScope("owned-requests");
 
@@ -3580,6 +3610,14 @@ export function App() {
               : "No Boreal requests found for this account yet.",
           tone: "info",
         });
+      }
+
+      if (supplyResultState.status !== "fulfilled") {
+        setError(
+          supplyResultState.reason instanceof Error
+            ? supplyResultState.reason.message
+            : "Owned supplies failed to load.",
+        );
       }
     } catch (nextError) {
       if (focus) {
@@ -4722,13 +4760,23 @@ export function App() {
       !isBooting &&
       !isConnectingCodex &&
       !isWaitingForCodexAuth &&
-      !isTrackedRequestRuntimeBlocked &&
       models.length > 0,
   );
   const connected = Boolean(authState?.authenticated && models.length > 0);
   const latestAssistantDuration = [...messages]
     .reverse()
     .find((message) => message.role === "assistant")?.durationMs;
+  const modelAccessLabel = connected
+    ? "codex/desktop model access"
+    : "model access unavailable";
+  const modelAccessMeta = connected
+    ? [
+        authState?.authProvider ?? "Codex",
+        models.length > 0 ? `${models.length} models` : null,
+      ]
+        .filter(Boolean)
+        .join(" / ")
+    : "Connect Codex worker first.";
   const runtimeModeLabel = formatRuntimeModeLabel(runtimeMode);
   const runtimeModeDescription = describeRuntimeMode(
     runtimeMode,
@@ -6302,41 +6350,66 @@ export function App() {
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <Select
-                    value={selectedModel || undefined}
-                    onValueChange={handleModelChange}
-                  >
-                    <SelectTrigger className="min-w-40">
-                      <SelectValue placeholder="Model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {models.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.displayName}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="flex min-w-[18rem] flex-col items-end gap-1">
+                  <div className="text-right">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      {modelAccessLabel}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {modelAccessMeta}
+                    </p>
+                  </div>
 
-                  {selectedModelEntry &&
-                  selectedModelEntry.supportedReasoningLevels.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-2">
                     <Select
-                      value={selectedReasoning || undefined}
-                      onValueChange={handleReasoningChange}
+                      value={selectedModel || undefined}
+                      onValueChange={handleModelChange}
                     >
-                      <SelectTrigger className="min-w-28">
-                        <SelectValue placeholder="Effort" />
+                      <SelectTrigger className="min-w-52">
+                        <SelectValue placeholder="Model" />
                       </SelectTrigger>
                       <SelectContent>
-                        {selectedModelEntry.supportedReasoningLevels.map((level) => (
-                          <SelectItem key={level.effort} value={level.effort}>
-                            {level.effort}
-                          </SelectItem>
-                        ))}
+                        <SelectGroup>
+                          <SelectLabel>{modelAccessLabel}</SelectLabel>
+                          <SelectLabel className="-mt-2 pt-0 text-[11px]">
+                            {modelAccessMeta}
+                          </SelectLabel>
+                          <SelectSeparator />
+                          {models.map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
+                              <span className="flex min-w-0 flex-col">
+                                <span className="truncate font-medium">
+                                  {model.displayName}
+                                </span>
+                                <span className="truncate text-xs text-muted-foreground">
+                                  {formatModelReasoningSummary(model)}
+                                </span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
-                  ) : null}
+
+                    {selectedModelEntry &&
+                    selectedModelEntry.supportedReasoningLevels.length > 0 ? (
+                      <Select
+                        value={selectedReasoning || undefined}
+                        onValueChange={handleReasoningChange}
+                      >
+                        <SelectTrigger className="min-w-28">
+                          <SelectValue placeholder="Effort" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {selectedModelEntry.supportedReasoningLevels.map((level) => (
+                            <SelectItem key={level.effort} value={level.effort}>
+                              {level.effort}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : null}
+                  </div>
                 </div>
               </header>
 
@@ -6507,7 +6580,11 @@ export function App() {
                     }}
                     placeholder="Ask anything..."
                     className="min-h-24 resize-none rounded-xl border border-border bg-card px-3 py-3 shadow-none focus-visible:ring-0"
-                    disabled={!chatReady || isSending}
+                    disabled={
+                      !chatReady ||
+                      isSending ||
+                      isTrackedRequestRuntimeBlocked
+                    }
                   />
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -6524,7 +6601,12 @@ export function App() {
 
                     <Button
                       onClick={() => void sendMessage()}
-                      disabled={!chatReady || isSending || draft.trim().length === 0}
+                      disabled={
+                        !chatReady ||
+                        isSending ||
+                        isTrackedRequestRuntimeBlocked ||
+                        draft.trim().length === 0
+                      }
                     >
                       {isSending ? <Spinner className="size-4" /> : null}
                       Send

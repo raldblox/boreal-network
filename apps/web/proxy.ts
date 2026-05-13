@@ -21,6 +21,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (pathname.startsWith("/api/supplies")) {
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/api/document")) {
     return NextResponse.next();
   }

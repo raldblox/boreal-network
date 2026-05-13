@@ -98,6 +98,7 @@ Should expose:
 - read
 - list owned supply
 - update allowed mutable fields
+- delete draft or unused retired supply
 - publish
 - pause
 - retire
@@ -107,6 +108,7 @@ The first supply-management web slice should support:
 - explicit draft creation from a typed preset such as human service, agent worker, digital product, desktop runtime, or provider capability
 - owner-scoped supply draft reads and list reads through browser session or resolver auth with `supplies:read_private`
 - owner-scoped draft updates for profile, capability, availability, pricing, visibility, source, binding metadata, and freeform metadata
+- owner-scoped delete for `draft` supply, or `retired` supply with no durable commitment or fulfillment activity
 - explicit publish from `draft` into `published`
 - explicit pause and retire actions after publish
 - optional runtime or resolver binding metadata without treating the runtime itself as the supply row
@@ -249,6 +251,9 @@ The first desktop-local browser bridge should stay constrained like this:
 - require a random per-runtime session token
 - reject non-localhost browser origins
 - stream ephemeral execution feedback only
+- allow one localhost-only discovery read such as `/discover` so Boreal web can auto-link a running desktop runtime without a manual copy-paste setup flow
+- `/discover` may expose bridge-link readiness, Codex worker readiness, and Boreal resolver readiness as separate local states; do not collapse them into one fake `connected` truth
+- expose read-only local bridge metadata such as `/health` and desktop model-access reads such as `/models` only behind the same session-token and localhost-origin checks
 - never act as durable Boreal request truth by itself
 
 ## Schema Discipline
