@@ -186,13 +186,24 @@ function PureMessages({
             contentClassName
           )}
         >
-          {timelineItems.map((item) =>
+          {timelineItems.map((item, index) =>
             item.type === "activity" ? (
               <RequestActivityMessage
                 activity={item.activity}
+                index={
+                  timelineItems
+                    .slice(0, index + 1)
+                    .filter((timelineItem) => timelineItem.type === "activity")
+                    .length - 1
+                }
                 isReadonly={isReadonly}
                 key={item.id}
                 ownerUserId={requestOwnerUserId}
+                totalCount={
+                  timelineItems.filter(
+                    (timelineItem) => timelineItem.type === "activity"
+                  ).length
+                }
               />
             ) : (
               <PreviewMessage

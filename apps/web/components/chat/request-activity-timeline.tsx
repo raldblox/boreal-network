@@ -35,12 +35,14 @@ export function RequestActivityTimeline({
 
   return (
     <>
-      {orderedActivities.map((activity) => (
+      {orderedActivities.map((activity, index) => (
         <RequestActivityMessage
           activity={activity}
           ownerUserId={ownerUserId}
           isReadonly={isReadonly}
+          index={index}
           key={activity.eventId}
+          totalCount={orderedActivities.length}
         />
       ))}
     </>
@@ -51,10 +53,14 @@ export function RequestActivityMessage({
   activity,
   ownerUserId,
   isReadonly,
+  index,
+  totalCount,
 }: {
   activity: RequestActivityEntry;
   ownerUserId: string | null;
   isReadonly: boolean;
+  index: number;
+  totalCount: number;
 }) {
   const isOwnerActivity =
     Boolean(ownerUserId) && activity.actor.id === ownerUserId;
@@ -105,24 +111,34 @@ export function RequestActivityMessage({
 
   return (
     <div
-      className="group/message w-full py-1"
+      className="group/message w-full"
       data-role="assistant"
     >
-      <div className="flex items-start gap-2.5">
-        <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
-          <div
-            className={cn(
-              "flex size-7 items-center justify-center rounded-lg ring-1 ring-border/50",
-              isOwnerActivity
-                ? "bg-secondary/80 text-foreground"
-                : "bg-muted/60 text-muted-foreground"
-            )}
-          >
-            <SparklesIcon size={13} />
+      <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-x-2.5">
+        <div className="relative">
+          {index > 0 ? (
+            <div className="absolute left-1/2 top-0 h-2.5 w-[1.5px] -translate-x-1/2 bg-border" />
+          ) : null}
+          {index < totalCount - 1 ? (
+            <div className="absolute left-1/2 top-6.5 -bottom-2 w-[1.5px] -translate-x-1/2 bg-border" />
+          ) : null}
+          <div className="relative z-10 flex h-6.5 items-center justify-center">
+            <div
+              className={cn(
+                "flex size-6.5 items-center justify-center rounded-full border shadow-sm",
+                isOwnerActivity
+                  ? "border-border bg-secondary text-foreground"
+                  : "border-border bg-muted text-muted-foreground"
+              )}
+            >
+              <SparklesIcon size={11} />
+            </div>
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">{content}</div>
+        <div className="min-w-0 space-y-1.5 pb-2 pt-0.5">
+          {content}
+        </div>
       </div>
     </div>
   );

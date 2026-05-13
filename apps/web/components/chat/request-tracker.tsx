@@ -56,6 +56,28 @@ function getDefaultExpandedStages(status: RequestStatus): TrackerStageId[] {
   return [currentStageId];
 }
 
+function getCompletedTrackerStageCount(status: RequestStatus) {
+  switch (status) {
+    case "funded":
+      return 1;
+    case "in_progress":
+    case "waiting_for_owner":
+      return 2;
+    case "delivered":
+      return 3;
+    case "completed":
+      return 4;
+    case "cancelled":
+    case "failed":
+      return 3;
+    case "open":
+    case "funding_required":
+    case "draft":
+    default:
+      return 0;
+  }
+}
+
 export function RequestTracker({
   request,
   activities,
@@ -65,6 +87,7 @@ export function RequestTracker({
   status,
 }: RequestTrackerProps) {
   const currentStageId = getCurrentTrackerStageId(request.status);
+  const completedStageCount = getCompletedTrackerStageCount(request.status);
   const [expandedStages, setExpandedStages] = useState<TrackerStageId[]>(() =>
     getDefaultExpandedStages(request.status)
   );
@@ -383,9 +406,11 @@ export function RequestTracker({
         <div className="mx-auto flex min-h-full max-w-4xl flex-col gap-0 px-3 py-6 md:px-3 md:py-7">
           {stages.map((stage, index) => {
             const isExpanded = expandedStages.includes(stage.id);
-            const isDone = index < TRACKER_STAGE_ORDER.indexOf(currentStageId);
+            const isDone = index < completedStageCount;
             const isLast = index === stages.length - 1;
-            const isCurrent = stage.id === currentStageId;
+            const isCurrent = !isDone && stage.id === currentStageId;
+            const hasCompletedPreviousStage = index <= completedStageCount;
+            const hasCompletedCurrentStage = index < completedStageCount;
 
             return (
               <div
@@ -403,7 +428,9 @@ export function RequestTracker({
                       <div
                         className={cn(
                           "absolute left-1/2 top-0 h-5 w-px -translate-x-1/2",
-                          isDone ? "bg-emerald-400/50" : "bg-border/70"
+                          hasCompletedPreviousStage
+                            ? "bg-emerald-400/50"
+                            : "bg-border/70"
                         )}
                       />
                     ) : null}
@@ -411,13 +438,15 @@ export function RequestTracker({
                     {!isLast ? (
                       <div
                         className={cn(
-                          "absolute left-1/2 top-5 bottom-0 w-px -translate-x-1/2",
-                          isDone ? "bg-emerald-400/50" : "bg-border/70"
+                          "absolute left-1/2 top-6 bottom-0 w-px -translate-x-1/2",
+                          hasCompletedCurrentStage
+                            ? "bg-emerald-400/50"
+                            : "bg-border/70"
                         )}
                       />
                     ) : null}
 
-                    <div className="relative z-10 flex h-10 items-start justify-center pt-1">
+                    <div className="relative z-10 flex h-10 items-start justify-center translate-y-1">
                       <div
                         className={cn(
                           "flex size-8 items-center justify-center rounded-full border bg-background text-xs font-semibold shadow-sm",
@@ -444,7 +473,7 @@ export function RequestTracker({
                     }
                     type="button"
                   >
-                    <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+                    <div className="flex min-w-0 items-center gap-3 overflow-hidden ">
                       <div className="shrink-0 font-medium text-sm">
                         {stage.title}
                       </div>
@@ -514,13 +543,15 @@ function StageActivityStack({
   }
 
   return (
-    <div className="space-y-4">
-      {activities.map((activity) => (
+    <div className="space-y-0">
+      {activities.map((activity, index) => (
         <RequestActivityMessage
           activity={activity}
+          index={index}
           isReadonly={isReadonly}
           key={activity.eventId}
           ownerUserId={ownerUserId}
+          totalCount={activities.length}
         />
       ))}
     </div>

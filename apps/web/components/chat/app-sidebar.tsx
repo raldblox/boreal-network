@@ -8,7 +8,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { User } from "next-auth";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -51,9 +51,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { setOpenMobile, toggleSidebar } = useSidebar();
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const isRootView = pathname === "/";
+  const isNewRequestMode =
+    isRootView && searchParams.get("mode") === "request";
+  const isNewChatMode = isRootView && !isNewRequestMode;
 
   const handleDeleteAll = () => {
     setShowDeleteAllDialog(false);
@@ -112,7 +118,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    className="h-8 rounded-lg border border-sidebar-border/70 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground"
+                    className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                    isActive={isNewChatMode}
                     onClick={() => {
                       setOpenMobile(false);
                       router.push("/");
@@ -125,7 +132,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    className="h-8 rounded-lg border border-sidebar-border/80 bg-transparent text-[13px] text-sidebar-foreground/80 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground"
+                    className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                    isActive={isNewRequestMode}
                     onClick={() => {
                       setOpenMobile(false);
                       router.push("/?mode=request");
