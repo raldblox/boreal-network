@@ -23,6 +23,8 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop does not expose interactive Codex approval prompts yet, so the current runtime presets keep approval on `never`
 - auto-resolve for owned private requests stays on its safer read-only lane even if chat runtime is set to `Full`
 - desktop uses `.boreal-work` as its app-owned home for local chat state only
+- desktop now also keeps a stable local runtime identity under `.boreal-work/desktop/` and shows that `Desktop runtime ID` in the UI
+- that runtime identity is local-only and pre-peer for now; it is not yet a live Pear or Hyperswarm network identity
 
 ## Initial Stack
 
@@ -47,12 +49,16 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop now uses one built-in local lane named `Chats`
 - there is no desktop project creation flow in this shell
 - after connect, desktop switches to a chat-first shell with a local sidebar history and `New thread`
+- sidebar footer now stays minimal: one visible `Desktop runtime ID` row plus a settings button
+- worker identity, runtime mode, resolver connection, and environment details now live inside a centered desktop settings dialog
+- that settings dialog now uses a wider responsive grid so long identity and environment fields fit without awkward overflow
 - desktop sidebar now also exposes `Public requests`, which reads the live public-safe Boreal web pool through `GET /api/requests?scope=public`
 - desktop can now connect a Boreal account through the resolver device approval flow and keep that Boreal actor separate from local Codex auth
 - desktop now also exposes `My requests`, which reads owned Boreal requests through resolver bearer auth
 - desktop can inspect request detail and durable activity, then drive direct commitment, artifact, and fulfillment APIs without exposing Boreal tokens to the renderer
 - desktop now exposes an owner-private auto-resolve lane where Boreal Desktop and Codex can create fulfillment directly, do the work, and publish delivery for owned private requests
 - desktop now exposes a toggle to auto-resolve owned private open requests without creating a commitment object first
+- request lists now refresh on explicit surface open, auth completion, action completion, or the manual `Refresh` button instead of a tight background poll loop
 - local chat threads can be deleted from the desktop shell
 - desktop remembers your last chosen model and reasoning level across restarts and new threads
 - model and reasoning choices come from the live local Codex catalog, including effort levels such as `low`, `medium`, `high`, and `xhigh` when the selected model supports them

@@ -520,7 +520,6 @@ type AppSurface = "chat" | "public-requests" | "owned-requests";
 
 const MAX_STREAM_ACTIVITIES = 6;
 const MAX_STREAM_CONSOLE_ENTRIES = 14;
-const OWNED_REQUEST_POLL_MS = 12000;
 const AUTO_RESOLVE_RUNTIME_ID = "boreal-desktop-codex";
 const AUTO_RESOLVE_RUNTIME_LABEL = "Boreal Desktop (Codex)";
 
@@ -2222,7 +2221,7 @@ export function App() {
   function renderSettingsDialog() {
     return (
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-        <DialogContent className="max-w-lg gap-0 overflow-hidden rounded-3xl border border-border/80 p-0 shadow-2xl">
+        <DialogContent className="max-w-[min(94vw,72rem)] gap-0 overflow-hidden rounded-3xl border border-border/80 p-0 shadow-2xl sm:max-w-4xl">
           <DialogHeader className="border-b border-border/80 px-5 py-5">
             <DialogTitle>Desktop settings</DialogTitle>
             <DialogDescription>
@@ -2230,8 +2229,8 @@ export function App() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="max-h-[min(72vh,42rem)] overflow-y-auto overscroll-contain px-4 py-4">
-            <div className="space-y-4">
+          <div className="max-h-[min(76vh,46rem)] overflow-y-auto overscroll-contain px-4 py-4">
+            <div className="grid gap-4 lg:grid-cols-2">
               <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Desktop runtime ID
@@ -2341,17 +2340,22 @@ export function App() {
                 </div>
               </section>
 
-              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
+              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4 lg:col-span-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   Environment
                 </p>
-                <div className="mt-3 space-y-3">
+                <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {environmentDetails.map((item) => (
-                    <div key={item.label} className="space-y-1">
+                    <div
+                      key={item.label}
+                      className="rounded-lg border border-border/70 bg-background/50 px-3 py-3"
+                    >
                       <p className="text-[11px] font-medium text-muted-foreground">
                         {item.label}
                       </p>
-                      <p className="break-all text-xs text-foreground">{item.value}</p>
+                      <p className="mt-1 break-all text-xs text-foreground">
+                        {item.value}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -2934,29 +2938,6 @@ export function App() {
       silent: true,
     });
   }, [activeSurface, resolverConnected, selectedOwnedRequestId, selectedPublicRequestId]);
-
-  useEffect(() => {
-    if (activeSurface !== "owned-requests" || !resolverConnected) {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      void loadOwnedRequests({
-        focus: false,
-        silent: true,
-      });
-
-      if (selectedResolverRequestId) {
-        void loadRequestContext(selectedResolverRequestId, {
-          silent: true,
-        });
-      }
-    }, OWNED_REQUEST_POLL_MS);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [activeSurface, resolverConnected, selectedResolverRequestId]);
 
   useEffect(() => {
     const container = conversationScrollRef.current;
