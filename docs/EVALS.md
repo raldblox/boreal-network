@@ -91,6 +91,7 @@ Recommended subfields:
 - `matching.roleMatches`
 - `policy.nextAction`
 - `policy.requiresOwnerApproval`
+- `policy.preferredSupplyId`
 - `policy.shouldOpenRequest`
 - `policy.shouldCreateFulfillment`
 - `policy.shouldCreateFulfillmentSteps`
@@ -114,7 +115,7 @@ Hard assertions:
 - correct complexity band
 - expected lead supply inside top-k
 - forbidden mutation rate of `0`
-- no fulfillment before approval
+- no fulfillment before approval outside the explicit owner-private direct lane
 
 Soft assertions:
 

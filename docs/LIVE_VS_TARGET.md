@@ -69,6 +69,7 @@ Today, the machine-readable baseline proves:
 - one open request room can expose request activity derived from durable `RequestEvent`, `Commitment`, and `Artifact` records
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
+- one private request may carry an owner-scoped preferred supply, and one resolver-approved desktop may read owned supplies and bind direct auto-fulfillment to a published owned supply when the request override or desktop default selects it
 - one `Supply` can be expressed as a durable capability object
 - one owner-scoped `Supply` draft can be created, updated, and published through the first private or unlisted supply-management lane
 - one `Supply` may carry runtime or resolver binding metadata without collapsing runtime identity into supply ownership

@@ -74,6 +74,10 @@ export type RequestSeeking = {
   notes?: string;
 };
 
+export type RequestRouting = {
+  preferredSupplyId?: string;
+};
+
 export type RequestReadinessState =
   | "collecting_brief"
   | "ready_to_open"
@@ -301,6 +305,7 @@ export type BorealRequestDraft = {
   ownerId: string;
   brief: RequestBrief;
   seeking: RequestSeeking;
+  routing: RequestRouting;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   derived: RequestDerived;
@@ -386,6 +391,7 @@ type RequestDocumentObject = {
     tags: string[];
   };
   seeking: RequestSeeking;
+  routing: RequestRouting;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   activeRefs: RequestActiveRefs;
@@ -410,6 +416,7 @@ export type RequestPatch = {
   visibility?: RequestVisibility;
   brief?: Partial<RequestBrief>;
   seeking?: Partial<RequestSeeking>;
+  routing?: Partial<RequestRouting>;
   budget?: RequestBudget | null;
   deadline?: RequestDeadline | null;
   derived?: Partial<Omit<RequestDerived, "missingDetails" | "readiness">>;
@@ -529,6 +536,7 @@ export function createInitialRequestDraft({
       tags: [],
     },
     seeking: {},
+    routing: {},
     budget: null,
     deadline: null,
     activeRefs: {},
@@ -586,6 +594,10 @@ export function applyRequestPatch(
         ? currentDraft.seeking.supplyKinds
         : patch.seeking.supplyKinds,
   });
+  const nextRouting = normalizeRouting({
+    ...currentDraft.routing,
+    ...patch.routing,
+  });
 
   const nextDraft: BorealRequestDraft = {
     ...currentDraft,
@@ -593,6 +605,7 @@ export function applyRequestPatch(
     visibility: patch.visibility ?? currentDraft.visibility,
     brief: nextBrief,
     seeking: nextSeeking,
+    routing: nextRouting,
     budget: patch.budget === undefined ? currentDraft.budget : patch.budget,
     deadline:
       patch.deadline === undefined ? currentDraft.deadline : patch.deadline,
@@ -801,6 +814,20 @@ function normalizeSeeking(
     ...(supplyKinds.length > 0 ? { supplyKinds } : {}),
     ...(teamMode ? { teamMode } : {}),
     ...(notes ? { notes } : {}),
+  };
+}
+
+function normalizeRouting(
+  routing: Partial<RequestRouting> | RequestRouting | undefined
+): RequestRouting {
+  if (!routing) {
+    return {};
+  }
+
+  const preferredSupplyId = normalizeText(routing.preferredSupplyId);
+
+  return {
+    ...(preferredSupplyId ? { preferredSupplyId } : {}),
   };
 }
 
@@ -1025,6 +1052,7 @@ function toRequestDocumentObject(
       tags: draft.brief.tags ?? [],
     },
     seeking: normalizeSeeking(draft.seeking),
+    routing: normalizeRouting(draft.routing),
     budget: draft.budget,
     deadline: draft.deadline,
     activeRefs: normalizeActiveRefs(draft.activeRefs),

@@ -89,7 +89,9 @@ components:
       enum:
         - requests:read_public
         - requests:read_private
+        - requests:update_private
         - requests:read_activity
+        - supplies:read_private
         - commitments:propose
         - commitments:accept
         - artifacts:publish

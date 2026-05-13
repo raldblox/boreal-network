@@ -66,6 +66,9 @@ export async function POST(
       requestId: id,
       commitmentId: body.commitmentId,
       actorUserId: actor.userId,
+      ...(actor.kind === "resolver"
+        ? { actorResolverClientId: actor.resolverClientId }
+        : {}),
       summary: body.summary,
       lead: body.lead,
       contributors: body.contributors,
@@ -85,7 +88,8 @@ export async function POST(
     if (
       error instanceof Error &&
       (error.message === "Request or commitment not found" ||
-        error.message === "Request not found")
+        error.message === "Request not found" ||
+        error.message === "Supply not found")
     ) {
       return new ChatbotError("not_found:database").toResponse();
     }
@@ -99,6 +103,9 @@ export async function POST(
         "Owner-private direct fulfillment requires open request",
         "Active fulfillment already exists",
         "Funding required before starting fulfillment",
+        "Published supply required",
+        "Supply does not belong to fulfillment actor",
+        "Supply is not bound to this resolver client",
       ].includes(error.message)
     ) {
       return new ChatbotError("bad_request:api", error.message).toResponse();

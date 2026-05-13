@@ -6,12 +6,15 @@ import { ensureDesktopHome } from "./desktop-home.js";
 const DEFAULT_BOREAL_WEB_BASE_URL = "http://127.0.0.1:3000";
 const DEFAULT_PUBLIC_REQUEST_LIMIT = 20;
 const DEFAULT_OWNED_REQUEST_LIMIT = 20;
+const DEFAULT_OWNED_SUPPLY_LIMIT = 50;
 const RESOLVER_SESSION_FILE_NAME = "resolver-session.json";
 const RESOLVER_ACCESS_TOKEN_EXPIRY_SKEW_MS = 60 * 1000;
 const defaultResolverScopes = Object.freeze([
   "requests:read_public",
   "requests:read_private",
   "requests:read_activity",
+  "requests:update_private",
+  "supplies:read_private",
   "commitments:propose",
   "commitments:accept",
   "artifacts:publish",
@@ -451,6 +454,124 @@ function sanitizeActorRef(actor) {
   };
 }
 
+function sanitizeSupplyEntry(entry) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  const profile =
+    entry.profile && typeof entry.profile === "object" ? entry.profile : {};
+  const capability =
+    entry.capability && typeof entry.capability === "object"
+      ? entry.capability
+      : {};
+  const availability =
+    entry.availability && typeof entry.availability === "object"
+      ? entry.availability
+      : {};
+  const pricing =
+    entry.pricing && typeof entry.pricing === "object" ? entry.pricing : null;
+  const source =
+    entry.source && typeof entry.source === "object" ? entry.source : {};
+  const bindings =
+    entry.bindings && typeof entry.bindings === "object" ? entry.bindings : {};
+
+  return {
+    availability: {
+      acceptingRequests: availability.acceptingRequests === true,
+      currentLoad:
+        typeof availability.currentLoad === "number" &&
+        Number.isFinite(availability.currentLoad)
+          ? availability.currentLoad
+          : null,
+      maxConcurrentRequests:
+        typeof availability.maxConcurrentRequests === "number" &&
+        Number.isFinite(availability.maxConcurrentRequests)
+          ? availability.maxConcurrentRequests
+          : null,
+      responseTimeHours:
+        typeof availability.responseTimeHours === "number" &&
+        Number.isFinite(availability.responseTimeHours)
+          ? availability.responseTimeHours
+          : null,
+    },
+    bindings: {
+      providerRef:
+        typeof bindings.providerRef === "string" ? bindings.providerRef : null,
+      resolverClientId:
+        typeof bindings.resolverClientId === "string"
+          ? bindings.resolverClientId
+          : null,
+      runtimeActorId:
+        typeof bindings.runtimeActorId === "string"
+          ? bindings.runtimeActorId
+          : null,
+    },
+    capability: {
+      executionChannels: sanitizeStringArray(capability.executionChannels),
+      fulfillmentActorKinds: sanitizeStringArray(
+        capability.fulfillmentActorKinds,
+      ),
+      outputKinds: sanitizeStringArray(capability.outputKinds),
+      supplyKinds: sanitizeStringArray(capability.supplyKinds),
+    },
+    createdAt:
+      typeof entry.createdAt === "string" ? entry.createdAt : new Date().toISOString(),
+    id: typeof entry.id === "string" ? entry.id : "",
+    key: typeof entry.key === "string" ? entry.key : "",
+    ownerId: typeof entry.ownerId === "string" ? entry.ownerId : "",
+    pricing:
+      pricing && typeof pricing.mode === "string"
+        ? {
+            currency:
+              typeof pricing.currency === "string" ? pricing.currency : null,
+            fixedAmount:
+              typeof pricing.fixedAmount === "number" &&
+              Number.isFinite(pricing.fixedAmount)
+                ? pricing.fixedAmount
+                : null,
+            maxAmount:
+              typeof pricing.maxAmount === "number" &&
+              Number.isFinite(pricing.maxAmount)
+                ? pricing.maxAmount
+                : null,
+            minAmount:
+              typeof pricing.minAmount === "number" &&
+              Number.isFinite(pricing.minAmount)
+                ? pricing.minAmount
+                : null,
+            mode: pricing.mode,
+            notes: typeof pricing.notes === "string" ? pricing.notes : "",
+          }
+        : null,
+    profile: {
+      description:
+        typeof profile.description === "string" ? profile.description : "",
+      displayName:
+        typeof profile.displayName === "string" ? profile.displayName : "",
+      headline: typeof profile.headline === "string" ? profile.headline : "",
+      summary: typeof profile.summary === "string" ? profile.summary : "",
+      tags: sanitizeStringArray(profile.tags),
+    },
+    publishedAt:
+      typeof entry.publishedAt === "string" ? entry.publishedAt : null,
+    retiredAt:
+      typeof entry.retiredAt === "string" ? entry.retiredAt : null,
+    source: {
+      kind: typeof source.kind === "string" ? source.kind : "manual",
+    },
+    status: typeof entry.status === "string" ? entry.status : "draft",
+    updatedAt:
+      typeof entry.updatedAt === "string" ? entry.updatedAt : new Date().toISOString(),
+    visibility:
+      entry.visibility === "private" ||
+      entry.visibility === "public" ||
+      entry.visibility === "unlisted"
+        ? entry.visibility
+        : "private",
+  };
+}
+
 function sanitizeRequestEntry(entry) {
   if (!entry || typeof entry !== "object") {
     return null;
@@ -468,6 +589,8 @@ function sanitizeRequestEntry(entry) {
     entry.latest && typeof entry.latest === "object" ? entry.latest : {};
   const derived =
     entry.derived && typeof entry.derived === "object" ? entry.derived : {};
+  const routing =
+    entry.routing && typeof entry.routing === "object" ? entry.routing : {};
   const readiness =
     derived.readiness && typeof derived.readiness === "object"
       ? derived.readiness
@@ -539,6 +662,12 @@ function sanitizeRequestEntry(entry) {
       lastEventAt:
         typeof latest.lastEventAt === "string" ? latest.lastEventAt : null,
       summary: typeof latest.summary === "string" ? latest.summary : "",
+    },
+    routing: {
+      preferredSupplyId:
+        typeof routing.preferredSupplyId === "string"
+          ? routing.preferredSupplyId
+          : null,
     },
     seeking: {
       actorKinds: sanitizeStringArray(seeking.actorKinds),
@@ -699,6 +828,10 @@ function sanitizeFulfillmentEntry(entry) {
     id: typeof entry.id === "string" ? entry.id : "",
     key: typeof entry.key === "string" ? entry.key : "",
     lead: sanitizeActorRef(entry.lead),
+    supplyId:
+      typeof entry.supplyId === "string" && entry.supplyId.trim().length > 0
+        ? entry.supplyId
+        : null,
     status: typeof entry.status === "string" ? entry.status : "planned",
     steps: Array.isArray(entry.steps)
       ? entry.steps
@@ -729,6 +862,21 @@ function buildRequestListUrl({ limit, scope, startingAfter, endingBefore }) {
   if (scope === "public") {
     url.searchParams.set("scope", "public");
   }
+
+  if (typeof startingAfter === "string" && startingAfter.trim().length > 0) {
+    url.searchParams.set("starting_after", startingAfter);
+  }
+
+  if (typeof endingBefore === "string" && endingBefore.trim().length > 0) {
+    url.searchParams.set("ending_before", endingBefore);
+  }
+
+  return url.pathname + url.search;
+}
+
+function buildSupplyListUrl({ limit, startingAfter, endingBefore }) {
+  const url = new URL("/api/supplies", getBorealWebBaseUrl());
+  url.searchParams.set("limit", String(limit));
 
   if (typeof startingAfter === "string" && startingAfter.trim().length > 0) {
     url.searchParams.set("starting_after", startingAfter);
@@ -995,6 +1143,47 @@ export async function listOwnedRequests(options = {}) {
   };
 }
 
+export async function listOwnedSupplies(options = {}) {
+  const session = await readResolverSession();
+  const limit = Math.min(
+    Math.max(
+      Number.isFinite(options.limit)
+        ? Number(options.limit)
+        : DEFAULT_OWNED_SUPPLY_LIMIT,
+      1,
+    ),
+    100,
+  );
+  const payload = await fetchResolverJson(
+    buildSupplyListUrl({
+      endingBefore: options.endingBefore,
+      limit,
+      startingAfter: options.startingAfter,
+    }),
+    {
+      method: "GET",
+    },
+    "Owned supplies failed",
+  );
+  const supplies = Array.isArray(payload?.supplies)
+    ? payload.supplies.map(sanitizeSupplyEntry).filter(Boolean)
+    : [];
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    hasMore: payload?.hasMore === true,
+    sourceBaseUrl: getBorealWebBaseUrl(),
+    supplies: supplies.map((supply) => ({
+      ...supply,
+      resolverEligible:
+        !supply.bindings.resolverClientId ||
+        (typeof session.clientId === "string" &&
+          session.clientId.length > 0 &&
+          supply.bindings.resolverClientId === session.clientId),
+    })),
+  };
+}
+
 export async function getRequestDetail(requestId) {
   const session = await readResolverSession();
   const isAuthenticated = hasUsableRefreshToken(session) || hasUsableAccessToken(session);
@@ -1016,6 +1205,34 @@ export async function getRequestDetail(requestId) {
         );
         return parseBorealResponse(response, "Request detail failed");
       })();
+
+  return {
+    fetchedAt: new Date().toISOString(),
+    request: sanitizeRequestEntry(payload?.request),
+    sourceBaseUrl: getBorealWebBaseUrl(),
+  };
+}
+
+export async function updateRequestRouting({
+  requestId,
+  preferredSupplyId,
+}) {
+  const payload = await fetchResolverJson(
+    `/api/requests/${encodeURIComponent(requestId)}`,
+    {
+      body: JSON.stringify({
+        routing: {
+          preferredSupplyId:
+            typeof preferredSupplyId === "string" &&
+            preferredSupplyId.trim().length > 0
+              ? preferredSupplyId
+              : null,
+        },
+      }),
+      method: "PATCH",
+    },
+    "Request routing update failed",
+  );
 
   return {
     fetchedAt: new Date().toISOString(),
@@ -1083,6 +1300,18 @@ export async function getDocument(documentId) {
     document,
     fetchedAt: new Date().toISOString(),
     sourceBaseUrl: getBorealWebBaseUrl(),
+  };
+}
+
+export async function getResolverRuntimeBinding() {
+  const session = await readResolverSession();
+
+  return {
+    clientId:
+      typeof session.clientId === "string" && session.clientId.trim().length > 0
+        ? session.clientId
+        : null,
+    connected: hasUsableRefreshToken(session) || hasUsableAccessToken(session),
   };
 }
 

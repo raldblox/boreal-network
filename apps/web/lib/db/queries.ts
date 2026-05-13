@@ -37,6 +37,7 @@ import {
   type RequestFulfillment,
   type RequestFulfillmentStep,
   type RequestLatest,
+  type RequestRouting,
   type RequestSeeking,
   type RequestStatus,
   type RequestVisibility,
@@ -1261,6 +1262,7 @@ export async function saveRequestDraft({
   ownerId,
   brief,
   seeking,
+  routing,
   budget,
   deadline,
   activeRefs,
@@ -1277,6 +1279,7 @@ export async function saveRequestDraft({
   ownerId: string;
   brief: RequestBrief;
   seeking: RequestSeeking;
+  routing: RequestRouting;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   activeRefs: RequestActiveRefs;
@@ -1297,6 +1300,7 @@ export async function saveRequestDraft({
         ownerId,
         brief,
         seeking,
+        routing,
         budget,
         deadline,
         activeRefs,
@@ -1323,6 +1327,7 @@ export async function updateRequestDraftById({
   visibility,
   brief,
   seeking,
+  routing,
   budget,
   deadline,
   activeRefs,
@@ -1335,6 +1340,7 @@ export async function updateRequestDraftById({
   visibility: RequestVisibility;
   brief: RequestBrief;
   seeking: RequestSeeking;
+  routing: RequestRouting;
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
   activeRefs: RequestActiveRefs;
@@ -1350,6 +1356,7 @@ export async function updateRequestDraftById({
         visibility,
         brief,
         seeking,
+        routing,
         budget,
         deadline,
         activeRefs,
@@ -1381,6 +1388,7 @@ export function toRequestDraft(record: RequestRecord): BorealRequestDraft {
     ownerId: record.ownerId,
     brief: record.brief,
     seeking: record.seeking ?? {},
+    routing: record.routing ?? {},
     budget: record.budget,
     deadline: record.deadline,
     activeRefs: record.activeRefs ?? {},

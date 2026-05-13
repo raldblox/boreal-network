@@ -8,7 +8,7 @@ info:
 paths:
   /api/supplies:
     get:
-      summary: List owned supplies for the authenticated actor.
+      summary: List owned supplies for the authenticated owner or an approved resolver runtime with `supplies:read_private`.
       parameters:
         - in: query
           name: limit

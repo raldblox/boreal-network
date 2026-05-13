@@ -3,7 +3,10 @@ import {
   getSuppliesByUserId,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
-import { getRequestActorContext } from "@/lib/resolver-session";
+import {
+  getRequestActorContext,
+  hasResolverScope,
+} from "@/lib/resolver-session";
 import { createSupplyDraft } from "@/lib/supply-server";
 
 const createSupplySchema = z.object({
@@ -20,8 +23,15 @@ const createSupplySchema = z.object({
 
 export async function GET(request: Request) {
   const actor = await getRequestActorContext(request);
-  if (!actor || actor.kind !== "session") {
+  if (!actor) {
     return new ChatbotError("unauthorized:chat").toResponse();
+  }
+
+  if (
+    actor.kind === "resolver" &&
+    !hasResolverScope(actor, "supplies:read_private")
+  ) {
+    return new ChatbotError("forbidden:chat").toResponse();
   }
 
   const { searchParams } = new URL(request.url);

@@ -11,6 +11,7 @@ const APP_HOME_DIR = path.join(os.homedir(), ".boreal-work");
 const DESKTOP_HOME_DIR = path.join(APP_HOME_DIR, "desktop");
 const CHAT_STATE_PATH = path.join(DESKTOP_HOME_DIR, "chat-state.json");
 const LEGACY_CHAT_STATE_DIR = path.join(DESKTOP_HOME_DIR, "chat-state");
+const REQUEST_WORKSPACES_DIR = path.join(DESKTOP_HOME_DIR, "request-workspaces");
 const SETTINGS_PATH = path.join(DESKTOP_HOME_DIR, "settings.json");
 const CHAT_PROJECT = Object.freeze({
   createdAt: "2026-05-12T00:00:00.000Z",
@@ -175,6 +176,43 @@ function sanitizeOptionalIdentifier(value) {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
     : null;
+}
+
+function sanitizeTrackedRequestSourceScope(value) {
+  return value === "owned-requests" ? "owned-requests" : "public-requests";
+}
+
+function sanitizeTrackedRequestTrustTier(value, requestVisibility, sourceScope) {
+  if (value === "owned-private" || value === "external") {
+    return value;
+  }
+
+  if (
+    requestVisibility === "private" &&
+    sourceScope === "owned-requests"
+  ) {
+    return "owned-private";
+  }
+
+  if (requestVisibility === "private") {
+    return "owned-private";
+  }
+
+  return "external";
+}
+
+function sanitizeRequestWorkspaceSegment(value) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "request";
+  }
+
+  const normalized = value
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized.length > 0 ? normalized : "request";
 }
 
 function buildRuntimeIdShort(value) {
@@ -346,6 +384,17 @@ function sanitizeTrackedRequestContext(trackedRequest) {
       ? trackedRequest.fulfillment
       : null;
 
+  const requestVisibility =
+    request.visibility === "private" ? "private" : "public";
+  const sourceScope = sanitizeTrackedRequestSourceScope(
+    trackedRequest.sourceScope,
+  );
+  const trustTier = sanitizeTrackedRequestTrustTier(
+    trackedRequest.trustTier,
+    requestVisibility,
+    sourceScope,
+  );
+
   return {
     mode: "tracked_request",
     fulfillment:
@@ -398,8 +447,10 @@ function sanitizeTrackedRequestContext(trackedRequest) {
         : [],
       teamMode: typeof request.teamMode === "string" ? request.teamMode : "",
       title: request.title,
-      visibility: request.visibility === "private" ? "private" : "public",
+      visibility: requestVisibility,
     },
+    sourceScope,
+    trustTier,
   };
 }
 
@@ -564,6 +615,24 @@ export async function ensureDesktopHome() {
     desktopHomePath: DESKTOP_HOME_DIR,
     projectsHomePath: "",
   };
+}
+
+export async function ensureTrackedRequestWorkspace(requestId) {
+  await ensureDesktopHome();
+  await fs.mkdir(REQUEST_WORKSPACES_DIR, {
+    recursive: true,
+  });
+
+  const workspacePath = path.join(
+    REQUEST_WORKSPACES_DIR,
+    sanitizeRequestWorkspaceSegment(requestId),
+  );
+
+  await fs.mkdir(workspacePath, {
+    recursive: true,
+  });
+
+  return workspacePath;
 }
 
 export async function readDesktopSettings() {

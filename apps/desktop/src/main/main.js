@@ -36,6 +36,7 @@ import {
 import {
   deleteLocalChatThread,
   ensureDesktopHome,
+  ensureTrackedRequestWorkspace,
   getDesktopProjectById,
   getDesktopProjectState,
   getDesktopRuntimeIdentity,
@@ -90,6 +91,82 @@ function didRuntimePolicyChange(previousSettings, nextSettings) {
 
 function getRequestTitle(request) {
   return request?.brief?.title?.trim() || request?.key || "Untitled request";
+}
+
+function inferTrackedRequestTrustTier(trackedRequest) {
+  if (!trackedRequest || typeof trackedRequest !== "object") {
+    return null;
+  }
+
+  if (
+    trackedRequest.trustTier === "owned-private" ||
+    trackedRequest.trustTier === "external"
+  ) {
+    return trackedRequest.trustTier;
+  }
+
+  const request =
+    trackedRequest.request && typeof trackedRequest.request === "object"
+      ? trackedRequest.request
+      : null;
+  const visibility = request?.visibility === "private" ? "private" : "public";
+  const sourceScope =
+    trackedRequest.sourceScope === "owned-requests"
+      ? "owned-requests"
+      : "public-requests";
+
+  if (visibility === "private" && sourceScope === "owned-requests") {
+    return "owned-private";
+  }
+
+  if (visibility === "private") {
+    return "owned-private";
+  }
+
+  return "external";
+}
+
+function isUntrustedTrackedRequest(trackedRequest) {
+  return inferTrackedRequestTrustTier(trackedRequest) === "external";
+}
+
+function isDangerousDesktopRuntimeEnabled(settings) {
+  return (
+    settings?.runtimeMode === "full" ||
+    settings?.runtimeSandboxMode === "danger-full-access" ||
+    settings?.runtimeNetworkAccess === true
+  );
+}
+
+async function resolveDesktopTurnRuntimePolicy({
+  projectRoot,
+  requestId,
+  settings,
+  trackedRequest,
+}) {
+  if (!isUntrustedTrackedRequest(trackedRequest)) {
+    return {
+      additionalWritableRoots: settings.runtimeAdditionalWritableRoots,
+      networkAccess: settings.runtimeNetworkAccess,
+      sandboxMode: settings.runtimeSandboxMode,
+      workspaceRoot: projectRoot,
+    };
+  }
+
+  if (isDangerousDesktopRuntimeEnabled(settings)) {
+    throw new Error(
+      "Full runtime is blocked for public or external request lanes. Switch Boreal Desktop back to Safe before sending.",
+    );
+  }
+
+  return {
+    additionalWritableRoots: [],
+    networkAccess: false,
+    sandboxMode: "workspace-write",
+    workspaceRoot: await ensureTrackedRequestWorkspace(
+      trackedRequest?.request?.id ?? requestId ?? "request",
+    ),
+  };
 }
 
 function isAutoResolvableOwnedPrivateRequest(request) {
@@ -942,6 +1019,10 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
       payload?.projectId ?? payload?.workspaceId,
     );
     const settings = await readDesktopSettings();
+    const trackedRequest =
+      payload?.trackedRequest && typeof payload.trackedRequest === "object"
+        ? payload.trackedRequest
+        : null;
 
     if (!project) {
       throw new Error("Select a valid project before sending a message.");
@@ -954,17 +1035,23 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
     const requestId =
       typeof payload?.requestId === "string" ? payload.requestId : null;
     const trackedRequestId =
-      payload?.trackedRequest?.request &&
-      typeof payload.trackedRequest.request === "object" &&
-      typeof payload.trackedRequest.request.id === "string"
-        ? payload.trackedRequest.request.id
+      trackedRequest?.request &&
+      typeof trackedRequest.request === "object" &&
+      typeof trackedRequest.request.id === "string"
+        ? trackedRequest.request.id
         : null;
+    const runtimePolicy = await resolveDesktopTurnRuntimePolicy({
+      projectRoot: project.rootPath,
+      requestId,
+      settings,
+      trackedRequest,
+    });
     const stopHeartbeat = ephemeralBus.startHeartbeat({
       agentSessionId,
       correlationId,
       payload: {
         requestId,
-        workspaceRoot: project.rootPath,
+        workspaceRoot: runtimePolicy.workspaceRoot,
       },
       requestId,
       source: "desktop-main",
@@ -994,12 +1081,11 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
 
       const response = await createDesktopResponse({
         ...payload,
-        additionalWritableRoots:
-          settings.runtimeAdditionalWritableRoots,
+        additionalWritableRoots: runtimePolicy.additionalWritableRoots,
         approvalPolicy: settings.runtimeApprovalPolicy,
         conversationKey:
           typeof payload?.threadId === "string" ? payload.threadId : "",
-        networkAccess: settings.runtimeNetworkAccess,
+        networkAccess: runtimePolicy.networkAccess,
         onEvent: (streamEvent) => {
           ephemeralBus.publishCodexStreamEvent(
             {
@@ -1010,12 +1096,9 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
             streamEvent,
           );
         },
-        sandboxMode: settings.runtimeSandboxMode,
-        trackedRequest:
-          payload?.trackedRequest && typeof payload.trackedRequest === "object"
-            ? payload.trackedRequest
-            : null,
-        workspaceRoot: project.rootPath,
+        sandboxMode: runtimePolicy.sandboxMode,
+        trackedRequest,
+        workspaceRoot: runtimePolicy.workspaceRoot,
       });
 
       stopHeartbeat({

@@ -101,6 +101,7 @@ That runtime should authenticate with a Boreal-issued resolver token after expli
 
 The first direct resolver lane in `apps/web` should support:
 
+- `PATCH /api/requests/{id}` for owner-scoped private routing updates
 - `POST /api/requests/{id}/commitments`
 - `PATCH /api/commitments/{id}` with `accept`
 - `POST /api/requests/{id}/fulfillments`
@@ -110,7 +111,9 @@ Desktop may use that lane after Boreal resolver approval to:
 
 - browse `public` request pool entries
 - browse owned requests
+- browse owned supplies
 - inspect durable request activity
+- set or clear one private request preferred supply
 - propose commitments
 - accept commitments on owned requests
 - create fulfillment from an accepted commitment
@@ -136,6 +139,13 @@ Do not start fulfillment in `active` state while the request is still `funding_r
 Accepted responder lanes may create fulfillment after the owner accepts their commitment.
 Owned private desktop lanes may create fulfillment without a commitment object.
 Execution-grade artifacts such as delivery, evidence, receipt, and signature should require an accepted lane or active fulfillment role instead of being open to arbitrary public responders.
+
+When owner-private desktop auto-resolution uses a configured supply:
+
+- `routing.preferredSupplyId` on the request outranks the desktop default supply
+- the desktop default supply may apply only when no request override exists
+- a configured but unavailable supply should block auto-resolution instead of silently falling back
+- the desktop default should still respect request `seeking.supplyKinds`
 
 Do not treat every open-room message as a brief rewrite.
 

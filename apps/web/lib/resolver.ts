@@ -4,6 +4,8 @@ export const resolverScopes = [
   "requests:read_public",
   "requests:read_private",
   "requests:read_activity",
+  "requests:update_private",
+  "supplies:read_private",
   "commitments:propose",
   "commitments:accept",
   "artifacts:publish",
@@ -101,6 +103,10 @@ export function describeResolverScope(scope: ResolverScope) {
       return "Read your private requests";
     case "requests:read_activity":
       return "Read request activity";
+    case "requests:update_private":
+      return "Update owned private request routing";
+    case "supplies:read_private":
+      return "Read your private supplies";
     case "commitments:propose":
       return "Propose commitments";
     case "commitments:accept":

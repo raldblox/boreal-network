@@ -149,6 +149,7 @@ Stores current truth:
 - deadline
 - lifecycle status
 - seeking criteria
+- owner-scoped routing preference for private execution
 - derived readiness and route summary
 - active references
 - latest summary
@@ -179,6 +180,7 @@ Canonical fields on the durable root:
 - `owner`
 - `visibility`
 - optional `seeking`
+- optional `routing.preferredSupplyId`
 - optional `budget`
 - optional `deadline`
 
@@ -188,6 +190,10 @@ Structured matching intent belongs in:
 - `seeking.supplyKinds`
 - `seeking.teamMode`
 - `seeking.notes`
+
+Owner-scoped private routing control belongs in:
+
+- `routing.preferredSupplyId`
 
 Label rule:
 
@@ -213,6 +219,7 @@ Draft rule:
 - draft-mode UI may expose only a safe editable request-input subset
 - `brief.summary` is optional compression, not a readiness gate
 - `seeking` may be partial while the request is still being formed
+- `routing.preferredSupplyId` may be updated by the owner after open only for private request execution control
 - system-owned fields such as ids, ownership refs, keys, status progression, timestamps, and derived projections stay server-owned and should be shown as a read-only projection outside `draft`
 
 ### `Fulfillment`
@@ -220,6 +227,7 @@ Draft rule:
 Stores accepted execution truth:
 
 - selected actor or team
+- optional `supplyId` when execution is bound to one published supply
 - accepted commitment reference when one exists
 - or direct owner-private authorization when desktop auto-resolution starts from the request itself
 - execution status

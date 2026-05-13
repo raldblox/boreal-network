@@ -256,6 +256,9 @@ type StreamConsoleEntry = {
   state: "blocked" | "completed" | "failed" | "info" | "running";
 };
 
+type TrackedRequestSourceScope = "owned-requests" | "public-requests";
+type TrackedRequestTrustTier = "external" | "owned-private";
+
 type LocalMessage = {
   content: string;
   createdAt: string;
@@ -296,10 +299,12 @@ type TrackedRequestContext = {
     status: string;
     summary: string;
     supplyKinds: string[];
-    teamMode: string;
-    title: string;
-    visibility: "private" | "public";
+      teamMode: string;
+      title: string;
+      visibility: "private" | "public";
   };
+  sourceScope: TrackedRequestSourceScope;
+  trustTier: TrackedRequestTrustTier;
 };
 
 type LocalChatThread = {
@@ -1070,9 +1075,11 @@ function getTrackedRequestMeta(
     return "Local chat only";
   }
 
+  const trustTier = getTrackedRequestTrustTier(trackedRequest);
   const parts = [
     trackedRequest.request.status,
     trackedRequest.request.visibility,
+    trustTier ? formatTrackedRequestTrustTierLabel(trustTier) : null,
     trackedRequest.fulfillment
       ? `fulfillment ${trackedRequest.fulfillment.status}`
       : null,
@@ -1081,15 +1088,57 @@ function getTrackedRequestMeta(
   return parts.join(" · ");
 }
 
+function deriveTrackedRequestTrustTier(
+  requestVisibility: "private" | "public",
+  sourceScope: TrackedRequestSourceScope,
+): TrackedRequestTrustTier {
+  return requestVisibility === "private" && sourceScope === "owned-requests"
+    ? "owned-private"
+    : "external";
+}
+
+function getTrackedRequestTrustTier(
+  trackedRequest: TrackedRequestContext | null | undefined,
+): TrackedRequestTrustTier | null {
+  if (!trackedRequest) {
+    return null;
+  }
+
+  if (
+    trackedRequest.trustTier === "owned-private" ||
+    trackedRequest.trustTier === "external"
+  ) {
+    return trackedRequest.trustTier;
+  }
+
+  return deriveTrackedRequestTrustTier(
+    trackedRequest.request.visibility,
+    trackedRequest.sourceScope ?? "public-requests",
+  );
+}
+
+function formatTrackedRequestTrustTierLabel(
+  trustTier: TrackedRequestTrustTier,
+) {
+  return trustTier === "owned-private" ? "owned private" : "external";
+}
+
 function buildTrackedRequestContext({
   request,
   activity,
   fulfillment,
+  sourceScope,
 }: {
   request: PublicRequestEntry;
   activity: RequestActivityEntry[];
   fulfillment: RequestActivityEntry["fulfillment"] | null;
+  sourceScope: TrackedRequestSourceScope;
 }): TrackedRequestContext {
+  const trustTier = deriveTrackedRequestTrustTier(
+    request.visibility,
+    sourceScope,
+  );
+
   return {
     mode: "tracked_request",
     fulfillment: fulfillment
@@ -1126,6 +1175,8 @@ function buildTrackedRequestContext({
       title: getPublicRequestTitle(request),
       visibility: request.visibility,
     },
+    sourceScope,
+    trustTier,
   };
 }
 
@@ -2277,10 +2328,11 @@ export function App() {
     [publishedOwnedSupplies],
   );
   const selectedDefaultAutoResolveSupply =
-    publishedOwnedSupplies.find((supply) => supply.id === autoResolveSupplyId) ??
-    null;
+    resolverEligiblePublishedSupplies.find(
+      (supply) => supply.id === autoResolveSupplyId,
+    ) ?? null;
   const selectedRequestPreferredSupply =
-    publishedOwnedSupplies.find(
+    resolverEligiblePublishedSupplies.find(
       (supply) => supply.id === selectedResolverRequest?.routing.preferredSupplyId,
     ) ?? null;
   const groupedThreads = useMemo(() => groupThreadsByDate(threads), [threads]);
@@ -2790,6 +2842,7 @@ export function App() {
 
         setAppHomePath(projectState.appHomePath);
         setAutoResolveOwnedPrivate(projectState.autoResolveOwnedPrivate === true);
+        setAutoResolveSupplyId(projectState.autoResolveSupplyId);
         setProjects(projectState.projects);
         setSelectedProjectId(nextProjectId);
         setPreferredModel(nextDefaultModel);
@@ -3467,6 +3520,8 @@ export function App() {
     silent?: boolean;
   }) {
     if (!resolverConnected) {
+      setOwnedSupplies(null);
+
       if (options?.focus === true) {
         setActiveSurface("owned-requests");
       }
@@ -3490,16 +3545,24 @@ export function App() {
     }
 
     try {
-      const result = await getDesktopBridge().listOwnedRequests({
-        limit: 20,
-      });
+      setIsLoadingOwnedSupplies(true);
+
+      const [requestResult, supplyResult] = await Promise.all([
+        getDesktopBridge().listOwnedRequests({
+          limit: 20,
+        }),
+        getDesktopBridge().listOwnedSupplies({
+          limit: 50,
+        }),
+      ]);
       const nextSelectedRequestId = focus
         ? null
-        : result.requests.some((request) => request.id === selectedOwnedRequestId)
+        : requestResult.requests.some((request) => request.id === selectedOwnedRequestId)
           ? selectedOwnedRequestId
-          : result.requests[0]?.id ?? null;
+          : requestResult.requests[0]?.id ?? null;
 
-      setOwnedRequests(result);
+      setOwnedRequests(requestResult);
+      setOwnedSupplies(supplyResult);
       setSelectedOwnedRequestId(nextSelectedRequestId);
       setSelectedResolverScope("owned-requests");
 
@@ -3512,8 +3575,8 @@ export function App() {
       if (!silent) {
         setNotice({
           message:
-            result.requests.length > 0
-              ? `Loaded ${result.requests.length} owned requests from Boreal web.`
+            requestResult.requests.length > 0
+              ? `Loaded ${requestResult.requests.length} owned requests from Boreal web.`
               : "No Boreal requests found for this account yet.",
           tone: "info",
         });
@@ -3529,6 +3592,7 @@ export function App() {
           : "Owned requests failed to load.",
       );
     } finally {
+      setIsLoadingOwnedSupplies(false);
       setIsLoadingOwnedRequests(false);
     }
   }
@@ -3636,6 +3700,7 @@ export function App() {
       setResolverAuthState(nextResolverAuthState);
       setIsWaitingForResolverAuth(false);
       setOwnedRequests(null);
+      setOwnedSupplies(null);
       setSelectedOwnedRequestId(null);
       setSelectedRequestDetail(null);
       setSelectedRequestActivity([]);
@@ -3986,12 +4051,14 @@ export function App() {
     setError(null);
 
     try {
-      await getDesktopBridge().savePreferences({
+      const result = await getDesktopBridge().savePreferences({
         autoResolveOwnedPrivate: nextValue,
+        autoResolveSupplyId,
         defaultModel: preferredModel,
         defaultReasoning: preferredReasoning,
       });
       setAutoResolveOwnedPrivate(nextValue);
+      setAutoResolveSupplyId(result.autoResolveSupplyId);
       setNotice({
         message: nextValue
           ? "Auto-resolve enabled for your private open requests."
@@ -4009,6 +4076,86 @@ export function App() {
     }
   }
 
+  async function handleAutoResolveSupplyChange(nextValue: string) {
+    const nextSupplyId =
+      nextValue === DESKTOP_DEFAULT_SUPPLY_NONE ? null : nextValue;
+
+    if (isSavingAutoResolveSupplyId || nextSupplyId === autoResolveSupplyId) {
+      return;
+    }
+
+    setIsSavingAutoResolveSupplyId(true);
+    setError(null);
+
+    try {
+      const result = await getDesktopBridge().savePreferences({
+        autoResolveOwnedPrivate,
+        autoResolveSupplyId: nextSupplyId,
+        defaultModel: preferredModel,
+        defaultReasoning: preferredReasoning,
+      });
+
+      setAutoResolveSupplyId(result.autoResolveSupplyId);
+      setNotice({
+        message: nextSupplyId
+          ? "Desktop default supply updated."
+          : "Desktop default supply cleared.",
+        tone: "success",
+      });
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Failed to update desktop default supply.",
+      );
+    } finally {
+      setIsSavingAutoResolveSupplyId(false);
+    }
+  }
+
+  async function handleRequestPreferredSupplyChange(nextValue: string) {
+    if (!selectedResolverRequestId) {
+      return;
+    }
+
+    const nextPreferredSupplyId =
+      nextValue === REQUEST_SUPPLY_INHERIT_DEFAULT ? null : nextValue;
+    const currentPreferredSupplyId =
+      selectedResolverRequest?.routing.preferredSupplyId ?? null;
+
+    if (
+      isSavingAutoResolveSupplyId ||
+      nextPreferredSupplyId === currentPreferredSupplyId
+    ) {
+      return;
+    }
+
+    setIsSavingAutoResolveSupplyId(true);
+    setError(null);
+
+    try {
+      await getDesktopBridge().updateRequestRouting({
+        preferredSupplyId: nextPreferredSupplyId,
+        requestId: selectedResolverRequestId,
+      });
+      await refreshActiveRequestSurface(selectedResolverRequestId);
+      setNotice({
+        message: nextPreferredSupplyId
+          ? "Request supply override updated."
+          : "Request supply override cleared.",
+        tone: "success",
+      });
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Failed to update request supply override.",
+      );
+    } finally {
+      setIsSavingAutoResolveSupplyId(false);
+    }
+  }
+
   async function applyRuntimeModeChange(nextRuntimeMode: RuntimeMode) {
     if (nextRuntimeMode === runtimeMode || isSavingRuntimeMode) {
       return;
@@ -4019,11 +4166,13 @@ export function App() {
 
     try {
       const result = await getDesktopBridge().savePreferences({
+        autoResolveSupplyId,
         defaultModel: preferredModel,
         defaultReasoning: preferredReasoning,
         runtimeMode: nextRuntimeMode,
       });
 
+      setAutoResolveSupplyId(result.autoResolveSupplyId);
       setRuntimeAdditionalWritableRoots(result.runtimeAdditionalWritableRoots);
       setRuntimeApprovalPolicy(result.runtimeApprovalPolicy);
       setRuntimeMode(result.runtimeMode);
@@ -4053,6 +4202,11 @@ export function App() {
     }
 
     if (nextRuntimeMode === "full") {
+      if (fullRuntimeBlockReason) {
+        setError(fullRuntimeBlockReason);
+        return;
+      }
+
       setPendingRuntimeModeConfirmation("full");
       return;
     }
@@ -4155,6 +4309,7 @@ export function App() {
 
       setAppHomePath(projectState.appHomePath);
       setAutoResolveOwnedPrivate(projectState.autoResolveOwnedPrivate === true);
+      setAutoResolveSupplyId(projectState.autoResolveSupplyId);
       setProjects(projectState.projects);
       setSelectedProjectId(nextProjectId);
       setCreateProjectName("");
@@ -4224,6 +4379,7 @@ export function App() {
 
       setAppHomePath(projectState.appHomePath);
       setAutoResolveOwnedPrivate(projectState.autoResolveOwnedPrivate === true);
+      setAutoResolveSupplyId(projectState.autoResolveSupplyId);
       setProjects(projectState.projects);
       setSelectedProjectId(nextProjectId);
       setPendingProjectDelete(null);
@@ -4393,6 +4549,10 @@ export function App() {
       request: selectedResolverRequest,
       activity: orderedRequestActivity,
       fulfillment: activeFulfillment,
+      sourceScope:
+        activeSurface === "owned-requests"
+          ? "owned-requests"
+          : "public-requests",
     });
 
     startNewThread(selectedModel, selectedReasoning, trackedRequest);
@@ -4451,6 +4611,15 @@ export function App() {
     const currentMessages = messages;
     const currentThread = activeThread;
     const trackedRequest = currentThread?.trackedRequest ?? activeTrackedRequest ?? null;
+    const trackedRequestTrustTier = getTrackedRequestTrustTier(trackedRequest);
+
+    if (runtimeMode === "full" && trackedRequestTrustTier === "external") {
+      setError(
+        "Full runtime is blocked for public or external request lanes. Switch Boreal Desktop back to Safe before sending.",
+      );
+      return;
+    }
+
     const userMessage: LocalMessage = {
       content: prompt,
       createdAt: new Date().toISOString(),
@@ -4553,6 +4722,7 @@ export function App() {
       !isBooting &&
       !isConnectingCodex &&
       !isWaitingForCodexAuth &&
+      !isTrackedRequestRuntimeBlocked &&
       models.length > 0,
   );
   const connected = Boolean(authState?.authenticated && models.length > 0);
@@ -4578,10 +4748,33 @@ export function App() {
     .filter(Boolean)
     .join(" · ");
   const isFullRuntime = runtimeMode === "full";
+  const activeTrackedRequestTrustTier = getTrackedRequestTrustTier(
+    activeTrackedRequest,
+  );
+  const selectedResolverRequestTrustTier = selectedResolverRequest
+    ? deriveTrackedRequestTrustTier(
+        selectedResolverRequest.visibility,
+        activeSurface === "owned-requests"
+          ? "owned-requests"
+          : "public-requests",
+      )
+    : null;
+  const isTrackedRequestRuntimeBlocked =
+    isFullRuntime && activeTrackedRequestTrustTier === "external";
+  const isSelectedRequestRuntimeBlocked =
+    isFullRuntime && selectedResolverRequestTrustTier === "external";
+  const fullRuntimeBlockReason =
+    activeTrackedRequestTrustTier === "external"
+      ? "Full runtime is blocked for this tracked request lane. Switch Boreal Desktop back to Safe to continue."
+      : selectedResolverRequestTrustTier === "external"
+        ? "Full runtime is blocked for public or external request lanes. Switch Boreal Desktop back to Safe before working this request in chat."
+        : activeSurface === "public-requests" && isFullRuntime
+          ? "Full runtime is blocked while browsing public request lanes. Switch back to Safe or return to a local trusted thread."
+          : null;
   const publicSurfaceWarning =
-    "Full runtime is active. Public requests should stay on Safe unless you fully trust the work and its instructions.";
+    "Full runtime is blocked for public request lanes. Switch Boreal Desktop back to Safe before working public requests in chat.";
   const trackedRequestRuntimeWarning =
-    "This tracked request is public while Full runtime is active. It can read files, run commands, and use network without approval prompts.";
+    "This tracked request lane is blocked while Full runtime is active. Switch Boreal Desktop back to Safe before sending.";
   const primaryConnectLabel = isWaitingForCodexAuth
     ? "Waiting for login..."
     : connected
@@ -4980,9 +5173,10 @@ export function App() {
                   <div className="mx-auto flex w-full max-w-7xl items-start gap-2 text-sm text-amber-100">
                     <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
                     <p>
-                      {activeSurface === "public-requests"
+                      {selectedResolverRequestTrustTier === "external" ||
+                      activeSurface === "public-requests"
                         ? publicSurfaceWarning
-                        : "Full runtime is active. Use only for trusted owned-request work on this machine."}
+                        : "Full runtime is active. Use only for trusted owned-private request work on this machine."}
                     </p>
                   </div>
                 </div>
@@ -5193,6 +5387,7 @@ export function App() {
                                   variant="outline"
                                   onClick={handleTrackSelectedRequestInChat}
                                   className="rounded-full"
+                                  disabled={isSelectedRequestRuntimeBlocked}
                                 >
                                   <MessageSquareIcon className="size-4" />
                                   Work in chat
@@ -5432,8 +5627,119 @@ export function App() {
                                               ? "Auto mode skips public requests."
                                               : selectedResolverRequest?.activeRefs.activeFulfillmentId
                                                 ? "This request already has an active fulfillment lane."
-                                                : "Auto mode only picks private requests while they are still open."}
+                                              : "Auto mode only picks private requests while they are still open."}
                                         </p>
+                                      </div>
+
+                                      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                                        <div className="space-y-2">
+                                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                            Desktop default supply
+                                          </p>
+                                          <Select
+                                            value={
+                                              autoResolveSupplyId ??
+                                              DESKTOP_DEFAULT_SUPPLY_NONE
+                                            }
+                                            onValueChange={(value) => {
+                                              void handleAutoResolveSupplyChange(value);
+                                            }}
+                                            disabled={
+                                              isLoadingOwnedSupplies ||
+                                              isSavingAutoResolveSupplyId
+                                            }
+                                          >
+                                            <SelectTrigger className="w-full">
+                                              <SelectValue placeholder="Legacy runtime lane" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value={DESKTOP_DEFAULT_SUPPLY_NONE}>
+                                                Legacy runtime lane
+                                              </SelectItem>
+                                              {publishedOwnedSupplies.map((supply) => (
+                                                <SelectItem
+                                                  key={supply.id}
+                                                  value={supply.id}
+                                                  disabled={!supply.resolverEligible}
+                                                >
+                                                  {getOwnedSupplyLabel(supply)}
+                                                  {!supply.resolverEligible
+                                                    ? " · unavailable on this desktop"
+                                                    : ""}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <p className="text-xs leading-5 text-muted-foreground">
+                                            {isLoadingOwnedSupplies
+                                              ? "Refreshing published supplies from Boreal web."
+                                              : publishedOwnedSupplies.length === 0
+                                                ? "Publish at least one supply first. Desktop will stay on the legacy runtime lane until then."
+                                                : "Desktop default applies when a private request has no override."}
+                                          </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                                            Selected request override
+                                          </p>
+                                          <Select
+                                            value={
+                                              selectedResolverRequest?.routing
+                                                .preferredSupplyId ??
+                                              REQUEST_SUPPLY_INHERIT_DEFAULT
+                                            }
+                                            onValueChange={(value) => {
+                                              void handleRequestPreferredSupplyChange(value);
+                                            }}
+                                            disabled={
+                                              isLoadingOwnedSupplies ||
+                                              isSavingAutoResolveSupplyId ||
+                                              !selectedResolverRequest ||
+                                              selectedResolverRequest.visibility !==
+                                                "private"
+                                            }
+                                          >
+                                            <SelectTrigger className="w-full">
+                                              <SelectValue placeholder="Inherit desktop default" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem
+                                                value={REQUEST_SUPPLY_INHERIT_DEFAULT}
+                                              >
+                                                Inherit desktop default
+                                              </SelectItem>
+                                              {publishedOwnedSupplies.map((supply) => (
+                                                <SelectItem
+                                                  key={supply.id}
+                                                  value={supply.id}
+                                                  disabled={!supply.resolverEligible}
+                                                >
+                                                  {getOwnedSupplyLabel(supply)}
+                                                  {!supply.resolverEligible
+                                                    ? " · unavailable on this desktop"
+                                                    : ""}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <p className="text-xs leading-5 text-muted-foreground">
+                                            {!selectedResolverRequest
+                                              ? "Pick one of your requests to set a one-off supply override."
+                                              : selectedResolverRequest.visibility !==
+                                                  "private"
+                                                ? "Only private requests can pin a preferred supply."
+                                                : describeAutoResolveSelection({
+                                                    defaultSupply:
+                                                      selectedDefaultAutoResolveSupply,
+                                                    defaultSupplyId:
+                                                      autoResolveSupplyId,
+                                                    request: selectedResolverRequest,
+                                                    requestPreferredSupply:
+                                                      selectedRequestPreferredSupply,
+                                                  })}
+                                          </p>
+                                        </div>
                                       </div>
 
                                       <div className="mt-4 flex flex-wrap gap-2">
@@ -6034,8 +6340,7 @@ export function App() {
                 </div>
               </header>
 
-              {isFullRuntime &&
-              activeTrackedRequest?.request.visibility === "public" ? (
+              {isTrackedRequestRuntimeBlocked ? (
                 <div className="border-b border-amber-500/20 bg-amber-500/8 px-4 py-3">
                   <div className="mx-auto flex w-full max-w-3xl items-start gap-2 text-sm text-amber-100">
                     <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
@@ -6076,6 +6381,11 @@ export function App() {
                         </Badge>
                         <Badge variant="secondary" className="rounded-full">
                           {activeTrackedRequest.request.visibility}
+                        </Badge>
+                        <Badge variant="secondary" className="rounded-full">
+                          {formatTrackedRequestTrustTierLabel(
+                            activeTrackedRequestTrustTier ?? "external",
+                          )}
                         </Badge>
                         {activeTrackedRequest.fulfillment ? (
                           <Badge

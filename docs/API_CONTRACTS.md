@@ -105,7 +105,7 @@ Should expose:
 The first supply-management web slice should support:
 
 - explicit draft creation from a typed preset such as human service, agent worker, digital product, desktop runtime, or provider capability
-- owner-scoped supply draft reads and list reads
+- owner-scoped supply draft reads and list reads through browser session or resolver auth with `supplies:read_private`
 - owner-scoped draft updates for profile, capability, availability, pricing, visibility, source, binding metadata, and freeform metadata
 - explicit publish from `draft` into `published`
 - explicit pause and retire actions after publish
@@ -133,6 +133,7 @@ For the first web slice, `Request` create and update must support:
 - explicit `save draft` normalization from the live request-input document surface
 - request-brief field updates
 - request-seeking field updates for structured matching intent
+- owner-scoped `routing.preferredSupplyId` updates on private requests
 - request constraint updates
 - request budget and timing updates
 - request route-summary updates
@@ -140,6 +141,7 @@ For the first web slice, `Request` create and update must support:
 - manual request-object editing only while the request stays in `draft`
 - full canonical request-object projection as read-only once the request leaves `draft`
 - public request pool reads must exclude owner-only draft fields and should expose a public-safe request projection instead
+- owner detail reads may include private routing control state while public projections must exclude it
 - request activity reads through `/requests/{id}/activity` so open request rooms can render durable timeline cards without replaying chat transcript
 - resolver runtimes should be able to write commitment and artifact activity through direct request resource endpoints instead of going through chat tool-calling only
 - resolver runtimes should authenticate through a Boreal-issued resolver token, not raw Codex credentials
@@ -156,6 +158,7 @@ Should expose:
 In the first open-request room slice, commitment proposal may be created as durable activity without forcing a rewrite of the request brief.
 The first resolver-facing web slice now exposes:
 
+- owner-scoped request routing updates on `PATCH /api/requests/{id}`
 - direct request commitment creation
 - direct commitment acceptance
 - direct fulfillment creation
@@ -163,7 +166,7 @@ The first resolver-facing web slice now exposes:
 
 in addition to chat tool-calling.
 
-Desktop may drive those same routes through Boreal-issued resolver bearer auth after web approval instead of depending on browser cookies.
+Desktop may drive those same routes, plus owned supply reads, through Boreal-issued resolver bearer auth after web approval instead of depending on browser cookies.
 
 ### `Fulfillment`
 
@@ -184,6 +187,7 @@ The first resolver-facing web slice now exposes:
 
 Accepted responder lanes may create fulfillment after owner acceptance.
 Owned private resolver lanes may create fulfillment without `commitmentId` when the same Boreal owner is authorizing direct desktop execution.
+When fulfillment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before opening the lane.
 
 Desktop chat execution may also bind one local thread to a selected `Request` and optional `Fulfillment` lane.
 That binding is local execution context only.

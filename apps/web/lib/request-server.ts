@@ -8,6 +8,7 @@ import {
   getDocumentById,
   getFulfillmentById,
   getRequestEventByIdempotencyKey,
+  getSupplyById,
   saveArtifactRecord,
   saveCommitment,
   saveFulfillment,
@@ -93,6 +94,7 @@ export async function ensureRequestDraftForChat({
     ownerId: draft.ownerId,
     brief: draft.brief,
     seeking: draft.seeking,
+    routing: draft.routing,
     budget: draft.budget,
     deadline: draft.deadline,
     activeRefs: draft.activeRefs,
@@ -161,6 +163,7 @@ export async function persistRequestPatch({
     visibility: nextDraft.visibility,
     brief: nextDraft.brief,
     seeking: nextDraft.seeking,
+    routing: nextDraft.routing,
     budget: nextDraft.budget,
     deadline: nextDraft.deadline,
     activeRefs: nextDraft.activeRefs,
@@ -186,6 +189,65 @@ export async function persistRequestPatch({
   });
 
   return nextDraft;
+}
+
+export async function setRequestPreferredSupply({
+  requestId,
+  userId,
+  preferredSupplyId,
+}: {
+  requestId: string;
+  userId: string;
+  preferredSupplyId?: string | null;
+}) {
+  const existingRequest = await getRequestById({ id: requestId });
+  if (!existingRequest) {
+    throw new Error("Request not found");
+  }
+
+  if (existingRequest.ownerId !== userId) {
+    throw new Error("Forbidden");
+  }
+
+  const normalizedPreferredSupplyId = preferredSupplyId?.trim() || undefined;
+
+  if (!normalizedPreferredSupplyId) {
+    return persistRequestPatch({
+      requestId,
+      userId,
+      patch: {
+        routing: {},
+      },
+    });
+  }
+
+  const requestDraft = toRequestDraft(existingRequest);
+  if (requestDraft.visibility !== "private") {
+    throw new Error("Preferred supply is only available for private requests");
+  }
+
+  const selectedSupply = await getSupplyById({ id: normalizedPreferredSupplyId });
+  if (!selectedSupply) {
+    throw new Error("Supply not found");
+  }
+
+  if (selectedSupply.ownerId !== userId) {
+    throw new Error("Supply does not belong to request owner");
+  }
+
+  if (selectedSupply.status !== "published") {
+    throw new Error("Published supply required");
+  }
+
+  return persistRequestPatch({
+    requestId,
+    userId,
+    patch: {
+      routing: {
+        preferredSupplyId: normalizedPreferredSupplyId,
+      },
+    },
+  });
 }
 
 export async function openRequestDraft({
@@ -298,6 +360,7 @@ export async function persistRequestProjectionPatch({
     visibility: nextDraft.visibility,
     brief: nextDraft.brief,
     seeking: nextDraft.seeking,
+    routing: nextDraft.routing,
     budget: nextDraft.budget,
     deadline: nextDraft.deadline,
     activeRefs: nextDraft.activeRefs,
@@ -1013,6 +1076,7 @@ export async function createFulfillmentForRequestById({
   lead,
   contributors = [],
   supplyId,
+  actorResolverClientId,
   initialStatus = "planned",
   metadata,
   idempotencyKey,
@@ -1025,6 +1089,7 @@ export async function createFulfillmentForRequestById({
   lead?: RequestActorRef;
   contributors?: RequestActorRef[];
   supplyId?: string;
+  actorResolverClientId?: string;
   initialStatus?: "planned" | "ready" | "active";
   metadata?: Record<string, unknown>;
   idempotencyKey?: string;
@@ -1086,6 +1151,29 @@ export async function createFulfillmentForRequestById({
 
     if (existingCommitment.status !== "accepted") {
       throw new Error("Accepted commitment required");
+    }
+  }
+
+  if (supplyId) {
+    const selectedSupply = await getSupplyById({ id: supplyId });
+    if (!selectedSupply) {
+      throw new Error("Supply not found");
+    }
+
+    if (selectedSupply.ownerId !== actorUserId) {
+      throw new Error("Supply does not belong to fulfillment actor");
+    }
+
+    if (selectedSupply.status !== "published") {
+      throw new Error("Published supply required");
+    }
+
+    if (
+      actorResolverClientId &&
+      selectedSupply.bindings?.resolverClientId &&
+      selectedSupply.bindings.resolverClientId !== actorResolverClientId
+    ) {
+      throw new Error("Supply is not bound to this resolver client");
     }
   }
 
@@ -1428,6 +1516,7 @@ async function syncRequestDraftFromDocument({
       visibility: normalizedDraft.visibility,
       brief: normalizedDraft.brief,
       seeking: normalizedDraft.seeking,
+      routing: normalizedDraft.routing,
       budget: normalizedDraft.budget,
       deadline: normalizedDraft.deadline,
       activeRefs: normalizedDraft.activeRefs,
@@ -1688,6 +1777,7 @@ function hasRootRequestChange(
     visibility: previousDraft.visibility,
     brief: previousDraft.brief,
     seeking: previousDraft.seeking,
+    routing: previousDraft.routing,
     budget: previousDraft.budget,
     deadline: previousDraft.deadline,
     activeRefs: previousDraft.activeRefs,
@@ -1700,6 +1790,7 @@ function hasRootRequestChange(
       visibility: nextDraft.visibility,
       brief: nextDraft.brief,
       seeking: nextDraft.seeking,
+      routing: nextDraft.routing,
       budget: nextDraft.budget,
       deadline: nextDraft.deadline,
       activeRefs: nextDraft.activeRefs,

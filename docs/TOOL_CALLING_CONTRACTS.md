@@ -84,6 +84,7 @@ First set:
 - `update_request_brief`
 - `update_request_constraints`
 - `update_request_budget_and_timing`
+- `update_request_routing`
 - `update_request_route_summary`
 - `propose_commitment`
 - `publish_artifact`
@@ -137,10 +138,12 @@ Every mutation call should return:
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.
 - The one exception is the owner-private desktop auto-resolution lane, where the owner's private request may authorize direct fulfillment without a separate commitment object.
+- `update_request_routing` may set or clear `routing.preferredSupplyId` only for the private request owner.
 - Tool-produced output should be recorded as `RequestEvent` when the thread needs durable explanation or auditability.
 - When a non-chat resolver runtime uses direct request APIs, those APIs must preserve the same durable behavior as the corresponding chat mutation tools.
 - Direct resolver APIs should support the same commercial and lifecycle gates as tools: accepted commitment before fulfillment, valid fulfillment-state transitions, and idempotent retries.
 - Direct resolver APIs may omit commitment creation only for owner-private direct auto-fulfillment.
+- Owner-private direct auto-fulfillment should prefer explicit request routing over the desktop default supply and should block pickup when a configured supply is unavailable instead of silently falling back.
 - Direct resolver APIs should accept Boreal-issued scoped bearer tokens rather than assuming browser session cookies or raw runtime credentials.
 - Desktop request-bound execution should pass the selected `Request` and optional `Fulfillment` lane into the local runtime as context, while keeping the local transcript out of default durable Boreal history.
 - `publish_artifact` should accept either document-backed content or a stable external or object reference, plus optional `fulfillmentId` and `stepId`.

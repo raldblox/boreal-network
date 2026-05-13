@@ -60,6 +60,7 @@ It carries:
 - visibility
 - canonical brief fields: title and body, plus optional summary
 - optional structured `seeking` criteria for matching intent
+- optional owner-scoped routing preference for one private preferred supply
 - optional budget and optional deadline
 - derived route, matching, and readiness projections
 - current lifecycle status
@@ -111,6 +112,7 @@ Represents an accepted execution lane for a request.
 It answers:
 
 - who is doing the work
+- through which selected supply, when execution is bound to one `Supply`
 - under which accepted commitment, or under direct owner-private authorization
 - with what status
 - toward what delivery

@@ -113,9 +113,12 @@ Verify:
 - direct fulfillment create and update endpoints should honor idempotency keys on retry
 - direct fulfillment create should require an accepted commitment
 - direct fulfillment create may omit commitment only for owned private requests driven by the same owner through the desktop auto-resolution lane
+- direct fulfillment create with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows
 - accepted responder lanes should be able to create fulfillment after owner acceptance
 - direct fulfillment updates should reject invalid state transitions
 - funding-required requests should not start fulfillment directly in `active`
+- owner-scoped request routing updates should allow set or clear of `routing.preferredSupplyId` only on private requests
+- public request projections should not expose `routing.preferredSupplyId`
 - execution-grade artifacts should require an accepted commitment or active fulfillment role instead of arbitrary public responder access
 - artifact publication should accept both document-backed content and richer external or object reference containers
 - artifact publication should preserve optional `fulfillmentId` and `stepId` lane bindings when provided
@@ -126,6 +129,8 @@ Verify:
 - desktop resolver flows should preserve auth separation between Codex runtime identity and Boreal request-actor identity
 - desktop auto-resolve toggle should only act on owned private requests when the auto mode is enabled
 - desktop auto-resolve should create durable fulfillment and artifact events even when it skips commitment creation
+- request-level preferred supply should outrank the desktop default supply during auto-resolve
+- configured but unavailable request override or desktop default supply should block auto-resolve instead of silently falling back
 - desktop tracked-request execution should bind one local thread to one selected `Request` and optional `Fulfillment` lane without syncing the full local transcript by default
 - desktop localhost bridge should bind to `127.0.0.1` only, require a valid session token, and reject non-localhost origins
 - desktop peer runtime should create or reuse one stable peer keypair under `.boreal-work/desktop/peer-runtime.json`

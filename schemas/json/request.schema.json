@@ -14,6 +14,7 @@
     "owner",
     "brief",
     "visibility",
+    "routing",
     "parallelFulfillmentAllowed",
     "createdAt",
     "updatedAt"
@@ -113,6 +114,16 @@
         "notes": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "routing": {
+      "description": "Owner-controlled routing preferences for private request execution.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preferredSupplyId": {
+          "$ref": "common.schema.json#/$defs/identifier"
         }
       }
     },

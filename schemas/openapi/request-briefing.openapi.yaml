@@ -186,6 +186,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WebRequestDetailResponse"
+    patch:
+      summary: Set or clear one owner-scoped preferred supply on a private request.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebRequestRoutingMutation"
+      responses:
+        "200":
+          description: The updated owner request detail.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                properties:
+                  request:
+                    $ref: "#/components/schemas/WebRequestDraft"
   /api/requests/{id}/commitments:
     post:
       summary: Propose one durable commitment on an open request.
@@ -414,6 +442,23 @@ components:
                 - runtime
             id:
               type: string
+    WebRequestRouting:
+      type: object
+      additionalProperties: false
+      properties:
+        preferredSupplyId:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: "null"
+    WebRequestRoutingMutation:
+      type: object
+      additionalProperties: false
+      required:
+        - routing
+      properties:
+        routing:
+          $ref: "#/components/schemas/WebRequestRouting"
     WebRequestActivity:
       type: object
       additionalProperties: false
@@ -1262,6 +1307,7 @@ components:
         - createdById
         - ownerId
         - brief
+        - routing
         - derived
         - createdAt
         - updatedAt
@@ -1322,6 +1368,8 @@ components:
               type: array
               items:
                 type: string
+        routing:
+          $ref: "#/components/schemas/WebRequestRouting"
         seeking:
           type: object
           additionalProperties: false
