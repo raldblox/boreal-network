@@ -40,6 +40,7 @@ import {
   writeLocalChatState,
 } from "./desktop-home.js";
 import { createDesktopEphemeralStreamBus } from "./ephemeral-stream-bus.js";
+import { createDesktopLocalhostBridge } from "./localhost-bridge.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceDir = path.resolve(__dirname, "../..");
@@ -51,6 +52,9 @@ const AUTO_RESOLVE_RUNTIME_LABEL = "Boreal Desktop (Codex)";
 let autoResolveTimer = null;
 let autoResolveRunPromise = null;
 const ephemeralBus = createDesktopEphemeralStreamBus();
+const localhostBridge = createDesktopLocalhostBridge({
+  ephemeralBus,
+});
 
 function didRuntimePolicyChange(previousSettings, nextSettings) {
   const previousWritableRoots = Array.isArray(
@@ -471,6 +475,7 @@ function publishResolverPresence(state) {
 ipcMain.handle("desktop:get-shell-info", async () => ({
   borealWebBaseUrl: getBorealWebBaseUrl(),
   codexCliVersion: await getCodexCliVersion(),
+  localhostBridge: localhostBridge.getState(),
   name: "Boreal Desktop",
   platform: process.platform,
   runtimeIdentity: await getDesktopRuntimeIdentity(),
@@ -482,6 +487,10 @@ ipcMain.handle("desktop:get-shell-info", async () => ({
 }));
 
 ipcMain.handle("desktop:get-codex-auth-state", async () => getCodexAuthState());
+
+ipcMain.handle("desktop:restart-localhost-bridge", async () =>
+  localhostBridge.restart(),
+);
 
 ipcMain.handle("desktop:list-codex-models", async () => listCodexModels());
 
@@ -697,6 +706,12 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
 );
 
 app.whenReady().then(() => {
+  void localhostBridge.start().catch((error) => {
+    console.error(
+      "[boreal-desktop] localhost bridge failed to start:",
+      error,
+    );
+  });
   createMainWindow();
   scheduleAutoResolve(3000);
 
@@ -719,6 +734,7 @@ app.on("before-quit", (event) => {
 
   void (async () => {
     try {
+      await localhostBridge.dispose();
       await shutdownCodexRuntime();
     } finally {
       app.exit(0);

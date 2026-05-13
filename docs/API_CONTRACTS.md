@@ -237,7 +237,15 @@ The runtime proof and Boreal actor proof stay separate:
 - Codex auth proves the local runtime is connected
 - Boreal resolver approval binds that runtime to one Boreal account and one scoped actor context
 
-If a desktop or peer runtime later exposes ephemeral realtime transport, that transport should stay scoped to runtime or session authorization and must not be treated as proof of Boreal actor identity by itself.
+If a desktop or peer runtime exposes ephemeral realtime transport, that transport should stay scoped to runtime or session authorization and must not be treated as proof of Boreal actor identity by itself.
+
+The first desktop-local browser bridge should stay constrained like this:
+
+- bind to `127.0.0.1` only
+- require a random per-runtime session token
+- reject non-localhost browser origins
+- stream ephemeral execution feedback only
+- never act as durable Boreal request truth by itself
 
 ## Schema Discipline
 

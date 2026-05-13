@@ -62,6 +62,18 @@ type AuthState = {
 type ShellInfo = {
   borealWebBaseUrl: string;
   codexCliVersion: string | null;
+  localhostBridge: {
+    allowedOrigins: string[];
+    baseUrl: string | null;
+    host: string;
+    lastError: string | null;
+    port: number | null;
+    ready: boolean;
+    sessionToken: string | null;
+    sseUrl: string | null;
+    startedAt: string | null;
+    status: "error" | "listening" | "stopped";
+  };
   name: string;
   platform: string;
   runtimeIdentity: {
@@ -579,6 +591,7 @@ declare global {
       }>;
       getResolverAuthState: () => Promise<ResolverAuthState>;
       getShellInfo: () => Promise<ShellInfo>;
+      restartLocalhostBridge: () => Promise<ShellInfo["localhostBridge"]>;
       listPublicRequests: (payload?: {
         endingBefore?: string;
         limit?: number;
@@ -2012,6 +2025,7 @@ export function App() {
   const [isLoadingPublicRequests, setIsLoadingPublicRequests] = useState(false);
   const [isLoadingRequestContext, setIsLoadingRequestContext] = useState(false);
   const [isPollingResolverAuth, setIsPollingResolverAuth] = useState(false);
+  const [isRestartingLocalhostBridge, setIsRestartingLocalhostBridge] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSavingRuntimeMode, setIsSavingRuntimeMode] = useState(false);
   const [isSavingAutoResolveOwnedPrivate, setIsSavingAutoResolveOwnedPrivate] = useState(false);
@@ -2092,10 +2106,12 @@ export function App() {
       : activeSurface === "public-requests"
         ? selectedPublicRequestId
         : null;
+  const activeSurfaceListRequest =
+    activeSurface === "owned-requests" ? selectedOwnedRequest : selectedPublicRequest;
+  const selectedResolverDetail =
+    selectedRequestDetail?.id === selectedResolverRequestId ? selectedRequestDetail : null;
   const selectedResolverRequest =
-    selectedRequestDetail ??
-    (activeSurface === "owned-requests" ? selectedOwnedRequest : selectedPublicRequest) ??
-    null;
+    selectedResolverDetail ?? activeSurfaceListRequest ?? null;
   const groupedThreads = useMemo(() => groupThreadsByDate(threads), [threads]);
   const orderedRequestActivity = useMemo(
     () => [...selectedRequestActivity].sort((left, right) => left.sequence - right.sequence),
@@ -2207,6 +2223,13 @@ export function App() {
     : resolverAuthState?.pendingApproval
       ? `Approval pending${resolverAuthState.userCode ? ` · ${resolverAuthState.userCode}` : ""}`
       : "Not connected";
+  const localhostBridgeState = shellInfo?.localhostBridge ?? null;
+  const localhostBridgeStatusLabel =
+    localhostBridgeState?.status === "listening"
+      ? `Listening on ${localhostBridgeState.baseUrl ?? "127.0.0.1"}`
+      : localhostBridgeState?.status === "error"
+        ? "Bridge failed"
+        : "Bridge stopped";
   const environmentDetails = [
     {
       label: "Codex CLI",
@@ -2351,6 +2374,55 @@ export function App() {
                       Connect Boreal
                     </Button>
                   )}
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Localhost bridge
+                </p>
+                <p className="mt-2 text-sm font-medium text-foreground">
+                  {localhostBridgeStatusLabel}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Localhost-only SSE bridge for browser-visible ephemeral events. Requires a random desktop session token.
+                </p>
+                <div className="mt-3 space-y-2 rounded-lg border border-border/70 bg-background/50 px-3 py-3 text-xs">
+                  <div>
+                    <p className="font-medium text-muted-foreground">SSE URL</p>
+                    <p className="mt-1 break-all text-foreground">
+                      {localhostBridgeState?.sseUrl ?? "Unavailable"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">Allowed origins</p>
+                    <p className="mt-1 break-all text-foreground">
+                      {localhostBridgeState?.allowedOrigins?.join(", ") ?? "localhost only"}
+                    </p>
+                  </div>
+                  {localhostBridgeState?.lastError ? (
+                    <div>
+                      <p className="font-medium text-muted-foreground">Last error</p>
+                      <p className="mt-1 break-all text-amber-200">
+                        {localhostBridgeState.lastError}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => void handleRestartLocalhostBridge()}
+                    disabled={isRestartingLocalhostBridge}
+                    className="w-full"
+                  >
+                    {isRestartingLocalhostBridge ? (
+                      <Spinner className="size-4" />
+                    ) : (
+                      <RefreshCwIcon className="size-4" />
+                    )}
+                    Restart bridge
+                  </Button>
                 </div>
               </section>
 
@@ -2555,6 +2627,12 @@ export function App() {
       cancelled = true;
     };
   }, []);
+
+  async function refreshShellInfo() {
+    const nextShellInfo = await getDesktopBridge().getShellInfo();
+    setShellInfo(nextShellInfo);
+    return nextShellInfo;
+  }
 
   useEffect(() => {
     let unsubscribeLegacy = () => {};
@@ -3082,9 +3160,10 @@ export function App() {
       const result = await getDesktopBridge().listPublicRequests({
         limit: 20,
       });
-      const nextSelectedRequestId =
-        result.requests.some((request) => request.id === selectedPublicRequestId) ||
-        selectedRequestDetail?.id === selectedPublicRequestId
+      const nextSelectedRequestId = focus
+        ? null
+        : result.requests.some((request) => request.id === selectedPublicRequestId) ||
+            selectedRequestDetail?.id === selectedPublicRequestId
           ? selectedPublicRequestId
           : result.requests[0]?.id ?? null;
 
@@ -3093,6 +3172,8 @@ export function App() {
       setSelectedResolverScope("public-requests");
 
       if (focus) {
+        setSelectedRequestDetail(null);
+        setSelectedRequestActivity([]);
         setActiveSurface("public-requests");
       }
 
@@ -3152,8 +3233,9 @@ export function App() {
       const result = await getDesktopBridge().listOwnedRequests({
         limit: 20,
       });
-      const nextSelectedRequestId =
-        result.requests.some((request) => request.id === selectedOwnedRequestId)
+      const nextSelectedRequestId = focus
+        ? null
+        : result.requests.some((request) => request.id === selectedOwnedRequestId)
           ? selectedOwnedRequestId
           : result.requests[0]?.id ?? null;
 
@@ -3162,6 +3244,8 @@ export function App() {
       setSelectedResolverScope("owned-requests");
 
       if (focus) {
+        setSelectedRequestDetail(null);
+        setSelectedRequestActivity([]);
         setActiveSurface("owned-requests");
       }
 
@@ -3202,6 +3286,7 @@ export function App() {
     }
 
     if (selectedRequestDetail?.id !== requestId) {
+      setSelectedRequestDetail(null);
       setSelectedRequestActivity([]);
     }
 
@@ -3310,6 +3395,9 @@ export function App() {
   }
 
   async function handleOpenOwnedRequests() {
+    setSelectedRequestDetail(null);
+    setSelectedRequestActivity([]);
+
     if (!resolverConnected) {
       try {
         const latestResolverAuthState = await refreshResolverAuthState();
@@ -3712,6 +3800,32 @@ export function App() {
     void applyRuntimeModeChange(nextRuntimeMode);
   }
 
+  async function handleRestartLocalhostBridge() {
+    if (isRestartingLocalhostBridge) {
+      return;
+    }
+
+    setIsRestartingLocalhostBridge(true);
+    setError(null);
+
+    try {
+      await getDesktopBridge().restartLocalhostBridge();
+      await refreshShellInfo();
+      setNotice({
+        message: "Localhost bridge restarted.",
+        tone: "success",
+      });
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Failed to restart localhost bridge.",
+      );
+    } finally {
+      setIsRestartingLocalhostBridge(false);
+    }
+  }
+
   async function loadProjectChat(projectId: string) {
     const desktop = getDesktopBridge();
     const chatState = await desktop.getLocalChatState({
@@ -3974,6 +4088,8 @@ export function App() {
   }
 
   function handleOpenPublicRequests() {
+    setSelectedRequestDetail(null);
+    setSelectedRequestActivity([]);
     void loadPublicRequests({
       focus: true,
     });
@@ -4549,11 +4665,11 @@ export function App() {
 
                       await (activeSurface === "owned-requests"
                         ? loadOwnedRequests({
-                            focus: true,
+                            focus: false,
                             silent: true,
                           })
                         : loadPublicRequests({
-                            focus: true,
+                            focus: false,
                             silent: true,
                           }));
                     })();
@@ -4586,7 +4702,7 @@ export function App() {
                 </div>
               ) : null}
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+              <div className="min-h-0 flex-1 overflow-hidden px-4 py-4">
                 {activeSurface === "owned-requests" && !resolverConnected ? (
                   <div className="mx-auto flex w-full max-w-3xl items-center justify-center">
                     <div className="w-full rounded-2xl border border-border bg-card/55 p-6">
@@ -4623,8 +4739,8 @@ export function App() {
                     </div>
                   </div>
                 ) : (
-                  <div className="mx-auto grid w-full max-w-7xl gap-4 xl:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)]">
-                    <section className="min-h-0 rounded-2xl border border-border bg-card/55 p-3">
+                  <div className="flex h-full min-h-0 w-full flex-col gap-4 xl:flex-row">
+                    <section className="flex min-h-0 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/55 p-3 xl:w-[22rem]">
                       <div className="mb-3 flex items-center justify-between gap-3 border-b border-border/80 px-1 pb-3">
                         <div>
                           <p className="text-sm font-medium text-foreground">
@@ -4661,135 +4777,144 @@ export function App() {
                       ) : null}
 
                       {activeRequestList && activeRequestList.requests.length > 0 ? (
-                        <div className="space-y-2">
-                          {activeRequestList.requests.map((request) => {
-                            const isActive =
-                              request.id === activeRequestListSelectionId;
+                        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                          <div className="space-y-2">
+                            {activeRequestList.requests.map((request) => {
+                              const isActive =
+                                request.id === activeRequestListSelectionId;
 
-                            return (
-                              <button
-                                key={request.id}
-                                type="button"
-                                onClick={() =>
-                                  activeSurface === "owned-requests"
-                                    ? setSelectedOwnedRequestId(request.id)
-                                    : setSelectedPublicRequestId(request.id)
-                                }
-                                className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
-                                  isActive
-                                    ? "border-border bg-background text-foreground"
-                                    : "border-transparent bg-transparent text-foreground hover:border-border/70 hover:bg-background/70"
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium">
-                                      {getPublicRequestTitle(request)}
-                                    </p>
-                                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                                      {getPublicRequestSummary(request)}
-                                    </p>
+                              return (
+                                <button
+                                  key={request.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedRequestDetail(null);
+                                    setSelectedRequestActivity([]);
+
+                                    if (activeSurface === "owned-requests") {
+                                      setSelectedOwnedRequestId(request.id);
+                                      return;
+                                    }
+
+                                    setSelectedPublicRequestId(request.id);
+                                  }}
+                                  className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
+                                    isActive
+                                      ? "border-border bg-background text-foreground"
+                                      : "border-transparent bg-transparent text-foreground hover:border-border/70 hover:bg-background/70"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-medium">
+                                        {getPublicRequestTitle(request)}
+                                      </p>
+                                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                        {getPublicRequestSummary(request)}
+                                      </p>
+                                    </div>
+                                    <Badge
+                                      variant="secondary"
+                                      className={`rounded-full border ${buildRequestStatusBadgeClassName(
+                                        request.status,
+                                      )}`}
+                                    >
+                                      {request.status.replace(/_/g, " ")}
+                                    </Badge>
                                   </div>
-                                  <Badge
-                                    variant="secondary"
-                                    className={`rounded-full border ${buildRequestStatusBadgeClassName(
-                                      request.status,
-                                    )}`}
-                                  >
-                                    {request.status.replace(/_/g, " ")}
-                                  </Badge>
-                                </div>
-                                <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                                  <span className="inline-flex items-center gap-1">
-                                    <CircleDollarSignIcon className="size-3.5" />
-                                    {formatBudgetSummary(request.budget)}
-                                  </span>
-                                  <span className="inline-flex items-center gap-1">
-                                    <CalendarDaysIcon className="size-3.5" />
-                                    {formatDeadlineSummary(request.deadline)}
-                                  </span>
-                                  <span className="inline-flex items-center gap-1">
-                                    <Globe2Icon className="size-3.5" />
-                                    {request.visibility}
-                                  </span>
-                                </div>
-                              </button>
-                            );
-                          })}
+                                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                                    <span className="inline-flex items-center gap-1">
+                                      <CircleDollarSignIcon className="size-3.5" />
+                                      {formatBudgetSummary(request.budget)}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1">
+                                      <CalendarDaysIcon className="size-3.5" />
+                                      {formatDeadlineSummary(request.deadline)}
+                                    </span>
+                                    <span className="inline-flex items-center gap-1">
+                                      <Globe2Icon className="size-3.5" />
+                                      {request.visibility}
+                                    </span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       ) : null}
                     </section>
 
-                    <section className="min-h-[24rem] rounded-2xl border border-border bg-card/55 p-4">
+                    <section className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-border bg-card/55">
                       {isLoadingRequestContext &&
                       selectedResolverRequestId &&
                       !selectedResolverRequest ? (
                         <RequestDetailSkeleton />
                       ) : selectedResolverRequest ? (
-                        <div className="space-y-4">
-                          <div className="border-b border-border/80 pb-4">
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                                    {getPublicRequestTitle(selectedResolverRequest)}
-                                  </h2>
-                                  <Badge
-                                    variant="secondary"
-                                    className={`rounded-full border ${buildRequestStatusBadgeClassName(
-                                      selectedResolverRequest.status,
-                                    )}`}
-                                  >
-                                    {selectedResolverRequest.status.replace(/_/g, " ")}
-                                  </Badge>
-                                  <Badge variant="secondary" className="rounded-full">
-                                    {selectedResolverRequest.visibility}
-                                  </Badge>
+                        <div className="h-full overflow-y-auto px-4 py-4">
+                          <div className="space-y-4">
+                            <div className="border-b border-border/80 pb-4">
+                              <div className="flex flex-wrap items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                                      {getPublicRequestTitle(selectedResolverRequest)}
+                                    </h2>
+                                    <Badge
+                                      variant="secondary"
+                                      className={`rounded-full border ${buildRequestStatusBadgeClassName(
+                                        selectedResolverRequest.status,
+                                      )}`}
+                                    >
+                                      {selectedResolverRequest.status.replace(/_/g, " ")}
+                                    </Badge>
+                                    <Badge variant="secondary" className="rounded-full">
+                                      {selectedResolverRequest.visibility}
+                                    </Badge>
+                                  </div>
+                                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                                    {getPublicRequestSummary(selectedResolverRequest)}
+                                  </p>
                                 </div>
-                                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                                  {getPublicRequestSummary(selectedResolverRequest)}
-                                </p>
+
+                                <div className="text-right text-xs text-muted-foreground">
+                                  <p>Updated {formatTimestamp(selectedResolverRequest.updatedAt)}</p>
+                                  <p className="mt-1">Key {selectedResolverRequest.key}</p>
+                                </div>
                               </div>
 
-                              <div className="text-right text-xs text-muted-foreground">
-                                <p>Updated {formatTimestamp(selectedResolverRequest.updatedAt)}</p>
-                                <p className="mt-1">Key {selectedResolverRequest.key}</p>
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                <Badge variant="secondary" className="rounded-full">
+                                  <CircleDollarSignIcon className="mr-1 size-3.5" />
+                                  {formatBudgetSummary(selectedResolverRequest.budget)}
+                                </Badge>
+                                <Badge variant="secondary" className="rounded-full">
+                                  <CalendarDaysIcon className="mr-1 size-3.5" />
+                                  {formatDeadlineSummary(selectedResolverRequest.deadline)}
+                                </Badge>
+                                {selectedResolverRequest.derived.routeFamily ? (
+                                  <Badge variant="secondary" className="rounded-full">
+                                    <FolderOpenDotIcon className="mr-1 size-3.5" />
+                                    {selectedResolverRequest.derived.routeFamily}
+                                  </Badge>
+                                ) : null}
+                                {selectedResolverRequest.derived.executionKind ? (
+                                  <Badge variant="secondary" className="rounded-full">
+                                    <SparklesIcon className="mr-1 size-3.5" />
+                                    {selectedResolverRequest.derived.executionKind}
+                                  </Badge>
+                                ) : null}
+                                <Button
+                                  variant="outline"
+                                  onClick={handleTrackSelectedRequestInChat}
+                                  className="rounded-full"
+                                >
+                                  <MessageSquareIcon className="size-4" />
+                                  Work in chat
+                                </Button>
                               </div>
                             </div>
 
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              <Badge variant="secondary" className="rounded-full">
-                                <CircleDollarSignIcon className="mr-1 size-3.5" />
-                                {formatBudgetSummary(selectedResolverRequest.budget)}
-                              </Badge>
-                              <Badge variant="secondary" className="rounded-full">
-                                <CalendarDaysIcon className="mr-1 size-3.5" />
-                                {formatDeadlineSummary(selectedResolverRequest.deadline)}
-                              </Badge>
-                              {selectedResolverRequest.derived.routeFamily ? (
-                                <Badge variant="secondary" className="rounded-full">
-                                  <FolderOpenDotIcon className="mr-1 size-3.5" />
-                                  {selectedResolverRequest.derived.routeFamily}
-                                </Badge>
-                              ) : null}
-                              {selectedResolverRequest.derived.executionKind ? (
-                                <Badge variant="secondary" className="rounded-full">
-                                  <SparklesIcon className="mr-1 size-3.5" />
-                                  {selectedResolverRequest.derived.executionKind}
-                                </Badge>
-                              ) : null}
-                              <Button
-                                variant="outline"
-                                onClick={handleTrackSelectedRequestInChat}
-                                className="rounded-full"
-                              >
-                                <MessageSquareIcon className="size-4" />
-                                Work in chat
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+                            <div className="space-y-4">
                             <div className="space-y-4">
                               {selectedResolverRequest.brief.body.trim() ? (
                                 <article className="rounded-xl border border-border/80 bg-background/60 px-4 py-4">
@@ -5549,10 +5674,13 @@ export function App() {
                               )}
                             </div>
                           </div>
+                          </div>
                         </div>
                       ) : (
-                        <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
-                          Pick a request to inspect it here.
+                        <div className="flex h-full items-center justify-center px-4 py-4">
+                          <div className="flex min-h-[24rem] w-full items-center justify-center rounded-xl border border-dashed border-border px-4 py-4 text-sm text-muted-foreground">
+                            Pick a request to inspect it here.
+                          </div>
                         </div>
                       )}
                     </section>

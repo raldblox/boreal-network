@@ -99,6 +99,8 @@ contextBridge.exposeInMainWorld("borealDesktop", {
   getResolverAuthState: () =>
     ipcRenderer.invoke("desktop:get-resolver-auth-state"),
   getWorkspaceState: () => ipcRenderer.invoke("desktop:get-workspace-state"),
+  restartLocalhostBridge: () =>
+    ipcRenderer.invoke("desktop:restart-localhost-bridge"),
   listPublicRequests: (payload) =>
     ipcRenderer.invoke("desktop:list-public-requests", payload),
   listOwnedRequests: (payload) =>

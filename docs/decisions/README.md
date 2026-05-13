@@ -27,3 +27,4 @@ Accepted decisions:
 - [0007-owner-private-direct-auto-fulfillment.md](0007-owner-private-direct-auto-fulfillment.md)
 - [0008-ephemeral-realtime-lane-and-peer-runtime-identity.md](0008-ephemeral-realtime-lane-and-peer-runtime-identity.md)
 - [0009-request-bound-execution-and-artifact-model-before-peer-runtime-activation.md](0009-request-bound-execution-and-artifact-model-before-peer-runtime-activation.md)
+- [0010-pear-hyperswarm-peer-foundation-shape.md](0010-pear-hyperswarm-peer-foundation-shape.md)

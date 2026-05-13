@@ -120,6 +120,7 @@ function buildCodexPayload(streamEvent) {
 export function createDesktopEphemeralStreamBus() {
   let nextSequence = 0;
   const targets = new Map();
+  const subscribers = new Set();
 
   function unregisterWebContents(webContentsId) {
     targets.delete(webContentsId);
@@ -160,7 +161,27 @@ export function createDesktopEphemeralStreamBus() {
       webContents.send(DESKTOP_EPHEMERAL_EVENT_CHANNEL, envelope);
     }
 
+    for (const subscriber of subscribers) {
+      try {
+        subscriber(envelope);
+      } catch {
+        // Ignore one bad subscriber so the local stream bus keeps flowing.
+      }
+    }
+
     return envelope;
+  }
+
+  function subscribe(listener) {
+    if (typeof listener !== "function") {
+      return () => undefined;
+    }
+
+    subscribers.add(listener);
+
+    return () => {
+      subscribers.delete(listener);
+    };
   }
 
   function publishCodexStreamEvent(context, streamEvent) {
@@ -234,5 +255,6 @@ export function createDesktopEphemeralStreamBus() {
     registerWebContents,
     unregisterWebContents,
     startHeartbeat,
+    subscribe,
   };
 }
