@@ -1,0 +1,17 @@
+{
+  "name": "@boreal/peer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Runnable Boreal peer broker foundation.",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "node --watch ./src/main.js",
+    "build": "node --check ./src/main.js",
+    "start": "node ./src/main.js"
+  },
+  "dependencies": {
+    "@boreal/network-core": "workspace:*",
+    "@boreal/network-hyperswarm": "workspace:*"
+  }
+}

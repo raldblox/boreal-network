@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensurePeerRuntimeIdentity } from "@boreal/network-core";
+import { startHyperswarmPeerHost } from "@boreal/network-hyperswarm";
 import {
   acceptCommitment,
   connectResolver,
@@ -10,14 +12,17 @@ import {
   getDocument,
   getFulfillmentDetail,
   getBorealWebBaseUrl,
+  getResolverRuntimeBinding,
   getRequestActivity,
   getRequestDetail,
   getResolverAuthState,
+  listOwnedSupplies,
   listPublicRequests,
   listOwnedRequests,
   pollResolverAuth,
   proposeRequestCommitment,
   publishRequestArtifact,
+  updateRequestRouting,
   updateFulfillment,
 } from "./boreal-web-client.js";
 import {
@@ -55,6 +60,10 @@ const ephemeralBus = createDesktopEphemeralStreamBus();
 const localhostBridge = createDesktopLocalhostBridge({
   ephemeralBus,
 });
+let peerHost = null;
+let peerHostLastError = null;
+let peerHostRuntimeIdentity = null;
+let peerHostStartPromise = null;
 
 function didRuntimePolicyChange(previousSettings, nextSettings) {
   const previousWritableRoots = Array.isArray(
@@ -89,6 +98,116 @@ function isAutoResolvableOwnedPrivateRequest(request) {
     request?.status === "open" &&
     !request?.activeRefs?.activeFulfillmentId
   );
+}
+
+function getSupplyDisplayLabel(supply) {
+  return supply?.profile?.displayName?.trim() || supply?.key || "Untitled supply";
+}
+
+function doesSupplyMatchRequestSeeking(supply, request) {
+  const requestedKinds = Array.isArray(request?.seeking?.supplyKinds)
+    ? request.seeking.supplyKinds.filter(
+        (entry) => typeof entry === "string" && entry.trim().length > 0,
+      )
+    : [];
+
+  if (requestedKinds.length === 0) {
+    return true;
+  }
+
+  const supplyKinds = Array.isArray(supply?.capability?.supplyKinds)
+    ? supply.capability.supplyKinds
+    : [];
+
+  return requestedKinds.some((kind) => supplyKinds.includes(kind));
+}
+
+function isResolverEligibleSupply(supply, resolverClientId) {
+  if (!supply || supply.status !== "published") {
+    return false;
+  }
+
+  const boundResolverClientId = supply?.bindings?.resolverClientId ?? null;
+  if (!boundResolverClientId) {
+    return true;
+  }
+
+  return (
+    typeof resolverClientId === "string" &&
+    resolverClientId.length > 0 &&
+    boundResolverClientId === resolverClientId
+  );
+}
+
+async function resolveAutoResolveSupplySelection(request) {
+  const [settings, resolverBinding] = await Promise.all([
+    readDesktopSettings(),
+    getResolverRuntimeBinding(),
+  ]);
+  const requestPreferredSupplyId =
+    typeof request?.routing?.preferredSupplyId === "string" &&
+    request.routing.preferredSupplyId.trim().length > 0
+      ? request.routing.preferredSupplyId
+      : null;
+  const defaultSupplyId =
+    typeof settings.autoResolveSupplyId === "string" &&
+    settings.autoResolveSupplyId.trim().length > 0
+      ? settings.autoResolveSupplyId
+      : null;
+
+  if (!requestPreferredSupplyId && !defaultSupplyId) {
+    return {
+      mode: "generic",
+      selectionSource: "legacy_runtime",
+    };
+  }
+
+  const ownedSupplyList = await listOwnedSupplies({ limit: 100 });
+  const supplies = Array.isArray(ownedSupplyList.supplies)
+    ? ownedSupplyList.supplies
+    : [];
+
+  if (requestPreferredSupplyId) {
+    const requestSupply = supplies.find(
+      (supply) => supply.id === requestPreferredSupplyId,
+    );
+
+    if (
+      requestSupply &&
+      isResolverEligibleSupply(requestSupply, resolverBinding.clientId)
+    ) {
+      return {
+        mode: "selected",
+        selectionSource: "request_override",
+        supply: requestSupply,
+      };
+    }
+
+    return {
+      mode: "blocked",
+      reason: "request_override_unavailable",
+      selectionSource: "request_override",
+    };
+  }
+
+  const defaultSupply = supplies.find((supply) => supply.id === defaultSupplyId);
+  if (
+    defaultSupply &&
+    isResolverEligibleSupply(defaultSupply, resolverBinding.clientId) &&
+    doesSupplyMatchRequestSeeking(defaultSupply, request)
+  ) {
+    return {
+      mode: "selected",
+      selectionSource: "desktop_default",
+      supply: defaultSupply,
+    };
+  }
+
+  return {
+    mode: "blocked",
+    reason: "desktop_default_unavailable",
+    selectionSource: "desktop_default",
+  };
 }
 
 function buildBudgetPromptLine(budget) {
@@ -129,6 +248,153 @@ function buildDeadlinePromptLine(deadline) {
   ]
     .filter(Boolean)
     .join(" | ")}`;
+}
+
+function buildPeerHostShellState() {
+  const currentState = peerHost?.getState?.() ?? null;
+
+  if (currentState) {
+    return {
+      ...currentState,
+      lastError: peerHostLastError,
+      runtimeLabel: peerHostRuntimeIdentity?.runtimeLabel ?? "Boreal Desktop",
+    };
+  }
+
+  return {
+    controlTopicHex: peerHostRuntimeIdentity?.controlTopicHex ?? null,
+    fingerprint: peerHostRuntimeIdentity?.fingerprint ?? null,
+    lastError: peerHostLastError,
+    listeningAt: null,
+    peerCount: 0,
+    peerHomePath: null,
+    peerPublicKeyHex: peerHostRuntimeIdentity?.publicKeyHex ?? null,
+    requestTopicCount: 0,
+    requestTopicHexes: [],
+    runtimeLabel: peerHostRuntimeIdentity?.runtimeLabel ?? "Boreal Desktop",
+    status: peerHostStartPromise
+      ? "starting"
+      : peerHostLastError
+        ? "error"
+        : "stopped",
+    storePath: null,
+  };
+}
+
+function publishPeerPresence() {
+  const peerState = buildPeerHostShellState();
+  ephemeralBus.publishPresence({
+    payload: {
+      controlTopicHex: peerState.controlTopicHex,
+      fingerprint: peerState.fingerprint,
+      peerCount: peerState.peerCount,
+      requestTopicCount: peerState.requestTopicCount,
+      runtime: "peer",
+      state: peerState.status,
+    },
+    source: "peer-runtime",
+  });
+}
+
+function publishPeerRuntimeLog(message, level = "info") {
+  ephemeralBus.publish({
+    channelKind: "runtime-log",
+    payload: {
+      level,
+      message,
+    },
+    source: "peer-runtime",
+  });
+}
+
+async function ensurePeerHostStarted() {
+  if (peerHost) {
+    return peerHost;
+  }
+
+  if (peerHostStartPromise) {
+    return peerHostStartPromise;
+  }
+
+  peerHostStartPromise = (async () => {
+    const { appHomePath, desktopHomePath } = await ensureDesktopHome();
+    const runtimeIdentity = await ensurePeerRuntimeIdentity({
+      desktopHomePath,
+      runtimeLabel: "Boreal Desktop",
+    });
+
+    peerHostRuntimeIdentity = runtimeIdentity;
+
+    const nextPeerHost = await startHyperswarmPeerHost({
+      appHomePath,
+      runtimeIdentity,
+    });
+
+    nextPeerHost.events.on("peer-state", () => {
+      publishPeerPresence();
+    });
+    nextPeerHost.events.on("peer-message", ({ message, remotePublicKeyHex }) => {
+      if (!message || typeof message !== "object") {
+        return;
+      }
+
+      if (typeof message.runtimeLabel === "string") {
+        publishPeerRuntimeLog(
+          `Peer hello from ${message.runtimeLabel}${
+            remotePublicKeyHex ? ` (${remotePublicKeyHex.slice(0, 8)}...)` : ""
+          }.`,
+        );
+      }
+    });
+
+    peerHost = nextPeerHost;
+    peerHostLastError = null;
+    publishPeerPresence();
+    publishPeerRuntimeLog(
+      `Peer runtime listening as ${runtimeIdentity.fingerprint}.`,
+    );
+    return nextPeerHost;
+  })()
+    .catch((error) => {
+      peerHost = null;
+      peerHostLastError =
+        error instanceof Error ? error.message : "Peer runtime failed.";
+      publishPeerPresence();
+      publishPeerRuntimeLog(peerHostLastError, "error");
+      throw error;
+    })
+    .finally(() => {
+      peerHostStartPromise = null;
+    });
+
+  return peerHostStartPromise;
+}
+
+async function stopPeerHost() {
+  if (peerHostStartPromise) {
+    await peerHostStartPromise.catch(() => undefined);
+  }
+
+  if (!peerHost) {
+    publishPeerPresence();
+    return buildPeerHostShellState();
+  }
+
+  const currentPeerHost = peerHost;
+  peerHost = null;
+  const nextState = await currentPeerHost.stop();
+  publishPeerPresence();
+  return {
+    ...nextState,
+    lastError: peerHostLastError,
+    runtimeLabel: peerHostRuntimeIdentity?.runtimeLabel ?? "Boreal Desktop",
+  };
+}
+
+async function restartPeerHost() {
+  await stopPeerHost().catch(() => undefined);
+  await ensurePeerHostStarted();
+  return buildPeerHostShellState();
 }
 
 function inferDeliveryDocumentKind(request, outputText) {
@@ -215,6 +481,25 @@ async function autoResolveOwnedPrivateRequest(request) {
   const homePaths = await ensureDesktopHome();
   const workspaceRoot = homePaths.desktopHomePath;
   const requestTitle = getRequestTitle(request);
+  const supplySelection = await resolveAutoResolveSupplySelection(request);
+
+  if (supplySelection.mode === "blocked") {
+    console.info(
+      "Skipping Boreal Desktop auto-resolve for request due to unavailable configured supply.",
+      {
+        reason: supplySelection.reason,
+        requestId: request?.id ?? null,
+        selectionSource: supplySelection.selectionSource,
+      },
+    );
+    return false;
+  }
+
+  const selectedSupply =
+    supplySelection.mode === "selected" ? supplySelection.supply : null;
+  const selectedSupplyLabel = selectedSupply
+    ? getSupplyDisplayLabel(selectedSupply)
+    : AUTO_RESOLVE_RUNTIME_LABEL;
   const createResult = await createRequestFulfillment({
     initialStatus: "active",
     lead: {
@@ -225,9 +510,16 @@ async function autoResolveOwnedPrivateRequest(request) {
     metadata: {
       autoResolveLane: "owner_private_direct",
       runtimeId: AUTO_RESOLVE_RUNTIME_ID,
+      ...(selectedSupply
+        ? {
+            autoResolveSupplyId: selectedSupply.id,
+            autoResolveSupplySelectionSource: supplySelection.selectionSource,
+          }
+        : {}),
     },
     requestId: request.id,
-    summary: `${AUTO_RESOLVE_RUNTIME_LABEL} started automatic resolution for this private request.`,
+    ...(selectedSupply ? { supplyId: selectedSupply.id } : {}),
+    summary: `${selectedSupplyLabel} started automatic resolution for this private request.`,
   });
   const fulfillmentId =
     typeof createResult?.fulfillment?.id === "string"
@@ -241,6 +533,11 @@ async function autoResolveOwnedPrivateRequest(request) {
   }
 
   try {
+    const activePeerHost = await ensurePeerHostStarted().catch(() => null);
+    if (activePeerHost) {
+      await activePeerHost.joinRequestTopic(request.id).catch(() => undefined);
+    }
+
     const delivery = await createDesktopResponse({
       allowThreadReuse: false,
       developerInstructions: [
@@ -274,7 +571,7 @@ async function autoResolveOwnedPrivateRequest(request) {
       content: deliveryContent,
       documentKind: inferDeliveryDocumentKind(request, deliveryContent),
       requestId: request.id,
-      summary: `${AUTO_RESOLVE_RUNTIME_LABEL} published an automatic delivery.`,
+      summary: `${selectedSupplyLabel} published an automatic delivery.`,
       title: `Delivery: ${requestTitle}`,
     });
     const artifactId =
@@ -291,9 +588,15 @@ async function autoResolveOwnedPrivateRequest(request) {
         autoResolveLane: "owner_private_direct",
         deliveryModel: delivery.model,
         runtimeId: AUTO_RESOLVE_RUNTIME_ID,
+        ...(selectedSupply
+          ? {
+              autoResolveSupplyId: selectedSupply.id,
+              autoResolveSupplySelectionSource: supplySelection.selectionSource,
+            }
+          : {}),
       },
       status: "delivered",
-      summary: `${AUTO_RESOLVE_RUNTIME_LABEL} delivered a result for this request.`,
+      summary: `${selectedSupplyLabel} delivered a result for this request.`,
     });
 
     return true;
@@ -304,9 +607,15 @@ async function autoResolveOwnedPrivateRequest(request) {
         autoResolveLane: "owner_private_direct",
         errorMessage: error instanceof Error ? error.message : "Unknown auto-resolve failure",
         runtimeId: AUTO_RESOLVE_RUNTIME_ID,
+        ...(selectedSupply
+          ? {
+              autoResolveSupplyId: selectedSupply.id,
+              autoResolveSupplySelectionSource: supplySelection.selectionSource,
+            }
+          : {}),
       },
       status: "blocked",
-      summary: `${AUTO_RESOLVE_RUNTIME_LABEL} hit a blocking issue while resolving this request.`,
+      summary: `${selectedSupplyLabel} hit a blocking issue while resolving this request.`,
     }).catch(() => undefined);
     throw error;
   }
@@ -331,16 +640,25 @@ async function maybeRunAutoResolveOwnedPrivateRequests() {
   const ownedRequestList = await listOwnedRequests({
     limit: 25,
   });
-  const candidate = ownedRequestList.requests.find(
+  const candidates = ownedRequestList.requests.filter(
     isAutoResolvableOwnedPrivateRequest,
   );
 
-  if (!candidate) {
-    return false;
+  for (const candidate of candidates) {
+    try {
+      const processed = await autoResolveOwnedPrivateRequest(candidate);
+      if (processed) {
+        return true;
+      }
+    } catch (error) {
+      console.error("Boreal Desktop auto-resolve failed for request.", {
+        error,
+        requestId: candidate?.id ?? null,
+      });
+    }
   }
 
-  await autoResolveOwnedPrivateRequest(candidate);
-  return true;
+  return false;
 }
 
 function clearAutoResolveTimer() {
@@ -477,6 +795,7 @@ ipcMain.handle("desktop:get-shell-info", async () => ({
   codexCliVersion: await getCodexCliVersion(),
   localhostBridge: localhostBridge.getState(),
   name: "Boreal Desktop",
+  peerHost: buildPeerHostShellState(),
   platform: process.platform,
   runtimeIdentity: await getDesktopRuntimeIdentity(),
   versions: {
@@ -491,6 +810,8 @@ ipcMain.handle("desktop:get-codex-auth-state", async () => getCodexAuthState());
 ipcMain.handle("desktop:restart-localhost-bridge", async () =>
   localhostBridge.restart(),
 );
+
+ipcMain.handle("desktop:restart-peer-host", async () => restartPeerHost());
 
 ipcMain.handle("desktop:list-codex-models", async () => listCodexModels());
 
@@ -509,8 +830,16 @@ ipcMain.handle("desktop:list-owned-requests", async (_event, payload) =>
   listOwnedRequests(payload ?? {}),
 );
 
+ipcMain.handle("desktop:list-owned-supplies", async (_event, payload) =>
+  listOwnedSupplies(payload ?? {}),
+);
+
 ipcMain.handle("desktop:get-request-detail", async (_event, payload) =>
   getRequestDetail(payload?.requestId),
+);
+
+ipcMain.handle("desktop:update-request-routing", async (_event, payload) =>
+  updateRequestRouting(payload ?? {}),
 );
 
 ipcMain.handle("desktop:get-request-activity", async (_event, payload) =>
@@ -624,6 +953,12 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
     const correlationId = randomUUID();
     const requestId =
       typeof payload?.requestId === "string" ? payload.requestId : null;
+    const trackedRequestId =
+      payload?.trackedRequest?.request &&
+      typeof payload.trackedRequest.request === "object" &&
+      typeof payload.trackedRequest.request.id === "string"
+        ? payload.trackedRequest.request.id
+        : null;
     const stopHeartbeat = ephemeralBus.startHeartbeat({
       agentSessionId,
       correlationId,
@@ -648,6 +983,15 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
     });
 
     try {
+      if (trackedRequestId) {
+        const activePeerHost = await ensurePeerHostStarted().catch(() => null);
+        if (activePeerHost) {
+          await activePeerHost
+            .joinRequestTopic(trackedRequestId)
+            .catch(() => undefined);
+        }
+      }
+
       const response = await createDesktopResponse({
         ...payload,
         additionalWritableRoots:
@@ -706,6 +1050,9 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
 );
 
 app.whenReady().then(() => {
+  void ensurePeerHostStarted().catch((error) => {
+    console.error("[boreal-desktop] peer runtime failed to start:", error);
+  });
   void localhostBridge.start().catch((error) => {
     console.error(
       "[boreal-desktop] localhost bridge failed to start:",
@@ -734,6 +1081,7 @@ app.on("before-quit", (event) => {
 
   void (async () => {
     try {
+      await stopPeerHost().catch(() => undefined);
       await localhostBridge.dispose();
       await shutdownCodexRuntime();
     } finally {

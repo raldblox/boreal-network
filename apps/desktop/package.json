@@ -11,6 +11,8 @@
     "start": "electron ."
   },
   "dependencies": {
+    "@boreal/network-core": "workspace:*",
+    "@boreal/network-hyperswarm": "workspace:*",
     "@boreal/ui": "workspace:*",
     "lucide-react": "^0.446.0",
     "react": "19.0.1",

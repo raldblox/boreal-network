@@ -75,13 +75,30 @@ type ShellInfo = {
     status: "error" | "listening" | "stopped";
   };
   name: string;
+  peerHost: {
+    controlTopicHex: string | null;
+    fingerprint: string | null;
+    lastError: string | null;
+    listeningAt: string | null;
+    peerCount: number;
+    peerHomePath: string | null;
+    peerPublicKeyHex: string | null;
+    requestTopicCount: number;
+    requestTopicHexes: string[];
+    runtimeLabel: string;
+    status: "error" | "listening" | "starting" | "stopped";
+    storePath: string | null;
+  };
   platform: string;
   runtimeIdentity: {
+    controlTopicHex: string;
     createdAt: string;
     id: string;
+    keyAlgorithm: string;
     peerReady: boolean;
     scope: string;
     shortId: string;
+    updatedAt: string;
   };
   versions: {
     chrome: string;
@@ -103,6 +120,7 @@ type RuntimeMode = "full" | "safe";
 type ProjectStateResult = {
   appHomePath: string;
   autoResolveOwnedPrivate: boolean;
+  autoResolveSupplyId: string | null;
   defaultModel: string;
   defaultReasoning: string;
   desktopHomePath: string;
@@ -315,6 +333,61 @@ type PublicRequestDeadline = {
   targetAt: string | null;
 };
 
+type OwnedSupplyEntry = {
+  availability: {
+    acceptingRequests: boolean;
+    currentLoad: number | null;
+    maxConcurrentRequests: number | null;
+    responseTimeHours: number | null;
+  };
+  bindings: {
+    providerRef: string | null;
+    resolverClientId: string | null;
+    runtimeActorId: string | null;
+  };
+  capability: {
+    executionChannels: string[];
+    fulfillmentActorKinds: string[];
+    outputKinds: string[];
+    supplyKinds: string[];
+  };
+  createdAt: string;
+  id: string;
+  key: string;
+  ownerId: string;
+  pricing: {
+    currency: string | null;
+    fixedAmount: number | null;
+    maxAmount: number | null;
+    minAmount: number | null;
+    mode: string;
+    notes: string;
+  } | null;
+  profile: {
+    description: string;
+    displayName: string;
+    headline: string;
+    summary: string;
+    tags: string[];
+  };
+  publishedAt: string | null;
+  resolverEligible: boolean;
+  retiredAt: string | null;
+  source: {
+    kind: string;
+  };
+  status: string;
+  updatedAt: string;
+  visibility: "private" | "public" | "unlisted";
+};
+
+type OwnedSupplyListResult = {
+  fetchedAt: string;
+  hasMore: boolean;
+  sourceBaseUrl: string;
+  supplies: OwnedSupplyEntry[];
+};
+
 type PublicRequestEntry = {
   activeRefs: {
     activeCommitmentId: string | null;
@@ -358,6 +431,9 @@ type PublicRequestEntry = {
     } | null;
     lastEventAt?: string | null;
     summary: string;
+  };
+  routing: {
+    preferredSupplyId: string | null;
   };
   seeking: {
     actorKinds: string[];
@@ -472,6 +548,7 @@ type RequestActivityEntry = {
   fulfillment: {
     commitmentId?: string;
     id: string;
+    supplyId?: string;
     status: string;
     summary: string;
   } | null;
@@ -535,6 +612,8 @@ const MAX_STREAM_ACTIVITIES = 6;
 const MAX_STREAM_CONSOLE_ENTRIES = 14;
 const AUTO_RESOLVE_RUNTIME_ID = "boreal-desktop-codex";
 const AUTO_RESOLVE_RUNTIME_LABEL = "Boreal Desktop (Codex)";
+const DESKTOP_DEFAULT_SUPPLY_NONE = "__desktop_default_supply_none__";
+const REQUEST_SUPPLY_INHERIT_DEFAULT = "__request_supply_inherit_default__";
 
 declare global {
   interface Window {
@@ -592,6 +671,7 @@ declare global {
       getResolverAuthState: () => Promise<ResolverAuthState>;
       getShellInfo: () => Promise<ShellInfo>;
       restartLocalhostBridge: () => Promise<ShellInfo["localhostBridge"]>;
+      restartPeerHost: () => Promise<ShellInfo["peerHost"]>;
       listPublicRequests: (payload?: {
         endingBefore?: string;
         limit?: number;
@@ -602,6 +682,11 @@ declare global {
         limit?: number;
         startingAfter?: string;
       }) => Promise<PublicRequestListResult>;
+      listOwnedSupplies: (payload?: {
+        endingBefore?: string;
+        limit?: number;
+        startingAfter?: string;
+      }) => Promise<OwnedSupplyListResult>;
       listCodexModels: () => Promise<ModelListResult>;
       onEphemeralEvent?: (
         listener: (event: DesktopEphemeralEnvelope) => void,
@@ -647,6 +732,7 @@ declare global {
       }) => Promise<unknown>;
       savePreferences: (payload: {
         autoResolveOwnedPrivate?: boolean;
+        autoResolveSupplyId?: string | null;
         defaultModel: string;
         defaultReasoning: string;
         runtimeAdditionalWritableRoots?: string[];
@@ -656,6 +742,7 @@ declare global {
         runtimeSandboxMode?: string;
       }) => Promise<{
         autoResolveOwnedPrivate?: boolean;
+        autoResolveSupplyId: string | null;
         defaultModel: string;
         defaultReasoning: string;
         runtimeAdditionalWritableRoots: string[];
@@ -677,6 +764,14 @@ declare global {
         projectId: string;
       }) => Promise<{
         selectedProjectId: string | null;
+      }>;
+      updateRequestRouting: (payload: {
+        preferredSupplyId?: string | null;
+        requestId: string;
+      }) => Promise<{
+        fetchedAt: string;
+        request: PublicRequestEntry | null;
+        sourceBaseUrl: string;
       }>;
       updateFulfillment: (payload: {
         artifactIds?: string[];
@@ -764,6 +859,58 @@ function formatDeadlineSummary(deadline: PublicRequestDeadline | null) {
     month: "short",
     year: "numeric",
   });
+}
+
+function getOwnedSupplyLabel(
+  supply: Pick<OwnedSupplyEntry, "key" | "profile"> | null | undefined,
+) {
+  return supply?.profile.displayName.trim() || supply?.key || "Untitled supply";
+}
+
+function doesOwnedSupplyMatchRequest(
+  request: Pick<PublicRequestEntry, "seeking"> | null | undefined,
+  supply: Pick<OwnedSupplyEntry, "capability"> | null | undefined,
+) {
+  const requestedKinds = request?.seeking.supplyKinds ?? [];
+
+  if (requestedKinds.length === 0) {
+    return true;
+  }
+
+  const supplyKinds = supply?.capability.supplyKinds ?? [];
+  return requestedKinds.some((kind) => supplyKinds.includes(kind));
+}
+
+function describeAutoResolveSelection({
+  request,
+  requestPreferredSupply,
+  defaultSupply,
+  defaultSupplyId,
+}: {
+  request: PublicRequestEntry | null;
+  requestPreferredSupply: OwnedSupplyEntry | null;
+  defaultSupply: OwnedSupplyEntry | null;
+  defaultSupplyId: string | null;
+}) {
+  if (request?.routing.preferredSupplyId) {
+    return requestPreferredSupply
+      ? `This request prefers ${getOwnedSupplyLabel(requestPreferredSupply)}.`
+      : "This request prefers a supply that is unavailable for this desktop. Auto-resolve will skip it until you fix or clear the override.";
+  }
+
+  if (defaultSupplyId) {
+    if (!defaultSupply) {
+      return "Desktop default supply is unavailable for this desktop. Auto-resolve will skip private requests until you fix or clear the default.";
+    }
+
+    if (!doesOwnedSupplyMatchRequest(request, defaultSupply)) {
+      return `${getOwnedSupplyLabel(defaultSupply)} is your desktop default, but it does not match this request's supply kinds. Auto-resolve will skip this request.`;
+    }
+
+    return `${getOwnedSupplyLabel(defaultSupply)} is the desktop default for private auto-resolve.`;
+  }
+
+  return "No supply selected yet. Auto-resolve will use the legacy runtime lane until you set a desktop default or request override.";
 }
 
 function buildRequestStatusBadgeClassName(status: string) {
@@ -1977,6 +2124,7 @@ export function App() {
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [appHomePath, setAppHomePath] = useState<string | null>(null);
   const [autoResolveOwnedPrivate, setAutoResolveOwnedPrivate] = useState(false);
+  const [autoResolveSupplyId, setAutoResolveSupplyId] = useState<string | null>(null);
   const [authState, setAuthState] = useState<AuthState | null>(null);
   const [artifactContainerMode, setArtifactContainerMode] = useState<
     "document" | "external_ref" | "object_ref"
@@ -2022,13 +2170,16 @@ export function App() {
   const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [isDeletingThread, setIsDeletingThread] = useState(false);
   const [isLoadingOwnedRequests, setIsLoadingOwnedRequests] = useState(false);
+  const [isLoadingOwnedSupplies, setIsLoadingOwnedSupplies] = useState(false);
   const [isLoadingPublicRequests, setIsLoadingPublicRequests] = useState(false);
   const [isLoadingRequestContext, setIsLoadingRequestContext] = useState(false);
   const [isPollingResolverAuth, setIsPollingResolverAuth] = useState(false);
   const [isRestartingLocalhostBridge, setIsRestartingLocalhostBridge] = useState(false);
+  const [isRestartingPeerHost, setIsRestartingPeerHost] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isSavingRuntimeMode, setIsSavingRuntimeMode] = useState(false);
   const [isSavingAutoResolveOwnedPrivate, setIsSavingAutoResolveOwnedPrivate] = useState(false);
+  const [isSavingAutoResolveSupplyId, setIsSavingAutoResolveSupplyId] = useState(false);
   const [isSubmittingRequestAction, setIsSubmittingRequestAction] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -2038,6 +2189,7 @@ export function App() {
   const [models, setModels] = useState<ModelOption[]>([]);
   const [notice, setNotice] = useState<NoticeState>(null);
   const [ownedRequests, setOwnedRequests] = useState<PublicRequestListResult | null>(null);
+  const [ownedSupplies, setOwnedSupplies] = useState<OwnedSupplyListResult | null>(null);
   const [pendingProjectDelete, setPendingProjectDelete] =
     useState<PendingProjectDelete>(null);
   const [pendingRuntimeModeConfirmation, setPendingRuntimeModeConfirmation] =
@@ -2112,6 +2264,25 @@ export function App() {
     selectedRequestDetail?.id === selectedResolverRequestId ? selectedRequestDetail : null;
   const selectedResolverRequest =
     selectedResolverDetail ?? activeSurfaceListRequest ?? null;
+  const publishedOwnedSupplies = useMemo(
+    () =>
+      (ownedSupplies?.supplies ?? []).filter(
+        (supply) => supply.status === "published",
+      ),
+    [ownedSupplies],
+  );
+  const resolverEligiblePublishedSupplies = useMemo(
+    () =>
+      publishedOwnedSupplies.filter((supply) => supply.resolverEligible === true),
+    [publishedOwnedSupplies],
+  );
+  const selectedDefaultAutoResolveSupply =
+    publishedOwnedSupplies.find((supply) => supply.id === autoResolveSupplyId) ??
+    null;
+  const selectedRequestPreferredSupply =
+    publishedOwnedSupplies.find(
+      (supply) => supply.id === selectedResolverRequest?.routing.preferredSupplyId,
+    ) ?? null;
   const groupedThreads = useMemo(() => groupThreadsByDate(threads), [threads]);
   const orderedRequestActivity = useMemo(
     () => [...selectedRequestActivity].sort((left, right) => left.sequence - right.sequence),
@@ -2211,12 +2382,19 @@ export function App() {
     : "Sign in with ChatGPT to spin up a valid worker.";
 
   const runtimeIdentityLabel =
-    shellInfo?.runtimeIdentity?.shortId ?? "Generating local runtime ID...";
+    shellInfo?.runtimeIdentity?.shortId ?? "Generating peer runtime ID...";
+  const peerHostState = shellInfo?.peerHost ?? null;
+  const peerHostStatusLabel =
+    peerHostState?.status === "listening"
+      ? `Listening · ${peerHostState.peerCount} peers`
+      : peerHostState?.status === "starting"
+        ? "Starting peer runtime"
+        : peerHostState?.status === "error"
+          ? "Peer runtime failed"
+          : "Peer runtime stopped";
   const runtimeIdentityMeta = shellInfo?.runtimeIdentity
-    ? `${shellInfo.runtimeIdentity.scope} runtime${
-        shellInfo.runtimeIdentity.peerReady ? " · peer-ready" : " · pre-peer"
-      }`
-    : "Local-only runtime identity.";
+    ? `${shellInfo.runtimeIdentity.scope} · ${peerHostStatusLabel}`
+    : "Peer runtime not ready.";
   const resolverConnected = resolverAuthState?.connected === true;
   const resolverStatusLabel = resolverConnected
     ? `Connected to ${resolverAuthState?.sourceBaseUrl ?? shellInfo?.borealWebBaseUrl ?? "Boreal web"}`
@@ -2231,6 +2409,10 @@ export function App() {
         ? "Bridge failed"
         : "Bridge stopped";
   const environmentDetails = [
+    {
+      label: "Peer store",
+      value: peerHostState?.storePath ?? "Unavailable",
+    },
     {
       label: "Codex CLI",
       value: shellInfo?.codexCliVersion ?? "Unavailable",
@@ -2282,6 +2464,71 @@ export function App() {
                 <p className="mt-2 text-xs text-muted-foreground">
                   {workerIdentityMeta}
                 </p>
+              </section>
+
+              <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Peer runtime
+                </p>
+                <p className="mt-2 text-sm font-medium text-foreground">
+                  {peerHostStatusLabel}
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Embedded Hyperswarm host for Boreal desktop runtime identity and future request-bound peer lanes.
+                </p>
+                <div className="mt-3 space-y-2 rounded-lg border border-border/70 bg-background/50 px-3 py-3 text-xs">
+                  <div>
+                    <p className="font-medium text-muted-foreground">Fingerprint</p>
+                    <p className="mt-1 break-all text-foreground">
+                      {peerHostState?.fingerprint ?? runtimeIdentityLabel}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">Control topic</p>
+                    <p className="mt-1 break-all text-foreground">
+                      {peerHostState?.controlTopicHex ??
+                        shellInfo?.runtimeIdentity?.controlTopicHex ??
+                        "Unavailable"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">Listening since</p>
+                    <p className="mt-1 break-all text-foreground">
+                      {peerHostState?.listeningAt
+                        ? formatTimestamp(peerHostState.listeningAt)
+                        : "Not listening"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">Request topics</p>
+                    <p className="mt-1 break-all text-foreground">
+                      {peerHostState?.requestTopicCount ?? 0}
+                    </p>
+                  </div>
+                  {peerHostState?.lastError ? (
+                    <div>
+                      <p className="font-medium text-muted-foreground">Last error</p>
+                      <p className="mt-1 break-all text-amber-200">
+                        {peerHostState.lastError}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => void handleRestartPeerHost()}
+                    disabled={isRestartingPeerHost}
+                    className="w-full"
+                  >
+                    {isRestartingPeerHost ? (
+                      <Spinner className="size-4" />
+                    ) : (
+                      <RefreshCwIcon className="size-4" />
+                    )}
+                    Restart peer runtime
+                  </Button>
+                </div>
               </section>
 
               <section className="rounded-xl border border-border/80 bg-card/60 px-4 py-4">
@@ -2653,6 +2900,19 @@ export function App() {
 
       if (typeof desktop.onEphemeralEvent === "function") {
         unsubscribeRaw = desktop.onEphemeralEvent((envelope) => {
+          if (envelope.channelKind === "presence") {
+            const runtime =
+              envelope.payload &&
+              typeof envelope.payload === "object" &&
+              typeof envelope.payload.runtime === "string"
+                ? envelope.payload.runtime
+                : null;
+
+            if (runtime === "peer") {
+              void refreshShellInfo().catch(() => undefined);
+            }
+          }
+
           if (envelope.requestId !== activeRequestIdRef.current) {
             return;
           }
@@ -3823,6 +4083,32 @@ export function App() {
       );
     } finally {
       setIsRestartingLocalhostBridge(false);
+    }
+  }
+
+  async function handleRestartPeerHost() {
+    if (isRestartingPeerHost) {
+      return;
+    }
+
+    setIsRestartingPeerHost(true);
+    setError(null);
+
+    try {
+      await getDesktopBridge().restartPeerHost();
+      await refreshShellInfo();
+      setNotice({
+        message: "Peer runtime restarted.",
+        tone: "success",
+      });
+    } catch (nextError) {
+      setError(
+        nextError instanceof Error
+          ? nextError.message
+          : "Failed to restart peer runtime.",
+      );
+    } finally {
+      setIsRestartingPeerHost(false);
     }
   }
 

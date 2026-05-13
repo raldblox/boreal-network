@@ -83,6 +83,7 @@ Today, the machine-readable baseline proves:
 - the repo is structured to host governed JS or TS workspaces under shared workspace discovery rules
 - one complex human-led request can be evaluated deterministically across extraction, planning, matching, and policy outputs
 - one desktop-local browser bridge can expose ephemeral SSE events from Electron main over `127.0.0.1` with session-token and localhost-origin checks
+- one runnable Pear or Hyperswarm peer foundation now exists under `apps/peer/` and `packages/network-*`, with a real peer keypair, control-topic host, and desktop-embedded peer runtime status
 
 ## Target Direction
 
@@ -96,7 +97,6 @@ These are intended next layers, not fully modeled proof yet:
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
 - peer-facing ephemeral realtime lanes beyond the local desktop-main hub
 - peer-capable runtime identity bound through resolver approval without replacing Boreal actor identity
-- Pear or Holepunch family peer foundation under `apps/peer/` and `packages/network-*`
 - additional runnable workspaces such as `apps/mobile/`, `apps/extension/`, `apps/peer-*`, and `apps/gateway-*`
 - shared libraries under `packages/`
 - agent skills under `skills/`

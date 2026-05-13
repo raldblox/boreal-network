@@ -42,6 +42,7 @@ These files define how the canon stays aligned and how parallel work is kept saf
 - [EVALS.md](EVALS.md)
 
 Active workspace and shared-package activation still has to land through `README.md`, `REPO_STRUCTURE.md`, `WORKSTREAMS.md`, `OWNERSHIP.md`, and local workspace guardrails in the same patch.
+That now also applies to the active peer-foundation workspaces under `apps/peer/` and `packages/network-*`.
 
 ## Decisions
 

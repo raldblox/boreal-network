@@ -23,8 +23,8 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop does not expose interactive Codex approval prompts yet, so the current runtime presets keep approval on `never`
 - auto-resolve for owned private requests stays on its safer read-only lane even if chat runtime is set to `Full`
 - desktop uses `.boreal-work` as its app-owned home for local chat state only
-- desktop now also keeps a stable local runtime identity under `.boreal-work/desktop/` and shows that `Desktop runtime ID` in the UI
-- that runtime identity is local-only and pre-peer for now; it is not yet a live Pear or Hyperswarm network identity
+- desktop now keeps a real peer-backed runtime identity under `.boreal-work/desktop/peer-runtime.json` and shows that `Desktop runtime ID` in the UI
+- desktop main now starts an embedded Hyperswarm peer host and upgrades that same runtime identity to a live peer-ready key without exposing actor auth as peer identity
 
 ## Initial Stack
 
@@ -70,6 +70,7 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - desktop shows live turn status, compact command/reasoning activity, and early assistant text when the local Codex stream exposes it
 - desktop phase 1 of `0008` is now a local-only ephemeral stream bus in Electron main for typing submission, token deltas, progress, heartbeats, presence, transient runtime logs, and tool output summaries
 - desktop phase 2 now also starts a localhost-only SSE bridge on `127.0.0.1` for browser-visible ephemeral events, guarded by a random desktop session token and localhost-origin checks
+- desktop now also starts an embedded Pear or Hyperswarm peer runtime in Electron main, listens on the Boreal control topic, and surfaces live peer status in desktop settings
 - chat history and thread selection stay local-only under `.boreal-work` and are not synced to Boreal backend by default
 - that ephemeral lane is not durable Boreal truth by default and does not create request history unless later work explicitly promotes a business-relevant outcome
 - the bridge stays transport-only and does not create durable Boreal request history by itself
@@ -81,7 +82,8 @@ This workspace is the Windows-first Electron desktop shell inside the Boreal mon
 - this machine currently defaults to software rendering because Electron GPU startup can crash on some Windows setups here; if you want to test hardware rendering after fixing that environment issue, launch with `BOREAL_DESKTOP_ENABLE_GPU=1`
 - if the desktop should read a non-default Boreal web origin, set `BOREAL_DESKTOP_WEB_BASE_URL`; otherwise it defaults to `http://127.0.0.1:3000`
 - localhost bridge status, SSE URL, and restart control now appear in desktop settings
-- localhost browser bridging and peer runtime transport remain later `0008` phases and are now gated by `0009`
+- peer runtime status, control topic, request-topic count, and restart control now also appear in desktop settings
+- peer foundation is live, but peer transport still does not replace Boreal request truth, browser surfaces still use the localhost bridge, and Hyperdrive remains deferred
 
 ## Commands
 

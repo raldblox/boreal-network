@@ -15,3 +15,5 @@ Child workspaces here must inherit root canon and avoid redefining business sema
 ## Current Active Workspaces
 
 - `ui/`
+- `network-core/`
+- `network-hyperswarm/`

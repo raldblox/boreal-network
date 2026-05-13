@@ -101,10 +101,13 @@ contextBridge.exposeInMainWorld("borealDesktop", {
   getWorkspaceState: () => ipcRenderer.invoke("desktop:get-workspace-state"),
   restartLocalhostBridge: () =>
     ipcRenderer.invoke("desktop:restart-localhost-bridge"),
+  restartPeerHost: () => ipcRenderer.invoke("desktop:restart-peer-host"),
   listPublicRequests: (payload) =>
     ipcRenderer.invoke("desktop:list-public-requests", payload),
   listOwnedRequests: (payload) =>
     ipcRenderer.invoke("desktop:list-owned-requests", payload),
+  listOwnedSupplies: (payload) =>
+    ipcRenderer.invoke("desktop:list-owned-supplies", payload),
   getLocalChatState: (payload) =>
     ipcRenderer.invoke("desktop:get-local-chat-state", payload),
   pollResolverAuth: () => ipcRenderer.invoke("desktop:poll-resolver-auth"),
@@ -117,6 +120,8 @@ contextBridge.exposeInMainWorld("borealDesktop", {
   savePreferences: (payload) =>
     ipcRenderer.invoke("desktop:save-preferences", payload),
   sendMessage: (payload) => ipcRenderer.invoke("desktop:send-message", payload),
+  updateRequestRouting: (payload) =>
+    ipcRenderer.invoke("desktop:update-request-routing", payload),
   updateFulfillment: (payload) =>
     ipcRenderer.invoke("desktop:update-fulfillment", payload),
   onEphemeralEvent: (listener) =>

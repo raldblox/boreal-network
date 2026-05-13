@@ -99,6 +99,24 @@ Rules:
 - native access must stay behind preload-safe IPC boundaries
 - shared UI belongs in `packages/ui/*`, not duplicated inside `apps/desktop/*`
 
+### `peer-foundation`
+
+Write scope:
+
+- `apps/peer/*`
+
+Purpose:
+
+- Boreal peer broker host
+- Hyperswarm runtime entrypoint
+- peer-local storage and connection orchestration
+
+Rules:
+
+- peer transport is not durable Boreal truth
+- runtime identity must stay separate from Boreal actor identity
+- peer host code should reuse `packages/network-*` instead of duplicating transport helpers
+
 ### `packages-foundation`
 
 Write scope:
@@ -116,6 +134,23 @@ Rules:
 
 - may run in parallel with app work when package ownership is explicit
 - must not redefine root semantic contracts
+
+### `network-packages`
+
+Write scope:
+
+- `packages/network-*`
+
+Purpose:
+
+- runtime identity helpers
+- peer topic and routing helpers
+- Hyperswarm transport adapters
+
+Rules:
+
+- package code must stay transport-focused and must not redefine Boreal business semantics
+- browser or desktop surfaces should consume these packages instead of embedding peer protocol details ad hoc
 
 ### `ui-package`
 

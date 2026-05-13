@@ -128,6 +128,9 @@ Verify:
 - desktop auto-resolve should create durable fulfillment and artifact events even when it skips commitment creation
 - desktop tracked-request execution should bind one local thread to one selected `Request` and optional `Fulfillment` lane without syncing the full local transcript by default
 - desktop localhost bridge should bind to `127.0.0.1` only, require a valid session token, and reject non-localhost origins
+- desktop peer runtime should create or reuse one stable peer keypair under `.boreal-work/desktop/peer-runtime.json`
+- desktop peer runtime should listen on the Boreal control topic and expose its listening state without changing Boreal actor identity semantics
+- request-bound desktop turns should be able to join a Boreal request topic through the embedded peer host without promoting peer transport state into durable request truth
 - timeline cards should be reconstructible from `RequestEvent` plus related object refs
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work

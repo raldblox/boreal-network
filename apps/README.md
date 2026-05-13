@@ -6,6 +6,7 @@ This namespace holds Boreal's runnable product and operator surfaces.
 
 - `web/`
 - `desktop/`
+- `peer/`
 
 ## Rules
 

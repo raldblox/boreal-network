@@ -1,8 +1,9 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { ensurePeerRuntimeIdentity } from "@boreal/network-core";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "../../../../");
@@ -10,7 +11,6 @@ const APP_HOME_DIR = path.join(os.homedir(), ".boreal-work");
 const DESKTOP_HOME_DIR = path.join(APP_HOME_DIR, "desktop");
 const CHAT_STATE_PATH = path.join(DESKTOP_HOME_DIR, "chat-state.json");
 const LEGACY_CHAT_STATE_DIR = path.join(DESKTOP_HOME_DIR, "chat-state");
-const RUNTIME_IDENTITY_PATH = path.join(DESKTOP_HOME_DIR, "runtime-identity.json");
 const SETTINGS_PATH = path.join(DESKTOP_HOME_DIR, "settings.json");
 const CHAT_PROJECT = Object.freeze({
   createdAt: "2026-05-12T00:00:00.000Z",
@@ -28,6 +28,7 @@ const DEFAULT_CHAT_STATE = {
 };
 const DEFAULT_DESKTOP_SETTINGS = {
   autoResolveOwnedPrivate: false,
+  autoResolveSupplyId: null,
   defaultModel: "",
   defaultReasoning: "",
   runtimeAdditionalWritableRoots: [],
@@ -164,69 +165,22 @@ async function writeJsonFile(filePath, value) {
   await fs.writeFile(filePath, JSON.stringify(value, null, 2), "utf8");
 }
 
-async function ensureRuntimeIdentity() {
-  await ensureDesktopHome();
-
-  const parsed = await readJsonFile(RUNTIME_IDENTITY_PATH, null);
-  const normalized = normalizeRuntimeIdentity(parsed);
-
-  if (normalized) {
-    return normalized;
-  }
-
-  const created = createRuntimeIdentityRecord();
-  await writeJsonFile(RUNTIME_IDENTITY_PATH, created);
-  return created;
-}
-
 function sanitizeIsoDate(value, fallbackValue) {
   return typeof value === "string" && value.trim().length > 0
     ? value
     : fallbackValue;
 }
 
+function sanitizeOptionalIdentifier(value) {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
+}
+
 function buildRuntimeIdShort(value) {
   return typeof value === "string" && value.length > 16
     ? `${value.slice(0, 8)}...${value.slice(-8)}`
     : value;
-}
-
-function normalizeRuntimeIdentity(value) {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  const id =
-    typeof value.id === "string" && value.id.trim().length >= 32
-      ? value.id.trim()
-      : null;
-
-  if (!id) {
-    return null;
-  }
-
-  return {
-    createdAt: sanitizeIsoDate(value.createdAt, new Date().toISOString()),
-    id,
-    peerReady: false,
-    scope: "local-only",
-    shortId:
-      typeof value.shortId === "string" && value.shortId.trim().length > 0
-        ? value.shortId.trim()
-        : buildRuntimeIdShort(id),
-  };
-}
-
-function createRuntimeIdentityRecord() {
-  const id = randomBytes(32).toString("hex");
-
-  return {
-    createdAt: new Date().toISOString(),
-    id,
-    peerReady: false,
-    scope: "local-only",
-    shortId: buildRuntimeIdShort(id),
-  };
 }
 
 function sanitizeLocalMessage(message) {
@@ -619,6 +573,7 @@ export async function readDesktopSettings() {
   const runtimeSettings = normalizeRuntimeSettings(parsed);
   return {
     autoResolveOwnedPrivate: parsed?.autoResolveOwnedPrivate === true,
+    autoResolveSupplyId: sanitizeOptionalIdentifier(parsed?.autoResolveSupplyId),
     defaultModel:
       typeof parsed?.defaultModel === "string"
         ? parsed.defaultModel
@@ -653,6 +608,11 @@ export async function writeDesktopSettings(nextSettings) {
       typeof nextSettings?.autoResolveOwnedPrivate === "boolean"
         ? nextSettings.autoResolveOwnedPrivate
         : current.autoResolveOwnedPrivate,
+    autoResolveSupplyId:
+      nextSettings?.autoResolveSupplyId === null
+        ? null
+        : sanitizeOptionalIdentifier(nextSettings?.autoResolveSupplyId) ??
+          current.autoResolveSupplyId,
     defaultModel:
       typeof nextSettings?.defaultModel === "string"
         ? nextSettings.defaultModel
@@ -682,6 +642,7 @@ export async function getDesktopProjectState() {
 
   return {
     autoResolveOwnedPrivate: settings.autoResolveOwnedPrivate,
+    autoResolveSupplyId: settings.autoResolveSupplyId,
     defaultModel: settings.defaultModel,
     defaultReasoning: settings.defaultReasoning,
     ...homePaths,
@@ -697,7 +658,32 @@ export async function getDesktopProjectState() {
 }
 
 export async function getDesktopRuntimeIdentity() {
-  return ensureRuntimeIdentity();
+  const { desktopHomePath } = await ensureDesktopHome();
+  const runtimeIdentity = await ensurePeerRuntimeIdentity({
+    desktopHomePath,
+    runtimeLabel: "Boreal Desktop",
+  });
+
+  return {
+    controlTopicHex: runtimeIdentity.controlTopicHex,
+    createdAt: sanitizeIsoDate(
+      runtimeIdentity.createdAt,
+      new Date().toISOString(),
+    ),
+    id: runtimeIdentity.publicKeyHex,
+    keyAlgorithm: runtimeIdentity.keyAlgorithm,
+    peerReady: runtimeIdentity.peerReady === true,
+    scope: "peer-runtime",
+    shortId:
+      typeof runtimeIdentity.fingerprint === "string" &&
+      runtimeIdentity.fingerprint.trim().length > 0
+        ? runtimeIdentity.fingerprint.trim()
+        : buildRuntimeIdShort(runtimeIdentity.publicKeyHex),
+    updatedAt: sanitizeIsoDate(
+      runtimeIdentity.updatedAt,
+      runtimeIdentity.createdAt,
+    ),
+  };
 }
 
 export async function getDesktopProjectById() {
@@ -707,6 +693,7 @@ export async function getDesktopProjectById() {
 
 export async function saveDesktopPreferences({
   autoResolveOwnedPrivate,
+  autoResolveSupplyId,
   defaultModel,
   defaultReasoning,
   runtimeAdditionalWritableRoots,
@@ -718,6 +705,9 @@ export async function saveDesktopPreferences({
   return writeDesktopSettings({
     ...(typeof autoResolveOwnedPrivate === "boolean"
       ? { autoResolveOwnedPrivate }
+      : {}),
+    ...(autoResolveSupplyId === null || typeof autoResolveSupplyId === "string"
+      ? { autoResolveSupplyId }
       : {}),
     defaultModel:
       typeof defaultModel === "string" ? defaultModel : DEFAULT_DESKTOP_SETTINGS.defaultModel,

@@ -78,6 +78,30 @@ Owner responsibilities:
 - desktop-local commands and packaging shape
 - renderer integration with shared UI
 
+### Peer workspace zone
+
+Write scope:
+
+- `apps/peer/*`
+
+Owner responsibilities:
+
+- peer broker runtime entrypoint
+- peer-local storage layout
+- transport host lifecycle and connection policy
+
+### Network packages zone
+
+Write scope:
+
+- `packages/network-*`
+
+Owner responsibilities:
+
+- shared runtime identity helpers
+- peer topic and routing helpers
+- transport adapters and reusable peer code
+
 ### UI package zone
 
 Write scope:

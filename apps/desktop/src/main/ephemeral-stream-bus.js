@@ -17,6 +17,7 @@ const KNOWN_CHANNEL_KINDS = new Set([
 const KNOWN_SOURCES = new Set([
   "codex-runtime",
   "desktop-main",
+  "peer-runtime",
   "resolver-runtime",
 ]);
 

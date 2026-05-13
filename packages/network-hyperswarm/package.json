@@ -1,0 +1,19 @@
+{
+  "name": "@boreal/network-hyperswarm",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared Hyperswarm-based peer host adapter for Boreal.",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "build": "node --check ./src/index.js"
+  },
+  "dependencies": {
+    "@boreal/network-core": "workspace:*",
+    "corestore": "^7.9.2",
+    "hyperbee": "^2.27.3",
+    "hyperswarm": "^4.17.0"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@boreal/network-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared peer-runtime identity, topic, and routing helpers for Boreal.",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "build": "node --check ./src/index.js"
+  },
+  "dependencies": {
+    "hyperdht": "^6.32.0"
+  }
+}

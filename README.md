@@ -73,7 +73,10 @@ Current activated workspaces:
 
 - `apps/web/` is the first governed implementation workspace.  Its initial baseline is now locked to `Next.js App Router` using the `Vercel Chatbot` starting scaffold with `Auth.js`, `Neon Postgres`, `Drizzle`, and `shadcn/ui`.
 - `apps/desktop/` is the Windows-first Electron desktop shell for Boreal's local operator and private execution surface.  It stays an execution participant, not a second system of record.
+- `apps/peer/` is the first runnable Pear or Hyperswarm peer-broker foundation.  It is a transport participant and runtime broker, not Boreal request truth.
 - `packages/ui/` is the shared React and Tailwind component package for reusable Boreal UI primitives and theme styles across web and desktop.
+- `packages/network-core/` is the shared runtime-identity, topic, and routing helper package for Boreal peer work.
+- `packages/network-hyperswarm/` is the shared Hyperswarm, Corestore, and Hyperbee transport adapter package for the first peer foundation.
 
 Name workspaces by role, not vague infra labels.
 Prefer names like `peer`, `gateway-http`, `telegram-bot`, `desktop`, `cli`, and `marketing-site`.
