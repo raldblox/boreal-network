@@ -35,6 +35,8 @@ import {
   getRequestTitle,
   renderRequestDocumentJson,
   type RequestActorRef,
+  type RequestArtifactContainer,
+  type RequestArtifactDocumentKind,
   type RequestArtifactKind,
   type RequestFulfillmentStep,
   type RequestPatch,
@@ -482,21 +484,22 @@ export async function publishArtifactForRequest({
   chatId,
   actorUserId,
   artifactKind,
-  documentKind,
   title,
   summary,
-  content,
+  fulfillmentId,
+  stepId,
   dataStream,
+  ...artifactInput
 }: {
   chatId: string;
   actorUserId: string;
   artifactKind: RequestArtifactKind;
-  documentKind: "text" | "code" | "image" | "sheet";
   title: string;
   summary?: string;
-  content: string;
+  fulfillmentId?: string;
+  stepId?: string;
   dataStream?: UIMessageStreamWriter<ChatMessage>;
-}) {
+} & PublishArtifactInput) {
   const existingRequest = await getRequestByChatId({ chatId });
   if (!existingRequest) {
     throw new Error("Request not found");
@@ -506,38 +509,56 @@ export async function publishArtifactForRequest({
     requestId: existingRequest.id,
     actorUserId,
     artifactKind,
-    documentKind,
     title,
     summary,
-    content,
+    fulfillmentId,
+    stepId,
+    ...artifactInput,
     dataStream,
     source: "tool.publish_artifact",
   });
 }
 
+type PublishArtifactDocumentInput = {
+  content: string;
+  container?: never;
+  documentKind: RequestArtifactDocumentKind;
+};
+
+type PublishArtifactReferenceInput = {
+  container: Exclude<RequestArtifactContainer, { kind: "document" }>;
+  content?: never;
+  documentKind?: never;
+};
+
+type PublishArtifactInput =
+  | PublishArtifactDocumentInput
+  | PublishArtifactReferenceInput;
+
 export async function publishArtifactForRequestById({
   requestId,
   actorUserId,
   artifactKind,
-  documentKind,
   title,
   summary,
-  content,
+  fulfillmentId,
+  stepId,
   dataStream,
   idempotencyKey,
   source = "api.requests.artifacts.create",
+  ...artifactInput
 }: {
   requestId: string;
   actorUserId: string;
   artifactKind: RequestArtifactKind;
-  documentKind: "text" | "code" | "image" | "sheet";
   title: string;
   summary?: string;
-  content: string;
+  fulfillmentId?: string;
+  stepId?: string;
   dataStream?: UIMessageStreamWriter<ChatMessage>;
   idempotencyKey?: string;
   source?: string;
-}) {
+} & PublishArtifactInput) {
   const existingRequest = await getRequestById({ id: requestId });
   if (!existingRequest) {
     throw new Error("Request not found");
@@ -552,28 +573,65 @@ export async function publishArtifactForRequestById({
     throw new Error("Forbidden");
   }
 
-  if (isExecutionArtifactKind(artifactKind)) {
-    const activeFulfillment = requestDraft.activeRefs.activeFulfillmentId
-      ? await getFulfillmentById({
-          id: requestDraft.activeRefs.activeFulfillmentId,
-        })
-      : null;
-    const activeCommitment = requestDraft.activeRefs.activeCommitmentId
-      ? await getCommitmentById({
-          id: requestDraft.activeRefs.activeCommitmentId,
-        })
-      : null;
-    const isOwner = requestDraft.ownerId === actorUserId;
-    const isFulfillmentActor = activeFulfillment
-      ? activeFulfillment.lead.id === actorUserId ||
-        activeFulfillment.contributors.some(
-          (contributor) => contributor.id === actorUserId
-        )
-      : false;
-    const isAcceptedCommitmentActor =
-      activeCommitment?.status === "accepted" &&
-      activeCommitment.proposedBy.id === actorUserId;
+  const activeFulfillment = requestDraft.activeRefs.activeFulfillmentId
+    ? await getFulfillmentById({
+        id: requestDraft.activeRefs.activeFulfillmentId,
+      })
+    : null;
+  const activeCommitment = requestDraft.activeRefs.activeCommitmentId
+    ? await getCommitmentById({
+        id: requestDraft.activeRefs.activeCommitmentId,
+      })
+    : null;
+  const isOwner = requestDraft.ownerId === actorUserId;
+  const requestedFulfillmentId = fulfillmentId?.trim() || undefined;
+  const targetFulfillmentId =
+    requestedFulfillmentId ??
+    (isExecutionArtifactKind(artifactKind)
+      ? activeFulfillment?.id
+      : undefined);
+  const targetFulfillment =
+    targetFulfillmentId == null
+      ? null
+      : activeFulfillment?.id === targetFulfillmentId
+        ? activeFulfillment
+        : await getFulfillmentById({
+            id: targetFulfillmentId,
+          });
 
+  if (targetFulfillment && targetFulfillment.requestId !== requestDraft.id) {
+    throw new Error("Fulfillment does not belong to request");
+  }
+
+  if (targetFulfillmentId && !targetFulfillment) {
+    throw new Error("Fulfillment not found");
+  }
+
+  const isFulfillmentActor = targetFulfillment
+    ? targetFulfillment.lead.id === actorUserId ||
+      targetFulfillment.contributors.some(
+        (contributor) => contributor.id === actorUserId
+      )
+    : false;
+  const isAcceptedCommitmentActor =
+    activeCommitment?.status === "accepted" &&
+    activeCommitment.proposedBy.id === actorUserId;
+
+  if (requestedFulfillmentId && !isOwner && !isFulfillmentActor) {
+    throw new Error("Fulfillment lane requires lane actor");
+  }
+
+  if (stepId?.trim()) {
+    if (!targetFulfillment) {
+      throw new Error("Fulfillment step requires fulfillment lane");
+    }
+
+    if (!targetFulfillment.steps.some((step) => step.id === stepId.trim())) {
+      throw new Error("Fulfillment step not found");
+    }
+  }
+
+  if (isExecutionArtifactKind(artifactKind)) {
     if (!isOwner && !isFulfillmentActor && !isAcceptedCommitmentActor) {
       throw new Error("Execution artifact requires accepted lane");
     }
@@ -599,16 +657,25 @@ export async function publishArtifactForRequestById({
         return {
           requestId: requestDraft.id,
           artifactId: existingArtifact.id,
-          documentId:
-            existingArtifact.container.kind === "document"
-              ? existingArtifact.container.documentId
-              : "",
+          ...(existingArtifact.fulfillmentId
+            ? {
+                fulfillmentId: existingArtifact.fulfillmentId,
+              }
+            : {}),
+          ...(existingArtifact.stepId
+            ? {
+                stepId: existingArtifact.stepId,
+              }
+            : {}),
+          ...(existingArtifact.container.kind === "document"
+            ? {
+                documentId: existingArtifact.container.documentId,
+                kind: existingArtifact.container.documentKind,
+              }
+            : {}),
           title: existingArtifact.title,
           summary: existingArtifact.summary ?? undefined,
-          kind:
-            existingArtifact.container.kind === "document"
-              ? existingArtifact.container.documentKind
-              : "text",
+          container: existingArtifact.container,
           artifactKind: existingArtifact.kind,
           requestStatus: requestDraft.status,
         };
@@ -616,32 +683,101 @@ export async function publishArtifactForRequestById({
     }
   }
 
-  const documentId = generateUUID();
   const artifactId = generateUUID();
   const correlationId = generateUUID();
+  const normalizedStepId = stepId?.trim() || undefined;
+  let documentPayload:
+    | { content: string; documentKind: RequestArtifactDocumentKind }
+    | null = null;
+  let documentId: string | undefined;
+  let artifactContainer: RequestArtifactContainer;
 
-  await saveDocument({
-    id: documentId,
-    title,
-    content,
-    kind: documentKind,
-    userId: actorUserId,
-  });
+  if ("content" in artifactInput) {
+    if (
+      typeof artifactInput.content !== "string" ||
+      artifactInput.content.trim().length === 0 ||
+      artifactInput.documentKind == null
+    ) {
+      throw new Error("Artifact content or container is required");
+    }
+
+    const content = artifactInput.content;
+    const documentKind = artifactInput.documentKind;
+    documentId = generateUUID();
+    documentPayload = {
+      content,
+      documentKind,
+    };
+
+    await saveDocument({
+      id: documentId,
+      title,
+      content,
+      kind: documentKind,
+      userId: actorUserId,
+    });
+
+    artifactContainer = {
+      kind: "document",
+      documentId,
+      documentKind,
+    };
+  } else if ("container" in artifactInput && artifactInput.container) {
+    artifactContainer = artifactInput.container;
+  } else {
+    throw new Error("Artifact content or container is required");
+  }
 
   const createdArtifact = await saveArtifactRecord({
     id: artifactId,
     key: buildObjectKey("artifact", title, artifactId),
     requestId: requestDraft.id,
+    fulfillmentId: targetFulfillment?.id ?? null,
     kind: artifactKind,
+    stepId: normalizedStepId,
     title,
     summary,
-    container: {
-      kind: "document",
-      documentId,
-      documentKind,
-    },
+    container: artifactContainer,
     createdBy: actor,
   });
+
+  if (
+    targetFulfillment &&
+    !targetFulfillment.artifactIds.includes(createdArtifact.id)
+  ) {
+    await updateFulfillmentById({
+      id: targetFulfillment.id,
+      status: targetFulfillment.status,
+      summary: targetFulfillment.summary,
+      artifactIds: [...targetFulfillment.artifactIds, createdArtifact.id],
+      steps: targetFulfillment.steps,
+      contributors: targetFulfillment.contributors,
+      ...(targetFulfillment.metadata
+        ? { metadata: targetFulfillment.metadata }
+        : {}),
+      ...(targetFulfillment.readyAt !== null
+        ? { readyAt: targetFulfillment.readyAt }
+        : {}),
+      ...(targetFulfillment.startedAt !== null
+        ? { startedAt: targetFulfillment.startedAt }
+        : {}),
+      ...(targetFulfillment.blockedAt !== null
+        ? { blockedAt: targetFulfillment.blockedAt }
+        : {}),
+      ...(targetFulfillment.deliveredAt !== null
+        ? { deliveredAt: targetFulfillment.deliveredAt }
+        : {}),
+      ...(targetFulfillment.acceptedAt !== null
+        ? { acceptedAt: targetFulfillment.acceptedAt }
+        : {}),
+      ...(targetFulfillment.cancelledAt !== null
+        ? { cancelledAt: targetFulfillment.cancelledAt }
+        : {}),
+      ...(targetFulfillment.failedAt !== null
+        ? { failedAt: targetFulfillment.failedAt }
+        : {}),
+    });
+  }
 
   const nextDraft = await persistRequestProjectionPatch({
     requestId: requestDraft.id,
@@ -679,7 +815,11 @@ export async function publishArtifactForRequestById({
       requestStatus: nextDraft.status,
       artifact: {
         id: createdArtifact.id,
+        ...(createdArtifact.fulfillmentId
+          ? { fulfillmentId: createdArtifact.fulfillmentId }
+          : {}),
         kind: createdArtifact.kind,
+        ...(createdArtifact.stepId ? { stepId: createdArtifact.stepId } : {}),
         title: createdArtifact.title,
         summary: createdArtifact.summary ?? undefined,
         container: createdArtifact.container,
@@ -688,23 +828,32 @@ export async function publishArtifactForRequestById({
     occurredAt: now,
   });
 
-  if (dataStream) {
+  if (dataStream && documentId && documentPayload) {
     streamDocumentToArtifact({
       dataStream,
       documentId,
       title,
-      kind: documentKind,
-      content,
+      kind: documentPayload.documentKind,
+      content: documentPayload.content,
     });
   }
 
   return {
     requestId: requestDraft.id,
     artifactId: createdArtifact.id,
-    documentId,
+    ...(createdArtifact.fulfillmentId
+      ? { fulfillmentId: createdArtifact.fulfillmentId }
+      : {}),
+    ...(createdArtifact.stepId ? { stepId: createdArtifact.stepId } : {}),
+    ...(documentId && documentPayload
+      ? {
+          documentId,
+          kind: documentPayload.documentKind,
+        }
+      : {}),
     title: createdArtifact.title,
     summary: createdArtifact.summary ?? undefined,
-    kind: documentKind,
+    container: createdArtifact.container,
     artifactKind: createdArtifact.kind,
     requestStatus: nextDraft.status,
   };

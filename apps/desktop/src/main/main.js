@@ -33,6 +33,7 @@ import {
   ensureDesktopHome,
   getDesktopProjectById,
   getDesktopProjectState,
+  getDesktopRuntimeIdentity,
   readDesktopSettings,
   readLocalChatState,
   saveDesktopPreferences,
@@ -472,6 +473,7 @@ ipcMain.handle("desktop:get-shell-info", async () => ({
   codexCliVersion: await getCodexCliVersion(),
   name: "Boreal Desktop",
   platform: process.platform,
+  runtimeIdentity: await getDesktopRuntimeIdentity(),
   versions: {
     chrome: process.versions.chrome,
     electron: process.versions.electron,
@@ -642,6 +644,8 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
         additionalWritableRoots:
           settings.runtimeAdditionalWritableRoots,
         approvalPolicy: settings.runtimeApprovalPolicy,
+        conversationKey:
+          typeof payload?.threadId === "string" ? payload.threadId : "",
         networkAccess: settings.runtimeNetworkAccess,
         onEvent: (streamEvent) => {
           ephemeralBus.publishCodexStreamEvent(
@@ -654,6 +658,10 @@ ipcMain.handle("desktop:send-message", async (event, payload) =>
           );
         },
         sandboxMode: settings.runtimeSandboxMode,
+        trackedRequest:
+          payload?.trackedRequest && typeof payload.trackedRequest === "object"
+            ? payload.trackedRequest
+            : null,
         workspaceRoot: project.rootPath,
       });
 

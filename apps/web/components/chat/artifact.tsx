@@ -111,12 +111,13 @@ function PureArtifact({
     documents && documents.length > 0
       ? currentVersionIndex === documents.length - 1
       : true;
-  const isActiveRequestArtifact =
-    activeRequest?.documentId === artifact.documentId;
+  const isOpenRequestRoom = Boolean(
+    activeRequest && activeRequest.status !== "draft"
+  );
   const isArtifactReadonly =
     isReadonly ||
     !isCurrentVersion ||
-    (isActiveRequestArtifact && activeRequest?.status !== "draft");
+    isOpenRequestRoom;
 
   const { state: sidebarState } = useSidebar();
   const artifactContentRef = useRef<HTMLDivElement>(null);

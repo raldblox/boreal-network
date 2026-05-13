@@ -1427,7 +1427,9 @@ export async function saveArtifactRecord({
   id,
   key,
   requestId,
+  fulfillmentId,
   kind,
+  stepId,
   title,
   summary,
   container,
@@ -1436,7 +1438,9 @@ export async function saveArtifactRecord({
   id: string;
   key: string;
   requestId: string;
+  fulfillmentId?: string | null;
   kind: RequestArtifactKind;
+  stepId?: string;
   title: string;
   summary?: string;
   container: RequestArtifactContainer;
@@ -1449,7 +1453,9 @@ export async function saveArtifactRecord({
         id,
         key,
         requestId,
+        fulfillmentId: fulfillmentId ?? null,
         kind,
+        ...(stepId ? { stepId } : {}),
         title,
         summary,
         container,
@@ -1707,7 +1713,17 @@ function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntr
       normalizeObject(artifactPayload.container)
         ? {
             id: String(artifactPayload.id),
+            ...(normalizeOptionalString(artifactPayload.fulfillmentId)
+              ? {
+                  fulfillmentId: String(artifactPayload.fulfillmentId),
+                }
+              : {}),
             kind: artifactPayload.kind as RequestArtifactKind,
+            ...(normalizeOptionalString(artifactPayload.stepId)
+              ? {
+                  stepId: String(artifactPayload.stepId),
+                }
+              : {}),
             title: String(artifactPayload.title),
             summary: normalizeOptionalString(artifactPayload.summary),
             container: normalizeArtifactContainer(
@@ -1751,10 +1767,98 @@ function normalizeCommitmentTerms(
 function normalizeArtifactContainer(
   container: Record<string, unknown>
 ): RequestArtifactContainer {
+  const kind =
+    typeof container.kind === "string" ? container.kind : "document";
+
+  if (kind === "external_ref") {
+    return {
+      kind: "external_ref",
+      uri: String(container.uri ?? ""),
+      ...(normalizeOptionalString(container.mediaKind)
+        ? {
+            mediaKind: container.mediaKind as RequestArtifactContainer["mediaKind"],
+          }
+        : {}),
+      ...(normalizeOptionalString(container.mimeType)
+        ? { mimeType: String(container.mimeType) }
+        : {}),
+      ...(normalizeOptionalString(container.filename)
+        ? { filename: String(container.filename) }
+        : {}),
+      ...(normalizeOptionalNumber(container.byteSize) !== undefined
+        ? { byteSize: normalizeOptionalNumber(container.byteSize) }
+        : {}),
+      ...(normalizeOptionalString(container.sha256)
+        ? { sha256: String(container.sha256) }
+        : {}),
+      ...(normalizeOptionalString(container.previewDocumentId)
+        ? { previewDocumentId: String(container.previewDocumentId) }
+        : {}),
+    };
+  }
+
+  if (kind === "object_ref") {
+    return {
+      kind: "object_ref",
+      objectKey: String(container.objectKey ?? ""),
+      storageProvider: String(container.storageProvider ?? ""),
+      ...(normalizeOptionalString(container.storageBucket)
+        ? { storageBucket: String(container.storageBucket) }
+        : {}),
+      ...(normalizeOptionalString(container.mediaKind)
+        ? {
+            mediaKind: container.mediaKind as RequestArtifactContainer["mediaKind"],
+          }
+        : {}),
+      ...(normalizeOptionalString(container.mimeType)
+        ? { mimeType: String(container.mimeType) }
+        : {}),
+      ...(normalizeOptionalString(container.filename)
+        ? { filename: String(container.filename) }
+        : {}),
+      ...(normalizeOptionalNumber(container.byteSize) !== undefined
+        ? { byteSize: normalizeOptionalNumber(container.byteSize) }
+        : {}),
+      ...(normalizeOptionalString(container.sha256)
+        ? { sha256: String(container.sha256) }
+        : {}),
+      ...(normalizeOptionalString(container.previewDocumentId)
+        ? { previewDocumentId: String(container.previewDocumentId) }
+        : {}),
+      ...(normalizeOptionalString(container.sourceUri)
+        ? { sourceUri: String(container.sourceUri) }
+        : {}),
+    };
+  }
+
   return {
     kind: "document",
     documentId: String(container.documentId ?? ""),
-    documentKind: (container.documentKind as RequestArtifactContainer["documentKind"]) ?? "text",
+    documentKind:
+      (container.documentKind as Extract<
+        RequestArtifactContainer,
+        { kind: "document" }
+      >["documentKind"]) ?? "text",
+    ...(normalizeOptionalString(container.mediaKind)
+      ? {
+          mediaKind: container.mediaKind as RequestArtifactContainer["mediaKind"],
+        }
+      : {}),
+    ...(normalizeOptionalString(container.mimeType)
+      ? { mimeType: String(container.mimeType) }
+      : {}),
+    ...(normalizeOptionalString(container.filename)
+      ? { filename: String(container.filename) }
+      : {}),
+    ...(normalizeOptionalNumber(container.byteSize) !== undefined
+      ? { byteSize: normalizeOptionalNumber(container.byteSize) }
+      : {}),
+    ...(normalizeOptionalString(container.sha256)
+      ? { sha256: String(container.sha256) }
+      : {}),
+    ...(normalizeOptionalString(container.sourceUri)
+      ? { sourceUri: String(container.sourceUri) }
+      : {}),
   };
 }
 
@@ -1771,6 +1875,12 @@ function normalizeObject(
 function normalizeOptionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
+    : undefined;
+}
+
+function normalizeOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
     : undefined;
 }
 

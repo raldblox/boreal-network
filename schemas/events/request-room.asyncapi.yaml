@@ -539,27 +539,124 @@ components:
         - summary
         - fulfillment
     ArtifactContainer:
-      type: object
-      additionalProperties: false
-      properties:
-        kind:
-          type: string
-          enum:
-            - document
-        documentId:
-          type: string
-          format: uuid
-        documentKind:
-          type: string
-          enum:
-            - text
-            - code
-            - image
-            - sheet
-      required:
-        - kind
-        - documentId
-        - documentKind
+      oneOf:
+        - type: object
+          additionalProperties: false
+          properties:
+            kind:
+              type: string
+              const: document
+            documentId:
+              type: string
+              format: uuid
+            documentKind:
+              type: string
+              enum:
+                - text
+                - code
+                - image
+                - sheet
+            mediaKind:
+              type: string
+              enum:
+                - image
+                - audio
+                - video
+                - pdf
+                - binary
+                - archive
+                - other
+            mimeType:
+              type: string
+            filename:
+              type: string
+            byteSize:
+              type: integer
+              minimum: 0
+            sha256:
+              type: string
+            sourceUri:
+              type: string
+              format: uri
+          required:
+            - kind
+            - documentId
+            - documentKind
+        - type: object
+          additionalProperties: false
+          properties:
+            kind:
+              type: string
+              const: external_ref
+            uri:
+              type: string
+              format: uri
+            mediaKind:
+              type: string
+              enum:
+                - image
+                - audio
+                - video
+                - pdf
+                - binary
+                - archive
+                - other
+            mimeType:
+              type: string
+            filename:
+              type: string
+            byteSize:
+              type: integer
+              minimum: 0
+            sha256:
+              type: string
+            previewDocumentId:
+              type: string
+              format: uuid
+          required:
+            - kind
+            - uri
+        - type: object
+          additionalProperties: false
+          properties:
+            kind:
+              type: string
+              const: object_ref
+            objectKey:
+              type: string
+            storageProvider:
+              type: string
+            storageBucket:
+              type: string
+            mediaKind:
+              type: string
+              enum:
+                - image
+                - audio
+                - video
+                - pdf
+                - binary
+                - archive
+                - other
+            mimeType:
+              type: string
+            filename:
+              type: string
+            byteSize:
+              type: integer
+              minimum: 0
+            sha256:
+              type: string
+            previewDocumentId:
+              type: string
+              format: uuid
+            sourceUri:
+              type: string
+              format: uri
+          required:
+            - kind
+            - objectKey
+            - storageProvider
     ArtifactAddedPayload:
       type: object
       additionalProperties: false
@@ -577,6 +674,11 @@ components:
             id:
               type: string
               format: uuid
+            fulfillmentId:
+              type: string
+              format: uuid
+            stepId:
+              type: string
             kind:
               type: string
               enum:

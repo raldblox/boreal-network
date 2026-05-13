@@ -170,6 +170,10 @@ export const artifactRecord = pgTable("Artifact", {
   requestId: uuid("requestId")
     .notNull()
     .references(() => request.id, { onDelete: "cascade" }),
+  fulfillmentId: uuid("fulfillmentId").references(() => fulfillment.id, {
+    onDelete: "set null",
+  }),
+  stepId: text("stepId"),
   kind: varchar("kind", {
     enum: [
       "brief",

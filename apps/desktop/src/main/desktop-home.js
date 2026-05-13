@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -10,6 +10,7 @@ const APP_HOME_DIR = path.join(os.homedir(), ".boreal-work");
 const DESKTOP_HOME_DIR = path.join(APP_HOME_DIR, "desktop");
 const CHAT_STATE_PATH = path.join(DESKTOP_HOME_DIR, "chat-state.json");
 const LEGACY_CHAT_STATE_DIR = path.join(DESKTOP_HOME_DIR, "chat-state");
+const RUNTIME_IDENTITY_PATH = path.join(DESKTOP_HOME_DIR, "runtime-identity.json");
 const SETTINGS_PATH = path.join(DESKTOP_HOME_DIR, "settings.json");
 const CHAT_PROJECT = Object.freeze({
   createdAt: "2026-05-12T00:00:00.000Z",
@@ -163,10 +164,69 @@ async function writeJsonFile(filePath, value) {
   await fs.writeFile(filePath, JSON.stringify(value, null, 2), "utf8");
 }
 
+async function ensureRuntimeIdentity() {
+  await ensureDesktopHome();
+
+  const parsed = await readJsonFile(RUNTIME_IDENTITY_PATH, null);
+  const normalized = normalizeRuntimeIdentity(parsed);
+
+  if (normalized) {
+    return normalized;
+  }
+
+  const created = createRuntimeIdentityRecord();
+  await writeJsonFile(RUNTIME_IDENTITY_PATH, created);
+  return created;
+}
+
 function sanitizeIsoDate(value, fallbackValue) {
   return typeof value === "string" && value.trim().length > 0
     ? value
     : fallbackValue;
+}
+
+function buildRuntimeIdShort(value) {
+  return typeof value === "string" && value.length > 16
+    ? `${value.slice(0, 8)}...${value.slice(-8)}`
+    : value;
+}
+
+function normalizeRuntimeIdentity(value) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const id =
+    typeof value.id === "string" && value.id.trim().length >= 32
+      ? value.id.trim()
+      : null;
+
+  if (!id) {
+    return null;
+  }
+
+  return {
+    createdAt: sanitizeIsoDate(value.createdAt, new Date().toISOString()),
+    id,
+    peerReady: false,
+    scope: "local-only",
+    shortId:
+      typeof value.shortId === "string" && value.shortId.trim().length > 0
+        ? value.shortId.trim()
+        : buildRuntimeIdShort(id),
+  };
+}
+
+function createRuntimeIdentityRecord() {
+  const id = randomBytes(32).toString("hex");
+
+  return {
+    createdAt: new Date().toISOString(),
+    id,
+    peerReady: false,
+    scope: "local-only",
+    shortId: buildRuntimeIdShort(id),
+  };
 }
 
 function sanitizeLocalMessage(message) {
@@ -201,7 +261,192 @@ function sanitizeLocalMessage(message) {
     sanitized.model = message.model;
   }
 
+  if (message.turnMeta && typeof message.turnMeta === "object") {
+    const consoleEntries = Array.isArray(message.turnMeta.consoleEntries)
+      ? message.turnMeta.consoleEntries
+          .map(sanitizeStreamConsoleEntry)
+          .filter(Boolean)
+          .slice(-14)
+      : [];
+
+    if (consoleEntries.length > 0) {
+      sanitized.turnMeta = {
+        consoleEntries,
+      };
+    }
+  }
+
   return sanitized;
+}
+
+function sanitizeStreamConsoleEntry(entry) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  if (typeof entry.message !== "string" || entry.message.trim().length === 0) {
+    return null;
+  }
+
+  const sanitized = {
+    channelKind:
+      entry.channelKind === "heartbeat" ||
+      entry.channelKind === "presence" ||
+      entry.channelKind === "progress" ||
+      entry.channelKind === "runtime-log" ||
+      entry.channelKind === "token-delta" ||
+      entry.channelKind === "tool-stderr" ||
+      entry.channelKind === "tool-stdout" ||
+      entry.channelKind === "typing"
+        ? entry.channelKind
+        : "progress",
+    id:
+      typeof entry.id === "string" && entry.id.trim().length > 0
+        ? entry.id
+        : randomUUID(),
+    label:
+      typeof entry.label === "string" && entry.label.trim().length > 0
+        ? entry.label
+        : "Progress",
+    message: entry.message.trim(),
+    occurredAt: sanitizeIsoDate(entry.occurredAt, new Date().toISOString()),
+    state:
+      entry.state === "blocked" ||
+      entry.state === "completed" ||
+      entry.state === "failed" ||
+      entry.state === "info" ||
+      entry.state === "running"
+        ? entry.state
+        : "info",
+  };
+
+  if (typeof entry.activityKind === "string" && entry.activityKind.trim().length > 0) {
+    sanitized.activityKind = entry.activityKind;
+  }
+
+  if (typeof entry.command === "string" && entry.command.trim().length > 0) {
+    sanitized.command = entry.command;
+  }
+
+  if (typeof entry.detail === "string" && entry.detail.trim().length > 0) {
+    sanitized.detail = entry.detail;
+  }
+
+  if (
+    typeof entry.outputPreview === "string" &&
+    entry.outputPreview.trim().length > 0
+  ) {
+    sanitized.outputPreview = entry.outputPreview;
+  }
+
+  return sanitized;
+}
+
+function sanitizeTrackedRequestActivityEntry(entry) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+
+  if (typeof entry.summary !== "string" || entry.summary.trim().length === 0) {
+    return null;
+  }
+
+  return {
+    actorLabel:
+      typeof entry.actorLabel === "string" && entry.actorLabel.trim().length > 0
+        ? entry.actorLabel
+        : "Unknown actor",
+    ...(typeof entry.detail === "string" && entry.detail.trim().length > 0
+      ? { detail: entry.detail }
+      : {}),
+    eventType:
+      typeof entry.eventType === "string" && entry.eventType.trim().length > 0
+        ? entry.eventType
+        : "request.updated",
+    occurredAt: sanitizeIsoDate(entry.occurredAt, new Date().toISOString()),
+    summary: entry.summary,
+  };
+}
+
+function sanitizeTrackedRequestContext(trackedRequest) {
+  if (!trackedRequest || typeof trackedRequest !== "object") {
+    return null;
+  }
+
+  const request =
+    trackedRequest.request && typeof trackedRequest.request === "object"
+      ? trackedRequest.request
+      : null;
+
+  if (
+    !request ||
+    typeof request.id !== "string" ||
+    request.id.trim().length === 0 ||
+    typeof request.title !== "string"
+  ) {
+    return null;
+  }
+
+  const fulfillment =
+    trackedRequest.fulfillment && typeof trackedRequest.fulfillment === "object"
+      ? trackedRequest.fulfillment
+      : null;
+
+  return {
+    mode: "tracked_request",
+    fulfillment:
+      fulfillment &&
+      typeof fulfillment.id === "string" &&
+      fulfillment.id.trim().length > 0 &&
+      typeof fulfillment.status === "string" &&
+      typeof fulfillment.summary === "string"
+        ? {
+            ...(typeof fulfillment.commitmentId === "string" &&
+            fulfillment.commitmentId.trim().length > 0
+              ? { commitmentId: fulfillment.commitmentId }
+              : {}),
+            id: fulfillment.id,
+            status: fulfillment.status,
+            summary: fulfillment.summary,
+          }
+        : null,
+    recentActivity: Array.isArray(trackedRequest.recentActivity)
+      ? trackedRequest.recentActivity
+          .map(sanitizeTrackedRequestActivityEntry)
+          .filter(Boolean)
+          .slice(-6)
+      : [],
+    request: {
+      actorKinds: Array.isArray(request.actorKinds)
+        ? request.actorKinds.filter((value) => typeof value === "string")
+        : [],
+      body: typeof request.body === "string" ? request.body : "",
+      budgetSummary:
+        typeof request.budgetSummary === "string" ? request.budgetSummary : "",
+      constraints:
+        request.constraints && typeof request.constraints === "object"
+          ? request.constraints
+          : {},
+      deadlineSummary:
+        typeof request.deadlineSummary === "string"
+          ? request.deadlineSummary
+          : "",
+      id: request.id,
+      key: typeof request.key === "string" ? request.key : request.id,
+      notes: typeof request.notes === "string" ? request.notes : "",
+      outputKinds: Array.isArray(request.outputKinds)
+        ? request.outputKinds.filter((value) => typeof value === "string")
+        : [],
+      status: typeof request.status === "string" ? request.status : "open",
+      summary: typeof request.summary === "string" ? request.summary : "",
+      supplyKinds: Array.isArray(request.supplyKinds)
+        ? request.supplyKinds.filter((value) => typeof value === "string")
+        : [],
+      teamMode: typeof request.teamMode === "string" ? request.teamMode : "",
+      title: request.title,
+      visibility: request.visibility === "private" ? "private" : "public",
+    },
+  };
 }
 
 function sanitizeLocalThread(thread) {
@@ -225,6 +470,7 @@ function sanitizeLocalThread(thread) {
     thread.updatedAt,
     messages[messages.length - 1]?.createdAt ?? createdAt,
   );
+  const trackedRequest = sanitizeTrackedRequestContext(thread.trackedRequest);
 
   return {
     createdAt,
@@ -235,6 +481,7 @@ function sanitizeLocalThread(thread) {
     messages,
     model: typeof thread.model === "string" ? thread.model : "",
     reasoning: typeof thread.reasoning === "string" ? thread.reasoning : "",
+    ...(trackedRequest ? { trackedRequest } : {}),
     updatedAt,
   };
 }
@@ -447,6 +694,10 @@ export async function getDesktopProjectState() {
     runtimeSandboxMode: settings.runtimeSandboxMode,
     selectedProjectId: CHAT_PROJECT.id,
   };
+}
+
+export async function getDesktopRuntimeIdentity() {
+  return ensureRuntimeIdentity();
 }
 
 export async function getDesktopProjectById() {

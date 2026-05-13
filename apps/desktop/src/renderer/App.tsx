@@ -38,6 +38,7 @@ import {
   RefreshCwIcon,
   Settings2Icon,
   SparklesIcon,
+  TriangleAlertIcon,
   Trash2Icon,
 } from "lucide-react";
 import { MessageMarkdown } from "./message-markdown";
@@ -2025,6 +2026,8 @@ export function App() {
   const [ownedRequests, setOwnedRequests] = useState<PublicRequestListResult | null>(null);
   const [pendingProjectDelete, setPendingProjectDelete] =
     useState<PendingProjectDelete>(null);
+  const [pendingRuntimeModeConfirmation, setPendingRuntimeModeConfirmation] =
+    useState<RuntimeMode | null>(null);
   const [pendingThreadDelete, setPendingThreadDelete] =
     useState<PendingThreadDelete>(null);
   const [preferredModel, setPreferredModel] = useState("");
@@ -2278,6 +2281,17 @@ export function App() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   {runtimeModeMeta}
                 </p>
+                <div
+                  className={`mt-3 rounded-lg border px-3 py-3 text-xs leading-5 ${
+                    isFullRuntime
+                      ? "border-amber-500/25 bg-amber-500/10 text-amber-100"
+                      : "border-emerald-500/20 bg-emerald-500/8 text-emerald-100"
+                  }`}
+                >
+                  {isFullRuntime
+                    ? "Full can read local files, run commands, and use network without approval prompts. Use only for trusted local work."
+                    : "Safe keeps the runtime on workspace-write with network disabled. Use this for public or untrusted request work."}
+                </div>
                 <div className="mt-3">
                   <Select
                     value={runtimeMode}
@@ -3647,7 +3661,7 @@ export function App() {
     }
   }
 
-  async function handleRuntimeModeChange(nextRuntimeMode: RuntimeMode) {
+  async function applyRuntimeModeChange(nextRuntimeMode: RuntimeMode) {
     if (nextRuntimeMode === runtimeMode || isSavingRuntimeMode) {
       return;
     }
@@ -3683,6 +3697,19 @@ export function App() {
     } finally {
       setIsSavingRuntimeMode(false);
     }
+  }
+
+  function handleRuntimeModeChange(nextRuntimeMode: RuntimeMode) {
+    if (nextRuntimeMode === runtimeMode || isSavingRuntimeMode) {
+      return;
+    }
+
+    if (nextRuntimeMode === "full") {
+      setPendingRuntimeModeConfirmation("full");
+      return;
+    }
+
+    void applyRuntimeModeChange(nextRuntimeMode);
   }
 
   async function loadProjectChat(projectId: string) {
@@ -4148,6 +4175,11 @@ export function App() {
   ]
     .filter(Boolean)
     .join(" · ");
+  const isFullRuntime = runtimeMode === "full";
+  const publicSurfaceWarning =
+    "Full runtime is active. Public requests should stay on Safe unless you fully trust the work and its instructions.";
+  const trackedRequestRuntimeWarning =
+    "This tracked request is public while Full runtime is active. It can read files, run commands, and use network without approval prompts.";
   const primaryConnectLabel = isWaitingForCodexAuth
     ? "Waiting for login..."
     : connected
@@ -4540,6 +4572,19 @@ export function App() {
                   Refresh
                 </Button>
               </header>
+
+              {isFullRuntime ? (
+                <div className="border-b border-amber-500/20 bg-amber-500/8 px-4 py-3">
+                  <div className="mx-auto flex w-full max-w-7xl items-start gap-2 text-sm text-amber-100">
+                    <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
+                    <p>
+                      {activeSurface === "public-requests"
+                        ? publicSurfaceWarning
+                        : "Full runtime is active. Use only for trusted owned-request work on this machine."}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
                 {activeSurface === "owned-requests" && !resolverConnected ? (
@@ -5575,6 +5620,16 @@ export function App() {
                 </div>
               </header>
 
+              {isFullRuntime &&
+              activeTrackedRequest?.request.visibility === "public" ? (
+                <div className="border-b border-amber-500/20 bg-amber-500/8 px-4 py-3">
+                  <div className="mx-auto flex w-full max-w-3xl items-start gap-2 text-sm text-amber-100">
+                    <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
+                    <p>{trackedRequestRuntimeWarning}</p>
+                  </div>
+                </div>
+              ) : null}
+
               <div
                 ref={conversationScrollRef}
                 onScroll={(event) => {
@@ -5757,6 +5812,49 @@ export function App() {
           )}
         </div>
       </div>
+
+      <AlertDialog
+        open={pendingRuntimeModeConfirmation === "full"}
+        onOpenChange={(open) => {
+          if (!open && !isSavingRuntimeMode) {
+            setPendingRuntimeModeConfirmation(null);
+          }
+        }}
+      >
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enable Full runtime?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Full runtime can read local files, run commands, and use network
+              without approval prompts. Use it only for trusted local work, not
+              public or untrusted requests.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Safer path: keep desktop on Safe for public requests and switch to
+            Full only when you intentionally trust the task and machine access.
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isSavingRuntimeMode}
+              onClick={() => setPendingRuntimeModeConfirmation(null)}
+            >
+              Stay on Safe
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={isSavingRuntimeMode}
+              onClick={() => {
+                setPendingRuntimeModeConfirmation(null);
+                void applyRuntimeModeChange("full");
+              }}
+            >
+              {isSavingRuntimeMode ? <Spinner className="size-4" /> : null}
+              Enable Full
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={pendingThreadDelete !== null}

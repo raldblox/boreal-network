@@ -177,15 +177,34 @@ const PurePreviewMessage = ({
                     </div>
                   ) : type === "tool-publishArtifact" ? (
                     <div className="flex flex-col gap-2">
-                      <DocumentToolResult
-                        isReadonly={isReadonly}
-                        result={{
-                          id: part.output.documentId,
-                          title: part.output.title,
-                          kind: part.output.kind,
-                        }}
-                        type="create"
-                      />
+                      {"documentId" in part.output &&
+                      typeof part.output.documentId === "string" &&
+                      "kind" in part.output &&
+                      typeof part.output.kind === "string" ? (
+                        <DocumentToolResult
+                          isReadonly={isReadonly}
+                          result={{
+                            id: part.output.documentId,
+                            title: part.output.title,
+                            kind: part.output.kind,
+                          }}
+                          type="create"
+                        />
+                      ) : "container" in part.output &&
+                        part.output.container &&
+                        typeof part.output.container === "object" ? (
+                        <div className="rounded-xl border bg-background px-3 py-2 text-sm">
+                          <div className="font-medium">{part.output.title}</div>
+                          <div className="mt-1 text-muted-foreground text-xs">
+                            Published {part.output.artifactKind} via{" "}
+                            {part.output.container.kind === "external_ref"
+                              ? "external reference"
+                              : part.output.container.kind === "object_ref"
+                                ? "object reference"
+                                : "artifact reference"}
+                          </div>
+                        </div>
+                      ) : null}
                       {part.output.summary ? (
                         <div className="text-muted-foreground text-xs">
                           {part.output.summary}

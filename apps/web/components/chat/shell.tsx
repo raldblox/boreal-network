@@ -1,7 +1,7 @@
 "use client";
 
 import { BracesIcon, MessageSquareIcon, XIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,7 @@ import {
   useArtifact,
   useArtifactSelector,
 } from "@/hooks/use-artifact";
+import type { RequestActivityEntry } from "@/lib/request";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Artifact } from "./artifact";
@@ -34,7 +35,41 @@ import { submitEditedMessage } from "./message-editor";
 import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
 import { RequestBriefingPanel } from "./request-briefing-panel";
+import { RequestTracker } from "./request-tracker";
 import { toast } from "./toast";
+
+function getAutoOpenArtifactTarget(
+  artifact: RequestActivityEntry["artifact"] | null | undefined
+) {
+  if (!artifact) {
+    return null;
+  }
+
+  if (artifact.container.kind === "document") {
+    return {
+      artifactId: artifact.id,
+      documentId: artifact.container.documentId,
+      kind: artifact.container.documentKind,
+      title: artifact.title,
+    } as const;
+  }
+
+  const previewDocumentId =
+    "previewDocumentId" in artifact.container
+      ? artifact.container.previewDocumentId
+      : undefined;
+
+  if (!previewDocumentId) {
+    return null;
+  }
+
+  return {
+    artifactId: artifact.id,
+    documentId: previewDocumentId,
+    kind: artifact.container.mediaKind === "image" ? "image" : "text",
+    title: artifact.title,
+  } as const;
+}
 
 export function ChatShell() {
   const {
@@ -79,6 +114,7 @@ export function ChatShell() {
   const stopRef = useRef(stop);
   stopRef.current = stop;
   const autoOpenedRequestRef = useRef<string | null>(null);
+  const autoOpenedDeliveryArtifactRef = useRef<string | null>(null);
   const suppressAutoOpenRequestRef = useRef<string | null>(null);
 
   const prevChatIdRef = useRef(chatId);
@@ -86,6 +122,7 @@ export function ChatShell() {
     if (prevChatIdRef.current !== chatId) {
       prevChatIdRef.current = chatId;
       autoOpenedRequestRef.current = null;
+      autoOpenedDeliveryArtifactRef.current = null;
       suppressAutoOpenRequestRef.current = null;
       stopRef.current();
       setArtifact(initialArtifactData);
@@ -95,6 +132,28 @@ export function ChatShell() {
   }, [chatId, setArtifact]);
 
   const isOpenedRequest = Boolean(activeRequest && activeRequest.status !== "draft");
+  const latestDeliveryArtifactTarget = useMemo(() => {
+    if (!activeRequest) {
+      return null;
+    }
+
+    const latestArtifactId = activeRequest.activeRefs.latestArtifactId;
+    const matchingLatestArtifact = latestArtifactId
+      ? [...activities]
+        .reverse()
+        .find((activity) => activity.artifact?.id === latestArtifactId)?.artifact
+      : null;
+
+    if (matchingLatestArtifact) {
+      return getAutoOpenArtifactTarget(matchingLatestArtifact);
+    }
+
+    const latestDeliveryArtifact = [...activities]
+      .reverse()
+      .find((activity) => activity.artifact?.kind === "delivery")?.artifact;
+
+    return getAutoOpenArtifactTarget(latestDeliveryArtifact);
+  }, [activeRequest, activities]);
 
   useEffect(() => {
     if (!isOpenedRequest) {
@@ -128,6 +187,45 @@ export function ChatShell() {
       status: "idle",
     }));
   }, [activeRequest, isRequestMode, setArtifact]);
+
+  useEffect(() => {
+    if (!activeRequest || !isOpenedRequest) {
+      return;
+    }
+
+    if (
+      activeRequest.status !== "delivered" &&
+      activeRequest.status !== "completed"
+    ) {
+      return;
+    }
+
+    if (!latestDeliveryArtifactTarget) {
+      return;
+    }
+
+    const autoOpenKey = `${activeRequest.id}:${latestDeliveryArtifactTarget.artifactId}`;
+
+    if (autoOpenedDeliveryArtifactRef.current === autoOpenKey) {
+      return;
+    }
+
+    autoOpenedDeliveryArtifactRef.current = autoOpenKey;
+
+    setArtifact((currentArtifact) => ({
+      ...currentArtifact,
+      documentId: latestDeliveryArtifactTarget.documentId,
+      title: latestDeliveryArtifactTarget.title,
+      kind: latestDeliveryArtifactTarget.kind,
+      isVisible: true,
+      status: "idle",
+    }));
+  }, [
+    activeRequest,
+    isOpenedRequest,
+    latestDeliveryArtifactTarget,
+    setArtifact,
+  ]);
 
   const openRequestDocument = () => {
     if (!activeRequest) {
@@ -218,50 +316,51 @@ export function ChatShell() {
 
           <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-tl-[12px] md:border-t md:border-l md:border-border/40">
             <RequestBriefingPanel
-              isChatOpen={isOpenRequestChatVisible}
               isArtifactVisible={isArtifactVisible}
               isReadonly={isReadonly}
-              isResolvingDeliveredRequest={isResolvingDeliveredRequest}
               isRequestMode={isRequestMode}
-              onResolveDeliveredRequest={handleResolveDeliveredRequest}
               onOpenDocument={openRequestDocument}
               onSaveDraft={saveRequestDraft}
               onOpenRequest={openRequest}
-              onToggleChat={() =>
-                setIsOpenRequestChatVisible((current) => !current)
-              }
               request={activeRequest}
             />
 
-            <Messages
-              addToolApprovalResponse={addToolApprovalResponse}
-              activities={activities}
-              chatId={chatId}
-              contentClassName={
-                isOpenedRequest ? "max-w-[56rem] px-3 pb-8 md:px-5" : undefined
-              }
-              displayMode={isOpenedRequest ? "activity" : "timeline"}
-              requestOwnerUserId={activeRequest?.ownerId ?? requestOwnerUserId}
-              isArtifactVisible={isArtifactVisible}
-              isLoading={isLoading}
-              isReadonly={isReadonly}
-              isRequestMode={isRequestMode}
-              messages={messages}
-              requestStatus={activeRequest?.status ?? null}
-              onEditMessage={(msg) => {
-                const text = msg.parts
-                  ?.filter((p) => p.type === "text")
-                  .map((p) => p.text)
-                  .join("");
-                setInput(text ?? "");
-                setEditingMessage(msg);
-              }}
-              regenerate={regenerate}
-              selectedModelId={currentModelId}
-              setMessages={setMessages}
-              status={status}
-              votes={votes}
-            />
+            {isOpenedRequest && activeRequest ? (
+              <RequestTracker
+                activities={activities}
+                isReadonly={isReadonly}
+                isResolvingDeliveredRequest={isResolvingDeliveredRequest}
+                onResolveDeliveredRequest={handleResolveDeliveredRequest}
+                request={activeRequest}
+                status={status}
+              />
+            ) : (
+              <Messages
+                addToolApprovalResponse={addToolApprovalResponse}
+                activities={activities}
+                chatId={chatId}
+                requestOwnerUserId={activeRequest?.ownerId ?? requestOwnerUserId}
+                isArtifactVisible={isArtifactVisible}
+                isLoading={isLoading}
+                isReadonly={isReadonly}
+                isRequestMode={isRequestMode}
+                messages={messages}
+                requestStatus={activeRequest?.status ?? null}
+                onEditMessage={(msg) => {
+                  const text = msg.parts
+                    ?.filter((p) => p.type === "text")
+                    .map((p) => p.text)
+                    .join("");
+                  setInput(text ?? "");
+                  setEditingMessage(msg);
+                }}
+                regenerate={regenerate}
+                selectedModelId={currentModelId}
+                setMessages={setMessages}
+                status={status}
+                votes={votes}
+              />
+            )}
 
             {isOpenedRequest ? (
               <div className="pointer-events-none absolute right-4 bottom-4 z-20 flex flex-col gap-2">

@@ -119,6 +119,12 @@ In that lane, event payloads may omit `commitmentId`.
 - updated
 - withdrawn
 
+Artifact payloads may carry:
+
+- `fulfillmentId` when the artifact belongs to one execution lane
+- `stepId` when the artifact belongs to one fulfillment step
+- a stable container union such as `document`, `external_ref`, or `object_ref`
+
 ### Transaction events
 
 - required

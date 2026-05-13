@@ -70,7 +70,7 @@ Today, the machine-readable baseline proves:
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
 - one `Supply` can be expressed as a durable capability object
 - one `Commitment` can carry quoted or accepted commercial terms
-- one `Artifact` can point to a stable document-backed container instead of inflating the request root
+- one `Artifact` can point to a stable document, external reference, or object reference instead of inflating the request root
 - one open request can accept direct HTTP commitment and artifact writes in addition to chat tool-calling
 - one accepted commitment can be advanced through direct HTTP acceptance and into a direct fulfillment lane
 - one non-browser resolver runtime can bind to a Boreal account through a web approval flow and receive scoped Boreal-issued bearer tokens

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://boreal.work/schemas/json/artifact.schema.json",
   "title": "Artifact",
-  "description": "Canonical output or proof object attached to a Request and backed by a stable container reference.",
+  "description": "Canonical output or proof object attached to a Request and backed by a stable document, external, or object-storage reference.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -62,31 +62,190 @@
       "maxLength": 1000
     },
     "container": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "kind",
-        "documentId",
-        "documentKind"
-      ],
-      "properties": {
-        "kind": {
-          "type": "string",
-          "const": "document"
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "documentId",
+            "documentKind"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "document"
+            },
+            "documentId": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            },
+            "documentKind": {
+              "type": "string",
+              "enum": [
+                "text",
+                "code",
+                "image",
+                "sheet"
+              ]
+            },
+            "mediaKind": {
+              "type": "string",
+              "enum": [
+                "image",
+                "audio",
+                "video",
+                "pdf",
+                "binary",
+                "archive",
+                "other"
+              ]
+            },
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "filename": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 260
+            },
+            "byteSize": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sha256": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "sourceUri": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
         },
-        "documentId": {
-          "$ref": "common.schema.json#/$defs/identifier"
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "uri"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "external_ref"
+            },
+            "uri": {
+              "type": "string",
+              "format": "uri"
+            },
+            "mediaKind": {
+              "type": "string",
+              "enum": [
+                "image",
+                "audio",
+                "video",
+                "pdf",
+                "binary",
+                "archive",
+                "other"
+              ]
+            },
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "filename": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 260
+            },
+            "byteSize": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sha256": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "previewDocumentId": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            }
+          }
         },
-        "documentKind": {
-          "type": "string",
-          "enum": [
-            "text",
-            "code",
-            "image",
-            "sheet"
-          ]
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "objectKey",
+            "storageProvider"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "object_ref"
+            },
+            "objectKey": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "storageProvider": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            },
+            "storageBucket": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "mediaKind": {
+              "type": "string",
+              "enum": [
+                "image",
+                "audio",
+                "video",
+                "pdf",
+                "binary",
+                "archive",
+                "other"
+              ]
+            },
+            "mimeType": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "filename": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 260
+            },
+            "byteSize": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sha256": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "previewDocumentId": {
+              "$ref": "common.schema.json#/$defs/identifier"
+            },
+            "sourceUri": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
         }
-      }
+      ]
     },
     "createdBy": {
       "$ref": "common.schema.json#/$defs/actorRef"

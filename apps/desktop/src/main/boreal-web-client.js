@@ -592,10 +592,18 @@ function sanitizeActivityEntry(entry) {
               artifact.container && typeof artifact.container === "object"
                 ? artifact.container
                 : null,
+            ...(typeof artifact.fulfillmentId === "string" &&
+            artifact.fulfillmentId.trim().length > 0
+              ? { fulfillmentId: artifact.fulfillmentId }
+              : {}),
             id: artifact.id,
             kind: artifact.kind,
             summary:
               typeof artifact.summary === "string" ? artifact.summary : "",
+            ...(typeof artifact.stepId === "string" &&
+            artifact.stepId.trim().length > 0
+              ? { stepId: artifact.stepId }
+              : {}),
             title: artifact.title,
           }
         : null,
@@ -1130,9 +1138,12 @@ export async function acceptCommitment({ commitmentId }) {
 
 export async function publishRequestArtifact({
   artifactKind,
+  container,
   content,
   documentKind = "text",
+  fulfillmentId,
   requestId,
+  stepId,
   summary,
   title,
 }) {
@@ -1141,9 +1152,23 @@ export async function publishRequestArtifact({
     {
       body: JSON.stringify({
         artifactKind,
-        content,
-        documentKind,
+        ...(
+          typeof content === "string" && content.trim().length > 0
+            ? {
+                content,
+                documentKind,
+              }
+            : {
+                container,
+              }
+        ),
+        ...(typeof fulfillmentId === "string" && fulfillmentId.trim().length > 0
+          ? { fulfillmentId }
+          : {}),
         idempotencyKey: randomUUID(),
+        ...(typeof stepId === "string" && stepId.trim().length > 0
+          ? { stepId }
+          : {}),
         ...(summary ? { summary } : {}),
         title,
       }),

@@ -80,7 +80,7 @@ export function RequestActivityMessage({
 
       {text ? (
         <MessageContent
-          className="text-[13px] leading-[1.65]"
+          className="text-[14px] leading-7"
           data-testid="request-activity-content"
         >
           <MessageResponse>{text}</MessageResponse>
@@ -88,14 +88,14 @@ export function RequestActivityMessage({
       ) : null}
 
       {secondaryDetail ? (
-        <div className="px-1 text-[12px] text-muted-foreground">
+        <div className="text-[12px] leading-6 text-muted-foreground">
           <MessageResponse>{secondaryDetail}</MessageResponse>
         </div>
       ) : null}
 
       {!showArtifactFirst ? artifactPreview : null}
 
-      <div className="px-1 text-[11px] text-muted-foreground/60 opacity-0 transition-opacity duration-150 group-hover/message:opacity-100">
+      <div className="text-[11px] text-muted-foreground/60 opacity-0 transition-opacity duration-150 group-hover/message:opacity-100">
         {formatDistanceToNow(new Date(activity.occurredAt), {
           addSuffix: true,
         })}
@@ -105,10 +105,10 @@ export function RequestActivityMessage({
 
   return (
     <div
-      className="group/message w-full"
+      className="group/message w-full py-1"
       data-role="assistant"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
           <div
             className={cn(
@@ -122,7 +122,7 @@ export function RequestActivityMessage({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col gap-2">{content}</div>
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">{content}</div>
       </div>
     </div>
   );
@@ -190,7 +190,7 @@ function NonDocumentArtifactButton({
 
   return (
     <Button
-      className="w-fit rounded-xl"
+      className="w-fit rounded-xl border-border shadow-none"
       onClick={(event) => {
         if (isReadonly) {
           return;

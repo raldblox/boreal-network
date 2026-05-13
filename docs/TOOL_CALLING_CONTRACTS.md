@@ -142,6 +142,8 @@ Every mutation call should return:
 - Direct resolver APIs should support the same commercial and lifecycle gates as tools: accepted commitment before fulfillment, valid fulfillment-state transitions, and idempotent retries.
 - Direct resolver APIs may omit commitment creation only for owner-private direct auto-fulfillment.
 - Direct resolver APIs should accept Boreal-issued scoped bearer tokens rather than assuming browser session cookies or raw runtime credentials.
+- Desktop request-bound execution should pass the selected `Request` and optional `Fulfillment` lane into the local runtime as context, while keeping the local transcript out of default durable Boreal history.
+- `publish_artifact` should accept either document-backed content or a stable external or object reference, plus optional `fulfillmentId` and `stepId`.
 
 ## First Implementation Target
 

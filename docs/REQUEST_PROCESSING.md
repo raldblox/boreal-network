@@ -118,6 +118,13 @@ Desktop may use that lane after Boreal resolver approval to:
 - update fulfillment through delivery and acceptance
 - auto-resolve owned private requests directly into fulfillment when desktop owner policy enables it
 
+When desktop turns from local chat into tracked request execution:
+
+- one local thread may bind to one selected `Request`
+- that thread may also bind to one selected or active `Fulfillment` lane
+- Codex should receive request-relevant brief, lane, and recent durable activity context
+- the full desktop transcript still stays local unless explicitly promoted
+
 The request root should update through:
 
 - lifecycle status

@@ -91,10 +91,13 @@ function buildCodexPayload(streamEvent) {
   if (streamEvent.type === "activity") {
     return {
       activityId: normalizeOptionalString(streamEvent.activityId) ?? randomUUID(),
+      activityKind: normalizeOptionalString(streamEvent.activityKind),
+      command: normalizeOptionalString(streamEvent.command),
       detail: normalizeOptionalString(streamEvent.detail),
       eventType: streamEvent.type,
       message:
         typeof streamEvent.message === "string" ? streamEvent.message : "",
+      outputPreview: normalizeOptionalString(streamEvent.outputPreview),
       state:
         typeof streamEvent.state === "string" ? streamEvent.state : "info",
     };

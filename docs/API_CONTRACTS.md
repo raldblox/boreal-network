@@ -161,6 +161,10 @@ The first resolver-facing web slice now exposes:
 Accepted responder lanes may create fulfillment after owner acceptance.
 Owned private resolver lanes may create fulfillment without `commitmentId` when the same Boreal owner is authorizing direct desktop execution.
 
+Desktop chat execution may also bind one local thread to a selected `Request` and optional `Fulfillment` lane.
+That binding is local execution context only.
+It must not make the desktop transcript itself canonical Boreal history.
+
 ### `Transaction`
 
 Should expose:
@@ -186,6 +190,12 @@ Resolver-facing request APIs should return JSON auth or permission errors instea
 Direct resolver APIs should preserve the same durable request-side effects as chat mutation tools for commitment acceptance, fulfillment creation, and fulfillment updates.
 Execution-grade artifact writes should require an accepted commercial lane or active fulfillment role.
 Owner-private desktop auto-resolution is the one direct-fulfillment exception and should still emit the same durable fulfillment and artifact events.
+Artifact publication should support:
+
+- document-backed content writes for text, code, image, or sheet outputs
+- external references for durable links to file, media, PDF, audio, video, binary, or archive outputs
+- object-storage references for app-managed or provider-managed blob keys
+- optional `fulfillmentId` and `stepId` when one artifact belongs to a selected execution lane
 
 ## Resolver Auth Surface
 

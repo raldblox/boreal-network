@@ -112,7 +112,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    className="h-8 rounded-lg border border-sidebar-border text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    className="h-8 rounded-lg border border-sidebar-border/70 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground"
                     onClick={() => {
                       setOpenMobile(false);
                       router.push("/");
@@ -125,7 +125,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    className="h-8 rounded-lg border border-sidebar-border/60 bg-sidebar-accent/35 text-[13px] text-sidebar-foreground transition-colors duration-150 hover:bg-sidebar-accent/60"
+                    className="h-8 rounded-lg border border-sidebar-border/80 bg-transparent text-[13px] text-sidebar-foreground/80 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground"
                     onClick={() => {
                       setOpenMobile(false);
                       router.push("/?mode=request");

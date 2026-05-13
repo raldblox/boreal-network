@@ -38,6 +38,8 @@ Verify that manual request-input edits cannot mutate system-owned request fields
 Verify that open request room behavior does not fall back to draft-only brief mutation when the safer durable write is a `Commitment`, `Artifact`, or `RequestEvent`.
 Verify that direct resolver APIs and chat mutation tools produce equivalent durable request-side outcomes for commitment and artifact writes.
 Verify that direct resolver APIs and chat mutation tools produce equivalent durable request-side outcomes for commitment acceptance and fulfillment lifecycle writes.
+Verify that tracked desktop execution uses selected `Request` and `Fulfillment` lane context without treating the full local transcript as canonical Boreal history.
+Verify that richer artifact containers for file, media, PDF, audio, video, binary, and archive outputs keep stable metadata and lane bindings.
 
 ## Fixture Shape
 

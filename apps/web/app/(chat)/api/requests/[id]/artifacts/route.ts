@@ -6,25 +6,69 @@ import {
   hasResolverScope,
 } from "@/lib/resolver-session";
 
-const createArtifactSchema = z.object({
-  artifactKind: z.enum([
-    "brief",
-    "plan",
-    "draft",
-    "file",
-    "media",
-    "delivery",
-    "evidence",
-    "receipt",
-    "signature",
-    "link",
-  ]),
-  documentKind: z.enum(["text", "code", "image", "sheet"]).default("text"),
-  title: z.string().min(1).max(200),
-  summary: z.string().min(1).max(1000).optional(),
-  content: z.string().min(1),
-  idempotencyKey: z.string().uuid().optional(),
+const artifactKindSchema = z.enum([
+  "brief",
+  "plan",
+  "draft",
+  "file",
+  "media",
+  "delivery",
+  "evidence",
+  "receipt",
+  "signature",
+  "link",
+]);
+
+const externalRefContainerSchema = z.object({
+  kind: z.literal("external_ref"),
+  uri: z.string().url(),
+  mediaKind: z
+    .enum(["image", "audio", "video", "pdf", "binary", "archive", "other"])
+    .optional(),
+  mimeType: z.string().min(1).max(200).optional(),
+  filename: z.string().min(1).max(260).optional(),
+  byteSize: z.number().int().nonnegative().optional(),
+  sha256: z.string().min(1).max(128).optional(),
+  previewDocumentId: z.string().uuid().optional(),
 });
+
+const objectRefContainerSchema = z.object({
+  kind: z.literal("object_ref"),
+  objectKey: z.string().min(1).max(512),
+  storageProvider: z.string().min(1).max(120),
+  storageBucket: z.string().min(1).max(200).optional(),
+  mediaKind: z
+    .enum(["image", "audio", "video", "pdf", "binary", "archive", "other"])
+    .optional(),
+  mimeType: z.string().min(1).max(200).optional(),
+  filename: z.string().min(1).max(260).optional(),
+  byteSize: z.number().int().nonnegative().optional(),
+  sha256: z.string().min(1).max(128).optional(),
+  previewDocumentId: z.string().uuid().optional(),
+  sourceUri: z.string().url().optional(),
+});
+
+const createArtifactSchema = z.union([
+  z.object({
+    artifactKind: artifactKindSchema,
+    documentKind: z.enum(["text", "code", "image", "sheet"]).default("text"),
+    title: z.string().min(1).max(200),
+    summary: z.string().min(1).max(1000).optional(),
+    content: z.string().min(1),
+    fulfillmentId: z.string().uuid().optional(),
+    stepId: z.string().min(1).max(200).optional(),
+    idempotencyKey: z.string().uuid().optional(),
+  }),
+  z.object({
+    artifactKind: artifactKindSchema,
+    title: z.string().min(1).max(200),
+    summary: z.string().min(1).max(1000).optional(),
+    container: z.union([externalRefContainerSchema, objectRefContainerSchema]),
+    fulfillmentId: z.string().uuid().optional(),
+    stepId: z.string().min(1).max(200).optional(),
+    idempotencyKey: z.string().uuid().optional(),
+  }),
+]);
 
 export async function POST(
   request: Request,
@@ -68,10 +112,18 @@ export async function POST(
       requestId: id,
       actorUserId: actor.userId,
       artifactKind: body.artifactKind,
-      documentKind: body.documentKind,
       title: body.title,
       summary: body.summary,
-      content: body.content,
+      fulfillmentId: body.fulfillmentId,
+      stepId: body.stepId,
+      ...("content" in body
+        ? {
+            content: body.content,
+            documentKind: body.documentKind,
+          }
+        : {
+            container: body.container,
+          }),
       idempotencyKey,
       source: "api.requests.artifacts.create",
     });
@@ -101,6 +153,22 @@ export async function POST(
         "bad_request:api",
         "Execution artifacts require an accepted commitment or active fulfillment lane."
       ).toResponse();
+    }
+
+    if (
+      error instanceof Error &&
+      [
+        "Fulfillment does not belong to request",
+        "Fulfillment lane requires lane actor",
+        "Fulfillment step requires fulfillment lane",
+        "Fulfillment step not found",
+      ].includes(error.message)
+    ) {
+      return new ChatbotError("bad_request:api", error.message).toResponse();
+    }
+
+    if (error instanceof Error && error.message === "Fulfillment not found") {
+      return new ChatbotError("not_found:database").toResponse();
     }
 
     return new ChatbotError(

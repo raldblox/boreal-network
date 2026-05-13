@@ -140,6 +140,12 @@ Use `kind` to distinguish:
 - signature
 - link
 
+Container rule:
+
+- document-backed text, code, image, or sheet content may stay in a stable document container
+- file, media, PDF, audio, video, binary, and archive outputs may use external or object-storage references with durable metadata
+- artifacts may attach directly to the request or to one `Fulfillment` or `FulfillmentStep` lane when the output belongs to a specific execution lane
+
 ### `Transaction`
 
 Represents money movement or payment state.

@@ -283,6 +283,27 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     prevRequestStatusRef.current = nextStatus;
   }, [activeRequest?.status, setMessages]);
 
+  const prevRequestListSyncKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeRequest) {
+      prevRequestListSyncKeyRef.current = null;
+      return;
+    }
+
+    const nextSyncKey = [
+      activeRequest.id,
+      activeRequest.status,
+      activeRequest.updatedAt,
+    ].join(":");
+
+    if (prevRequestListSyncKeyRef.current === nextSyncKey) {
+      return;
+    }
+
+    prevRequestListSyncKeyRef.current = nextSyncKey;
+    mutate(unstable_serialize(getRequestHistoryPaginationKey));
+  }, [activeRequest, mutate]);
+
   useEffect(() => {
     if (chatData && !isNewChat) {
       const cookieModel = document.cookie

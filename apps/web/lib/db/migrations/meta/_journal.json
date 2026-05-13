@@ -50,6 +50,13 @@
       "when": 1710518400000,
       "tag": "0006_owner_private_direct_fulfillment",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1710604800000,
+      "tag": "0007_artifact_lane_and_reference_refs",
+      "breakpoints": true
     }
   ]
 }

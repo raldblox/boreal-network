@@ -24,6 +24,7 @@ import {
   LoaderIcon,
 } from "./icons";
 import { ImageEditor } from "./image-editor";
+import { MessageMarkdown } from "./message-markdown";
 import { SpreadsheetEditor } from "./sheet-editor";
 import { Editor } from "./text-editor";
 
@@ -41,7 +42,7 @@ type DocumentPreviewProps = {
 };
 
 export function DocumentPreview({
-  isReadonly: _isReadonly,
+  isReadonly,
   result,
   args,
 }: DocumentPreviewProps) {
@@ -128,7 +129,7 @@ export function DocumentPreview({
         kind={document.kind}
         title={document.title}
       />
-      <DocumentContent document={document} />
+      <DocumentContent document={document} isReadonly={isReadonly} />
     </div>
   );
 }
@@ -251,13 +252,19 @@ const DocumentHeader = memo(PureDocumentHeader, (prevProps, nextProps) => {
   return true;
 });
 
-const DocumentContent = ({ document }: { document: Document }) => {
+const DocumentContent = ({
+  document,
+  isReadonly,
+}: {
+  document: Document;
+  isReadonly: boolean;
+}) => {
   const { artifact } = useArtifact();
 
   const containerClassName = cn(
     "h-[257px] overflow-hidden rounded-b-2xl border border-t-0 border-border/50 dark:bg-muted",
     {
-      "p-4 sm:px-10 sm:py-10": document.kind === "text",
+      "p-4 sm:p-6": document.kind === "text",
       "p-0": document.kind === "code",
     }
   );
@@ -277,7 +284,9 @@ const DocumentContent = ({ document }: { document: Document }) => {
   return (
     <div className={cn(containerClassName, "relative")}>
       {document.kind === "text" ? (
-        <Editor {...commonProps} onSaveContent={handleSaveContent} />
+        <div className="h-full overflow-y-auto p-4 sm:p-6">
+          <MessageMarkdown content={document.content ?? ""} />
+        </div>
       ) : document.kind === "code" ? (
         <div className="relative flex w-full flex-1">
           <div className="absolute inset-0">

@@ -480,8 +480,7 @@ components:
           type: object
           additionalProperties: true
         artifact:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/WebRequestActivityArtifact"
     WebActorRef:
       type: object
       additionalProperties: false
@@ -599,16 +598,152 @@ components:
           $ref: "#/components/schemas/WebCommitmentTerms"
         requestStatus:
           type: string
-    WebArtifactCreate:
+    WebArtifactContainerDocument:
       type: object
       additionalProperties: false
       required:
-        - artifactKind
+        - kind
+        - documentId
         - documentKind
-        - title
-        - content
       properties:
-        artifactKind:
+        kind:
+          type: string
+          enum:
+            - document
+        documentId:
+          type: string
+          format: uuid
+        documentKind:
+          type: string
+          enum:
+            - text
+            - code
+            - image
+            - sheet
+        mediaKind:
+          type: string
+          enum:
+            - image
+            - audio
+            - video
+            - pdf
+            - binary
+            - archive
+            - other
+        mimeType:
+          type: string
+        filename:
+          type: string
+        byteSize:
+          type: integer
+          minimum: 0
+        sha256:
+          type: string
+        sourceUri:
+          type: string
+          format: uri
+    WebArtifactContainerExternalRef:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - uri
+      properties:
+        kind:
+          type: string
+          enum:
+            - external_ref
+        uri:
+          type: string
+          format: uri
+        mediaKind:
+          type: string
+          enum:
+            - image
+            - audio
+            - video
+            - pdf
+            - binary
+            - archive
+            - other
+        mimeType:
+          type: string
+        filename:
+          type: string
+        byteSize:
+          type: integer
+          minimum: 0
+        sha256:
+          type: string
+        previewDocumentId:
+          type: string
+          format: uuid
+    WebArtifactContainerObjectRef:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - objectKey
+        - storageProvider
+      properties:
+        kind:
+          type: string
+          enum:
+            - object_ref
+        objectKey:
+          type: string
+        storageProvider:
+          type: string
+        storageBucket:
+          type: string
+        mediaKind:
+          type: string
+          enum:
+            - image
+            - audio
+            - video
+            - pdf
+            - binary
+            - archive
+            - other
+        mimeType:
+          type: string
+        filename:
+          type: string
+        byteSize:
+          type: integer
+          minimum: 0
+        sha256:
+          type: string
+        previewDocumentId:
+          type: string
+          format: uuid
+        sourceUri:
+          type: string
+          format: uri
+    WebArtifactContainer:
+      oneOf:
+        - $ref: "#/components/schemas/WebArtifactContainerDocument"
+        - $ref: "#/components/schemas/WebArtifactContainerExternalRef"
+        - $ref: "#/components/schemas/WebArtifactContainerObjectRef"
+    WebRequestActivityArtifact:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - title
+        - container
+      properties:
+        id:
+          type: string
+          format: uuid
+        fulfillmentId:
+          type: string
+          format: uuid
+        stepId:
+          type: string
+        kind:
           type: string
           enum:
             - brief
@@ -621,33 +756,101 @@ components:
             - receipt
             - signature
             - link
-        documentKind:
-          type: string
-          enum:
-            - text
-            - code
-            - image
-            - sheet
         title:
           type: string
         summary:
           type: string
-        content:
-          type: string
-        idempotencyKey:
-          type: string
-          format: uuid
+        container:
+          $ref: "#/components/schemas/WebArtifactContainer"
+    WebArtifactCreate:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required:
+            - artifactKind
+            - title
+            - content
+          properties:
+            artifactKind:
+              type: string
+              enum:
+                - brief
+                - plan
+                - draft
+                - file
+                - media
+                - delivery
+                - evidence
+                - receipt
+                - signature
+                - link
+            documentKind:
+              type: string
+              enum:
+                - text
+                - code
+                - image
+                - sheet
+            title:
+              type: string
+            summary:
+              type: string
+            content:
+              type: string
+            fulfillmentId:
+              type: string
+              format: uuid
+            stepId:
+              type: string
+            idempotencyKey:
+              type: string
+              format: uuid
+        - type: object
+          additionalProperties: false
+          required:
+            - artifactKind
+            - title
+            - container
+          properties:
+            artifactKind:
+              type: string
+              enum:
+                - brief
+                - plan
+                - draft
+                - file
+                - media
+                - delivery
+                - evidence
+                - receipt
+                - signature
+                - link
+            title:
+              type: string
+            summary:
+              type: string
+            container:
+              oneOf:
+                - $ref: "#/components/schemas/WebArtifactContainerExternalRef"
+                - $ref: "#/components/schemas/WebArtifactContainerObjectRef"
+            fulfillmentId:
+              type: string
+              format: uuid
+            stepId:
+              type: string
+            idempotencyKey:
+              type: string
+              format: uuid
     WebArtifactMutation:
       type: object
       additionalProperties: false
       required:
         - requestId
         - artifactId
-        - documentId
         - title
-        - kind
         - artifactKind
         - requestStatus
+        - container
       properties:
         requestId:
           type: string
@@ -655,6 +858,11 @@ components:
         artifactId:
           type: string
           format: uuid
+        fulfillmentId:
+          type: string
+          format: uuid
+        stepId:
+          type: string
         documentId:
           type: string
           format: uuid
@@ -669,6 +877,8 @@ components:
             - code
             - image
             - sheet
+        container:
+          $ref: "#/components/schemas/WebArtifactContainer"
         artifactKind:
           type: string
           enum:

@@ -60,6 +60,11 @@ Support auth aggregates for resolver runtimes:
 
 - artifacts may be attached directly to the request or to a fulfillment or step
 - artifact references should remain stable
+- artifact containers may be:
+  - document-backed content
+  - external references
+  - object-storage references
+- rich file outputs such as PDF, audio, video, binary, or archive should use a stable reference plus metadata instead of forcing the request root to inline those bodies
 
 ### `Request` -> `Transaction`
 
@@ -177,6 +182,7 @@ Stores immutable business history:
 Stores durable output or proof with a stable container reference.
 
 It should not force the request root to inline large delivery bodies.
+It may also point to one execution lane through `fulfillmentId` and one sub-lane through `stepId`.
 
 ## Resolver Auth Support Objects
 

@@ -202,11 +202,49 @@ export type RequestArtifactKind =
   | "signature"
   | "link";
 
-export type RequestArtifactContainer = {
+export type RequestArtifactDocumentKind = "text" | "code" | "image" | "sheet";
+
+export type RequestArtifactMediaKind =
+  | "image"
+  | "audio"
+  | "video"
+  | "pdf"
+  | "binary"
+  | "archive"
+  | "other";
+
+type RequestArtifactContainerMetadata = {
+  byteSize?: number;
+  filename?: string;
+  mediaKind?: RequestArtifactMediaKind;
+  mimeType?: string;
+  previewDocumentId?: string;
+  sha256?: string;
+  sourceUri?: string;
+};
+
+export type RequestDocumentArtifactContainer = {
   kind: "document";
   documentId: string;
-  documentKind: "text" | "code" | "image" | "sheet";
-};
+  documentKind: RequestArtifactDocumentKind;
+} & Omit<RequestArtifactContainerMetadata, "previewDocumentId">;
+
+export type RequestExternalRefArtifactContainer = {
+  kind: "external_ref";
+  uri: string;
+} & Omit<RequestArtifactContainerMetadata, "sourceUri">;
+
+export type RequestObjectRefArtifactContainer = {
+  kind: "object_ref";
+  objectKey: string;
+  storageBucket?: string;
+  storageProvider: string;
+} & RequestArtifactContainerMetadata;
+
+export type RequestArtifactContainer =
+  | RequestDocumentArtifactContainer
+  | RequestExternalRefArtifactContainer
+  | RequestObjectRefArtifactContainer;
 
 export type RequestActivityEntry = {
   eventId: string;
@@ -243,7 +281,9 @@ export type RequestActivityEntry = {
   };
   artifact?: {
     id: string;
+    fulfillmentId?: string;
     kind: RequestArtifactKind;
+    stepId?: string;
     title: string;
     summary?: string;
     container: RequestArtifactContainer;

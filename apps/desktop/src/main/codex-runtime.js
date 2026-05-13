@@ -248,11 +248,25 @@ function emitActivity(onEvent, requestId, activity) {
       typeof activity.activityId === "string" && activity.activityId.trim().length > 0
         ? activity.activityId
         : randomUUID(),
+    activityKind:
+      typeof activity.activityKind === "string" &&
+      activity.activityKind.trim().length > 0
+        ? activity.activityKind.trim()
+        : undefined,
+    command:
+      typeof activity.command === "string" && activity.command.trim().length > 0
+        ? activity.command.trim()
+        : undefined,
     detail:
       typeof activity.detail === "string" && activity.detail.trim().length > 0
         ? activity.detail.trim()
         : undefined,
     message: activity.message.trim(),
+    outputPreview:
+      typeof activity.outputPreview === "string" &&
+      activity.outputPreview.trim().length > 0
+        ? activity.outputPreview.trim()
+        : undefined,
     requestId,
     state:
       typeof activity.state === "string" && activity.state.trim().length > 0
@@ -323,21 +337,137 @@ function buildConversationTranscript(messages) {
     .join("\n\n");
 }
 
-function buildConversationContextPrompt({ messages, workspaceRoot }) {
-  const transcript = buildConversationTranscript(messages);
+function stringifyTrackedRequestConstraints(constraints) {
+  if (!constraints || typeof constraints !== "object") {
+    return "";
+  }
+
+  const entries = Object.entries(constraints);
+
+  if (entries.length === 0) {
+    return "";
+  }
+
+  try {
+    return JSON.stringify(constraints, null, 2);
+  } catch {
+    return entries
+      .map(([key, value]) => `${key}: ${String(value)}`)
+      .join("\n");
+  }
+}
+
+function buildTrackedRequestContextSection(trackedRequest) {
+  if (!trackedRequest || typeof trackedRequest !== "object") {
+    return [];
+  }
+
+  const request =
+    trackedRequest.request && typeof trackedRequest.request === "object"
+      ? trackedRequest.request
+      : null;
+
+  if (!request) {
+    return [];
+  }
+
+  const fulfillment =
+    trackedRequest.fulfillment && typeof trackedRequest.fulfillment === "object"
+      ? trackedRequest.fulfillment
+      : null;
+  const recentActivity = Array.isArray(trackedRequest.recentActivity)
+    ? trackedRequest.recentActivity
+        .filter(
+          (entry) =>
+            entry &&
+            typeof entry === "object" &&
+            typeof entry.summary === "string" &&
+            entry.summary.trim().length > 0,
+        )
+        .slice(-6)
+    : [];
+  const constraints = stringifyTrackedRequestConstraints(request.constraints);
 
   return [
-    "Current mode: local_chat.",
+    "Tracked Boreal Request:",
+    `- Request key: ${request.key || request.id}`,
+    `- Request id: ${request.id}`,
+    `- Title: ${request.title || request.key || request.id}`,
+    `- Status: ${request.status || "open"}`,
+    `- Visibility: ${request.visibility || "public"}`,
+    request.summary ? `- Summary: ${request.summary}` : null,
+    request.body ? `- Body: ${request.body}` : null,
+    request.notes ? `- Notes: ${request.notes}` : null,
+    request.budgetSummary ? `- Budget: ${request.budgetSummary}` : null,
+    request.deadlineSummary ? `- Deadline: ${request.deadlineSummary}` : null,
+    Array.isArray(request.outputKinds) && request.outputKinds.length > 0
+      ? `- Output kinds: ${request.outputKinds.join(", ")}`
+      : null,
+    Array.isArray(request.actorKinds) && request.actorKinds.length > 0
+      ? `- Seeking actor kinds: ${request.actorKinds.join(", ")}`
+      : null,
+    Array.isArray(request.supplyKinds) && request.supplyKinds.length > 0
+      ? `- Seeking supply kinds: ${request.supplyKinds.join(", ")}`
+      : null,
+    request.teamMode ? `- Team mode: ${request.teamMode}` : null,
+    constraints ? "- Constraints:" : null,
+    constraints || null,
+    fulfillment
+      ? `Selected fulfillment lane: ${fulfillment.id} (${fulfillment.status})`
+      : null,
+    fulfillment?.summary ? `Fulfillment summary: ${fulfillment.summary}` : null,
+    recentActivity.length > 0 ? "Recent request activity:" : null,
+    ...recentActivity.map((entry) => {
+      const timestamp =
+        typeof entry.occurredAt === "string" && entry.occurredAt.length > 0
+          ? entry.occurredAt
+          : "unknown time";
+      const eventType =
+        typeof entry.eventType === "string" && entry.eventType.length > 0
+          ? entry.eventType
+          : "request.updated";
+      const actorLabel =
+        typeof entry.actorLabel === "string" && entry.actorLabel.length > 0
+          ? entry.actorLabel
+          : "Unknown actor";
+      const detail =
+        typeof entry.detail === "string" && entry.detail.trim().length > 0
+          ? ` - ${entry.detail.trim()}`
+          : "";
+
+      return `- [${timestamp}] ${actorLabel} ${eventType}: ${entry.summary}${detail}`;
+    }),
+    "Treat the Boreal Request and fulfillment lane above as canonical work truth.",
+    "Keep local scratch, planning, and side notes private unless explicitly promoted.",
+  ].filter(Boolean);
+}
+
+function buildConversationContextPrompt({
+  messages,
+  trackedRequest,
+  workspaceRoot,
+}) {
+  const transcript = buildConversationTranscript(messages);
+  const trackedRequestSection = buildTrackedRequestContextSection(trackedRequest);
+  const mode = trackedRequestSection.length > 0 ? "tracked_request" : "local_chat";
+
+  return [
+    `Current mode: ${mode}.`,
     `Workspace root: ${workspaceRoot}`,
-    "Desktop chat stays local-only by default.",
+    trackedRequestSection.length > 0
+      ? "Desktop transcript stays local, but this turn is bound to the selected Boreal request lane."
+      : "Desktop chat stays local-only by default.",
     "Answer the latest user turn while preserving the local conversation context below.",
     "",
+    ...trackedRequestSection,
+    ...(trackedRequestSection.length > 0 ? [""] : []),
     transcript,
   ].join("\n");
 }
 
 function buildExecTranscriptPrompt({
   messages,
+  trackedRequest,
   workspaceRoot,
   developerInstructions = buildDesktopSystemPrompt(),
 }) {
@@ -346,6 +476,7 @@ function buildExecTranscriptPrompt({
     "",
     buildConversationContextPrompt({
       messages,
+      trackedRequest,
       workspaceRoot,
     }),
   ].join("\n");
@@ -461,10 +592,13 @@ function handleCodexExecStreamEvent(event, state) {
     }
 
     if (itemType === "command_execution" || itemType === "commandExecution") {
+      const command = summarizeCommand(item.command);
       emitStatus(onEvent, requestId, "Codex is running a local command...");
       emitActivity(onEvent, requestId, {
+        activityKind: "command",
         activityId: item.id ?? randomUUID(),
-        detail: summarizeCommand(item.command),
+        command,
+        detail: command,
         message: "Running local command",
         state: "running",
       });
@@ -497,7 +631,7 @@ function handleCodexExecStreamEvent(event, state) {
 
   if (itemType === "command_execution" || itemType === "commandExecution") {
     const activityId = item.id ?? randomUUID();
-    const detail = summarizeCommand(item.command);
+    const command = summarizeCommand(item.command);
     const outputPreview = summarizeCommandOutput(
       item.aggregated_output ?? item.aggregatedOutput,
     );
@@ -507,9 +641,12 @@ function handleCodexExecStreamEvent(event, state) {
 
     if (status === "declined") {
       emitActivity(onEvent, requestId, {
+        activityKind: "command",
         activityId,
-        detail,
+        command,
+        detail: command,
         message: "Command blocked by policy",
+        outputPreview,
         state: "blocked",
       });
       return;
@@ -517,18 +654,24 @@ function handleCodexExecStreamEvent(event, state) {
 
     if ((typeof exitCode === "number" && exitCode !== 0) || status === "failed") {
       emitActivity(onEvent, requestId, {
+        activityKind: "command",
         activityId,
-        detail: outputPreview || detail,
+        command,
+        detail: outputPreview || command,
         message: "Command failed",
+        outputPreview,
         state: "failed",
       });
       return;
     }
 
     emitActivity(onEvent, requestId, {
+      activityKind: "command",
       activityId,
-      detail: outputPreview || detail,
+      command,
+      detail: outputPreview || command,
       message: "Command completed",
+      outputPreview,
       state: "completed",
     });
     return;
@@ -552,6 +695,7 @@ async function runCodexExec({
   requestId,
   sandboxMode,
   timeoutMs,
+  trackedRequest = null,
   workspaceRoot,
 }) {
   return new Promise((resolve, reject) => {
@@ -659,6 +803,7 @@ async function runCodexExec({
       buildExecTranscriptPrompt({
         developerInstructions,
         messages,
+        trackedRequest,
         workspaceRoot,
       }),
     );
@@ -889,6 +1034,7 @@ function buildSandboxPolicy({
 function createThreadSessionKey({
   additionalWritableRoots = [],
   approvalPolicy = "never",
+  conversationKey = "",
   model,
   networkAccess = false,
   reasoningEffort,
@@ -899,7 +1045,7 @@ function createThreadSessionKey({
     workspaceRoot,
     additionalWritableRoots,
   ).join("|");
-  return `${workspaceRoot}::${model}::${reasoningEffort}::${sandboxMode}::${approvalPolicy}::${networkAccess ? "net" : "offline"}::${writableRootsSignature}`;
+  return `${workspaceRoot}::${conversationKey || "default"}::${model}::${reasoningEffort}::${sandboxMode}::${approvalPolicy}::${networkAccess ? "net" : "offline"}::${writableRootsSignature}`;
 }
 
 function resetRuntimeCaches() {
@@ -1078,10 +1224,13 @@ function handleAppServerStreamEvent(message, state, settle) {
     }
 
     if (itemType === "commandExecution") {
+      const command = summarizeCommand(item.command);
       emitStatus(onEvent, requestId, "Codex is running a local command...");
       emitActivity(onEvent, requestId, {
+        activityKind: "command",
         activityId: item.id ?? randomUUID(),
-        detail: summarizeCommand(item.command),
+        command,
+        detail: command,
         message: "Running local command",
         state: "running",
       });
@@ -1114,14 +1263,17 @@ function handleAppServerStreamEvent(message, state, settle) {
 
   if (itemType === "commandExecution") {
     const activityId = item.id ?? randomUUID();
-    const detail = summarizeCommand(item.command);
+    const command = summarizeCommand(item.command);
     const outputPreview = summarizeCommandOutput(item.aggregatedOutput);
 
     if (item.status === "declined") {
       emitActivity(onEvent, requestId, {
+        activityKind: "command",
         activityId,
-        detail,
+        command,
+        detail: command,
         message: "Command blocked by policy",
+        outputPreview,
         state: "blocked",
       });
       return;
@@ -1132,37 +1284,49 @@ function handleAppServerStreamEvent(message, state, settle) {
       (typeof item.exitCode === "number" && item.exitCode !== 0)
     ) {
       emitActivity(onEvent, requestId, {
+        activityKind: "command",
         activityId,
-        detail: outputPreview || detail,
+        command,
+        detail: outputPreview || command,
         message: "Command failed",
+        outputPreview,
         state: "failed",
       });
       return;
     }
 
     emitActivity(onEvent, requestId, {
+      activityKind: "command",
       activityId,
-      detail: outputPreview || detail,
+      command,
+      detail: outputPreview || command,
       message: "Command completed",
+      outputPreview,
       state: "completed",
     });
     return;
   }
 }
 
-function selectTurnInputText(messages, workspaceRoot, canContinueThread) {
+function selectTurnInputText(
+  messages,
+  workspaceRoot,
+  canContinueThread,
+  trackedRequest,
+) {
   const latestUserMessage = messages[messages.length - 1];
 
   if (!latestUserMessage || latestUserMessage.role !== "user") {
     throw new Error("Desktop chat must end with a user message before sending.");
   }
 
-  if (canContinueThread || messages.length === 1) {
+  if (canContinueThread) {
     return latestUserMessage.content;
   }
 
   return buildConversationContextPrompt({
     messages,
+    trackedRequest,
     workspaceRoot,
   });
 }
@@ -1420,6 +1584,7 @@ async function createDesktopResponseViaAppServer({
   allowThreadReuse = true,
   additionalWritableRoots = [],
   approvalPolicy = "never",
+  conversationKey = "",
   developerInstructions = buildDesktopSystemPrompt(),
   messages,
   model,
@@ -1430,12 +1595,14 @@ async function createDesktopResponseViaAppServer({
   requestId,
   sandboxMode = "workspace-write",
   timeoutMs = APP_SERVER_TURN_TIMEOUT_MS,
+  trackedRequest = null,
   workspaceRoot,
 }) {
   const client = await ensureCodexAppServerClient();
   const sessionKey = createThreadSessionKey({
     additionalWritableRoots,
     approvalPolicy,
+    conversationKey,
     model,
     networkAccess,
     reasoningEffort,
@@ -1453,6 +1620,7 @@ async function createDesktopResponseViaAppServer({
     messages,
     workspaceRoot,
     canContinueThread,
+    trackedRequest,
   );
 
   const session =
@@ -1524,6 +1692,7 @@ async function createDesktopResponseViaExec({
   requestId,
   sandboxMode = "workspace-write",
   timeoutMs = APP_SERVER_TURN_TIMEOUT_MS,
+  trackedRequest = null,
   workspaceRoot,
 }) {
   const outputPath = path.join(
@@ -1552,6 +1721,7 @@ async function createDesktopResponseViaExec({
       requestId,
       sandboxMode,
       timeoutMs,
+      trackedRequest,
       workspaceRoot,
     });
     const outputText =
@@ -1653,6 +1823,7 @@ export async function createDesktopResponse({
   allowThreadReuse = true,
   additionalWritableRoots = [],
   approvalPolicy = "never",
+  conversationKey = "",
   developerInstructions = buildDesktopSystemPrompt(),
   model,
   messages,
@@ -1662,6 +1833,7 @@ export async function createDesktopResponse({
   reasoningEffort = "",
   sandboxMode = "workspace-write",
   timeoutMs = APP_SERVER_TURN_TIMEOUT_MS,
+  trackedRequest = null,
   workspaceRoot = REPO_ROOT,
 }) {
   if (typeof model !== "string" || model.trim().length === 0) {
@@ -1690,6 +1862,7 @@ export async function createDesktopResponse({
       allowThreadReuse,
       additionalWritableRoots,
       approvalPolicy,
+      conversationKey,
       developerInstructions,
       messages,
       model,
@@ -1700,12 +1873,14 @@ export async function createDesktopResponse({
       requestId,
       sandboxMode,
       timeoutMs,
+      trackedRequest,
       workspaceRoot,
     });
   } catch {
     return createDesktopResponseViaExec({
       additionalWritableRoots,
       approvalPolicy,
+      conversationKey,
       developerInstructions,
       messages,
       model,
@@ -1715,6 +1890,7 @@ export async function createDesktopResponse({
       requestId,
       sandboxMode,
       timeoutMs,
+      trackedRequest,
       workspaceRoot,
     });
   }

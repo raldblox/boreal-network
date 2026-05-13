@@ -43,6 +43,7 @@ Verify:
 - no accepted execution exists without an accepted route or commitment
 - funding-required requests point to valid commercial context
 - delivered work can be traced to artifacts and events
+- file, media, PDF, audio, video, binary, and archive deliveries can be traced through stable artifact references without inflating the request root
 
 ### Authorization tests
 
@@ -113,6 +114,8 @@ Verify:
 - direct fulfillment updates should reject invalid state transitions
 - funding-required requests should not start fulfillment directly in `active`
 - execution-grade artifacts should require an accepted commitment or active fulfillment role instead of arbitrary public responder access
+- artifact publication should accept both document-backed content and richer external or object reference containers
+- artifact publication should preserve optional `fulfillmentId` and `stepId` lane bindings when provided
 - typing, token deltas, progress ticks, heartbeats, presence, transient runtime logs, and raw tool stdout or stderr should not create default durable request history
 - resolver device approval should not issue tokens before explicit Boreal account approval
 - resolver refresh rotation should revoke or replace the previous refresh token
@@ -120,6 +123,7 @@ Verify:
 - desktop resolver flows should preserve auth separation between Codex runtime identity and Boreal request-actor identity
 - desktop auto-resolve toggle should only act on owned private requests when the auto mode is enabled
 - desktop auto-resolve should create durable fulfillment and artifact events even when it skips commitment creation
+- desktop tracked-request execution should bind one local thread to one selected `Request` and optional `Fulfillment` lane without syncing the full local transcript by default
 - timeline cards should be reconstructible from `RequestEvent` plus related object refs
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
@@ -218,6 +222,7 @@ Verify:
 - attach
 - publish through a stable container reference
 - resolve references
+- preserve fulfillment and step lane bindings
 - visibility and integrity
 
 ### `Transaction`

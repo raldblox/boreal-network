@@ -10,6 +10,7 @@ import {
   RedoIcon,
   UndoIcon,
 } from "@/components/chat/icons";
+import { MessageMarkdown } from "@/components/chat/message-markdown";
 import { Editor } from "@/components/chat/text-editor";
 import type { Suggestion } from "@/lib/db/schema";
 import { getSuggestions } from "../actions";
@@ -57,6 +58,7 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
     mode,
     status,
     content,
+    isReadonly,
     isCurrentVersion,
     currentVersionIndex,
     onSaveContent,
@@ -78,6 +80,16 @@ export const textArtifact = new Artifact<"text", TextArtifactMetadata>({
       return (
         <div className="flex flex-row px-4 py-8 md:px-16 md:py-12 lg:px-20">
           <DiffView newContent={selectedContent} oldContent={prevContent} />
+        </div>
+      );
+    }
+
+    if (isReadonly) {
+      return (
+        <div className="flex flex-row px-4 py-8 md:px-10 md:py-10 lg:px-12">
+          <div className="w-full max-w-none">
+            <MessageMarkdown content={content} />
+          </div>
         </div>
       );
     }
