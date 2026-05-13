@@ -90,6 +90,30 @@ At minimum, the network should be able to expose contracts for:
 
 ## Example Contract Boundaries
 
+### `Supply`
+
+Should expose:
+
+- create draft
+- read
+- list owned supply
+- update allowed mutable fields
+- publish
+- pause
+- retire
+
+The first supply-management web slice should support:
+
+- explicit draft creation from a typed preset such as human service, agent worker, digital product, desktop runtime, or provider capability
+- owner-scoped supply draft reads and list reads
+- owner-scoped draft updates for profile, capability, availability, pricing, visibility, source, binding metadata, and freeform metadata
+- explicit publish from `draft` into `published`
+- explicit pause and retire actions after publish
+- optional runtime or resolver binding metadata without treating the runtime itself as the supply row
+- private and unlisted publish lanes first
+
+Public marketplace-style supply publish should remain gated until the broader supply discovery lane is explicitly enabled.
+
 ### `Request`
 
 Should expose:

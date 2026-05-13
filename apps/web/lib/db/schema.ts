@@ -32,6 +32,16 @@ import type {
   RequestVisibility,
 } from "@/lib/request";
 import type {
+  SupplyAvailability,
+  SupplyBindings,
+  SupplyCapability,
+  SupplyPricing,
+  SupplyProfile,
+  SupplySource,
+  SupplyStatus,
+  SupplyVisibility,
+} from "@/lib/supply";
+import type {
   ResolverAuthorizationStatus,
   ResolverClientStatus,
   ResolverScope,
@@ -120,6 +130,39 @@ export const request = pgTable(
 );
 
 export type RequestRecord = InferSelectModel<typeof request>;
+
+export const supply = pgTable("Supply", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  key: text("key").notNull(),
+  ownerId: uuid("ownerId")
+    .notNull()
+    .references(() => user.id),
+  status: varchar("status", {
+    enum: ["draft", "published", "paused", "retired"],
+  })
+    .$type<SupplyStatus>()
+    .notNull()
+    .default("draft"),
+  visibility: varchar("visibility", {
+    enum: ["private", "unlisted", "public"],
+  })
+    .$type<SupplyVisibility>()
+    .notNull()
+    .default("private"),
+  profile: json("profile").$type<SupplyProfile>().notNull(),
+  capability: json("capability").$type<SupplyCapability>().notNull(),
+  availability: json("availability").$type<SupplyAvailability>().notNull(),
+  pricing: json("pricing").$type<SupplyPricing | null>(),
+  source: json("source").$type<SupplySource>().notNull(),
+  bindings: json("bindings").$type<SupplyBindings>().notNull(),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  publishedAt: timestamp("publishedAt"),
+  retiredAt: timestamp("retiredAt"),
+});
+
+export type SupplyRecord = InferSelectModel<typeof supply>;
 
 export const commitment = pgTable("Commitment", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),

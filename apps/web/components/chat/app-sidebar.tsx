@@ -3,6 +3,7 @@
 import {
   FilePenLineIcon,
   MessageSquareIcon,
+  PackageIcon,
   PanelLeftIcon,
   PenSquareIcon,
   TrashIcon,
@@ -22,6 +23,7 @@ import {
   getRequestHistoryPaginationKey,
   SidebarRequests,
 } from "@/components/chat/sidebar-requests";
+import { SidebarSupplies } from "@/components/chat/sidebar-supplies";
 import { SidebarUserNav } from "@/components/chat/sidebar-user-nav";
 import {
   Sidebar,
@@ -59,6 +61,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const isRootView = pathname === "/";
   const isNewRequestMode =
     isRootView && searchParams.get("mode") === "request";
+  const isNewSupplyMode = pathname === "/supplies/new";
   const isNewChatMode = isRootView && !isNewRequestMode;
 
   const handleDeleteAll = () => {
@@ -147,6 +150,22 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 {user && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
+                      className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                      isActive={isNewSupplyMode}
+                      onClick={() => {
+                        setOpenMobile(false);
+                        router.push("/supplies/new");
+                      }}
+                      tooltip="New supply"
+                    >
+                      <PackageIcon className="size-4" />
+                      <span className="font-medium">New supply</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {user && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
                     className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
                     onClick={() => setShowDeleteAllDialog(true)}
                     tooltip="Clear chat history"
@@ -159,6 +178,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
+          <SidebarSupplies user={user} />
           <SidebarRequests user={user} />
           <SidebarHistory user={user} />
         </SidebarContent>

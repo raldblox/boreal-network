@@ -34,6 +34,7 @@ Support auth aggregates for resolver runtimes:
 
 - one actor can publish many supply records
 - one supply belongs to one owner actor
+- one runtime or provider binding may back many supply records without replacing the owner actor
 
 ### `Request` -> `RequestParticipant`
 
@@ -77,6 +78,64 @@ Support auth aggregates for resolver runtimes:
 - event sequence is scoped to the request stream
 
 ## Root Object Responsibilities
+
+### `Supply`
+
+Stores current truth:
+
+- owner
+- profile
+- capability
+- availability
+- optional pricing
+- visibility
+- lifecycle status
+- optional source and binding metadata
+
+Visibility rule:
+
+- `private` supply is owner-scoped and not shareable outside owner-controlled surfaces
+- `unlisted` supply may be shared directly or routed by explicit reference without entering a broad public pool
+- `public` supply is the later market-facing publish lane
+
+Binding rule:
+
+- runtime or resolver metadata may be attached as optional binding data
+- the binding identifies backing infrastructure, not the durable owner actor
+- one runtime may back many supply rows and one supply may later swap bindings without changing canonical ownership
+
+### `Supply` Object Spec
+
+Canonical fields on the durable root:
+
+- `owner`
+- `profile.displayName`
+- `profile.summary`
+- `capability.supplyKinds`
+- `capability.fulfillmentActorKinds`
+- `capability.outputKinds`
+- `availability.acceptingRequests`
+- `visibility`
+- `status`
+
+Optional canonical fields:
+
+- `profile.headline`
+- `profile.description`
+- `profile.tags`
+- `capability.executionChannels`
+- `pricing`
+- `source.kind`
+- `bindings.runtimeActorId`
+- `bindings.resolverClientId`
+- `bindings.providerRef`
+- `metadata`
+
+Draft rule:
+
+- a `Supply` may be created early in `draft` status before pricing or binding data is complete
+- publish should require a minimally complete profile and capability shape
+- owner-facing form edits may update the same durable supply row instead of creating replacement rows during drafting
 
 ### `Request`
 
@@ -210,6 +269,9 @@ These views are rebuildable and should not redefine root semantics.
 
 Physical schemas should optimize for:
 
+- supply by id and owner
+- active supply by owner and status
+- active supply by visibility and status for future discovery lanes
 - request by id and owner
 - active requests by status
 - commitments by request and status

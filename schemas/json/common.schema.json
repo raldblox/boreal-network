@@ -84,6 +84,23 @@
         "failed"
       ]
     },
+    "supplyStatus": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "paused",
+        "retired"
+      ]
+    },
+    "supplyVisibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "unlisted",
+        "public"
+      ]
+    },
     "commitmentStatus": {
       "type": "string",
       "enum": [

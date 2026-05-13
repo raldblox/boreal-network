@@ -43,6 +43,17 @@ import {
   toPublicRequestPoolEntry,
 } from "@/lib/request";
 import type {
+  BorealSupplyDraft,
+  SupplyAvailability,
+  SupplyBindings,
+  SupplyCapability,
+  SupplyPricing,
+  SupplyProfile,
+  SupplySource,
+  SupplyStatus,
+  SupplyVisibility,
+} from "@/lib/supply";
+import type {
   ResolverAuthorizationStatus,
   ResolverClientStatus,
   ResolverScope,
@@ -66,6 +77,8 @@ import {
   requestEvent,
   type RequestEventRecord,
   type RequestRecord,
+  supply,
+  type SupplyRecord,
   resolverAuthorization,
   type ResolverAuthorizationRecord,
   resolverClient,
@@ -1375,6 +1388,244 @@ export function toRequestDraft(record: RequestRecord): BorealRequestDraft {
     derived: record.derived,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+export async function getSupplyById({
+  id,
+}: {
+  id: string;
+}): Promise<SupplyRecord | null> {
+  try {
+    const [selectedSupply] = await db
+      .select()
+      .from(supply)
+      .where(eq(supply.id, id))
+      .limit(1);
+
+    return selectedSupply ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get supply by id"
+    );
+  }
+}
+
+export async function getSuppliesByUserId({
+  id,
+  limit,
+  startingAfter,
+  endingBefore,
+}: {
+  id: string;
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}) {
+  try {
+    const extendedLimit = limit + 1;
+
+    const query = (whereCondition?: SQL<unknown>) =>
+      db
+        .select()
+        .from(supply)
+        .where(and(eq(supply.ownerId, id), ...(whereCondition ? [whereCondition] : [])))
+        .orderBy(desc(supply.updatedAt))
+        .limit(extendedLimit);
+
+    let filteredSupplies: SupplyRecord[] = [];
+
+    if (startingAfter) {
+      const [selectedSupply] = await db
+        .select()
+        .from(supply)
+        .where(eq(supply.id, startingAfter))
+        .limit(1);
+
+      if (!selectedSupply) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Supply with id ${startingAfter} not found`
+        );
+      }
+
+      filteredSupplies = await query(gt(supply.updatedAt, selectedSupply.updatedAt));
+    } else if (endingBefore) {
+      const [selectedSupply] = await db
+        .select()
+        .from(supply)
+        .where(eq(supply.id, endingBefore))
+        .limit(1);
+
+      if (!selectedSupply) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Supply with id ${endingBefore} not found`
+        );
+      }
+
+      filteredSupplies = await query(lt(supply.updatedAt, selectedSupply.updatedAt));
+    } else {
+      filteredSupplies = await query();
+    }
+
+    const hasMore = filteredSupplies.length > limit;
+
+    return {
+      supplies: hasMore
+        ? filteredSupplies.slice(0, limit).map(toSupplyDraft)
+        : filteredSupplies.map(toSupplyDraft),
+      hasMore,
+    };
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get supplies by user id"
+    );
+  }
+}
+
+export async function saveSupplyDraft({
+  id,
+  key,
+  ownerId,
+  status,
+  visibility,
+  profile,
+  capability,
+  availability,
+  pricing,
+  source,
+  bindings,
+  metadata,
+  publishedAt,
+  retiredAt,
+}: {
+  id: string;
+  key: string;
+  ownerId: string;
+  status: SupplyStatus;
+  visibility: SupplyVisibility;
+  profile: SupplyProfile;
+  capability: SupplyCapability;
+  availability: SupplyAvailability;
+  pricing: SupplyPricing | null;
+  source: SupplySource;
+  bindings: SupplyBindings;
+  metadata?: Record<string, unknown>;
+  publishedAt?: Date | null;
+  retiredAt?: Date | null;
+}) {
+  try {
+    const [createdSupply] = await db
+      .insert(supply)
+      .values({
+        id,
+        key,
+        ownerId,
+        status,
+        visibility,
+        profile,
+        capability,
+        availability,
+        pricing,
+        source,
+        bindings,
+        ...(metadata ? { metadata } : {}),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        publishedAt,
+        retiredAt,
+      })
+      .returning();
+
+    return createdSupply;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save supply draft"
+    );
+  }
+}
+
+export async function updateSupplyDraftById({
+  id,
+  key,
+  status,
+  visibility,
+  profile,
+  capability,
+  availability,
+  pricing,
+  source,
+  bindings,
+  metadata,
+  publishedAt,
+  retiredAt,
+}: {
+  id: string;
+  key: string;
+  status: SupplyStatus;
+  visibility: SupplyVisibility;
+  profile: SupplyProfile;
+  capability: SupplyCapability;
+  availability: SupplyAvailability;
+  pricing: SupplyPricing | null;
+  source: SupplySource;
+  bindings: SupplyBindings;
+  metadata?: Record<string, unknown>;
+  publishedAt?: Date | null;
+  retiredAt?: Date | null;
+}) {
+  try {
+    const [updatedSupply] = await db
+      .update(supply)
+      .set({
+        key,
+        status,
+        visibility,
+        profile,
+        capability,
+        availability,
+        pricing,
+        source,
+        bindings,
+        ...(metadata ? { metadata } : { metadata: null }),
+        ...(publishedAt !== undefined ? { publishedAt } : {}),
+        ...(retiredAt !== undefined ? { retiredAt } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(supply.id, id))
+      .returning();
+
+    return updatedSupply ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update supply draft"
+    );
+  }
+}
+
+export function toSupplyDraft(record: SupplyRecord): BorealSupplyDraft {
+  return {
+    id: record.id,
+    key: record.key,
+    ownerId: record.ownerId,
+    status: record.status,
+    visibility: record.visibility,
+    profile: record.profile,
+    capability: record.capability,
+    availability: record.availability,
+    pricing: record.pricing,
+    source: record.source,
+    bindings: record.bindings ?? {},
+    ...(record.metadata ? { metadata: record.metadata } : {}),
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    ...(record.publishedAt ? { publishedAt: record.publishedAt.toISOString() } : {}),
+    ...(record.retiredAt ? { retiredAt: record.retiredAt.toISOString() } : {}),
   };
 }
 

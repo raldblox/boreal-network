@@ -30,6 +30,7 @@ This workspace should eventually hold Boreal's web surfaces for:
 
 - buyer intake
 - request threads
+- supply drafting and owner-scoped supply management
 - supply discovery
 - account and operator surfaces
 - public product-facing web experiences that belong to the main Boreal web surface

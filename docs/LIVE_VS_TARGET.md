@@ -50,6 +50,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/transaction.schema.json`
 - `schemas/json/request-event.schema.json`
 - `schemas/openapi/request-briefing.openapi.yaml`
+- `schemas/openapi/supply-management.openapi.yaml`
 - `schemas/openapi/resolver-auth.openapi.yaml`
 - `fixtures/request/golden-external-ai-automation-thread.json`
 - `fixtures/request/eval-complex-human-planning-and-match.json`
@@ -69,6 +70,8 @@ Today, the machine-readable baseline proves:
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
 - one `Supply` can be expressed as a durable capability object
+- one owner-scoped `Supply` draft can be created, updated, and published through the first private or unlisted supply-management lane
+- one `Supply` may carry runtime or resolver binding metadata without collapsing runtime identity into supply ownership
 - one `Commitment` can carry quoted or accepted commercial terms
 - one `Artifact` can point to a stable document, external reference, or object reference instead of inflating the request root
 - one open request can accept direct HTTP commitment and artifact writes in addition to chat tool-calling
@@ -88,7 +91,7 @@ These are intended next layers, not fully modeled proof yet:
 - broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
 - richer golden fixtures for failure, replay, dispute, collective fulfillment, and private-supply paths
 - deeper web runtime coverage beyond the first request-briefing slice in `apps/web/`
-- deeper supply lifecycle canon for onboarding, capacity, visibility, and retirement
+- broader supply discovery, responder reads, and public market publish lanes
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
 - browser-facing or peer-facing ephemeral realtime lanes beyond the local desktop-main hub
 - peer-capable runtime identity bound through resolver approval without replacing Boreal actor identity

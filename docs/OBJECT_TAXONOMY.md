@@ -33,6 +33,23 @@ Examples:
 `Supply` is the canonical supply-side object.
 UI may call it `Offer`, but the schema should not.
 
+It carries:
+
+- owner
+- profile
+- capability
+- availability
+- optional pricing
+- visibility
+- lifecycle status
+- optional source and binding metadata
+
+Binding rule:
+
+- a connected desktop or peer runtime is not automatically a `Supply`
+- one runtime may back zero, one, or many published `Supply` records
+- runtime, resolver, or provider bindings may enrich a supply record without replacing the supply owner actor
+
 ### `Request`
 
 Represents the durable demand-side root object and the canonical work thread.

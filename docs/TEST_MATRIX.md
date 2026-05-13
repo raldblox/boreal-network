@@ -14,6 +14,7 @@ Verify:
 - sample payload compatibility
 - ephemeral realtime channel shapes do not drift into durable event schemas accidentally
 - desktop-local ephemeral IPC envelopes keep stable lane, channel-kind, correlation, and source fields without pretending to be durable request events
+- supply schema and supply OpenAPI stay aligned on status, visibility, pricing mode, source kind, and binding shape
 
 ### Commercial canon tests
 
@@ -39,6 +40,7 @@ Verify:
 Verify:
 
 - one request root remains durable across the lifecycle
+- one supply owner remains stable across draft, publish, pause, and retire transitions
 - no fulfillment exists without a request
 - no accepted execution exists without an accepted route or commitment
 - funding-required requests point to valid commercial context
@@ -55,6 +57,7 @@ Verify:
 - resolver bearer scopes are enforced independently from browser sessions
 - raw runtime identity cannot be treated as Boreal request ownership without Boreal-issued resolver approval
 - peer or localhost realtime session auth cannot be treated as Boreal actor auth by itself
+- raw runtime or resolver identity cannot be treated as supply ownership by itself
 
 ### Idempotency tests
 
@@ -128,6 +131,20 @@ Verify:
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
 - planner outputs stay derived and rebuildable
+
+### Supply-management contract tests
+
+Verify:
+
+- entering the new-supply route alone does not publish supply automatically
+- explicit supply draft creation creates one durable supply row
+- draft updates mutate the same supply row instead of creating replacements
+- publish requires the minimum profile and capability fields
+- private and unlisted publish succeed through the first supply lane
+- public supply publish remains blocked until the broader market lane is enabled
+- pause and retire transitions honor the canonical supply state machine
+- runtime or resolver binding metadata remains optional
+- runtime or resolver binding metadata does not replace the durable supply owner actor
 
 ### Planner evals
 
@@ -240,6 +257,15 @@ Verify:
 - naming validation
 - replay safety
 - sequence monotonicity
+
+### `Supply`
+
+- create draft
+- update draft
+- publish
+- pause
+- retire
+- visibility and binding integrity
 
 ## Fixture Rules
 

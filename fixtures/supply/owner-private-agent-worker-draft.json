@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "5d4f55e3-7b5f-42f5-bc97-9d0a1302f5b7",
+  "key": "agent-worker-supply",
+  "owner": {
+    "kind": "human",
+    "id": "actor_owner_001"
+  },
+  "status": "draft",
+  "visibility": "private",
+  "profile": {
+    "displayName": "Agent worker supply",
+    "summary": "Owner-scoped agent execution lane for request-native work."
+  },
+  "capability": {
+    "supplyKinds": [
+      "agent_worker"
+    ],
+    "fulfillmentActorKinds": [
+      "agent"
+    ],
+    "outputKinds": [
+      "draft",
+      "delivery"
+    ],
+    "executionChannels": [
+      "request_room"
+    ]
+  },
+  "availability": {
+    "acceptingRequests": true
+  },
+  "source": {
+    "kind": "manual"
+  },
+  "bindings": {
+    "runtimeActorId": "runtime_owner_local_001"
+  },
+  "createdAt": "2026-05-13T00:00:00.000Z",
+  "updatedAt": "2026-05-13T00:00:00.000Z"
+}

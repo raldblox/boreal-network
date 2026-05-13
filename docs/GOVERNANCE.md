@@ -177,6 +177,7 @@ Update:
 Update:
 
 - taxonomy
+- state machines
 - logical schema
 - API contracts if external surfaces changed
 - tests

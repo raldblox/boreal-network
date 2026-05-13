@@ -10,9 +10,12 @@
     "id",
     "key",
     "owner",
+    "status",
+    "visibility",
     "profile",
     "capability",
     "availability",
+    "source",
     "createdAt",
     "updatedAt"
   ],
@@ -28,6 +31,12 @@
     },
     "owner": {
       "$ref": "common.schema.json#/$defs/actorRef"
+    },
+    "status": {
+      "$ref": "common.schema.json#/$defs/supplyStatus"
+    },
+    "visibility": {
+      "$ref": "common.schema.json#/$defs/supplyVisibility"
     },
     "profile": {
       "type": "object",
@@ -171,6 +180,41 @@
     },
     "metadata": {
       "$ref": "common.schema.json#/$defs/metadata"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "runtime",
+            "provider",
+            "catalog"
+          ]
+        }
+      }
+    },
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runtimeActorId": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "resolverClientId": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
+        "providerRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
     },
     "createdAt": {
       "$ref": "common.schema.json#/$defs/timestamp"

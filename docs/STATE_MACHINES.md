@@ -10,6 +10,37 @@ This file defines the canonical lifecycle states for Boreal Network aggregates.
 - Terminal states must be easy to detect.
 - Invalid transitions must fail loudly.
 
+## `Supply`
+
+### Canonical states
+
+- `draft`
+- `published`
+- `paused`
+- `retired`
+
+### Meaning
+
+- `draft`: owner is shaping the capability record and it is not yet active for routing.
+- `published`: supply is active for the visibility lane it chose.
+- `paused`: supply remains durable but should not receive new routing until resumed.
+- `retired`: supply is intentionally closed and should not re-enter active routing.
+
+### Allowed transitions
+
+- `draft` -> `published`
+- `draft` -> `retired`
+- `published` -> `paused`
+- `published` -> `retired`
+- `paused` -> `published`
+- `paused` -> `retired`
+
+### Invariants
+
+- A `published` supply must satisfy the required profile, capability, and availability shape.
+- Runtime, resolver, or provider bindings are optional enrichments and must not replace the supply owner actor.
+- `retired` is terminal.
+
 ## `Request`
 
 ### Canonical states

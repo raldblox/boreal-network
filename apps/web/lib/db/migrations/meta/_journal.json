@@ -57,6 +57,13 @@
       "when": 1710604800000,
       "tag": "0007_artifact_lane_and_reference_refs",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1710691200000,
+      "tag": "0008_supply_management",
+      "breakpoints": true
     }
   ]
 }

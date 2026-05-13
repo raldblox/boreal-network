@@ -1,0 +1,351 @@
+openapi: 3.1.0
+info:
+  title: Boreal Web Supply Management Surface
+  version: 1.0.0
+  description: >
+    First owner-scoped supply management surface for explicit Supply draft
+    creation, draft updates, and private or unlisted publish inside apps/web.
+paths:
+  /api/supplies:
+    get:
+      summary: List owned supplies for the authenticated actor.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+        - in: query
+          name: starting_after
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: ending_before
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: A page of owned supply rows.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - supplies
+                  - hasMore
+                properties:
+                  supplies:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/WebSupply"
+                  hasMore:
+                    type: boolean
+    post:
+      summary: Create an explicit draft Supply from one preset.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                preset:
+                  type: string
+                  enum:
+                    - human_service
+                    - agent_worker
+                    - digital_product
+                    - desktop_runtime
+                    - provider_capability
+      responses:
+        "200":
+          description: The newly created draft supply.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - supply
+                properties:
+                  supply:
+                    $ref: "#/components/schemas/WebSupply"
+  /api/supplies/{id}:
+    get:
+      summary: Get one owned supply detail view.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: One owned supply.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - supply
+                properties:
+                  supply:
+                    $ref: "#/components/schemas/WebSupply"
+    patch:
+      summary: Update one owned supply or advance its lifecycle.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebSupplyMutation"
+      responses:
+        "200":
+          description: The updated supply.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - supply
+                properties:
+                  supply:
+                    $ref: "#/components/schemas/WebSupply"
+components:
+  schemas:
+    WebSupplyProfile:
+      type: object
+      additionalProperties: false
+      required:
+        - displayName
+        - summary
+      properties:
+        displayName:
+          type: string
+        headline:
+          type: string
+        summary:
+          type: string
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    WebSupplyCapability:
+      type: object
+      additionalProperties: false
+      required:
+        - supplyKinds
+        - fulfillmentActorKinds
+        - outputKinds
+      properties:
+        supplyKinds:
+          type: array
+          items:
+            type: string
+        fulfillmentActorKinds:
+          type: array
+          items:
+            type: string
+            enum:
+              - human
+              - agent
+              - tool
+              - organization
+              - runtime
+        outputKinds:
+          type: array
+          items:
+            type: string
+        executionChannels:
+          type: array
+          items:
+            type: string
+    WebSupplyAvailability:
+      type: object
+      additionalProperties: false
+      required:
+        - acceptingRequests
+      properties:
+        acceptingRequests:
+          type: boolean
+        maxConcurrentRequests:
+          type: integer
+          minimum: 1
+        currentLoad:
+          type: integer
+          minimum: 0
+        responseTimeHours:
+          type: integer
+          minimum: 0
+    WebSupplyPricing:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          enum:
+            - quote
+            - fixed
+            - range
+            - open
+        currency:
+          type: string
+        fixedAmount:
+          type: number
+        minAmount:
+          type: number
+        maxAmount:
+          type: number
+        notes:
+          type: string
+    WebSupplySource:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          enum:
+            - manual
+            - runtime
+            - provider
+            - catalog
+    WebSupplyBindings:
+      type: object
+      additionalProperties: false
+      properties:
+        runtimeActorId:
+          type: string
+        resolverClientId:
+          type: string
+        providerRef:
+          type: string
+    WebSupply:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - key
+        - ownerId
+        - status
+        - visibility
+        - profile
+        - capability
+        - availability
+        - source
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        ownerId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - draft
+            - published
+            - paused
+            - retired
+        visibility:
+          type: string
+          enum:
+            - private
+            - unlisted
+            - public
+        profile:
+          $ref: "#/components/schemas/WebSupplyProfile"
+        capability:
+          $ref: "#/components/schemas/WebSupplyCapability"
+        availability:
+          $ref: "#/components/schemas/WebSupplyAvailability"
+        pricing:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/WebSupplyPricing"
+        source:
+          $ref: "#/components/schemas/WebSupplySource"
+        bindings:
+          $ref: "#/components/schemas/WebSupplyBindings"
+        metadata:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+        retiredAt:
+          type: string
+          format: date-time
+    WebSupplyPatch:
+      type: object
+      additionalProperties: false
+      properties:
+        visibility:
+          type: string
+          enum:
+            - private
+            - unlisted
+            - public
+        profile:
+          $ref: "#/components/schemas/WebSupplyProfile"
+        capability:
+          $ref: "#/components/schemas/WebSupplyCapability"
+        availability:
+          $ref: "#/components/schemas/WebSupplyAvailability"
+        pricing:
+          oneOf:
+            - type: "null"
+            - $ref: "#/components/schemas/WebSupplyPricing"
+        source:
+          $ref: "#/components/schemas/WebSupplySource"
+        bindings:
+          $ref: "#/components/schemas/WebSupplyBindings"
+        metadata:
+          type: object
+          additionalProperties: true
+    WebSupplyMutation:
+      type: object
+      additionalProperties: false
+      properties:
+        action:
+          type: string
+          enum:
+            - save_draft
+            - publish_supply
+            - pause_supply
+            - retire_supply
+        patch:
+          $ref: "#/components/schemas/WebSupplyPatch"
