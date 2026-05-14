@@ -143,7 +143,9 @@ export async function persistRequestPatch({
   }
 
   if (patch.status === "open" && !syncedDraft.derived.readiness.readyForOpen) {
-    throw new Error("Request not ready to open");
+    throw new Error(
+      syncedDraft.derived.readiness.summary || "Request not ready to open"
+    );
   }
 
   const nextDraft = applyRequestPatch(

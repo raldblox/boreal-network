@@ -296,6 +296,16 @@ export function RequestTracker({
               )}
             />
             <InfoCard
+              detail={formatExecutionDetail(request)}
+              label="Execution"
+              value={formatExecutionValue(request)}
+            />
+            <InfoCard
+              detail={formatVerificationDetail(request)}
+              label="Proof gate"
+              value={formatVerificationValue(request)}
+            />
+            <InfoCard
               detail={formatConstraintDetail(request.brief.constraints)}
               label="Constraints"
               value={
@@ -344,6 +354,16 @@ export function RequestTracker({
               }
               label="Workers"
               value={workerSummaryValue}
+            />
+            <InfoCard
+              detail={formatClarificationDetail(request)}
+              label="Clarification gate"
+              value={formatClarificationValue(request)}
+            />
+            <InfoCard
+              detail={formatCollapseRiskDetail(request)}
+              label="Collapse risk"
+              value={formatCollapseRiskValue(request)}
             />
           </div>
 
@@ -1181,6 +1201,99 @@ function formatConstraintDetail(constraints: Record<string, unknown> | undefined
   return `${Object.keys(constraints).length} constraint field${
     Object.keys(constraints).length === 1 ? "" : "s"
   } captured.`;
+}
+
+function formatExecutionValue(request: BorealRequestDraft) {
+  const executionModes = request.derived.executionProfile.executionModes;
+
+  if (executionModes.length === 0) {
+    return "Execution mode unresolved.";
+  }
+
+  return executionModes.map((mode) => formatLabel(mode)).join(", ");
+}
+
+function formatExecutionDetail(request: BorealRequestDraft) {
+  const details = [
+    request.derived.embodiedConstraintSet.serviceLocation?.trim()
+      ? `Location: ${request.derived.embodiedConstraintSet.serviceLocation.trim()}`
+      : null,
+    request.derived.embodiedConstraintSet.timeWindows.length > 0
+      ? `Time: ${request.derived.embodiedConstraintSet.timeWindows.join(", ")}`
+      : null,
+    request.derived.embodiedConstraintSet.accessRequirements.length > 0
+      ? `Access: ${request.derived.embodiedConstraintSet.accessRequirements.join(", ")}`
+      : null,
+  ].filter((detail): detail is string => Boolean(detail));
+
+  if (details.length === 0) {
+    return request.derived.executionProfile.requiresHumanPresence
+      ? "Embodied execution is required, but place, schedule, or access details are still thin."
+      : "This request currently fits a digital or remote execution lane.";
+  }
+
+  return details.join(" · ");
+}
+
+function formatVerificationValue(request: BorealRequestDraft) {
+  const requiredEvidenceClaims =
+    request.derived.verificationPlan.requiredEvidenceClaims;
+
+  if (requiredEvidenceClaims.length === 0) {
+    return "No proof gate captured yet.";
+  }
+
+  return requiredEvidenceClaims.map((claim) => formatLabel(claim)).join(", ");
+}
+
+function formatVerificationDetail(request: BorealRequestDraft) {
+  const requirements = [
+    request.derived.verificationPlan.mustHaveOwnerAcceptance
+      ? "Owner acceptance required"
+      : null,
+    request.derived.verificationPlan.mustHaveLocationSignal
+      ? "Location signal required"
+      : null,
+    request.derived.verificationPlan.mustHaveSignature
+      ? "Signature required"
+      : null,
+  ].filter((detail): detail is string => Boolean(detail));
+
+  if (requirements.length === 0) {
+    return "No extra proof controls are attached yet.";
+  }
+
+  return requirements.join(" · ");
+}
+
+function formatClarificationValue(request: BorealRequestDraft) {
+  if (!request.derived.clarificationNeeded.required) {
+    return "No clarification gate is blocking the request right now.";
+  }
+
+  return `Still needed: ${request.derived.clarificationNeeded.missingDetails
+    .map((detail) => detail.replace(/_/g, " "))
+    .join(", ")}.`;
+}
+
+function formatClarificationDetail(request: BorealRequestDraft) {
+  if (!request.derived.clarificationNeeded.required) {
+    return "Boreal can keep moving from the currently captured request facts.";
+  }
+
+  return request.derived.clarificationNeeded.reasons.join(" · ");
+}
+
+function formatCollapseRiskValue(request: BorealRequestDraft) {
+  return `${formatLabel(request.derived.planCollapseRisk.riskLevel)} risk`;
+}
+
+function formatCollapseRiskDetail(request: BorealRequestDraft) {
+  if (request.derived.planCollapseRisk.reasons.length === 0) {
+    return "No structural plan-collapse risk is currently flagged.";
+  }
+
+  return request.derived.planCollapseRisk.reasons.join(" · ");
 }
 
 function formatLabel(value: string) {

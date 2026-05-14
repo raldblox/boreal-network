@@ -23,6 +23,7 @@ import {
   type CommitmentStatus,
   type CommitmentTerms,
   type BorealRequestDraft,
+  deriveRequestState,
   type FulfillmentStatus,
   type PublicRequestPoolEntry,
   type RequestActiveRefs,
@@ -1381,7 +1382,7 @@ export async function updateRequestDraftById({
 }
 
 export function toRequestDraft(record: RequestRecord): BorealRequestDraft {
-  return {
+  const draft: BorealRequestDraft = {
     id: record.id,
     chatId: record.chatId,
     documentId: record.documentId,
@@ -1400,6 +1401,11 @@ export function toRequestDraft(record: RequestRecord): BorealRequestDraft {
     derived: record.derived,
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
+  };
+
+  return {
+    ...draft,
+    derived: deriveRequestState(draft),
   };
 }
 

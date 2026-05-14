@@ -82,6 +82,7 @@ export function RequestBriefingPanel({
 
   if (request.status !== "draft") {
     const title = request.brief.title?.trim() || "Untitled request";
+    const planningNote = getRequestPlanningNote(request);
 
     return (
       <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
@@ -109,6 +110,11 @@ export function RequestBriefingPanel({
                 <span>{request.derived.routeFamily.replace(/_/g, " ")}</span>
               ) : null}
             </div>
+            {planningNote ? (
+              <div className="text-[12px] leading-6 text-muted-foreground">
+                {planningNote}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -123,6 +129,7 @@ export function RequestBriefingPanel({
     missingDetails.length > 0
       ? `Still needed: ${missingDetails.map((detail) => detail.replace(/_/g, " ")).join(", ")}.`
       : "The brief is ready. Open the request when you want routing, replies, and durable activity to begin.";
+  const planningFacts = getDraftPlanningFacts(request);
 
   return (
     <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
@@ -139,6 +146,13 @@ export function RequestBriefingPanel({
           <div className="text-[13px] leading-6 text-muted-foreground">
             {summary}
           </div>
+          {planningFacts.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+              {planningFacts.map((fact) => (
+                <span key={fact}>{fact}</span>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -231,6 +245,64 @@ function formatDeadlineSummary(deadline: RequestDeadline | null) {
     day: "numeric",
     year: "numeric",
   });
+}
+
+function getDraftPlanningFacts(request: BorealRequestDraft) {
+  const facts = [
+    `Execution: ${formatExecutionSummary(request)}`,
+    getServiceLocationSummary(request),
+    getVerificationSummary(request),
+    request.derived.clarificationNeeded.required
+      ? `Blocked by ${request.derived.clarificationNeeded.missingDetails
+          .map((detail) => detail.replace(/_/g, " "))
+          .join(", ")}`
+      : null,
+  ].filter((fact): fact is string => Boolean(fact));
+
+  return facts;
+}
+
+function getRequestPlanningNote(request: BorealRequestDraft) {
+  const notes = [
+    `Execution: ${formatExecutionSummary(request)}`,
+    getServiceLocationSummary(request),
+    getVerificationSummary(request),
+    request.derived.clarificationNeeded.required
+      ? `Clarification still needed for ${request.derived.clarificationNeeded.missingDetails
+          .map((detail) => detail.replace(/_/g, " "))
+          .join(", ")}.`
+      : null,
+  ].filter((note): note is string => Boolean(note));
+
+  return notes.join(" ");
+}
+
+function formatExecutionSummary(request: BorealRequestDraft) {
+  const executionModes = request.derived.executionProfile.executionModes;
+  if (!executionModes.length) {
+    return "execution mode unresolved";
+  }
+
+  return executionModes.map((mode) => mode.replace(/_/g, " ")).join(", ");
+}
+
+function getServiceLocationSummary(request: BorealRequestDraft) {
+  const serviceLocation =
+    request.derived.embodiedConstraintSet.serviceLocation?.trim();
+
+  return serviceLocation ? `Location: ${serviceLocation}` : null;
+}
+
+function getVerificationSummary(request: BorealRequestDraft) {
+  const evidenceClaims = request.derived.verificationPlan.requiredEvidenceClaims;
+
+  if (evidenceClaims.length === 0) {
+    return null;
+  }
+
+  return `Proof: ${evidenceClaims
+    .map((claim) => claim.replace(/_/g, " "))
+    .join(", ")}`;
 }
 
 function getRequestStatusBadgeClassName(status: RequestStatus) {
