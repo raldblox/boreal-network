@@ -40,10 +40,10 @@ async function ResolverAuthorizeContent({
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
-          Resolver approval
+          Desktop approval
         </h1>
         <p className="text-sm text-muted-foreground">
-          Missing approval code. Open this page from Boreal Desktop again.
+          Missing code. Start this approval again from Boreal Desktop.
         </p>
       </div>
     );
@@ -58,10 +58,10 @@ async function ResolverAuthorizeContent({
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
-          Resolver approval
+          Desktop approval
         </h1>
         <p className="text-sm text-muted-foreground">
-          This approval request was not found.
+          That approval request was not found.
         </p>
       </div>
     );
@@ -72,10 +72,10 @@ async function ResolverAuthorizeContent({
     return (
       <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
-          Resolver approval
+          Desktop approval
         </h1>
         <p className="text-sm text-muted-foreground">
-          The requesting runtime is no longer available.
+          The desktop that asked for approval is no longer available.
         </p>
       </div>
     );
@@ -89,10 +89,10 @@ async function ResolverAuthorizeContent({
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
-          Authorize resolver runtime
+          Approve Boreal Desktop
         </h1>
         <p className="text-sm text-muted-foreground">
-          Bind this Codex-connected desktop runtime to your Boreal account.
+          Let this Codex-connected desktop work on your behalf inside Boreal.
         </p>
       </div>
 
@@ -113,7 +113,7 @@ async function ResolverAuthorizeContent({
             </dd>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <dt className="text-muted-foreground">Requested scopes</dt>
+            <dt className="text-muted-foreground">Requested access</dt>
             <dd className="text-right font-medium">
               {authorization.requestedScopes.length}
             </dd>
@@ -122,7 +122,7 @@ async function ResolverAuthorizeContent({
       </div>
 
       <div className="rounded-2xl border border-border/50 bg-background/80 p-5">
-        <p className="mb-3 text-sm font-medium">This desktop will be allowed to:</p>
+        <p className="mb-3 text-sm font-medium">If approved, this desktop can:</p>
         <ul className="flex list-disc flex-col gap-2 pl-5 text-sm text-muted-foreground">
           {authorization.requestedScopes.map((scope) => (
             <li key={scope}>{describeResolverScope(scope)}</li>
@@ -132,23 +132,23 @@ async function ResolverAuthorizeContent({
 
       {isExpired ? (
         <p className="text-sm text-amber-600">
-          This approval code expired. Start the connection again from Boreal Desktop.
+          This code expired. Start the connection again from Boreal Desktop.
         </p>
       ) : null}
 
       {isDenied ? (
         <p className="text-sm text-muted-foreground">
-          This desktop authorization was denied.
+          Desktop access was denied.
         </p>
       ) : null}
 
       {isApproved ? (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-emerald-600">
-            Desktop authorized. Return to Boreal Desktop. It can finish token pickup now.
+            Desktop approved. Return to Boreal Desktop so it can finish signing in.
           </p>
           <Button asChild className="w-fit">
-            <Link href="/">Return to Boreal</Link>
+            <Link href="/">Back to Boreal</Link>
           </Button>
         </div>
       ) : authorization.status === "pending" && !isExpired ? (
@@ -160,7 +160,7 @@ async function ResolverAuthorizeContent({
           <form action={denyResolverAuthorizationAction}>
             <input name="userCode" type="hidden" value={userCode} />
             <Button type="submit" variant="outline">
-              Deny
+              Deny access
             </Button>
           </form>
         </div>

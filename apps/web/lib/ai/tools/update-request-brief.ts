@@ -5,8 +5,10 @@ import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import {
   applyRequestBriefPatch,
+  mergeRequestConstraintInputs,
   requestBudgetInputSchema,
   requestDeadlineInputSchema,
+  requestEmbodiedConstraintInputSchema,
   requestSeekingInputSchema,
 } from "./request-briefing-shared";
 
@@ -25,11 +27,13 @@ export const updateRequestBrief = ({
 }: UpdateRequestBriefProps) =>
   tool({
     description:
-      "Update the live Request object with explicit title, body, optional summary, or same-turn structured briefing details like budget and deadline. Prefer this for freeform user asks. If the user only gave one raw work description, update body with that explicit wording and leave unknown fields untouched instead of manufacturing extra fields.",
+      "Update the live Request object with explicit title, body, optional summary, or same-turn structured briefing details like budget, deadline, execution mode, location, access, or proof requirements. Prefer this for freeform user asks. If the user only gave one raw work description, update body with that explicit wording and leave unknown fields untouched instead of manufacturing extra fields.",
     inputSchema: z.object({
       title: z.string().min(1).max(200).optional(),
       summary: z.string().min(1).max(1000).optional(),
       body: z.string().min(1).optional(),
+      constraints: z.record(z.string(), z.unknown()).optional(),
+      embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
       outputKinds: z.array(z.string().min(1)).optional(),
       seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
@@ -39,6 +43,8 @@ export const updateRequestBrief = ({
       title,
       summary,
       body,
+      constraints,
+      embodiedConstraints,
       outputKinds,
       seeking,
       budget,
@@ -54,6 +60,10 @@ export const updateRequestBrief = ({
             title,
             summary,
             body,
+            constraints: mergeRequestConstraintInputs({
+              constraints,
+              embodiedConstraints,
+            }),
             outputKinds,
           },
           ...(seeking !== undefined ? { seeking } : {}),

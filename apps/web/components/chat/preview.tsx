@@ -34,14 +34,14 @@ export function Preview() {
       <div className="relative flex flex-1 flex-col justify-between px-8 py-8">
         <div className="max-w-lg">
           <div className="inline-flex rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
-            One durable thread
+            One accountable thread
           </div>
           <h2 className="mt-5 text-3xl font-semibold tracking-tight text-balance text-foreground [font-family:var(--font-display)] md:text-4xl">
             Start with the work. Keep the outcome attached.
           </h2>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            Write the ask once, route it through supply, deliver into the same
-            room, and keep proof and payout connected.
+            Write the ask once, route it to the right worker or team, deliver
+            in the same room, and keep proof and payout connected.
           </p>
         </div>
 

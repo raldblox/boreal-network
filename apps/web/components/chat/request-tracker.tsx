@@ -233,7 +233,7 @@ export function RequestTracker({
       : request.derived.executionKind
         ? `${formatLabel(request.derived.executionKind)} execution`
         : "Execution pending",
-    request.routing.preferredSupplyId ? "Preferred supply set" : "No supply override",
+    request.routing.preferredSupplyId ? "Preferred route set" : "No route override",
   ];
 
   const handlePreferredSupplyChange = async (value: string) => {
@@ -252,8 +252,8 @@ export function RequestTracker({
         type: "success",
         description:
           value === REQUEST_ROUTE_INHERIT_DEFAULT
-            ? "Request now inherits the desktop route policy."
-            : "Preferred supply updated for this request.",
+            ? "This request now follows the desktop default route."
+            : "Preferred capability updated for this request.",
       });
     } catch (error) {
       toast({
@@ -261,7 +261,7 @@ export function RequestTracker({
         description:
           error instanceof Error
             ? error.message
-            : "Failed to update request routing.",
+            : "Failed to update the request route.",
       });
     } finally {
       setIsSavingPreferredSupply(false);
@@ -271,9 +271,9 @@ export function RequestTracker({
   const stages = [
     {
       id: "brief_terms" as const,
-      title: "Brief and terms",
+      title: "Ask and terms",
       summary:
-        "Lock the ask, the boundaries, and the commercial shape before routing starts.",
+        "Lock the ask, scope, and terms before routing starts.",
       meta: [
         formatBudgetSummary(request.budget),
         formatDeadlineSummary(request.deadline),
@@ -284,15 +284,15 @@ export function RequestTracker({
           <div className="grid gap-4 md:grid-cols-2">
             <InfoCard
               detail={request.brief.summary?.trim() || request.derived.readiness.summary}
-              label="Request brief"
-              value={request.brief.body?.trim() || "No request body yet."}
+              label="Brief"
+              value={request.brief.body?.trim() || "No brief yet."}
             />
             <InfoCard
               detail={formatTokenList(request.brief.tags, "No tags yet.")}
-              label="Outputs"
+              label="Deliverables"
               value={formatTokenList(
                 request.brief.outputKinds,
-                "Output kinds are still unset."
+                "No deliverables set yet."
               )}
             />
             <InfoCard
@@ -303,7 +303,7 @@ export function RequestTracker({
                   ? `Still needed: ${request.derived.missingDetails
                       .map((detail) => detail.replace(/_/g, " "))
                       .join(", ")}.`
-                  : "Core brief fields are in place."
+                  : "Core request details are in place."
               }
             />
             <InfoCard
@@ -315,7 +315,7 @@ export function RequestTracker({
 
           <StageActivityStack
             activities={stageActivities.brief_terms}
-            emptyLabel="Briefing and opening events will appear here."
+            emptyLabel="Briefing and opening activity will appear here."
             isReadonly={isReadonly}
             ownerUserId={request.ownerId}
           />
@@ -324,9 +324,9 @@ export function RequestTracker({
     },
     {
       id: "route_workers" as const,
-      title: "Route and workers",
+      title: "Routing and ownership",
       summary:
-        "Show how the request is being matched and who is responsible for carrying it forward.",
+        "Show who should lead the work and how it will move forward.",
       meta: routeMetaItems,
       body: (
         <div className="space-y-6">
@@ -370,7 +370,7 @@ export function RequestTracker({
 
           <StageActivityStack
             activities={stageActivities.route_workers}
-            emptyLabel="Routing, commitment, and assignment events will appear here."
+            emptyLabel="Routing, proposal, and assignment activity will appear here."
             isReadonly={isReadonly}
             ownerUserId={request.ownerId}
           />
@@ -379,9 +379,9 @@ export function RequestTracker({
     },
     {
       id: "work_delivery" as const,
-      title: "Work and delivery",
+      title: "Execution and delivery",
       summary:
-        "Track the active fulfillment lane, current progress, and the delivery artifact once work starts landing.",
+        "Track the active work lane, current progress, and delivered proof.",
       meta: [
         activeFulfillment
           ? `${formatLabel(activeFulfillment.status)} fulfillment`
@@ -773,23 +773,23 @@ function RouteAndWorkersPanel({
               })}
             />
             <RouteFactRow
-              label="Preferred supply"
+              label="Preferred capability"
               value={pinnedSupplyNote}
             />
             <RouteFactRow
-              label="Requested supply kinds"
+              label="Requested capability kinds"
               value={formatTokenList(
                 request.seeking.supplyKinds,
-                "No supply kinds pinned yet."
+                "No capability kinds pinned yet."
               )}
             />
             {currentSupply ? (
               <RouteFactRow
-                label="Supply note"
+                label="Capability note"
                 value={
                   currentSupply.profile.headline?.trim() ||
                   currentSupply.profile.summary?.trim() ||
-                  "No supply summary yet."
+                  "No capability summary yet."
                 }
               />
             ) : null}
@@ -861,7 +861,7 @@ function RouteAndWorkersPanel({
                       disabled
                       value={request.routing.preferredSupplyId}
                     >
-                      Unavailable preferred supply
+                      Unavailable preferred capability
                     </SelectItem>
                   ) : null}
                   {publishedOwnedSupplies.map((supply) => (
@@ -873,11 +873,11 @@ function RouteAndWorkersPanel({
               </Select>
               <p className="text-sm leading-6 text-muted-foreground">
                 {isLoadingOwnedSupplies
-                  ? "Refreshing published supplies from Boreal web."
+                  ? "Refreshing published capabilities from Boreal web."
                   : publishedOwnedSupplies.length === 0
-                    ? "Publish at least one supply first before pinning a private route."
+                    ? "Publish at least one capability first before pinning a private route."
                     : !preferredSupplyMatchesRequest
-                      ? `${getOwnedSupplyLabel(preferredSupply)} is pinned, but it does not match this request's supply kinds.`
+                      ? `${getOwnedSupplyLabel(preferredSupply)} is pinned, but it does not match this request's capability kinds.`
                       : pinnedSupplyNote}
               </p>
             </div>
@@ -1219,7 +1219,9 @@ function getResolutionSummary(status: RequestStatus) {
 function getOwnedSupplyLabel(
   supply: Pick<BorealSupplyDraft, "key" | "profile"> | null | undefined
 ) {
-  return supply?.profile.displayName.trim() || supply?.key || "Untitled supply";
+  return (
+    supply?.profile.displayName.trim() || supply?.key || "Untitled capability"
+  );
 }
 
 function doesOwnedSupplyMatchRequest(
@@ -1246,10 +1248,10 @@ function describePinnedSupplyNote({
   if (request.routing.preferredSupplyId) {
     return preferredSupply
       ? `${getOwnedSupplyLabel(preferredSupply)} is pinned for this private request.`
-      : "This request points to a preferred supply that is unavailable for this account.";
+      : "This request points to a preferred capability that is unavailable for this account.";
   }
 
-  return "No request-specific supply is pinned yet. Boreal Desktop may still use its private default route.";
+  return "No request-specific capability is pinned yet. Boreal Desktop may still use its private default route.";
 }
 
 function getCurrentRouteLaneValue({
@@ -1264,7 +1266,7 @@ function getCurrentRouteLaneValue({
   if (activeFulfillment?.supplyId) {
     const supplyLabel = activeRouteSupply
       ? getOwnedSupplyLabel(activeRouteSupply)
-      : "Selected supply";
+      : "Selected capability";
 
     if (activeFulfillment.lead.kind === "runtime") {
       return `${supplyLabel} is active through Boreal Desktop.`;
@@ -1278,7 +1280,7 @@ function getCurrentRouteLaneValue({
   }
 
   if (request.routing.preferredSupplyId) {
-    return "Preferred supply is set and will be used for the next eligible private execution lane.";
+    return "Preferred capability is set and will be used for the next eligible private execution lane.";
   }
 
   return "No route has been pinned yet.";
@@ -1430,11 +1432,11 @@ function describeDesktopDefaultRoute({
   }
 
   if (!desktopDefaultSupply) {
-    return "Desktop default supply is configured but unavailable on this machine.";
+    return "Desktop default capability is configured but unavailable on this machine.";
   }
 
   if (!doesOwnedSupplyMatchRequest(request, desktopDefaultSupply)) {
-    return `${getOwnedSupplyLabel(desktopDefaultSupply)} is the desktop default, but it does not match this request's supply kinds.`;
+    return `${getOwnedSupplyLabel(desktopDefaultSupply)} is the desktop default, but it does not match this request's capability kinds.`;
   }
 
   return `${getOwnedSupplyLabel(desktopDefaultSupply)} is the desktop default route for private auto-resolve.`;

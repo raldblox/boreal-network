@@ -112,6 +112,37 @@ const defaultToolNames = [
   | "requestSuggestions"
 >;
 
+const embodiedClarificationPattern =
+  /\bon[-\s]?site\b|\bsite visit\b|\bin person\b|\bin-person\b|\bfield inspection\b|\binspect(?:ion)?\b|\bpick[\s-]?up\b|\bdrop[\s-]?off\b|\bcourier\b|\bwitness(?:ed|ing)?\b|\bhandoff\b|\battend(?:ance)?\b|\binventory audit\b|\bcount inventory\b|\bphoto proof\b|\bvideo proof\b|\binstall(?:ation)? verification\b/i;
+
+function extractUserMessageText(message: ChatMessage | undefined): string {
+  if (!message || message.role !== "user" || !Array.isArray(message.parts)) {
+    return "";
+  }
+
+  return message.parts
+    .map((part) => {
+      if (
+        typeof part === "object" &&
+        part !== null &&
+        "type" in part &&
+        part.type === "text" &&
+        "text" in part &&
+        typeof part.text === "string"
+      ) {
+        return part.text;
+      }
+
+      return "";
+    })
+    .filter((value) => value.length > 0)
+    .join("\n");
+}
+
+function shouldAllowPreDraftClarification(text: string): boolean {
+  return embodiedClarificationPattern.test(text);
+}
+
 function getStreamContext() {
   try {
     return createResumableStreamContext({ waitUntil: after });
@@ -303,7 +334,9 @@ export async function POST(request: Request) {
               : openResponderRequestToolNames
             : defaultToolNames;
     const requestToolChoice =
-      supportsTools && (isPreDraftRequestMode || isDraftRequestMode)
+      supportsTools &&
+      (isPreDraftRequestMode || isDraftRequestMode) &&
+      !(isPreDraftRequestMode && shouldAllowPreDraftClarification(extractUserMessageText(message as ChatMessage)))
         ? "required"
         : undefined;
     const stopCondition =

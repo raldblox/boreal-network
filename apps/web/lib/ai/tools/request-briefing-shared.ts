@@ -32,6 +32,28 @@ export const requestSeekingInputSchema = z.object({
   notes: z.string().min(1).optional(),
 });
 
+export const requestExecutionModeInputSchema = z.enum([
+  "remote_digital",
+  "remote_sync",
+  "onsite_visit",
+  "field_inspection",
+  "pickup_dropoff",
+  "witnessed_handoff",
+]);
+
+export const requestEmbodiedConstraintInputSchema = z.object({
+  executionModes: z.array(requestExecutionModeInputSchema).min(1).optional(),
+  requiresHumanPresence: z.boolean().optional(),
+  requiresLocalAccess: z.boolean().optional(),
+  requiresVerifiedEvidence: z.boolean().optional(),
+  requiresWitness: z.boolean().optional(),
+  serviceLocation: z.string().min(1).optional(),
+  timeWindows: z.array(z.string().min(1)).min(1).optional(),
+  accessRequirements: z.array(z.string().min(1)).min(1).optional(),
+  safetyRequirements: z.array(z.string().min(1)).min(1).optional(),
+  verificationRequirements: z.array(z.string().min(1)).min(1).optional(),
+});
+
 type ApplyRequestPatchArgs = {
   session: Session;
   dataStream: UIMessageStreamWriter<ChatMessage>;
@@ -95,6 +117,76 @@ function hydrateExplicitStructuredFields(patch: RequestPatch): RequestPatch {
     ...patch,
     ...(inferredBudget ? { budget: inferredBudget } : {}),
   };
+}
+
+export function mergeRequestConstraintInputs({
+  constraints,
+  embodiedConstraints,
+}: {
+  constraints?: Record<string, unknown>;
+  embodiedConstraints?: z.infer<typeof requestEmbodiedConstraintInputSchema>;
+}): Record<string, unknown> | undefined {
+  const nextConstraints: Record<string, unknown> = {
+    ...(constraints ?? {}),
+  };
+
+  if (embodiedConstraints) {
+    if (embodiedConstraints.executionModes?.length) {
+      nextConstraints.executionModes = Array.from(
+        new Set(embodiedConstraints.executionModes.map((mode) => mode.trim()))
+      );
+    }
+
+    if (embodiedConstraints.requiresHumanPresence !== undefined) {
+      nextConstraints.requiresHumanPresence =
+        embodiedConstraints.requiresHumanPresence;
+    }
+
+    if (embodiedConstraints.requiresLocalAccess !== undefined) {
+      nextConstraints.requiresLocalAccess =
+        embodiedConstraints.requiresLocalAccess;
+    }
+
+    if (embodiedConstraints.requiresVerifiedEvidence !== undefined) {
+      nextConstraints.requiresVerifiedEvidence =
+        embodiedConstraints.requiresVerifiedEvidence;
+    }
+
+    if (embodiedConstraints.requiresWitness !== undefined) {
+      nextConstraints.requiresWitness = embodiedConstraints.requiresWitness;
+    }
+
+    if (hasConstraintText(embodiedConstraints.serviceLocation)) {
+      nextConstraints.serviceLocation =
+        embodiedConstraints.serviceLocation.trim();
+    }
+
+    if (embodiedConstraints.timeWindows?.length) {
+      nextConstraints.timeWindows = normalizeConstraintStringList(
+        embodiedConstraints.timeWindows
+      );
+    }
+
+    if (embodiedConstraints.accessRequirements?.length) {
+      nextConstraints.accessRequirements = normalizeConstraintStringList(
+        embodiedConstraints.accessRequirements
+      );
+    }
+
+    if (embodiedConstraints.safetyRequirements?.length) {
+      nextConstraints.safetyRequirements = normalizeConstraintStringList(
+        embodiedConstraints.safetyRequirements
+      );
+    }
+
+    if (embodiedConstraints.verificationRequirements?.length) {
+      nextConstraints.verificationRequirements = normalizeConstraintStringList(
+        embodiedConstraints.verificationRequirements
+      );
+    }
+  }
+
+  return Object.keys(nextConstraints).length > 0 ? nextConstraints : undefined;
 }
 
 function inferBudgetFromText(text: string): RequestBudget | undefined {
@@ -173,4 +265,18 @@ function normalizeCurrencyCode(
   }
 
   return undefined;
+}
+
+function normalizeConstraintStringList(values: string[]): string[] {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0)
+    )
+  );
+}
+
+function hasConstraintText(value: string | undefined): value is string {
+  return typeof value === "string" && value.trim().length > 0;
 }

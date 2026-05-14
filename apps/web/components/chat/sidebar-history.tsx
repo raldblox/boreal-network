@@ -172,7 +172,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
           <SidebarGroupContent>
             <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-[13px] text-sidebar-foreground/60">
-              Sign in to keep your Boreal chats and request drafts.
+              Sign in to keep your chats and requests.
             </div>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -216,7 +216,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-[13px] text-sidebar-foreground/60">
-            Your Boreal chats appear here after the first message.
+            Your chats show up here after the first message.
           </div>
         </SidebarGroupContent>
       </SidebarGroup>

@@ -13,29 +13,29 @@ export const guestRegex = /^guest-\d+$/;
 export const DUMMY_PASSWORD = generateDummyPassword();
 
 export const suggestions = [
-  "Turn this rough ask into a Boreal request brief",
-  "Match this work to the right specialist",
-  "Draft a proposal for an automation request",
-  "Help me structure the fulfillment checklist",
+  "Turn this rough ask into a clear request",
+  "Match this work to the right person or worker",
+  "Draft a proposal for this work",
+  "Help me map the delivery steps",
 ];
 
 export const newRequestSuggestions = [
   "Help me turn this idea into a request",
-  "Help me write the first brief for this request",
-  "What details should I include in the first request message?",
-  "Help me frame the outcome I want from this request",
+  "Help me write the first request brief",
+  "What should I include in the first request message?",
+  "Help me describe the outcome I want",
 ];
 
 export const requestDraftSuggestions = [
-  "Help me tighten the title and body of this request",
+  "Help me tighten the title and brief",
   "Help me add budget and deadline to this draft",
-  "Help me list constraints and deliverables for this draft",
+  "Help me list constraints and deliverables",
   "What is still missing before I open this request?",
 ];
 
 export const openRequestSuggestions = [
-  "Help me post a progress update on this request",
-  "Help me increase the budget on this request",
+  "Help me post an update on this request",
+  "Help me revise the budget on this request",
   "Show me recent activity on this request",
   "What should happen next on this request?",
 ];

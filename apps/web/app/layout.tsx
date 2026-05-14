@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     template: "%s | Boreal",
   },
   description:
-    "Request-native work commerce for routing, executing, proving, and paying for real work across humans and AI.",
+    "Boreal turns a work request into one accountable thread across humans and AI.",
 };
 
 export const viewport = {

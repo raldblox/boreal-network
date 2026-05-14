@@ -16,7 +16,8 @@ const PureSidebarSupplyItem = ({
   isActive: boolean;
   setOpenMobile: (open: boolean) => void;
 }) => {
-  const supplyTitle = supply.profile.displayName.trim() || "Untitled supply";
+  const supplyTitle =
+    supply.profile.displayName.trim() || "Untitled capability";
 
   return (
     <SidebarMenuItem>
@@ -36,7 +37,7 @@ const PureSidebarSupplyItem = ({
                 )}
               />
               {formatSupplyLabel(supply.status)}
-              <span className="text-sidebar-foreground/28">•</span>
+              <span className="text-sidebar-foreground/28">|</span>
               {formatSupplyLabel(supply.visibility)}
             </span>
           </div>

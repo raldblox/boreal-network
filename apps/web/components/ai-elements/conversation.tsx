@@ -42,8 +42,8 @@ export type ConversationEmptyStateProps = ComponentProps<"div"> & {
 
 export const ConversationEmptyState = ({
   className,
-  title = "No messages yet",
-  description = "Start a conversation to see messages here",
+  title,
+  description,
   icon,
   children,
   ...props
@@ -59,9 +59,14 @@ export const ConversationEmptyState = ({
       <>
         {icon && <div className="text-muted-foreground">{icon}</div>}
         <div className="space-y-1">
-          <h3 className="font-medium text-sm">{title}</h3>
-          {description && (
-            <p className="text-muted-foreground text-sm">{description}</p>
+          <h3 className="font-medium text-sm">
+            {title ?? "Start with the work you need done"}
+          </h3>
+          {(description ?? true) && (
+            <p className="text-muted-foreground text-sm">
+              {description ??
+                "Use chat to shape the ask, route the work, or keep the thread moving."}
+            </p>
           )}
         </div>
       </>

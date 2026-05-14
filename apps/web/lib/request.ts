@@ -664,12 +664,16 @@ export function deriveRequestState(
     }
   }
 
+  const embodiedPlanning = deriveEmbodiedPlanningState(draft);
+  missingDetails.push(...embodiedPlanning.missingDetails);
+
   const hasBriefCore =
     hasText(draft.brief.title) && hasText(draft.brief.body);
   const hasRouteReadiness =
     hasText(draft.derived.routeFamily) && hasText(draft.derived.routeSummary);
+  const hasEmbodiedBlockingGaps = embodiedPlanning.missingDetails.length > 0;
 
-  const readiness: RequestReadiness = hasBriefCore
+  const readiness: RequestReadiness = hasBriefCore && !hasEmbodiedBlockingGaps
     ? hasRouteReadiness
       ? {
           state: "ready_to_match",
@@ -685,6 +689,13 @@ export function deriveRequestState(
           readyForOpen: true,
           readyForMatch: false,
         }
+    : hasBriefCore && hasEmbodiedBlockingGaps
+      ? {
+          state: "collecting_brief",
+          summary: embodiedPlanning.summary,
+          readyForOpen: false,
+          readyForMatch: false,
+        }
     : {
         state: "collecting_brief",
         summary:
@@ -696,7 +707,7 @@ export function deriveRequestState(
   return {
     ...draft.derived,
     candidatePool: draft.derived.candidatePool ?? [],
-    missingDetails,
+    missingDetails: Array.from(new Set(missingDetails)),
     readiness,
   };
 }
@@ -784,6 +795,112 @@ function hasText(value: string | undefined | null): boolean {
   return Boolean(value && value.trim().length > 0);
 }
 
+function deriveEmbodiedPlanningState(
+  draft: Pick<BorealRequestDraft, "brief" | "derived">
+): {
+  missingDetails: string[];
+  summary: string;
+} {
+  const constraints = normalizeRecord(draft.brief.constraints);
+  const requestText = [draft.brief.title, draft.brief.summary, draft.brief.body]
+    .filter(Boolean)
+    .join("\n");
+  const executionModes = getConstraintStringArray(constraints, "executionModes");
+  const requiresHumanPresence = getConstraintBoolean(
+    constraints,
+    "requiresHumanPresence"
+  );
+  const requiresLocalAccess = getConstraintBoolean(
+    constraints,
+    "requiresLocalAccess"
+  );
+  const requiresVerifiedEvidence = getConstraintBoolean(
+    constraints,
+    "requiresVerifiedEvidence"
+  );
+  const requiresWitness = getConstraintBoolean(constraints, "requiresWitness");
+  const serviceLocation = getConstraintText(constraints, "serviceLocation");
+  const timeWindows = getConstraintStringArray(constraints, "timeWindows");
+  const accessRequirements = getConstraintStringArray(
+    constraints,
+    "accessRequirements"
+  );
+  const verificationRequirements = getConstraintStringArray(
+    constraints,
+    "verificationRequirements"
+  );
+  const inferredEmbodiedModes = inferEmbodiedExecutionModes(requestText);
+  const explicitEmbodiedMode = executionModes.some(isEmbodiedExecutionMode);
+  const inferredEmbodiedMode = inferredEmbodiedModes.some(
+    isEmbodiedExecutionMode
+  );
+  const needsEmbodiedHandling =
+    explicitEmbodiedMode ||
+    inferredEmbodiedMode ||
+    requiresHumanPresence === true ||
+    requiresLocalAccess === true ||
+    requiresVerifiedEvidence === true ||
+    requiresWitness === true ||
+    Boolean(serviceLocation) ||
+    timeWindows.length > 0 ||
+    accessRequirements.length > 0 ||
+    verificationRequirements.length > 0;
+
+  if (!needsEmbodiedHandling) {
+    return {
+      missingDetails: [],
+      summary:
+        "Core briefing is present. This request can be opened now and refined further before matching. Summary is still optional.",
+    };
+  }
+
+  const missingDetails: string[] = [];
+  if (executionModes.length === 0) {
+    missingDetails.push("execution_modes");
+  }
+
+  if (!serviceLocation) {
+    missingDetails.push("service_location");
+  }
+
+  if (timeWindows.length === 0 && requiresSchedulingContext(requestText, executionModes)) {
+    missingDetails.push("time_windows");
+  }
+
+  if (
+    accessRequirements.length === 0 &&
+    (requiresLocalAccess === true ||
+      explicitEmbodiedMode ||
+      inferredEmbodiedModes.includes("onsite_visit") ||
+      inferredEmbodiedModes.includes("field_inspection") ||
+      inferredEmbodiedModes.includes("witnessed_handoff"))
+  ) {
+    missingDetails.push("access_requirements");
+  }
+
+  if (
+    verificationRequirements.length === 0 &&
+    (requiresVerifiedEvidence === true ||
+      requiresWitness === true ||
+      explicitEmbodiedMode ||
+      inferredEmbodiedMode)
+  ) {
+    missingDetails.push("verification_requirements");
+  }
+
+  const summary =
+    missingDetails.length > 0
+      ? `Core briefing is present, but Boreal still needs ${missingDetails
+          .map((detail) => detail.replace(/_/g, " "))
+          .join(", ")} before this request is safe to route or close.`
+      : "Core briefing includes the embodied execution and proof details Boreal needs to route this request safely.";
+
+  return {
+    missingDetails,
+    summary,
+  };
+}
+
 function normalizeEditableBrief(
   brief: z.infer<typeof requestBriefSchema> | undefined
 ): RequestBrief {
@@ -795,6 +912,92 @@ function normalizeEditableBrief(
     outputKinds: normalizeStringArray(brief?.outputKinds),
     tags: normalizeStringArray(brief?.tags),
   };
+}
+
+function getConstraintBoolean(
+  constraints: Record<string, unknown>,
+  key: string
+): boolean | undefined {
+  const value = constraints[key];
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function getConstraintText(
+  constraints: Record<string, unknown>,
+  key: string
+): string | undefined {
+  const value = constraints[key];
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function getConstraintStringArray(
+  constraints: Record<string, unknown>,
+  key: string
+): string[] {
+  const value = constraints[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+function inferEmbodiedExecutionModes(text: string): string[] {
+  const normalizedText = text.toLowerCase();
+  const inferredModes = new Set<string>();
+
+  if (
+    /\bon[-\s]?site\b|\bsite visit\b|\bin person\b|\bin-person\b/.test(
+      normalizedText
+    )
+  ) {
+    inferredModes.add("onsite_visit");
+  }
+
+  if (
+    /\binspect(?:ion)?\b|\bfield audit\b|\binventory audit\b|\bcount inventory\b/.test(
+      normalizedText
+    )
+  ) {
+    inferredModes.add("field_inspection");
+  }
+
+  if (/\bpick[\s-]?up\b|\bdrop[\s-]?off\b|\bcourier\b/.test(normalizedText)) {
+    inferredModes.add("pickup_dropoff");
+  }
+
+  if (/\bwitness(?:ed|ing)?\b|\bhandoff\b|\bsigned handoff\b/.test(normalizedText)) {
+    inferredModes.add("witnessed_handoff");
+  }
+
+  return Array.from(inferredModes);
+}
+
+function isEmbodiedExecutionMode(mode: string): boolean {
+  return (
+    mode === "onsite_visit" ||
+    mode === "field_inspection" ||
+    mode === "pickup_dropoff" ||
+    mode === "witnessed_handoff"
+  );
+}
+
+function requiresSchedulingContext(
+  text: string,
+  explicitExecutionModes: string[]
+): boolean {
+  if (explicitExecutionModes.some(isEmbodiedExecutionMode)) {
+    return true;
+  }
+
+  return /\btoday\b|\btomorrow\b|\bby\b|\bbefore\b|\bafter\b|\bwindow\b|\bschedule\b|\bappointment\b|\bvisit\b/.test(
+    text.toLowerCase()
+  );
 }
 
 function normalizeSeeking(

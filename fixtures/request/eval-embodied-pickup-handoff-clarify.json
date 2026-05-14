@@ -1,0 +1,116 @@
+{
+  "fixtureType": "planner_matcher_eval",
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-pickup-handoff-clarify",
+  "description": "A pickup and witnessed handoff request without locations should trigger clarification instead of a fake digital-only completion path.",
+  "requestInput": {
+    "actor": {
+      "kind": "human",
+      "id": "actor_mica_ong",
+      "displayName": "Mica Ong"
+    },
+    "rawAsk": "Need someone to pick up a signed contract and hand it to our supplier today. I need proof the handoff happened."
+  },
+  "candidateSupplies": [
+    {
+      "supplyId": "sup_local_courier_runner",
+      "title": "Local Courier Runner",
+      "actorKinds": ["human"],
+      "supplyKinds": ["pickup_dropoff", "local_runner"],
+      "summary": "Handles same-day pickups, deliveries, and in-person handoffs."
+    },
+    {
+      "supplyId": "sup_remote_ops_agent",
+      "title": "Remote Operations Agent",
+      "actorKinds": ["agent"],
+      "supplyKinds": ["operations_support"],
+      "summary": "Coordinates workflows remotely but cannot perform physical handoffs."
+    },
+    {
+      "supplyId": "sup_generic_chat_agent",
+      "title": "Generic Chat Agent",
+      "actorKinds": ["agent"],
+      "supplyKinds": ["generalist"],
+      "summary": "General text assistance with no local execution capability."
+    }
+  ],
+  "expectedExtraction": {
+    "title": "Pick up signed contract and complete witnessed supplier handoff",
+    "summaryMustContain": ["pick up", "handoff", "proof"],
+    "seeking": {
+      "actorKinds": ["human"],
+      "supplyKinds": ["pickup_dropoff", "local_runner"]
+    },
+    "outputKinds": ["handoff_receipt", "signature", "delivery_confirmation"],
+    "constraints": {
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "requiresWitness": true,
+      "verificationRequirements": ["handoff_signature", "delivery_confirmation"]
+    }
+  },
+  "expectedRouting": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "low",
+    "needsPlan": false,
+    "humanRequired": true,
+    "needsClarification": true
+  },
+  "expectedPlanning": {
+    "leadRole": "courier_runner",
+    "executionProfile": {
+      "executionModes": ["pickup_dropoff", "witnessed_handoff"],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "high"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["receipt", "signature", "evidence"],
+      "requiredEvidenceClaims": ["handoff_signature", "delivery_confirmation"],
+      "mustHaveOwnerAcceptance": false,
+      "mustHaveLocationSignal": true,
+      "mustHaveSignature": true
+    },
+    "planCollapseRisk": {
+      "riskLevel": "high",
+      "reasons": [
+        "pickup and dropoff locations are missing",
+        "remote summary cannot prove physical handoff"
+      ]
+    },
+    "phaseCountMin": 1,
+    "phaseCountMax": 2,
+    "roleSlots": [
+      {
+        "roleKey": "courier_runner",
+        "requiredActorKinds": ["human"],
+        "required": true
+      }
+    ],
+    "noMicrotaskExplosion": true
+  },
+  "expectedMatching": {
+    "topLeadSupplyId": "sup_local_courier_runner",
+    "top3MustInclude": ["sup_local_courier_runner"],
+    "mustRankBelowTop2": ["sup_generic_chat_agent"],
+    "roleMatches": {
+      "courier_runner": "sup_local_courier_runner"
+    }
+  },
+  "expectedPolicy": {
+    "nextAction": "clarify_request",
+    "requiresOwnerApproval": false,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  },
+  "negativeAssertions": [
+    "must_not_flatten_onsite_work_into_digital_only_plan",
+    "must_not_allow_false_closure_without_proof",
+    "must_require_clarification_for_missing_embodied_constraints",
+    "must_not_choose_generic_chat_agent_as_lead"
+  ]
+}

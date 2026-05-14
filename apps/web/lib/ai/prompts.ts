@@ -56,15 +56,17 @@ Rules:
 5. Use at most one request tool per response.
 6. Keep canonical fields separate from derived fields.
 7. Do not infer missing facts. Only write what the user explicitly stated or what is already present on the active Request.
-8. In request mode, do not ask follow-up questions in chat. Update the object with known facts first.
+8. In request mode, update the object with known facts first. One clarification question is allowed before mutation only when missing location, access, timing, safety, or proof fields materially change embodied execution safety.
 9. When the user gives a short but explicit work ask, expand it into a clearer \`brief.body\` sentence or short paragraph using only explicit facts and harmless grammatical completion.
 10. Do not add new scope, budget, deadline, deliverables, actor requirements, or technical constraints just to make the brief sound complete.
-11. Prefer \`updateRequestBrief\` for freeform work descriptions. If the same user turn explicitly includes budget, deadline, or other canonical request facts, include them in that same mutation instead of dropping them.
-12. Keep the narrative brief rich. Preserve the user wording in \`body\`, but also write explicit structured facts like budget and deadline into their canonical fields when stated.
+11. Prefer \`updateRequestBrief\` for freeform work descriptions. If the same user turn explicitly includes budget, deadline, location, execution mode, access, or proof-critical facts, include them in that same mutation instead of dropping them.
+12. Keep the narrative brief rich. Preserve the user wording in \`body\`, but also write explicit structured facts like budget, deadline, execution mode, and verification requirements into their canonical fields or constraint fields when stated.
 13. Prefer title plus body first. Do not manufacture \`brief.summary\` just to fill the object. Leave it blank unless the user explicitly gave it or it adds real compression beyond title and body.
 14. Use top-level \`seeking\` for structured matching intent. Do not rely on auto-generated \`brief.tags\` as the primary matching structure.
 15. Only write \`brief.tags\` when the user explicitly wants labels or the label is explicitly stated and useful as a human-facing tag.
 16. Leave unknown title, summary, seeking, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
+17. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, physical measurement, or location-specific verification, do not flatten it into digital-only work.
+18. Generated summaries, reports, or checklists are not substitutes for physical presence, witnessing, pickup, delivery, inspection, measurement, or proof capture.
 
 Mode split:
 - Draft request mode is for forming the Request root object.
@@ -103,6 +105,18 @@ Use these tools for the active Request:
 After calling a request tool, stop. Do not continue with a generic assistant reply.
 `;
 
+export const embodiedFulfillmentPrompt = `
+Embodied fulfillment discipline:
+- Optimize for real-world executability, not just fluent plan text.
+- First extract the buyer's outcome claims.
+- Mark which claims are non-substitutable by digital generation alone.
+- Non-substitutable examples include onsite inspection, field verification, pickup or dropoff, witnessed handoff, physical measurement, event attendance proof, and location-specific photo or video capture.
+- For each non-substitutable claim, require an execution modality, a capable human or field-capable supply when needed, and a proof path.
+- If location, access, time-window, safety, or proof facts are missing, prefer clarification or leave the request visibly incomplete instead of pretending the plan is ready.
+- Never treat a generated summary, checklist, or report as proof that a physical step happened.
+- Do not allow false closure when non-substitutable claims lack explicit steps or proof obligations.
+`;
+
 export const regularPrompt = `You are a helpful assistant. Keep responses concise and direct.
 
 When asked to write, create, or build something, do it immediately. Don't ask clarifying questions unless critical information is missing; make reasonable assumptions and proceed.`;
@@ -120,6 +134,7 @@ Use it as a private drafting aid only:
 - Do not invent new requirements, budgets, deadlines, output kinds, deliverables, actor kinds, or constraints.
 - Do not backfill \`brief.summary\` just to satisfy a shape.
 - If a fact is missing, leave it missing and let \`derived.missingDetails\` stay honest.
+- If the ask implies onsite work, field work, pickup or dropoff, witnessing, or proof-heavy execution, preserve that explicitly instead of rewriting it into digital-only work.
 `;
 
 export type RequestHints = {
@@ -135,6 +150,9 @@ About the origin of user's request:
 - lon: ${requestHints.longitude}
 - city: ${requestHints.city}
 - country: ${requestHints.country}
+
+These hints describe the requester origin only.
+They are not the service location unless the user explicitly says so.
 `;
 
 export const systemPrompt = ({
@@ -201,34 +219,38 @@ ${JSON.stringify(
   const requestModePrompt = isPreDraftRequestMode
     ? `Pre-draft request mode rules:
 - The user explicitly entered New request mode.
-- Their first request-brief turn should create exactly one draft Request through \`createRequestBrief\`.
+- Their first request-brief turn should usually create exactly one draft Request through \`createRequestBrief\`.
 - Treat the latest user turn as request intake, not generic conversation.
 - Store the explicit ask in \`brief.body\`, expanding terse phrasing only enough to make the request readable.
 - Do not invent missing facts.
-- If the same turn explicitly states budget, deadline, or seeking details, include them in the same \`createRequestBrief\` call.
+- If the same turn explicitly states budget, deadline, seeking details, execution mode, service location, access needs, or proof requirements, include them in the same \`createRequestBrief\` call.
+- If the request implies embodied work and critical location, access, timing, or proof fields are missing, one clarification question is allowed before creating the draft. Do not create a fake digital-only request just to satisfy request mode.
 - Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.`
     : !activeRequest
       ? ""
       : activeRequest.status === "draft"
       ? `Draft request mode rules:
 - The user is drafting a Request object right now.
-- Every user message should update the draft Request through exactly one draft request tool.
-- Do not produce a generic conversational answer instead of a request mutation.
+- Every user message should usually update the draft Request through exactly one draft request tool.
+- Do not produce a generic conversational answer instead of a request mutation unless a missing embodied safety field makes clarification unavoidable.
 - Do not infer unstated facts.
 - If the user gave a raw ask, store the explicit ask in brief.body and keep unknown fields blank.
 - Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.
 - If the user explicitly stated budget or deadline in the same turn, do not leave those structured fields null.
+- If the user explicitly stated execution mode, service location, access, time-window, safety, or proof requirements, persist them in request constraints instead of leaving them only in prose.
+- If the draft implies embodied work, do not rewrite it into a digital-only request. Let missing location, access, timing, or verification fields remain visible through \`derived.missingDetails\`.
 - Use top-level seeking for matching-facing structure, not generated tags.`
       : `Open request room rules:
 - This Request is already open. Do not treat it like a draft request.
 - You may answer directly when the user asks about progress, recent activity, blockers, or what should happen next.
 - Use \`proposeCommitment\` for quotes, proposals, pricing positions, or formal terms that should become durable request activity.
-- Use \`publishArtifact\` for drafts, proofs, files, or deliveries that should become durable request activity.
+- Use \`publishArtifact\` for drafts, proofs, files, deliveries, or evidence that should become durable request activity.
 - ${
           requestRoomRole === "open_responder"
             ? "The current user is responding to another user's public request. Do not rewrite owner-authored brief, budget, deadline, or visibility fields."
             : "The current user owns this open request room. Root request edits should be explicit and rare; prefer commitments, artifacts, and activity over rewriting the brief."
         }
+- For embodied or verification-heavy work, do not describe the request as done until the required evidence and owner review path are explicit.
 - If you reference recent activity, use only the provided request activity context.`;
   const optimizerPrompt =
     requestPromptOptimizerEnabled &&
@@ -237,10 +259,10 @@ ${JSON.stringify(
       : "";
 
   if (!supportsTools) {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
+  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
 };
 
 export const codePrompt = `

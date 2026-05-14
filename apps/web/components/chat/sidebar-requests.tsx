@@ -171,7 +171,7 @@ export function SidebarRequests({ user }: { user: User | undefined }) {
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-[13px] text-sidebar-foreground/60">
-            Your request drafts appear here after you start one.
+            Your requests show up here after you start one.
           </div>
         </SidebarGroupContent>
       </SidebarGroup>

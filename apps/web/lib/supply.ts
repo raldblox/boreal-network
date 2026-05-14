@@ -123,7 +123,7 @@ const supplyPresetDefaults: Record<
   human_service: {
     profile: {
       displayName: "",
-      headline: "Human service supply",
+      headline: "Human-led service",
       summary: "",
       description: "",
       tags: ["human_service"],
@@ -147,7 +147,7 @@ const supplyPresetDefaults: Record<
   agent_worker: {
     profile: {
       displayName: "",
-      headline: "Agent worker supply",
+      headline: "Agent worker",
       summary: "",
       description: "",
       tags: ["agent_worker"],
@@ -171,7 +171,7 @@ const supplyPresetDefaults: Record<
   digital_product: {
     profile: {
       displayName: "",
-      headline: "Digital product supply",
+      headline: "Digital product",
       summary: "",
       description: "",
       tags: ["digital_product"],
@@ -195,7 +195,7 @@ const supplyPresetDefaults: Record<
   desktop_runtime: {
     profile: {
       displayName: "",
-      headline: "Desktop runtime supply",
+      headline: "Desktop runtime",
       summary: "",
       description: "",
       tags: ["desktop_runtime"],
@@ -219,7 +219,7 @@ const supplyPresetDefaults: Record<
   provider_capability: {
     profile: {
       displayName: "",
-      headline: "Provider capability supply",
+      headline: "Provider capability",
       summary: "",
       description: "",
       tags: ["provider_capability"],
@@ -369,7 +369,7 @@ export function applySupplyPatch(
 }
 
 export function getSupplyTitle(draft: Pick<BorealSupplyDraft, "profile">) {
-  return normalizeText(draft.profile.displayName) || "Untitled supply";
+  return normalizeText(draft.profile.displayName) || "Untitled capability";
 }
 
 export function slugifySupplyKey(title: string | undefined, id: string): string {
@@ -396,7 +396,7 @@ export function getSupplyPublishReadiness(
   }
 
   if (draft.capability.supplyKinds.length === 0) {
-    missingFields.push("supply kinds");
+    missingFields.push("capability kinds");
   }
 
   if (draft.capability.fulfillmentActorKinds.length === 0) {
@@ -417,7 +417,7 @@ export function getSupplyPublishReadiness(
     summary:
       missingFields.length > 0
         ? `Missing: ${missingFields.join(", ")}`
-        : "Supply is ready to publish.",
+        : "Capability is ready to publish.",
   };
 }
 

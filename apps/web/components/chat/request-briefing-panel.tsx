@@ -58,8 +58,8 @@ export function RequestBriefingPanel({
       variant={requestPromptOptimizerEnabled ? "default" : "outline"}
     >
       {requestPromptOptimizerEnabled
-        ? "Brief optimizer on"
-        : "Brief optimizer off"}
+        ? "Brief assist on"
+        : "Brief assist off"}
     </Button>
   );
 
@@ -68,10 +68,10 @@ export function RequestBriefingPanel({
       <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 space-y-1">
-            <div className="text-sm font-medium">New request mode</div>
+            <div className="text-sm font-medium">Start request</div>
             <div className="text-[13px] leading-6 text-muted-foreground">
-              First send creates the durable request. Use the optimizer when a
-              short ask needs tighter structure before it opens.
+              Your first message opens the request thread. Use assist when a
+              rough ask needs help turning into a clear brief.
             </div>
           </div>
           <div className="flex flex-wrap gap-2">{optimizerToggle}</div>
@@ -122,7 +122,7 @@ export function RequestBriefingPanel({
   const summary =
     missingDetails.length > 0
       ? `Still needed: ${missingDetails.map((detail) => detail.replace(/_/g, " ")).join(", ")}.`
-      : "The brief is structurally ready. Open the request when you want durable routing and activity to begin.";
+      : "The brief is ready. Open the request when you want routing, replies, and durable activity to begin.";
 
   return (
     <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
@@ -144,7 +144,7 @@ export function RequestBriefingPanel({
         <div className="flex flex-wrap gap-2">
           {optimizerToggle}
           <Button onClick={onOpenDocument} variant="outline">
-            {isArtifactVisible ? "Focus object" : "Show object"}
+            {isArtifactVisible ? "Focus brief" : "Open brief"}
           </Button>
           <Button
             disabled={isSavingDraft || isOpeningRequest}

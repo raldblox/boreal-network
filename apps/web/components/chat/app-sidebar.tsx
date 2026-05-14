@@ -144,10 +144,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       setOpenMobile(false);
                       router.push("/?mode=request");
                     }}
-                    tooltip="New request"
+                    tooltip="Start request"
                   >
                     <FilePenLineIcon className="size-4" />
-                    <span className="font-medium">New request</span>
+                    <span className="font-medium">Start request</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {user && (
@@ -159,10 +159,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         setOpenMobile(false);
                         router.push("/supplies/new");
                       }}
-                      tooltip="New supply"
+                      tooltip="New capability"
                     >
                       <PackageIcon className="size-4" />
-                      <span className="font-medium">New supply</span>
+                      <span className="font-medium">New capability</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
@@ -187,10 +187,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     <SidebarMenuButton
                       className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setShowDeleteAllDialog(true)}
-                      tooltip="Clear chat history"
+                      tooltip="Clear saved chats"
                     >
                       <TrashIcon className="size-4" />
-                      <span className="text-[13px]">Clear history</span>
+                      <span className="text-[13px]">Clear chats</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}
@@ -213,16 +213,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
+            <AlertDialogTitle>Clear saved chats?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This removes every saved Boreal
-              chat from your account.
+              This action cannot be undone. It removes saved chats from your
+              account, including any request drafts attached to them.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteAll}>
-              Clear history
+              Clear chats
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

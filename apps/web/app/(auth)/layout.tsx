@@ -18,7 +18,7 @@ export default function AuthLayout({
               href="/"
             >
               <ArrowLeftIcon className="size-3.5" />
-              Return to Boreal
+              Back to Boreal
             </Link>
             <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-8">
               <div className="flex items-start gap-4">
@@ -30,7 +30,7 @@ export default function AuthLayout({
                     Boreal
                   </span>
                   <p className="max-w-sm text-sm leading-7 text-muted-foreground">
-                    One thread for matching, delivery, proof, and payout.
+                    One accountable thread for the ask, the work, and the proof.
                   </p>
                 </div>
               </div>
@@ -44,20 +44,20 @@ export default function AuthLayout({
         <div className="hidden min-h-dvh flex-col justify-between px-10 py-10 xl:flex">
           <div className="max-w-xl space-y-5">
             <div className="inline-flex rounded-full border border-border/60 bg-background/76 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/72">
-              Request-native work commerce
+              From ask to outcome
             </div>
             <h2 className="max-w-xl text-5xl font-semibold tracking-tight text-balance [font-family:var(--font-display)]">
-              Bring the ask, the work, and the proof into one room.
+              Turn a work request into one accountable thread.
             </h2>
             <p className="max-w-lg text-[15px] leading-8 text-muted-foreground">
-              Boreal keeps the request durable while matching, delivery, payout,
-              and operator tooling stay connected to the same thread.
+              Boreal keeps the ask, the work, the proof, and the payout connected
+              while the thread moves across humans and AI.
             </p>
             <Link
               className="inline-flex text-sm text-foreground underline-offset-4 hover:underline"
               href="/download/boreal-desktop"
             >
-              View Boreal Desktop
+              See Boreal Desktop
             </Link>
           </div>
 

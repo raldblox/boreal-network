@@ -19,14 +19,14 @@ import { DesktopRuntimeMonitor } from "./desktop-runtime-monitor";
 export const metadata: Metadata = {
   title: "Boreal Desktop",
   description:
-    "Boreal Desktop is the private Windows-first work shell for local Codex execution, request-aware work lanes, live localhost bridge monitoring, and peer-ready runtime identity.",
+    "Boreal Desktop gives one request a real local workspace for private execution, delivery, and proof.",
 };
 
 const liveCapabilities = [
   {
     icon: LaptopMinimal,
-    title: "Local Codex worker",
-    body: "Connect a real ChatGPT or Codex account and run local desktop work lanes without turning the browser into your executor.",
+    title: "Local worker shell",
+    body: "Connect a real ChatGPT or Codex account and do local work without turning the browser into your executor.",
   },
   {
     icon: ShieldCheck,
@@ -35,26 +35,26 @@ const liveCapabilities = [
   },
   {
     icon: Workflow,
-    title: "Request-aware lanes",
-    body: "Open a tracked request, keep the latest request thread in view, and publish fulfillment-relevant delivery or evidence back to Boreal web.",
+    title: "Request-aware workspace",
+    body: "Open a tracked request, keep the latest thread in view, and send delivery or proof back when it matters.",
   },
   {
     icon: FileOutput,
-    title: "Local work audit",
-    body: "Keep a machine-local view of what the worker did, what it sent, and what it delivered, without inflating web request history with raw runtime noise.",
+    title: "Local audit trail",
+    body: "Keep a machine-local view of what happened and what was sent back, without turning runtime noise into shared history.",
   },
 ];
 
 const reasons = [
-  "Use one private desktop shell for planning, coding, review, and delivery work.",
-  "Keep request truth on Boreal web while still giving the worker a real local execution surface.",
-  "Separate local runtime identity from Boreal actor identity instead of blurring them together.",
+  "Use one private desktop workspace for planning, coding, review, and delivery.",
+  "Keep the shared request thread on Boreal web while the actual execution stays local.",
+  "Separate machine access from Boreal account authority instead of blurring them together.",
 ];
 
 const nextSteps = [
-  "Request-topic fanout over the live peer runtime so one tracked request can map cleanly onto peer transport lanes.",
-  "Richer desktop-to-web live views beyond the current localhost bridge monitor, without promoting raw runtime noise into Boreal truth.",
-  "Peer file staging only after canonical artifact delivery semantics need it, instead of letting transport outrun the object model.",
+  "Map tracked requests more cleanly onto peer transport lanes.",
+  "Deepen live desktop-to-web visibility without promoting raw runtime noise into shared history.",
+  "Add richer file transport only when delivery and proof handling need it.",
 ];
 
 function SectionHeading({
@@ -95,7 +95,7 @@ export default function BorealDesktopDownloadPage() {
             <div>
               <p className="text-sm font-semibold text-foreground">Boreal Desktop</p>
               <p className="text-xs text-muted-foreground">
-                Private execution shell for request-native work
+                Private execution for real requests
               </p>
             </div>
           </div>
@@ -126,14 +126,12 @@ export default function BorealDesktopDownloadPage() {
 
             <div className="space-y-5">
               <h1 className="max-w-4xl font-display text-5xl tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-                Boreal Desktop turns your machine into a private work lane for
-                real requests.
+                Boreal Desktop gives one request a real local workspace.
               </h1>
               <p className="max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-                Chat with Codex locally. Keep private context off the shared
-                record by default. When the work becomes durable, push delivery,
-                proof, and fulfillment updates back into the canonical Boreal
-                request thread.
+                Do the work locally. Keep private context off the shared thread
+                by default. When something matters, send back the delivery,
+                proof, or status update.
               </p>
             </div>
 
@@ -144,7 +142,7 @@ export default function BorealDesktopDownloadPage() {
                 className="h-12 rounded-full px-6 text-sm font-semibold"
               >
                 <Link href="/login?callbackUrl=%2F%3Fmode%3Drequest">
-                  Request alpha access
+                  Join desktop alpha
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -155,41 +153,41 @@ export default function BorealDesktopDownloadPage() {
                 className="h-12 rounded-full px-6 text-sm font-semibold"
               >
                 <Download className="size-4" />
-                Download app
+                Windows build soon
               </Button>
             </div>
 
             <p className="text-sm text-muted-foreground">
-              Ask for desktop alpha through Boreal first. Signed Windows build
-              link comes next.
+              Request access through Boreal first. Signed Windows build comes
+              next.
             </p>
 
             <div className="grid gap-4 pt-2 sm:grid-cols-3">
               <div className="rounded-3xl border border-border/70 bg-card px-5 py-4 shadow-[var(--shadow-card)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Today
+                  Live now
                 </p>
                 <p className="mt-3 text-sm leading-7 text-foreground">
                   Local Codex chat, tracked request lanes, public request
-                  browsing, and request-side artifact or fulfillment actions.
+                  browsing, and request-side delivery or status actions.
                 </p>
               </div>
               <div className="rounded-3xl border border-border/70 bg-card px-5 py-4 shadow-[var(--shadow-card)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Boundary
+                  What stays on Boreal
                 </p>
                 <p className="mt-3 text-sm leading-7 text-foreground">
-                  Boreal web remains the canonical source for Request,
-                  Fulfillment, Artifact, and RequestEvent truth.
+                  Boreal web remains the shared thread for the request, the
+                  delivery, and the proof.
                 </p>
               </div>
               <div className="rounded-3xl border border-border/70 bg-card px-5 py-4 shadow-[var(--shadow-card)]">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Next
+                  Next up
                 </p>
                 <p className="mt-3 text-sm leading-7 text-foreground">
                   Localhost bridge and peer-ready runtime are live. Next is
-                  deeper request-topic fanout and stronger artifact transport.
+                  tighter request routing and stronger delivery transport.
                 </p>
               </div>
             </div>
@@ -205,7 +203,7 @@ export default function BorealDesktopDownloadPage() {
                   Why this shell exists
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Private execution without breaking request truth
+                  Private execution without losing the thread
                 </p>
               </div>
             </div>
@@ -229,11 +227,11 @@ export default function BorealDesktopDownloadPage() {
                 Live now
               </p>
               <p className="mt-3 text-sm leading-7 text-foreground">
-                Boreal Desktop now exposes a tokenized localhost bridge and a
-                real peer-backed runtime identity. The main web chat can now
-                auto-link a running desktop runtime directly from the model
-                picker, while the browser monitor below stays available as an
-                optional diagnostics surface.
+                Boreal Desktop now exposes a guarded localhost bridge and a
+                real peer-backed runtime identity. The main web chat can
+                auto-link a running desktop runtime from the model picker,
+                while the browser monitor below stays available when you need
+                diagnostics.
               </p>
             </div>
           </aside>
@@ -244,8 +242,8 @@ export default function BorealDesktopDownloadPage() {
         <section className="py-12 lg:py-16">
           <SectionHeading
             eyebrow="Local monitor"
-            title="See desktop runtime state in the browser without turning the browser into the worker."
-            body="Use this page for optional localhost diagnostics when you want to inspect the bridge directly. Routine desktop linking should now happen from the web chat model picker without a separate setup page."
+            title="See desktop runtime state in the browser without making the browser do the work."
+            body="Use this page for optional localhost diagnostics when you want to inspect the bridge directly. Routine desktop linking should happen from the web chat model picker without a separate setup page."
           />
 
           <div className="mt-10">
@@ -258,8 +256,8 @@ export default function BorealDesktopDownloadPage() {
         <section className="space-y-10 py-12 lg:py-16">
           <SectionHeading
             eyebrow="What it can do now"
-            title="A request-aware desktop shell, not just another model window."
-            body="Boreal Desktop is for owners and operators who need a private place to inspect, execute, and deliver work while keeping Boreal web as the canonical work thread."
+            title="A desktop workspace for real requests, not just another model window."
+            body="Boreal Desktop is for owners and operators who need a private place to inspect, execute, and deliver work while keeping the shared request thread intact."
           />
 
           <div className="grid gap-5 lg:grid-cols-2">
@@ -289,26 +287,26 @@ export default function BorealDesktopDownloadPage() {
         <section className="grid gap-8 py-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start lg:gap-14 lg:py-16">
           <SectionHeading
             eyebrow="How it works"
-            title="Use one local shell. Promote only the durable parts."
-            body="Desktop is the execution participant. Boreal web is still the canonical thread. That split keeps local work fast, private, and auditable without turning runtime noise into business history."
+            title="Work locally. Publish only what matters."
+            body="Desktop does the private execution. Boreal web keeps the shared request thread. That split keeps local work fast and auditable without turning every runtime detail into business history."
           />
 
           <div className="space-y-4">
             {[
               {
                 step: "01",
-                title: "Connect a valid worker account",
+                title: "Connect a real worker account",
                 body: "Attach Boreal Desktop to a real ChatGPT or Codex account, keep one runtime identity on the machine, and reuse it across many execution lanes.",
               },
               {
                 step: "02",
-                title: "Work locally with live execution feedback",
+                title: "Work locally with the request in view",
                 body: "Plan, code, inspect files, review outputs, and keep local-only context on the machine while the request detail stays visible.",
               },
               {
                 step: "03",
-                title: "Publish only what Boreal should remember",
-                body: "Push delivery, proof, evidence, or fulfillment updates back into the Boreal request object instead of syncing the full local transcript.",
+                title: "Send back only the durable outcome",
+                body: "Push delivery, proof, evidence, or status updates back into the Boreal request thread instead of syncing the full local transcript.",
               },
             ].map(({ step, title, body }) => (
               <div
@@ -336,8 +334,8 @@ export default function BorealDesktopDownloadPage() {
         <section className="grid gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14 lg:py-16">
           <SectionHeading
             eyebrow="What lands next"
-            title="Peer transport is live. The next step is making it request-smarter, not more vague."
-            body="Boreal already has the desktop shell, localhost bridge, and first Pear or Hyperswarm foundation. The next work is tying request lanes more deeply into transport and artifact handling without letting transport replace Request, Fulfillment, Artifact, or RequestEvent truth."
+            title="Peer transport is live. Next is making it more request-aware."
+            body="Boreal already has the desktop shell, localhost bridge, and the first Pear or Hyperswarm foundation. Next is tying request lanes more tightly into transport and delivery handling without letting transport replace the shared request thread."
           />
 
           <div className="space-y-4">

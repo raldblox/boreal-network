@@ -54,11 +54,11 @@ function PureChatHeader({
           </span>
           <span className="truncate text-[10px] uppercase tracking-[0.18em] text-muted-foreground/[0.7]">
             {requestStatus === "draft"
-              ? "Request drafting"
+              ? "Drafting request"
               : requestStatus
-                ? "Request room"
+                ? "Live request"
                 : isRequestMode
-                  ? "Request"
+                  ? "Start request"
                   : "Chat"}
           </span>
         </div>

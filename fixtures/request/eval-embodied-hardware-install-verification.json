@@ -1,0 +1,124 @@
+{
+  "fixtureType": "planner_matcher_eval",
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-hardware-install-verification",
+  "description": "Hardware installation verification should preserve onsite execution, serial capture, and evidence requirements rather than collapsing into a generated report.",
+  "requestInput": {
+    "actor": {
+      "kind": "human",
+      "id": "actor_josh_lao",
+      "displayName": "Josh Lao"
+    },
+    "rawAsk": "Need someone to visit our Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note. Budget is 250 USD."
+  },
+  "candidateSupplies": [
+    {
+      "supplyId": "sup_local_field_technician",
+      "title": "Local Field Technician",
+      "actorKinds": ["human"],
+      "supplyKinds": ["field_verification", "hardware_ops"],
+      "summary": "Visits sites, verifies hardware state, captures serials, and files evidence."
+    },
+    {
+      "supplyId": "sup_remote_documentation_agent",
+      "title": "Remote Documentation Agent",
+      "actorKinds": ["agent"],
+      "supplyKinds": ["qa_documentation"],
+      "summary": "Produces verification notes from evidence supplied by others."
+    },
+    {
+      "supplyId": "sup_generic_chat_agent",
+      "title": "Generic Chat Agent",
+      "actorKinds": ["agent"],
+      "supplyKinds": ["generalist"],
+      "summary": "General text assistance with no local hardware verification capability."
+    }
+  ],
+  "expectedExtraction": {
+    "title": "Verify barcode scanner installation at Quezon City warehouse",
+    "summaryMustContain": ["Quezon City", "serial numbers", "photo proof"],
+    "seeking": {
+      "actorKinds": ["human", "agent"],
+      "supplyKinds": ["field_verification", "hardware_ops", "qa_documentation"]
+    },
+    "outputKinds": ["verification_note", "photo_evidence", "serial_inventory"],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "fixedAmount": 250,
+      "serviceLocation": "Quezon City warehouse",
+      "timeWindows": ["tomorrow morning"],
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "verificationRequirements": ["photo_proof", "serial_number_capture", "verification_note"]
+    }
+  },
+  "expectedRouting": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "medium",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "expectedPlanning": {
+    "leadRole": "field_technician",
+    "executionProfile": {
+      "executionModes": ["onsite_visit", "field_inspection"],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "moderate"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["evidence", "delivery"],
+      "requiredEvidenceClaims": ["photo_proof", "serial_number_capture", "verification_note"],
+      "mustHaveOwnerAcceptance": true,
+      "mustHaveLocationSignal": true,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "high",
+      "reasons": [
+        "request requires onsite hardware verification",
+        "serial capture and photo proof cannot be replaced by generated text"
+      ]
+    },
+    "phaseCountMin": 2,
+    "phaseCountMax": 4,
+    "roleSlots": [
+      {
+        "roleKey": "field_technician",
+        "requiredActorKinds": ["human"],
+        "required": true
+      },
+      {
+        "roleKey": "qa_documentation",
+        "requiredActorKinds": ["agent"],
+        "required": false
+      }
+    ],
+    "noMicrotaskExplosion": true
+  },
+  "expectedMatching": {
+    "topLeadSupplyId": "sup_local_field_technician",
+    "top3MustInclude": ["sup_local_field_technician", "sup_remote_documentation_agent"],
+    "mustRankBelowTop2": ["sup_generic_chat_agent"],
+    "roleMatches": {
+      "field_technician": "sup_local_field_technician",
+      "qa_documentation": "sup_remote_documentation_agent"
+    }
+  },
+  "expectedPolicy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  },
+  "negativeAssertions": [
+    "must_not_flatten_onsite_work_into_digital_only_plan",
+    "must_not_allow_false_closure_without_proof",
+    "must_not_choose_generic_chat_agent_as_lead"
+  ]
+}

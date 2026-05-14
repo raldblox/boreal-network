@@ -49,27 +49,31 @@ const presetCards: Array<{
   {
     preset: "human_service",
     label: "Human service",
-    description: "Manual human-led service supply for request-native work.",
+    description:
+      "Human-led work for requests that need judgment, coordination, or delivery.",
   },
   {
     preset: "agent_worker",
     label: "Agent worker",
-    description: "Agent-led execution lane that can draft and deliver work.",
+    description:
+      "Agent-led digital work that can draft, execute, and return deliverables.",
   },
   {
     preset: "digital_product",
     label: "Digital product",
-    description: "Fixed or open digital output lane with direct delivery metadata.",
+    description: "A repeatable digital deliverable with a clear scope and handoff.",
   },
   {
     preset: "desktop_runtime",
     label: "Desktop runtime",
-    description: "Private runtime-backed supply with optional resolver binding metadata.",
+    description:
+      "A private machine-backed capability with optional desktop binding.",
   },
   {
     preset: "provider_capability",
     label: "Provider capability",
-    description: "Provider-backed API capability without turning the provider into the owner actor.",
+    description:
+      "An API-backed capability without making the provider the owner.",
   },
 ];
 
@@ -147,7 +151,9 @@ export function SupplyShell() {
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
         throw new Error(
-          errorBody?.cause || errorBody?.message || "Failed to create supply draft"
+          errorBody?.cause ||
+            errorBody?.message ||
+            "Failed to create capability draft"
         );
       }
 
@@ -160,7 +166,7 @@ export function SupplyShell() {
         description:
           error instanceof Error
             ? error.message
-            : "Failed to create supply draft.",
+            : "Failed to create capability draft.",
       });
     } finally {
       setIsSubmitting(false);
@@ -194,7 +200,9 @@ export function SupplyShell() {
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
         throw new Error(
-          errorBody?.cause || errorBody?.message || "Failed to update supply"
+          errorBody?.cause ||
+            errorBody?.message ||
+            "Failed to update capability"
         );
       }
 
@@ -206,18 +214,20 @@ export function SupplyShell() {
         type: "success",
         description:
           action === "publish_supply"
-            ? "Supply published."
+            ? "Capability published."
             : action === "pause_supply"
-              ? "Supply paused."
+              ? "Capability paused."
               : action === "retire_supply"
-                ? "Supply retired."
-                : "Supply draft saved.",
+                ? "Capability retired."
+                : "Capability draft saved.",
       });
     } catch (error) {
       toast({
         type: "error",
         description:
-          error instanceof Error ? error.message : "Failed to update supply.",
+          error instanceof Error
+            ? error.message
+            : "Failed to update capability.",
       });
     } finally {
       setIsSubmitting(false);
@@ -242,7 +252,9 @@ export function SupplyShell() {
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
         throw new Error(
-          errorBody?.cause || errorBody?.message || "Failed to delete supply"
+          errorBody?.cause ||
+            errorBody?.message ||
+            "Failed to delete capability"
         );
       }
 
@@ -255,13 +267,15 @@ export function SupplyShell() {
       router.replace("/supplies/new");
       toast({
         type: "success",
-        description: "Supply deleted.",
+        description: "Capability deleted.",
       });
     } catch (error) {
       toast({
         type: "error",
         description:
-          error instanceof Error ? error.message : "Failed to delete supply.",
+          error instanceof Error
+            ? error.message
+            : "Failed to delete capability.",
       });
     } finally {
       setIsSubmitting(false);
@@ -277,7 +291,7 @@ export function SupplyShell() {
               <PackageIcon className="size-4" />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-medium">New supply</div>
+              <div className="text-sm font-medium">New capability</div>
               <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
                 Capability first
               </div>
@@ -288,15 +302,14 @@ export function SupplyShell() {
         <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 overflow-auto px-4 py-8 md:px-6 md:py-10">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex rounded-full border border-border/60 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
-              Supply draft
+              Capability draft
             </div>
             <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-5xl">
               Start with the capability, not the runtime.
             </h1>
             <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
-              Supply is the published capability object. Runtime binding stays
-              optional metadata, so one desktop or provider lane can back more
-              than one supply without collapsing the model.
+              Describe what gets done first. Runtime binding stays optional, so
+              one desktop or provider can back more than one capability.
             </p>
           </div>
 
@@ -314,7 +327,7 @@ export function SupplyShell() {
                     {preset.label}
                   </div>
                   <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/60 transition-colors group-hover:text-muted-foreground">
-                    {isSubmitting ? "Starting" : "Start"}
+                    {isSubmitting ? "Starting" : "Choose"}
                   </span>
                 </div>
                 <p className="mt-4 text-sm leading-7 text-muted-foreground">
@@ -332,10 +345,10 @@ export function SupplyShell() {
     return (
       <div className="flex h-dvh items-center justify-center bg-background px-4">
         <div className="max-w-md rounded-[28px] border border-border/60 bg-background/90 p-8 text-center shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-          <h1 className="text-lg font-semibold">Supply unavailable</h1>
+          <h1 className="text-lg font-semibold">Capability unavailable</h1>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            This supply could not be loaded. It may be missing or outside your
-            account scope.
+            This capability could not be loaded. It may be missing or outside
+            your account scope.
           </p>
         </div>
       </div>
@@ -347,7 +360,7 @@ export function SupplyShell() {
       <div className="flex h-dvh items-center justify-center bg-background">
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <LoaderCircleIcon className="size-4 animate-spin" />
-          Loading supply...
+          Loading capability...
         </div>
       </div>
     );
@@ -365,14 +378,14 @@ export function SupplyShell() {
                 </div>
                 <div className="min-w-0">
                   <div className="truncate text-lg font-semibold tracking-tight">
-                    {draft.profile.displayName.trim() || "Untitled supply"}
+                    {draft.profile.displayName.trim() || "Untitled capability"}
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
                     <StatusBadge status={draft.status} />
                     <span>{formatLabel(draft.visibility)}</span>
-                    <span className="text-border">•</span>
+                    <span className="text-border">|</span>
                     <span>{formatLabel(draft.source.kind)}</span>
-                    <span className="text-border">•</span>
+                    <span className="text-border">|</span>
                     <span>Updated {formatTimestamp(draft.updatedAt)}</span>
                   </div>
                 </div>
@@ -400,7 +413,7 @@ export function SupplyShell() {
                   disabled={isReadonly || isSubmitting || !readiness?.readyForPublish}
                   onClick={() => void submitDraft("publish_supply")}
                 >
-                  {isSubmitting ? "Publishing..." : "Publish supply"}
+                  {isSubmitting ? "Publishing..." : "Publish capability"}
                 </Button>
               ) : null}
               {draft.status === "published" ? (
@@ -429,14 +442,14 @@ export function SupplyShell() {
           <div className="min-w-0 space-y-8">
             <div className="max-w-3xl space-y-3">
               <div className="inline-flex rounded-full border border-border/60 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
-                Supply editor
+                Capability editor
               </div>
               <h1 className="text-3xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-4xl">
-                Shape one premium capability surface.
+                Shape one clear capability buyers can trust.
               </h1>
               <p className="text-sm leading-7 text-muted-foreground md:text-[15px]">
-                Keep the market promise clear here. Describe what gets done,
-                who fulfills it, how it routes, and what the buyer should expect.
+                Describe what gets done, who fulfills it, how it runs, and
+                what the buyer should expect.
               </p>
             </div>
 
@@ -448,8 +461,8 @@ export function SupplyShell() {
                       Publish readiness
                     </div>
                     <p className="mt-1 max-w-2xl text-sm leading-7 text-muted-foreground">
-                      Private and unlisted publish are live. Public market publish
-                      stays gated until the broader supply discovery lane is opened.
+                      Private and unlisted publish are live. Public marketplace
+                      publish stays gated until broader capability discovery opens.
                     </p>
                   </div>
                   <Badge
@@ -471,7 +484,7 @@ export function SupplyShell() {
 
               <div className="divide-y divide-border/60">
                 <SectionShell
-                  description="Set the commercial-facing identity and promise."
+                  description="Set the buyer-facing identity and promise."
                   title="Profile"
                 >
                   <Field label="Display name">
@@ -579,10 +592,10 @@ export function SupplyShell() {
                 </SectionShell>
 
                 <SectionShell
-                  description="Define the actual execution shape of the supply."
+                  description="Define how this capability executes and what it returns."
                   title="Capability"
                 >
-                  <Field label="Supply kinds">
+                  <Field label="Capability kinds">
                     <Input
                       className={inputClassName}
                       disabled={isReadonly}
@@ -954,7 +967,7 @@ export function SupplyShell() {
                 </SectionShell>
 
                 <SectionShell
-                  description="Optional infrastructure bindings. These support the supply, but they are not the supply."
+                  description="Optional infrastructure bindings. They support the capability, but they are not the capability."
                   title="Bindings"
                 >
                   <Field label="Runtime actor ID">
@@ -1025,7 +1038,7 @@ export function SupplyShell() {
           <aside className="space-y-5 xl:sticky xl:top-8 xl:self-start">
             <section className="rounded-[28px] border border-border/60 bg-background/92 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
               <div className="text-base font-medium tracking-tight">
-                Supply summary
+                Capability summary
               </div>
               <div className="mt-4 space-y-4 text-sm">
                 <MetaRow
@@ -1070,7 +1083,7 @@ export function SupplyShell() {
                 Object preview
               </div>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Live machine-readable view of the current supply.
+                Live machine-readable view of the current capability.
               </p>
               <pre className="mt-4 max-h-[28rem] overflow-auto rounded-[22px] border border-border/60 bg-muted/[0.35] p-4 text-[11px] leading-6 text-foreground">
                 {renderSupplyJson(draft)}
@@ -1083,9 +1096,9 @@ export function SupplyShell() {
       <AlertDialog onOpenChange={setShowDeleteDialog} open={showDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this supply?</AlertDialogTitle>
+            <AlertDialogTitle>Delete this capability?</AlertDialogTitle>
             <AlertDialogDescription>
-              Only draft or retired supplies without durable activity can be
+              Only draft or retired capabilities without durable activity can be
               deleted. Published history should stay durable.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1098,7 +1111,7 @@ export function SupplyShell() {
                 void deleteDraft();
               }}
             >
-              {isSubmitting ? "Deleting..." : "Delete supply"}
+              {isSubmitting ? "Deleting..." : "Delete capability"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -5,8 +5,10 @@ import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import {
   applyRequestBriefPatch,
+  mergeRequestConstraintInputs,
   requestBudgetInputSchema,
   requestDeadlineInputSchema,
+  requestEmbodiedConstraintInputSchema,
   requestSeekingInputSchema,
 } from "./request-briefing-shared";
 
@@ -25,11 +27,13 @@ export const createRequestBrief = ({
 }: CreateRequestBriefProps) =>
   tool({
     description:
-      "Create or initialize a durable Boreal Request draft and open its live request brief document. Prefer raw body first. Title or summary may stay blank if the user has not clearly established them yet. Include same-turn structured facts like budget or deadline when the user explicitly stated them. Only use when the user explicitly wants a new request or wants to turn the current work ask into a Request.",
+      "Create or initialize a durable Boreal Request draft and open its live request brief document. Prefer raw body first. Title or summary may stay blank if the user has not clearly established them yet. Include same-turn structured facts like budget, deadline, location, execution mode, access, or proof requirements when the user explicitly stated them. Only use when the user explicitly wants a new request or wants to turn the current work ask into a Request.",
     inputSchema: z.object({
       title: z.string().min(1).max(200).optional(),
       summary: z.string().min(1).max(1000).optional(),
       body: z.string().min(1),
+      constraints: z.record(z.string(), z.unknown()).optional(),
+      embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
       outputKinds: z.array(z.string().min(1)).optional(),
       seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
@@ -39,6 +43,8 @@ export const createRequestBrief = ({
       title,
       summary,
       body,
+      constraints,
+      embodiedConstraints,
       outputKinds,
       seeking,
       budget,
@@ -54,6 +60,10 @@ export const createRequestBrief = ({
             title,
             summary,
             body,
+            constraints: mergeRequestConstraintInputs({
+              constraints,
+              embodiedConstraints,
+            }),
             outputKinds,
           },
           ...(seeking !== undefined ? { seeking } : {}),

@@ -100,7 +100,9 @@ export function VisibilitySelector({
               <div className="text-xs text-muted-foreground">
                 {visibility.id === "private"
                   ? `Only you can access this ${surfaceLabel}.`
-                  : `Anyone with the link can access this ${surfaceLabel}.`}
+                  : requestId
+                    ? "Visible in Boreal's public request pool."
+                    : `Anyone with the link can access this ${surfaceLabel}.`}
               </div>
             </div>
             <div className="text-foreground opacity-0 group-data-[active=true]/item:opacity-100 dark:text-foreground">
