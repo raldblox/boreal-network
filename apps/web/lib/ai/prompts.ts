@@ -57,12 +57,14 @@ Rules:
 6. Keep canonical fields separate from derived fields.
 7. Do not infer missing facts. Only write what the user explicitly stated or what is already present on the active Request.
 8. In request mode, do not ask follow-up questions in chat. Update the object with known facts first.
-9. Prefer \`updateRequestBrief\` for freeform work descriptions. If the same user turn explicitly includes budget, deadline, or other canonical request facts, include them in that same mutation instead of dropping them.
-10. Keep the narrative brief rich. Preserve the user wording in \`body\`, but also write explicit structured facts like budget and deadline into their canonical fields when stated.
-11. Prefer title plus body first. Do not manufacture \`brief.summary\` just to fill the object. Leave it blank unless the user explicitly gave it or it adds real compression beyond title and body.
-12. Use top-level \`seeking\` for structured matching intent. Do not rely on auto-generated \`brief.tags\` as the primary matching structure.
-13. Only write \`brief.tags\` when the user explicitly wants labels or the label is explicitly stated and useful as a human-facing tag.
-14. Leave unknown title, summary, seeking, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
+9. When the user gives a short but explicit work ask, expand it into a clearer \`brief.body\` sentence or short paragraph using only explicit facts and harmless grammatical completion.
+10. Do not add new scope, budget, deadline, deliverables, actor requirements, or technical constraints just to make the brief sound complete.
+11. Prefer \`updateRequestBrief\` for freeform work descriptions. If the same user turn explicitly includes budget, deadline, or other canonical request facts, include them in that same mutation instead of dropping them.
+12. Keep the narrative brief rich. Preserve the user wording in \`body\`, but also write explicit structured facts like budget and deadline into their canonical fields when stated.
+13. Prefer title plus body first. Do not manufacture \`brief.summary\` just to fill the object. Leave it blank unless the user explicitly gave it or it adds real compression beyond title and body.
+14. Use top-level \`seeking\` for structured matching intent. Do not rely on auto-generated \`brief.tags\` as the primary matching structure.
+15. Only write \`brief.tags\` when the user explicitly wants labels or the label is explicitly stated and useful as a human-facing tag.
+16. Leave unknown title, summary, seeking, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
 
 Mode split:
 - Draft request mode is for forming the Request root object.
@@ -105,6 +107,21 @@ export const regularPrompt = `You are a helpful assistant. Keep responses concis
 
 When asked to write, create, or build something, do it immediately. Don't ask clarifying questions unless critical information is missing; make reasonable assumptions and proceed.`;
 
+export const requestBriefingOptimizerPrompt = `
+Request briefing optimizer is enabled for this turn.
+
+Use it as a private drafting aid only:
+- Before choosing fields or a tool, internally normalize the latest user ask into a cleaner request brief shape.
+- Preserve every explicit fact.
+- Improve grammar, sentence structure, and work framing when the user ask is terse or fragmented.
+- If the user gave only a few words, turn them into a direct buyer-style ask in \`brief.body\`.
+- Prefer 2-5 tight sentences in \`brief.body\` when that makes the request clearer for future workers.
+- Keep the rewrite private scratch. Only the final request-tool payload should become durable.
+- Do not invent new requirements, budgets, deadlines, output kinds, deliverables, actor kinds, or constraints.
+- Do not backfill \`brief.summary\` just to satisfy a shape.
+- If a fact is missing, leave it missing and let \`derived.missingDetails\` stay honest.
+`;
+
 export type RequestHints = {
   latitude: Geo["latitude"];
   longitude: Geo["longitude"];
@@ -123,12 +140,16 @@ About the origin of user's request:
 export const systemPrompt = ({
   requestHints,
   supportsTools,
+  requestMode,
+  requestPromptOptimizerEnabled,
   activeRequest,
   recentActivity,
   requestRoomRole,
 }: {
   requestHints: RequestHints;
   supportsTools: boolean;
+  requestMode?: boolean;
+  requestPromptOptimizerEnabled?: boolean;
   activeRequest?: BorealRequestDraft | null;
   recentActivity?: RequestActivityEntry[];
   requestRoomRole?: "draft_owner" | "open_owner" | "open_responder" | null;
@@ -176,9 +197,19 @@ ${JSON.stringify(
   2
 )}`
       : "";
-  const requestModePrompt = !activeRequest
-    ? ""
-    : activeRequest.status === "draft"
+  const isPreDraftRequestMode = requestMode === true && !activeRequest;
+  const requestModePrompt = isPreDraftRequestMode
+    ? `Pre-draft request mode rules:
+- The user explicitly entered New request mode.
+- Their first request-brief turn should create exactly one draft Request through \`createRequestBrief\`.
+- Treat the latest user turn as request intake, not generic conversation.
+- Store the explicit ask in \`brief.body\`, expanding terse phrasing only enough to make the request readable.
+- Do not invent missing facts.
+- If the same turn explicitly states budget, deadline, or seeking details, include them in the same \`createRequestBrief\` call.
+- Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.`
+    : !activeRequest
+      ? ""
+      : activeRequest.status === "draft"
       ? `Draft request mode rules:
 - The user is drafting a Request object right now.
 - Every user message should update the draft Request through exactly one draft request tool.
@@ -199,12 +230,17 @@ ${JSON.stringify(
             : "The current user owns this open request room. Root request edits should be explicit and rare; prefer commitments, artifacts, and activity over rewriting the brief."
         }
 - If you reference recent activity, use only the provided request activity context.`;
+  const optimizerPrompt =
+    requestPromptOptimizerEnabled &&
+    (isPreDraftRequestMode || activeRequest?.status === "draft")
+      ? requestBriefingOptimizerPrompt
+      : "";
 
   if (!supportsTools) {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
+  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
 };
 
 export const codePrompt = `

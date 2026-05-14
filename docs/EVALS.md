@@ -12,6 +12,7 @@ A high-scoring match system that mutates too early is still failing.
 ### 1. Extraction evals
 
 Verify that a raw ask becomes the expected brief, optional structured `seeking`, constraints, output kinds, budget shape, and missing-field list.
+If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.
 
 ### 2. Route and complexity evals
 

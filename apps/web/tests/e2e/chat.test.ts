@@ -58,4 +58,20 @@ test.describe("Chat Input Features", () => {
     await input.fill("Line 1\nLine 2\nLine 3");
     await expect(input).toContainText("Line 1");
   });
+
+  test("request mode shows the briefing optimizer toggle", async ({
+    page,
+  }) => {
+    await page.goto("/?mode=request");
+
+    const optimizerToggle = page.getByTestId(
+      "request-prompt-optimizer-toggle"
+    );
+
+    await expect(optimizerToggle).toBeVisible();
+    await expect(optimizerToggle).toHaveText("Brief optimizer off");
+
+    await optimizerToggle.click();
+    await expect(optimizerToggle).toHaveText("Brief optimizer on");
+  });
 });

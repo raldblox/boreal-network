@@ -95,6 +95,8 @@ export function ChatShell() {
     setShowModelAccessAlert,
     activeRequest,
     isRequestMode,
+    requestPromptOptimizerEnabled,
+    setRequestPromptOptimizerEnabled,
     createRequest,
     saveRequestDraft,
     openRequest,
@@ -261,13 +263,7 @@ export function ChatShell() {
   };
 
   const ensureRequestForSend = async () => {
-    const createdRequest = await createRequest();
-    if (!createdRequest) {
-      return null;
-    }
-
-    suppressAutoOpenRequestRef.current = createdRequest.id;
-    return createdRequest;
+    return;
   };
 
   const handleResolveDeliveredRequest = async () => {
@@ -298,10 +294,10 @@ export function ChatShell() {
 
   return (
     <>
-      <div className="flex h-dvh w-full flex-row overflow-hidden">
+      <div className="flex h-dvh w-full flex-row overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.22)_100%)]">
         <div
           className={cn(
-            "flex min-w-0 flex-col bg-sidebar transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            "flex min-w-0 flex-col bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
             isArtifactVisible ? "w-[40%]" : "w-full"
           )}
         >
@@ -314,7 +310,7 @@ export function ChatShell() {
             selectedVisibilityType={visibilityType}
           />
 
-          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:rounded-tl-[12px] md:border-t md:border-l md:border-border/40">
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/96 md:rounded-none md:rounded-tl-[28px] md:border md:border-border/60 md:shadow-[0_18px_55px_rgba(15,23,42,0.05)]">
             <RequestBriefingPanel
               isArtifactVisible={isArtifactVisible}
               isReadonly={isReadonly}
@@ -322,7 +318,11 @@ export function ChatShell() {
               onOpenDocument={openRequestDocument}
               onSaveDraft={saveRequestDraft}
               onOpenRequest={openRequest}
+              onSetRequestPromptOptimizerEnabled={
+                setRequestPromptOptimizerEnabled
+              }
               request={activeRequest}
+              requestPromptOptimizerEnabled={requestPromptOptimizerEnabled}
             />
 
             {isOpenedRequest && activeRequest ? (
@@ -391,7 +391,7 @@ export function ChatShell() {
               <>
                 <div
                   className={cn(
-                    "sticky bottom-0 z-10 mx-auto flex w-full max-w-4xl gap-2 border-t-0 bg-background px-2 pb-3 md:px-4 md:pb-4",
+                    "sticky bottom-0 z-10 mx-auto flex w-full max-w-4xl gap-2 bg-background/94 px-2 pb-4 pt-2 backdrop-blur md:px-4 md:pb-5",
                   )}
                 >
                   <MultimodalInput
@@ -474,8 +474,8 @@ export function ChatShell() {
               <SheetHeader className="shrink-0 border-b border-border/60 pb-4 pr-16">
                 <SheetTitle>Request chat</SheetTitle>
                 <SheetDescription>
-                  Conversation stays here so the main room can stay focused on
-                  durable request activity.
+                  Keep conversation and lightweight guidance here. Durable work
+                  updates still belong in the main request thread.
                 </SheetDescription>
                 <button
                   className="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

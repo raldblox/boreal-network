@@ -18,6 +18,7 @@ import {
 } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
+import { useLocalStorage } from "usehooks-ts";
 import { useDataStream } from "@/components/chat/data-stream-provider";
 import { getChatHistoryPaginationKey } from "@/components/chat/sidebar-history";
 import { getRequestHistoryPaginationKey } from "@/components/chat/sidebar-requests";
@@ -63,6 +64,8 @@ type ActiveChatContextValue = {
   setShowModelAccessAlert: Dispatch<SetStateAction<boolean>>;
   activeRequest: BorealRequestDraft | null;
   isRequestMode: boolean;
+  requestPromptOptimizerEnabled: boolean;
+  setRequestPromptOptimizerEnabled: Dispatch<SetStateAction<boolean>>;
   createRequest: () => Promise<BorealRequestDraft | null>;
   saveRequestDraft: () => Promise<void>;
   openRequest: () => Promise<void>;
@@ -97,6 +100,10 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const chatId = chatIdFromUrl ?? newChatIdRef.current;
 
   const [currentModelId, setCurrentModelId] = useState(DEFAULT_CHAT_MODEL);
+  const [
+    requestPromptOptimizerEnabled,
+    setRequestPromptOptimizerEnabled,
+  ] = useLocalStorage("request-briefing-optimizer-enabled", false);
   const currentModelIdRef = useRef(currentModelId);
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -206,6 +213,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
               ? { messages: request.messages }
               : { message: lastMessage }),
             requestMode: isRequestMode,
+            requestPromptOptimizerEnabled,
             selectedChatModel: currentModelIdRef.current,
             selectedVisibilityType: visibility,
             ...request.body,
@@ -560,6 +568,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       setShowModelAccessAlert,
       activeRequest,
       isRequestMode,
+      requestPromptOptimizerEnabled,
+      setRequestPromptOptimizerEnabled,
       createRequest,
       saveRequestDraft,
       openRequest,
@@ -613,6 +623,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       showModelAccessAlert,
       activeRequest,
       isRequestMode,
+      requestPromptOptimizerEnabled,
+      setRequestPromptOptimizerEnabled,
       createRequest,
       saveRequestDraft,
       openRequest,

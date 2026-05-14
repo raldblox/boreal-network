@@ -69,6 +69,10 @@ const requestUpdateToolNames = [
   | "updateRequestRouteSummary"
 >;
 
+const preDraftRequestToolNames = [
+  "createRequestBrief",
+] satisfies Array<"createRequestBrief">;
+
 const openOwnerRequestToolNames = [
   "proposeCommitment",
   "publishArtifact",
@@ -134,6 +138,7 @@ export async function POST(request: Request) {
       message,
       messages,
       requestMode,
+      requestPromptOptimizerEnabled,
       selectedChatModel,
       selectedVisibilityType,
     } = requestBody;
@@ -266,6 +271,7 @@ export async function POST(request: Request) {
     const supportsTools = capabilities?.tools === true;
     const isActiveRequestMode = activeRequest !== null;
     const isDraftRequestMode = activeRequest?.status === "draft";
+    const isPreDraftRequestMode = requestMode === true && activeRequest === null;
     const isOpenRequestMode =
       activeRequest !== null && activeRequest.status !== "draft";
     const isOpenRequestOwner =
@@ -287,7 +293,9 @@ export async function POST(request: Request) {
     const activeToolNames =
       isReasoningModel && !supportsTools
         ? []
-        : isDraftRequestMode
+        : isPreDraftRequestMode
+          ? preDraftRequestToolNames
+          : isDraftRequestMode
           ? requestUpdateToolNames
           : isOpenRequestMode
             ? isOpenRequestOwner
@@ -295,8 +303,13 @@ export async function POST(request: Request) {
               : openResponderRequestToolNames
             : defaultToolNames;
     const requestToolChoice =
-      supportsTools && isDraftRequestMode ? "required" : undefined;
-    const stopCondition = isDraftRequestMode ? stepCountIs(1) : stepCountIs(5);
+      supportsTools && (isPreDraftRequestMode || isDraftRequestMode)
+        ? "required"
+        : undefined;
+    const stopCondition =
+      isPreDraftRequestMode || isDraftRequestMode
+        ? stepCountIs(1)
+        : stepCountIs(5);
 
     const modelMessages = await convertToModelMessages(uiMessages);
 
@@ -308,6 +321,8 @@ export async function POST(request: Request) {
           system: systemPrompt({
             requestHints,
             supportsTools,
+            requestMode,
+            requestPromptOptimizerEnabled,
             activeRequest,
             recentActivity,
             requestRoomRole,

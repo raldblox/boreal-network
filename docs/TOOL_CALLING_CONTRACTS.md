@@ -10,6 +10,7 @@ Policy decides.
 Mutation tools commit.
 
 Do not let one opaque tool both infer the route and mutate canonical objects.
+Optional prompt-assist profiles may rewrite or expand the latest user ask ephemerally, but they stay read-only and must still hand off through the same planner, policy, and mutation boundaries.
 
 ## Tool Layers
 
@@ -128,6 +129,7 @@ Every mutation call should return:
 - Planner tools must not create canonical objects.
 - Matcher tools must not mutate ranking history or canonical objects.
 - Policy tools must not bypass approval boundaries.
+- Prompt-assist profiles must not create canonical objects, bypass tool selection, or introduce a second hidden request-write path.
 - Mutation tools must be idempotent where retries are possible.
 - Request-briefing mutation tools must keep updating the same draft `Request` instead of creating a second durable demand object.
 - Draft request mode and open request mode should not share one forced mutation policy.

@@ -19,6 +19,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    The owner speaks naturally.
 2. Decision layer
    Boreal extracts meaning, classifies route, retrieves supply, ranks candidates, and decides the next action.
+   Optional request-briefing assist profiles may normalize terse asks into a clearer derived brief shape inside this layer, but they remain read-only and non-durable until a mutation tool writes the `Request`.
 3. Execution layer
    Only approved mutation tools write `Request`, `Commitment`, `Fulfillment`, `FulfillmentStep`, `Artifact`, or `Transaction`.
 
@@ -30,6 +31,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    Stay chat-only until the owner or policy explicitly chooses to open a `Request`.
    In the web `New request` mode, entering the mode alone must not create a durable `Request`.
    The first durable draft should be created only when the owner sends the first request brief turn or uses another explicit create action.
+   Optional request-briefing assist may restructure that first turn for clarity, but it must still end in exactly one `create_request_brief` mutation instead of a parallel hidden write path.
 3. Request draft
    Produce a derived `RequestDraft`.
 4. Draft normalization

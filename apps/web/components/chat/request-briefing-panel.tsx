@@ -20,67 +20,96 @@ type RequestBriefingPanelProps = {
   onSaveDraft: () => Promise<void>;
   onOpenRequest: () => Promise<void>;
   onOpenDocument: () => void;
+  requestPromptOptimizerEnabled: boolean;
+  onSetRequestPromptOptimizerEnabled: (enabled: boolean) => void;
 };
 
 export function RequestBriefingPanel({
   request,
   isReadonly,
   isArtifactVisible,
+  isRequestMode,
   onSaveDraft,
   onOpenRequest,
   onOpenDocument,
+  requestPromptOptimizerEnabled,
+  onSetRequestPromptOptimizerEnabled,
 }: RequestBriefingPanelProps) {
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isOpeningRequest, setIsOpeningRequest] = useState(false);
 
-  if (isReadonly || !request) {
+  if (isReadonly || (!request && !isRequestMode)) {
     return null;
+  }
+
+  const optimizerToggle = (
+    <Button
+      aria-pressed={requestPromptOptimizerEnabled}
+      className={cn(
+        "rounded-full px-3.5",
+        requestPromptOptimizerEnabled ? undefined : "bg-background"
+      )}
+      data-testid="request-prompt-optimizer-toggle"
+      onClick={() =>
+        onSetRequestPromptOptimizerEnabled(!requestPromptOptimizerEnabled)
+      }
+      size="sm"
+      type="button"
+      variant={requestPromptOptimizerEnabled ? "default" : "outline"}
+    >
+      {requestPromptOptimizerEnabled
+        ? "Brief optimizer on"
+        : "Brief optimizer off"}
+    </Button>
+  );
+
+  if (!request) {
+    return (
+      <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 space-y-1">
+            <div className="text-sm font-medium">New request mode</div>
+            <div className="text-[13px] leading-6 text-muted-foreground">
+              First send creates the durable request. Use the optimizer when a
+              short ask needs tighter structure before it opens.
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">{optimizerToggle}</div>
+        </div>
+      </div>
+    );
   }
 
   if (request.status !== "draft") {
     const title = request.brief.title?.trim() || "Untitled request";
 
     return (
-      <div className="border-b border-border/50 bg-background/95 px-4 py-2.5">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center gap-2">
-          <div className="mr-2 truncate font-medium text-sm md:text-[15px]">
-            {title}
+      <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-4xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="truncate text-sm font-medium md:text-[15px]">
+                {title}
+              </div>
+              <Badge
+                className={cn(
+                  "rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize",
+                  getRequestStatusBadgeClassName(request.status)
+                )}
+                variant="secondary"
+              >
+                {request.status.replace(/_/g, " ")}
+              </Badge>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+              <span>{formatBudgetSummary(request.budget)}</span>
+              <span>{formatDeadlineSummary(request.deadline)}</span>
+              <span>{request.visibility}</span>
+              {request.derived.routeFamily ? (
+                <span>{request.derived.routeFamily.replace(/_/g, " ")}</span>
+              ) : null}
+            </div>
           </div>
-          <Badge
-            className={cn(
-              "rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize",
-              getRequestStatusBadgeClassName(request.status)
-            )}
-            variant="secondary"
-          >
-            {request.status.replace(/_/g, " ")}
-          </Badge>
-          <Badge
-            className="rounded-full border border-border/60 bg-background/80 text-[11px] text-muted-foreground"
-            variant="secondary"
-          >
-            {formatBudgetSummary(request.budget)}
-          </Badge>
-          <Badge
-            className="rounded-full border border-border/60 bg-background/80 text-[11px] text-muted-foreground"
-            variant="secondary"
-          >
-            {formatDeadlineSummary(request.deadline)}
-          </Badge>
-          <Badge
-            className="rounded-full border border-border/60 bg-background/80 text-[11px] text-muted-foreground"
-            variant="secondary"
-          >
-            {request.visibility}
-          </Badge>
-          {request.derived.routeFamily ? (
-            <Badge
-              className="rounded-full border border-border/60 bg-background/80 text-[11px] text-muted-foreground"
-              variant="secondary"
-            >
-              {request.derived.routeFamily.replace(/_/g, " ")}
-            </Badge>
-          ) : null}
         </div>
       </div>
     );
@@ -92,23 +121,28 @@ export function RequestBriefingPanel({
   const missingDetails = request.derived.missingDetails;
   const summary =
     missingDetails.length > 0
-      ? `Missing: ${missingDetails.map((detail) => detail.replace(/_/g, " ")).join(", ")}`
-      : "Use chat or the draft object to finish the brief before you open this request.";
+      ? `Still needed: ${missingDetails.map((detail) => detail.replace(/_/g, " ")).join(", ")}.`
+      : "The brief is structurally ready. Open the request when you want durable routing and activity to begin.";
 
   return (
-    <div className="border-b border-border/50 bg-background/95 px-4 py-2.5">
+    <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
       <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
+        <div className="min-w-0 space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="truncate font-medium text-sm">{title}</div>
+            <div className="truncate text-sm font-medium md:text-[15px]">
+              {title}
+            </div>
             <Badge className="rounded-full" variant="secondary">
               Draft
             </Badge>
           </div>
-          <div className="mt-1 text-[12px] text-muted-foreground">{summary}</div>
+          <div className="text-[13px] leading-6 text-muted-foreground">
+            {summary}
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {optimizerToggle}
           <Button onClick={onOpenDocument} variant="outline">
             {isArtifactVisible ? "Focus object" : "Show object"}
           </Button>
