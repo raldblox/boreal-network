@@ -41,6 +41,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    If one user turn explicitly includes brief text plus budget or deadline, the request-brief mutation layer should preserve both the narrative brief and the structured canonical fields in the same write.
    Title and body are the first readiness-bearing brief fields. `brief.summary` is optional compression and should not be manufactured only to satisfy readiness.
    Matching-facing structure should prefer top-level `seeking` criteria instead of overloading `brief.tags`.
+   If the ask implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, or other non-substitutable human execution, the decision layer should derive explicit embodied execution and verification requirements instead of flattening the request into digital-only work.
 5. Complexity and route classification
    Decide complexity, route family, and whether clarification is required.
 6. Lead retrieval
@@ -48,9 +49,10 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
 7. Lead ranking
    Rank lead candidates by capability fit, budget fit, deadline fit, trust, and route confidence.
 8. Clarification gate
-   Ask only for missing fields that materially change routing or funding.
+   Ask only for missing fields that materially change routing, funding, execution modality, geography, access, scheduling, proof requirements, or closure safety.
 9. Fulfillment planning
    For medium or high complexity work, derive a `RoutePlan` with `RoleSlot` and `PhasePlan` outputs.
+   When embodied or verification-heavy work is detected, also derive an `ExecutionProfile`, `EmbodiedConstraintSet`, `VerificationPlan`, and `PlanCollapseRisk` summary as read-only planning outputs before execution begins.
 10. Team assembly
    Match optional collaborator slots only after a credible lead route exists, except bounded direct-tool routes.
 11. Commitment drafting
@@ -182,6 +184,10 @@ These objects are derived and rebuildable, not durable roots:
 - `PhasePlan`
 - `MatchCandidate`
 - `RoleMatchCandidate`
+- `ExecutionProfile`
+- `EmbodiedConstraintSet`
+- `VerificationPlan`
+- `PlanCollapseRisk`
 
 ## Invariants
 
@@ -199,3 +205,5 @@ These objects are derived and rebuildable, not durable roots:
 - ephemeral realtime signals should stay outside default durable history unless promoted
 - direct resolver APIs and chat mutation tools should map to the same durable request-side writes
 - owner-private desktop auto-resolution creates one fulfillment directly without creating a commitment object first when desktop owner policy enables it
+- non-substitutable embodied work must not be downgraded into a digital-only plan or generated summary
+- requests that require human presence, local access, or verification-heavy completion should not resolve until the required proof path is represented explicitly

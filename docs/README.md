@@ -50,6 +50,12 @@ These files record accepted architecture and naming decisions that governed work
 
 - [decisions/README.md](decisions/README.md)
 
+## Papers
+
+These files hold research manuscripts and publication-facing drafts derived from Boreal canon:
+
+- [papers/README.md](papers/README.md)
+
 ## References
 
 This file records the main standards and pattern sources behind the canon:

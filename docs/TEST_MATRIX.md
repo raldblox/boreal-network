@@ -15,6 +15,7 @@ Verify:
 - ephemeral realtime channel shapes do not drift into durable event schemas accidentally
 - desktop-local ephemeral IPC envelopes keep stable lane, channel-kind, correlation, and source fields without pretending to be durable request events
 - supply schema and supply OpenAPI stay aligned on status, visibility, pricing mode, source kind, and binding shape
+- embodied-planning conventions stay aligned across request, supply, artifact, and eval surfaces when Boreal uses them
 
 ### Commercial canon tests
 
@@ -46,6 +47,7 @@ Verify:
 - funding-required requests point to valid commercial context
 - delivered work can be traced to artifacts and events
 - file, media, PDF, audio, video, binary, and archive deliveries can be traced through stable artifact references without inflating the request root
+- non-substitutable embodied work cannot be resolved through generated summaries alone when the request requires explicit proof
 
 ### Authorization tests
 
@@ -98,6 +100,7 @@ Verify:
 - request-briefing assist or optimizer profiles in request mode must still create at most one draft request on first send
 - request draft extraction is deterministic for canonical fixtures
 - request-briefing assist or optimizer profiles may improve wording clarity but must not invent budget, deadline, deliverables, actor requirements, or constraints
+- request-briefing and planner flows must surface non-substitutable embodied work instead of flattening it into digital-only tasks
 - only `open` plus `public` requests appear in the public request pool
 - draft and private requests do not leak through public request fetch endpoints
 - draft request-object JSON accepts edits only while the request status is `draft`
@@ -105,6 +108,7 @@ Verify:
 - `save draft` and `open request` normalize the latest draft-input projection before the durable `Request` is written
 - title plus body should be enough for `ready_to_open`; `brief.summary` should stay optional
 - one-turn request briefing should preserve explicitly stated budget or deadline in structured canonical fields instead of only embedding them in freeform brief text
+- request mode may ask clarifying questions before draft readiness when missing location, access, timing, or proof fields materially change embodied execution safety
 - structured matching intent should land in top-level `seeking` rather than relying on generated `brief.tags`
 - open request rooms should not force every user message through draft brief mutation tools
 - public open request activity should be fetchable from a durable request activity endpoint
@@ -119,11 +123,13 @@ Verify:
 - accepted responder lanes should be able to create fulfillment after owner acceptance
 - direct fulfillment updates should reject invalid state transitions
 - funding-required requests should not start fulfillment directly in `active`
+- fulfillment planning for embodied or verification-heavy work should derive explicit execution modality and proof requirements before closure becomes possible
 - owner-scoped request routing updates should allow set or clear of `routing.preferredSupplyId` only on private requests
 - public request projections should not expose `routing.preferredSupplyId`
 - execution-grade artifacts should require an accepted commitment or active fulfillment role instead of arbitrary public responder access
 - artifact publication should accept both document-backed content and richer external or object reference containers
 - artifact publication should preserve optional `fulfillmentId` and `stepId` lane bindings when provided
+- generated plans, summaries, or chat text should not satisfy embodied proof obligations by themselves
 - typing, token deltas, progress ticks, heartbeats, presence, transient runtime logs, and raw tool stdout or stderr should not create default durable request history
 - resolver device approval should not issue tokens before explicit Boreal account approval
 - resolver refresh rotation should revoke or replace the previous refresh token
@@ -148,6 +154,7 @@ Verify:
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
 - planner outputs stay derived and rebuildable
+- plan-collapse detection should trigger clarification or block-and-escalate when required embodied work is being omitted
 
 ### Supply-management contract tests
 
@@ -173,6 +180,7 @@ Verify:
 - role slots are appropriate for the request
 - phase counts stay bounded
 - low-complexity requests do not explode into microtasks
+- embodied requests produce explicit human or field-capable steps when required
 
 ### Matcher evals
 
@@ -189,6 +197,7 @@ Verify:
 - next-action choice is safe and consistent with planner and matcher output
 - approval-gated writes are not triggered early
 - block-and-escalate behavior appears when canon or funding boundaries are violated
+- embodied or verification-heavy asks prefer clarification or escalation over false digital completion
 
 ### Risk governance tests
 

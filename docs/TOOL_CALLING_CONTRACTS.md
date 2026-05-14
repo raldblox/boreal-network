@@ -25,6 +25,9 @@ First set:
 - `detect_missing_fields`
 - `classify_request_complexity`
 - `classify_request_route`
+- `detect_embodied_requirements`
+- `plan_verification`
+- `audit_plan_for_false_completion`
 - `plan_fulfillment`
 
 Planner outputs may include:
@@ -32,6 +35,10 @@ Planner outputs may include:
 - `RequestDraft`
 - `MatchSpec`
 - `RoutePlan`
+- `ExecutionProfile`
+- `EmbodiedConstraintSet`
+- `VerificationPlan`
+- `PlanCollapseRisk`
 - `RoleSlot[]`
 - `PhasePlan[]`
 
@@ -133,11 +140,14 @@ Every mutation call should return:
 - Mutation tools must be idempotent where retries are possible.
 - Request-briefing mutation tools must keep updating the same draft `Request` instead of creating a second durable demand object.
 - Draft request mode and open request mode should not share one forced mutation policy.
+- Draft request mode may clarify before mutation when missing embodied, geographic, access, scheduling, or verification-critical fields materially change the safe route.
 - Open request room tools should prefer `Commitment`, `Artifact`, and `RequestEvent` writes over `brief` rewrites.
 - `create_request_brief` and `update_request_brief` may carry explicit same-turn canonical facts such as budget or deadline so one intake turn does not drop structured demand fields.
 - `create_request_brief` and `update_request_brief` should prefer title plus body first and must not fabricate `brief.summary` only to satisfy a shape.
 - Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
+- Planner tools should detect when a request requires non-substitutable human or embodied execution and must not flatten those requirements into a digital-only plan.
+- Planner and policy outputs should explicitly model proof obligations for verification-heavy work before fulfillment or closure.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.
 - The one exception is the owner-private desktop auto-resolution lane, where the owner's private request may authorize direct fulfillment without a separate commitment object.
 - `update_request_routing` may set or clear `routing.preferredSupplyId` only for the private request owner.
@@ -150,6 +160,7 @@ Every mutation call should return:
 - Desktop request-bound execution should pass the selected `Request` and optional `Fulfillment` lane into the local runtime as context, while keeping the local transcript out of default durable Boreal history.
 - Desktop request-bound execution must treat public or external tracked request lanes as untrusted: block `danger-full-access`, keep network off, clear extra writable roots, and prefer a dedicated request workspace under `.boreal-work`.
 - `publish_artifact` should accept either document-backed content or a stable external or object reference, plus optional `fulfillmentId` and `stepId`.
+- `resolve_request` or equivalent closure actions should fail or escalate when required embodied steps or proof obligations are still missing.
 
 ## First Implementation Target
 

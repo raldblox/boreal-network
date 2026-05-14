@@ -13,6 +13,7 @@ A high-scoring match system that mutates too early is still failing.
 
 Verify that a raw ask becomes the expected brief, optional structured `seeking`, constraints, output kinds, budget shape, and missing-field list.
 If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.
+Verify that requests implying onsite work, pickup or dropoff, field inspection, witnessed handoff, measurement, or other non-substitutable human execution surface those requirements instead of rewriting them as digital-only work.
 
 ### 2. Route and complexity evals
 
@@ -21,6 +22,7 @@ Verify that the request lands in the correct route family and complexity band.
 ### 3. Planning evals
 
 Verify lead-role choice, role-slot choice, phase count, and whether Boreal avoided pointless microtask decomposition.
+Verify that non-substitutable embodied outcomes produce explicit execution modality and verification planning instead of generic generated subtasks.
 
 ### 4. Matching evals
 
@@ -30,6 +32,7 @@ Verify that the correct lead and collaborator supplies appear in the top-ranked 
 
 Verify the next action.
 Examples: clarify, show shortlist, draft commitment, or block and escalate.
+For embodied or verification-heavy asks, verify that policy prefers clarification or escalation when place, access, timing, or proof requirements are missing.
 
 ### 6. Mutation safety evals
 
@@ -41,6 +44,7 @@ Verify that direct resolver APIs and chat mutation tools produce equivalent dura
 Verify that direct resolver APIs and chat mutation tools produce equivalent durable request-side outcomes for commitment acceptance and fulfillment lifecycle writes.
 Verify that tracked desktop execution uses selected `Request` and `Fulfillment` lane context without treating the full local transcript as canonical Boreal history.
 Verify that richer artifact containers for file, media, PDF, audio, video, binary, and archive outputs keep stable metadata and lane bindings.
+Verify that request closure is blocked when required embodied steps or proof obligations are missing.
 
 ## Fixture Shape
 
@@ -84,6 +88,9 @@ Recommended subfields:
 - `routing.routeFamily`
 - `routing.complexityLevel`
 - `routing.needsPlan`
+- `planning.executionProfile`
+- `planning.verificationPlan`
+- `planning.planCollapseRisk`
 - `planning.leadRole`
 - `planning.phases[]`
 - `planning.roleSlots[]`
@@ -117,6 +124,7 @@ Hard assertions:
 - expected lead supply inside top-k
 - forbidden mutation rate of `0`
 - no fulfillment before approval outside the explicit owner-private direct lane
+- no false closure when embodied execution or proof requirements remain unresolved
 
 Soft assertions:
 
@@ -143,6 +151,7 @@ The first pack should cover:
 - no good supply fit
 - budget mismatch
 - team-required request
+- embodied or verification-heavy request where digital-only planning would be wrong
 
 ## First Canon Fixture
 

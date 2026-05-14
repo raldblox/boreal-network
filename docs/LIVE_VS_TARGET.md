@@ -108,6 +108,7 @@ These are intended next layers, not fully modeled proof yet:
 - agent skills under `skills/`
 - implementation profiles under `standards/`
 - executable offline eval runners and score dashboards for planner, matcher, and policy quality against live model outputs
+- embodied and verification-heavy request lanes with explicit execution-modality and proof-planning outputs, initially as narrow private or curated lanes rather than a broad public local-services market
 
 ## Claiming Rules
 
