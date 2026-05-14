@@ -48,6 +48,11 @@ export type DesktopResolverSnapshot = {
   sourceBaseUrl?: string | null;
 };
 
+export type DesktopResolverPolicySnapshot = {
+  autoResolveOwnedPrivate?: boolean;
+  autoResolveSupplyId?: string | null;
+};
+
 export type DesktopRuntimeReadinessSnapshot = {
   borealResolverReady?: boolean;
   modelAccessReady?: boolean;
@@ -58,6 +63,7 @@ export type DesktopRuntimeDiscoveryPayload = {
   access?: DesktopRuntimeAccessSnapshot | null;
   bridge?: DesktopBridgeState | null;
   ok?: boolean;
+  policy?: DesktopResolverPolicySnapshot | null;
   readiness?: DesktopRuntimeReadinessSnapshot | null;
   resolver?: DesktopResolverSnapshot | null;
 };

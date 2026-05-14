@@ -351,6 +351,7 @@ export function RequestTracker({
             activeFulfillment={activeFulfillment}
             activeRouteSupply={activeRouteSupply}
             canManagePrivateRouting={canManagePrivateRouting}
+            desktopRuntimePolicy={desktopRuntimeDiscovery?.policy}
             desktopRuntimeState={desktopRuntimeState}
             isDesktopRuntimeSupportedOrigin={isDesktopBridgeSupportedOrigin()}
             isLoadingDesktopRuntimeDiscovery={isLoadingDesktopRuntimeDiscovery}
@@ -696,6 +697,8 @@ function InfoCard({
 const REQUEST_ROUTE_INHERIT_DEFAULT = "__inherit_default__";
 
 type DesktopRuntimeState = {
+  autoResolveOwnedPrivate: boolean;
+  autoResolveSupplyId: string | null;
   detail: string;
   label: string;
   linked: boolean;
@@ -708,6 +711,7 @@ function RouteAndWorkersPanel({
   activeFulfillment,
   activeRouteSupply,
   canManagePrivateRouting,
+  desktopRuntimePolicy,
   desktopRuntimeState,
   isDesktopRuntimeSupportedOrigin,
   isLoadingDesktopRuntimeDiscovery,
@@ -724,6 +728,7 @@ function RouteAndWorkersPanel({
   activeFulfillment: RequestFulfillment | null;
   activeRouteSupply: BorealSupplyDraft | null;
   canManagePrivateRouting: boolean;
+  desktopRuntimePolicy: DesktopRuntimeDiscoveryPayload["policy"] | null | undefined;
   desktopRuntimeState: DesktopRuntimeState;
   isDesktopRuntimeSupportedOrigin: boolean;
   isLoadingDesktopRuntimeDiscovery: boolean;
@@ -744,6 +749,12 @@ function RouteAndWorkersPanel({
   const currentSupply = activeRouteSupply ?? preferredSupply;
   const preferredSupplyMatchesRequest =
     !preferredSupply || doesOwnedSupplyMatchRequest(request, preferredSupply);
+  const desktopDefaultSupply =
+    desktopRuntimePolicy?.autoResolveSupplyId
+      ? publishedOwnedSupplies.find(
+          (supply) => supply.id === desktopRuntimePolicy.autoResolveSupplyId
+        ) ?? null
+      : null;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
@@ -901,6 +912,25 @@ function RouteAndWorkersPanel({
             <RuntimeStateRow
               isReady={desktopRuntimeState.requestLaneReady}
               label="Private request lane"
+            />
+          </div>
+          <div className="space-y-3 border-t border-border/60 pt-3">
+            <RouteFactRow
+              label="Auto-resolve"
+              value={
+                desktopRuntimeState.autoResolveOwnedPrivate
+                  ? "Enabled for owned private requests."
+                  : "Disabled on this desktop."
+              }
+            />
+            <RouteFactRow
+              label="Desktop default"
+              value={describeDesktopDefaultRoute({
+                desktopDefaultSupply,
+                desktopRuntimeState,
+                policySupplyId: desktopRuntimePolicy?.autoResolveSupplyId ?? null,
+                request,
+              })}
             />
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1318,9 +1348,17 @@ function getDesktopRuntimeState(
   const resolverReady = discovery?.readiness?.borealResolverReady === true;
   const requestLaneReady = discovery?.readiness?.requestLaneReady === true;
   const linked = discovery?.bridge?.ready === true;
+  const autoResolveOwnedPrivate =
+    discovery?.policy?.autoResolveOwnedPrivate === true;
+  const autoResolveSupplyId =
+    typeof discovery?.policy?.autoResolveSupplyId === "string"
+      ? discovery.policy.autoResolveSupplyId
+      : null;
 
   if (requestLaneReady) {
     return {
+      autoResolveOwnedPrivate,
+      autoResolveSupplyId,
       detail:
         "This browser can see a connected Boreal Desktop with Codex worker access and Boreal resolver auth.",
       label: "Desktop runtime is ready for private request execution.",
@@ -1333,6 +1371,8 @@ function getDesktopRuntimeState(
 
   if (modelAccessReady && !resolverReady) {
     return {
+      autoResolveOwnedPrivate,
+      autoResolveSupplyId,
       detail:
         "Codex worker access is ready, but the desktop still needs Boreal resolver approval before it can carry request work.",
       label: "Desktop worker is ready, but Boreal auth is missing.",
@@ -1345,6 +1385,8 @@ function getDesktopRuntimeState(
 
   if (linked && !modelAccessReady) {
     return {
+      autoResolveOwnedPrivate,
+      autoResolveSupplyId,
       detail:
         "The localhost bridge is visible, but the desktop has not connected its Codex worker yet.",
       label: "Desktop bridge is visible, but worker access is offline.",
@@ -1356,6 +1398,8 @@ function getDesktopRuntimeState(
   }
 
   return {
+    autoResolveOwnedPrivate,
+    autoResolveSupplyId,
     detail:
       "Open Boreal Desktop on this machine to expose local runtime readiness here.",
     label: "Desktop runtime is not linked yet.",
@@ -1364,4 +1408,34 @@ function getDesktopRuntimeState(
     requestLaneReady,
     resolverReady,
   };
+}
+
+function describeDesktopDefaultRoute({
+  desktopDefaultSupply,
+  desktopRuntimeState,
+  policySupplyId,
+  request,
+}: {
+  desktopDefaultSupply: BorealSupplyDraft | null;
+  desktopRuntimeState: DesktopRuntimeState;
+  policySupplyId: string | null;
+  request: BorealRequestDraft;
+}) {
+  if (!desktopRuntimeState.autoResolveOwnedPrivate) {
+    return "No automatic desktop route is enabled yet.";
+  }
+
+  if (!policySupplyId) {
+    return "Desktop will fall back to the legacy runtime lane when no request override is set.";
+  }
+
+  if (!desktopDefaultSupply) {
+    return "Desktop default supply is configured but unavailable on this machine.";
+  }
+
+  if (!doesOwnedSupplyMatchRequest(request, desktopDefaultSupply)) {
+    return `${getOwnedSupplyLabel(desktopDefaultSupply)} is the desktop default, but it does not match this request's supply kinds.`;
+  }
+
+  return `${getOwnedSupplyLabel(desktopDefaultSupply)} is the desktop default route for private auto-resolve.`;
 }

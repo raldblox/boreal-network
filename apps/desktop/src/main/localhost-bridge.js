@@ -193,6 +193,7 @@ export function createDesktopLocalhostBridge({
       } catch (error) {
         return {
           access: await readDesktopModelAccess(),
+          policy: null,
           readiness: {
             borealResolverReady: false,
             modelAccessReady: false,
@@ -214,6 +215,7 @@ export function createDesktopLocalhostBridge({
 
     return {
       access: await readDesktopModelAccess(),
+      policy: null,
       readiness: {
         borealResolverReady: false,
         modelAccessReady: false,
@@ -441,6 +443,7 @@ export function createDesktopLocalhostBridge({
       {
         access: discovery.access ?? null,
         bridge: buildState(),
+        policy: discovery.policy ?? null,
         readiness: discovery.readiness ?? null,
         resolver: discovery.resolver ?? null,
         ok: true,

@@ -89,9 +89,10 @@ async function getDesktopModelAccessSnapshot() {
 }
 
 async function getDesktopBridgeDiscoverySnapshot() {
-  const [access, resolverState] = await Promise.all([
+  const [access, resolverState, settings] = await Promise.all([
     getDesktopModelAccessSnapshot(),
     getResolverAuthState().catch(() => null),
+    readDesktopSettings().catch(() => null),
   ]);
 
   const resolver =
@@ -111,6 +112,15 @@ async function getDesktopBridgeDiscoverySnapshot() {
 
   return {
     access,
+    policy: settings
+      ? {
+          autoResolveOwnedPrivate: settings.autoResolveOwnedPrivate === true,
+          autoResolveSupplyId:
+            typeof settings.autoResolveSupplyId === "string"
+              ? settings.autoResolveSupplyId
+              : null,
+        }
+      : null,
     readiness: {
       borealResolverReady: resolver.connected === true,
       modelAccessReady: access.connected === true,
