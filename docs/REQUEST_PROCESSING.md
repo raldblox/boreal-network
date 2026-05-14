@@ -128,6 +128,8 @@ When desktop turns from local chat into tracked request execution:
 - one local thread may bind to one selected `Request`
 - that thread may also bind to one selected or active `Fulfillment` lane
 - Codex should receive request-relevant brief, lane, and recent durable activity context
+- owner-private tracked request lanes may run on `Safe` or owner-approved `Full`
+- public or external tracked request lanes must stay on `Safe`, must not use `danger-full-access`, and should run from a dedicated request workspace under `.boreal-work`
 - the full desktop transcript still stays local unless explicitly promoted
 
 The request root should update through:

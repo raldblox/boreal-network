@@ -4,7 +4,7 @@
   "private": true,
   "description": "Primary Boreal web workspace built on Next.js App Router.",
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "tsx lib/db/migrate.ts && next dev --turbo",
     "build": "tsx lib/db/migrate && next build",
     "start": "next start",
     "check": "ultracite check",

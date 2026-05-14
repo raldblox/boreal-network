@@ -28,3 +28,5 @@ Accepted decisions:
 - [0008-ephemeral-realtime-lane-and-peer-runtime-identity.md](0008-ephemeral-realtime-lane-and-peer-runtime-identity.md)
 - [0009-request-bound-execution-and-artifact-model-before-peer-runtime-activation.md](0009-request-bound-execution-and-artifact-model-before-peer-runtime-activation.md)
 - [0010-pear-hyperswarm-peer-foundation-shape.md](0010-pear-hyperswarm-peer-foundation-shape.md)
+- [0011-desktop-trust-tiers-and-isolated-worker-mode.md](0011-desktop-trust-tiers-and-isolated-worker-mode.md)
+- [0012-request-briefing-assist-profile.md](0012-request-briefing-assist-profile.md)

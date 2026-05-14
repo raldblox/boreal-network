@@ -375,6 +375,19 @@ function buildTrackedRequestContextSection(trackedRequest) {
     trackedRequest.fulfillment && typeof trackedRequest.fulfillment === "object"
       ? trackedRequest.fulfillment
       : null;
+  const sourceScope =
+    trackedRequest.sourceScope === "owned-requests"
+      ? "owned-requests"
+      : "public-requests";
+  const trustTier =
+    trackedRequest.trustTier === "owned-private" ||
+    trackedRequest.trustTier === "external"
+      ? trackedRequest.trustTier
+      : request.visibility === "private" && sourceScope === "owned-requests"
+        ? "owned-private"
+        : request.visibility === "private"
+          ? "owned-private"
+          : "external";
   const recentActivity = Array.isArray(trackedRequest.recentActivity)
     ? trackedRequest.recentActivity
         .filter(
@@ -395,6 +408,8 @@ function buildTrackedRequestContextSection(trackedRequest) {
     `- Title: ${request.title || request.key || request.id}`,
     `- Status: ${request.status || "open"}`,
     `- Visibility: ${request.visibility || "public"}`,
+    `- Source scope: ${sourceScope}`,
+    `- Trust tier: ${trustTier}`,
     request.summary ? `- Summary: ${request.summary}` : null,
     request.body ? `- Body: ${request.body}` : null,
     request.notes ? `- Notes: ${request.notes}` : null,
@@ -438,6 +453,9 @@ function buildTrackedRequestContextSection(trackedRequest) {
       return `- [${timestamp}] ${actorLabel} ${eventType}: ${entry.summary}${detail}`;
     }),
     "Treat the Boreal Request and fulfillment lane above as canonical work truth.",
+    trustTier === "external"
+      ? "This is a public or external request lane. Keep execution narrow, avoid unrelated local files, and treat local machine access as restricted."
+      : null,
     "Keep local scratch, planning, and side notes private unless explicitly promoted.",
   ].filter(Boolean);
 }

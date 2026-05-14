@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boreal - VC Pitch Deck</title>
+  <style>
+    :root {
+      --c-bg: #0f1729;
+      --c-bg-alt: #131d33;
+      --c-bg-card: #182240;
+      --c-surface: #1e2a4a;
+      --c-border: rgba(255, 255, 255, 0.08);
+
+      --c-primary: #3b82f6;
+      --c-primary-dim: rgba(59, 130, 246, 0.12);
+      --c-accent: #f59e0b;
+      --c-accent-dim: rgba(245, 158, 11, 0.1);
+      --c-danger: #ef4444;
+
+      --c-text: #f1f5f9;
+      --c-text-secondary: rgba(241, 245, 249, 0.72);
+      --c-text-muted: rgba(241, 245, 249, 0.44);
+
+      --f-hero: 88px;
+      --f-h1: 60px;
+      --f-h2: 42px;
+      --f-h3: 30px;
+      --f-body: 24px;
+      --f-small: 18px;
+      --f-caption: 14px;
+
+      --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --font-mono: "Consolas", "SFMono-Regular", monospace;
+
+      --s-xs: 8px;
+      --s-sm: 16px;
+      --s-md: 28px;
+      --s-lg: 40px;
+      --s-xl: 56px;
+
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --duration-enter: 0.6s;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: var(--c-bg); color: var(--c-text); }
+    body { font-family: var(--font-display); }
+
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 74px 96px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s var(--ease-out);
+      background: var(--c-bg);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .slide.active .animate-in {
+      animation: slideUp var(--duration-enter) var(--ease-out) both;
+    }
+
+    .slide.active .animate-in:nth-child(1) { animation-delay: 0s; }
+    .slide.active .animate-in:nth-child(2) { animation-delay: 0.08s; }
+    .slide.active .animate-in:nth-child(3) { animation-delay: 0.16s; }
+    .slide.active .animate-in:nth-child(4) { animation-delay: 0.24s; }
+    .slide.active .animate-in:nth-child(5) { animation-delay: 0.32s; }
+    .slide.active .animate-in:nth-child(6) { animation-delay: 0.4s; }
+    .slide.active .animate-in:nth-child(7) { animation-delay: 0.48s; }
+    .slide.active .animate-in:nth-child(8) { animation-delay: 0.56s; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero { font-size: var(--f-hero); font-weight: 900; line-height: 1.02; letter-spacing: -3px; }
+    .h1 { font-size: var(--f-h1); font-weight: 800; line-height: 1.08; letter-spacing: -2px; }
+    .h2 { font-size: var(--f-h2); font-weight: 700; line-height: 1.18; letter-spacing: -1px; }
+    .h3 { font-size: var(--f-h3); font-weight: 600; line-height: 1.28; }
+    .body { font-size: var(--f-body); font-weight: 400; line-height: 1.5; color: var(--c-text-secondary); }
+    .small { font-size: var(--f-small); font-weight: 400; line-height: 1.5; color: var(--c-text-secondary); }
+    .caption { font-size: var(--f-caption); font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--c-text-muted); }
+    .mono { font-family: var(--font-mono); }
+    .text-primary { color: var(--c-primary); }
+    .text-accent { color: var(--c-accent); }
+    .text-danger { color: var(--c-danger); }
+    .text-emphasis { color: var(--c-primary); font-weight: 800; }
+    .text-center { text-align: center; }
+    .w-full { width: 100%; }
+    .flex { display: flex; }
+    .flex-col { display: flex; flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; }
+    .gap-sm { gap: var(--s-sm); }
+    .gap-md { gap: var(--s-md); }
+    .gap-lg { gap: var(--s-lg); }
+    .gap-xl { gap: var(--s-xl); }
+    .flex-1 { flex: 1; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-lg); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-md); }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-md); }
+
+    .card {
+      background: var(--c-bg-card);
+      border: 1px solid var(--c-border);
+      border-radius: 16px;
+      padding: var(--s-lg);
+    }
+
+    .card-glow {
+      background: var(--c-bg-card);
+      border: 1px solid rgba(59, 130, 246, 0.24);
+      border-radius: 16px;
+      padding: var(--s-lg);
+      box-shadow: 0 0 40px rgba(59, 130, 246, 0.08);
+    }
+
+    .metric-card {
+      text-align: center;
+      padding: var(--s-lg) var(--s-sm);
+      background: var(--c-bg-card);
+      border: 1px solid var(--c-border);
+      border-radius: 16px;
+    }
+
+    .metric-value {
+      font-size: 62px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -2px;
+      color: var(--c-accent);
+    }
+
+    .metric-label {
+      margin-top: 12px;
+      font-size: var(--f-small);
+      color: var(--c-text-muted);
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 7px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .badge-primary { background: var(--c-primary-dim); color: var(--c-primary); }
+    .badge-accent { background: var(--c-accent-dim); color: var(--c-accent); }
+    .badge-outline { border: 1px solid var(--c-border); color: var(--c-text-secondary); }
+
+    .divider {
+      width: 64px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--c-primary);
+      opacity: 0.68;
+      margin: var(--s-md) 0;
+    }
+
+    .bullet-list { list-style: none; }
+    .bullet-list li {
+      position: relative;
+      padding: 14px 0 14px 28px;
+      font-size: var(--f-body);
+      color: var(--c-text-secondary);
+      border-bottom: 1px solid var(--c-border);
+      line-height: 1.35;
+    }
+    .bullet-list li:last-child { border-bottom: none; }
+    .bullet-list li::before {
+      content: "";
+      position: absolute;
+      top: 26px;
+      left: 0;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--c-primary);
+    }
+
+    .quote-block {
+      position: relative;
+      padding: var(--s-lg);
+      padding-left: var(--s-xl);
+      border-left: 3px solid var(--c-primary);
+      border-radius: 0 12px 12px 0;
+      background: var(--c-bg-card);
+    }
+    .quote-block::before {
+      content: '"';
+      position: absolute;
+      left: 14px;
+      top: 4px;
+      font-size: 62px;
+      opacity: 0.25;
+      color: var(--c-primary);
+      line-height: 1;
+      font-family: Georgia, serif;
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--c-border);
+    }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 24px;
+    }
+    .timeline-item:last-child {
+      padding-bottom: 0;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -24px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--c-primary);
+      border: 2px solid var(--c-bg);
+    }
+    .timeline-item.active .timeline-dot {
+      background: var(--c-accent);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .comparison-table th {
+      text-align: left;
+      padding: 14px 18px;
+      font-size: var(--f-small);
+      color: var(--c-text-muted);
+      border-bottom: 1px solid var(--c-border);
+      font-weight: 600;
+    }
+    .comparison-table td {
+      padding: 16px 18px;
+      font-size: 21px;
+      color: var(--c-text-secondary);
+      border-bottom: 1px solid var(--c-border);
+      vertical-align: top;
+      line-height: 1.35;
+    }
+    .comparison-table tr.highlight td {
+      background: var(--c-primary-dim);
+      color: var(--c-text);
+      font-weight: 600;
+    }
+    .check { color: var(--c-accent); font-weight: 700; }
+    .cross { color: var(--c-text-muted); }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--c-primary);
+    }
+
+    .source-line {
+      margin-top: 18px;
+      font-size: 14px;
+      line-height: 1.45;
+      color: var(--c-text-muted);
+    }
+
+    .bg-default { background: var(--c-bg); }
+    .bg-alt { background: var(--c-bg-alt); }
+
+    .nav-bar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 32px;
+      background: linear-gradient(0deg, rgba(10, 15, 26, 0.96) 0%, transparent 100%);
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .deck:hover .nav-bar { opacity: 1; }
+    .nav-counter {
+      font-size: 15px;
+      color: var(--c-text-muted);
+      font-family: var(--font-mono);
+    }
+    .nav-progress {
+      flex: 1;
+      max-width: 220px;
+      height: 3px;
+      margin: 0 24px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .nav-progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--c-primary);
+      transition: width 0.3s var(--ease-out);
+    }
+    .nav-btn {
+      background: none;
+      border: 1px solid var(--c-border);
+      color: var(--c-text-secondary);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-family: var(--font-display);
+    }
+    .nav-btn:hover {
+      border-color: var(--c-primary);
+      color: var(--c-text);
+    }
+
+    .notes {
+      display: none;
+      position: fixed;
+      left: 32px;
+      right: 32px;
+      bottom: 58px;
+      max-height: 230px;
+      overflow-y: auto;
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid var(--c-border);
+      border-radius: 12px;
+      padding: 18px 22px;
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--c-text-secondary);
+      z-index: 200;
+      white-space: pre-line;
+    }
+    .notes.visible { display: block; }
+
+    @media print {
+      .deck { overflow: visible; }
+      .slide {
+        position: relative;
+        opacity: 1;
+        pointer-events: auto;
+        page-break-after: always;
+        height: 100vh;
+      }
+      .nav-bar, .notes { display: none !important; }
+      .animate-in { animation: none !important; opacity: 1 !important; transform: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <div class="slide bg-alt active" style="justify-content: center; align-items: center; text-align: center;">
+      <div class="animate-in flex gap-sm" style="justify-content: center; margin-bottom: 30px;">
+        <span class="badge badge-primary">Request-native work commerce</span>
+        <span class="badge badge-accent">VC draft</span>
+      </div>
+      <h1 class="hero text-emphasis animate-in">Boreal</h1>
+      <p class="h3 animate-in" style="max-width: 860px; margin-top: 22px; color: var(--c-text-secondary);">
+        The work layer after AI chat
+      </p>
+      <p class="body animate-in" style="max-width: 980px; margin-top: 34px;">
+        Work starts in AI chat now. Boreal turns that first ask into one durable request thread that can carry demand, commitment, fulfillment, proof, and payment across human and AI supply.
+      </p>
+      <div class="animate-in flex gap-sm" style="justify-content: center; margin-top: 40px;">
+        <span class="badge badge-outline">Control layer between chat and done</span>
+      </div>
+      <div class="notes">Open with the simplest category statement.
+Bar test: Boreal is the work layer after AI chat.
+The core claim is not infrastructure first. The core claim is that work starts in chat, but real execution still breaks the moment it needs outside supply, proof, and payment.
+Transition: why that break is getting bigger right now.</div>
+    </div>
+
+    <div class="slide bg-default">
+      <span class="caption animate-in">The problem</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px; max-width: 980px;">
+        Work starts in AI chat now.<br>Then it gets scattered.
+      </h1>
+      <div class="divider animate-in"></div>
+      <div class="grid-2 animate-in" style="margin-top: 18px; align-items: start;">
+        <div class="quote-block">
+          <p class="h3" style="font-style: italic; color: var(--c-text);">
+            "AI chat helps you start. It does not help you finish."
+          </p>
+          <p class="small" style="margin-top: 18px; color: var(--c-text-muted);">
+            The failure mode Boreal is built around
+          </p>
+        </div>
+        <ul class="bullet-list">
+          <li>The ask starts in chat</li>
+          <li>Execution leaves the thread</li>
+          <li>Files and updates fragment</li>
+          <li>Outside workers add handoffs</li>
+          <li>Proof and payment live elsewhere</li>
+        </ul>
+      </div>
+      <div class="notes">Speak to a concrete moment of pain, not a category.
+The buyer already has the intent. The problem is that the thread breaks once work needs real ownership, deliverables, and money.
+Objection prep: "Is this just project management?" Response: no - the root object is the external work request itself, with commercial state and fulfillment state attached.
+Do not say "scoping" or "proposals" first. Lead with what people feel: scattered work.</div>
+    </div>
+
+    <div class="slide bg-alt">
+      <span class="caption animate-in">Why now</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px;">
+        The market has already moved past chat-only AI.
+      </h1>
+      <div class="divider animate-in"></div>
+      <div class="grid-3 animate-in" style="margin-top: 28px;">
+        <div class="card">
+          <p class="caption text-primary">Market shift</p>
+          <p class="h3" style="margin-top: 12px;">$300M+ AI work already annualized</p>
+          <p class="small" style="margin-top: 12px;">
+            Upwork said AI-related work surpassed $300M annualized in Q4 2025, while AI integration and automation work grew more than 90% year over year.
+          </p>
+        </div>
+        <div class="card">
+          <p class="caption text-primary">Platform shift</p>
+          <p class="h3" style="margin-top: 12px;">Marketplaces are moving up-stack</p>
+          <p class="small" style="margin-top: 12px;">
+            Fiverr says it is shifting from a transactional marketplace to a sophisticated work platform and is investing in fulfillment and workflow infrastructure.
+          </p>
+        </div>
+        <div class="card-glow">
+          <p class="caption text-primary">Workflow shift</p>
+          <p class="h3" style="margin-top: 12px;">Point tools are creating chaos</p>
+          <p class="small" style="margin-top: 12px;">
+            OpenAI says companies are tired of AI point solutions that do not talk to each other. Microsoft says customers do not want multiple tools stitched together.
+          </p>
+        </div>
+      </div>
+      <p class="source-line animate-in">
+        Sources: Upwork earnings, February 9, 2026; Upwork SMB update, May 5, 2026; Fiverr Q1 2026 earnings, April 29, 2026; OpenAI, April 8, 2026; Microsoft, March 9, 2026.
+      </p>
+      <div class="notes">This slide should answer: why is this venture-timed now?
+The three shifts are demand, platform design, and workflow expectations.
+OpenAI and Microsoft validate that chat is becoming a primary way work starts, but they also validate that disconnected tools create chaos.
+That gives Boreal room to become the control layer between the ask and finished external work.</div>
+    </div>
+
+    <div class="slide bg-default">
+      <span class="caption animate-in">The solution</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px; max-width: 1020px;">
+        Boreal turns the first ask into one durable request thread.
+      </h1>
+      <div class="divider animate-in"></div>
+      <div class="grid-3 animate-in" style="margin-top: 30px;">
+        <div class="card" style="text-align: center;">
+          <div class="h2 text-primary" style="margin-bottom: 16px;">1</div>
+          <p class="h3">Start in chat</p>
+          <p class="small" style="margin-top: 12px;">
+            The work enters through a natural-language ask, not a rigid listing or checkout flow.
+          </p>
+        </div>
+        <div class="card" style="text-align: center;">
+          <div class="h2 text-primary" style="margin-bottom: 16px;">2</div>
+          <p class="h3">Route mixed supply</p>
+          <p class="small" style="margin-top: 12px;">
+            Humans, agents, tools, and runtimes can all respond under the same commercial object.
+          </p>
+        </div>
+        <div class="card-glow" style="text-align: center;">
+          <div class="h2 text-accent" style="margin-bottom: 16px;">3</div>
+          <p class="h3">Finish on the same object</p>
+          <p class="small" style="margin-top: 12px;">
+            Commitment, fulfillment, proof, and payment stay attached to the same thread until the outcome is done.
+          </p>
+        </div>
+      </div>
+      <div class="notes">This is the category slide.
+Use the exact phrase: request-native work commerce.
+Differentiate against listing-rooted marketplaces and chat products that stop at conversation.
+The key design choice is the durable Request object. That is both technical truth and commercial wedge.</div>
+    </div>
+
+    <div class="slide bg-alt">
+      <span class="caption animate-in">Product</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px;">
+        One object carries the lifecycle.
+      </h1>
+      <div class="divider animate-in"></div>
+      <div class="grid-2 animate-in" style="margin-top: 26px; align-items: start;">
+        <div class="timeline">
+          <div class="timeline-item active">
+            <span class="timeline-dot"></span>
+            <p class="h3">Ask</p>
+            <p class="small" style="margin-top: 8px;">A founder or operator starts in chat.</p>
+          </div>
+          <div class="timeline-item active">
+            <span class="timeline-dot"></span>
+            <p class="h3">Request</p>
+            <p class="small" style="margin-top: 8px;">Boreal opens one durable work thread.</p>
+          </div>
+          <div class="timeline-item active">
+            <span class="timeline-dot"></span>
+            <p class="h3">Commitment</p>
+            <p class="small" style="margin-top: 8px;">Commercial terms and acceptance live on-thread.</p>
+          </div>
+          <div class="timeline-item active">
+            <span class="timeline-dot"></span>
+            <p class="h3">Fulfillment</p>
+            <p class="small" style="margin-top: 8px;">Execution moves forward without leaving context.</p>
+          </div>
+          <div class="timeline-item active">
+            <span class="timeline-dot"></span>
+            <p class="h3">Artifact and payment</p>
+            <p class="small" style="margin-top: 8px;">Proof, delivery, and payout remain attached.</p>
+          </div>
+        </div>
+        <div class="flex-col gap-md">
+          <div class="card">
+            <p class="caption text-primary">Open request room</p>
+            <p class="h3" style="margin-top: 12px;">The room stops behaving like chat-only intake.</p>
+            <p class="small" style="margin-top: 12px;">
+              Once open, the thread prefers durable objects: commitments for commercial terms, artifacts for proof and files, and events for visible activity.
+            </p>
+          </div>
+          <div class="card">
+            <p class="caption text-primary">Resolver-ready</p>
+            <p class="h3" style="margin-top: 12px;">Humans and non-browser runtimes can both participate.</p>
+            <p class="small" style="margin-top: 12px;">
+              Web sessions and approved resolver runtimes both map to the same request-side writes.
+            </p>
+          </div>
+          <div class="card-glow">
+            <p class="caption text-primary">What this unlocks</p>
+            <p class="h3" style="margin-top: 12px;">Continuity through execution</p>
+            <p class="small" style="margin-top: 12px;">
+              The work does not disappear into tabs, docs, DMs, and one-off payment flows.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="notes">Talk through the lifecycle in plain language.
+This is where the "intent to fulfillment" thesis becomes visible.
+Do not get lost in object names. Use them only after the audience understands the user flow.
+If asked what is actually novel, the answer is continuity: one thread survives intake, approval, execution, proof, and payout.</div>
+    </div>
+
+    <div class="slide bg-default">
+      <span class="caption animate-in">Proof today</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px;">
+        Strong product proof.<br>Early commercial proof.
+      </h1>
+      <div class="divider animate-in"></div>
+      <div class="grid-4 animate-in" style="margin-top: 30px;">
+        <div class="metric-card">
+          <div class="metric-value">1</div>
+          <div class="metric-label">Completed end-to-end demo thread</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">7</div>
+          <div class="metric-label">Canonical object schemas modeled</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">10</div>
+          <div class="metric-label">Request and resolver endpoints wired</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">11</div>
+          <div class="metric-label">Durable events in the golden flow</div>
+        </div>
+      </div>
+      <div class="grid-2 animate-in" style="margin-top: 34px;">
+        <div class="card">
+          <p class="caption text-primary">What is real now</p>
+          <ul class="bullet-list" style="margin-top: 14px;">
+            <li>Ask -> request -> commitment -> fulfillment</li>
+            <li>Artifact publishing on-thread</li>
+            <li>Payment and payout modeled</li>
+            <li>Public-safe request activity view</li>
+          </ul>
+        </div>
+        <div class="card">
+          <p class="caption text-primary">What is still weak</p>
+          <ul class="bullet-list" style="margin-top: 14px;">
+            <li>Commercial traction is still TBD</li>
+            <li>Buyer volume is not proven yet</li>
+            <li>Repeat request behavior is not proven yet</li>
+            <li>VC send version needs team detail</li>
+          </ul>
+        </div>
+      </div>
+      <div class="notes">Be explicit here: this is product proof, not scaled traction.
+That honesty builds credibility.
+Objection prep: "Why invest before traction?" Response: the market timing is real, the product wedge is sharper than broad marketplaces or agent suites, and the current work is to convert strong product proof into buyer proof and GMV.
+If asked for live metrics, do not invent them.</div>
+    </div>
+
+    <div class="slide bg-alt">
+      <span class="caption animate-in">Market</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px;">
+        We enter where external AI work is already real and already messy.
+      </h1>
+      <div class="divider animate-in"></div>
+      <div class="grid-2 animate-in" style="margin-top: 30px; align-items: start;">
+        <div class="grid-3" style="grid-template-columns: 1fr; gap: var(--s-md);">
+          <div class="metric-card">
+            <div class="metric-value">$1.3T</div>
+            <div class="metric-label">Flexible digital knowledge work opportunity cited by Upwork</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">$300M+</div>
+            <div class="metric-label">AI-related work annualized on Upwork in Q4 2025</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-value">&gt;90%</div>
+            <div class="metric-label">YoY growth in AI integration and automation work on Upwork</div>
+          </div>
+        </div>
+        <div class="flex-col gap-md">
+          <div class="card">
+            <p class="caption text-primary">Beachhead buyer</p>
+            <p class="h3" style="margin-top: 12px;">Founder and operator-led startup teams</p>
+            <p class="small" style="margin-top: 12px;">
+              Buyers who care more about speed, accountability, and quality than browsing endless supply catalogs.
+            </p>
+          </div>
+          <div class="card">
+            <p class="caption text-primary">First request classes</p>
+            <p class="small" style="margin-top: 12px;">
+              AI implementation and automation
+              <br>Research and analysis
+              <br>MVP and spec work
+              <br>Specialist operator work
+            </p>
+          </div>
+          <div class="card-glow">
+            <p class="caption text-primary">Why this wedge</p>
+            <p class="small" style="margin-top: 12px;">
+              High urgency, digital delivery, repeatable demand, and mixed human plus AI execution all fit the same request-thread model.
+            </p>
+          </div>
+        </div>
+      </div>
+      <p class="source-line animate-in">
+        Sources: Upwork earnings, February 9, 2026; Upwork SMB update, May 5, 2026.
+      </p>
+      <div class="notes">Avoid giant top-down TAM claims.
+Use this slide to show the market is already spending inside the wedge Boreal wants.
+If pressed on bottom-up numbers, say the first milestone is not "win the entire market" - it is proving funded repeat request behavior inside startup and SMB digital work.</div>
+    </div>
+
+    <div class="slide bg-default">
+      <span class="caption animate-in">Business model</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px;">
+        Commerce first. Software leverage second.
+      </h1>
+      <div class="divider animate-in"></div>
+      <div class="grid-2 animate-in" style="margin-top: 30px;">
+        <div>
+          <p class="h3" style="margin-bottom: 22px;">Revenue engines</p>
+          <div class="flex-col gap-sm">
+            <div class="card">
+              <div class="flex justify-between items-center gap-md">
+                <div>
+                  <p class="h3">Funded request take rate</p>
+                  <p class="small" style="margin-top: 8px;">Primary revenue engine attached to GMV flowing through the request.</p>
+                </div>
+                <span class="badge badge-accent">Primary</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="flex justify-between items-center gap-md">
+                <div>
+                  <p class="h3">Premium routing and urgency</p>
+                  <p class="small" style="margin-top: 8px;">Higher-value coordination layers for speed, curation, and priority execution.</p>
+                </div>
+                <span class="badge badge-primary">Secondary</span>
+              </div>
+            </div>
+            <div class="card">
+              <div class="flex justify-between items-center gap-md">
+                <div>
+                  <p class="h3">Private supply and enterprise lanes</p>
+                  <p class="small" style="margin-top: 8px;">Higher ACV control-plane and network software once the public wedge is working.</p>
+                </div>
+                <span class="badge badge-outline">Expansion</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="h3" style="margin-bottom: 22px;">Economics logic</p>
+          <div class="card-glow">
+            <ul class="bullet-list">
+              <li>Structured demand lowers matching cost</li>
+              <li>Standard commitments reduce manual ops</li>
+              <li>Durable proof increases trust and payout visibility</li>
+              <li>Automation compounds margin over time</li>
+              <li>Live GMV unit economics still TBD</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="notes">Keep the monetization reading disciplined.
+The company should not read like an agency or seat-license business first.
+The first durable engine is request GMV.
+If asked for take rate or gross margin today, answer honestly that the exact live economics are still to be proven once commercial volume starts flowing.</div>
+    </div>
+
+    <div class="slide bg-alt">
+      <span class="caption animate-in">Competition</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px;">
+        Boreal sits between AI chat and done.
+      </h1>
+      <div class="divider animate-in"></div>
+      <table class="comparison-table animate-in" style="margin-top: 28px;">
+        <thead>
+          <tr>
+            <th style="width: 240px;">Capability</th>
+            <th>Upwork</th>
+            <th>Fiverr</th>
+            <th>OpenAI Frontier</th>
+            <th style="color: var(--c-accent);">Boreal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chat-native intake</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+            <td class="check">Yes</td>
+          </tr>
+          <tr>
+            <td>External work commerce</td>
+            <td class="check">Yes</td>
+            <td class="check">Yes</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+          </tr>
+          <tr>
+            <td>Mixed human and AI supply</td>
+            <td>Partial</td>
+            <td>Partial</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+          </tr>
+          <tr>
+            <td>Execution continuity after intake</td>
+            <td>Partial</td>
+            <td>Partial</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+          </tr>
+          <tr class="highlight">
+            <td>One durable request thread</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+            <td class="cross">No</td>
+            <td class="check">Yes</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="notes">Position Boreal against both marketplaces and internal agent platforms.
+Upwork and Fiverr validate the spend category, but they are still not request-rooted in the Boreal sense.
+OpenAI validates that chat is becoming the starting surface for work, but not the commerce and fulfillment control layer for external demand.
+The differentiator is one durable request thread.</div>
+    </div>
+
+    <div class="slide bg-default">
+      <span class="caption animate-in">Team</span>
+      <h1 class="h1 animate-in" style="margin-top: 16px;">
+        Why this team can win
+      </h1>
+      <div class="divider animate-in"></div>
+      <div class="grid-3 animate-in" style="margin-top: 30px;">
+        <div class="card" style="text-align: center;">
+          <div class="h2 text-primary" style="margin-bottom: 12px;">01</div>
+          <p class="h3">Lived the failure mode</p>
+          <p class="small" style="margin-top: 12px;">
+            The starting insight is grounded in a repeated real pattern: work now starts in AI chat, but execution still breaks across tools.
+          </p>
+        </div>
+        <div class="card" style="text-align: center;">
+          <div class="h2 text-primary" style="margin-bottom: 12px;">02</div>
+          <p class="h3">Built the system model first</p>
+          <p class="small" style="margin-top: 12px;">
+            Boreal already has an explicit category, object model, lifecycle, event model, API shape, and request-side workflow.
+          </p>
+        </div>
+        <div class="card-glow" style="text-align: center;">
+          <div class="h2 text-accent" style="margin-bottom: 12px;">03</div>
+          <p class="h3">Now needs commercial proof</p>
+          <p class="small" style="margin-top: 12px;">
+            The next step is not more category theory. It is buyer proof, funded requests, repeat behavior, and supply density.
+          </p>
+        </div>
+      </div>
+      <p class="source-line animate-in">
+        Fill founder names, shipping history, and domain credentials before sharing this deck externally.
+      </p>
+      <div class="notes">This is the least complete slide in the current draft.
+Before an investor send, replace this with real founder names, prior shipping record, and why this team has an unfair right to build it.
+Until then, use this as an internal narrative placeholder, not a final investor card.</div>
+    </div>
+
+    <div class="slide bg-alt" style="justify-content: center; align-items: center; text-align: center;">
+      <span class="caption animate-in">The ask</span>
+      <h1 class="hero animate-in" style="margin-top: 20px;">
+        <span class="text-accent">$1.5M</span>
+      </h1>
+      <p class="h3 animate-in" style="margin-top: 14px; color: var(--c-text-secondary);">
+        Draft pre-seed framing - SAFE
+      </p>
+      <div class="animate-in flex gap-sm" style="justify-content: center; margin-top: 22px;">
+        <span class="badge badge-outline">Edit before send</span>
+      </div>
+      <div class="divider animate-in" style="margin: 34px auto;"></div>
+      <div class="animate-in" style="max-width: 760px;">
+        <p class="h3" style="margin-bottom: 24px;">Use of funds</p>
+        <div class="flex-col gap-sm w-full">
+          <div>
+            <div class="flex justify-between" style="margin-bottom: 6px;">
+              <span class="body">Product and engineering</span>
+              <span class="small">45%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 45%;"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between" style="margin-bottom: 6px;">
+              <span class="body">Buyer acquisition and demand proof</span>
+              <span class="small">30%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 30%;"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between" style="margin-bottom: 6px;">
+              <span class="body">Supply onboarding and curation</span>
+              <span class="small">15%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 15%;"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between" style="margin-bottom: 6px;">
+              <span class="body">Ops and infrastructure</span>
+              <span class="small">10%</span>
+            </div>
+            <div class="progress-bar"><div class="progress-fill" style="width: 10%;"></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="source-line animate-in" style="max-width: 820px;">
+        Proposed milestone with this round: prove funded request GMV, repeat buyer behavior, and supply liquidity inside the first external-work wedge.
+      </p>
+      <div class="notes">This amount is a proposed draft because no founder-specific ask was supplied.
+Objection prep: "Why this amount?" Response: enough to turn product proof into demand proof without overbuilding a labor-heavy services layer.
+Before an actual investor send, replace this with the real amount, instrument, timeline, and milestones.</div>
+    </div>
+
+    <div class="slide bg-default" style="justify-content: center; align-items: center; text-align: center;">
+      <h1 class="hero text-emphasis animate-in">Boreal</h1>
+      <p class="h3 animate-in" style="margin-top: 20px; color: var(--c-text-secondary);">
+        Work starts in AI chat now.<br>Boreal carries it to done.
+      </p>
+      <div class="animate-in flex gap-sm" style="justify-content: center; margin-top: 36px;">
+        <span class="badge badge-primary">Request-native work commerce</span>
+        <span class="badge badge-outline">Fill contact details before send</span>
+      </div>
+      <div class="animate-in" style="margin-top: 42px;">
+        <p class="body">Founder name TBD</p>
+        <p class="body text-primary" style="margin-top: 10px;">Website and investor links TBD</p>
+        <p class="small" style="margin-top: 10px;">Replace this slide before external use.</p>
+      </div>
+      <div class="notes">End on the category line and the new behavior line.
+This deck is a strong narrative draft, but not a final send deck until team, traction, and ask details are finalized.</div>
+    </div>
+
+    <div class="nav-bar">
+      <button class="nav-btn" onclick="prev()">Prev</button>
+      <span class="nav-counter"><span id="current">1</span> / <span id="total"></span></span>
+      <div class="nav-progress"><div class="nav-progress-fill" id="progress"></div></div>
+      <button class="nav-btn" onclick="next()">Next</button>
+    </div>
+  </div>
+
+  <script>
+    let current = 0;
+    const slides = document.querySelectorAll(".slide");
+    const total = slides.length;
+    let notesVisible = false;
+
+    document.getElementById("total").textContent = total;
+
+    function show(i) {
+      slides.forEach((slide) => slide.classList.remove("active"));
+      current = Math.max(0, Math.min(i, total - 1));
+      slides[current].classList.add("active");
+      document.getElementById("current").textContent = current + 1;
+      document.getElementById("progress").style.width = (((current + 1) / total) * 100) + "%";
+
+      document.querySelectorAll(".notes").forEach((note) => note.classList.remove("visible"));
+      const activeNote = slides[current].querySelector(".notes");
+      if (activeNote && notesVisible) activeNote.classList.add("visible");
+    }
+
+    function next() { show(current + 1); }
+    function prev() { show(current - 1); }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === " ") {
+        event.preventDefault();
+        next();
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        prev();
+      }
+      if (event.key === "n" || event.key === "N") {
+        notesVisible = !notesVisible;
+        document.querySelectorAll(".notes").forEach((note) => {
+          note.classList.toggle("visible", notesVisible && note.closest(".slide").classList.contains("active"));
+        });
+      }
+    });
+
+    document.getElementById("deck").addEventListener("click", (event) => {
+      if (event.target.closest(".nav-bar") || event.target.closest(".nav-btn")) return;
+      if (event.clientX > window.innerWidth / 2) next();
+      else prev();
+    });
+
+    show(0);
+  </script>
+</body>
+</html>

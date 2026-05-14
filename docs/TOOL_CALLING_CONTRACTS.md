@@ -148,6 +148,7 @@ Every mutation call should return:
 - Owner-private direct auto-fulfillment should prefer explicit request routing over the desktop default supply and should block pickup when a configured supply is unavailable instead of silently falling back.
 - Direct resolver APIs should accept Boreal-issued scoped bearer tokens rather than assuming browser session cookies or raw runtime credentials.
 - Desktop request-bound execution should pass the selected `Request` and optional `Fulfillment` lane into the local runtime as context, while keeping the local transcript out of default durable Boreal history.
+- Desktop request-bound execution must treat public or external tracked request lanes as untrusted: block `danger-full-access`, keep network off, clear extra writable roots, and prefer a dedicated request workspace under `.boreal-work`.
 - `publish_artifact` should accept either document-backed content or a stable external or object reference, plus optional `fulfillmentId` and `stepId`.
 
 ## First Implementation Target
