@@ -77,6 +77,7 @@ export function ChatShell() {
     messages,
     activities,
     requestOwnerUserId,
+    requestViewerUserId,
     setMessages,
     sendMessage,
     status,
@@ -100,6 +101,7 @@ export function ChatShell() {
     createRequest,
     saveRequestDraft,
     openRequest,
+    updateRequestPreferredSupply,
     resolveDeliveredFulfillment,
   } = useActiveChat();
 
@@ -331,7 +333,9 @@ export function ChatShell() {
                 isReadonly={isReadonly}
                 isResolvingDeliveredRequest={isResolvingDeliveredRequest}
                 onResolveDeliveredRequest={handleResolveDeliveredRequest}
+                onUpdatePreferredSupply={updateRequestPreferredSupply}
                 request={activeRequest}
+                requestViewerUserId={requestViewerUserId}
                 status={status}
               />
             ) : (

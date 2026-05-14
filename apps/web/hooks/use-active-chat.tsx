@@ -46,6 +46,7 @@ type ActiveChatContextValue = {
   messages: ChatMessage[];
   activities: RequestActivityEntry[];
   requestOwnerUserId: string | null;
+  requestViewerUserId: string | null;
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   sendMessage: UseChatHelpers<ChatMessage>["sendMessage"];
   status: UseChatHelpers<ChatMessage>["status"];
@@ -69,6 +70,7 @@ type ActiveChatContextValue = {
   createRequest: () => Promise<BorealRequestDraft | null>;
   saveRequestDraft: () => Promise<void>;
   openRequest: () => Promise<void>;
+  updateRequestPreferredSupply: (preferredSupplyId: string | null) => Promise<void>;
   resolveDeliveredFulfillment: () => Promise<void>;
 };
 
@@ -544,12 +546,68 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     visibility,
   ]);
 
+  const updateRequestPreferredSupply = useCallback(
+    async (preferredSupplyId: string | null) => {
+      if (!activeRequest) {
+        throw new Error("No active request is available.");
+      }
+
+      const response = await fetchWithErrorHandlers(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests/${activeRequest.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            routing: {
+              preferredSupplyId,
+            },
+          }),
+        }
+      );
+
+      const data = (await response.json()) as {
+        request: BorealRequestDraft | null;
+      };
+
+      if (data.request) {
+        await mutate<ChatDataResponse>(
+          chatDataKey,
+          {
+            messages,
+            visibility: data.request.visibility,
+            ownerUserId: chatData?.ownerUserId ?? null,
+            viewerUserId: chatData?.viewerUserId ?? null,
+            isReadonly,
+            request: data.request,
+          },
+          {
+            revalidate: false,
+          }
+        );
+      }
+
+      await mutate(unstable_serialize(getRequestHistoryPaginationKey));
+    },
+    [
+      activeRequest,
+      chatData?.ownerUserId,
+      chatData?.viewerUserId,
+      chatDataKey,
+      isReadonly,
+      messages,
+      mutate,
+    ]
+  );
+
   const value = useMemo<ActiveChatContextValue>(
     () => ({
       chatId,
       messages,
       activities,
       requestOwnerUserId: chatData?.ownerUserId ?? null,
+      requestViewerUserId: chatData?.viewerUserId ?? null,
       setMessages,
       sendMessage,
       status,
@@ -573,6 +631,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       createRequest,
       saveRequestDraft,
       openRequest,
+      updateRequestPreferredSupply,
       resolveDeliveredFulfillment: async () => {
         if (!activeRequest?.activeRefs.activeFulfillmentId) {
           throw new Error("No delivered fulfillment is available to resolve.");
@@ -628,6 +687,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       createRequest,
       saveRequestDraft,
       openRequest,
+      updateRequestPreferredSupply,
       mutate,
       chatDataKey,
       requestActivityKey,
