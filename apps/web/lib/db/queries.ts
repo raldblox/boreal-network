@@ -785,7 +785,9 @@ export async function getRequestByChatId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get request by chat id"
+      _error instanceof Error
+        ? `Failed to get request by chat id: ${_error.message}`
+        : "Failed to get request by chat id"
     );
   }
 }
@@ -1161,7 +1163,9 @@ export async function getRequestsByUserId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get requests by user id"
+      _error instanceof Error
+        ? `Failed to get requests by user id: ${_error.message}`
+        : "Failed to get requests by user id"
     );
   }
 }
@@ -1612,6 +1616,57 @@ export async function updateSupplyDraftById({
     throw new ChatbotError(
       "bad_request:database",
       "Failed to update supply draft"
+    );
+  }
+}
+
+export async function getSupplyUsageSummaryById({
+  id,
+}: {
+  id: string;
+}): Promise<{ commitmentCount: number; fulfillmentCount: number }> {
+  try {
+    const [commitmentUsage, fulfillmentUsage] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(commitment)
+        .where(eq(commitment.supplyId, id))
+        .limit(1),
+      db
+        .select({ count: count() })
+        .from(fulfillment)
+        .where(eq(fulfillment.supplyId, id))
+        .limit(1),
+    ]);
+
+    return {
+      commitmentCount: Number(commitmentUsage[0]?.count ?? 0),
+      fulfillmentCount: Number(fulfillmentUsage[0]?.count ?? 0),
+    };
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to inspect supply usage"
+    );
+  }
+}
+
+export async function deleteSupplyById({
+  id,
+}: {
+  id: string;
+}): Promise<SupplyRecord | null> {
+  try {
+    const [deletedSupply] = await db
+      .delete(supply)
+      .where(eq(supply.id, id))
+      .returning();
+
+    return deletedSupply ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to delete supply"
     );
   }
 }

@@ -156,20 +156,6 @@ function PureMessages({
           <Greeting isRequestMode={isRequestMode} requestStatus={requestStatus} />
         </div>
       )}
-      {showEmptyActivityState ? (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center">
-          <div className="max-w-sm rounded-2xl border border-border/50 bg-card/55 px-5 py-4 text-sm text-muted-foreground">
-            Durable request activity will stack here as work progresses.
-          </div>
-        </div>
-      ) : null}
-      {showEmptyChatState ? (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center">
-          <div className="max-w-sm rounded-2xl border border-border/50 bg-card/55 px-5 py-4 text-sm text-muted-foreground">
-            Use chat to refine the request, ask for next steps, or post an update.
-          </div>
-        </div>
-      ) : null}
       <div
         className={cn(
           "absolute inset-0 touch-pan-y overflow-y-auto",
@@ -186,6 +172,26 @@ function PureMessages({
             contentClassName
           )}
         >
+          {showEmptyActivityState ? (
+            <div className="flex flex-1 items-center justify-center px-6 text-center">
+              <div className="max-w-sm text-sm leading-7 text-muted-foreground">
+                Durable request activity will stack here as work progresses.
+              </div>
+            </div>
+          ) : null}
+          {showEmptyChatState ? (
+            <div className="flex flex-1 items-center justify-center px-6 text-center">
+              <div className="max-w-sm space-y-2">
+                <div className="text-sm font-medium text-foreground">
+                  Request chat is open.
+                </div>
+                <div className="text-sm leading-7 text-muted-foreground">
+                  Ask what should happen next, refine the request, or draft an
+                  update before you publish anything durable.
+                </div>
+              </div>
+            </div>
+          ) : null}
           {timelineItems.map((item, index) =>
             item.type === "activity" ? (
               <RequestActivityMessage
@@ -247,7 +253,7 @@ function PureMessages({
 
       <button
         aria-label="Scroll to bottom"
-        className={`absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center rounded-full border border-border/50 bg-card/90 px-3.5 shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 h-7 text-[10px] ${
+        className={`absolute bottom-4 left-1/2 z-10 flex h-8 -translate-x-1/2 items-center rounded-full border border-border/60 bg-background/92 px-3.5 shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 text-[10px] ${
           isAtBottom
             ? "pointer-events-none scale-90 opacity-0"
             : "pointer-events-auto scale-100 opacity-100"

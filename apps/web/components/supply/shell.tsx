@@ -1,11 +1,25 @@
 "use client";
 
-import { LoaderCircleIcon, PackageIcon } from "lucide-react";
+import {
+  LoaderCircleIcon,
+  PackageIcon,
+  Trash2Icon,
+} from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "@/components/chat/toast";
 import { SUPPLY_HISTORY_KEY } from "@/components/chat/sidebar-supplies";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +39,7 @@ import type {
   SupplyPricing,
 } from "@/lib/supply";
 import { getSupplyPublishReadiness, renderSupplyJson } from "@/lib/supply";
-import { fetcher } from "@/lib/utils";
+import { cn, fetcher } from "@/lib/utils";
 
 const presetCards: Array<{
   description: string;
@@ -67,6 +81,13 @@ const actorKinds: SupplyActorKind[] = [
   "runtime",
 ];
 
+const inputClassName =
+  "h-11 rounded-2xl border-border/60 bg-background/80 text-sm shadow-none transition-colors focus:border-foreground/20 focus:bg-background";
+const textareaClassName =
+  "rounded-2xl border-border/60 bg-background/80 text-sm leading-6 shadow-none transition-colors focus:border-foreground/20 focus:bg-background";
+const selectTriggerClassName =
+  "h-11 rounded-2xl border-border/60 bg-background/80 text-sm shadow-none";
+
 function extractSupplyId(pathname: string): string | null {
   const match = pathname.match(/^\/supplies\/([^/]+)$/);
   if (!match || match[1] === "new") {
@@ -84,6 +105,7 @@ export function SupplyShell() {
   const isNewSupplyRoute = pathname === "/supplies/new";
   const [draft, setDraft] = useState<BorealSupplyDraft | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const detailKey = supplyId
     ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/supplies/${supplyId}`
@@ -105,6 +127,7 @@ export function SupplyShell() {
     [draft]
   );
   const isReadonly = draft?.status === "retired";
+  const canDelete = draft ? canDeleteSupply(draft) : false;
 
   const createSupplyFromPreset = async (preset: SupplyPreset) => {
     setIsSubmitting(true);
@@ -123,11 +146,13 @@ export function SupplyShell() {
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.message || "Failed to create supply draft");
+        throw new Error(
+          errorBody?.cause || errorBody?.message || "Failed to create supply draft"
+        );
       }
 
       const payload = (await response.json()) as { supply: BorealSupplyDraft };
-      mutate(SUPPLY_HISTORY_KEY);
+      await mutate(SUPPLY_HISTORY_KEY);
       router.replace(`/supplies/${payload.supply.id}`);
     } catch (error) {
       toast({
@@ -168,7 +193,9 @@ export function SupplyShell() {
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
-        throw new Error(errorBody?.message || "Failed to update supply");
+        throw new Error(
+          errorBody?.cause || errorBody?.message || "Failed to update supply"
+        );
       }
 
       const payload = (await response.json()) as { supply: BorealSupplyDraft };
@@ -197,55 +224,102 @@ export function SupplyShell() {
     }
   };
 
+  const deleteDraft = async () => {
+    if (!draft || !supplyId) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/supplies/${supplyId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(
+          errorBody?.cause || errorBody?.message || "Failed to delete supply"
+        );
+      }
+
+      setShowDeleteDialog(false);
+      setDraft(null);
+      await mutate(SUPPLY_HISTORY_KEY);
+      if (detailKey) {
+        await mutate(detailKey, undefined, { revalidate: false });
+      }
+      router.replace("/supplies/new");
+      toast({
+        type: "success",
+        description: "Supply deleted.",
+      });
+    } catch (error) {
+      toast({
+        type: "error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete supply.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isNewSupplyRoute) {
     return (
-      <div className="flex h-dvh flex-col overflow-hidden bg-background">
-        <header className="sticky top-0 flex h-14 items-center gap-3 border-b border-border/50 bg-sidebar px-4">
-          <div className="flex size-8 items-center justify-center rounded-xl border border-sidebar-border/60 bg-background/60 text-sidebar-foreground shadow-sm">
-            <PackageIcon className="size-4" />
-          </div>
-          <div className="flex min-w-0 flex-col leading-none">
-            <span className="truncate text-[13px] font-medium text-sidebar-foreground">
-              New supply
-            </span>
-            <span className="truncate text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/[0.45]">
-              Pick a supply type
-            </span>
+      <div className="flex h-dvh flex-col overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.34)_100%)]">
+        <header className="border-b border-border/50 bg-background/92 backdrop-blur-xl">
+          <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 md:px-6">
+            <div className="flex size-9 items-center justify-center rounded-2xl border border-border/60 bg-background shadow-sm">
+              <PackageIcon className="size-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium">New supply</div>
+              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                Capability first
+              </div>
+            </div>
           </div>
         </header>
 
-        <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 overflow-auto px-4 py-6 md:px-6">
-          <div className="max-w-3xl">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Start one supply draft
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 overflow-auto px-4 py-8 md:px-6 md:py-10">
+          <div className="max-w-3xl space-y-4">
+            <div className="inline-flex rounded-full border border-border/60 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
+              Supply draft
+            </div>
+            <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-5xl">
+              Start with the capability, not the runtime.
             </h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Supply is the published capability object. Runtime binding is
-              optional metadata, not automatic supply creation.
+            <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
+              Supply is the published capability object. Runtime binding stays
+              optional metadata, so one desktop or provider lane can back more
+              than one supply without collapsing the model.
             </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {presetCards.map((preset) => (
               <button
-                className="rounded-2xl border border-border/60 bg-card/60 p-5 text-left transition-colors duration-150 hover:border-foreground/20 hover:bg-card"
+                className="group rounded-[28px] border border-border/60 bg-background/88 p-6 text-left shadow-[0_20px_60px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/15 hover:shadow-[0_24px_70px_rgba(15,23,42,0.08)]"
                 disabled={isSubmitting}
                 key={preset.preset}
                 onClick={() => void createSupplyFromPreset(preset.preset)}
                 type="button"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-base font-medium">{preset.label}</div>
-                  <Badge variant="secondary" className="rounded-full">
-                    preset
-                  </Badge>
+                  <div className="text-lg font-medium tracking-tight">
+                    {preset.label}
+                  </div>
+                  <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/60 transition-colors group-hover:text-muted-foreground">
+                    {isSubmitting ? "Starting" : "Start"}
+                  </span>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                <p className="mt-4 text-sm leading-7 text-muted-foreground">
                   {preset.description}
                 </p>
-                <div className="mt-4 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  {isSubmitting ? "Starting..." : "Start draft"}
-                </div>
               </button>
             ))}
           </div>
@@ -257,9 +331,9 @@ export function SupplyShell() {
   if (error) {
     return (
       <div className="flex h-dvh items-center justify-center bg-background px-4">
-        <div className="max-w-md rounded-2xl border border-border/60 bg-card/70 p-6 text-center">
+        <div className="max-w-md rounded-[28px] border border-border/60 bg-background/90 p-8 text-center shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
           <h1 className="text-lg font-semibold">Supply unavailable</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
             This supply could not be loaded. It may be missing or outside your
             account scope.
           </p>
@@ -280,644 +354,814 @@ export function SupplyShell() {
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
-      <header className="sticky top-0 z-10 border-b border-border/50 bg-sidebar px-4 py-3">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <div className="flex size-8 items-center justify-center rounded-xl border border-sidebar-border/60 bg-background/60 text-sidebar-foreground shadow-sm">
-                <PackageIcon className="size-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-[15px] font-medium text-sidebar-foreground">
-                  {draft.profile.displayName.trim() || "Untitled supply"}
+    <>
+      <div className="flex h-dvh flex-col overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.3)_100%)]">
+        <header className="border-b border-border/50 bg-background/92 backdrop-blur-xl">
+          <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 md:px-6">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-2xl border border-border/60 bg-background shadow-sm">
+                  <PackageIcon className="size-4" />
                 </div>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary" className={getSupplyStatusBadgeClassName(draft.status)}>
-                    {draft.status}
-                  </Badge>
-                  <Badge variant="secondary" className="rounded-full border border-border/60 bg-background/80 text-[11px] text-muted-foreground">
-                    {draft.visibility}
-                  </Badge>
-                  <Badge variant="secondary" className="rounded-full border border-border/60 bg-background/80 text-[11px] text-muted-foreground">
-                    {draft.source.kind}
-                  </Badge>
+                <div className="min-w-0">
+                  <div className="truncate text-lg font-semibold tracking-tight">
+                    {draft.profile.displayName.trim() || "Untitled supply"}
+                  </div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+                    <StatusBadge status={draft.status} />
+                    <span>{formatLabel(draft.visibility)}</span>
+                    <span className="text-border">•</span>
+                    <span>{formatLabel(draft.source.kind)}</span>
+                    <span className="text-border">•</span>
+                    <span>Updated {formatTimestamp(draft.updatedAt)}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              disabled={isReadonly || isSubmitting}
-              onClick={() => void submitDraft("save_draft")}
-              variant="outline"
-            >
-              {isSubmitting ? "Saving..." : "Save draft"}
-            </Button>
-            {draft.status === "draft" || draft.status === "paused" ? (
+            <div className="flex flex-wrap items-center gap-2">
               <Button
-                disabled={isReadonly || isSubmitting || !readiness?.readyForPublish}
-                onClick={() => void submitDraft("publish_supply")}
+                disabled={!canDelete || isSubmitting}
+                onClick={() => setShowDeleteDialog(true)}
+                variant="ghost"
               >
-                {isSubmitting ? "Publishing..." : "Publish supply"}
+                <Trash2Icon className="mr-2 size-4" />
+                Delete
               </Button>
-            ) : null}
-            {draft.status === "published" ? (
               <Button
-                disabled={isSubmitting}
-                onClick={() => void submitDraft("pause_supply")}
+                disabled={isReadonly || isSubmitting}
+                onClick={() => void submitDraft("save_draft")}
                 variant="outline"
               >
-                Pause
+                {isSubmitting ? "Saving..." : "Save draft"}
               </Button>
-            ) : null}
-            {draft.status !== "retired" ? (
-              <Button
-                disabled={isSubmitting}
-                onClick={() => void submitDraft("retire_supply")}
-                variant="outline"
-              >
-                Retire
-              </Button>
-            ) : null}
+              {draft.status === "draft" || draft.status === "paused" ? (
+                <Button
+                  disabled={isReadonly || isSubmitting || !readiness?.readyForPublish}
+                  onClick={() => void submitDraft("publish_supply")}
+                >
+                  {isSubmitting ? "Publishing..." : "Publish supply"}
+                </Button>
+              ) : null}
+              {draft.status === "published" ? (
+                <Button
+                  disabled={isSubmitting}
+                  onClick={() => void submitDraft("pause_supply")}
+                  variant="outline"
+                >
+                  Pause
+                </Button>
+              ) : null}
+              {draft.status !== "retired" ? (
+                <Button
+                  disabled={isSubmitting}
+                  onClick={() => void submitDraft("retire_supply")}
+                  variant="outline"
+                >
+                  Retire
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <div className="mx-auto grid h-full w-full max-w-6xl flex-1 gap-6 overflow-auto px-4 py-6 md:px-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)]">
-        <div className="space-y-6">
-          <section className="rounded-2xl border border-border/60 bg-card/60 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-medium">Publish readiness</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Private and unlisted publish are enabled now. Public market
-                  publish stays gated.
+        <div className="mx-auto grid h-full w-full max-w-7xl flex-1 gap-8 overflow-auto px-4 py-8 md:px-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0 space-y-8">
+            <div className="max-w-3xl space-y-3">
+              <div className="inline-flex rounded-full border border-border/60 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
+                Supply editor
+              </div>
+              <h1 className="text-3xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-4xl">
+                Shape one premium capability surface.
+              </h1>
+              <p className="text-sm leading-7 text-muted-foreground md:text-[15px]">
+                Keep the market promise clear here. Describe what gets done,
+                who fulfills it, how it routes, and what the buyer should expect.
+              </p>
+            </div>
+
+            <section className="overflow-hidden rounded-[32px] border border-border/60 bg-background/92 shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
+              <div className="border-b border-border/60 bg-muted/[0.38] px-6 py-5 md:px-8">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="min-w-0">
+                    <div className="text-base font-medium tracking-tight">
+                      Publish readiness
+                    </div>
+                    <p className="mt-1 max-w-2xl text-sm leading-7 text-muted-foreground">
+                      Private and unlisted publish are live. Public market publish
+                      stays gated until the broader supply discovery lane is opened.
+                    </p>
+                  </div>
+                  <Badge
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-[11px] font-medium",
+                      readiness?.readyForPublish
+                        ? "border-emerald-300/70 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300"
+                        : "border-zinc-300/70 bg-zinc-100 text-zinc-700 dark:border-zinc-500/40 dark:bg-zinc-500/10 dark:text-zinc-300"
+                    )}
+                    variant="secondary"
+                  >
+                    {readiness?.readyForPublish ? "Ready to publish" : "Still drafting"}
+                  </Badge>
+                </div>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                  {readiness?.summary}
                 </p>
               </div>
-              <Badge variant="secondary" className="rounded-full">
-                {readiness?.readyForPublish ? "Ready" : "Drafting"}
-              </Badge>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              {readiness?.summary}
-            </p>
-          </section>
 
-          <section className="rounded-2xl border border-border/60 bg-card/60 p-5">
-            <h2 className="text-base font-medium">Profile</h2>
-            <div className="mt-4 grid gap-4">
-              <Field label="Display name">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.profile.displayName}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            profile: {
-                              ...current.profile,
-                              displayName: event.target.value,
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Headline">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.profile.headline ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            profile: {
-                              ...current.profile,
-                              headline: event.target.value,
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Summary">
-                <Textarea
-                  disabled={isReadonly}
-                  rows={3}
-                  value={draft.profile.summary}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            profile: {
-                              ...current.profile,
-                              summary: event.target.value,
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Description">
-                <Textarea
-                  disabled={isReadonly}
-                  rows={5}
-                  value={draft.profile.description ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            profile: {
-                              ...current.profile,
-                              description: event.target.value,
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Tags">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.profile.tags.join(", ")}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            profile: {
-                              ...current.profile,
-                              tags: parseCommaSeparated(event.target.value),
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-            </div>
-          </section>
+              <div className="divide-y divide-border/60">
+                <SectionShell
+                  description="Set the commercial-facing identity and promise."
+                  title="Profile"
+                >
+                  <Field label="Display name">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                profile: {
+                                  ...current.profile,
+                                  displayName: event.target.value,
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.profile.displayName}
+                    />
+                  </Field>
+                  <Field label="Headline">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                profile: {
+                                  ...current.profile,
+                                  headline: event.target.value,
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.profile.headline ?? ""}
+                    />
+                  </Field>
+                  <Field className="md:col-span-2" label="Summary">
+                    <Textarea
+                      className={textareaClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                profile: {
+                                  ...current.profile,
+                                  summary: event.target.value,
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      rows={3}
+                      value={draft.profile.summary}
+                    />
+                  </Field>
+                  <Field className="md:col-span-2" label="Description">
+                    <Textarea
+                      className={textareaClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                profile: {
+                                  ...current.profile,
+                                  description: event.target.value,
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      rows={5}
+                      value={draft.profile.description ?? ""}
+                    />
+                  </Field>
+                  <Field className="md:col-span-2" label="Tags">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                profile: {
+                                  ...current.profile,
+                                  tags: parseCommaSeparated(event.target.value),
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.profile.tags.join(", ")}
+                    />
+                  </Field>
+                </SectionShell>
 
-          <section className="rounded-2xl border border-border/60 bg-card/60 p-5">
-            <h2 className="text-base font-medium">Capability</h2>
-            <div className="mt-4 grid gap-4">
-              <Field label="Supply kinds">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.capability.supplyKinds.join(", ")}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            capability: {
-                              ...current.capability,
-                              supplyKinds: parseCommaSeparated(event.target.value),
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Actor kinds">
-                <div className="flex flex-wrap gap-2">
-                  {actorKinds.map((actorKind) => {
-                    const selected =
-                      draft.capability.fulfillmentActorKinds.includes(actorKind);
+                <SectionShell
+                  description="Define the actual execution shape of the supply."
+                  title="Capability"
+                >
+                  <Field label="Supply kinds">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                capability: {
+                                  ...current.capability,
+                                  supplyKinds: parseCommaSeparated(
+                                    event.target.value
+                                  ),
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.capability.supplyKinds.join(", ")}
+                    />
+                  </Field>
+                  <Field className="md:col-span-2" label="Actor kinds">
+                    <div className="flex flex-wrap gap-2.5">
+                      {actorKinds.map((actorKind) => {
+                        const selected =
+                          draft.capability.fulfillmentActorKinds.includes(actorKind);
 
-                    return (
-                      <button
-                        className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                          selected
-                            ? "border-foreground/20 bg-foreground text-background"
-                            : "border-border bg-background text-foreground"
-                        }`}
+                        return (
+                          <button
+                            className={cn(
+                              "rounded-full border px-4 py-2 text-sm transition-colors",
+                              selected
+                                ? "border-foreground/15 bg-foreground text-background"
+                                : "border-border/70 bg-background text-foreground hover:border-foreground/20"
+                            )}
+                            disabled={isReadonly}
+                            key={actorKind}
+                            onClick={() =>
+                              setDraft((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      capability: {
+                                        ...current.capability,
+                                        fulfillmentActorKinds: toggleStringValue(
+                                          current.capability.fulfillmentActorKinds,
+                                          actorKind
+                                        ) as SupplyActorKind[],
+                                      },
+                                    }
+                                  : current
+                              )
+                            }
+                            type="button"
+                          >
+                            {formatLabel(actorKind)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Field>
+                  <Field label="Output kinds">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                capability: {
+                                  ...current.capability,
+                                  outputKinds: parseCommaSeparated(
+                                    event.target.value
+                                  ),
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.capability.outputKinds.join(", ")}
+                    />
+                  </Field>
+                  <Field label="Execution channels">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                capability: {
+                                  ...current.capability,
+                                  executionChannels: parseCommaSeparated(
+                                    event.target.value
+                                  ),
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.capability.executionChannels.join(", ")}
+                    />
+                  </Field>
+                </SectionShell>
+
+                <SectionShell
+                  description="Control availability, pricing, and visibility."
+                  title="Availability and pricing"
+                >
+                  <Field label="Visibility">
+                    <Select
+                      disabled={isReadonly}
+                      onValueChange={(value) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                visibility: value as BorealSupplyDraft["visibility"],
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.visibility}
+                    >
+                      <SelectTrigger className={selectTriggerClassName}>
+                        <SelectValue placeholder="Visibility" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="private">private</SelectItem>
+                        <SelectItem value="unlisted">unlisted</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Source kind">
+                    <Select
+                      disabled={isReadonly}
+                      onValueChange={(value) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                source: {
+                                  kind: value as BorealSupplyDraft["source"]["kind"],
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.source.kind}
+                    >
+                      <SelectTrigger className={selectTriggerClassName}>
+                        <SelectValue placeholder="Source kind" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual">manual</SelectItem>
+                        <SelectItem value="runtime">runtime</SelectItem>
+                        <SelectItem value="provider">provider</SelectItem>
+                        <SelectItem value="catalog">catalog</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Max concurrent requests">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      inputMode="numeric"
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                availability: {
+                                  ...current.availability,
+                                  maxConcurrentRequests: parseInteger(
+                                    event.target.value
+                                  ),
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={
+                        draft.availability.maxConcurrentRequests?.toString() ?? ""
+                      }
+                    />
+                  </Field>
+                  <Field label="Response time hours">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      inputMode="numeric"
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                availability: {
+                                  ...current.availability,
+                                  responseTimeHours: parseInteger(
+                                    event.target.value
+                                  ),
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.availability.responseTimeHours?.toString() ?? ""}
+                    />
+                  </Field>
+                  <Field className="md:col-span-2" label="Accepting requests">
+                    <label className="flex h-11 items-center justify-between rounded-2xl border border-border/60 bg-background/80 px-4 text-sm">
+                      <span>Available for new work</span>
+                      <input
+                        checked={draft.availability.acceptingRequests}
+                        className="size-4 accent-foreground"
                         disabled={isReadonly}
-                        key={actorKind}
-                        onClick={() =>
+                        onChange={(event) =>
                           setDraft((current) =>
                             current
                               ? {
                                   ...current,
-                                  capability: {
-                                    ...current.capability,
-                                    fulfillmentActorKinds: toggleStringValue(
-                                      current.capability.fulfillmentActorKinds,
-                                      actorKind
-                                    ) as SupplyActorKind[],
+                                  availability: {
+                                    ...current.availability,
+                                    acceptingRequests: event.target.checked,
                                   },
                                 }
                               : current
                           )
                         }
-                        type="button"
-                      >
-                        {actorKind}
-                      </button>
-                    );
-                  })}
-                </div>
-              </Field>
-              <Field label="Output kinds">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.capability.outputKinds.join(", ")}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            capability: {
-                              ...current.capability,
-                              outputKinds: parseCommaSeparated(event.target.value),
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Execution channels">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.capability.executionChannels.join(", ")}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            capability: {
-                              ...current.capability,
-                              executionChannels: parseCommaSeparated(event.target.value),
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-            </div>
-          </section>
+                        type="checkbox"
+                      />
+                    </label>
+                  </Field>
+                  <Field label="Pricing mode">
+                    <Select
+                      disabled={isReadonly}
+                      onValueChange={(value) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                pricing: {
+                                  ...(current.pricing ?? {}),
+                                  mode: value as SupplyPricing["mode"],
+                                } as SupplyPricing,
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.pricing?.mode ?? "quote"}
+                    >
+                      <SelectTrigger className={selectTriggerClassName}>
+                        <SelectValue placeholder="Pricing mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quote">quote</SelectItem>
+                        <SelectItem value="fixed">fixed</SelectItem>
+                        <SelectItem value="range">range</SelectItem>
+                        <SelectItem value="open">open</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Currency">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                pricing: {
+                                  ...(current.pricing ?? { mode: "quote" }),
+                                  currency: event.target.value.toUpperCase(),
+                                } as SupplyPricing,
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.pricing?.currency ?? ""}
+                    />
+                  </Field>
+                  <Field label="Fixed amount">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      inputMode="decimal"
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                pricing: {
+                                  ...(current.pricing ?? { mode: "fixed" }),
+                                  fixedAmount: parseNumber(event.target.value),
+                                } as SupplyPricing,
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.pricing?.fixedAmount?.toString() ?? ""}
+                    />
+                  </Field>
+                  <Field label="Min amount">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      inputMode="decimal"
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                pricing: {
+                                  ...(current.pricing ?? { mode: "range" }),
+                                  minAmount: parseNumber(event.target.value),
+                                } as SupplyPricing,
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.pricing?.minAmount?.toString() ?? ""}
+                    />
+                  </Field>
+                  <Field label="Max amount">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      inputMode="decimal"
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                pricing: {
+                                  ...(current.pricing ?? { mode: "range" }),
+                                  maxAmount: parseNumber(event.target.value),
+                                } as SupplyPricing,
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.pricing?.maxAmount?.toString() ?? ""}
+                    />
+                  </Field>
+                  <Field className="md:col-span-2" label="Pricing notes">
+                    <Textarea
+                      className={textareaClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                pricing: {
+                                  ...(current.pricing ?? { mode: "quote" }),
+                                  notes: event.target.value,
+                                } as SupplyPricing,
+                              }
+                            : current
+                        )
+                      }
+                      rows={3}
+                      value={draft.pricing?.notes ?? ""}
+                    />
+                  </Field>
+                </SectionShell>
 
-          <section className="rounded-2xl border border-border/60 bg-card/60 p-5">
-            <h2 className="text-base font-medium">Availability and pricing</h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <Field label="Visibility">
-                <Select
-                  disabled={isReadonly}
-                  value={draft.visibility}
-                  onValueChange={(value) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            visibility: value as BorealSupplyDraft["visibility"],
-                          }
-                        : current
-                    )
-                  }
+                <SectionShell
+                  description="Optional infrastructure bindings. These support the supply, but they are not the supply."
+                  title="Bindings"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Visibility" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="private">private</SelectItem>
-                    <SelectItem value="unlisted">unlisted</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Source kind">
-                <Select
-                  disabled={isReadonly}
-                  value={draft.source.kind}
-                  onValueChange={(value) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            source: {
-                              kind: value as BorealSupplyDraft["source"]["kind"],
-                            },
-                          }
-                        : current
-                    )
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Source kind" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual">manual</SelectItem>
-                    <SelectItem value="runtime">runtime</SelectItem>
-                    <SelectItem value="provider">provider</SelectItem>
-                    <SelectItem value="catalog">catalog</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Max concurrent requests">
-                <Input
-                  disabled={isReadonly}
-                  inputMode="numeric"
-                  value={draft.availability.maxConcurrentRequests?.toString() ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            availability: {
-                              ...current.availability,
-                              maxConcurrentRequests: parseInteger(event.target.value),
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Response time hours">
-                <Input
-                  disabled={isReadonly}
-                  inputMode="numeric"
-                  value={draft.availability.responseTimeHours?.toString() ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            availability: {
-                              ...current.availability,
-                              responseTimeHours: parseInteger(event.target.value),
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <div className="md:col-span-2">
-                <label className="flex items-center gap-3 text-sm">
-                  <input
-                    checked={draft.availability.acceptingRequests}
-                    disabled={isReadonly}
-                    onChange={(event) =>
-                      setDraft((current) =>
-                        current
-                          ? {
-                              ...current,
-                              availability: {
-                                ...current.availability,
-                                acceptingRequests: event.target.checked,
-                              },
-                            }
-                          : current
-                      )
-                    }
-                    type="checkbox"
-                  />
-                  Accepting requests
-                </label>
+                  <Field label="Runtime actor ID">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                bindings: {
+                                  ...current.bindings,
+                                  runtimeActorId: event.target.value,
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.bindings.runtimeActorId ?? ""}
+                    />
+                  </Field>
+                  <Field label="Resolver client ID">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                bindings: {
+                                  ...current.bindings,
+                                  resolverClientId: event.target.value,
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.bindings.resolverClientId ?? ""}
+                    />
+                  </Field>
+                  <Field className="md:col-span-2" label="Provider reference">
+                    <Input
+                      className={inputClassName}
+                      disabled={isReadonly}
+                      onChange={(event) =>
+                        setDraft((current) =>
+                          current
+                            ? {
+                                ...current,
+                                bindings: {
+                                  ...current.bindings,
+                                  providerRef: event.target.value,
+                                },
+                              }
+                            : current
+                        )
+                      }
+                      value={draft.bindings.providerRef ?? ""}
+                    />
+                  </Field>
+                </SectionShell>
               </div>
+            </section>
+          </div>
 
-              <Field label="Pricing mode">
-                <Select
-                  disabled={isReadonly}
-                  value={draft.pricing?.mode ?? "quote"}
-                  onValueChange={(value) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            pricing: {
-                              ...(current.pricing ?? {}),
-                              mode: value as SupplyPricing["mode"],
-                            } as SupplyPricing,
-                          }
-                        : current
-                    )
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pricing mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="quote">quote</SelectItem>
-                    <SelectItem value="fixed">fixed</SelectItem>
-                    <SelectItem value="range">range</SelectItem>
-                    <SelectItem value="open">open</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="Currency">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.pricing?.currency ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            pricing: {
-                              ...(current.pricing ?? { mode: "quote" }),
-                              currency: event.target.value.toUpperCase(),
-                            } as SupplyPricing,
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Fixed amount">
-                <Input
-                  disabled={isReadonly}
-                  inputMode="decimal"
-                  value={draft.pricing?.fixedAmount?.toString() ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            pricing: {
-                              ...(current.pricing ?? { mode: "fixed" }),
-                              fixedAmount: parseNumber(event.target.value),
-                            } as SupplyPricing,
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Min amount">
-                <Input
-                  disabled={isReadonly}
-                  inputMode="decimal"
-                  value={draft.pricing?.minAmount?.toString() ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            pricing: {
-                              ...(current.pricing ?? { mode: "range" }),
-                              minAmount: parseNumber(event.target.value),
-                            } as SupplyPricing,
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Max amount">
-                <Input
-                  disabled={isReadonly}
-                  inputMode="decimal"
-                  value={draft.pricing?.maxAmount?.toString() ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            pricing: {
-                              ...(current.pricing ?? { mode: "range" }),
-                              maxAmount: parseNumber(event.target.value),
-                            } as SupplyPricing,
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <div className="md:col-span-2">
-                <Field label="Pricing notes">
-                  <Textarea
-                    disabled={isReadonly}
-                    rows={3}
-                    value={draft.pricing?.notes ?? ""}
-                    onChange={(event) =>
-                      setDraft((current) =>
-                        current
-                          ? {
-                              ...current,
-                              pricing: {
-                                ...(current.pricing ?? { mode: "quote" }),
-                                notes: event.target.value,
-                              } as SupplyPricing,
-                            }
-                          : current
-                      )
-                    }
-                  />
-                </Field>
+          <aside className="space-y-5 xl:sticky xl:top-8 xl:self-start">
+            <section className="rounded-[28px] border border-border/60 bg-background/92 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+              <div className="text-base font-medium tracking-tight">
+                Supply summary
               </div>
-            </div>
-          </section>
+              <div className="mt-4 space-y-4 text-sm">
+                <MetaRow
+                  label="Kind"
+                  value={
+                    draft.capability.supplyKinds[0]
+                      ? formatLabel(draft.capability.supplyKinds[0])
+                      : "Unset"
+                  }
+                />
+                <MetaRow
+                  label="Channel"
+                  value={
+                    draft.capability.executionChannels[0]
+                      ? formatLabel(draft.capability.executionChannels[0])
+                      : "Unset"
+                  }
+                />
+                <MetaRow
+                  label="Pricing"
+                  value={formatPricingSummary(draft.pricing)}
+                />
+                <MetaRow
+                  label="Requests"
+                  value={
+                    draft.availability.acceptingRequests ? "Accepting" : "Paused"
+                  }
+                />
+                <MetaRow
+                  label="Delete"
+                  value={
+                    canDelete
+                      ? "Draft or retired only"
+                      : "Retire before delete"
+                  }
+                />
+              </div>
+            </section>
 
-          <section className="rounded-2xl border border-border/60 bg-card/60 p-5">
-            <h2 className="text-base font-medium">Bindings</h2>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Runtime and resolver bindings are optional. They point to backing
-              infrastructure and do not replace the supply owner actor.
-            </p>
-            <div className="mt-4 grid gap-4">
-              <Field label="Runtime actor ID">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.bindings.runtimeActorId ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            bindings: {
-                              ...current.bindings,
-                              runtimeActorId: event.target.value,
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Resolver client ID">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.bindings.resolverClientId ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            bindings: {
-                              ...current.bindings,
-                              resolverClientId: event.target.value,
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-              <Field label="Provider reference">
-                <Input
-                  disabled={isReadonly}
-                  value={draft.bindings.providerRef ?? ""}
-                  onChange={(event) =>
-                    setDraft((current) =>
-                      current
-                        ? {
-                            ...current,
-                            bindings: {
-                              ...current.bindings,
-                              providerRef: event.target.value,
-                            },
-                          }
-                        : current
-                    )
-                  }
-                />
-              </Field>
-            </div>
-          </section>
+            <section className="rounded-[28px] border border-border/60 bg-background/92 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+              <div className="text-base font-medium tracking-tight">
+                Object preview
+              </div>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                Live machine-readable view of the current supply.
+              </p>
+              <pre className="mt-4 max-h-[28rem] overflow-auto rounded-[22px] border border-border/60 bg-muted/[0.35] p-4 text-[11px] leading-6 text-foreground">
+                {renderSupplyJson(draft)}
+              </pre>
+            </section>
+          </aside>
         </div>
-
-        <aside className="space-y-6">
-          <section className="rounded-2xl border border-border/60 bg-card/60 p-5">
-            <h2 className="text-base font-medium">Object preview</h2>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              Preview the current supply object as machine-readable JSON.
-            </p>
-            <pre className="mt-4 overflow-x-auto rounded-xl bg-background/80 p-4 text-xs leading-6 text-foreground">
-              {renderSupplyJson(draft)}
-            </pre>
-          </section>
-        </aside>
       </div>
-    </div>
+
+      <AlertDialog onOpenChange={setShowDeleteDialog} open={showDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this supply?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Only draft or retired supplies without durable activity can be
+              deleted. Published history should stay durable.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isSubmitting}
+              onClick={(event) => {
+                event.preventDefault();
+                void deleteDraft();
+              }}
+            >
+              {isSubmitting ? "Deleting..." : "Delete supply"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
+function SectionShell({
+  children,
+  description,
+  title,
+}: {
+  children: React.ReactNode;
+  description: string;
+  title: string;
+}) {
+  return (
+    <section className="px-6 py-6 md:px-8 md:py-7">
+      <div className="max-w-2xl">
+        <h2 className="text-lg font-medium tracking-tight">{title}</h2>
+        <p className="mt-1 text-sm leading-7 text-muted-foreground">
+          {description}
+        </p>
+      </div>
+      <div className="mt-5 grid gap-4 md:grid-cols-2">{children}</div>
+    </section>
   );
 }
 
 function Field({
   children,
+  className,
   label,
 }: {
   children: React.ReactNode;
+  className?: string;
   label: string;
 }) {
   return (
-    <div className="grid gap-2">
-      <Label>{label}</Label>
+    <div className={cn("grid gap-2.5", className)}>
+      <Label className="text-[12px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+        {label}
+      </Label>
       {children}
     </div>
+  );
+}
+
+function MetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-border/50 pb-3 last:border-b-0 last:pb-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="max-w-[12rem] text-right text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: BorealSupplyDraft["status"] }) {
+  return (
+    <Badge className={getSupplyStatusBadgeClassName(status)} variant="secondary">
+      {formatLabel(status)}
+    </Badge>
   );
 }
 
@@ -969,6 +1213,51 @@ function parseNumber(value: string) {
 
   const parsed = Number.parseFloat(normalized);
   return Number.isNaN(parsed) ? undefined : parsed;
+}
+
+function canDeleteSupply(draft: BorealSupplyDraft) {
+  return draft.status === "draft" || draft.status === "retired";
+}
+
+function formatTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "recently";
+  }
+
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatLabel(value: string) {
+  return value.replace(/_/g, " ");
+}
+
+function formatPricingSummary(pricing: SupplyPricing | null) {
+  if (!pricing) {
+    return "Unset";
+  }
+
+  if (pricing.mode === "fixed" && pricing.fixedAmount != null) {
+    return `${pricing.currency ?? ""} ${pricing.fixedAmount}`.trim();
+  }
+
+  if (
+    pricing.mode === "range" &&
+    (pricing.minAmount != null || pricing.maxAmount != null)
+  ) {
+    return `${pricing.currency ?? ""} ${pricing.minAmount ?? "?"}-${pricing.maxAmount ?? "?"}`.trim();
+  }
+
+  if (pricing.mode === "open") {
+    return "Open";
+  }
+
+  return "Quote";
 }
 
 function getSupplyStatusBadgeClassName(status: BorealSupplyDraft["status"]) {

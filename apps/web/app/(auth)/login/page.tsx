@@ -60,10 +60,10 @@ function LoginPageContent() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
+      <h1 className="text-3xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
         Sign in to Boreal
       </h1>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm leading-7 text-muted-foreground">
         Reopen request threads, specialists, and delivery history.
       </p>
       <AuthForm action={handleSubmit} defaultEmail={email}>

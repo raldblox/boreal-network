@@ -129,6 +129,28 @@ paths:
                 properties:
                   supply:
                     $ref: "#/components/schemas/WebSupply"
+    delete:
+      summary: Delete one owned draft or retired supply when no durable activity depends on it.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The deleted supply.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - supply
+                properties:
+                  supply:
+                    $ref: "#/components/schemas/WebSupply"
 components:
   schemas:
     WebSupplyProfile:

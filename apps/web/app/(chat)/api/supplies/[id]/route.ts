@@ -3,6 +3,7 @@ import { getSupplyById, toSupplyDraft } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 import { getRequestActorContext } from "@/lib/resolver-session";
 import {
+  deleteSupplyDraft,
   pauseSupplyDraft,
   persistSupplyPatch,
   publishSupplyDraft,
@@ -168,6 +169,50 @@ export async function PATCH(
     return new ChatbotError(
       "bad_request:database",
       "Failed to update supply"
+    ).toResponse();
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const actor = await getRequestActorContext(request);
+  if (!actor || actor.kind !== "session") {
+    return new ChatbotError("unauthorized:chat").toResponse();
+  }
+
+  const { id } = await context.params;
+
+  try {
+    const supply = await deleteSupplyDraft({
+      supplyId: id,
+      userId: actor.userId,
+    });
+
+    return Response.json({ supply }, { status: 200 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Forbidden") {
+      return new ChatbotError("forbidden:chat").toResponse();
+    }
+
+    if (error instanceof Error && error.message === "Supply not found") {
+      return new ChatbotError("not_found:database").toResponse();
+    }
+
+    if (
+      error instanceof Error &&
+      [
+        "Only draft or retired supply can be deleted",
+        "Supply with durable activity cannot be deleted",
+      ].includes(error.message)
+    ) {
+      return new ChatbotError("bad_request:api", error.message).toResponse();
+    }
+
+    return new ChatbotError(
+      "bad_request:database",
+      "Failed to delete supply"
     ).toResponse();
   }
 }

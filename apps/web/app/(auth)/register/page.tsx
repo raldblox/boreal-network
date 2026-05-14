@@ -62,10 +62,10 @@ function RegisterPageContent() {
 
   return (
     <>
-      <h1 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
+      <h1 className="text-3xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
         Create a Boreal account
       </h1>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm leading-7 text-muted-foreground">
         Open work threads and keep fulfillment, proof, and payout in one place.
       </p>
       <AuthForm action={handleSubmit} defaultEmail={email}>

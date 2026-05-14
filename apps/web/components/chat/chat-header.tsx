@@ -31,7 +31,7 @@ function PureChatHeader({
   }
 
   return (
-    <header className="sticky top-0 flex h-14 items-center gap-2 bg-sidebar px-3">
+    <header className="sticky top-0 z-10 flex h-16 items-center gap-2 px-3 md:px-4">
       <Button
         className="md:hidden"
         onClick={toggleSidebar}
@@ -42,17 +42,17 @@ function PureChatHeader({
       </Button>
 
       <Link
-        className="flex items-center gap-3 rounded-xl px-1.5 py-1 transition-colors hover:bg-sidebar-accent/40"
+        className="flex items-center gap-3 rounded-2xl px-2 py-1.5 transition-colors hover:bg-muted/55"
         href="/"
       >
-        <div className="flex size-8 items-center justify-center rounded-xl border border-sidebar-border/60 bg-background/60 text-sidebar-foreground shadow-sm">
+        <div className="flex size-9 items-center justify-center rounded-2xl border border-border/60 bg-background text-foreground shadow-sm">
           <SparklesIcon size={14} />
         </div>
         <div className="hidden min-w-0 flex-col leading-none sm:flex">
-          <span className="truncate text-[13px] font-medium text-sidebar-foreground">
+          <span className="truncate text-[13px] font-medium text-foreground">
             Boreal
           </span>
-          <span className="truncate text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/[0.45]">
+          <span className="truncate text-[10px] uppercase tracking-[0.18em] text-muted-foreground/[0.7]">
             {requestStatus === "draft"
               ? "Request drafting"
               : requestStatus
@@ -62,7 +62,7 @@ function PureChatHeader({
                   : "Chat"}
           </span>
         </div>
-        <span className="text-[13px] font-medium text-sidebar-foreground sm:hidden">
+        <span className="text-[13px] font-medium text-foreground sm:hidden">
           Boreal
         </span>
       </Link>

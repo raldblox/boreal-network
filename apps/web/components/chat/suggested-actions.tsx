@@ -33,6 +33,13 @@ function PureSuggestedActions({
   requestStatus,
 }: SuggestedActionsProps) {
   const isRequestSuggestionMode = isRequestMode || Boolean(requestStatus);
+  const promptLabel = requestStatus
+    ? requestStatus === "draft"
+      ? "Draft prompt"
+      : "Room prompt"
+    : isRequestMode
+      ? "Request prompt"
+      : "Quick start";
   const suggestedActions = requestStatus
     ? requestStatus === "draft"
       ? requestDraftSuggestions
@@ -43,18 +50,13 @@ function PureSuggestedActions({
 
   return (
     <div
-      className="flex w-full gap-2.5 overflow-x-auto pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible"
+      className="grid w-full grid-cols-1 gap-3 pb-1 sm:grid-cols-2"
       data-testid="suggested-actions"
-      style={{
-        scrollbarWidth: "none",
-        WebkitOverflowScrolling: "touch",
-        msOverflowStyle: "none",
-      }}
     >
       {suggestedActions.map((suggestedAction, index) => (
         <motion.div
           animate={{ opacity: 1, y: 0 }}
-          className="min-w-[200px] shrink-0 sm:min-w-0 sm:shrink"
+          className="min-w-0"
           exit={{ opacity: 0, y: 16 }}
           initial={{ opacity: 0, y: 16 }}
           key={suggestedAction}
@@ -65,7 +67,7 @@ function PureSuggestedActions({
           }}
         >
           <Suggestion
-            className="h-auto w-full whitespace-nowrap rounded-xl border border-border/50 bg-card/30 px-4 py-3 text-left text-[12px] leading-relaxed text-muted-foreground transition-all duration-200 sm:whitespace-normal sm:p-4 sm:text-[13px] hover:-translate-y-0.5 hover:bg-card/60 hover:text-foreground hover:shadow-[var(--shadow-card)]"
+            className="h-auto w-full whitespace-normal rounded-[24px] border border-border/60 bg-background/92 px-4 py-3 text-left text-[12px] leading-relaxed text-muted-foreground shadow-[0_12px_35px_rgba(15,23,42,0.04)] transition-all duration-200 sm:p-4 sm:text-[13px] hover:-translate-y-0.5 hover:border-foreground/15 hover:bg-background hover:text-foreground hover:shadow-[0_16px_45px_rgba(15,23,42,0.08)]"
             onClick={(suggestion) => {
               if (isRequestSuggestionMode) {
                 onRequestSuggestionSelect?.(suggestion);
@@ -87,7 +89,12 @@ function PureSuggestedActions({
             }}
             suggestion={suggestedAction}
           >
-            {suggestedAction}
+            <div className="flex flex-col items-start gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/62">
+                {promptLabel}
+              </span>
+              <span className="text-left leading-6">{suggestedAction}</span>
+            </div>
           </Suggestion>
         </motion.div>
       ))}

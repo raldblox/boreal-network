@@ -300,12 +300,12 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
         tabIndex={-1}
         onClick={toggleSidebar}
         className={cn(
-          "absolute left-3 h-[6px] w-[100vw] cursor-e-resize",
+          "absolute left-3 h-[6px] w-[calc(100vw-var(--sidebar-width-icon)-0.75rem)] cursor-e-resize",
           isCollapsed ? "top-0" : "top-[calc(3.5rem-6px)] cursor-w-resize"
         )}
       />
       <div className={cn(
-        "pointer-events-none absolute bottom-0 left-0 w-[100vw] rounded-tl-[12px] border-t border-l border-sidebar-border opacity-0 transition-opacity duration-150 group-hover/rail:opacity-100",
+        "pointer-events-none absolute bottom-0 left-0 w-[calc(100vw-var(--sidebar-width-icon))] rounded-tl-[12px] border-t border-l border-sidebar-border opacity-0 transition-opacity duration-150 group-hover/rail:opacity-100",
         isCollapsed ? "top-0" : "top-14"
       )} />
     </div>

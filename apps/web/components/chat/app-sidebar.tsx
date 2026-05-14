@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  DownloadIcon,
   FilePenLineIcon,
   MessageSquareIcon,
   PackageIcon,
@@ -62,6 +63,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const isNewRequestMode =
     isRootView && searchParams.get("mode") === "request";
   const isNewSupplyMode = pathname === "/supplies/new";
+  const isDesktopMode =
+    pathname === "/download/boreal-desktop" || pathname === "/download/desktop";
   const isNewChatMode = isRootView && !isNewRequestMode;
 
   const handleDeleteAll = () => {
@@ -166,12 +169,28 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 {user && (
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                    className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
-                    onClick={() => setShowDeleteAllDialog(true)}
-                    tooltip="Clear chat history"
-                  >
-                    <TrashIcon className="size-4" />
-                    <span className="text-[13px]">Clear history</span>
+                      className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                      isActive={isDesktopMode}
+                      onClick={() => {
+                        setOpenMobile(false);
+                        router.push("/download/boreal-desktop");
+                      }}
+                      tooltip="Boreal Desktop"
+                    >
+                      <DownloadIcon className="size-4" />
+                      <span className="font-medium">Desktop</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
+                {user && (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => setShowDeleteAllDialog(true)}
+                      tooltip="Clear chat history"
+                    >
+                      <TrashIcon className="size-4" />
+                      <span className="text-[13px]">Clear history</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 )}

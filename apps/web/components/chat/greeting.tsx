@@ -13,10 +13,24 @@ export const Greeting = ({
   const isPendingRequestStart = isRequestMode && !requestStatus;
 
   return (
-    <div className="flex flex-col items-center px-4" key="overview">
+    <div className="flex max-w-2xl flex-col items-center px-4 text-center" key="overview">
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        className="text-center font-semibold text-2xl tracking-tight text-foreground [font-family:var(--font-display)] md:text-4xl"
+        className="mb-4 inline-flex rounded-full border border-border/60 bg-background/82 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/72"
+        initial={{ opacity: 0, y: 10 }}
+        transition={{ delay: 0.25, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {isDraftRequest
+          ? "Request draft"
+          : isPendingRequestStart
+            ? "New room"
+            : isOpenedRequest
+              ? "Active request"
+              : "Boreal"}
+      </motion.div>
+      <motion.div
+        animate={{ opacity: 1, y: 0 }}
+        className="font-semibold text-3xl tracking-tight text-foreground [font-family:var(--font-display)] md:text-5xl"
         initial={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.35, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
@@ -30,7 +44,7 @@ export const Greeting = ({
       </motion.div>
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        className="mt-3 text-center text-muted-foreground/80 text-sm"
+        className="mt-4 max-w-xl text-muted-foreground/82 text-sm leading-7 md:text-[15px]"
         initial={{ opacity: 0, y: 10 }}
         transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >

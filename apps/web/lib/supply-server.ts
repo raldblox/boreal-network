@@ -10,7 +10,9 @@ import {
 } from "@/lib/supply";
 import { generateUUID } from "@/lib/utils";
 import {
+  deleteSupplyById,
   getSupplyById,
+  getSupplyUsageSummaryById,
   saveSupplyDraft,
   toSupplyDraft,
   updateSupplyDraftById,
@@ -215,4 +217,40 @@ export async function retireSupplyDraft({
       retiredAt: new Date().toISOString(),
     },
   });
+}
+
+export async function deleteSupplyDraft({
+  supplyId,
+  userId,
+}: {
+  supplyId: string;
+  userId: string;
+}) {
+  const existingSupply = await getSupplyById({ id: supplyId });
+  if (!existingSupply) {
+    throw new Error("Supply not found");
+  }
+
+  if (existingSupply.ownerId !== userId) {
+    throw new Error("Forbidden");
+  }
+
+  if (
+    existingSupply.status !== "draft" &&
+    existingSupply.status !== "retired"
+  ) {
+    throw new Error("Only draft or retired supply can be deleted");
+  }
+
+  const usageSummary = await getSupplyUsageSummaryById({ id: supplyId });
+  if (usageSummary.commitmentCount > 0 || usageSummary.fulfillmentCount > 0) {
+    throw new Error("Supply with durable activity cannot be deleted");
+  }
+
+  const deletedSupply = await deleteSupplyById({ id: supplyId });
+  if (!deletedSupply) {
+    throw new Error("Supply not found");
+  }
+
+  return toSupplyDraft(deletedSupply);
 }

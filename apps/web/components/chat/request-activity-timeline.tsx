@@ -114,21 +114,21 @@ export function RequestActivityMessage({
       className="group/message w-full"
       data-role="assistant"
     >
-      <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-x-2.5">
+      <div className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-3">
         <div className="relative">
           {index > 0 ? (
-            <div className="absolute left-1/2 top-0 h-2.5 w-[1.5px] -translate-x-1/2 bg-border" />
+            <div className="absolute left-1/2 top-0 h-2.5 w-px -translate-x-1/2 bg-border/70" />
           ) : null}
           {index < totalCount - 1 ? (
-            <div className="absolute left-1/2 top-6.5 -bottom-2 w-[1.5px] -translate-x-1/2 bg-border" />
+            <div className="absolute left-1/2 top-7 -bottom-3 w-px -translate-x-1/2 bg-border/70" />
           ) : null}
-          <div className="relative z-10 flex h-6.5 items-center justify-center">
+          <div className="relative z-10 flex h-7 items-center justify-center">
             <div
               className={cn(
-                "flex size-6.5 items-center justify-center rounded-full border shadow-sm",
+                "flex size-7 items-center justify-center rounded-full border shadow-sm",
                 isOwnerActivity
-                  ? "border-border bg-secondary text-foreground"
-                  : "border-border bg-muted text-muted-foreground"
+                  ? "border-foreground/10 bg-foreground text-background"
+                  : "border-border/70 bg-background text-muted-foreground"
               )}
             >
               <SparklesIcon size={11} />
@@ -136,8 +136,15 @@ export function RequestActivityMessage({
           </div>
         </div>
 
-        <div className="min-w-0 space-y-1.5 pb-2 pt-0.5">
-          {content}
+        <div className="min-w-0 pb-3 pt-0.5">
+          <div className="rounded-[20px] border border-border/60 bg-background/92 px-4 py-3.5 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/68">
+              <span>{formatActivityLabel(activity.eventType)}</span>
+              <span className="text-border">•</span>
+              <span>{formatLabel(activity.aggregateType)}</span>
+            </div>
+            <div className="space-y-2">{content}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -162,7 +169,7 @@ function NonDocumentArtifactButton({
 
   if (container.kind !== "document") {
     return (
-      <div className="flex flex-col gap-2 rounded-xl border border-border/70 bg-background/70 px-3 py-3 text-xs text-muted-foreground">
+      <div className="flex flex-col gap-2 rounded-[18px] border border-border/70 bg-muted/[0.22] px-3 py-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-2 text-foreground">
           <HardDriveDownloadIcon className="size-4" />
           <span className="font-medium">{artifact.title}</span>
@@ -206,7 +213,7 @@ function NonDocumentArtifactButton({
 
   return (
     <Button
-      className="w-fit rounded-xl border-border shadow-none"
+      className="w-fit rounded-2xl border-border/70 bg-background shadow-none"
       onClick={(event) => {
         if (isReadonly) {
           return;
@@ -284,4 +291,12 @@ function getDocumentArtifactPreview(activity: RequestActivityEntry) {
     title: artifact.title,
     kind: artifact.container.documentKind,
   } as const;
+}
+
+function formatActivityLabel(value: string) {
+  return value.replace(/\./g, " ");
+}
+
+function formatLabel(value: string) {
+  return value.replace(/_/g, " ");
 }

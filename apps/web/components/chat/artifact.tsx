@@ -348,7 +348,7 @@ function PureArtifact({
   const artifactPanel = (
     <>
       {sidebarState !== "collapsed" && (
-        <div className="flex h-[calc(3.5rem+1px)] shrink-0 items-center justify-between border-b border-border/50 px-4">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-border/50 px-4">
           <div className="flex items-center gap-3">
             <ArtifactCloseButton />
             <div className="flex flex-col gap-0.5">
