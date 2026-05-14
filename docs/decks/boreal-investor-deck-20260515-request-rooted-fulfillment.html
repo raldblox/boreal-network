@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boreal - Investor Deck</title>
+  <style>
+    :root {
+      --bg: #04070a;
+      --bg-2: #091018;
+      --panel: rgba(10, 17, 24, 0.92);
+      --panel-2: rgba(12, 22, 32, 0.96);
+      --border: rgba(200, 214, 226, 0.12);
+      --border-strong: rgba(137, 255, 123, 0.42);
+      --text: #f4f7fb;
+      --text-soft: rgba(244, 247, 251, 0.78);
+      --text-muted: rgba(184, 198, 214, 0.6);
+      --accent: #89ff7b;
+      --accent-dim: rgba(137, 255, 123, 0.1);
+      --warning: #ffd84d;
+      --warning-dim: rgba(255, 216, 77, 0.11);
+      --danger: #ff6f87;
+      --danger-dim: rgba(255, 111, 135, 0.12);
+      --shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      --hero: 90px;
+      --h1: 64px;
+      --h2: 40px;
+      --h3: 24px;
+      --body: 22px;
+      --small: 16px;
+      --tiny: 12px;
+      --radius: 22px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --sans: "Segoe UI Variable", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(137, 255, 123, 0.12), transparent 24%),
+        radial-gradient(circle at top right, rgba(255, 216, 77, 0.08), transparent 22%),
+        linear-gradient(180deg, #030507 0%, #060c12 100%);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 62px 82px 92px;
+      opacity: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(3, 5, 7, 0.88), rgba(4, 9, 13, 0.96)),
+        repeating-linear-gradient(90deg, transparent 0, transparent 111px, rgba(255,255,255,0.01) 111px, rgba(255,255,255,0.01) 112px);
+      transition: opacity 420ms var(--ease);
+      overflow: hidden;
+    }
+
+    .slide::before,
+    .slide::after {
+      content: "";
+      position: absolute;
+      top: 24px;
+      bottom: 24px;
+      width: 160px;
+      pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      opacity: 0.7;
+    }
+
+    .slide::before {
+      left: 24px;
+      background:
+        linear-gradient(180deg, rgba(137, 255, 123, 0.08), transparent 36%),
+        repeating-linear-gradient(180deg, transparent 0, transparent 23px, rgba(255,255,255,0.03) 23px, rgba(255,255,255,0.03) 24px);
+    }
+
+    .slide::after {
+      right: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 216, 77, 0.06), transparent 30%),
+        repeating-linear-gradient(180deg, transparent 0, transparent 23px, rgba(255,255,255,0.03) 23px, rgba(255,255,255,0.03) 24px);
+    }
+
+    .slide.alt {
+      background:
+        linear-gradient(180deg, rgba(5, 8, 11, 0.92), rgba(6, 12, 18, 0.98)),
+        repeating-linear-gradient(90deg, transparent 0, transparent 111px, rgba(255,255,255,0.012) 111px, rgba(255,255,255,0.012) 112px);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .slide.active .animate {
+      animation: rise 520ms var(--ease) both;
+    }
+
+    .slide.active .animate:nth-child(1) { animation-delay: 0ms; }
+    .slide.active .animate:nth-child(2) { animation-delay: 70ms; }
+    .slide.active .animate:nth-child(3) { animation-delay: 140ms; }
+    .slide.active .animate:nth-child(4) { animation-delay: 210ms; }
+    .slide.active .animate:nth-child(5) { animation-delay: 280ms; }
+    .slide.active .animate:nth-child(6) { animation-delay: 350ms; }
+    .slide.active .animate:nth-child(7) { animation-delay: 420ms; }
+    .slide.active .animate:nth-child(8) { animation-delay: 490ms; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.3;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .hero {
+      font-family: var(--mono);
+      font-size: var(--hero);
+      line-height: 0.96;
+      letter-spacing: -3px;
+      font-weight: 700;
+      max-width: 1160px;
+    }
+
+    .h1 {
+      font-family: var(--mono);
+      font-size: var(--h1);
+      line-height: 1;
+      letter-spacing: -2px;
+      font-weight: 700;
+      max-width: 1140px;
+    }
+
+    .h2 {
+      font-size: var(--h2);
+      line-height: 1.1;
+      letter-spacing: -1px;
+      font-weight: 600;
+    }
+
+    .h3 {
+      font-size: var(--h3);
+      line-height: 1.25;
+      font-weight: 650;
+    }
+
+    .body {
+      font-size: var(--body);
+      line-height: 1.42;
+      color: var(--text-soft);
+    }
+
+    .small {
+      font-size: var(--small);
+      line-height: 1.45;
+      color: var(--text-soft);
+    }
+
+    .tiny {
+      font-size: var(--tiny);
+      line-height: 1.5;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .mono { font-family: var(--mono); }
+    .accent { color: var(--accent); }
+    .warning { color: var(--warning); }
+    .danger { color: var(--danger); }
+    .soft { color: var(--text-soft); }
+    .muted { color: var(--text-muted); }
+    .center { text-align: center; }
+
+    .row { display: flex; }
+    .col { display: flex; flex-direction: column; }
+    .between { justify-content: space-between; }
+    .centered { align-items: center; justify-content: center; }
+    .gap-8 { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .gap-16 { gap: 16px; }
+    .gap-20 { gap: 20px; }
+    .gap-24 { gap: 24px; }
+    .gap-28 { gap: 28px; }
+    .gap-32 { gap: 32px; }
+    .gap-40 { gap: 40px; }
+    .gap-48 { gap: 48px; }
+    .gap-56 { gap: 56px; }
+    .mt-8 { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-20 { margin-top: 20px; }
+    .mt-24 { margin-top: 24px; }
+    .mt-32 { margin-top: 32px; }
+    .mt-40 { margin-top: 40px; }
+    .mt-48 { margin-top: 48px; }
+    .w-full { width: 100%; }
+
+    .badge-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 11px;
+      font-family: var(--mono);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .badge.accent-badge {
+      border-color: rgba(137, 255, 123, 0.25);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .badge.warning-badge {
+      border-color: rgba(255, 216, 77, 0.2);
+      color: var(--warning);
+      background: var(--warning-dim);
+    }
+
+    .rule {
+      width: 88px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), rgba(137,255,123,0));
+      border-radius: 999px;
+    }
+
+    .rule-wide {
+      width: 220px;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), rgba(255,216,77,0.42), rgba(255,255,255,0.02));
+      border-radius: 999px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(10, 17, 24, 0.96), rgba(6, 11, 16, 0.98));
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel.strong {
+      border-color: var(--border-strong);
+      background: linear-gradient(180deg, rgba(10, 21, 14, 0.92), rgba(7, 13, 10, 0.98));
+    }
+
+    .panel.danger-panel {
+      border-color: rgba(255, 111, 135, 0.26);
+      background: linear-gradient(180deg, rgba(27, 10, 15, 0.94), rgba(16, 8, 12, 0.98));
+    }
+
+    .outline-box {
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 18px 20px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .mega-number {
+      font-family: var(--mono);
+      font-size: 66px;
+      line-height: 1;
+      letter-spacing: -2px;
+      color: var(--accent);
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .triple {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .quad {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .split-wide {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 28px;
+      align-items: stretch;
+    }
+
+    .process {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .process-node {
+      min-height: 134px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .process-node.active-node {
+      border-color: var(--border-strong);
+      background: rgba(137, 255, 123, 0.08);
+      box-shadow: 0 0 26px rgba(137, 255, 123, 0.12);
+    }
+
+    .step-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    .plus-chain {
+      display: grid;
+      grid-template-columns: 1fr 80px 1fr 80px 1fr;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .plus {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 50px;
+      color: var(--accent);
+    }
+
+    .statement {
+      max-width: 1120px;
+      font-family: var(--mono);
+      font-size: 54px;
+      line-height: 1.04;
+      letter-spacing: -2px;
+      font-weight: 700;
+    }
+
+    .section-break {
+      justify-content: space-between;
+    }
+
+    .section-break .hero {
+      max-width: none;
+    }
+
+    .section-rail {
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      gap: 24px;
+      align-items: end;
+    }
+
+    .section-box {
+      border: 1px solid rgba(137, 255, 123, 0.18);
+      border-radius: 24px;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(8, 15, 10, 0.82), rgba(5, 9, 7, 0.94));
+    }
+
+    .rail-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .rail-item {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px 24px;
+    }
+
+    .check {
+      padding-left: 18px;
+      position: relative;
+      font-size: 18px;
+      line-height: 1.35;
+      color: var(--text-soft);
+    }
+
+    .check::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 9px;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .risk-stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .risk-line {
+      display: grid;
+      grid-template-columns: 180px 1fr 1fr;
+      gap: 16px;
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .flywheel {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .flywheel .panel {
+      min-height: 150px;
+    }
+
+    .arrow-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      color: var(--accent);
+      font-size: 26px;
+    }
+
+    .appendix-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .notes {
+      position: absolute;
+      left: 82px;
+      right: 82px;
+      bottom: 24px;
+      padding: 14px 16px;
+      border: 1px dashed rgba(137, 255, 123, 0.28);
+      border-radius: 16px;
+      background: rgba(3, 6, 9, 0.9);
+      color: rgba(220, 234, 245, 0.92);
+      font-size: 14px;
+      line-height: 1.42;
+      display: none;
+    }
+
+    .notes.visible { display: block; }
+
+    .nav {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(5, 9, 13, 0.88);
+      box-shadow: var(--shadow);
+      opacity: 0.18;
+      transition: opacity 180ms ease;
+    }
+
+    .deck:hover .nav { opacity: 1; }
+
+    .nav button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav button:hover { background: rgba(255,255,255,0.1); }
+
+    .nav-count {
+      min-width: 78px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text-soft);
+    }
+
+    .nav-progress {
+      width: 200px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    .nav-progress-fill {
+      width: 0;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--warning));
+      transition: width 220ms ease;
+    }
+
+    @media (max-width: 1320px) {
+      .slide { padding: 52px 56px 92px; }
+      .notes { left: 56px; right: 56px; }
+      .hero { font-size: 74px; }
+      .h1 { font-size: 52px; }
+      .body { font-size: 20px; }
+      .signal-grid,
+      .quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .process { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .flywheel { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <section class="slide active">
+      <div class="badge-row animate">
+        <span class="badge accent-badge">Request-native work commerce</span>
+        <span class="badge warning-badge">Investor draft</span>
+        <span class="badge">30 slides</span>
+      </div>
+      <div class="hero animate mt-24">Boreal</div>
+      <div class="statement animate mt-20">
+        AI can start work.<br>
+        Boreal gets it actually done.
+      </div>
+      <div class="rule-wide animate mt-24"></div>
+      <p class="body animate mt-24" style="max-width: 1040px;">
+        Boreal is request-native work commerce: a durable fulfillment thread for
+        buying, routing, executing, proving, and paying for work across humans and AI.
+      </p>
+      <div class="badge-row animate mt-32">
+        <span class="badge">Control layer between ask and done</span>
+        <span class="badge">Continuity over chat sprawl</span>
+        <span class="badge">Proof before false completion</span>
+      </div>
+      <div class="notes">
+        Open with category and hard contrast. Generation is not the bottleneck anymore. Completion is.
+      </div>
+    </section>
+
+    <section class="slide alt section-break">
+      <div class="col gap-20 animate">
+        <div class="eyebrow">01 / The Fracture</div>
+        <div class="hero">THE<br>FRACTURE</div>
+        <div class="rule"></div>
+        <p class="h3 soft" style="max-width: 860px;">
+          Work starts in AI chat now.<br>
+          The moment execution becomes real, the thread breaks.
+        </p>
+      </div>
+      <div class="section-rail animate">
+        <div></div>
+        <div class="section-box">
+          <div class="tiny">Core issue</div>
+          <div class="h3 mt-12">Completion systems lag far behind generation systems.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="split-wide">
+        <div class="col gap-20 animate">
+          <div class="eyebrow">Problem</div>
+          <div class="h1">Work starts in AI chat.<br>Then the thread breaks.</div>
+          <div class="rule"></div>
+          <p class="body">
+            The ask begins in one place. Execution leaves. Files scatter. Human handoffs appear.
+            Approval, proof, and payment get bolted on later.
+          </p>
+        </div>
+        <div class="col gap-16 animate">
+          <div class="panel strong">
+            <div class="tiny">Where it begins</div>
+            <div class="h3 mt-12">Chat captures demand.</div>
+            <p class="small mt-12">That part is solved.</p>
+          </div>
+          <div class="panel danger-panel">
+            <div class="tiny">Where it fails</div>
+            <div class="h3 mt-12">Execution, proof, and money leave the system.</div>
+            <p class="small mt-12">The buyer already has intent. Continuity is what breaks.</p>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        Make this feel operational, not abstract. The investor should feel the fragmentation.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Failure Mode</div>
+      <div class="hero animate mt-20">GENERATIVE-PLAN<br>COLLAPSE</div>
+      <div class="rule-wide animate mt-24"></div>
+      <div class="plus-chain animate mt-32">
+        <div class="panel">
+          <div class="tiny">Planner bias</div>
+          <div class="h3 mt-12">Models plan from the tools they can call.</div>
+        </div>
+        <div class="plus">+</div>
+        <div class="panel danger-panel">
+          <div class="tiny">Omission</div>
+          <div class="h3 mt-12">Human review, inspection, handoff, and proof disappear.</div>
+        </div>
+        <div class="plus">=</div>
+        <div class="panel strong">
+          <div class="tiny">False completion</div>
+          <div class="h3 mt-12">The output looks complete because the missing work is invisible.</div>
+        </div>
+      </div>
+      <p class="body animate mt-32" style="max-width: 1050px;">
+        When the system lacks a bridge to human or verification-heavy execution,
+        it silently deletes those steps and still reports progress.
+      </p>
+      <div class="notes">
+        This is the coined concept. Keep it crisp and repeatable.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Examples</div>
+      <div class="h1 animate mt-20">What false completion looks like.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="risk-stack animate mt-32">
+        <div class="risk-line">
+          <div class="tiny">Warehouse rollout</div>
+          <div class="small">AI writes SOPs, automations, and docs.</div>
+          <div class="small danger">No floor audit. No device check. No verified handoff.</div>
+        </div>
+        <div class="risk-line">
+          <div class="tiny">Site inspection</div>
+          <div class="small">Planner produces a polished report shape.</div>
+          <div class="small danger">No field visit. No witness step. No evidence chain.</div>
+        </div>
+        <div class="risk-line">
+          <div class="tiny">Ops migration</div>
+          <div class="small">Generated deliverables look complete in chat.</div>
+          <div class="small danger">No stakeholder review. No operator training. No proof it works live.</div>
+        </div>
+      </div>
+      <div class="notes">
+        These examples let you bridge digital work today and harder embodied work later.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Why It Hurts</div>
+      <div class="h1 animate mt-20">False completion is expensive.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="quad animate mt-32">
+        <div class="panel danger-panel">
+          <div class="mega-number">01</div>
+          <div class="h3 mt-16">Hidden human work</div>
+          <p class="small mt-12">Critical review and approval re-enter as surprises.</p>
+        </div>
+        <div class="panel danger-panel">
+          <div class="mega-number">02</div>
+          <div class="h3 mt-16">Unverified delivery</div>
+          <p class="small mt-12">Polished output arrives without durable proof.</p>
+        </div>
+        <div class="panel danger-panel">
+          <div class="mega-number">03</div>
+          <div class="h3 mt-16">Commercial drag</div>
+          <p class="small mt-12">Payout, settlement, and trust move downstream into dispute.</p>
+        </div>
+        <div class="panel danger-panel">
+          <div class="mega-number">04</div>
+          <div class="h3 mt-16">Buyer distrust</div>
+          <p class="small mt-12">Teams stop trusting AI-heavy workflows that claim too much.</p>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 44px;">
+        The hard problem is not generation.<br>
+        It is trustworthy continuity from ask to verified done.
+      </div>
+      <div class="notes">
+        Convert the problem into money, trust, and operational pain.
+      </div>
+    </section>
+
+    <section class="slide section-break">
+      <div class="col gap-20 animate">
+        <div class="eyebrow">02 / The Opening</div>
+        <div class="hero">THE<br>OPENING</div>
+        <div class="rule"></div>
+        <p class="h3 soft" style="max-width: 920px;">
+          AI work demand is already monetizing.<br>
+          The fulfillment control layer is still open.
+        </p>
+      </div>
+      <div class="section-rail animate">
+        <div></div>
+        <div class="section-box">
+          <div class="tiny">Investor read</div>
+          <div class="h3 mt-12">This is a spend category plus a control-point opportunity.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Market Proof</div>
+      <div class="h1 animate mt-20">The spend is real.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="signal-grid animate mt-32">
+        <div class="panel strong">
+          <div class="mega-number">$300M+</div>
+          <div class="tiny mt-12">Upwork AI-related work</div>
+          <p class="small mt-12">Annualized GSV in Q1 2026.</p>
+        </div>
+        <div class="panel">
+          <div class="mega-number">37%</div>
+          <div class="tiny mt-12">AI integration growth</div>
+          <p class="small mt-12">Upwork AI integration and automation YoY.</p>
+        </div>
+        <div class="panel">
+          <div class="mega-number">18%</div>
+          <div class="tiny mt-12">Fiverr $1k+ buyers</div>
+          <p class="small mt-12">Growth in high-value clients in Q1 2026.</p>
+        </div>
+        <div class="panel strong">
+          <div class="mega-number">~10%</div>
+          <div class="tiny mt-12">Mismatch reduction</div>
+          <p class="small mt-12">Early Fiverr Pro matching improvement.</p>
+        </div>
+      </div>
+      <div class="triple animate mt-24">
+        <div class="outline-box">
+          <div class="h3">$120B</div>
+          <p class="small mt-12">Directional 2028 SMB contingent digital knowledge work spend.</p>
+        </div>
+        <div class="outline-box">
+          <div class="h3">$530B</div>
+          <p class="small mt-12">Directional 2028 enterprise contingent digital knowledge work spend.</p>
+        </div>
+        <div class="outline-box" style="border-color: rgba(137,255,123,0.3);">
+          <div class="h3 accent">$650B</div>
+          <p class="small mt-12">Directional 2028 agentic AI work aligned with digital knowledge work.</p>
+        </div>
+      </div>
+      <p class="tiny animate mt-24">Sources checked May 15, 2026: Upwork Q1 2026 Investor Presentation; Fiverr Q1 2026 Results.</p>
+      <div class="notes">
+        Keep directional TAM secondary. The spend proof is stronger than the big-number projection.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Why Now</div>
+      <div class="h1 animate mt-20">AI capability moved faster than the systems used to buy, route, and prove work.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="triple animate mt-32">
+        <div class="panel">
+          <div class="tiny">Marketplace signal</div>
+          <div class="h3 mt-12">Spend already exists.</div>
+          <p class="small mt-12">Work platforms are moving from transactions into fulfillment infrastructure.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Platform signal</div>
+          <div class="h3 mt-12">Point solutions are chaos.</div>
+          <p class="small mt-12">OpenAI and Microsoft both frame the next layer as unified real-work systems.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Work-shape signal</div>
+          <div class="h3 mt-12">Human plus AI is the default shape.</div>
+          <p class="small mt-12">The durable unit is no longer only a freelancer or only a tool.</p>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 42px;">
+        The opportunity is no longer another model surface.<br>
+        It is the fulfillment system around the work.
+      </div>
+      <div class="notes">
+        This is timing, not only category definition.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Category Gap</div>
+      <div class="h1 animate mt-20">Every category stops too early.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="quad animate mt-32">
+        <div class="panel">
+          <div class="tiny">Chat products</div>
+          <div class="h3 mt-12">Capture the ask.</div>
+          <p class="small mt-12 danger">Stop before commercial state, proof, and continuity.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Marketplaces</div>
+          <div class="h3 mt-12">Offer discovery and payment rails.</div>
+          <p class="small mt-12 danger">Start from listings, not one durable request thread.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Workflow tools</div>
+          <div class="h3 mt-12">Coordinate internal work.</div>
+          <p class="small mt-12 danger">Do not source external supply or handle work commerce natively.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Agent tools</div>
+          <div class="h3 mt-12">Execute callable digital actions.</div>
+          <p class="small mt-12 danger">Optimize for what the model can do, not what the job requires.</p>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 40px;">
+        None of these keep one durable thread across demand, commitment, fulfillment, proof, and payment.
+      </div>
+      <div class="notes">
+        This replaces the old heavy comparison table with a cleaner pattern slide.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Category Stack</div>
+      <div class="h1 animate mt-20">Boreal is request-native work commerce.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="plus-chain animate mt-32">
+        <div class="panel">
+          <div class="tiny">Interface layer</div>
+          <div class="h2 mt-12">Chat-native</div>
+          <p class="small mt-12">The ask starts in natural language.</p>
+        </div>
+        <div class="plus">+</div>
+        <div class="panel strong">
+          <div class="tiny">Category layer</div>
+          <div class="h2 mt-12">Request-native work commerce</div>
+          <p class="small mt-12">The business system starts from the request, not a listing.</p>
+        </div>
+        <div class="plus">+</div>
+        <div class="panel">
+          <div class="tiny">Thesis layer</div>
+          <div class="h2 mt-12">Intent-to-fulfillment</div>
+          <p class="small mt-12">The system carries work from ambiguity to verified completion.</p>
+        </div>
+      </div>
+      <div class="notes">
+        Keep the exact canon stack. Do not collapse the layers into one phrase.
+      </div>
+    </section>
+
+    <section class="slide alt section-break">
+      <div class="col gap-20 animate">
+        <div class="eyebrow">03 / The System</div>
+        <div class="hero">THE<br>SYSTEM</div>
+        <div class="rule"></div>
+        <p class="h3 soft" style="max-width: 920px;">
+          Boreal is not another agent surface.<br>
+          It is a durable fulfillment thread.
+        </p>
+      </div>
+      <div class="section-rail animate">
+        <div></div>
+        <div class="section-box">
+          <div class="tiny">Design choice</div>
+          <div class="h3 mt-12">The root object is <span class="mono accent">Request</span>.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">One Durable Thread</div>
+      <div class="h1 animate mt-20">Ask -&gt; Request -&gt; Commitment -&gt; Fulfillment -&gt; Artifact -&gt; Transaction</div>
+      <div class="rule animate mt-24"></div>
+      <div class="process animate mt-32">
+        <div class="process-node">
+          <div class="step-tag">1 / Intake</div>
+          <div class="h3">Ask</div>
+          <div class="small">Natural-language demand enters.</div>
+        </div>
+        <div class="process-node active-node">
+          <div class="step-tag">2 / Durable root</div>
+          <div class="h3">Request</div>
+          <div class="small">One thread holds the work.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">3 / Approval</div>
+          <div class="h3">Commitment</div>
+          <div class="small">Commercial terms stay explicit.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">4 / Execution</div>
+          <div class="h3">Fulfillment</div>
+          <div class="small">Human and AI supply execute on-thread.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">5 / Proof</div>
+          <div class="h3">Artifact</div>
+          <div class="small">Delivery and evidence stay attached.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">6 / Money</div>
+          <div class="h3">Transaction</div>
+          <div class="small">Payment and payout close the loop.</div>
+        </div>
+      </div>
+      <div class="notes">
+        This is the mechanical slide. Clean, legible, no over-explaining.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Why Request-Rooted</div>
+      <div class="h1 animate mt-20">The root object is the wedge.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="triple animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Continuity</div>
+          <div class="h3 mt-12">One request survives the lifecycle.</div>
+          <p class="small mt-12">No disconnected chat, task, proposal, and payout objects drifting apart.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Commercial truth</div>
+          <div class="h3 mt-12">Approval and money stay first-class.</div>
+          <p class="small mt-12">Quotes, acceptance, proof, and payout are not side effects of messages.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Mixed execution</div>
+          <div class="h3 mt-12">Human and AI can share the same lane.</div>
+          <p class="small mt-12">The system does not force everything into generative-only execution.</p>
+        </div>
+      </div>
+      <div class="notes">
+        This is where technical truth and commercial story become the same argument.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Planning Discipline</div>
+      <div class="h1 animate mt-20">Match the lead first. Plan second. Decompose only when needed.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="process animate mt-32" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+        <div class="process-node active-node">
+          <div class="step-tag">Step 1</div>
+          <div class="h3">Lead-first routing</div>
+          <div class="small">Pick the right <span class="mono">Supply</span> before inventing a task tree.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">Step 2</div>
+          <div class="h3">Read-only planning</div>
+          <div class="small">Planner, matcher, and policy remain separate from mutation.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">Step 3</div>
+          <div class="h3">Scoped decomposition</div>
+          <div class="small">Generated sub-work becomes <span class="mono">FulfillmentStep</span>, not a new root request.</div>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 40px;">
+        Boreal is designed to resist over-planning and premature automation.
+      </div>
+      <div class="notes">
+        This is the operating principle slide. It should read as disciplined, not flashy.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Truth Boundary</div>
+      <div class="h1 animate mt-20">Business truth is durable.<br>Execution noise is not.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="split animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Durable on-thread</div>
+          <div class="check-grid mt-20">
+            <div class="check">Request state</div>
+            <div class="check">Commitments</div>
+            <div class="check">Fulfillment</div>
+            <div class="check">Artifacts and proof</div>
+            <div class="check">Transactions</div>
+            <div class="check">RequestEvent history</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="tiny">Ephemeral by default</div>
+          <div class="check-grid mt-20">
+            <div class="check">Typing</div>
+            <div class="check">Token streams</div>
+            <div class="check">Progress ticks</div>
+            <div class="check">Heartbeats</div>
+            <div class="check">Presence</div>
+            <div class="check">Transient logs</div>
+          </div>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 40px;">
+        Generated text does not count as verified completion by default.
+      </div>
+      <div class="notes">
+        This is one of the strongest systems claims in the deck.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Human Work Stays Explicit</div>
+      <div class="h1 animate mt-20">If a step must happen, it must exist on-thread.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="quad animate mt-32">
+        <div class="panel">
+          <div class="tiny">Digital work</div>
+          <div class="h3 mt-12">Research, code, content, automation.</div>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Human review</div>
+          <div class="h3 mt-12">Approval, signoff, operator checks.</div>
+        </div>
+        <div class="panel">
+          <div class="tiny">Verification-heavy work</div>
+          <div class="h3 mt-12">Inspection, evidence, training, handoff.</div>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Closure safety</div>
+          <div class="h3 mt-12">No resolution until proof obligations exist.</div>
+        </div>
+      </div>
+      <p class="body animate mt-32" style="max-width: 1050px;">
+        Boreal keeps the hard human work visible instead of silently flattening it into a digital-only plan.
+      </p>
+      <div class="notes">
+        This keeps the embodied-work insight in the story without changing the first commercial wedge.
+      </div>
+    </section>
+
+    <section class="slide alt section-break">
+      <div class="col gap-20 animate">
+        <div class="eyebrow">04 / The Wedge</div>
+        <div class="hero">THE<br>WEDGE</div>
+        <div class="rule"></div>
+        <p class="h3 soft" style="max-width: 920px;">
+          Start where demand is urgent, digital, and already spending.<br>
+          Expand later into harder verification-heavy lanes.
+        </p>
+      </div>
+      <div class="section-rail animate">
+        <div></div>
+        <div class="section-box">
+          <div class="tiny">Canon boundary</div>
+          <div class="h3 mt-12">Embodied work sharpens the thesis. It is not the first wedge.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">First Wedge</div>
+      <div class="h1 animate mt-20">Start with external digital work where intake is fuzzy and completion still matters.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="split animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Primary buyer</div>
+          <div class="h3 mt-12">Startup and SMB founders, operators, product leads, and technical leads.</div>
+          <div class="check-grid mt-20">
+            <div class="check">High urgency</div>
+            <div class="check">Outside supply</div>
+            <div class="check">Fuzzy intake</div>
+            <div class="check">Needs accountability</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="tiny">First request classes</div>
+          <div class="check-grid mt-20">
+            <div class="check">AI implementation and automation</div>
+            <div class="check">Research and analysis</div>
+            <div class="check">MVP, spec, and prototype work</div>
+            <div class="check">Media and content production</div>
+            <div class="check">Specialist operator work</div>
+            <div class="check">Review-heavy digital execution</div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        Keep the wedge canon-safe and commercially believable.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Go To Market</div>
+      <div class="h1 animate mt-20">Convert ask-level demand into funded requests and repeat buyers.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="flywheel animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">1</div>
+          <div class="h3 mt-12">Capture the ask</div>
+          <p class="small mt-12">Founders and operators already start in chat.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">2</div>
+          <div class="h3 mt-12">Route strong lead supply</div>
+          <p class="small mt-12">Curated early supply keeps quality high.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">3</div>
+          <div class="h3 mt-12">Fund the request</div>
+          <p class="small mt-12">Commitment and money stay explicit.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">4</div>
+          <div class="h3 mt-12">Verify delivery</div>
+          <p class="small mt-12">Proof and artifacts create accountable closure.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">5</div>
+          <div class="h3 mt-12">Repeat and densify</div>
+          <p class="small mt-12">Context compounds. Matching gets cheaper.</p>
+        </div>
+      </div>
+      <div class="notes">
+        GTM should feel tight and credible, not like a generic marketplace launch.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Business Model</div>
+      <div class="h1 animate mt-20">The first durable engine is funded request GMV.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="split animate mt-32">
+        <div class="panel strong">
+          <div class="mega-number">GMV</div>
+          <div class="h3 mt-16">Primary revenue</div>
+          <p class="body mt-16">Take rate on funded request GMV flowing through the thread.</p>
+        </div>
+        <div class="col gap-16">
+          <div class="panel">
+            <div class="tiny">Secondary layers</div>
+            <div class="h3 mt-12">Premium routing, urgency, and curation.</div>
+          </div>
+          <div class="panel">
+            <div class="tiny">Expansion layers</div>
+            <div class="h3 mt-12">Private supply, enterprise workflow, payout and verification infrastructure.</div>
+          </div>
+          <div class="panel danger-panel">
+            <div class="tiny">What to avoid</div>
+            <div class="h3 mt-12">A labor-heavy agency disguised as software.</div>
+          </div>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 40px;">
+        The software controls the thread.<br>
+        The thread controls the economics.
+      </div>
+      <div class="notes">
+        Commerce first. Seats and enterprise layers come later.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Moat</div>
+      <div class="h1 animate mt-20">The moat is the durable work graph around the request.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="quad animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Demand graph</div>
+          <div class="h3 mt-12">Ambiguous asks, briefs, and buyer intent patterns.</div>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Routing graph</div>
+          <div class="h3 mt-12">Lead choice, collaborator choice, plan history.</div>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Execution graph</div>
+          <div class="h3 mt-12">Fulfillment steps, artifacts, proofs, verified outcomes.</div>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Commercial graph</div>
+          <div class="h3 mt-12">Commitments, transactions, payouts, repeat loops.</div>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 40px;">
+        Chat logs do not create this moat.<br>
+        Listings do not create this moat.
+      </div>
+      <div class="notes">
+        Defensibility comes from structure and repeated commerce data, not only prompts.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Proof Today</div>
+      <div class="h1 animate mt-20">The system model exists. The commercial proof is next.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="signal-grid animate mt-32">
+        <div class="panel">
+          <div class="mega-number">8</div>
+          <div class="tiny mt-12">JSON schemas</div>
+          <p class="small mt-12">Request, Supply, Commitment, Artifact, Fulfillment, Transaction, RequestEvent, common.</p>
+        </div>
+        <div class="panel">
+          <div class="mega-number">3</div>
+          <div class="tiny mt-12">OpenAPI surfaces</div>
+          <p class="small mt-12">Request briefing, supply management, resolver auth.</p>
+        </div>
+        <div class="panel">
+          <div class="mega-number">1</div>
+          <div class="tiny mt-12">Async contract</div>
+          <p class="small mt-12">Request-room event channel.</p>
+        </div>
+        <div class="panel strong">
+          <div class="mega-number">3</div>
+          <div class="tiny mt-12">Request fixtures</div>
+          <p class="small mt-12">Golden thread plus eval fixtures.</p>
+        </div>
+      </div>
+      <div class="triple animate mt-24">
+        <div class="outline-box">
+          <div class="h3">Already modeled</div>
+          <p class="small mt-12">One durable request across demand, commitment, fulfillment, artifacts, and payment state.</p>
+        </div>
+        <div class="outline-box">
+          <div class="h3">Already wired</div>
+          <p class="small mt-12">Resolver auth, direct writes, deterministic eval runner, peer and runtime groundwork.</p>
+        </div>
+        <div class="outline-box" style="border-color: rgba(255,111,135,0.24);">
+          <div class="h3 danger">Not yet claimed</div>
+          <p class="small mt-12">Repeat buyer behavior, funded GMV at scale, or mature supply density.</p>
+        </div>
+      </div>
+      <div class="notes">
+        This slide builds credibility because it is exact about what exists and what does not.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Roadmap</div>
+      <div class="h1 animate mt-20">The next 12 months turn system proof into market proof.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="process animate mt-32" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+        <div class="process-node active-node">
+          <div class="step-tag">Phase 1</div>
+          <div class="h3">Fund first request flows</div>
+          <div class="small">Tighten proof, approval, and payout behavior.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">Phase 2</div>
+          <div class="h3">Increase supply density</div>
+          <div class="small">Improve lead quality in first request classes.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">Phase 3</div>
+          <div class="h3">Prove repeat buyer behavior</div>
+          <div class="small">Show retained context value across requests.</div>
+        </div>
+        <div class="process-node">
+          <div class="step-tag">Phase 4</div>
+          <div class="h3">Expand into harder lanes</div>
+          <div class="small">Verification-heavy and richer fulfillment workflows.</div>
+        </div>
+      </div>
+      <div class="notes">
+        Keep the roadmap tied to commercial proof, not only feature output.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Team</div>
+      <div class="h1 animate mt-20">This still needs your real founder edge.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="triple animate mt-32">
+        <div class="panel">
+          <div class="tiny">Founder-problem fit</div>
+          <div class="h3 mt-12">Why this team has lived the fragmentation problem.</div>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Shipping proof</div>
+          <div class="h3 mt-12">Products built, systems shipped, behavior learned.</div>
+        </div>
+        <div class="panel">
+          <div class="tiny">Right to win</div>
+          <div class="h3 mt-12">External work commerce, orchestration, or workflow credibility.</div>
+        </div>
+      </div>
+      <p class="body animate mt-32" style="max-width: 1000px;">
+        Replace this with founder names, prior wins, and the exact reason this team can own the fulfillment thread for AI-native work.
+      </p>
+      <div class="notes">
+        Keep this honest until you have the real founder story locked.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Raise</div>
+      <div class="h1 animate mt-20">Raise to turn product proof into demand proof.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="split animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Draft ask</div>
+          <div class="hero mt-16" style="font-size: 76px;">$1.5M</div>
+          <div class="h3 mt-12 soft">Pre-seed framing</div>
+          <p class="small mt-16">Replace with the real amount, instrument, timeline, and milestone plan before external send.</p>
+        </div>
+        <div class="col gap-16">
+          <div class="panel">
+            <div class="tiny">Use of funds</div>
+            <div class="check-grid mt-20">
+              <div class="check">Product and engineering</div>
+              <div class="check">Buyer acquisition</div>
+              <div class="check">Supply onboarding</div>
+              <div class="check">Ops and infrastructure</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="tiny">Round goals</div>
+            <div class="check-grid mt-20">
+              <div class="check">Prove funded request GMV</div>
+              <div class="check">Prove repeat buyer behavior</div>
+              <div class="check">Grow initial supply density</div>
+              <div class="check">Convert system proof into market proof</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        Strong ending, but still explicit about placeholders.
+      </div>
+    </section>
+
+    <section class="slide section-break">
+      <div class="col gap-20 animate">
+        <div class="appendix-stamp">Appendix</div>
+        <div class="hero">APPENDIX</div>
+        <div class="rule"></div>
+        <p class="h3 soft" style="max-width: 900px;">
+          Keep the main deck sharp.<br>
+          Move supporting detail here.
+        </p>
+      </div>
+      <div class="section-rail animate">
+        <div></div>
+        <div class="section-box">
+          <div class="tiny">Why this helps</div>
+          <div class="h3 mt-12">The story gets cleaner when backup slides hold the denser context.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Appendix A / Competitive Landscape</div>
+      <div class="h1 animate mt-20">Boreal sits between external demand and mixed-supply execution.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="quad animate mt-32">
+        <div class="panel">
+          <div class="tiny">Chat apps</div>
+          <div class="h3 mt-12">Great front door.</div>
+          <p class="small mt-12">Weak on commercial truth and completion.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Work marketplaces</div>
+          <div class="h3 mt-12">Great spend validation.</div>
+          <p class="small mt-12">Still listing-rooted and fragmented through execution.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Internal agent suites</div>
+          <div class="h3 mt-12">Great inside the company.</div>
+          <p class="small mt-12">Not designed as external work commerce.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Boreal</div>
+          <div class="h3 mt-12">Own the fulfillment thread.</div>
+          <p class="small mt-12">Request-rooted continuity across humans, AI, proof, and payout.</p>
+        </div>
+      </div>
+      <div class="notes">
+        Use this if investors push on competition.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">Appendix B / Embodied Work</div>
+      <div class="h1 animate mt-20">Embodied work sharpens the problem. It does not change the first wedge.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="split animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Why it matters</div>
+          <div class="h3 mt-12">It exposes the structural bias of AI planning.</div>
+          <p class="small mt-12">When a system can only call digital tools, it silently deletes physical, local, witnessed, or inspection-heavy steps.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Why not first</div>
+          <div class="h3 mt-12">The first wedge remains high-value digital work.</div>
+          <p class="small mt-12">Digital delivery creates faster loops, cleaner proof, and better early marketplace economics.</p>
+        </div>
+      </div>
+      <div class="notes">
+        This is the clean answer if the room leans too hard into local-services interpretation.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">Appendix C / Claim Discipline</div>
+      <div class="h1 animate mt-20">Be precise about what is live, modeled, and still target direction.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="triple animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Canon-locked now</div>
+          <div class="h3 mt-12">Category, wedge, objects, business model, and request-rooted truth.</div>
+        </div>
+        <div class="panel">
+          <div class="tiny">Machine-modeled now</div>
+          <div class="h3 mt-12">Schemas, APIs, fixtures, evals, request-room events, runtime groundwork.</div>
+        </div>
+        <div class="panel danger-panel">
+          <div class="tiny">Target direction</div>
+          <div class="h3 mt-12">Scaled GMV, dense supply, broader events, richer fulfillment lanes.</div>
+        </div>
+      </div>
+      <p class="body animate mt-32" style="max-width: 1020px;">
+        This deck should stay strongest when it makes a sharp commercial claim without inventing traction that does not exist yet.
+      </p>
+      <div class="notes">
+        This is the backup slide for claim hygiene.
+      </div>
+    </section>
+
+    <div class="nav">
+      <button onclick="prev()">Prev</button>
+      <div class="nav-count"><span id="current">1</span> / <span id="total">30</span></div>
+      <div class="nav-progress"><div class="nav-progress-fill" id="progress"></div></div>
+      <button onclick="next()">Next</button>
+    </div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const total = slides.length;
+    const totalEl = document.getElementById("total");
+    const currentEl = document.getElementById("current");
+    const progressEl = document.getElementById("progress");
+    const notes = Array.from(document.querySelectorAll(".notes"));
+    let index = 0;
+    let notesVisible = false;
+
+    totalEl.textContent = total;
+
+    function show(nextIndex) {
+      index = (nextIndex + total) % total;
+      slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+      currentEl.textContent = String(index + 1);
+      progressEl.style.width = `${((index + 1) / total) * 100}%`;
+      notes.forEach(note => note.classList.toggle("visible", notesVisible));
+    }
+
+    function next() { show(index + 1); }
+    function prev() { show(index - 1); }
+    function toggleNotes() {
+      notesVisible = !notesVisible;
+      notes.forEach(note => note.classList.toggle("visible", notesVisible));
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        next();
+      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        prev();
+      } else if (event.key.toLowerCase() === "n") {
+        toggleNotes();
+      } else if (event.key === "Home") {
+        show(0);
+      } else if (event.key === "End") {
+        show(total - 1);
+      }
+    });
+
+    document.getElementById("deck").addEventListener("click", (event) => {
+      if (event.target.closest(".nav")) return;
+      next();
+    });
+
+    show(0);
+  </script>
+</body>
+</html>

@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boreal - Short Pitch Deck</title>
+  <style>
+    :root {
+      --bg: #04070a;
+      --bg-2: #0a121a;
+      --panel: rgba(10, 17, 24, 0.94);
+      --border: rgba(205, 218, 232, 0.12);
+      --border-strong: rgba(137, 255, 123, 0.42);
+      --text: #f4f7fb;
+      --text-soft: rgba(244, 247, 251, 0.8);
+      --text-muted: rgba(186, 198, 214, 0.6);
+      --accent: #89ff7b;
+      --accent-dim: rgba(137, 255, 123, 0.12);
+      --warning: #ffd84d;
+      --danger: #ff6f87;
+      --danger-dim: rgba(255, 111, 135, 0.12);
+      --shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      --hero: 90px;
+      --h1: 64px;
+      --h2: 36px;
+      --h3: 24px;
+      --body: 21px;
+      --small: 16px;
+      --tiny: 12px;
+      --radius: 22px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+      --sans: "Segoe UI Variable", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(137, 255, 123, 0.12), transparent 25%),
+        radial-gradient(circle at top right, rgba(255, 216, 77, 0.07), transparent 24%),
+        linear-gradient(180deg, #030507 0%, #060c12 100%);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 62px 82px 92px;
+      opacity: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(3, 5, 7, 0.88), rgba(4, 9, 13, 0.96)),
+        repeating-linear-gradient(90deg, transparent 0, transparent 111px, rgba(255,255,255,0.01) 111px, rgba(255,255,255,0.01) 112px);
+      transition: opacity 420ms var(--ease);
+      overflow: hidden;
+    }
+
+    .slide::before,
+    .slide::after {
+      content: "";
+      position: absolute;
+      top: 24px;
+      bottom: 24px;
+      width: 156px;
+      pointer-events: none;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      opacity: 0.7;
+    }
+
+    .slide::before {
+      left: 24px;
+      background:
+        linear-gradient(180deg, rgba(137, 255, 123, 0.08), transparent 36%),
+        repeating-linear-gradient(180deg, transparent 0, transparent 23px, rgba(255,255,255,0.03) 23px, rgba(255,255,255,0.03) 24px);
+    }
+
+    .slide::after {
+      right: 24px;
+      background:
+        linear-gradient(180deg, rgba(255, 216, 77, 0.05), transparent 30%),
+        repeating-linear-gradient(180deg, transparent 0, transparent 23px, rgba(255,255,255,0.03) 23px, rgba(255,255,255,0.03) 24px);
+    }
+
+    .slide.alt {
+      background:
+        linear-gradient(180deg, rgba(5, 8, 11, 0.92), rgba(6, 12, 18, 0.98)),
+        repeating-linear-gradient(90deg, transparent 0, transparent 111px, rgba(255,255,255,0.012) 111px, rgba(255,255,255,0.012) 112px);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .slide.active .animate {
+      animation: rise 520ms var(--ease) both;
+    }
+
+    .slide.active .animate:nth-child(1) { animation-delay: 0ms; }
+    .slide.active .animate:nth-child(2) { animation-delay: 70ms; }
+    .slide.active .animate:nth-child(3) { animation-delay: 140ms; }
+    .slide.active .animate:nth-child(4) { animation-delay: 210ms; }
+    .slide.active .animate:nth-child(5) { animation-delay: 280ms; }
+    .slide.active .animate:nth-child(6) { animation-delay: 350ms; }
+    .slide.active .animate:nth-child(7) { animation-delay: 420ms; }
+    .slide.active .animate:nth-child(8) { animation-delay: 490ms; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.3;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .hero {
+      font-family: var(--mono);
+      font-size: var(--hero);
+      line-height: 0.96;
+      letter-spacing: -3px;
+      font-weight: 700;
+      max-width: 1160px;
+    }
+
+    .h1 {
+      font-family: var(--mono);
+      font-size: var(--h1);
+      line-height: 1;
+      letter-spacing: -2px;
+      font-weight: 700;
+      max-width: 1120px;
+    }
+
+    .h2 {
+      font-size: var(--h2);
+      line-height: 1.1;
+      letter-spacing: -1px;
+      font-weight: 600;
+    }
+
+    .h3 {
+      font-size: var(--h3);
+      line-height: 1.25;
+      font-weight: 650;
+    }
+
+    .body {
+      font-size: var(--body);
+      line-height: 1.42;
+      color: var(--text-soft);
+    }
+
+    .small {
+      font-size: var(--small);
+      line-height: 1.45;
+      color: var(--text-soft);
+    }
+
+    .tiny {
+      font-size: var(--tiny);
+      line-height: 1.5;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1.4px;
+    }
+
+    .accent { color: var(--accent); }
+    .danger { color: var(--danger); }
+    .soft { color: var(--text-soft); }
+    .muted { color: var(--text-muted); }
+    .mono { font-family: var(--mono); }
+
+    .col { display: flex; flex-direction: column; }
+    .row { display: flex; }
+    .gap-12 { gap: 12px; }
+    .gap-16 { gap: 16px; }
+    .gap-20 { gap: 20px; }
+    .gap-24 { gap: 24px; }
+    .gap-32 { gap: 32px; }
+    .gap-40 { gap: 40px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-20 { margin-top: 20px; }
+    .mt-24 { margin-top: 24px; }
+    .mt-32 { margin-top: 32px; }
+
+    .badge-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      font-size: 11px;
+      font-family: var(--mono);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-soft);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .badge.accent-badge {
+      border-color: rgba(137,255,123,0.25);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .rule {
+      width: 92px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), rgba(137,255,123,0));
+    }
+
+    .rule-wide {
+      width: 230px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), rgba(255,216,77,0.44), rgba(255,255,255,0.02));
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(10, 17, 24, 0.96), rgba(6, 11, 16, 0.98));
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel.strong {
+      border-color: var(--border-strong);
+      background: linear-gradient(180deg, rgba(10, 21, 14, 0.92), rgba(7, 13, 10, 0.98));
+    }
+
+    .panel.danger-panel {
+      border-color: rgba(255,111,135,0.26);
+      background: linear-gradient(180deg, rgba(27, 10, 15, 0.94), rgba(16, 8, 12, 0.98));
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .triple {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .quad {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .statement {
+      max-width: 1120px;
+      font-family: var(--mono);
+      font-size: 50px;
+      line-height: 1.04;
+      letter-spacing: -2px;
+      font-weight: 700;
+    }
+
+    .mega-number {
+      font-family: var(--mono);
+      font-size: 62px;
+      line-height: 1;
+      letter-spacing: -2px;
+      color: var(--accent);
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .flow-step {
+      min-height: 128px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      padding: 16px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .flow-step.active-step {
+      border-color: var(--border-strong);
+      background: rgba(137,255,123,0.08);
+      box-shadow: 0 0 26px rgba(137,255,123,0.12);
+    }
+
+    .step-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px 24px;
+    }
+
+    .check {
+      position: relative;
+      padding-left: 18px;
+      font-size: 18px;
+      line-height: 1.35;
+      color: var(--text-soft);
+    }
+
+    .check::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 9px;
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .cover-grid {
+      display: grid;
+      grid-template-columns: 0.94fr 1.06fr;
+      gap: 30px;
+      align-items: center;
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 440px;
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      background:
+        radial-gradient(circle at 22% 24%, rgba(137,255,123,0.16), transparent 24%),
+        radial-gradient(circle at 78% 76%, rgba(255,216,77,0.08), transparent 26%),
+        linear-gradient(180deg, rgba(7, 12, 18, 0.98), rgba(5, 9, 13, 0.99));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .hero-visual::before {
+      content: "";
+      position: absolute;
+      inset: 22px;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 24px;
+      pointer-events: none;
+    }
+
+    .glow-orb {
+      position: absolute;
+      border-radius: 999px;
+      filter: blur(12px);
+      opacity: 0.75;
+    }
+
+    .orb-a {
+      width: 140px;
+      height: 140px;
+      left: -30px;
+      top: -26px;
+      background: rgba(137,255,123,0.18);
+    }
+
+    .orb-b {
+      width: 110px;
+      height: 110px;
+      right: -14px;
+      bottom: 14px;
+      background: rgba(255,216,77,0.12);
+    }
+
+    .visual-window {
+      position: absolute;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 24px;
+      padding: 16px;
+      background: rgba(8, 15, 21, 0.92);
+      box-shadow: 0 18px 50px rgba(0,0,0,0.28);
+    }
+
+    .window-top {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .window-top span {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.18);
+    }
+
+    .window-line {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      margin-top: 8px;
+    }
+
+    .window-line.wide { width: 88%; }
+    .window-line.medium { width: 62%; }
+    .window-line.short { width: 42%; }
+    .window-line.accent-line { background: rgba(137,255,123,0.2); }
+
+    .window-chat {
+      left: 34px;
+      top: 42px;
+      width: 236px;
+      transform: rotate(-4deg);
+    }
+
+    .window-request {
+      left: 174px;
+      top: 132px;
+      width: 286px;
+      border-color: var(--border-strong);
+      background: rgba(8, 18, 13, 0.94);
+      box-shadow: 0 0 34px rgba(137,255,123,0.12);
+    }
+
+    .window-runtime {
+      right: 34px;
+      bottom: 46px;
+      width: 248px;
+      transform: rotate(3deg);
+    }
+
+    .window-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1.3px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .window-value {
+      font-family: var(--mono);
+      font-size: 24px;
+      line-height: 1.15;
+      margin-top: 10px;
+    }
+
+    .hero-spine {
+      position: absolute;
+      left: 300px;
+      top: 92px;
+      bottom: 92px;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(137,255,123,0), rgba(137,255,123,0.9), rgba(137,255,123,0));
+      box-shadow: 0 0 18px rgba(137,255,123,0.2);
+    }
+
+    .thread-node {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 14px rgba(137,255,123,0.42);
+      left: 294px;
+    }
+
+    .node-top { top: 132px; }
+    .node-mid { top: 224px; }
+    .node-low { top: 316px; }
+
+    .thread-break-stage {
+      display: grid;
+      grid-template-columns: 0.86fr 0.24fr 1.1fr;
+      gap: 18px;
+      align-items: center;
+      min-height: 360px;
+    }
+
+    .stage-frame {
+      position: relative;
+      min-height: 320px;
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(8, 14, 20, 0.96), rgba(5, 10, 14, 0.98));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .stage-frame::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 1px solid rgba(255,255,255,0.04);
+      border-radius: 22px;
+      pointer-events: none;
+    }
+
+    .chat-thread {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      top: 34px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 12px 14px;
+      border-radius: 18px;
+      font-size: 16px;
+      line-height: 1.35;
+      color: var(--text-soft);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .bubble.user {
+      margin-left: auto;
+      background: rgba(137,255,123,0.1);
+      border-color: rgba(137,255,123,0.2);
+    }
+
+    .bubble.system {
+      background: rgba(255,255,255,0.04);
+    }
+
+    .break-axis {
+      position: relative;
+      min-height: 280px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fracture {
+      position: relative;
+      width: 100%;
+      height: 180px;
+    }
+
+    .fracture::before,
+    .fracture::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      height: 2px;
+      width: 34%;
+      background: linear-gradient(90deg, rgba(137,255,123,0.8), rgba(255,111,135,0.2));
+    }
+
+    .fracture::before { left: 0; }
+    .fracture::after { right: 0; }
+
+    .fracture-mark {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--mono);
+      font-size: 48px;
+      color: var(--danger);
+      text-shadow: 0 0 20px rgba(255,111,135,0.3);
+    }
+
+    .fracture-label {
+      position: absolute;
+      left: 50%;
+      top: calc(50% + 42px);
+      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .scatter-cloud {
+      position: absolute;
+      inset: 24px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-content: center;
+    }
+
+    .scatter-card {
+      padding: 16px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      font-family: var(--mono);
+      font-size: 15px;
+      line-height: 1.35;
+      color: var(--text-soft);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+    }
+
+    .scatter-card:nth-child(1) { transform: rotate(-5deg); }
+    .scatter-card:nth-child(2) { transform: translateY(18px) rotate(4deg); }
+    .scatter-card:nth-child(3) { transform: translateX(8px) rotate(3deg); }
+    .scatter-card:nth-child(4) { transform: translateY(-12px) rotate(-4deg); }
+    .scatter-card:nth-child(5) { transform: rotate(6deg); }
+    .scatter-card:nth-child(6) { transform: rotate(-3deg); }
+
+    .collapse-stage {
+      display: grid;
+      grid-template-columns: 0.86fr 0.84fr 0.9fr;
+      gap: 18px;
+      align-items: center;
+      min-height: 350px;
+    }
+
+    .need-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .need-chip {
+      padding: 16px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--text-soft);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.16);
+    }
+
+    .funnel-stage {
+      position: relative;
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .funnel-shell {
+      position: relative;
+      width: 250px;
+      height: 214px;
+      clip-path: polygon(0 0, 100% 0, 70% 58%, 70% 100%, 30% 100%, 30% 58%);
+      background: linear-gradient(180deg, rgba(255,111,135,0.18), rgba(255,111,135,0.04));
+      border: 1px solid rgba(255,111,135,0.3);
+      box-shadow: 0 0 30px rgba(255,111,135,0.12);
+    }
+
+    .funnel-core {
+      position: absolute;
+      inset: 16px 16px 22px 16px;
+      clip-path: polygon(0 0, 100% 0, 69% 58%, 69% 100%, 31% 100%, 31% 58%);
+      background: linear-gradient(180deg, rgba(21, 10, 14, 0.96), rgba(12, 7, 10, 0.98));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 19px;
+      line-height: 1.28;
+      color: var(--text);
+    }
+
+    .funnel-drop {
+      position: absolute;
+      bottom: 30px;
+      width: 18px;
+      height: 70px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255,111,135,0.86), rgba(255,111,135,0.06));
+      box-shadow: 0 0 16px rgba(255,111,135,0.22);
+    }
+
+    .output-orb {
+      width: 192px;
+      height: 192px;
+      border-radius: 999px;
+      border: 1px solid rgba(137,255,123,0.24);
+      background: radial-gradient(circle at 50% 40%, rgba(137,255,123,0.18), rgba(9,16,22,0.98) 68%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 24px;
+      line-height: 1.2;
+      box-shadow: 0 0 30px rgba(137,255,123,0.12);
+      margin-bottom: 18px;
+    }
+
+    .runtime-stage {
+      display: grid;
+      grid-template-columns: 1fr 170px 1fr;
+      gap: 18px;
+      align-items: center;
+      min-height: 360px;
+    }
+
+    .surface-window {
+      position: relative;
+      min-height: 320px;
+      border-radius: 26px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(8, 15, 21, 0.96), rgba(5, 9, 13, 0.99));
+      box-shadow: var(--shadow);
+      padding: 18px;
+      overflow: hidden;
+    }
+
+    .surface-window.left::after,
+    .surface-window.right::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 18px;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(137,255,123,0.8), rgba(137,255,123,0));
+    }
+
+    .surface-window.left::after {
+      right: -18px;
+    }
+
+    .surface-window.right::before {
+      left: -18px;
+      transform: scaleX(-1);
+    }
+
+    .surface-lines {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .surface-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      width: fit-content;
+    }
+
+    .surface-log {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 15px;
+      line-height: 1.4;
+      color: var(--text-soft);
+    }
+
+    .runtime-center {
+      position: relative;
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .spine-rail {
+      position: absolute;
+      top: 30px;
+      bottom: 30px;
+      width: 2px;
+      background: linear-gradient(180deg, rgba(137,255,123,0), rgba(137,255,123,0.9), rgba(137,255,123,0));
+      box-shadow: 0 0 18px rgba(137,255,123,0.18);
+    }
+
+    .spine-stack {
+      position: relative;
+      display: grid;
+      gap: 14px;
+      z-index: 1;
+    }
+
+    .spine-pill {
+      min-width: 138px;
+      padding: 12px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(137,255,123,0.22);
+      background: rgba(8, 16, 12, 0.94);
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    }
+
+    .spine-pill.primary {
+      background: rgba(137,255,123,0.12);
+      color: var(--accent);
+    }
+
+    .graph-stage {
+      position: relative;
+      min-height: 360px;
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(137,255,123,0.08), transparent 24%),
+        linear-gradient(180deg, rgba(7, 12, 18, 0.98), rgba(5, 9, 13, 0.99));
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .graph-core {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 184px;
+      height: 184px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      border: 1px solid rgba(137,255,123,0.26);
+      background: radial-gradient(circle at 50% 35%, rgba(137,255,123,0.18), rgba(8,16,12,0.96) 70%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      font-family: var(--mono);
+      font-size: 24px;
+      line-height: 1.18;
+      box-shadow: 0 0 30px rgba(137,255,123,0.12);
+    }
+
+    .graph-core::before {
+      content: "";
+      position: absolute;
+      inset: -56px;
+      border: 1px dashed rgba(137,255,123,0.14);
+      border-radius: 999px;
+    }
+
+    .orbit-card {
+      position: absolute;
+      width: 220px;
+      padding: 16px 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+    }
+
+    .orbit-card.top-left { left: 38px; top: 34px; }
+    .orbit-card.top-right { right: 38px; top: 34px; }
+    .orbit-card.bottom-left { left: 52px; bottom: 34px; }
+    .orbit-card.bottom-right { right: 52px; bottom: 34px; }
+
+    .orbit-card .tiny {
+      color: var(--accent);
+    }
+
+    .notes {
+      position: absolute;
+      left: 82px;
+      right: 82px;
+      bottom: 24px;
+      padding: 14px 16px;
+      border: 1px dashed rgba(137,255,123,0.28);
+      border-radius: 16px;
+      background: rgba(3, 6, 9, 0.9);
+      color: rgba(220, 234, 245, 0.92);
+      font-size: 14px;
+      line-height: 1.42;
+      display: none;
+    }
+
+    .notes.visible { display: block; }
+
+    .nav {
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(5, 9, 13, 0.88);
+      box-shadow: var(--shadow);
+      opacity: 0.18;
+      transition: opacity 180ms ease;
+    }
+
+    .deck:hover .nav { opacity: 1; }
+
+    .nav button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav button:hover { background: rgba(255,255,255,0.1); }
+
+    .nav-count {
+      min-width: 78px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--text-soft);
+    }
+
+    .nav-progress {
+      width: 180px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    .nav-progress-fill {
+      width: 0;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--warning));
+      transition: width 220ms ease;
+    }
+
+    @media (max-width: 1320px) {
+      .slide { padding: 52px 56px 92px; }
+      .notes { left: 56px; right: 56px; }
+      .hero { font-size: 74px; }
+      .h1 { font-size: 52px; }
+      .body { font-size: 19px; }
+      .cover-grid,
+      .split,
+      .thread-break-stage,
+      .collapse-stage,
+      .runtime-stage { grid-template-columns: 1fr; }
+      .quad { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <section class="slide active">
+      <div class="cover-grid">
+        <div class="col">
+          <div class="badge-row animate">
+            <span class="badge accent-badge">Short pitch deck</span>
+            <span class="badge">Boreal</span>
+            <span class="badge">13 slides</span>
+          </div>
+          <div class="hero animate mt-24">Boreal</div>
+          <div class="statement animate mt-20">
+            AI can start work.<br>
+            Boreal gets it actually done.
+          </div>
+          <div class="rule-wide animate mt-24"></div>
+          <p class="body animate mt-24" style="max-width: 760px;">
+            Boreal is request-native work commerce: a durable fulfillment thread for
+            buying, routing, executing, proving, and paying for work across humans and AI.
+          </p>
+        </div>
+        <div class="hero-visual animate">
+          <div class="glow-orb orb-a"></div>
+          <div class="glow-orb orb-b"></div>
+          <div class="hero-spine"></div>
+          <div class="thread-node node-top"></div>
+          <div class="thread-node node-mid"></div>
+          <div class="thread-node node-low"></div>
+          <div class="visual-window window-chat">
+            <div class="window-top"><span></span><span></span><span></span></div>
+            <div class="window-tag">Ask enters</div>
+            <div class="window-value">Need this done.</div>
+            <div class="window-line wide"></div>
+            <div class="window-line medium"></div>
+          </div>
+          <div class="visual-window window-request">
+            <div class="window-top"><span></span><span></span><span></span></div>
+            <div class="window-tag">Durable thread</div>
+            <div class="window-value">Request</div>
+            <div class="window-line wide accent-line"></div>
+            <div class="window-line medium"></div>
+            <div class="window-line short"></div>
+          </div>
+          <div class="visual-window window-runtime">
+            <div class="window-top"><span></span><span></span><span></span></div>
+            <div class="window-tag">Execution surfaces</div>
+            <div class="window-value">Web + desktop runtime</div>
+            <div class="window-line wide"></div>
+            <div class="window-line short accent-line"></div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        Open fast. Reviewers need category, problem, and product in under 30 seconds.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">01 / Problem</div>
+      <div class="h1 animate mt-20">Work starts in AI chat now.<br>Then the thread breaks.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="thread-break-stage animate mt-32">
+        <div class="stage-frame">
+          <div class="chat-thread">
+            <div class="bubble user">Can you handle this request?</div>
+            <div class="bubble system">Yes. Here is the plan.</div>
+            <div class="bubble user">Good. Now get it done.</div>
+            <div class="bubble system">Working on it.</div>
+          </div>
+        </div>
+        <div class="break-axis">
+          <div class="fracture">
+            <div class="fracture-mark">//</div>
+            <div class="fracture-label">thread breaks here</div>
+          </div>
+        </div>
+        <div class="stage-frame">
+          <div class="scatter-cloud">
+            <div class="scatter-card">Files</div>
+            <div class="scatter-card">Approval</div>
+            <div class="scatter-card">Review</div>
+            <div class="scatter-card">Proof</div>
+            <div class="scatter-card">Payment</div>
+            <div class="scatter-card">Handoff</div>
+          </div>
+        </div>
+      </div>
+      <p class="body animate mt-24" style="max-width: 980px;">
+        Chat captures the ask. Everything that matters after that fragments across separate tools and people.
+      </p>
+      <div class="notes">
+        This is the operational pain slide, not the architecture slide.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">02 / Failure Mode</div>
+      <div class="h1 animate mt-20">AI plans delete the work they cannot do.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="collapse-stage animate mt-32">
+        <div class="need-stack">
+          <div class="need-chip">Human review</div>
+          <div class="need-chip">Inspection</div>
+          <div class="need-chip">Proof</div>
+          <div class="need-chip">Handoff</div>
+          <div class="need-chip">Approval</div>
+        </div>
+        <div class="funnel-stage">
+          <div class="funnel-shell"></div>
+          <div class="funnel-core">Planner only sees callable tools.</div>
+          <div class="funnel-drop"></div>
+        </div>
+        <div class="col gap-16" style="align-items:center;">
+          <div class="output-orb">Polished output</div>
+          <div class="panel danger-panel" style="width:100%;">
+            <div class="tiny">Generative-plan collapse</div>
+            <div class="h3 mt-12">Looks complete. Is not complete.</div>
+          </div>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 42px;">
+        The hard problem is not generation.<br>
+        It is continuity from ask to verified done.
+      </div>
+      <div class="notes">
+        This is the hook. Keep it memorable.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">03 / Why Now</div>
+      <div class="h1 animate mt-20">Chat became the front door.<br>The completion stack did not catch up.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="quad animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Input changed</div>
+          <div class="h3 mt-12">Work now starts in AI chat.</div>
+          <p class="small mt-12">Demand is already entering through natural language.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Expectation changed</div>
+          <div class="h3 mt-12">Buyers expect faster execution.</div>
+          <p class="small mt-12">They do not want another fragmented workflow after the first ask.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">System gap</div>
+          <div class="h3 mt-12">Proof, approval, and payout still break apart.</div>
+          <p class="small mt-12">Current tools start work well and finish it poorly.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Open layer</div>
+          <div class="h3 mt-12">The fulfillment thread is still unowned.</div>
+          <p class="small mt-12">That is the control point Boreal is building toward.</p>
+        </div>
+      </div>
+      <p class="body animate mt-32" style="max-width: 1040px;">
+        The shift is not only more AI usage. It is a product-shape change.
+        Work enters through chat, but real completion still needs a durable system that keeps execution, proof, and money on one thread.
+      </p>
+      <div class="notes">
+        This should feel like a product-gap slide, not a TAM slide.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">04 / Product</div>
+      <div class="h1 animate mt-20">Boreal turns the first ask into one durable request thread.</div>
+      <div class="rule animate mt-24"></div>
+      <p class="body animate mt-20" style="max-width: 1080px;">
+        Boreal is request-native work commerce.
+        The root object is <span class="mono accent">Request</span>.
+        That request persists across commitment, fulfillment, proof, and payment.
+      </p>
+      <div class="flow animate mt-32">
+        <div class="flow-step">
+          <div class="step-tag">1</div>
+          <div class="h3">Ask</div>
+          <div class="small">Natural-language demand enters.</div>
+        </div>
+        <div class="flow-step active-step">
+          <div class="step-tag">2</div>
+          <div class="h3">Request</div>
+          <div class="small">One durable thread holds the work.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-tag">3</div>
+          <div class="h3">Commitment</div>
+          <div class="small">Commercial terms stay explicit.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-tag">4</div>
+          <div class="h3">Fulfillment</div>
+          <div class="small">Human and AI supply execute on-thread.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-tag">5</div>
+          <div class="h3">Artifact</div>
+          <div class="small">Proof and delivery stay attached.</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-tag">6</div>
+          <div class="h3">Transaction</div>
+          <div class="small">Payment and payout close the loop.</div>
+        </div>
+      </div>
+      <div class="notes">
+        This is the core product slide. Simple and mechanical.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">05 / Why This Wins</div>
+      <div class="h1 animate mt-20">Request-rooted beats listing-rooted and chat-only.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="triple animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Continuity</div>
+          <div class="h3 mt-12">One request survives the lifecycle.</div>
+          <p class="small mt-12">The system does not fork work into disconnected flows.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">Commercial truth</div>
+          <div class="h3 mt-12">Approval, proof, and money stay first-class.</div>
+          <p class="small mt-12">Not hidden inside chat messages or side tools.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Mixed fulfillment</div>
+          <div class="h3 mt-12">Human and AI work on the same thread.</div>
+          <p class="small mt-12">The system resists false completion by design.</p>
+        </div>
+      </div>
+      <div class="notes">
+        This folds product thesis and competitive contrast into one cleaner slide.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">06 / First Wedge</div>
+      <div class="h1 animate mt-20">Start with startup and SMB buyers of high-value digital work.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="split animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Why this wedge</div>
+          <div class="check-grid mt-20">
+            <div class="check">Urgent demand</div>
+            <div class="check">Fuzzy intake</div>
+            <div class="check">Outside supply</div>
+            <div class="check">Repeatable need</div>
+            <div class="check">Digital delivery</div>
+            <div class="check">Needs accountability</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="tiny">First request classes</div>
+          <div class="check-grid mt-20">
+            <div class="check">AI implementation and automation</div>
+            <div class="check">Research and analysis</div>
+            <div class="check">MVP, spec, and prototype work</div>
+            <div class="check">Media and content production</div>
+            <div class="check">Specialist operator work</div>
+            <div class="check">Review-heavy digital execution</div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        Keep this canon-safe. Embodied work stays a sharp example, not the first market.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">07 / Proof Today</div>
+      <div class="h1 animate mt-20">The system thesis already exists in product form.<br>The commercial proof is next.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="runtime-stage animate mt-32">
+        <div class="surface-window left">
+          <div class="window-top"><span></span><span></span><span></span></div>
+          <div class="surface-chip">Web surface</div>
+          <div class="surface-lines">
+            <div class="surface-log">Request intake and request room.</div>
+            <div class="surface-log">Commitment, artifact, and fulfillment reads and writes.</div>
+            <div class="surface-log">Buyer-facing durable thread.</div>
+          </div>
+        </div>
+        <div class="runtime-center">
+          <div class="spine-rail"></div>
+          <div class="spine-stack">
+            <div class="spine-pill">Ask</div>
+            <div class="spine-pill primary">Request</div>
+            <div class="spine-pill">Proof</div>
+            <div class="spine-pill">Payout</div>
+          </div>
+        </div>
+        <div class="surface-window right">
+          <div class="window-top"><span></span><span></span><span></span></div>
+          <div class="surface-chip">Desktop runtime</div>
+          <div class="surface-lines">
+            <div class="surface-log">Resolver-approved runtime participation.</div>
+            <div class="surface-log">Direct fulfillment and artifact lanes.</div>
+            <div class="surface-log">Local execution without becoming the system of record.</div>
+          </div>
+        </div>
+      </div>
+      <p class="body animate mt-32" style="max-width: 1060px;">
+        Boreal is not just a story or mockup. The core work-thread model, web surface, and desktop runtime path already exist as a real system shape.
+        What it has not claimed yet is repeat buyer behavior, funded GMV at scale, or dense supply liquidity.
+      </p>
+      <div class="notes">
+        This is the honesty slide. Use product-meaningful proof, not developer vanity metrics.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">08 / Moat + Vision</div>
+      <div class="h1 animate mt-20">The moat is the durable work graph around the request.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="graph-stage animate mt-32">
+        <div class="graph-core">Request<br>thread</div>
+        <div class="orbit-card top-left">
+          <div class="tiny">Demand graph</div>
+          <div class="h3 mt-12">Buyer asks and normalized briefs.</div>
+        </div>
+        <div class="orbit-card top-right">
+          <div class="tiny">Routing graph</div>
+          <div class="h3 mt-12">Lead selection and plan history.</div>
+        </div>
+        <div class="orbit-card bottom-left">
+          <div class="tiny">Execution graph</div>
+          <div class="h3 mt-12">Fulfillment steps, artifacts, proofs.</div>
+        </div>
+        <div class="orbit-card bottom-right">
+          <div class="tiny">Commercial graph</div>
+          <div class="h3 mt-12">Commitments, payouts, repeat loops.</div>
+        </div>
+      </div>
+      <div class="statement animate mt-32" style="font-size: 40px;">
+        This starts with digital work today.<br>
+        It expands into harder verification-heavy workflows later.
+      </div>
+      <div class="notes">
+        This gives the long-term shape without bloating the deck.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">09 / What We Need To Prove</div>
+      <div class="h1 animate mt-20">The next milestone is demand proof, not more story.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="triple animate mt-32">
+        <div class="panel">
+          <div class="tiny">1</div>
+          <div class="h3 mt-12">Fund the first requests</div>
+          <p class="small mt-12">Show real buyers will move work through the thread.</p>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">2</div>
+          <div class="h3 mt-12">Prove repeat buyer behavior</div>
+          <p class="small mt-12">Show retained context creates real workflow leverage.</p>
+        </div>
+        <div class="panel">
+          <div class="tiny">3</div>
+          <div class="h3 mt-12">Tighten supply density</div>
+          <p class="small mt-12">Improve lead quality in the first request classes.</p>
+        </div>
+      </div>
+      <div class="notes">
+        This is better for application reviewers than a formal fundraising ask slide.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">10 / Team</div>
+      <div class="h1 animate mt-20">This slide still needs your real founder edge.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="triple animate mt-32">
+        <div class="panel">
+          <div class="tiny">Founder-problem fit</div>
+          <div class="h3 mt-12">Why this team has lived the fragmentation problem firsthand.</div>
+        </div>
+        <div class="panel strong">
+          <div class="tiny">Shipping proof</div>
+          <div class="h3 mt-12">What systems, products, or markets this team has already shipped into.</div>
+        </div>
+        <div class="panel">
+          <div class="tiny">Why us</div>
+          <div class="h3 mt-12">Why this team can own the fulfillment thread for AI-native work.</div>
+        </div>
+      </div>
+      <p class="body animate mt-32" style="max-width: 980px;">
+        Replace this with founder names, prior wins, and the exact reason you have a right to build Boreal now.
+      </p>
+      <div class="notes">
+        This is the main missing external-send input.
+      </div>
+    </section>
+
+    <section class="slide alt">
+      <div class="eyebrow animate">11 / What We Need</div>
+      <div class="h1 animate mt-20">What Boreal needs next to move faster.</div>
+      <div class="rule animate mt-24"></div>
+      <div class="split animate mt-32">
+        <div class="panel strong">
+          <div class="tiny">Near-term leverage</div>
+          <div class="check-grid mt-20">
+            <div class="check">Sharper wedge validation</div>
+            <div class="check">Early buyer intros</div>
+            <div class="check">Demand proof discipline</div>
+            <div class="check">Founder and market feedback</div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="tiny">Outcome we want</div>
+          <div class="h3 mt-12">Turn a strong systems thesis into funded demand and repeat usage.</div>
+          <p class="small mt-16">
+            The goal is not to tell a better story. It is to prove the first durable economic engine.
+          </p>
+        </div>
+      </div>
+      <div class="notes">
+        This works better for applications than a classic raise slide.
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">12 / Close</div>
+      <div class="hero animate mt-24">Boreal</div>
+      <div class="statement animate mt-20">
+        The future is not AI replacing work.<br>
+        It is systems that can represent all the work AI cannot safely erase.
+      </div>
+      <div class="rule-wide animate mt-24"></div>
+      <p class="body animate mt-24" style="max-width: 1020px;">
+        Boreal is building the request-native work-commerce layer for external work
+        that now needs mixed human and AI fulfillment.
+      </p>
+      <div class="notes">
+        End on the thesis, not on a generic thank-you.
+      </div>
+    </section>
+
+    <div class="nav">
+      <button onclick="prev()">Prev</button>
+      <div class="nav-count"><span id="current">1</span> / <span id="total">13</span></div>
+      <div class="nav-progress"><div class="nav-progress-fill" id="progress"></div></div>
+      <button onclick="next()">Next</button>
+    </div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const total = slides.length;
+    const totalEl = document.getElementById("total");
+    const currentEl = document.getElementById("current");
+    const progressEl = document.getElementById("progress");
+    const notes = Array.from(document.querySelectorAll(".notes"));
+    let index = 0;
+    let notesVisible = false;
+
+    totalEl.textContent = total;
+
+    function show(nextIndex) {
+      index = (nextIndex + total) % total;
+      slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+      currentEl.textContent = String(index + 1);
+      progressEl.style.width = `${((index + 1) / total) * 100}%`;
+      notes.forEach(note => note.classList.toggle("visible", notesVisible));
+    }
+
+    function next() { show(index + 1); }
+    function prev() { show(index - 1); }
+    function toggleNotes() {
+      notesVisible = !notesVisible;
+      notes.forEach(note => note.classList.toggle("visible", notesVisible));
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        next();
+      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        prev();
+      } else if (event.key.toLowerCase() === "n") {
+        toggleNotes();
+      } else if (event.key === "Home") {
+        show(0);
+      } else if (event.key === "End") {
+        show(total - 1);
+      }
+    });
+
+    document.getElementById("deck").addEventListener("click", (event) => {
+      if (event.target.closest(".nav")) return;
+      next();
+    });
+
+    show(0);
+  </script>
+</body>
+</html>
