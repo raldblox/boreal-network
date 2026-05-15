@@ -141,12 +141,33 @@ export type RequestClarificationNeeded = {
   reasons: string[];
 };
 
+export type RequestRoleSlot = {
+  roleKey: string;
+  title: string;
+  requiredActorKinds: RequestActorKind[];
+  preferredSupplyKinds: string[];
+  required: boolean;
+  summary?: string;
+};
+
+export type RequestPhasePlan = {
+  phaseKey: string;
+  title: string;
+  summary: string;
+  roleKeys: string[];
+  requiredEvidenceClaims: string[];
+};
+
 export type RequestDerived = {
   routeFamily?: string;
   executionKind?: string;
   paymentMode?: string;
   matchingMode?: string;
   candidatePool?: string[];
+  leadRole?: string;
+  roleSlots: RequestRoleSlot[];
+  phases: RequestPhasePlan[];
+  noMicrotaskExplosion: boolean;
   missingDetails: string[];
   readiness: RequestReadiness;
   routeSummary?: string;
@@ -516,6 +537,10 @@ export type PublicRequestPoolEntry = {
     executionKind: string | null;
     paymentMode: string | null;
     matchingMode: string | null;
+    leadRole: string | null;
+    roleSlots: RequestRoleSlot[];
+    phases: RequestPhasePlan[];
+    noMicrotaskExplosion: boolean;
     missingDetails: string[];
     readiness: RequestReadiness;
     routeSummary: string | null;
@@ -549,6 +574,20 @@ export type EditableRequestDocument = {
   };
   budget: RequestBudget | null;
   deadline: RequestDeadline | null;
+  projection: {
+    readonly: true;
+    request: {
+      id: string;
+      key: string;
+      status: RequestStatus;
+      routing: RequestRouting;
+      activeRefs: RequestActiveRefs;
+      latest: RequestLatest;
+      derived: RequestDocumentObject["derived"];
+      createdAt: string;
+      updatedAt: string;
+    };
+  };
 };
 
 type RequestDocumentObject = {
@@ -585,6 +624,10 @@ type RequestDocumentObject = {
     paymentMode: string | null;
     matchingMode: string | null;
     candidatePool: string[];
+    leadRole: string | null;
+    roleSlots: RequestRoleSlot[];
+    phases: RequestPhasePlan[];
+    noMicrotaskExplosion: boolean;
     missingDetails: string[];
     readiness: RequestReadiness;
     routeSummary: string | null;
@@ -689,6 +732,70 @@ const requestActorRefSchema = z.object({
   handle: z.string().optional(),
 });
 
+const requestRoutingSchema = z.object({
+  preferredSupplyId: z.string().optional(),
+});
+
+const requestActiveRefsSchema = z.object({
+  activeCommitmentId: z.string().optional(),
+  activeFulfillmentId: z.string().optional(),
+  latestArtifactId: z.string().optional(),
+  latestTransactionId: z.string().optional(),
+});
+
+const requestLatestSchema = z.object({
+  summary: z.string().optional(),
+  lastEventAt: z.string().optional(),
+  lastActor: requestActorRefSchema.optional(),
+});
+
+const editableRequestProjectionSchema = z
+  .object({
+    readonly: z.literal(true),
+    request: z
+      .object({
+        id: z.string().optional(),
+        key: z.string().optional(),
+        status: z
+          .enum([
+            "draft",
+            "open",
+            "funding_required",
+            "funded",
+            "in_progress",
+            "waiting_for_owner",
+            "delivered",
+            "completed",
+            "cancelled",
+            "failed",
+          ])
+          .optional(),
+        routing: requestRoutingSchema.optional(),
+        activeRefs: requestActiveRefsSchema.optional(),
+        latest: requestLatestSchema.optional(),
+        derived: z.record(z.unknown()).optional(),
+        createdAt: z.string().optional(),
+        updatedAt: z.string().optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
+const editableLegacyNormalizedSchema = z
+  .object({
+    readonly: z.literal(true),
+    id: z.string().optional(),
+    key: z.string().optional(),
+    status: z.string().optional(),
+    routing: requestRoutingSchema.optional(),
+    activeRefs: requestActiveRefsSchema.optional(),
+    latest: requestLatestSchema.optional(),
+    derived: z.record(z.unknown()).optional(),
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
+  })
+  .strict();
+
 const editableRequestDocumentSchema = z
   .object({
     schemaVersion: z.number().optional(),
@@ -698,8 +805,10 @@ const editableRequestDocumentSchema = z
     seeking: requestSeekingSchema.optional(),
     budget: requestBudgetSchema.nullish(),
     deadline: requestDeadlineSchema.nullish(),
+    projection: editableRequestProjectionSchema.optional(),
+    normalized: editableLegacyNormalizedSchema.optional(),
   })
-  .passthrough();
+  .strict();
 
 export function createInitialRequestDraft({
   id,
@@ -741,6 +850,9 @@ export function createInitialRequestDraft({
     latest: {},
     derived: {
       candidatePool: [],
+      roleSlots: [],
+      phases: [],
+      noMicrotaskExplosion: true,
       missingDetails: [],
       readiness: {
         state: "collecting_brief",
@@ -868,6 +980,7 @@ export function deriveRequestState(
   }
 
   const embodiedPlanning = deriveEmbodiedPlanningState(draft);
+  const structuralPlanning = deriveStructuralPlanningState(draft, embodiedPlanning);
   missingDetails.push(...embodiedPlanning.missingDetails);
 
   const hasBriefCore =
@@ -910,6 +1023,10 @@ export function deriveRequestState(
   return {
     ...draft.derived,
     candidatePool: draft.derived.candidatePool ?? [],
+    leadRole: structuralPlanning.leadRole,
+    roleSlots: structuralPlanning.roleSlots,
+    phases: structuralPlanning.phases,
+    noMicrotaskExplosion: structuralPlanning.noMicrotaskExplosion,
     missingDetails: Array.from(new Set(missingDetails)),
     readiness,
     executionProfile: embodiedPlanning.executionProfile,
@@ -950,6 +1067,10 @@ export function toPublicRequestPoolEntry(
       executionKind: draft.derived.executionKind ?? null,
       paymentMode: draft.derived.paymentMode ?? null,
       matchingMode: draft.derived.matchingMode ?? null,
+      leadRole: draft.derived.leadRole ?? null,
+      roleSlots: draft.derived.roleSlots,
+      phases: draft.derived.phases,
+      noMicrotaskExplosion: draft.derived.noMicrotaskExplosion,
       missingDetails: draft.derived.missingDetails,
       readiness: draft.derived.readiness,
       routeSummary: draft.derived.routeSummary ?? null,
@@ -1231,6 +1352,529 @@ function deriveEmbodiedPlanningState(
     planCollapseRisk,
     clarificationNeeded,
   };
+}
+
+function deriveStructuralPlanningState(
+  draft: Pick<BorealRequestDraft, "brief" | "seeking" | "derived">,
+  embodiedPlanning: {
+    executionProfile: RequestExecutionProfile;
+    embodiedConstraintSet: RequestEmbodiedConstraintSet;
+    verificationPlan: RequestVerificationPlan;
+    clarificationNeeded: RequestClarificationNeeded;
+  }
+): {
+  leadRole?: string;
+  roleSlots: RequestRoleSlot[];
+  phases: RequestPhasePlan[];
+  noMicrotaskExplosion: boolean;
+} {
+  const supplyKinds = normalizeStringArray(draft.seeking.supplyKinds);
+  const actorKinds = normalizeActorKinds(draft.seeking.actorKinds);
+  const outputKinds = normalizeStringArray(draft.brief.outputKinds);
+  const teamMode = normalizeText(draft.seeking.teamMode)?.toLowerCase() ?? "";
+  const hasPlanningSeed =
+    hasText(draft.brief.title) ||
+    hasText(draft.brief.summary) ||
+    hasText(draft.brief.body) ||
+    Object.keys(normalizeRecord(draft.brief.constraints)).length > 0 ||
+    outputKinds.length > 0 ||
+    supplyKinds.length > 0 ||
+    actorKinds.length > 0 ||
+    teamMode.length > 0 ||
+    hasText(draft.derived.routeFamily) ||
+    hasText(draft.derived.routeSummary) ||
+    embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling ||
+    embodiedPlanning.verificationPlan.requiredArtifactKinds.length > 0 ||
+    embodiedPlanning.verificationPlan.requiredEvidenceClaims.length > 0 ||
+    embodiedPlanning.clarificationNeeded.required;
+
+  if (!hasPlanningSeed) {
+    return {
+      roleSlots: [],
+      phases: [],
+      noMicrotaskExplosion: true,
+    };
+  }
+
+  const leadRole = deriveLeadRoleKey({
+    actorKinds,
+    outputKinds,
+    supplyKinds,
+    executionModes: embodiedPlanning.executionProfile.executionModes,
+  });
+  const leadPreferredSupplyKinds = supplyKinds.length > 0 ? [supplyKinds[0]] : [];
+  const roleSlots: RequestRoleSlot[] = [
+    createRoleSlot({
+      roleKey: leadRole,
+      preferredSupplyKinds: leadPreferredSupplyKinds,
+      required: true,
+      requiredActorKinds: deriveRoleActorKinds({
+        actorKinds,
+        embodiedPlanning,
+        isLead: true,
+        roleKey: leadRole,
+        supplyKind: leadPreferredSupplyKinds[0],
+      }),
+      summary: buildRoleSlotSummary({
+        embodiedPlanning,
+        isLead: true,
+        outputKinds,
+        roleKey: leadRole,
+      }),
+    }),
+  ];
+
+  for (const [index, supplyKind] of supplyKinds.slice(1).entries()) {
+    const roleKey = normalizeRoleKey(supplyKind);
+    if (roleSlots.some((slot) => slot.roleKey === roleKey)) {
+      continue;
+    }
+
+    roleSlots.push(
+      createRoleSlot({
+        roleKey,
+        preferredSupplyKinds: [supplyKind],
+        required: shouldRequireCollaboratorRole({
+          embodiedPlanning,
+          index,
+          outputKinds,
+          supplyKinds,
+          teamMode,
+        }),
+        requiredActorKinds: deriveRoleActorKinds({
+          actorKinds,
+          embodiedPlanning,
+          isLead: false,
+          roleKey,
+          supplyKind,
+        }),
+        summary: buildRoleSlotSummary({
+          embodiedPlanning,
+          isLead: false,
+          outputKinds,
+          roleKey,
+        }),
+      })
+    );
+  }
+
+  const needsDocumentationSupport =
+    embodiedPlanning.verificationPlan.requiredEvidenceClaims.length > 0 &&
+    !roleSlots.some((slot) =>
+      /documentation|qa|report|evidence/.test(slot.roleKey)
+    );
+
+  if (needsDocumentationSupport) {
+    roleSlots.push(
+      createRoleSlot({
+        roleKey: "qa_documentation",
+        preferredSupplyKinds: [],
+        required: false,
+        requiredActorKinds: deriveRoleActorKinds({
+          actorKinds,
+          embodiedPlanning,
+          isLead: false,
+          roleKey: "qa_documentation",
+        }),
+        summary:
+          "Support evidence packaging, written reporting, or owner-facing delivery notes.",
+      })
+    );
+  }
+
+  const phases = derivePhasePlans({
+    embodiedPlanning,
+    leadRole,
+    outputKinds,
+    roleSlots,
+    teamMode,
+  });
+
+  return {
+    leadRole,
+    roleSlots,
+    phases,
+    noMicrotaskExplosion: true,
+  };
+}
+
+function createRoleSlot({
+  roleKey,
+  preferredSupplyKinds,
+  required,
+  requiredActorKinds,
+  summary,
+}: {
+  roleKey: string;
+  preferredSupplyKinds: string[];
+  required: boolean;
+  requiredActorKinds: RequestActorKind[];
+  summary?: string;
+}): RequestRoleSlot {
+  return {
+    roleKey,
+    title: formatPlanningLabel(roleKey),
+    preferredSupplyKinds,
+    required,
+    requiredActorKinds,
+    ...(summary ? { summary } : {}),
+  };
+}
+
+function deriveLeadRoleKey({
+  actorKinds,
+  outputKinds,
+  supplyKinds,
+  executionModes,
+}: {
+  actorKinds: RequestActorKind[];
+  outputKinds: string[];
+  supplyKinds: string[];
+  executionModes: RequestExecutionMode[];
+}): string {
+  const primarySupplyKind = supplyKinds[0];
+  if (primarySupplyKind) {
+    return normalizeRoleKey(primarySupplyKind);
+  }
+
+  if (executionModes.includes("field_inspection")) {
+    return "field_inspector";
+  }
+
+  if (executionModes.includes("onsite_visit")) {
+    return "onsite_operator";
+  }
+
+  if (executionModes.includes("pickup_dropoff")) {
+    return "pickup_operator";
+  }
+
+  if (executionModes.includes("witnessed_handoff")) {
+    return "witness_operator";
+  }
+
+  if (outputKinds.some((kind) => /migration|integration|handoff/.test(kind))) {
+    return "delivery_lead";
+  }
+
+  if (actorKinds.length === 1) {
+    return `${actorKinds[0]}_lead`;
+  }
+
+  return "specialist_lead";
+}
+
+function deriveRoleActorKinds({
+  actorKinds,
+  embodiedPlanning,
+  isLead,
+  roleKey,
+  supplyKind,
+}: {
+  actorKinds: RequestActorKind[];
+  embodiedPlanning: {
+    executionProfile: RequestExecutionProfile;
+    verificationPlan: RequestVerificationPlan;
+  };
+  isLead: boolean;
+  roleKey: string;
+  supplyKind?: string;
+}): RequestActorKind[] {
+  const normalizedActorKinds = actorKinds.length > 0 ? actorKinds : [];
+  const roleFingerprint = `${roleKey} ${supplyKind ?? ""}`.toLowerCase();
+
+  if (isLead && embodiedPlanning.executionProfile.requiresHumanPresence) {
+    return ["human"];
+  }
+
+  if (/runtime/.test(roleFingerprint)) {
+    return ["runtime"];
+  }
+
+  if (/provider|tool|api/.test(roleFingerprint)) {
+    return ["tool"];
+  }
+
+  if (/agent|automation/.test(roleFingerprint)) {
+    return normalizedActorKinds.length > 0
+      ? normalizedActorKinds.filter((kind) => kind !== "tool" && kind !== "runtime")
+      : (["agent"] satisfies RequestActorKind[]);
+  }
+
+  if (/documentation|qa|report|evidence/.test(roleFingerprint)) {
+    if (normalizedActorKinds.length > 0) {
+      const documentationActorKinds = normalizedActorKinds.filter(
+        (kind) => kind === "human" || kind === "agent"
+      );
+      if (documentationActorKinds.length > 0) {
+        return documentationActorKinds;
+      }
+    }
+
+    return ["human", "agent"];
+  }
+
+  if (normalizedActorKinds.length > 0) {
+    return normalizedActorKinds;
+  }
+
+  return ["human"];
+}
+
+function buildRoleSlotSummary({
+  embodiedPlanning,
+  isLead,
+  outputKinds,
+  roleKey,
+}: {
+  embodiedPlanning: {
+    embodiedConstraintSet: RequestEmbodiedConstraintSet;
+    verificationPlan: RequestVerificationPlan;
+  };
+  isLead: boolean;
+  outputKinds: string[];
+  roleKey: string;
+}): string {
+  if (isLead && embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling) {
+    return "Own the lead execution lane without flattening onsite or proof-heavy work into a digital-only result.";
+  }
+
+  if (
+    /documentation|qa|report|evidence/.test(roleKey) &&
+    embodiedPlanning.verificationPlan.requiredEvidenceClaims.length > 0
+  ) {
+    return "Keep evidence, reporting, and owner-facing delivery attached to the request.";
+  }
+
+  if (outputKinds.length > 0) {
+    return `Support deliverables such as ${outputKinds
+      .slice(0, 3)
+      .map((kind) => formatPlanningLabel(kind))
+      .join(", ")}.`;
+  }
+
+  return "Support the lead lane only where the request clearly needs extra execution help.";
+}
+
+function shouldRequireCollaboratorRole({
+  embodiedPlanning,
+  index,
+  outputKinds,
+  supplyKinds,
+  teamMode,
+}: {
+  embodiedPlanning: {
+    embodiedConstraintSet: RequestEmbodiedConstraintSet;
+  };
+  index: number;
+  outputKinds: string[];
+  supplyKinds: string[];
+  teamMode: string;
+}): boolean {
+  const explicitTeamMode = /\bteam\b|\bmulti\b|\bcollab\b|\bpair\b|\bsquad\b/.test(
+    teamMode
+  );
+  const highComplexityDigital =
+    !embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling &&
+    (supplyKinds.length >= 3 || outputKinds.length >= 4 || explicitTeamMode);
+
+  return highComplexityDigital && index === 0;
+}
+
+function derivePhasePlans({
+  embodiedPlanning,
+  leadRole,
+  outputKinds,
+  roleSlots,
+  teamMode,
+}: {
+  embodiedPlanning: {
+    executionProfile: RequestExecutionProfile;
+    verificationPlan: RequestVerificationPlan;
+    clarificationNeeded: RequestClarificationNeeded;
+    embodiedConstraintSet: RequestEmbodiedConstraintSet;
+  };
+  leadRole: string;
+  outputKinds: string[];
+  roleSlots: RequestRoleSlot[];
+  teamMode: string;
+}): RequestPhasePlan[] {
+  const phases: RequestPhasePlan[] = [];
+  const evidenceClaims =
+    embodiedPlanning.verificationPlan.requiredEvidenceClaims ?? [];
+
+  if (embodiedPlanning.clarificationNeeded.required) {
+    phases.push({
+      phaseKey: "clarify_constraints",
+      title: "Clarify execution, access, and proof constraints",
+      summary:
+        "Lock the missing facts that materially affect route selection, execution safety, or closure truth.",
+      roleKeys: [leadRole],
+      requiredEvidenceClaims: [],
+    });
+  }
+
+  if (embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling) {
+    phases.push({
+      phaseKey: deriveEmbodiedExecutionPhaseKey(
+        embodiedPlanning.executionProfile.executionModes
+      ),
+      title: deriveEmbodiedExecutionPhaseTitle(
+        embodiedPlanning.executionProfile.executionModes
+      ),
+      summary:
+        "Execute the physical or local-access work inside the request lane before treating anything as complete.",
+      roleKeys: getExecutionRoleKeys(roleSlots),
+      requiredEvidenceClaims: [],
+    });
+
+    phases.push({
+      phaseKey: "proof_delivery",
+      title: "Capture proof and publish the delivery package",
+      summary:
+        "Attach evidence and the final delivery inside the same request thread so review and closure stay truthful.",
+      roleKeys: getProofRoleKeys(roleSlots),
+      requiredEvidenceClaims: evidenceClaims,
+    });
+
+    return phases.slice(0, 3);
+  }
+
+  const explicitTeamMode = /\bteam\b|\bmulti\b|\bcollab\b|\bpair\b|\bsquad\b/.test(
+    teamMode
+  );
+  const needsStructuredExecution =
+    roleSlots.length > 1 || outputKinds.length > 2 || explicitTeamMode;
+
+  if (needsStructuredExecution) {
+    phases.push({
+      phaseKey: "scope_route",
+      title: "Lock scope and the lead execution lane",
+      summary:
+        "Confirm the lead owner, route boundary, and how supporting roles attach to the request.",
+      roleKeys: [leadRole],
+      requiredEvidenceClaims: [],
+    });
+  }
+
+  phases.push({
+    phaseKey: "execute_delivery",
+    title: needsStructuredExecution
+      ? "Produce the core deliverables"
+      : "Complete the requested deliverable",
+    summary:
+      "Keep execution inside one request thread and avoid exploding the work into a brittle task tree too early.",
+    roleKeys: roleSlots.filter((slot) => slot.required).map((slot) => slot.roleKey),
+    requiredEvidenceClaims: [],
+  });
+
+  if (
+    outputKinds.some((kind) => /handoff|training|doc|report|plan/.test(kind)) ||
+    roleSlots.length > 1
+  ) {
+    phases.push({
+      phaseKey: "handoff_review",
+      title: "Publish handoff package and owner review",
+      summary:
+        "Bundle the outputs, context, and approval-facing material before final closure.",
+      roleKeys: getProofRoleKeys(roleSlots),
+      requiredEvidenceClaims: evidenceClaims,
+    });
+  }
+
+  return phases.slice(0, 3);
+}
+
+function deriveEmbodiedExecutionPhaseKey(
+  executionModes: RequestExecutionMode[]
+): string {
+  if (executionModes.includes("field_inspection")) {
+    return "field_execution";
+  }
+
+  if (executionModes.includes("pickup_dropoff")) {
+    return "handoff_execution";
+  }
+
+  if (executionModes.includes("witnessed_handoff")) {
+    return "witness_execution";
+  }
+
+  return "onsite_execution";
+}
+
+function deriveEmbodiedExecutionPhaseTitle(
+  executionModes: RequestExecutionMode[]
+): string {
+  if (executionModes.includes("field_inspection")) {
+    return "Complete the onsite inspection";
+  }
+
+  if (executionModes.includes("pickup_dropoff")) {
+    return "Complete the pickup, dropoff, or handoff";
+  }
+
+  if (executionModes.includes("witnessed_handoff")) {
+    return "Complete the witnessed handoff";
+  }
+
+  return "Complete the onsite work";
+}
+
+function getExecutionRoleKeys(roleSlots: RequestRoleSlot[]): string[] {
+  const requiredRoleKeys = roleSlots
+    .filter((slot) => slot.required)
+    .map((slot) => slot.roleKey);
+
+  return requiredRoleKeys.length > 0
+    ? requiredRoleKeys
+    : roleSlots.slice(0, 1).map((slot) => slot.roleKey);
+}
+
+function getProofRoleKeys(roleSlots: RequestRoleSlot[]): string[] {
+  const proofRoleKeys = roleSlots
+    .filter((slot) =>
+      /documentation|qa|report|evidence/.test(slot.roleKey)
+    )
+    .map((slot) => slot.roleKey);
+
+  if (proofRoleKeys.length > 0) {
+    return proofRoleKeys;
+  }
+
+  return getExecutionRoleKeys(roleSlots);
+}
+
+function normalizeRoleKey(value: string): string {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  switch (normalized) {
+    case "field_inspection":
+      return "field_inspector";
+    case "human_service":
+      return "service_lead";
+    case "agent_worker":
+      return "agent_operator";
+    case "provider_capability":
+      return "tool_operator";
+    case "runtime_executor":
+    case "desktop_runtime":
+      return "runtime_operator";
+    default:
+      return normalized || "support_role";
+  }
+}
+
+function formatPlanningLabel(value: string): string {
+  return value
+    .split("_")
+    .filter((segment) => segment.length > 0)
+    .map((segment) => `${segment.charAt(0).toUpperCase()}${segment.slice(1)}`)
+    .join(" ");
 }
 
 function normalizeEditableBrief(
@@ -1587,6 +2231,38 @@ function toEditableRequestDocument(
     },
     budget: draft.budget,
     deadline: draft.deadline,
+    projection: {
+      readonly: true,
+      request: {
+        id: draft.id,
+        key: draft.key,
+        status: draft.status,
+        routing: normalizeRouting(draft.routing),
+        activeRefs: normalizeActiveRefs(draft.activeRefs),
+        latest: normalizeLatest(draft.latest),
+        derived: {
+          routeFamily: draft.derived.routeFamily ?? null,
+          executionKind: draft.derived.executionKind ?? null,
+          paymentMode: draft.derived.paymentMode ?? null,
+          matchingMode: draft.derived.matchingMode ?? null,
+          candidatePool: draft.derived.candidatePool ?? [],
+          leadRole: draft.derived.leadRole ?? null,
+          roleSlots: draft.derived.roleSlots,
+          phases: draft.derived.phases,
+          noMicrotaskExplosion: draft.derived.noMicrotaskExplosion,
+          missingDetails: draft.derived.missingDetails,
+          readiness: draft.derived.readiness,
+          routeSummary: draft.derived.routeSummary ?? null,
+          executionProfile: draft.derived.executionProfile,
+          embodiedConstraintSet: draft.derived.embodiedConstraintSet,
+          verificationPlan: draft.derived.verificationPlan,
+          planCollapseRisk: draft.derived.planCollapseRisk,
+          clarificationNeeded: draft.derived.clarificationNeeded,
+        },
+        createdAt: draft.createdAt,
+        updatedAt: draft.updatedAt,
+      },
+    },
   };
 }
 
@@ -1627,6 +2303,10 @@ function toRequestDocumentObject(
       paymentMode: draft.derived.paymentMode ?? null,
       matchingMode: draft.derived.matchingMode ?? null,
       candidatePool: draft.derived.candidatePool ?? [],
+      leadRole: draft.derived.leadRole ?? null,
+      roleSlots: draft.derived.roleSlots,
+      phases: draft.derived.phases,
+      noMicrotaskExplosion: draft.derived.noMicrotaskExplosion,
       missingDetails: draft.derived.missingDetails,
       readiness: draft.derived.readiness,
       routeSummary: draft.derived.routeSummary ?? null,

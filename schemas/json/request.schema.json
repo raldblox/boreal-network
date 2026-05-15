@@ -211,6 +211,19 @@
     "derived": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "candidatePool",
+        "roleSlots",
+        "phases",
+        "noMicrotaskExplosion",
+        "missingDetails",
+        "readiness",
+        "executionProfile",
+        "embodiedConstraintSet",
+        "verificationPlan",
+        "planCollapseRisk",
+        "clarificationNeeded"
+      ],
       "properties": {
         "routeFamily": {
           "type": "string",
@@ -239,6 +252,108 @@
             "minLength": 1
           },
           "uniqueItems": true
+        },
+        "leadRole": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "roleSlots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "roleKey",
+              "title",
+              "requiredActorKinds",
+              "preferredSupplyKinds",
+              "required"
+            ],
+            "properties": {
+              "roleKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "requiredActorKinds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "common.schema.json#/$defs/actorKind"
+                }
+              },
+              "preferredSupplyKinds": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "phases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "phaseKey",
+              "title",
+              "summary",
+              "roleKeys",
+              "requiredEvidenceClaims"
+            ],
+            "properties": {
+              "phaseKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "roleKeys": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "requiredEvidenceClaims": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "noMicrotaskExplosion": {
+          "type": "boolean"
         },
         "missingDetails": {
           "type": "array",
@@ -281,6 +396,248 @@
         "routeSummary": {
           "type": "string",
           "minLength": 1
+        },
+        "executionProfile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "executionModes",
+            "requiresHumanPresence",
+            "requiresLocalAccess",
+            "requiresVerifiedEvidence",
+            "requiresScheduling",
+            "requiresGeography",
+            "riskTier"
+          ],
+          "properties": {
+            "executionModes": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "remote_digital",
+                  "remote_sync",
+                  "onsite_visit",
+                  "field_inspection",
+                  "pickup_dropoff",
+                  "witnessed_handoff"
+                ]
+              }
+            },
+            "requiresHumanPresence": {
+              "type": "boolean"
+            },
+            "requiresLocalAccess": {
+              "type": "boolean"
+            },
+            "requiresVerifiedEvidence": {
+              "type": "boolean"
+            },
+            "requiresScheduling": {
+              "type": "boolean"
+            },
+            "requiresGeography": {
+              "type": "boolean"
+            },
+            "riskTier": {
+              "type": "string",
+              "enum": [
+                "low",
+                "moderate",
+                "high"
+              ]
+            }
+          }
+        },
+        "embodiedConstraintSet": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requiresEmbodiedHandling",
+            "executionModes",
+            "timeWindows",
+            "accessRequirements",
+            "safetyRequirements",
+            "verificationRequirements",
+            "requiresHumanPresence",
+            "requiresLocalAccess",
+            "requiresVerifiedEvidence",
+            "requiresWitness"
+          ],
+          "properties": {
+            "requiresEmbodiedHandling": {
+              "type": "boolean"
+            },
+            "executionModes": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "remote_digital",
+                  "remote_sync",
+                  "onsite_visit",
+                  "field_inspection",
+                  "pickup_dropoff",
+                  "witnessed_handoff"
+                ]
+              }
+            },
+            "serviceLocation": {
+              "type": "string",
+              "minLength": 1
+            },
+            "timeWindows": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "accessRequirements": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "safetyRequirements": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "verificationRequirements": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "requiresHumanPresence": {
+              "type": "boolean"
+            },
+            "requiresLocalAccess": {
+              "type": "boolean"
+            },
+            "requiresVerifiedEvidence": {
+              "type": "boolean"
+            },
+            "requiresWitness": {
+              "type": "boolean"
+            }
+          }
+        },
+        "verificationPlan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "requiredArtifactKinds",
+            "requiredEvidenceClaims",
+            "mustHaveOwnerAcceptance",
+            "mustHaveLocationSignal",
+            "mustHaveSignature"
+          ],
+          "properties": {
+            "requiredArtifactKinds": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "brief",
+                  "plan",
+                  "draft",
+                  "file",
+                  "media",
+                  "delivery",
+                  "evidence",
+                  "receipt",
+                  "signature",
+                  "link"
+                ]
+              }
+            },
+            "requiredEvidenceClaims": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "mustHaveOwnerAcceptance": {
+              "type": "boolean"
+            },
+            "mustHaveLocationSignal": {
+              "type": "boolean"
+            },
+            "mustHaveSignature": {
+              "type": "boolean"
+            }
+          }
+        },
+        "planCollapseRisk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "riskLevel",
+            "reasons"
+          ],
+          "properties": {
+            "riskLevel": {
+              "type": "string",
+              "enum": [
+                "low",
+                "moderate",
+                "high"
+              ]
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "clarificationNeeded": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "missingDetails",
+            "reasons"
+          ],
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "missingDetails": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            },
+            "reasons": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
         }
       }
     },
