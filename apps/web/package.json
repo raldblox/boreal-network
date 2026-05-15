@@ -4,7 +4,8 @@
   "private": true,
   "description": "Primary Boreal web workspace built on Next.js App Router.",
   "scripts": {
-    "dev": "tsx lib/db/migrate.ts && next dev --turbo",
+    "dev": "next dev --turbo",
+    "dev:migrated": "tsx lib/db/migrate.ts && next dev --turbo",
     "build": "tsx lib/db/migrate && next build",
     "start": "next start",
     "check": "ultracite check",
@@ -16,6 +17,7 @@
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
+    "eval:request-processing:live": "tsx scripts/run-request-processing-live-benchmark.ts",
     "test": "pnpm exec playwright test"
   },
   "dependencies": {
