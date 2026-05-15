@@ -145,6 +145,7 @@ const localhostBridge = createDesktopLocalhostBridge({
   ephemeralBus,
   getDesktopBridgeDiscovery: getDesktopBridgeDiscoverySnapshot,
   getDesktopModelAccess: getDesktopModelAccessSnapshot,
+  runDesktopTurn,
 });
 let peerHost = null;
 let peerHostLastError = null;
@@ -252,6 +253,139 @@ async function resolveDesktopTurnRuntimePolicy({
       trackedRequest?.request?.id ?? requestId ?? "request",
     ),
   };
+}
+
+async function runDesktopTurn({ payload, webContents = null }) {
+  const project = await getDesktopProjectById(
+    payload?.projectId ?? payload?.workspaceId,
+  );
+  const settings = await readDesktopSettings();
+  const trackedRequest =
+    payload?.trackedRequest && typeof payload.trackedRequest === "object"
+      ? payload.trackedRequest
+      : null;
+
+  if (!project) {
+    throw new Error("Select a valid project before sending a message.");
+  }
+
+  if (webContents) {
+    ephemeralBus.registerWebContents(webContents);
+  }
+
+  const agentSessionId = randomUUID();
+  const correlationId = randomUUID();
+  const requestId =
+    typeof payload?.requestId === "string" && payload.requestId.trim().length > 0
+      ? payload.requestId
+      : randomUUID();
+  const trackedRequestId =
+    trackedRequest?.request &&
+    typeof trackedRequest.request === "object" &&
+    typeof trackedRequest.request.id === "string"
+      ? trackedRequest.request.id
+      : null;
+  const runtimePolicy = await resolveDesktopTurnRuntimePolicy({
+    projectRoot: project.rootPath,
+    requestId,
+    settings,
+    trackedRequest,
+  });
+  const stopHeartbeat = ephemeralBus.startHeartbeat({
+    agentSessionId,
+    correlationId,
+    payload: {
+      requestId,
+      workspaceRoot: runtimePolicy.workspaceRoot,
+    },
+    requestId,
+    source: "desktop-main",
+    threadId:
+      typeof payload?.threadId === "string" ? payload.threadId : undefined,
+  });
+
+  ephemeralBus.publish({
+    agentSessionId,
+    channelKind: "typing",
+    correlationId,
+    payload: {
+      role: "user",
+      state: "submitted",
+    },
+    requestId,
+    source: "desktop-main",
+    threadId:
+      typeof payload?.threadId === "string" ? payload.threadId : undefined,
+  });
+
+  try {
+    if (trackedRequestId) {
+      const activePeerHost = await ensurePeerHostStarted().catch(() => null);
+      if (activePeerHost) {
+        await activePeerHost
+          .joinRequestTopic(trackedRequestId)
+          .catch(() => undefined);
+      }
+    }
+
+    const response = await createDesktopResponse({
+      ...payload,
+      additionalWritableRoots: runtimePolicy.additionalWritableRoots,
+      approvalPolicy: settings.runtimeApprovalPolicy,
+      conversationKey:
+        typeof payload?.threadId === "string" &&
+        payload.threadId.trim().length > 0
+          ? payload.threadId
+          : typeof payload?.conversationKey === "string"
+            ? payload.conversationKey
+            : "",
+      networkAccess: runtimePolicy.networkAccess,
+      onEvent: (streamEvent) => {
+        ephemeralBus.publishCodexStreamEvent(
+          {
+            agentSessionId,
+            correlationId,
+            requestId,
+            threadId:
+              typeof payload?.threadId === "string"
+                ? payload.threadId
+                : undefined,
+          },
+          streamEvent,
+        );
+      },
+      requestId,
+      sandboxMode: runtimePolicy.sandboxMode,
+      trackedRequest,
+      workspaceRoot: runtimePolicy.workspaceRoot,
+    });
+
+    stopHeartbeat({
+      state: "completed",
+    });
+    return response;
+  } catch (error) {
+    stopHeartbeat({
+      message:
+        error instanceof Error ? error.message : "Desktop turn failed.",
+      state: "failed",
+    });
+    ephemeralBus.publish({
+      agentSessionId,
+      channelKind: "runtime-log",
+      correlationId,
+      payload: {
+        level: "error",
+        message:
+          error instanceof Error ? error.message : "Desktop turn failed.",
+      },
+      requestId,
+      source: "desktop-main",
+      threadId:
+        typeof payload?.threadId === "string" ? payload.threadId : undefined,
+    });
+    throw error;
+  }
 }
 
 function isAutoResolvableOwnedPrivateRequest(request) {
@@ -1181,122 +1315,10 @@ ipcMain.handle("desktop:delete-chat-thread", async (_event, payload) =>
 );
 
 ipcMain.handle("desktop:send-message", async (event, payload) =>
-  (async () => {
-    const project = await getDesktopProjectById(
-      payload?.projectId ?? payload?.workspaceId,
-    );
-    const settings = await readDesktopSettings();
-    const trackedRequest =
-      payload?.trackedRequest && typeof payload.trackedRequest === "object"
-        ? payload.trackedRequest
-        : null;
-
-    if (!project) {
-      throw new Error("Select a valid project before sending a message.");
-    }
-
-    ephemeralBus.registerWebContents(event.sender);
-
-    const agentSessionId = randomUUID();
-    const correlationId = randomUUID();
-    const requestId =
-      typeof payload?.requestId === "string" ? payload.requestId : null;
-    const trackedRequestId =
-      trackedRequest?.request &&
-      typeof trackedRequest.request === "object" &&
-      typeof trackedRequest.request.id === "string"
-        ? trackedRequest.request.id
-        : null;
-    const runtimePolicy = await resolveDesktopTurnRuntimePolicy({
-      projectRoot: project.rootPath,
-      requestId,
-      settings,
-      trackedRequest,
-    });
-    const stopHeartbeat = ephemeralBus.startHeartbeat({
-      agentSessionId,
-      correlationId,
-      payload: {
-        requestId,
-        workspaceRoot: runtimePolicy.workspaceRoot,
-      },
-      requestId,
-      source: "desktop-main",
-    });
-
-    ephemeralBus.publish({
-      agentSessionId,
-      channelKind: "typing",
-      correlationId,
-      payload: {
-        role: "user",
-        state: "submitted",
-      },
-      requestId,
-      source: "desktop-main",
-    });
-
-    try {
-      if (trackedRequestId) {
-        const activePeerHost = await ensurePeerHostStarted().catch(() => null);
-        if (activePeerHost) {
-          await activePeerHost
-            .joinRequestTopic(trackedRequestId)
-            .catch(() => undefined);
-        }
-      }
-
-      const response = await createDesktopResponse({
-        ...payload,
-        additionalWritableRoots: runtimePolicy.additionalWritableRoots,
-        approvalPolicy: settings.runtimeApprovalPolicy,
-        conversationKey:
-          typeof payload?.threadId === "string" ? payload.threadId : "",
-        networkAccess: runtimePolicy.networkAccess,
-        onEvent: (streamEvent) => {
-          ephemeralBus.publishCodexStreamEvent(
-            {
-              agentSessionId,
-              correlationId,
-              requestId,
-            },
-            streamEvent,
-          );
-        },
-        sandboxMode: runtimePolicy.sandboxMode,
-        trackedRequest,
-        workspaceRoot: runtimePolicy.workspaceRoot,
-      });
-
-      stopHeartbeat({
-        state: "completed",
-      });
-      return response;
-    } catch (error) {
-      stopHeartbeat({
-        message:
-          error instanceof Error
-            ? error.message
-            : "Desktop turn failed.",
-        state: "failed",
-      });
-      ephemeralBus.publish({
-        agentSessionId,
-        channelKind: "runtime-log",
-        correlationId,
-        payload: {
-          level: "error",
-          message:
-            error instanceof Error
-              ? error.message
-              : "Desktop turn failed.",
-        },
-        requestId,
-        source: "desktop-main",
-      });
-      throw error;
-    }
-  })(),
+  runDesktopTurn({
+    payload,
+    webContents: event.sender,
+  }),
 );
 
 if (gotSingleInstanceLock) {

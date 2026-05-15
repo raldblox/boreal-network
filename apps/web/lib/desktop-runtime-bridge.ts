@@ -112,6 +112,19 @@ export function buildDesktopBridgeModelsUrl(bridgeUrl: string) {
   return parsed.toString();
 }
 
+export function buildDesktopBridgeChatUrl(bridgeUrl: string) {
+  const parsed = new URL(bridgeUrl);
+  parsed.pathname = "/chat";
+  parsed.search = "";
+  return parsed.toString();
+}
+
+export function extractDesktopBridgeSessionToken(bridgeUrl: string) {
+  const parsed = new URL(bridgeUrl);
+  const token = parsed.searchParams.get("session");
+  return typeof token === "string" && token.trim().length > 0 ? token : null;
+}
+
 export async function discoverDesktopRuntime() {
   if (!isDesktopBridgeSupportedOrigin()) {
     return null;

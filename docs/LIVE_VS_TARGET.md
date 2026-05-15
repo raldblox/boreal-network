@@ -85,6 +85,7 @@ Today, the machine-readable baseline proves:
 - one complex human-led request can be evaluated deterministically across extraction, planning, matching, and policy outputs
 - one desktop-local browser bridge can expose ephemeral SSE events from Electron main over `127.0.0.1` with session-token and localhost-origin checks
 - one desktop-local browser bridge can expose the connected desktop runtime model catalog through a guarded localhost-only `/models` read surface for browser model selectors
+- one localhost Boreal web chat surface can dispatch one selected `Codex/Desktop` prompt turn through a guarded localhost-only `POST /chat` bridge write and stream the reply back into the web message list
 - one localhost Boreal web surface can auto-discover and link the running desktop runtime through a localhost-only bridge discovery read, without forcing a separate manual bridge page flow
 - one localhost Boreal web request room may also read local desktop auto-resolve policy, desktop-default supply selection, and desktop-default Codex model or reasoning through that same guarded discovery lane, while still treating the `Request` object as durable route truth
 - one runnable Pear or Hyperswarm peer foundation now exists under `apps/peer/` and `packages/network-*`, with a real peer keypair, control-topic host, and desktop-embedded peer runtime status

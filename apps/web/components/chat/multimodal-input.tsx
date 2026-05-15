@@ -314,7 +314,12 @@ function PureMultimodalInput({
 
   const submitForm = useCallback(async () => {
     if (isRequestMode && !activeRequest) {
-      await ensureRequestForSend();
+      try {
+        await ensureRequestForSend();
+      } catch {
+        setIsSubmitPending(false);
+        return;
+      }
     }
 
     window.history.pushState(
@@ -352,8 +357,8 @@ function PureMultimodalInput({
     attachments,
     activeRequest,
     sendMessage,
-  ensureRequestForSend,
-  isRequestMode,
+    ensureRequestForSend,
+    isRequestMode,
     setAttachments,
     setLocalStorageInput,
     width,
@@ -365,20 +370,6 @@ function PureMultimodalInput({
       setIsSubmitPending(false);
     }
   }, [status]);
-
-  useEffect(() => {
-    if (!isSubmitPending) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setIsSubmitPending(false);
-    }, 1500);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [isSubmitPending]);
 
   const uploadFile = useCallback(async (file: File) => {
     const formData = new FormData();
@@ -664,6 +655,7 @@ function PureMultimodalInput({
               status={status}
             />
             <ModelSelectorCompact
+              activeRequest={activeRequest}
               onModelChange={onModelChange}
               selectedModelId={selectedModelId}
             />
@@ -785,9 +777,11 @@ function PureAttachmentsButton({
 const AttachmentsButton = memo(PureAttachmentsButton);
 
 function PureModelSelectorCompact({
+  activeRequest,
   selectedModelId,
   onModelChange,
 }: {
+  activeRequest: BorealRequestDraft | null;
   selectedModelId: string;
   onModelChange?: (modelId: string) => void;
 }) {
@@ -1066,6 +1060,9 @@ function PureModelSelectorCompact({
     webModels.find((m: ChatModel) => m.id === DEFAULT_CHAT_MODEL) ??
     webModels[0];
   const [provider] = selectedModel.id.split("/");
+  const desktopRuntimeDispatchReady = desktopRuntimeModelAccessReady;
+  const desktopModelsSelectable =
+    desktopRuntimeDispatchReady && activeRequest?.status !== "draft";
   const desktopRuntimeActionLabel =
     desktopRuntimeRequestLaneReady
       ? "Reconnect desktop runtime"
@@ -1162,37 +1159,66 @@ function PureModelSelectorCompact({
               {desktopRuntimeModels.length > 0 ? (
                 <>
                   <ModelSelectorSeparator />
-                  {desktopRuntimeModels.map((model) => (
-                    <ModelSelectorItem
-                      className="flex w-full opacity-80"
-                      disabled
-                      key={model.id}
-                      value={model.id}
-                    >
-                      <ModelProviderMark provider={DESKTOP_MODEL_PROVIDER} />
-                      <div className="min-w-0 flex flex-1 flex-col">
-                        <ModelSelectorName>{model.name}</ModelSelectorName>
-                        <span className="truncate text-[11px] text-muted-foreground">
-                          {desktopRuntimeAccessLabel}
-                        </span>
-                      </div>
-                      <div className="ml-auto flex items-center gap-2 text-foreground/70">
-                        {mergedCapabilities?.[model.id]?.tools && (
-                          <WrenchIcon className="size-3.5" />
+                  {desktopRuntimeModels.map((model) => {
+                    const rowDisabled = !desktopModelsSelectable;
+
+                    return (
+                      <ModelSelectorItem
+                        className={cn(
+                          "flex w-full",
+                          rowDisabled && "opacity-70",
+                          model.id === selectedModel.id &&
+                            "rounded-md bg-accent/60 text-foreground"
                         )}
-                        {mergedCapabilities?.[model.id]?.reasoning && (
-                          <BrainIcon className="size-3.5" />
-                        )}
-                      </div>
-                    </ModelSelectorItem>
-                  ))}
+                        disabled={rowDisabled}
+                        key={model.id}
+                        onSelect={() => {
+                          if (rowDisabled) {
+                            return;
+                          }
+
+                          onModelChange?.(model.id);
+                          setCookie("chat-model", model.id);
+                          setOpen(false);
+                          setTimeout(() => {
+                            document
+                              .querySelector<HTMLTextAreaElement>(
+                                "[data-testid='multimodal-input']"
+                              )
+                              ?.focus();
+                          }, 50);
+                        }}
+                        value={model.id}
+                      >
+                        <ModelProviderMark provider={DESKTOP_MODEL_PROVIDER} />
+                        <div className="min-w-0 flex flex-1 flex-col">
+                          <ModelSelectorName>{model.name}</ModelSelectorName>
+                          <span className="truncate text-[11px] text-muted-foreground">
+                            {activeRequest?.status === "draft"
+                              ? "Draft requests must stay on Boreal request tools."
+                              : desktopRuntimeModelAccessReady
+                                ? "Runs on the connected Boreal Desktop Codex runtime."
+                                : desktopRuntimeAccessLabel}
+                          </span>
+                        </div>
+                        <div className="ml-auto flex items-center gap-2 text-foreground/70">
+                          {mergedCapabilities?.[model.id]?.tools && (
+                            <WrenchIcon className="size-3.5" />
+                          )}
+                          {mergedCapabilities?.[model.id]?.reasoning && (
+                            <BrainIcon className="size-3.5" />
+                          )}
+                        </div>
+                      </ModelSelectorItem>
+                    );
+                  })}
                 </>
               ) : (
                 <div className="px-2 py-2 text-[11px] text-muted-foreground">
                   {desktopRuntimeModelAccessReady
                     ? desktopRuntimeResolverReady
-                      ? "Desktop catalog is linked. Web chat dispatch through desktop is still not enabled here."
-                      : "Desktop model access is ready, but Boreal is still disconnected on desktop."
+                      ? "Desktop models are ready for local web dispatch."
+                      : "Desktop chat is ready. Boreal request auth is still disconnected on desktop."
                     : "Desktop models appear here only after the local desktop worker is reachable."}
                 </div>
               )}

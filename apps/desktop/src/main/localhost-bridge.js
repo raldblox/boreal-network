@@ -94,10 +94,31 @@ function writeJson(response, statusCode, payload, origin) {
   response.end(JSON.stringify(payload));
 }
 
+async function readJsonBody(request) {
+  const chunks = [];
+
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+
+  if (chunks.length === 0) {
+    return {};
+  }
+
+  const raw = Buffer.concat(chunks).toString("utf8").trim();
+
+  if (raw.length === 0) {
+    return {};
+  }
+
+  return JSON.parse(raw);
+}
+
 export function createDesktopLocalhostBridge({
   ephemeralBus,
   getDesktopBridgeDiscovery,
   getDesktopModelAccess,
+  runDesktopTurn,
 }) {
   let discoveryServer = null;
   let discoveryLastError = null;
@@ -252,7 +273,7 @@ export function createDesktopLocalhostBridge({
       response.writeHead(204, {
         "Access-Control-Allow-Headers":
           "Authorization, Content-Type, X-Boreal-Session",
-        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       });
       response.end();
       return;
@@ -277,13 +298,69 @@ export function createDesktopLocalhostBridge({
       return;
     }
 
+    if (request.method === "POST") {
+      if (requestUrl.pathname !== "/chat") {
+        writeJson(
+          response,
+          404,
+          {
+            error: "not_found",
+            message: `Unknown bridge path: ${normalizeUrlPath(request.url)}`,
+          },
+          origin,
+        );
+        return;
+      }
+
+      if (typeof runDesktopTurn !== "function") {
+        writeJson(
+          response,
+          503,
+          {
+            error: "desktop_turn_unavailable",
+            message: "Desktop bridge chat turns are unavailable.",
+          },
+          origin,
+        );
+        return;
+      }
+
+      try {
+        const payload = await readJsonBody(request);
+        const result = await runDesktopTurn({ payload });
+        writeJson(
+          response,
+          200,
+          {
+            ok: true,
+            response: result,
+          },
+          origin,
+        );
+      } catch (error) {
+        writeJson(
+          response,
+          500,
+          {
+            error: "desktop_turn_failed",
+            message:
+              error instanceof Error
+                ? error.message
+                : "Desktop bridge chat turn failed.",
+          },
+          origin,
+        );
+      }
+      return;
+    }
+
     if (request.method !== "GET") {
       writeJson(
         response,
         405,
         {
           error: "method_not_allowed",
-          message: "Desktop bridge only supports GET requests.",
+          message: "Desktop bridge only supports GET and POST requests.",
         },
         origin,
       );

@@ -26,6 +26,13 @@ import { toast } from "@/components/chat/toast";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { useAutoResume } from "@/hooks/use-auto-resume";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import {
+  buildDesktopBridgeChatUrl,
+  discoverDesktopRuntime,
+  extractDesktopBridgeSessionToken,
+  isDesktopBridgeSupportedOrigin,
+  readStoredDesktopBridgeUrl,
+} from "@/lib/desktop-runtime-bridge";
 import type { BorealRequestDraft, RequestActivityEntry } from "@/lib/request";
 import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
@@ -75,6 +82,173 @@ type ActiveChatContextValue = {
 };
 
 const ActiveChatContext = createContext<ActiveChatContextValue | null>(null);
+
+const DESKTOP_MODEL_PREFIX = "codex-desktop/";
+
+type DesktopBridgeEnvelope = {
+  channelKind?: string | null;
+  payload?: Record<string, unknown> | null;
+  requestId?: string | null;
+};
+
+function isDesktopRuntimeModelId(modelId: string) {
+  return modelId.startsWith(DESKTOP_MODEL_PREFIX);
+}
+
+function stripDesktopRuntimeModelId(modelId: string) {
+  return modelId.startsWith(DESKTOP_MODEL_PREFIX)
+    ? modelId.slice(DESKTOP_MODEL_PREFIX.length)
+    : modelId;
+}
+
+function normalizeChatMessageForLocalSend(
+  message: Parameters<UseChatHelpers<ChatMessage>["sendMessage"]>[0]
+): ChatMessage | null {
+  if (!message || typeof message !== "object" || !("role" in message)) {
+    return null;
+  }
+
+  return {
+    id:
+      "id" in message && typeof message.id === "string" && message.id.length > 0
+        ? message.id
+        : generateUUID(),
+    role: message.role,
+    parts: Array.isArray(message.parts) ? [...message.parts] : [],
+    metadata: {
+      createdAt: new Date().toISOString(),
+    },
+  } as ChatMessage;
+}
+
+function getMessageTextContent(message: ChatMessage) {
+  return message.parts
+    .map((part) => {
+      if (part.type === "text") {
+        return part.text;
+      }
+
+      if (part.type === "file") {
+        const fileName =
+          typeof part.filename === "string" && part.filename.trim().length > 0
+            ? part.filename.trim()
+            : "attached file";
+        return `Attachment: ${fileName}`;
+      }
+
+      return "";
+    })
+    .filter((value) => value.trim().length > 0)
+    .join("\n");
+}
+
+function toDesktopConversationMessages(messages: ChatMessage[]) {
+  return messages
+    .filter((message) => message.role === "user" || message.role === "assistant")
+    .map((message) => ({
+      role: message.role,
+      content: getMessageTextContent(message).trim(),
+    }))
+    .filter((message) => message.content.length > 0);
+}
+
+function formatBudgetSummary(request: BorealRequestDraft) {
+  const budget = request.budget;
+
+  if (!budget) {
+    return "No budget";
+  }
+
+  if (budget.mode === "fixed" && typeof budget.fixedAmount === "number") {
+    return `${budget.currency ?? "USD"} ${budget.fixedAmount}`;
+  }
+
+  if (
+    budget.mode === "range" &&
+    typeof budget.minAmount === "number" &&
+    typeof budget.maxAmount === "number"
+  ) {
+    return `${budget.currency ?? "USD"} ${budget.minAmount}-${budget.maxAmount}`;
+  }
+
+  if (budget.mode === "open") {
+    return "Open budget";
+  }
+
+  return budget.notes?.trim() || "No budget";
+}
+
+function formatDeadlineSummary(request: BorealRequestDraft) {
+  if (request.deadline?.targetAt) {
+    return request.deadline.targetAt;
+  }
+
+  return request.deadline?.notes?.trim() || "No deadline";
+}
+
+function buildTrackedRequestContext(
+  request: BorealRequestDraft,
+  activities: RequestActivityEntry[]
+) {
+  const activeFulfillment =
+    [...activities]
+      .reverse()
+      .find(
+        (activity) =>
+          activity.fulfillment &&
+          (!request.activeRefs.activeFulfillmentId ||
+            activity.fulfillment.id === request.activeRefs.activeFulfillmentId)
+      )?.fulfillment ?? null;
+
+  return {
+    mode: "tracked_request" as const,
+    fulfillment: activeFulfillment
+      ? {
+          ...(activeFulfillment.commitmentId
+            ? { commitmentId: activeFulfillment.commitmentId }
+            : {}),
+          id: activeFulfillment.id,
+          status: activeFulfillment.status,
+          summary: activeFulfillment.summary,
+        }
+      : null,
+    recentActivity: activities.slice(-6).map((entry) => ({
+      actorLabel:
+        entry.actor.displayName?.trim() ||
+        entry.actor.handle?.trim() ||
+        entry.actor.id,
+      ...(entry.detail ? { detail: entry.detail } : {}),
+      eventType: entry.eventType,
+      occurredAt: entry.occurredAt,
+      summary: entry.summary,
+    })),
+    request: {
+      actorKinds: request.seeking.actorKinds ?? [],
+      body: request.brief.body ?? "",
+      budgetSummary: formatBudgetSummary(request),
+      constraints: request.brief.constraints ?? {},
+      deadlineSummary: formatDeadlineSummary(request),
+      id: request.id,
+      key: request.key,
+      notes: request.seeking.notes ?? "",
+      outputKinds: request.brief.outputKinds ?? [],
+      status: request.status,
+      summary:
+        request.brief.summary?.trim() ||
+        request.latest.summary?.trim() ||
+        request.brief.body?.trim() ||
+        request.brief.title?.trim() ||
+        request.key,
+      supplyKinds: request.seeking.supplyKinds ?? [],
+      teamMode: request.seeking.teamMode ?? "",
+      title: request.brief.title?.trim() || request.key,
+      visibility: request.visibility,
+    },
+    sourceScope:
+      request.visibility === "private" ? "owned-requests" : "public-requests",
+    trustTier: request.visibility === "private" ? "owned-private" : "external",
+  };
+}
 
 function extractChatId(pathname: string): string | null {
   const match = pathname.match(/\/chat\/([^/]+)/);
@@ -167,13 +341,18 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   );
   const activities = activityData?.activity ?? [];
 
+  const [desktopTransportStatus, setDesktopTransportStatus] =
+    useState<UseChatHelpers<ChatMessage>["status"]>("ready");
+  const desktopEventSourceRef = useRef<EventSource | null>(null);
+  const desktopAbortControllerRef = useRef<AbortController | null>(null);
+
   const {
     messages,
     setMessages,
-    sendMessage,
-    status,
-    stop,
-    regenerate,
+    sendMessage: baseSendMessage,
+    status: baseStatus,
+    stop: baseStop,
+    regenerate: baseRegenerate,
     resumeStream,
     addToolApprovalResponse,
   } = useChat<ChatMessage>({
@@ -254,6 +433,320 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       }
     },
   });
+
+  const closeDesktopTransport = useCallback(() => {
+    desktopEventSourceRef.current?.close();
+    desktopEventSourceRef.current = null;
+    desktopAbortControllerRef.current = null;
+  }, []);
+
+  const status =
+    desktopTransportStatus === "ready" ? baseStatus : desktopTransportStatus;
+
+  const stop = useCallback(async () => {
+    if (desktopTransportStatus !== "ready") {
+      desktopAbortControllerRef.current?.abort();
+      closeDesktopTransport();
+      setDesktopTransportStatus("ready");
+      return;
+    }
+
+    await baseStop();
+  }, [baseStop, closeDesktopTransport, desktopTransportStatus]);
+
+  useEffect(() => {
+    return () => {
+      desktopAbortControllerRef.current?.abort();
+      desktopEventSourceRef.current?.close();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      desktopTransportStatus !== "ready" &&
+      !isDesktopRuntimeModelId(currentModelId)
+    ) {
+      setDesktopTransportStatus("ready");
+    }
+  }, [currentModelId, desktopTransportStatus]);
+
+  const sendMessage = useCallback<UseChatHelpers<ChatMessage>["sendMessage"]>(
+    async (message, options) => {
+      const selectedModelId = currentModelIdRef.current;
+
+      if (!isDesktopRuntimeModelId(selectedModelId)) {
+        if (desktopTransportStatus !== "ready") {
+          setDesktopTransportStatus("ready");
+        }
+        return baseSendMessage(message, options);
+      }
+
+      if (activeRequest?.status === "draft") {
+        toast({
+          type: "error",
+          description:
+            "Desktop models are disabled while drafting a request. Use Boreal request tools or open the request first.",
+        });
+        return;
+      }
+
+      if (!isDesktopBridgeSupportedOrigin()) {
+        toast({
+          type: "error",
+          description: "Desktop bridge only works from localhost Boreal web.",
+        });
+        return;
+      }
+
+      const discovery = await discoverDesktopRuntime();
+      const bridgeUrl = discovery?.bridge?.sseUrl ?? readStoredDesktopBridgeUrl();
+      const sessionToken = bridgeUrl
+        ? extractDesktopBridgeSessionToken(bridgeUrl)
+        : null;
+
+      if (!bridgeUrl || !sessionToken) {
+        toast({
+          type: "error",
+          description: "Reconnect Boreal Desktop runtime before using desktop models.",
+        });
+        return;
+      }
+
+      const userMessage = normalizeChatMessageForLocalSend(message);
+
+      if (!userMessage) {
+        toast({
+          type: "error",
+          description: "Type a message before sending.",
+        });
+        return;
+      }
+
+      const userMessageText = getMessageTextContent(userMessage).trim();
+
+      if (userMessageText.length === 0) {
+        toast({
+          type: "error",
+          description: "Type a message before sending.",
+        });
+        return;
+      }
+
+      const requestId = generateUUID();
+      const assistantId = generateUUID();
+      const assistantCreatedAt = new Date().toISOString();
+      const transcriptMessages = toDesktopConversationMessages([
+        ...messages,
+        userMessage,
+      ]);
+      const trackedRequest = activeRequest
+        ? buildTrackedRequestContext(activeRequest, activities)
+        : null;
+
+      let assistantText = "";
+
+      const updateAssistantText = (nextText: string) => {
+        setMessages((currentMessages) =>
+          currentMessages.map((currentMessage) =>
+            currentMessage.id === assistantId
+              ? ({
+                  ...currentMessage,
+                  parts: [{ type: "text", text: nextText }],
+                  metadata:
+                    currentMessage.metadata ??
+                    ({
+                      createdAt: assistantCreatedAt,
+                    } as ChatMessage["metadata"]),
+                } as ChatMessage)
+              : currentMessage
+          )
+        );
+      };
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        userMessage,
+        {
+          id: assistantId,
+          role: "assistant",
+          parts: [],
+          metadata: {
+            createdAt: assistantCreatedAt,
+          },
+        } as ChatMessage,
+      ]);
+      setDesktopTransportStatus("submitted");
+
+      const eventSource = new EventSource(bridgeUrl);
+      desktopEventSourceRef.current = eventSource;
+
+      eventSource.addEventListener("ephemeral", (event) => {
+        try {
+          const envelope = JSON.parse(
+            (event as MessageEvent<string>).data
+          ) as DesktopBridgeEnvelope;
+
+          if (envelope.requestId !== requestId) {
+            return;
+          }
+
+          if (envelope.channelKind !== "token-delta") {
+            return;
+          }
+
+          const delta =
+            typeof envelope.payload?.delta === "string"
+              ? envelope.payload.delta
+              : "";
+
+          if (delta.length === 0) {
+            return;
+          }
+
+          assistantText += delta;
+          setDesktopTransportStatus("streaming");
+          updateAssistantText(assistantText);
+        } catch {
+          return;
+        }
+      });
+
+      const abortController = new AbortController();
+      desktopAbortControllerRef.current = abortController;
+
+      try {
+        const response = await fetch(buildDesktopBridgeChatUrl(bridgeUrl), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-boreal-session": sessionToken,
+          },
+          body: JSON.stringify({
+            conversationKey: chatId,
+            messages: transcriptMessages,
+            model: stripDesktopRuntimeModelId(selectedModelId),
+            requestId,
+            ...(trackedRequest ? { trackedRequest } : {}),
+            ...(discovery?.policy?.defaultReasoning
+              ? { reasoningEffort: discovery.policy.defaultReasoning }
+              : {}),
+            threadId: chatId,
+          }),
+          signal: abortController.signal,
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+          | {
+              error?: string;
+              message?: string;
+              response?: {
+                outputText?: string;
+              };
+            }
+          | null;
+
+        if (!response.ok) {
+          throw new Error(
+            payload?.message ||
+              payload?.error ||
+              `Desktop turn failed with ${response.status}.`
+          );
+        }
+
+        const outputText =
+          typeof payload?.response?.outputText === "string"
+            ? payload.response.outputText.trim()
+            : "";
+
+        if (assistantText.length === 0 && outputText.length > 0) {
+          assistantText = outputText;
+          setDesktopTransportStatus("streaming");
+          updateAssistantText(outputText);
+        } else if (outputText.length > 0 && outputText !== assistantText) {
+          assistantText = outputText;
+          updateAssistantText(outputText);
+        }
+
+        if (assistantText.trim().length === 0) {
+          throw new Error("Desktop runtime returned no text output.");
+        }
+
+        setDesktopTransportStatus("ready");
+        closeDesktopTransport();
+
+        if (!activeRequest && !isRequestMode) {
+          await fetchWithErrorHandlers(
+            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat/desktop-turn`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                assistantId,
+                assistantText,
+                id: chatId,
+                message: userMessage,
+                requestMode: false,
+                selectedVisibilityType: visibility,
+              }),
+            }
+          );
+          await mutate(unstable_serialize(getChatHistoryPaginationKey));
+        }
+
+        await mutate(chatDataKey);
+      } catch (error) {
+        closeDesktopTransport();
+
+        if (error instanceof DOMException && error.name === "AbortError") {
+          setDesktopTransportStatus("ready");
+          return;
+        }
+
+        setMessages((currentMessages) =>
+          currentMessages.filter((currentMessage) => currentMessage.id !== assistantId)
+        );
+        setDesktopTransportStatus("error");
+        toast({
+          type: "error",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Desktop runtime failed to answer the prompt.",
+        });
+      }
+    },
+    [
+      activeRequest,
+      activities,
+      baseSendMessage,
+      chatDataKey,
+      chatId,
+      closeDesktopTransport,
+      desktopTransportStatus,
+      isRequestMode,
+      messages,
+      mutate,
+      setMessages,
+      visibility,
+    ]
+  );
+
+  const regenerate = useCallback<UseChatHelpers<ChatMessage>["regenerate"]>(
+    async (options) => {
+    if (isDesktopRuntimeModelId(currentModelIdRef.current)) {
+      toast({
+        type: "error",
+        description: "Desktop regenerate is not wired yet. Resend the prompt instead.",
+      });
+      return;
+    }
+
+      await baseRegenerate(options);
+    },
+    [baseRegenerate]
+  );
 
   const loadedChatIds = useRef(new Set<string>());
 
