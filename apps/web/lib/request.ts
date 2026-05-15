@@ -537,18 +537,9 @@ export type PublicRequestPoolEntry = {
     executionKind: string | null;
     paymentMode: string | null;
     matchingMode: string | null;
-    leadRole: string | null;
-    roleSlots: RequestRoleSlot[];
-    phases: RequestPhasePlan[];
-    noMicrotaskExplosion: boolean;
     missingDetails: string[];
     readiness: RequestReadiness;
     routeSummary: string | null;
-    executionProfile: RequestExecutionProfile;
-    embodiedConstraintSet: RequestEmbodiedConstraintSet;
-    verificationPlan: RequestVerificationPlan;
-    planCollapseRisk: RequestPlanCollapseRisk;
-    clarificationNeeded: RequestClarificationNeeded;
   };
   createdAt: string;
   updatedAt: string;
@@ -1067,18 +1058,9 @@ export function toPublicRequestPoolEntry(
       executionKind: draft.derived.executionKind ?? null,
       paymentMode: draft.derived.paymentMode ?? null,
       matchingMode: draft.derived.matchingMode ?? null,
-      leadRole: draft.derived.leadRole ?? null,
-      roleSlots: draft.derived.roleSlots,
-      phases: draft.derived.phases,
-      noMicrotaskExplosion: draft.derived.noMicrotaskExplosion,
       missingDetails: draft.derived.missingDetails,
       readiness: draft.derived.readiness,
       routeSummary: draft.derived.routeSummary ?? null,
-      executionProfile: draft.derived.executionProfile,
-      embodiedConstraintSet: draft.derived.embodiedConstraintSet,
-      verificationPlan: draft.derived.verificationPlan,
-      planCollapseRisk: draft.derived.planCollapseRisk,
-      clarificationNeeded: draft.derived.clarificationNeeded,
     },
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
