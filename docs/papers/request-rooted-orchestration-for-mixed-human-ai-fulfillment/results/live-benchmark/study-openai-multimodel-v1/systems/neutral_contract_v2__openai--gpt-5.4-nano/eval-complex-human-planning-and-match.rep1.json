@@ -1,0 +1,470 @@
+{
+  "schemaVersion": 1,
+  "runner": {
+    "script": "apps/web/scripts/run-request-processing-live-benchmark.ts",
+    "version": 1
+  },
+  "fixture": {
+    "scenarioId": "eval-complex-human-planning-and-match",
+    "filePath": "fixtures\\request\\eval-complex-human-planning-and-match.json",
+    "sha256": "14690606f66e55e9f7b7384e3f73f0287b382afa087f4d5da4107b925863c990"
+  },
+  "system": {
+    "modelId": "openai/gpt-5.4-nano",
+    "promptPresetId": "neutral_contract_v2",
+    "repetition": 1,
+    "seed": 7,
+    "temperature": 0,
+    "maxOutputTokens": 1600,
+    "gatewayOrder": [
+      "openai",
+      "azure"
+    ],
+    "reasoningEffort": null
+  },
+  "timing": {
+    "startedAt": "2026-05-14T23:07:19.861Z",
+    "finishedAt": "2026-05-14T23:07:28.903Z",
+    "durationMs": 9042
+  },
+  "prompt": {
+    "schemaName": "request_processing_eval_output",
+    "schemaDescription": "Structured request-processing output covering extraction, routing, planning, matching, and safe next-action policy.",
+    "system": "You are evaluating work requests against a fixed structured orchestration contract. Produce faithful structured output, not persuasive prose.\n\nRules:\n1. Return exactly one JSON object and no surrounding prose.\n2. Use only facts from the request input and the candidate supply list.\n3. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n4. Rank and reference only the supplied candidate supplyIds.\n5. Choose the lead supply before adding optional collaborator roles.\n6. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n7. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n8. Generated summaries, checklists, or reports are not proof that physical work happened.\n9. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n10. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n11. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n12. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n13. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n14. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n15. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n16. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n17. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n18. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n19. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n20. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n21. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "prompt": "Scenario ID:\neval-complex-human-planning-and-match\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_nadia_cho\",\n  \"displayName\": \"Nadia Cho\"\n}\n\nRaw request:\nI need someone to own a support and sales ops migration for our startup. We run support in Notion and Airtable today, and we want HubSpot set up properly with automations, handoff docs, and operator training. Budget is around 6k to 9k. We need this done in about three weeks. AI support is fine, but I do not want a black-box setup that nobody on my team can run later.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_human_ops_migration_lead\",\n    \"title\": \"Revenue and Support Ops Migration Lead\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"operator\",\n      \"migration_lead\"\n    ],\n    \"summary\": \"Owns CRM and support migrations, training, and operational rollout.\"\n  },\n  {\n    \"supplyId\": \"sup_ai_automation_studio\",\n    \"title\": \"AI Automation Studio\",\n    \"actorKinds\": [\n      \"agent\",\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"automation_builder\"\n    ],\n    \"summary\": \"Builds automations, integrations, and internal tooling support.\"\n  },\n  {\n    \"supplyId\": \"sup_copy_only_documentation_team\",\n    \"title\": \"Documentation Team\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"documentation_support\"\n    ],\n    \"summary\": \"Produces handoff documentation and enablement assets.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"Generic text assistance with no clear migration ownership.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request.",
+    "systemSha256": "374f1a170aa61a97e171ec99224f60fbdeb4257ebab35b867fa179187ea7e26c",
+    "promptSha256": "01c6ce22453cd710924c0825e7e2ead39ce414a37e78ac197f69bef6ebf92d54"
+  },
+  "result": {
+    "callSuccess": true,
+    "parseSuccess": true,
+    "rawText": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-complex-human-planning-and-match\",\n  \"extraction\": {\n    \"title\": \"Support and sales ops migration to HubSpot with automations, handoff docs, and operator training\",\n    \"summary\": \"Migrate support ops from Notion and Airtable to HubSpot, set up automations, produce handoff docs, and provide operator training that remains maintainable by the team (avoid black-box setup). Timeline target is about three weeks and budget is around 6k to 9k.\",\n    \"seeking\": {\n      \"actorKinds\": [\n        \"human\"\n      ],\n      \"supplyKinds\": [\n        \"operator\",\n        \"migration_lead\",\n        \"automation_builder\",\n        \"documentation_support\"\n      ]\n    },\n    \"outputKinds\": [\n      \"migration_plan\",\n      \"workflow_build\",\n      \"handoff_doc\",\n      \"operator_training\"\n    ],\n    \"missingDetails\": [\n      \"Notion and Airtable data scope (tables/forms, workflows, fields) and target HubSpot objects (contacts, companies, tickets, etc.)\",\n      \"Exact three-week start date and whether there are fixed milestones or weekly check-ins\",\n      \"What “support in Notion” specifically means (e.g., knowledge base, ticketing, intake forms)\",\n      \"Automation requirements details (handoff triggers, SLA logic, routing, integrations) and any existing systems to integrate\",\n      \"Training format and who the operators are (roles, number of trainees, required competencies)\",\n      \"Acceptance criteria and how handoff success will be verified by the team\"\n    ],\n    \"constraints\": {\n      \"budgetCurrency\": \"USD\",\n      \"budgetMin\": 6000,\n      \"budgetMax\": 9000,\n      \"timeWindow\": {\n        \"durationEstimate\": \"3_weeks\"\n      },\n      \"avoid_black_box_setup\": true,\n      \"ai_support_allowed\": true\n    }\n  },\n  \"routing\": {\n    \"routeFamily\": \"direct_specialist\",\n    \"complexityLevel\": \"medium\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": true\n  },\n  \"planning\": {\n    \"leadRole\": \"migration_lead\",\n    \"executionProfile\": {\n      \"executionModes\": [\n        \"migration_planning\",\n        \"hubspot_workflow_setup\",\n        \"enablement_and_training\"\n      ],\n      \"requiresHumanPresence\": false,\n      \"requiresLocalAccess\": false,\n      \"requiresVerifiedEvidence\": false,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": false,\n      \"riskTier\": \"medium\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\n        \"migration_plan\",\n        \"workflow_build\",\n        \"handoff_doc\",\n        \"operator_training\"\n      ],\n      \"requiredEvidenceClaims\": [\n        \"team can run/modify automations without vendor-only black-box dependencies\",\n        \"handoff docs cover configuration, triggers, owners, and change process\"\n      ],\n      \"mustHaveOwnerAcceptance\": true,\n      \"mustHaveLocationSignal\": false,\n      \"mustHaveSignature\": false\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"medium\",\n      \"reasons\": [\n        \"Scope of Notion/Airtable usage and exact HubSpot target objects is not specified\",\n        \"Automation and handoff logic requirements are not detailed\",\n        \"Training and acceptance criteria are not defined\"\n      ]\n    },\n    \"phases\": [\n      {\n        \"phaseKey\": \"phase_1_discovery_and_scope\",\n        \"title\": \"Discovery and migration scope definition (3-week plan + data/workflow mapping)\"\n      },\n      {\n        \"phaseKey\": \"phase_2_hubspot_setup_and_automation_build\",\n        \"title\": \"HubSpot configuration and automations build (maintainable by team)\"\n      },\n      {\n        \"phaseKey\": \"phase_3_handoff_docs_and_operator_training\",\n        \"title\": \"Handoff documentation and operator training (no black-box ownership)\"\n      },\n      {\n        \"phaseKey\": \"phase_4_owner_acceptance\",\n        \"title\": \"Team acceptance and rollout readiness check\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"migration_lead\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": true\n      },\n      {\n        \"roleKey\": \"automation_builder\",\n        \"requiredActorKinds\": [\n          \"agent\",\n          \"human\"\n        ],\n        \"required\": false\n      },\n      {\n        \"roleKey\": \"documentation_support\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": false\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\n      \"sup_human_ops_migration_lead\",\n      \"sup_ai_automation_studio\",\n      \"sup_copy_only_documentation_team\",\n      \"sup_generic_chat_agent\"\n    ],\n    \"roleMatches\": {\n      \"migration_lead\": \"sup_human_ops_migration_lead\",\n      \"automation_builder\": \"sup_ai_automation_studio\",\n      \"documentation_support\": \"sup_copy_only_documentation_team\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"clarify_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "rawTextSha256": "91c639e64bd4b05a8e4fec771dbe23e2ed462d8401a51366e0763e93fd270e23",
+    "actual": {
+      "schemaVersion": 1,
+      "scenarioId": "eval-complex-human-planning-and-match",
+      "extraction": {
+        "title": "Support and sales ops migration to HubSpot with automations, handoff docs, and operator training",
+        "summary": "Migrate support ops from Notion and Airtable to HubSpot, set up automations, produce handoff docs, and provide operator training that remains maintainable by the team (avoid black-box setup). Timeline target is about three weeks and budget is around 6k to 9k.",
+        "seeking": {
+          "actorKinds": [
+            "human"
+          ],
+          "supplyKinds": [
+            "operator",
+            "migration_lead",
+            "automation_builder",
+            "documentation_support"
+          ]
+        },
+        "outputKinds": [
+          "migration_plan",
+          "workflow_build",
+          "handoff_doc",
+          "operator_training"
+        ],
+        "missingDetails": [
+          "Notion and Airtable data scope (tables/forms, workflows, fields) and target HubSpot objects (contacts, companies, tickets, etc.)",
+          "Exact three-week start date and whether there are fixed milestones or weekly check-ins",
+          "What “support in Notion” specifically means (e.g., knowledge base, ticketing, intake forms)",
+          "Automation requirements details (handoff triggers, SLA logic, routing, integrations) and any existing systems to integrate",
+          "Training format and who the operators are (roles, number of trainees, required competencies)",
+          "Acceptance criteria and how handoff success will be verified by the team"
+        ],
+        "constraints": {
+          "budgetCurrency": "USD",
+          "budgetMin": 6000,
+          "budgetMax": 9000,
+          "timeWindow": {
+            "durationEstimate": "3_weeks"
+          },
+          "avoid_black_box_setup": true,
+          "ai_support_allowed": true
+        }
+      },
+      "routing": {
+        "routeFamily": "direct_specialist",
+        "complexityLevel": "medium",
+        "needsPlan": true,
+        "humanRequired": true,
+        "needsClarification": true
+      },
+      "planning": {
+        "leadRole": "migration_lead",
+        "executionProfile": {
+          "executionModes": [
+            "migration_planning",
+            "hubspot_workflow_setup",
+            "enablement_and_training"
+          ],
+          "requiresHumanPresence": false,
+          "requiresLocalAccess": false,
+          "requiresVerifiedEvidence": false,
+          "requiresScheduling": true,
+          "requiresGeography": false,
+          "riskTier": "medium"
+        },
+        "verificationPlan": {
+          "requiredArtifactKinds": [
+            "migration_plan",
+            "workflow_build",
+            "handoff_doc",
+            "operator_training"
+          ],
+          "requiredEvidenceClaims": [
+            "team can run/modify automations without vendor-only black-box dependencies",
+            "handoff docs cover configuration, triggers, owners, and change process"
+          ],
+          "mustHaveOwnerAcceptance": true,
+          "mustHaveLocationSignal": false,
+          "mustHaveSignature": false
+        },
+        "planCollapseRisk": {
+          "riskLevel": "medium",
+          "reasons": [
+            "Scope of Notion/Airtable usage and exact HubSpot target objects is not specified",
+            "Automation and handoff logic requirements are not detailed",
+            "Training and acceptance criteria are not defined"
+          ]
+        },
+        "phases": [
+          {
+            "phaseKey": "phase_1_discovery_and_scope",
+            "title": "Discovery and migration scope definition (3-week plan + data/workflow mapping)"
+          },
+          {
+            "phaseKey": "phase_2_hubspot_setup_and_automation_build",
+            "title": "HubSpot configuration and automations build (maintainable by team)"
+          },
+          {
+            "phaseKey": "phase_3_handoff_docs_and_operator_training",
+            "title": "Handoff documentation and operator training (no black-box ownership)"
+          },
+          {
+            "phaseKey": "phase_4_owner_acceptance",
+            "title": "Team acceptance and rollout readiness check"
+          }
+        ],
+        "roleSlots": [
+          {
+            "roleKey": "migration_lead",
+            "requiredActorKinds": [
+              "human"
+            ],
+            "required": true
+          },
+          {
+            "roleKey": "automation_builder",
+            "requiredActorKinds": [
+              "agent",
+              "human"
+            ],
+            "required": false
+          },
+          {
+            "roleKey": "documentation_support",
+            "requiredActorKinds": [
+              "human"
+            ],
+            "required": false
+          }
+        ],
+        "noMicrotaskExplosion": true
+      },
+      "matching": {
+        "leadRanking": [
+          "sup_human_ops_migration_lead",
+          "sup_ai_automation_studio",
+          "sup_copy_only_documentation_team",
+          "sup_generic_chat_agent"
+        ],
+        "roleMatches": {
+          "migration_lead": "sup_human_ops_migration_lead",
+          "automation_builder": "sup_ai_automation_studio",
+          "documentation_support": "sup_copy_only_documentation_team"
+        }
+      },
+      "policy": {
+        "nextAction": "clarify_request",
+        "requiresOwnerApproval": true,
+        "shouldOpenRequest": true,
+        "shouldCreateFulfillment": false,
+        "shouldCreateFulfillmentSteps": false
+      }
+    },
+    "metrics": {
+      "scenarioId": "eval-complex-human-planning-and-match",
+      "actualPath": "fixtures\\request\\eval-complex-human-planning-and-match.json",
+      "comparisonErrors": [
+        "eval-complex-human-planning-and-match.json: extraction.title mismatch",
+        "eval-complex-human-planning-and-match.json: extraction.summary must contain \"migration\"",
+        "eval-complex-human-planning-and-match.json: extraction.seeking.actorKinds mismatch",
+        "eval-complex-human-planning-and-match.json: extraction.seeking.supplyKinds mismatch",
+        "eval-complex-human-planning-and-match.json: extraction.constraints.deliveryWindowWeeks mismatch",
+        "eval-complex-human-planning-and-match.json: extraction.constraints.humanReviewRequired mismatch",
+        "eval-complex-human-planning-and-match.json: extraction.constraints.allowAiSupport mismatch",
+        "eval-complex-human-planning-and-match.json: extraction.constraints.disallowBlackBoxAutomation mismatch",
+        "eval-complex-human-planning-and-match.json: routing.routeFamily mismatch",
+        "eval-complex-human-planning-and-match.json: routing.complexityLevel mismatch",
+        "eval-complex-human-planning-and-match.json: routing.needsClarification mismatch",
+        "eval-complex-human-planning-and-match.json: role slot required mismatch for automation_builder",
+        "eval-complex-human-planning-and-match.json: policy.nextAction mismatch"
+      ],
+      "contractPass": false,
+      "leadTop1Correct": true,
+      "leadRecallAt3": true,
+      "overDecomposition": false,
+      "forbiddenMutation": false,
+      "embodiedStepRecall": null,
+      "generativePlanCollapse": null,
+      "verificationCompleteness": null,
+      "falseCompletion": false,
+      "callSuccess": true,
+      "parseSuccess": true,
+      "policyActionAcceptable": true,
+      "requiredRoleSlotCoverage": 0.5,
+      "optionalRoleSlotCoverage": 1,
+      "semanticEmbodiedStepRecall": null,
+      "semanticVerificationCompleteness": null
+    },
+    "reasoning": [],
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 1517,
+      "inputTokenDetails": {
+        "noCacheTokens": 1517,
+        "cacheReadTokens": 0
+      },
+      "outputTokens": 1158,
+      "outputTokenDetails": {
+        "textTokens": 1158,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 2675,
+      "raw": {
+        "input_tokens": 1517,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 1158,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "reasoningTokens": 0,
+      "cachedInputTokens": 0
+    },
+    "warnings": [],
+    "request": {
+      "body": {
+        "maxOutputTokens": 1600,
+        "temperature": 0,
+        "seed": 7,
+        "prompt": [
+          {
+            "role": "system",
+            "content": "You are evaluating work requests against a fixed structured orchestration contract. Produce faithful structured output, not persuasive prose.\n\nRules:\n1. Return exactly one JSON object and no surrounding prose.\n2. Use only facts from the request input and the candidate supply list.\n3. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n4. Rank and reference only the supplied candidate supplyIds.\n5. Choose the lead supply before adding optional collaborator roles.\n6. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n7. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n8. Generated summaries, checklists, or reports are not proof that physical work happened.\n9. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n10. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n11. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n12. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n13. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n14. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n15. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n16. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n17. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n18. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n19. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n20. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n21. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Scenario ID:\neval-complex-human-planning-and-match\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_nadia_cho\",\n  \"displayName\": \"Nadia Cho\"\n}\n\nRaw request:\nI need someone to own a support and sales ops migration for our startup. We run support in Notion and Airtable today, and we want HubSpot set up properly with automations, handoff docs, and operator training. Budget is around 6k to 9k. We need this done in about three weeks. AI support is fine, but I do not want a black-box setup that nobody on my team can run later.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_human_ops_migration_lead\",\n    \"title\": \"Revenue and Support Ops Migration Lead\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"operator\",\n      \"migration_lead\"\n    ],\n    \"summary\": \"Owns CRM and support migrations, training, and operational rollout.\"\n  },\n  {\n    \"supplyId\": \"sup_ai_automation_studio\",\n    \"title\": \"AI Automation Studio\",\n    \"actorKinds\": [\n      \"agent\",\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"automation_builder\"\n    ],\n    \"summary\": \"Builds automations, integrations, and internal tooling support.\"\n  },\n  {\n    \"supplyId\": \"sup_copy_only_documentation_team\",\n    \"title\": \"Documentation Team\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"documentation_support\"\n    ],\n    \"summary\": \"Produces handoff documentation and enablement assets.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"Generic text assistance with no clear migration ownership.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request."
+              }
+            ]
+          }
+        ],
+        "providerOptions": {
+          "gateway": {
+            "order": [
+              "openai",
+              "azure"
+            ]
+          }
+        },
+        "headers": {
+          "user-agent": "ai/6.0.116"
+        }
+      }
+    },
+    "response": {
+      "id": "aitxt-tEd8XwmwM2ErNE5Wr38NRD89",
+      "timestamp": "2026-05-14T23:07:28.902Z",
+      "modelId": "openai/gpt-5.4-nano",
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization, ai-gateway-auth-method, ai-gateway-protocol-version, ai-model-id, ai-language-model-id, ai-language-model-specification-version, ai-image-model-specification-version, ai-embedding-model-specification-version, ai-language-model-streaming, ai-reporting-tags, ai-reporting-user, http-referer, x-title, anthropic-beta",
+        "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Thu, 14 May 2026 23:07:27 GMT",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-matched-path": "/v3/ai/language-model",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "sin1::fra1::fscxk-1778800039354-6c0a5afe668e"
+      },
+      "body": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-complex-human-planning-and-match\",\n  \"extraction\": {\n    \"title\": \"Support and sales ops migration to HubSpot with automations, handoff docs, and operator training\",\n    \"summary\": \"Migrate support ops from Notion and Airtable to HubSpot, set up automations, produce handoff docs, and provide operator training that remains maintainable by the team (avoid black-box setup). Timeline target is about three weeks and budget is around 6k to 9k.\",\n    \"seeking\": {\n      \"actorKinds\": [\n        \"human\"\n      ],\n      \"supplyKinds\": [\n        \"operator\",\n        \"migration_lead\",\n        \"automation_builder\",\n        \"documentation_support\"\n      ]\n    },\n    \"outputKinds\": [\n      \"migration_plan\",\n      \"workflow_build\",\n      \"handoff_doc\",\n      \"operator_training\"\n    ],\n    \"missingDetails\": [\n      \"Notion and Airtable data scope (tables/forms, workflows, fields) and target HubSpot objects (contacts, companies, tickets, etc.)\",\n      \"Exact three-week start date and whether there are fixed milestones or weekly check-ins\",\n      \"What “support in Notion” specifically means (e.g., knowledge base, ticketing, intake forms)\",\n      \"Automation requirements details (handoff triggers, SLA logic, routing, integrations) and any existing systems to integrate\",\n      \"Training format and who the operators are (roles, number of trainees, required competencies)\",\n      \"Acceptance criteria and how handoff success will be verified by the team\"\n    ],\n    \"constraints\": {\n      \"budgetCurrency\": \"USD\",\n      \"budgetMin\": 6000,\n      \"budgetMax\": 9000,\n      \"timeWindow\": {\n        \"durationEstimate\": \"3_weeks\"\n      },\n      \"avoid_black_box_setup\": true,\n      \"ai_support_allowed\": true\n    }\n  },\n  \"routing\": {\n    \"routeFamily\": \"direct_specialist\",\n    \"complexityLevel\": \"medium\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": true\n  },\n  \"planning\": {\n    \"leadRole\": \"migration_lead\",\n    \"executionProfile\": {\n      \"executionModes\": [\n        \"migration_planning\",\n        \"hubspot_workflow_setup\",\n        \"enablement_and_training\"\n      ],\n      \"requiresHumanPresence\": false,\n      \"requiresLocalAccess\": false,\n      \"requiresVerifiedEvidence\": false,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": false,\n      \"riskTier\": \"medium\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\n        \"migration_plan\",\n        \"workflow_build\",\n        \"handoff_doc\",\n        \"operator_training\"\n      ],\n      \"requiredEvidenceClaims\": [\n        \"team can run/modify automations without vendor-only black-box dependencies\",\n        \"handoff docs cover configuration, triggers, owners, and change process\"\n      ],\n      \"mustHaveOwnerAcceptance\": true,\n      \"mustHaveLocationSignal\": false,\n      \"mustHaveSignature\": false\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"medium\",\n      \"reasons\": [\n        \"Scope of Notion/Airtable usage and exact HubSpot target objects is not specified\",\n        \"Automation and handoff logic requirements are not detailed\",\n        \"Training and acceptance criteria are not defined\"\n      ]\n    },\n    \"phases\": [\n      {\n        \"phaseKey\": \"phase_1_discovery_and_scope\",\n        \"title\": \"Discovery and migration scope definition (3-week plan + data/workflow mapping)\"\n      },\n      {\n        \"phaseKey\": \"phase_2_hubspot_setup_and_automation_build\",\n        \"title\": \"HubSpot configuration and automations build (maintainable by team)\"\n      },\n      {\n        \"phaseKey\": \"phase_3_handoff_docs_and_operator_training\",\n        \"title\": \"Handoff documentation and operator training (no black-box ownership)\"\n      },\n      {\n        \"phaseKey\": \"phase_4_owner_acceptance\",\n        \"title\": \"Team acceptance and rollout readiness check\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"migration_lead\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": true\n      },\n      {\n        \"roleKey\": \"automation_builder\",\n        \"requiredActorKinds\": [\n          \"agent\",\n          \"human\"\n        ],\n        \"required\": false\n      },\n      {\n        \"roleKey\": \"documentation_support\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": false\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\n      \"sup_human_ops_migration_lead\",\n      \"sup_ai_automation_studio\",\n      \"sup_copy_only_documentation_team\",\n      \"sup_generic_chat_agent\"\n    ],\n    \"roleMatches\": {\n      \"migration_lead\": \"sup_human_ops_migration_lead\",\n      \"automation_builder\": \"sup_ai_automation_studio\",\n      \"documentation_support\": \"sup_copy_only_documentation_team\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"clarify_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_05d1c89f887c4815006a0655a806ac8195a3a574df3017117c",
+                "phase": "final_answer"
+              }
+            }
+          }
+        ],
+        "finishReason": {
+          "unified": "stop"
+        },
+        "usage": {
+          "inputTokens": {
+            "total": 1517,
+            "noCache": 1517,
+            "cacheRead": 0
+          },
+          "outputTokens": {
+            "total": 1158,
+            "text": 1158,
+            "reasoning": 0
+          },
+          "raw": {
+            "input_tokens": 1517,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 1158,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        },
+        "providerMetadata": {
+          "openai": {
+            "responseId": "resp_05d1c89f887c4815006a0655a7bf5081959afaac4c2d134608",
+            "serviceTier": "default"
+          },
+          "gateway": {
+            "routing": {
+              "originalModelId": "openai/gpt-5.4-nano",
+              "resolvedProvider": "openai",
+              "resolvedProviderApiModelId": "gpt-5.4-nano",
+              "fallbacksAvailable": [
+                "azure"
+              ],
+              "planningReasoning": "BYOK credentials available for: openai. System credentials planned for: openai, azure. Total execution order: openai(BYOK) → openai(system) → azure(system)",
+              "canonicalSlug": "openai/gpt-5.4-nano",
+              "finalProvider": "openai",
+              "modelAttemptCount": 1,
+              "modelAttempts": [
+                {
+                  "modelId": "openai:gpt-5.4-nano",
+                  "canonicalSlug": "openai/gpt-5.4-nano",
+                  "success": true,
+                  "providerAttemptCount": 1,
+                  "providerAttempts": [
+                    {
+                      "provider": "openai",
+                      "internalModelId": "openai:gpt-5.4-nano",
+                      "providerApiModelId": "gpt-5.4-nano",
+                      "credentialType": "byok",
+                      "success": true,
+                      "startTime": 1778800039636,
+                      "endTime": 1778800047949,
+                      "statusCode": 200,
+                      "providerResponseId": "resp_05d1c89f887c4815006a0655a7bf5081959afaac4c2d134608"
+                    }
+                  ]
+                }
+              ],
+              "totalProviderAttemptCount": 1
+            },
+            "cost": "0",
+            "marketCost": "0.0017509",
+            "generationId": "gen_01KRMBX5NQJZMBRCT52DE8QK3H"
+          }
+        },
+        "warnings": [
+          {
+            "type": "unsupported",
+            "feature": "seed"
+          },
+          {
+            "type": "unsupported",
+            "feature": "temperature",
+            "details": "temperature is not supported for reasoning models"
+          }
+        ]
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-complex-human-planning-and-match\",\n  \"extraction\": {\n    \"title\": \"Support and sales ops migration to HubSpot with automations, handoff docs, and operator training\",\n    \"summary\": \"Migrate support ops from Notion and Airtable to HubSpot, set up automations, produce handoff docs, and provide operator training that remains maintainable by the team (avoid black-box setup). Timeline target is about three weeks and budget is around 6k to 9k.\",\n    \"seeking\": {\n      \"actorKinds\": [\n        \"human\"\n      ],\n      \"supplyKinds\": [\n        \"operator\",\n        \"migration_lead\",\n        \"automation_builder\",\n        \"documentation_support\"\n      ]\n    },\n    \"outputKinds\": [\n      \"migration_plan\",\n      \"workflow_build\",\n      \"handoff_doc\",\n      \"operator_training\"\n    ],\n    \"missingDetails\": [\n      \"Notion and Airtable data scope (tables/forms, workflows, fields) and target HubSpot objects (contacts, companies, tickets, etc.)\",\n      \"Exact three-week start date and whether there are fixed milestones or weekly check-ins\",\n      \"What “support in Notion” specifically means (e.g., knowledge base, ticketing, intake forms)\",\n      \"Automation requirements details (handoff triggers, SLA logic, routing, integrations) and any existing systems to integrate\",\n      \"Training format and who the operators are (roles, number of trainees, required competencies)\",\n      \"Acceptance criteria and how handoff success will be verified by the team\"\n    ],\n    \"constraints\": {\n      \"budgetCurrency\": \"USD\",\n      \"budgetMin\": 6000,\n      \"budgetMax\": 9000,\n      \"timeWindow\": {\n        \"durationEstimate\": \"3_weeks\"\n      },\n      \"avoid_black_box_setup\": true,\n      \"ai_support_allowed\": true\n    }\n  },\n  \"routing\": {\n    \"routeFamily\": \"direct_specialist\",\n    \"complexityLevel\": \"medium\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": true\n  },\n  \"planning\": {\n    \"leadRole\": \"migration_lead\",\n    \"executionProfile\": {\n      \"executionModes\": [\n        \"migration_planning\",\n        \"hubspot_workflow_setup\",\n        \"enablement_and_training\"\n      ],\n      \"requiresHumanPresence\": false,\n      \"requiresLocalAccess\": false,\n      \"requiresVerifiedEvidence\": false,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": false,\n      \"riskTier\": \"medium\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\n        \"migration_plan\",\n        \"workflow_build\",\n        \"handoff_doc\",\n        \"operator_training\"\n      ],\n      \"requiredEvidenceClaims\": [\n        \"team can run/modify automations without vendor-only black-box dependencies\",\n        \"handoff docs cover configuration, triggers, owners, and change process\"\n      ],\n      \"mustHaveOwnerAcceptance\": true,\n      \"mustHaveLocationSignal\": false,\n      \"mustHaveSignature\": false\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"medium\",\n      \"reasons\": [\n        \"Scope of Notion/Airtable usage and exact HubSpot target objects is not specified\",\n        \"Automation and handoff logic requirements are not detailed\",\n        \"Training and acceptance criteria are not defined\"\n      ]\n    },\n    \"phases\": [\n      {\n        \"phaseKey\": \"phase_1_discovery_and_scope\",\n        \"title\": \"Discovery and migration scope definition (3-week plan + data/workflow mapping)\"\n      },\n      {\n        \"phaseKey\": \"phase_2_hubspot_setup_and_automation_build\",\n        \"title\": \"HubSpot configuration and automations build (maintainable by team)\"\n      },\n      {\n        \"phaseKey\": \"phase_3_handoff_docs_and_operator_training\",\n        \"title\": \"Handoff documentation and operator training (no black-box ownership)\"\n      },\n      {\n        \"phaseKey\": \"phase_4_owner_acceptance\",\n        \"title\": \"Team acceptance and rollout readiness check\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"migration_lead\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": true\n      },\n      {\n        \"roleKey\": \"automation_builder\",\n        \"requiredActorKinds\": [\n          \"agent\",\n          \"human\"\n        ],\n        \"required\": false\n      },\n      {\n        \"roleKey\": \"documentation_support\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": false\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\n      \"sup_human_ops_migration_lead\",\n      \"sup_ai_automation_studio\",\n      \"sup_copy_only_documentation_team\",\n      \"sup_generic_chat_agent\"\n    ],\n    \"roleMatches\": {\n      \"migration_lead\": \"sup_human_ops_migration_lead\",\n      \"automation_builder\": \"sup_ai_automation_studio\",\n      \"documentation_support\": \"sup_copy_only_documentation_team\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"clarify_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+              "providerOptions": {
+                "openai": {
+                  "itemId": "msg_05d1c89f887c4815006a0655a806ac8195a3a574df3017117c",
+                  "phase": "final_answer"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_05d1c89f887c4815006a0655a7bf5081959afaac4c2d134608",
+        "serviceTier": "default"
+      },
+      "gateway": {
+        "routing": {
+          "originalModelId": "openai/gpt-5.4-nano",
+          "resolvedProvider": "openai",
+          "resolvedProviderApiModelId": "gpt-5.4-nano",
+          "fallbacksAvailable": [
+            "azure"
+          ],
+          "planningReasoning": "BYOK credentials available for: openai. System credentials planned for: openai, azure. Total execution order: openai(BYOK) → openai(system) → azure(system)",
+          "canonicalSlug": "openai/gpt-5.4-nano",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "modelId": "openai:gpt-5.4-nano",
+              "canonicalSlug": "openai/gpt-5.4-nano",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "internalModelId": "openai:gpt-5.4-nano",
+                  "providerApiModelId": "gpt-5.4-nano",
+                  "credentialType": "byok",
+                  "success": true,
+                  "startTime": 1778800039636,
+                  "endTime": 1778800047949,
+                  "statusCode": 200,
+                  "providerResponseId": "resp_05d1c89f887c4815006a0655a7bf5081959afaac4c2d134608"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0",
+        "marketCost": "0.0017509",
+        "generationId": "gen_01KRMBX5NQJZMBRCT52DE8QK3H"
+      }
+    }
+  }
+}

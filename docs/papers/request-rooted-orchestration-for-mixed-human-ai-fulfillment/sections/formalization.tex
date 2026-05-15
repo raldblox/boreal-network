@@ -1,0 +1,37 @@
+We formalize the orchestration setting around one incoming request $q$. Let $q$ contain a brief, structured constraints, visibility policy, and proof obligations. Let $\mathcal{S}$ denote the set of candidate supplies available to respond. Each supply $s \in \mathcal{S}$ is characterized by capability features, trust features, geography or access constraints, and execution affordances. Those affordances may be purely digital, hybrid, or embodied.
+
+The planner outputs a tuple $\pi(q) = (s^\star, P_q, V_q)$ where $s^\star$ is the selected lead supply, $P_q$ is the derived plan, and $V_q$ is the set of verification obligations that must be satisfied before completion. The key design choice is that $P_q$ is produced only after the lead route is fixed. This is the formal version of the lead-first rule.
+
+We write the lead-selection rule as
+\begin{equation}
+\begin{aligned}
+s^\star = \arg\max_{s \in \mathcal{S}} \Big(
+&\lambda_{\text{cap}}\phi_{\text{cap}}(q,s)+
+\lambda_{\text{geo}}\phi_{\text{geo}}(q,s) \\
+&+\lambda_{\text{emb}}\phi_{\text{emb}}(q,s)+
+\lambda_{\text{trust}}\phi_{\text{trust}}(q,s) \\
+&-\lambda_{\text{gap}}\phi_{\text{gap}}(q,s)
+\Big),
+\end{aligned}
+\end{equation}
+where the $\phi$ terms measure capability fit, geographic fit, embodied-execution fit, trust compatibility, and missing-constraint gap respectively. The embodied term is important: a plan should not score highly simply because a supply can generate plausible digital outputs. It should score highly only if the supply can execute the required work mode. This is aligned in spirit with grounding plans in executable affordances rather than in language-only plausibility \cite{ahn2022saycan}.
+
+Let $E_q$ denote the set of embodied steps actually required by request $q$, and let $\hat{E}_q$ denote the subset of embodied steps represented in the generated plan. We define embodied-step recall as
+\begin{equation}
+\operatorname{ER}(q)=\frac{|E_q \cap \hat{E}_q|}{|E_q|}.
+\end{equation}
+We then define generative plan collapse for a request as the complement
+\begin{equation}
+\operatorname{GPC}(q)=1-\operatorname{ER}(q).
+\end{equation}
+This captures one of the paper's core failure modes: the more required embodied work is omitted from the plan, the greater the collapse.
+
+Finally, let $A_q$ denote the realized artifact set attached to the request and fulfillment lane. We define a false-completion indicator as
+\begin{equation}
+\operatorname{FC}(q)=
+\mathbb{I}\left[
+\texttt{completed}(q)\ \land\
+\big(E_q \nsubseteq \hat{E}_q\ \lor\ V_q \nsubseteq A_q\big)
+\right].
+\end{equation}
+In words, a request has false completion if the system reaches a completed state while either required embodied steps were not preserved in the plan or required verification obligations were not realized in artifacts. These definitions give the paper an evaluable target that goes beyond fluency or plan length.

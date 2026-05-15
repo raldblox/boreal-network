@@ -1,0 +1,307 @@
+{
+  "schemaVersion": 1,
+  "runner": {
+    "script": "apps/web/scripts/run-request-processing-live-benchmark.ts",
+    "version": 1
+  },
+  "fixture": {
+    "scenarioId": "eval-embodied-hardware-install-verification",
+    "filePath": "fixtures\\request\\eval-embodied-hardware-install-verification.json",
+    "sha256": "53747bb114194a71d536b092abedb661276674a2b1cea0c5784e1d422b0c2fec"
+  },
+  "system": {
+    "modelId": "openai/gpt-4.1-nano",
+    "promptPresetId": "boreal_canon_v2",
+    "repetition": 1,
+    "seed": 7,
+    "temperature": 0,
+    "maxOutputTokens": 1600,
+    "gatewayOrder": [
+      "openai",
+      "azure"
+    ],
+    "reasoningEffort": null
+  },
+  "timing": {
+    "startedAt": "2026-05-14T23:06:46.416Z",
+    "finishedAt": "2026-05-14T23:06:58.893Z",
+    "durationMs": 12477
+  },
+  "prompt": {
+    "schemaName": "request_processing_eval_output",
+    "schemaDescription": "Structured request-processing output covering extraction, routing, planning, matching, and safe next-action policy.",
+    "system": "You are applying Boreal's request-native orchestration contract. Preserve one demand-side work thread, match the lead first, plan the work second, and decompose only when needed.\n\nRules:\n1. Treat the request as the durable demand-side root of the work thread.\n2. Match the lead first. Plan the work second. Decompose only when needed.\n3. Return exactly one JSON object and no surrounding prose.\n4. Use only facts from the request input and the candidate supply list.\n5. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n6. Rank and reference only the supplied candidate supplyIds.\n7. Choose the lead supply before adding optional collaborator roles.\n8. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n9. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n10. Generated summaries, checklists, or reports are not proof that physical work happened.\n11. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n12. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n13. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n14. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n15. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n16. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n17. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n18. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n19. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n20. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n21. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n22. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n23. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "prompt": "Scenario ID:\neval-embodied-hardware-install-verification\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_josh_lao\",\n  \"displayName\": \"Josh Lao\"\n}\n\nRaw request:\nNeed someone to visit our Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note. Budget is 250 USD.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_local_field_technician\",\n    \"title\": \"Local Field Technician\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"field_verification\",\n      \"hardware_ops\"\n    ],\n    \"summary\": \"Visits sites, verifies hardware state, captures serials, and files evidence.\"\n  },\n  {\n    \"supplyId\": \"sup_remote_documentation_agent\",\n    \"title\": \"Remote Documentation Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"qa_documentation\"\n    ],\n    \"summary\": \"Produces verification notes from evidence supplied by others.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"General text assistance with no local hardware verification capability.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request.",
+    "systemSha256": "c0d3bb1273d268e5b1298b7e6f284072a53c50463896ed747807827b8fa1360d",
+    "promptSha256": "4c8198a1915b1d7d6df72b81ab8fbc46ca29ab82b74f173bb220f45870faf95e"
+  },
+  "result": {
+    "callSuccess": true,
+    "parseSuccess": false,
+    "rawText": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-embodied-hardware-install-verification\",\n  \"extraction\": {\n    \"title\": \"Verification of Barcode Scanner Installation at Quezon City Warehouse\",\n    \"summary\": \"Verify installation of barcode scanners at four stations, record serial numbers, and document with photos and notes.\",\n    \"seeking\": {\n      \"actorKinds\": [\"human\"],\n      \"supplyKinds\": [\"field_verification\"]\n    },\n    \"outputKinds\": [\"inspection_report\", \"photo_evidence\", \"issue_log\"],\n    \"missingDetails\": [\n      \"Exact location within the warehouse\",\n      \"Time window for the visit\",\n      \"Access details or safety requirements\"\n    ],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"worker_market\",\n    \"complexityLevel\": \"medium\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"field_inspector\",\n    \"executionProfile\": {\n      \"executionModes\": [\"on_site\"],\n      \"requiresHumanPresence\": true,\n      \"requiresLocalAccess\": true,\n      \"requiresVerifiedEvidence\": true,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": \"Quezon City\",\n      \"riskTier\": \"low\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\"inspection_report\", \"photo_evidence\"],\n      \"requiredEvidenceClaims\": [\"installation verified\", \"serial numbers recorded\"],\n      \"mustHaveOwnerAcceptance\": true,\n      \"mustHaveLocationSignal\": true,\n      \"mustHaveSignature\": true\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"low\",\n      \"reasons\": [\"Clear scope\", well-defined location and task\"]\n    },\n    \"roles\": [\n      {\n        \"phaseKey\": \"verification\",\n        \"title\": \"Perform hardware verification at warehouse\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"field_inspector\",\n        \"requiredActorKinds\": [\"human\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"sup_local_field_technician\"],\n    \"roleMatches\": {\n      \"field_inspector\": \"sup_local_field_technician\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"open_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "rawTextSha256": "3a2ba3c28818e27a54fd7f6d9db0b41c5e6a636f736316a7bd812d4c47731f7d",
+    "reasoning": [],
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 1447,
+      "inputTokenDetails": {
+        "noCacheTokens": 1447,
+        "cacheReadTokens": 0
+      },
+      "outputTokens": 554,
+      "outputTokenDetails": {
+        "textTokens": 554,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 2001,
+      "raw": {
+        "input_tokens": 1447,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 554,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "reasoningTokens": 0,
+      "cachedInputTokens": 0
+    },
+    "warnings": [],
+    "request": {
+      "body": {
+        "maxOutputTokens": 1600,
+        "temperature": 0,
+        "seed": 7,
+        "prompt": [
+          {
+            "role": "system",
+            "content": "You are applying Boreal's request-native orchestration contract. Preserve one demand-side work thread, match the lead first, plan the work second, and decompose only when needed.\n\nRules:\n1. Treat the request as the durable demand-side root of the work thread.\n2. Match the lead first. Plan the work second. Decompose only when needed.\n3. Return exactly one JSON object and no surrounding prose.\n4. Use only facts from the request input and the candidate supply list.\n5. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n6. Rank and reference only the supplied candidate supplyIds.\n7. Choose the lead supply before adding optional collaborator roles.\n8. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n9. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n10. Generated summaries, checklists, or reports are not proof that physical work happened.\n11. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n12. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n13. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n14. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n15. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n16. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n17. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n18. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n19. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n20. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n21. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n22. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n23. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Scenario ID:\neval-embodied-hardware-install-verification\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_josh_lao\",\n  \"displayName\": \"Josh Lao\"\n}\n\nRaw request:\nNeed someone to visit our Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note. Budget is 250 USD.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_local_field_technician\",\n    \"title\": \"Local Field Technician\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"field_verification\",\n      \"hardware_ops\"\n    ],\n    \"summary\": \"Visits sites, verifies hardware state, captures serials, and files evidence.\"\n  },\n  {\n    \"supplyId\": \"sup_remote_documentation_agent\",\n    \"title\": \"Remote Documentation Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"qa_documentation\"\n    ],\n    \"summary\": \"Produces verification notes from evidence supplied by others.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"General text assistance with no local hardware verification capability.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request."
+              }
+            ]
+          }
+        ],
+        "providerOptions": {
+          "gateway": {
+            "order": [
+              "openai",
+              "azure"
+            ]
+          }
+        },
+        "headers": {
+          "user-agent": "ai/6.0.116"
+        }
+      }
+    },
+    "response": {
+      "id": "aitxt-at9DjXZ9TncKxrx6GjiT9X2W",
+      "timestamp": "2026-05-14T23:06:58.892Z",
+      "modelId": "openai/gpt-4.1-nano",
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization, ai-gateway-auth-method, ai-gateway-protocol-version, ai-model-id, ai-language-model-id, ai-language-model-specification-version, ai-image-model-specification-version, ai-embedding-model-specification-version, ai-language-model-streaming, ai-reporting-tags, ai-reporting-user, http-referer, x-title, anthropic-beta",
+        "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Thu, 14 May 2026 23:06:57 GMT",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-matched-path": "/v3/ai/language-model",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "sin1::fra1::jj4tt-1778800005782-3b10d9f6efc4"
+      },
+      "body": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-embodied-hardware-install-verification\",\n  \"extraction\": {\n    \"title\": \"Verification of Barcode Scanner Installation at Quezon City Warehouse\",\n    \"summary\": \"Verify installation of barcode scanners at four stations, record serial numbers, and document with photos and notes.\",\n    \"seeking\": {\n      \"actorKinds\": [\"human\"],\n      \"supplyKinds\": [\"field_verification\"]\n    },\n    \"outputKinds\": [\"inspection_report\", \"photo_evidence\", \"issue_log\"],\n    \"missingDetails\": [\n      \"Exact location within the warehouse\",\n      \"Time window for the visit\",\n      \"Access details or safety requirements\"\n    ],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"worker_market\",\n    \"complexityLevel\": \"medium\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"field_inspector\",\n    \"executionProfile\": {\n      \"executionModes\": [\"on_site\"],\n      \"requiresHumanPresence\": true,\n      \"requiresLocalAccess\": true,\n      \"requiresVerifiedEvidence\": true,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": \"Quezon City\",\n      \"riskTier\": \"low\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\"inspection_report\", \"photo_evidence\"],\n      \"requiredEvidenceClaims\": [\"installation verified\", \"serial numbers recorded\"],\n      \"mustHaveOwnerAcceptance\": true,\n      \"mustHaveLocationSignal\": true,\n      \"mustHaveSignature\": true\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"low\",\n      \"reasons\": [\"Clear scope\", well-defined location and task\"]\n    },\n    \"roles\": [\n      {\n        \"phaseKey\": \"verification\",\n        \"title\": \"Perform hardware verification at warehouse\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"field_inspector\",\n        \"requiredActorKinds\": [\"human\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"sup_local_field_technician\"],\n    \"roleMatches\": {\n      \"field_inspector\": \"sup_local_field_technician\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"open_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_0c65ae12fc66898c016a06558e035c819daba2dfa2b0cff893"
+              }
+            }
+          }
+        ],
+        "finishReason": {
+          "unified": "stop"
+        },
+        "usage": {
+          "inputTokens": {
+            "total": 1447,
+            "noCache": 1447,
+            "cacheRead": 0
+          },
+          "outputTokens": {
+            "total": 554,
+            "text": 554,
+            "reasoning": 0
+          },
+          "raw": {
+            "input_tokens": 1447,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 554,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        },
+        "providerMetadata": {
+          "openai": {
+            "responseId": "resp_0c65ae12fc66898c016a06558cde90819d8bbe498aa1b67496",
+            "serviceTier": "default"
+          },
+          "gateway": {
+            "routing": {
+              "originalModelId": "openai/gpt-4.1-nano",
+              "resolvedProvider": "openai",
+              "resolvedProviderApiModelId": "gpt-4.1-nano",
+              "fallbacksAvailable": [
+                "azure"
+              ],
+              "planningReasoning": "BYOK credentials available for: openai. System credentials planned for: openai, azure. Total execution order: openai(BYOK) → openai(system) → azure(system)",
+              "canonicalSlug": "openai/gpt-4.1-nano",
+              "finalProvider": "openai",
+              "modelAttemptCount": 1,
+              "modelAttempts": [
+                {
+                  "modelId": "openai:gpt-4.1-nano",
+                  "canonicalSlug": "openai/gpt-4.1-nano",
+                  "success": true,
+                  "providerAttemptCount": 2,
+                  "providerAttempts": [
+                    {
+                      "provider": "openai",
+                      "internalModelId": "openai:gpt-4.1-nano",
+                      "providerApiModelId": "gpt-4.1-nano",
+                      "credentialType": "byok",
+                      "success": false,
+                      "error": "Rate limit reached for gpt-4.1-nano in organization org-s99W6ONJcr2n9KIm2Wq9E0iC on requests per min (RPM): Limit 3, Used 3, Requested 1. Please try again in 20s. Visit https://platform.openai.com/account/rate-limits to learn more. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.",
+                      "startTime": 1778800006075,
+                      "endTime": 1778800012674,
+                      "statusCode": 429
+                    },
+                    {
+                      "provider": "openai",
+                      "internalModelId": "openai:gpt-4.1-nano",
+                      "providerApiModelId": "gpt-4.1-nano",
+                      "credentialType": "system",
+                      "success": true,
+                      "startTime": 1778800012771,
+                      "endTime": 1778800017950,
+                      "statusCode": 200,
+                      "providerResponseId": "resp_0c65ae12fc66898c016a06558cde90819d8bbe498aa1b67496"
+                    }
+                  ]
+                }
+              ],
+              "totalProviderAttemptCount": 2
+            },
+            "cost": "0.0003663",
+            "marketCost": "0.0003663",
+            "inferenceCost": "0.0003663",
+            "inputInferenceCost": "0.0001447",
+            "outputInferenceCost": "0.0002216",
+            "generationId": "gen_01KRMBW4WWH89SWKSVR8NTJS7C"
+          }
+        },
+        "warnings": [
+          {
+            "type": "unsupported",
+            "feature": "seed"
+          }
+        ]
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-embodied-hardware-install-verification\",\n  \"extraction\": {\n    \"title\": \"Verification of Barcode Scanner Installation at Quezon City Warehouse\",\n    \"summary\": \"Verify installation of barcode scanners at four stations, record serial numbers, and document with photos and notes.\",\n    \"seeking\": {\n      \"actorKinds\": [\"human\"],\n      \"supplyKinds\": [\"field_verification\"]\n    },\n    \"outputKinds\": [\"inspection_report\", \"photo_evidence\", \"issue_log\"],\n    \"missingDetails\": [\n      \"Exact location within the warehouse\",\n      \"Time window for the visit\",\n      \"Access details or safety requirements\"\n    ],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"worker_market\",\n    \"complexityLevel\": \"medium\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"field_inspector\",\n    \"executionProfile\": {\n      \"executionModes\": [\"on_site\"],\n      \"requiresHumanPresence\": true,\n      \"requiresLocalAccess\": true,\n      \"requiresVerifiedEvidence\": true,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": \"Quezon City\",\n      \"riskTier\": \"low\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\"inspection_report\", \"photo_evidence\"],\n      \"requiredEvidenceClaims\": [\"installation verified\", \"serial numbers recorded\"],\n      \"mustHaveOwnerAcceptance\": true,\n      \"mustHaveLocationSignal\": true,\n      \"mustHaveSignature\": true\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"low\",\n      \"reasons\": [\"Clear scope\", well-defined location and task\"]\n    },\n    \"roles\": [\n      {\n        \"phaseKey\": \"verification\",\n        \"title\": \"Perform hardware verification at warehouse\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"field_inspector\",\n        \"requiredActorKinds\": [\"human\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"sup_local_field_technician\"],\n    \"roleMatches\": {\n      \"field_inspector\": \"sup_local_field_technician\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"open_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+              "providerOptions": {
+                "openai": {
+                  "itemId": "msg_0c65ae12fc66898c016a06558e035c819daba2dfa2b0cff893"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0c65ae12fc66898c016a06558cde90819d8bbe498aa1b67496",
+        "serviceTier": "default"
+      },
+      "gateway": {
+        "routing": {
+          "originalModelId": "openai/gpt-4.1-nano",
+          "resolvedProvider": "openai",
+          "resolvedProviderApiModelId": "gpt-4.1-nano",
+          "fallbacksAvailable": [
+            "azure"
+          ],
+          "planningReasoning": "BYOK credentials available for: openai. System credentials planned for: openai, azure. Total execution order: openai(BYOK) → openai(system) → azure(system)",
+          "canonicalSlug": "openai/gpt-4.1-nano",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "modelId": "openai:gpt-4.1-nano",
+              "canonicalSlug": "openai/gpt-4.1-nano",
+              "success": true,
+              "providerAttemptCount": 2,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "internalModelId": "openai:gpt-4.1-nano",
+                  "providerApiModelId": "gpt-4.1-nano",
+                  "credentialType": "byok",
+                  "success": false,
+                  "error": "Rate limit reached for gpt-4.1-nano in organization org-s99W6ONJcr2n9KIm2Wq9E0iC on requests per min (RPM): Limit 3, Used 3, Requested 1. Please try again in 20s. Visit https://platform.openai.com/account/rate-limits to learn more. You can increase your rate limit by adding a payment method to your account at https://platform.openai.com/account/billing.",
+                  "startTime": 1778800006075,
+                  "endTime": 1778800012674,
+                  "statusCode": 429
+                },
+                {
+                  "provider": "openai",
+                  "internalModelId": "openai:gpt-4.1-nano",
+                  "providerApiModelId": "gpt-4.1-nano",
+                  "credentialType": "system",
+                  "success": true,
+                  "startTime": 1778800012771,
+                  "endTime": 1778800017950,
+                  "statusCode": 200,
+                  "providerResponseId": "resp_0c65ae12fc66898c016a06558cde90819d8bbe498aa1b67496"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 2
+        },
+        "cost": "0.0003663",
+        "marketCost": "0.0003663",
+        "inferenceCost": "0.0003663",
+        "inputInferenceCost": "0.0001447",
+        "outputInferenceCost": "0.0002216",
+        "generationId": "gen_01KRMBW4WWH89SWKSVR8NTJS7C"
+      }
+    }
+  },
+  "error": {
+    "message": "Unexpected token 'w', ...\"r scope\", well-defin\"... is not valid JSON"
+  }
+}

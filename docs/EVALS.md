@@ -104,6 +104,59 @@ Recommended subfields:
 - `policy.shouldCreateFulfillment`
 - `policy.shouldCreateFulfillmentSteps`
 
+## Benchmark Pack
+
+The deterministic benchmark pack now lives under:
+
+- `fixtures/request/benchmark-actuals/request-rooted/`
+- `fixtures/request/benchmark-actuals/task-first/`
+- `fixtures/request/benchmark-actuals/direct-tool/`
+
+These system families are not claims about live production models.
+They are controlled baseline output sets used to measure whether the eval contract can distinguish:
+
+- request-rooted lead-first planning
+- early task-tree decomposition
+- tool-biased digital-only routing
+
+## Benchmark Metrics
+
+The benchmark runner should report at least:
+
+- `contractPassRate`
+- `leadTop1Accuracy`
+- `leadRecallAt3`
+- `overDecompositionRate`
+- `forbiddenMutationRate`
+- `embodiedStepRecall`
+- `generativePlanCollapse`
+- `verificationCompleteness`
+- `falseCompletionRate`
+
+The live-model runner should additionally report semantic coverage metrics that separate label drift from true planning failure:
+
+- `callSuccessRate`
+- `parseSuccessRate`
+- `policyActionAcceptability`
+- `requiredRoleSlotCoverage`
+- `optionalRoleSlotCoverage`
+- `semanticEmbodiedStepRecall`
+- `semanticVerificationCompleteness`
+
+Metric intent:
+
+- `embodiedStepRecall` measures whether execution-critical physical steps remain present in the plan.
+- `generativePlanCollapse` measures the complement of embodied-step recall on embodied scenarios.
+- `verificationCompleteness` measures whether required proof claims remain represented.
+- `falseCompletionRate` measures whether the system moves toward fulfillment or closure while embodied or verification obligations remain unresolved.
+- `callSuccessRate` measures whether the provider returned any model output at all, separating infrastructure or access failure from planning quality.
+- `parseSuccessRate` measures whether the returned output was valid JSON for the frozen contract shape.
+- `policyActionAcceptability` measures whether the chosen next action stayed inside the safe action band for the scenario, even when it differed from the exact fixture-preferred action.
+- `requiredRoleSlotCoverage` measures whether required execution roles remained represented.
+- `optionalRoleSlotCoverage` measures whether optional collaborator roles remained represented.
+- `semanticEmbodiedStepRecall` measures whether the model preserved embodied work requirements even when it used semantically different but comparable wording.
+- `semanticVerificationCompleteness` measures whether the model preserved proof obligations even when it used semantically different but comparable wording.
+
 ## Runner Usage
 
 From the repo root:
@@ -114,6 +167,49 @@ From the repo root:
   Runs the sample actual output against the first complex planner and matcher fixture.
 - `node tests/contracts/run-request-processing-evals.mjs --actual <path-to-actual-json>`
   Compares your planner or matcher result to the matching fixture by `scenarioId`.
+- `pnpm evals:request-processing:benchmark`
+  Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
+- `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`
+  Runs the same benchmark and writes machine-readable plus paper-ready artifacts.
+- `pnpm evals:request-processing:live`
+  Runs the live-model request-processing benchmark through the `apps/web` AI Gateway stack using the default neutral prompt preset and writes a timestamped artifact bundle under `docs/papers/request-rooted-orchestration-for-mixed-human-ai-fulfillment/results/live-benchmark/`.
+- `pnpm --filter @boreal/web eval:request-processing:live --model <model-id> --prompt <preset-id> --scenario <scenario-id> --repetitions <n> --output-dir <path>`
+  Runs the same live benchmark with explicit models, frozen prompt presets, scenario filters, repetition count, and output path.
+
+## Live Model Benchmark Discipline
+
+The live-model benchmark exists to evaluate real LLM outputs without switching to model-judged scoring.
+
+Rules:
+
+- keep fixture truth in `fixtures/request/*.json`
+- keep scoring contract in `tests/contracts/request-processing-eval-lib.mjs`
+- freeze benchmark prompt presets in `tests/contracts/request-processing-live-presets.mjs`
+- use exact or metric-based scoring, not a second LLM as the judge
+- persist per-run prompt text, request metadata, response metadata, parsed JSON output, and scored metrics
+- keep provider retries disabled by default for cleaner benchmark attribution
+- keep temperature, seed, model id, gateway order, and reasoning-effort metadata in every recorded run
+- treat house prompts and neutral prompts as separate benchmark systems instead of mixing them silently
+
+The first live prompt presets are:
+
+- `neutral_contract_v1`
+- `neutral_contract_v2`
+- `boreal_canon_v1`
+- `boreal_canon_v2`
+
+The default live runner behavior should remain:
+
+- one frozen prompt preset
+- one explicit model id
+- zero hidden repair passes
+- zero hidden model-judge scoring
+- explicit artifact recording under a timestamped output directory
+
+A reproducible multi-model study command now exists at the repo root:
+
+- `pnpm evals:request-processing:live:study`
+  Runs five OpenAI-routed models across `neutral_contract_v2` and `boreal_canon_v2` and writes a stable paper-facing artifact bundle under `docs/papers/request-rooted-orchestration-for-mixed-human-ai-fulfillment/results/live-benchmark/study-openai-multimodel-v1/`.
 
 ## Initial Score Discipline
 
@@ -164,3 +260,9 @@ The sample matching actual output is:
 - `fixtures/request/eval-complex-human-planning-and-match.actual.sample.json`
 
 Use these as the baseline for offline deterministic checks before building a larger eval suite or live score dashboard.
+
+The first deterministic benchmark systems are:
+
+- `fixtures/request/benchmark-actuals/request-rooted/`
+- `fixtures/request/benchmark-actuals/task-first/`
+- `fixtures/request/benchmark-actuals/direct-tool/`

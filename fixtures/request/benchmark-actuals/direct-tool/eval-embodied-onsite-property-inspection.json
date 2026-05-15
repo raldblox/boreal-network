@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-onsite-property-inspection",
+  "extraction": {
+    "title": "Inspect Makati retail kiosk and verify signage installation",
+    "summary": "Generated checklist and report request for the Makati kiosk.",
+    "seeking": {
+      "actorKinds": ["agent"],
+      "supplyKinds": ["qa_documentation"]
+    },
+    "outputKinds": ["inspection_report"],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "budgetMin": 300,
+      "budgetMax": 500,
+      "serviceLocation": "Makati",
+      "timeWindows": ["tomorrow before 5pm"],
+      "requiresHumanPresence": false,
+      "requiresVerifiedEvidence": false,
+      "verificationRequirements": ["written_report"]
+    }
+  },
+  "routing": {
+    "routeFamily": "direct_tool",
+    "complexityLevel": "low",
+    "needsPlan": false,
+    "humanRequired": false,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "qa_documentation",
+    "executionProfile": {
+      "executionModes": ["remote_digital"],
+      "requiresHumanPresence": false,
+      "requiresLocalAccess": false,
+      "requiresVerifiedEvidence": false,
+      "requiresScheduling": false,
+      "requiresGeography": false,
+      "riskTier": "low"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["delivery"],
+      "requiredEvidenceClaims": [],
+      "mustHaveOwnerAcceptance": false,
+      "mustHaveLocationSignal": false,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "low",
+      "reasons": ["planner assumes digital documentation is enough"]
+    },
+    "noMicrotaskExplosion": true,
+    "phases": [
+      {
+        "phaseKey": "generate_report_template",
+        "title": "Generate report template"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "qa_documentation",
+        "requiredActorKinds": ["agent"],
+        "required": true
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_generic_chat_agent",
+      "sup_remote_qa_documentation_agent"
+    ],
+    "roleMatches": {
+      "qa_documentation": "sup_generic_chat_agent"
+    }
+  },
+  "policy": {
+    "nextAction": "create_fulfillment",
+    "requiresOwnerApproval": false,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": true,
+    "shouldCreateFulfillmentSteps": true
+  }
+}

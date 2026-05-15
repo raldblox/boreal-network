@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "runner": {
+    "script": "apps/web/scripts/run-request-processing-live-benchmark.ts",
+    "version": 1
+  },
+  "fixture": {
+    "scenarioId": "eval-embodied-hardware-install-verification",
+    "filePath": "fixtures\\request\\eval-embodied-hardware-install-verification.json",
+    "sha256": "53747bb114194a71d536b092abedb661276674a2b1cea0c5784e1d422b0c2fec"
+  },
+  "system": {
+    "modelId": "openai/gpt-5-mini",
+    "promptPresetId": "neutral_contract_v2",
+    "repetition": 1,
+    "seed": 7,
+    "temperature": 0,
+    "maxOutputTokens": 1600,
+    "gatewayOrder": [
+      "openai",
+      "azure"
+    ],
+    "reasoningEffort": null
+  },
+  "timing": {
+    "startedAt": "2026-05-14T23:08:28.791Z",
+    "finishedAt": "2026-05-14T23:08:38.404Z",
+    "durationMs": 9613
+  },
+  "prompt": {
+    "schemaName": "request_processing_eval_output",
+    "schemaDescription": "Structured request-processing output covering extraction, routing, planning, matching, and safe next-action policy.",
+    "system": "You are evaluating work requests against a fixed structured orchestration contract. Produce faithful structured output, not persuasive prose.\n\nRules:\n1. Return exactly one JSON object and no surrounding prose.\n2. Use only facts from the request input and the candidate supply list.\n3. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n4. Rank and reference only the supplied candidate supplyIds.\n5. Choose the lead supply before adding optional collaborator roles.\n6. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n7. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n8. Generated summaries, checklists, or reports are not proof that physical work happened.\n9. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n10. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n11. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n12. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n13. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n14. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n15. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n16. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n17. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n18. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n19. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n20. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n21. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "prompt": "Scenario ID:\neval-embodied-hardware-install-verification\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_josh_lao\",\n  \"displayName\": \"Josh Lao\"\n}\n\nRaw request:\nNeed someone to visit our Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note. Budget is 250 USD.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_local_field_technician\",\n    \"title\": \"Local Field Technician\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"field_verification\",\n      \"hardware_ops\"\n    ],\n    \"summary\": \"Visits sites, verifies hardware state, captures serials, and files evidence.\"\n  },\n  {\n    \"supplyId\": \"sup_remote_documentation_agent\",\n    \"title\": \"Remote Documentation Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"qa_documentation\"\n    ],\n    \"summary\": \"Produces verification notes from evidence supplied by others.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"General text assistance with no local hardware verification capability.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request.",
+    "systemSha256": "374f1a170aa61a97e171ec99224f60fbdeb4257ebab35b867fa179187ea7e26c",
+    "promptSha256": "4c8198a1915b1d7d6df72b81ab8fbc46ca29ab82b74f173bb220f45870faf95e"
+  },
+  "result": {
+    "callSuccess": true,
+    "parseSuccess": false,
+    "rawText": "",
+    "rawTextSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reasoning": [
+      {
+        "type": "reasoning",
+        "text": "",
+        "providerMetadata": {
+          "openai": {
+            "itemId": "rs_01671cc217cd0cb6006a0655ecfb4c8195ba3a43f0e88f476b",
+            "reasoningEncryptedContent": null
+          }
+        }
+      }
+    ],
+    "finishReason": "length",
+    "usage": {
+      "inputTokens": 1398,
+      "inputTokenDetails": {
+        "noCacheTokens": 1398,
+        "cacheReadTokens": 0
+      },
+      "outputTokens": 1600,
+      "outputTokenDetails": {
+        "textTokens": 0,
+        "reasoningTokens": 1600
+      },
+      "totalTokens": 2998,
+      "raw": {
+        "input_tokens": 1398,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 1600,
+        "output_tokens_details": {
+          "reasoning_tokens": 1600
+        }
+      },
+      "reasoningTokens": 1600,
+      "cachedInputTokens": 0
+    },
+    "warnings": [],
+    "request": {
+      "body": {
+        "maxOutputTokens": 1600,
+        "temperature": 0,
+        "seed": 7,
+        "prompt": [
+          {
+            "role": "system",
+            "content": "You are evaluating work requests against a fixed structured orchestration contract. Produce faithful structured output, not persuasive prose.\n\nRules:\n1. Return exactly one JSON object and no surrounding prose.\n2. Use only facts from the request input and the candidate supply list.\n3. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n4. Rank and reference only the supplied candidate supplyIds.\n5. Choose the lead supply before adding optional collaborator roles.\n6. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n7. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n8. Generated summaries, checklists, or reports are not proof that physical work happened.\n9. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n10. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n11. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n12. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n13. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n14. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n15. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n16. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n17. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n18. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n19. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n20. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n21. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Scenario ID:\neval-embodied-hardware-install-verification\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_josh_lao\",\n  \"displayName\": \"Josh Lao\"\n}\n\nRaw request:\nNeed someone to visit our Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note. Budget is 250 USD.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_local_field_technician\",\n    \"title\": \"Local Field Technician\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"field_verification\",\n      \"hardware_ops\"\n    ],\n    \"summary\": \"Visits sites, verifies hardware state, captures serials, and files evidence.\"\n  },\n  {\n    \"supplyId\": \"sup_remote_documentation_agent\",\n    \"title\": \"Remote Documentation Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"qa_documentation\"\n    ],\n    \"summary\": \"Produces verification notes from evidence supplied by others.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"General text assistance with no local hardware verification capability.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request."
+              }
+            ]
+          }
+        ],
+        "providerOptions": {
+          "gateway": {
+            "order": [
+              "openai",
+              "azure"
+            ]
+          }
+        },
+        "headers": {
+          "user-agent": "ai/6.0.116"
+        }
+      }
+    },
+    "response": {
+      "id": "aitxt-DLftVANGBMUK11jxTUXJCMqA",
+      "timestamp": "2026-05-14T23:08:38.403Z",
+      "modelId": "openai/gpt-5-mini",
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization, ai-gateway-auth-method, ai-gateway-protocol-version, ai-model-id, ai-language-model-id, ai-language-model-specification-version, ai-image-model-specification-version, ai-embedding-model-specification-version, ai-language-model-streaming, ai-reporting-tags, ai-reporting-user, http-referer, x-title, anthropic-beta",
+        "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Thu, 14 May 2026 23:08:37 GMT",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-matched-path": "/v3/ai/language-model",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "sin1::fra1::7dfsb-1778800108319-c64733326243"
+      },
+      "body": {
+        "content": [
+          {
+            "type": "reasoning",
+            "text": "",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "rs_01671cc217cd0cb6006a0655ecfb4c8195ba3a43f0e88f476b",
+                "reasoningEncryptedContent": null
+              }
+            }
+          }
+        ],
+        "finishReason": {
+          "unified": "length",
+          "raw": "max_output_tokens"
+        },
+        "usage": {
+          "inputTokens": {
+            "total": 1398,
+            "noCache": 1398,
+            "cacheRead": 0
+          },
+          "outputTokens": {
+            "total": 1600,
+            "text": 0,
+            "reasoning": 1600
+          },
+          "raw": {
+            "input_tokens": 1398,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 1600,
+            "output_tokens_details": {
+              "reasoning_tokens": 1600
+            }
+          }
+        },
+        "providerMetadata": {
+          "openai": {
+            "responseId": "resp_01671cc217cd0cb6006a0655ecb3e08195a374b8feebbaf121",
+            "serviceTier": "priority"
+          },
+          "gateway": {
+            "routing": {
+              "originalModelId": "openai/gpt-5-mini",
+              "resolvedProvider": "openai",
+              "resolvedProviderApiModelId": "gpt-5-mini-2025-08-07",
+              "fallbacksAvailable": [
+                "azure"
+              ],
+              "planningReasoning": "BYOK credentials available for: openai. System credentials planned for: openai, azure. Total execution order: openai(BYOK) → openai(system) → azure(system)",
+              "canonicalSlug": "openai/gpt-5-mini",
+              "finalProvider": "openai",
+              "modelAttemptCount": 1,
+              "modelAttempts": [
+                {
+                  "modelId": "openai:gpt-5-mini-2025-08-07",
+                  "canonicalSlug": "openai/gpt-5-mini",
+                  "success": true,
+                  "providerAttemptCount": 1,
+                  "providerAttempts": [
+                    {
+                      "provider": "openai",
+                      "internalModelId": "openai:gpt-5-mini-2025-08-07",
+                      "providerApiModelId": "gpt-5-mini-2025-08-07",
+                      "credentialType": "byok",
+                      "success": true,
+                      "startTime": 1778800108604,
+                      "endTime": 1778800117472,
+                      "statusCode": 200,
+                      "providerResponseId": "resp_01671cc217cd0cb6006a0655ecb3e08195a374b8feebbaf121"
+                    }
+                  ]
+                }
+              ],
+              "totalProviderAttemptCount": 1
+            },
+            "cost": "0",
+            "marketCost": "0.0063891",
+            "generationId": "gen_01KRMBZ90T0D3YA0K3E9SAVA0Y"
+          }
+        },
+        "warnings": [
+          {
+            "type": "unsupported",
+            "feature": "seed"
+          },
+          {
+            "type": "unsupported",
+            "feature": "temperature",
+            "details": "temperature is not supported for reasoning models"
+          }
+        ]
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "reasoning",
+              "text": "",
+              "providerOptions": {
+                "openai": {
+                  "itemId": "rs_01671cc217cd0cb6006a0655ecfb4c8195ba3a43f0e88f476b",
+                  "reasoningEncryptedContent": null
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_01671cc217cd0cb6006a0655ecb3e08195a374b8feebbaf121",
+        "serviceTier": "priority"
+      },
+      "gateway": {
+        "routing": {
+          "originalModelId": "openai/gpt-5-mini",
+          "resolvedProvider": "openai",
+          "resolvedProviderApiModelId": "gpt-5-mini-2025-08-07",
+          "fallbacksAvailable": [
+            "azure"
+          ],
+          "planningReasoning": "BYOK credentials available for: openai. System credentials planned for: openai, azure. Total execution order: openai(BYOK) → openai(system) → azure(system)",
+          "canonicalSlug": "openai/gpt-5-mini",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "modelId": "openai:gpt-5-mini-2025-08-07",
+              "canonicalSlug": "openai/gpt-5-mini",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "internalModelId": "openai:gpt-5-mini-2025-08-07",
+                  "providerApiModelId": "gpt-5-mini-2025-08-07",
+                  "credentialType": "byok",
+                  "success": true,
+                  "startTime": 1778800108604,
+                  "endTime": 1778800117472,
+                  "statusCode": 200,
+                  "providerResponseId": "resp_01671cc217cd0cb6006a0655ecb3e08195a374b8feebbaf121"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0",
+        "marketCost": "0.0063891",
+        "generationId": "gen_01KRMBZ90T0D3YA0K3E9SAVA0Y"
+      }
+    }
+  },
+  "error": {
+    "message": "Unexpected end of JSON input"
+  }
+}

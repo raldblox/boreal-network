@@ -101,6 +101,9 @@ Verify:
 - request draft extraction is deterministic for canonical fixtures
 - request-briefing assist or optimizer profiles may improve wording clarity but must not invent budget, deadline, deliverables, actor requirements, or constraints
 - request-briefing and planner flows must surface non-substitutable embodied work instead of flattening it into digital-only tasks
+- live-model request-processing benchmark runs must capture frozen prompt preset id, model id, temperature, seed, and raw provider request-response metadata for later audit
+- live-model request-processing benchmark runs should report exact contract metrics and separate semantic-coverage metrics so label drift is visible without being confused for planning collapse
+- live-model request-processing benchmark runs should also separate provider-call success, JSON-parse success, and post-parse planning quality so unavailable models are not misread as planning regressions
 - only `open` plus `public` requests appear in the public request pool
 - draft and private requests do not leak through public request fetch endpoints
 - draft request-object JSON accepts edits only while the request status is `draft`
@@ -130,6 +133,7 @@ Verify:
 - artifact publication should accept both document-backed content and richer external or object reference containers
 - artifact publication should preserve optional `fulfillmentId` and `stepId` lane bindings when provided
 - generated plans, summaries, or chat text should not satisfy embodied proof obligations by themselves
+- live-model benchmark scoring should not depend on a second judge LLM when exact contract or metric-based scoring already exists
 - typing, token deltas, progress ticks, heartbeats, presence, transient runtime logs, and raw tool stdout or stderr should not create default durable request history
 - resolver device approval should not issue tokens before explicit Boreal account approval
 - resolver refresh rotation should revoke or replace the previous refresh token
@@ -181,6 +185,7 @@ Verify:
 - phase counts stay bounded
 - low-complexity requests do not explode into microtasks
 - embodied requests produce explicit human or field-capable steps when required
+- benchmark outputs preserve embodied execution modes and proof claims strongly enough to separate request-rooted planning from task-first or direct-tool baselines
 
 ### Matcher evals
 
@@ -189,6 +194,7 @@ Verify:
 - correct lead supply appears in top-k
 - collaborator slots map to sensible supplies
 - generic weak-fit supplies do not outrank strong specialists
+- deterministic benchmark aggregates can distinguish lead-first routing quality from tool-biased or decomposition-biased baselines
 
 ### Policy evals
 
@@ -198,6 +204,7 @@ Verify:
 - approval-gated writes are not triggered early
 - block-and-escalate behavior appears when canon or funding boundaries are violated
 - embodied or verification-heavy asks prefer clarification or escalation over false digital completion
+- deterministic benchmark outputs expose false-completion and forbidden-mutation rates clearly across competing planning styles
 
 ### Risk governance tests
 

@@ -1,11 +1,19 @@
-% Initial bibliography stub for the manuscript.
-% Expand and normalize entries once a target venue is chosen.
+% Working bibliography for the manuscript.
+% Prefer stable repository URLs and primary research sources.
+
+@misc{boreal_repo_2026,
+  title = {Boreal Network Repository},
+  author = {{Boreal Network}},
+  year = {2026},
+  howpublished = {\url{https://github.com/raldblox/boreal-network}},
+  note = {GitHub repository artifact}
+}
 
 @misc{boreal_network_thesis_2026,
   title = {Boreal Network Thesis},
   author = {{Boreal Network}},
   year = {2026},
-  howpublished = {\url{docs/NETWORK_THESIS.md}},
+  howpublished = {\url{https://github.com/raldblox/boreal-network/blob/main/docs/NETWORK_THESIS.md}},
   note = {Repository canon document}
 }
 
@@ -13,8 +21,40 @@
   title = {Request Processing},
   author = {{Boreal Network}},
   year = {2026},
-  howpublished = {\url{docs/REQUEST_PROCESSING.md}},
+  howpublished = {\url{https://github.com/raldblox/boreal-network/blob/main/docs/REQUEST_PROCESSING.md}},
   note = {Repository canon document}
+}
+
+@misc{boreal_request_processing_benchmark_2026,
+  title = {Boreal Request-Processing Benchmark Runner},
+  author = {{Boreal Network}},
+  year = {2026},
+  howpublished = {\url{https://github.com/raldblox/boreal-network/blob/main/tests/contracts/run-request-processing-benchmark.mjs}},
+  note = {Deterministic benchmark runner}
+}
+
+@misc{boreal_request_live_benchmark_runner_2026,
+  title = {Boreal Live Request-Processing Benchmark Runner},
+  author = {{Boreal Network}},
+  year = {2026},
+  howpublished = {\url{https://github.com/raldblox/boreal-network/blob/main/apps/web/scripts/run-request-processing-live-benchmark.ts}},
+  note = {Live-model benchmark runner}
+}
+
+@misc{boreal_request_live_benchmark_results_2026,
+  title = {Boreal Live Request-Processing Benchmark Results},
+  author = {{Boreal Network}},
+  year = {2026},
+  howpublished = {\url{https://github.com/raldblox/boreal-network/tree/main/docs/papers/request-rooted-orchestration-for-mixed-human-ai-fulfillment/results/live-benchmark/study-openai-multimodel-v1}},
+  note = {Stable live benchmark artifact bundle}
+}
+
+@misc{boreal_request_eval_fixtures_2026,
+  title = {Boreal Request-Processing Eval Fixtures and Baseline Outputs},
+  author = {{Boreal Network}},
+  year = {2026},
+  howpublished = {\url{https://github.com/raldblox/boreal-network/tree/main/fixtures/request}},
+  note = {Fixture pack and benchmark actuals}
 }
 
 @misc{upwork_q4_2025,
@@ -36,4 +76,62 @@
   author = {{Microsoft}},
   year = {2026},
   howpublished = {\url{https://blogs.microsoft.com/blog/2026/03/09/introducing-the-first-frontier-suite-built-on-intelligence-trust/}}
+}
+
+@inproceedings{yao2023react,
+  title = {ReAct: Synergizing Reasoning and Acting in Language Models},
+  author = {Yao, Shunyu and Zhao, Jeffrey and Yu, Dian and Du, Nan and Shafran, Izhak and Narasimhan, Karthik and Cao, Yuan},
+  booktitle = {International Conference on Learning Representations},
+  year = {2023},
+  url = {https://openreview.net/forum?id=WE_vluYUL-X}
+}
+
+@misc{ahn2022saycan,
+  title = {Do As I Can, Not As I Say: Grounding Language in Robotic Affordances},
+  author = {Ahn, Michael and Brohan, Anthony and Brown, Noah and Chebotar, Yevgen and Cortes, Omar and David, Byron and Finn, Chelsea and Fu, Chuyuan and Gopalakrishnan, Keerthana and Hausman, Karol and others},
+  year = {2022},
+  eprint = {2204.01691},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.RO},
+  url = {https://arxiv.org/abs/2204.01691}
+}
+
+@inproceedings{shridhar2020alfred,
+  title = {ALFRED: A Benchmark for Interpreting Grounded Instructions for Everyday Tasks},
+  author = {Shridhar, Mohit and Manuelli, Lucas and Fox, Dieter},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  year = {2020},
+  url = {https://arxiv.org/abs/1912.01734}
+}
+
+@misc{padmakumar2021teach,
+  title = {TEACh: Task-driven Embodied Agents that Chat},
+  author = {Padmakumar, Aishwarya and Thomason, Jesse and Shrivastava, Ayush and Lange, Patrick and Narayan-Chen, Anjali and Gella, Spandana and Piramuthu, Robinson and Tur, Gokhan and Hakkani-Tur, Dilek},
+  year = {2021},
+  eprint = {2110.00534},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.RO},
+  url = {https://arxiv.org/abs/2110.00534}
+}
+
+@article{cohn2009business,
+  title = {Business Artifacts: A Data-centric Approach to Modeling Business Operations and Processes},
+  author = {Cohn, David and Hull, Richard},
+  journal = {IEEE Data Engineering Bulletin},
+  volume = {32},
+  number = {3},
+  pages = {3--9},
+  year = {2009},
+  url = {https://dblp.uni-trier.de/rec/journals/debu/CohnH09.html}
+}
+
+@article{vanderaalst2003workflow,
+  title = {Workflow Patterns},
+  author = {van der Aalst, Wil M. P. and ter Hofstede, Arthur H. M. and Kiepuszewski, Bartek and Barros, Alistair P.},
+  journal = {Distributed and Parallel Databases},
+  volume = {14},
+  number = {1},
+  pages = {5--51},
+  year = {2003},
+  doi = {10.1023/A:1022883727209}
 }

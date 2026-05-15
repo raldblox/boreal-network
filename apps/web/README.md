@@ -65,6 +65,7 @@ Or run directly against the workspace:
 - `pnpm --filter @boreal/web dev`
 - `pnpm --filter @boreal/web build`
 - `pnpm --filter @boreal/web db:migrate`
+- `pnpm --filter @boreal/web eval:request-processing:live`
 - `pnpm --filter @boreal/web test`
 
 Account setup notes:

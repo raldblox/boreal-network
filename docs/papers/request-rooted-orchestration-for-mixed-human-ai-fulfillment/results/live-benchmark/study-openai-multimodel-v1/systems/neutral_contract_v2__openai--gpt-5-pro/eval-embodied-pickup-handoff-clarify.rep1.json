@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "runner": {
+    "script": "apps/web/scripts/run-request-processing-live-benchmark.ts",
+    "version": 1
+  },
+  "fixture": {
+    "scenarioId": "eval-embodied-pickup-handoff-clarify",
+    "filePath": "fixtures\\request\\eval-embodied-pickup-handoff-clarify.json",
+    "sha256": "dd6ce9af2041956d882ed98d23ae3bb7033559ecf27eacad4553391097b8374c"
+  },
+  "system": {
+    "modelId": "openai/gpt-5-pro",
+    "promptPresetId": "neutral_contract_v2",
+    "repetition": 1,
+    "seed": 7,
+    "temperature": 0,
+    "maxOutputTokens": 1600,
+    "gatewayOrder": [
+      "openai",
+      "azure"
+    ],
+    "reasoningEffort": "high"
+  },
+  "timing": {
+    "startedAt": "2026-05-14T23:11:33.121Z",
+    "finishedAt": "2026-05-14T23:11:34.242Z",
+    "durationMs": 1121
+  },
+  "prompt": {
+    "schemaName": "request_processing_eval_output",
+    "schemaDescription": "Structured request-processing output covering extraction, routing, planning, matching, and safe next-action policy.",
+    "system": "You are evaluating work requests against a fixed structured orchestration contract. Produce faithful structured output, not persuasive prose.\n\nRules:\n1. Return exactly one JSON object and no surrounding prose.\n2. Use only facts from the request input and the candidate supply list.\n3. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n4. Rank and reference only the supplied candidate supplyIds.\n5. Choose the lead supply before adding optional collaborator roles.\n6. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n7. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n8. Generated summaries, checklists, or reports are not proof that physical work happened.\n9. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n10. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n11. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n12. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n13. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n14. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n15. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n16. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n17. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n18. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n19. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n20. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n21. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "prompt": "Scenario ID:\neval-embodied-pickup-handoff-clarify\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_mica_ong\",\n  \"displayName\": \"Mica Ong\"\n}\n\nRaw request:\nNeed someone to pick up a signed contract and hand it to our supplier today. I need proof the handoff happened.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_local_courier_runner\",\n    \"title\": \"Local Courier Runner\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"pickup_dropoff\",\n      \"local_runner\"\n    ],\n    \"summary\": \"Handles same-day pickups, deliveries, and in-person handoffs.\"\n  },\n  {\n    \"supplyId\": \"sup_remote_ops_agent\",\n    \"title\": \"Remote Operations Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"operations_support\"\n    ],\n    \"summary\": \"Coordinates workflows remotely but cannot perform physical handoffs.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"General text assistance with no local execution capability.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request.",
+    "systemSha256": "374f1a170aa61a97e171ec99224f60fbdeb4257ebab35b867fa179187ea7e26c",
+    "promptSha256": "2eca0b25ff27f7d0c3aa959ff34b8679d6a5eb6e646d58fd671b6c63023b4305"
+  },
+  "result": {
+    "callSuccess": false,
+    "parseSuccess": false
+  },
+  "error": {
+    "message": "Free credits temporarily have restricted access due to abuse. We are working on a resolution. Paid credits continue to have unrestricted access. Purchase credits at https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dtop-up"
+  }
+}

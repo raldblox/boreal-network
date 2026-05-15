@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-hardware-install-verification",
+  "extraction": {
+    "title": "Verify barcode scanner installation at Quezon City warehouse",
+    "summary": "Quezon City warehouse verification with serial numbers, photo proof, and a short note.",
+    "seeking": {
+      "actorKinds": ["human", "agent"],
+      "supplyKinds": ["field_verification", "hardware_ops", "qa_documentation"]
+    },
+    "outputKinds": ["verification_note", "photo_evidence", "serial_inventory"],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "fixedAmount": 250,
+      "serviceLocation": "Quezon City warehouse",
+      "timeWindows": ["tomorrow morning"],
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "verificationRequirements": ["photo_proof", "serial_number_capture", "verification_note"]
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "medium",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "field_technician",
+    "executionProfile": {
+      "executionModes": ["onsite_visit"],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "moderate"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["delivery"],
+      "requiredEvidenceClaims": ["photo_proof", "verification_note"],
+      "mustHaveOwnerAcceptance": true,
+      "mustHaveLocationSignal": true,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "moderate",
+      "reasons": [
+        "serial capture is easy to omit during early decomposition",
+        "documentation work is overweighted relative to site verification"
+      ]
+    },
+    "noMicrotaskExplosion": false,
+    "phases": [
+      {
+        "phaseKey": "prepare_checklist",
+        "title": "Prepare installation checklist"
+      },
+      {
+        "phaseKey": "warehouse_visit",
+        "title": "Visit warehouse"
+      },
+      {
+        "phaseKey": "capture_photos",
+        "title": "Capture photos"
+      },
+      {
+        "phaseKey": "draft_note",
+        "title": "Draft verification note"
+      },
+      {
+        "phaseKey": "qa_pass",
+        "title": "Run documentation QA"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "field_technician",
+        "requiredActorKinds": ["human"],
+        "required": true
+      },
+      {
+        "roleKey": "qa_documentation",
+        "requiredActorKinds": ["agent"],
+        "required": false
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_remote_documentation_agent",
+      "sup_local_field_technician",
+      "sup_generic_chat_agent"
+    ],
+    "roleMatches": {
+      "field_technician": "sup_remote_documentation_agent",
+      "qa_documentation": "sup_remote_documentation_agent"
+    }
+  },
+  "policy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

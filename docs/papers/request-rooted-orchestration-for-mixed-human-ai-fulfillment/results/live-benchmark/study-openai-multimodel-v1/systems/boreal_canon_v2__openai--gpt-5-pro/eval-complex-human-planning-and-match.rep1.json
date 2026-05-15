@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "runner": {
+    "script": "apps/web/scripts/run-request-processing-live-benchmark.ts",
+    "version": 1
+  },
+  "fixture": {
+    "scenarioId": "eval-complex-human-planning-and-match",
+    "filePath": "fixtures\\request\\eval-complex-human-planning-and-match.json",
+    "sha256": "14690606f66e55e9f7b7384e3f73f0287b382afa087f4d5da4107b925863c990"
+  },
+  "system": {
+    "modelId": "openai/gpt-5-pro",
+    "promptPresetId": "boreal_canon_v2",
+    "repetition": 1,
+    "seed": 7,
+    "temperature": 0,
+    "maxOutputTokens": 1600,
+    "gatewayOrder": [
+      "openai",
+      "azure"
+    ],
+    "reasoningEffort": "high"
+  },
+  "timing": {
+    "startedAt": "2026-05-14T23:11:34.244Z",
+    "finishedAt": "2026-05-14T23:11:35.321Z",
+    "durationMs": 1077
+  },
+  "prompt": {
+    "schemaName": "request_processing_eval_output",
+    "schemaDescription": "Structured request-processing output covering extraction, routing, planning, matching, and safe next-action policy.",
+    "system": "You are applying Boreal's request-native orchestration contract. Preserve one demand-side work thread, match the lead first, plan the work second, and decompose only when needed.\n\nRules:\n1. Treat the request as the durable demand-side root of the work thread.\n2. Match the lead first. Plan the work second. Decompose only when needed.\n3. Return exactly one JSON object and no surrounding prose.\n4. Use only facts from the request input and the candidate supply list.\n5. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n6. Rank and reference only the supplied candidate supplyIds.\n7. Choose the lead supply before adding optional collaborator roles.\n8. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n9. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n10. Generated summaries, checklists, or reports are not proof that physical work happened.\n11. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n12. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n13. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n14. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n15. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n16. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n17. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n18. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n19. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n20. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n21. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n22. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n23. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "prompt": "Scenario ID:\neval-complex-human-planning-and-match\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_nadia_cho\",\n  \"displayName\": \"Nadia Cho\"\n}\n\nRaw request:\nI need someone to own a support and sales ops migration for our startup. We run support in Notion and Airtable today, and we want HubSpot set up properly with automations, handoff docs, and operator training. Budget is around 6k to 9k. We need this done in about three weeks. AI support is fine, but I do not want a black-box setup that nobody on my team can run later.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_human_ops_migration_lead\",\n    \"title\": \"Revenue and Support Ops Migration Lead\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"operator\",\n      \"migration_lead\"\n    ],\n    \"summary\": \"Owns CRM and support migrations, training, and operational rollout.\"\n  },\n  {\n    \"supplyId\": \"sup_ai_automation_studio\",\n    \"title\": \"AI Automation Studio\",\n    \"actorKinds\": [\n      \"agent\",\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"automation_builder\"\n    ],\n    \"summary\": \"Builds automations, integrations, and internal tooling support.\"\n  },\n  {\n    \"supplyId\": \"sup_copy_only_documentation_team\",\n    \"title\": \"Documentation Team\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"documentation_support\"\n    ],\n    \"summary\": \"Produces handoff documentation and enablement assets.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"Generic text assistance with no clear migration ownership.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request.",
+    "systemSha256": "c0d3bb1273d268e5b1298b7e6f284072a53c50463896ed747807827b8fa1360d",
+    "promptSha256": "01c6ce22453cd710924c0825e7e2ead39ce414a37e78ac197f69bef6ebf92d54"
+  },
+  "result": {
+    "callSuccess": false,
+    "parseSuccess": false
+  },
+  "error": {
+    "message": "Free credits temporarily have restricted access due to abuse. We are working on a resolution. Paid credits continue to have unrestricted access. Purchase credits at https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%3Fmodal%3Dtop-up"
+  }
+}

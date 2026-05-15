@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "runner": {
+    "script": "apps/web/scripts/run-request-processing-live-benchmark.ts",
+    "version": 1
+  },
+  "runId": "2026-05-14T23-06-15-703Z",
+  "startedAt": "2026-05-14T23:06:15.704Z",
+  "mode": "live_model",
+  "models": [
+    "openai/gpt-4.1-nano",
+    "openai/gpt-5.4-nano",
+    "openai/gpt-5-mini",
+    "openai/o4-mini",
+    "openai/gpt-5-pro"
+  ],
+  "promptPresetIds": [
+    "neutral_contract_v2",
+    "boreal_canon_v2"
+  ],
+  "scenarioIds": [
+    "eval-complex-human-planning-and-match",
+    "eval-embodied-hardware-install-verification",
+    "eval-embodied-onsite-property-inspection",
+    "eval-embodied-pickup-handoff-clarify"
+  ],
+  "repetitions": 1,
+  "temperature": 0,
+  "baseSeed": 7,
+  "maxOutputTokens": 1600,
+  "outputDir": "docs\\papers\\request-rooted-orchestration-for-mixed-human-ai-fulfillment\\results\\live-benchmark\\study-openai-multimodel-v1"
+}

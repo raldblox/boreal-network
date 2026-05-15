@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-pickup-handoff-clarify",
+  "extraction": {
+    "title": "Pick up signed contract and complete witnessed supplier handoff",
+    "summary": "Generated delivery checklist for the contract handoff.",
+    "seeking": {
+      "actorKinds": ["agent"],
+      "supplyKinds": ["operations_support"]
+    },
+    "outputKinds": ["delivery_confirmation"],
+    "constraints": {
+      "requiresHumanPresence": false,
+      "requiresVerifiedEvidence": false,
+      "requiresWitness": false,
+      "verificationRequirements": ["delivery_confirmation"]
+    }
+  },
+  "routing": {
+    "routeFamily": "direct_tool",
+    "complexityLevel": "low",
+    "needsPlan": false,
+    "humanRequired": false,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "operations_support",
+    "executionProfile": {
+      "executionModes": ["remote_digital"],
+      "requiresHumanPresence": false,
+      "requiresLocalAccess": false,
+      "requiresVerifiedEvidence": false,
+      "requiresScheduling": false,
+      "requiresGeography": false,
+      "riskTier": "low"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["delivery"],
+      "requiredEvidenceClaims": ["delivery_confirmation"],
+      "mustHaveOwnerAcceptance": false,
+      "mustHaveLocationSignal": false,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "low",
+      "reasons": ["planner treats physical handoff as a coordination note"]
+    },
+    "noMicrotaskExplosion": true,
+    "phases": [
+      {
+        "phaseKey": "issue_confirmation",
+        "title": "Issue delivery confirmation"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "operations_support",
+        "requiredActorKinds": ["agent"],
+        "required": true
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_remote_ops_agent",
+      "sup_generic_chat_agent"
+    ],
+    "roleMatches": {
+      "operations_support": "sup_remote_ops_agent"
+    }
+  },
+  "policy": {
+    "nextAction": "create_fulfillment",
+    "requiresOwnerApproval": false,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": true,
+    "shouldCreateFulfillmentSteps": true
+  }
+}

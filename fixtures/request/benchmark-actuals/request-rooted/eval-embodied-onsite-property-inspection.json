@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-onsite-property-inspection",
+  "extraction": {
+    "title": "Inspect Makati retail kiosk and verify signage installation",
+    "summary": "Makati retail kiosk inspection with timestamped photos and a written report before 5pm tomorrow.",
+    "seeking": {
+      "actorKinds": ["human", "agent"],
+      "supplyKinds": ["field_inspection", "operations_support", "qa_documentation"]
+    },
+    "outputKinds": ["inspection_report", "photo_evidence", "issue_log"],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "budgetMin": 300,
+      "budgetMax": 500,
+      "serviceLocation": "Makati",
+      "timeWindows": ["tomorrow before 5pm"],
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "verificationRequirements": ["timestamped_photos", "written_report"]
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "medium",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "field_inspector",
+    "executionProfile": {
+      "executionModes": ["onsite_visit", "field_inspection"],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "moderate"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["evidence", "delivery"],
+      "requiredEvidenceClaims": ["timestamped_photos", "written_report"],
+      "mustHaveOwnerAcceptance": true,
+      "mustHaveLocationSignal": true,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "high",
+      "reasons": [
+        "request requires onsite verification",
+        "generated report alone is not proof of inspection"
+      ]
+    },
+    "noMicrotaskExplosion": true,
+    "phases": [
+      {
+        "phaseKey": "site_visit",
+        "title": "Visit kiosk and inspect signage onsite"
+      },
+      {
+        "phaseKey": "evidence_report",
+        "title": "Capture timestamped evidence and file written report"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "field_inspector",
+        "requiredActorKinds": ["human"],
+        "required": true
+      },
+      {
+        "roleKey": "qa_documentation",
+        "requiredActorKinds": ["human", "agent"],
+        "required": false
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_local_field_ops_inspector",
+      "sup_remote_qa_documentation_agent",
+      "sup_generic_chat_agent"
+    ],
+    "roleMatches": {
+      "field_inspector": "sup_local_field_ops_inspector",
+      "qa_documentation": "sup_remote_qa_documentation_agent"
+    }
+  },
+  "policy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

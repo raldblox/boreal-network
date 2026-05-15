@@ -1,0 +1,441 @@
+{
+  "schemaVersion": 1,
+  "runner": {
+    "script": "apps/web/scripts/run-request-processing-live-benchmark.ts",
+    "version": 1
+  },
+  "fixture": {
+    "scenarioId": "eval-embodied-onsite-property-inspection",
+    "filePath": "fixtures\\request\\eval-embodied-onsite-property-inspection.json",
+    "sha256": "e591aba88a3d084c9dc76b22a73612ba1f6d50a0725805d8b4685751c6dfe0ba"
+  },
+  "system": {
+    "modelId": "openai/gpt-5.4-nano",
+    "promptPresetId": "neutral_contract_v2",
+    "repetition": 1,
+    "seed": 7,
+    "temperature": 0,
+    "maxOutputTokens": 1600,
+    "gatewayOrder": [
+      "openai",
+      "azure"
+    ],
+    "reasoningEffort": null
+  },
+  "timing": {
+    "startedAt": "2026-05-14T23:07:36.678Z",
+    "finishedAt": "2026-05-14T23:07:42.665Z",
+    "durationMs": 5987
+  },
+  "prompt": {
+    "schemaName": "request_processing_eval_output",
+    "schemaDescription": "Structured request-processing output covering extraction, routing, planning, matching, and safe next-action policy.",
+    "system": "You are evaluating work requests against a fixed structured orchestration contract. Produce faithful structured output, not persuasive prose.\n\nRules:\n1. Return exactly one JSON object and no surrounding prose.\n2. Use only facts from the request input and the candidate supply list.\n3. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n4. Rank and reference only the supplied candidate supplyIds.\n5. Choose the lead supply before adding optional collaborator roles.\n6. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n7. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n8. Generated summaries, checklists, or reports are not proof that physical work happened.\n9. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n10. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n11. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n12. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n13. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n14. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n15. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n16. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n17. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n18. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n19. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n20. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n21. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "prompt": "Scenario ID:\neval-embodied-onsite-property-inspection\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_lena_tan\",\n  \"displayName\": \"Lena Tan\"\n}\n\nRaw request:\nI need someone local in Makati to visit our retail kiosk tomorrow before 5pm, confirm the new signage is actually installed, take timestamped photos, and send a short written report with any issues. Budget is around 300 to 500 USD.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_local_field_ops_inspector\",\n    \"title\": \"Local Field Operations Inspector\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"field_inspection\",\n      \"operations_support\"\n    ],\n    \"summary\": \"Performs onsite inspections, captures evidence, and files structured field reports.\"\n  },\n  {\n    \"supplyId\": \"sup_remote_qa_documentation_agent\",\n    \"title\": \"Remote QA Documentation Agent\",\n    \"actorKinds\": [\n      \"agent\",\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"qa_documentation\",\n      \"reporting_support\"\n    ],\n    \"summary\": \"Produces reports and structured summaries from provided evidence.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"General text assistance with no local execution capability.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request.",
+    "systemSha256": "374f1a170aa61a97e171ec99224f60fbdeb4257ebab35b867fa179187ea7e26c",
+    "promptSha256": "ad22e97a0ef10829eca94f14cce9bc0704babdc72467cd7f120e6c685ba2ba79"
+  },
+  "result": {
+    "callSuccess": true,
+    "parseSuccess": true,
+    "rawText": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-embodied-onsite-property-inspection\",\n  \"extraction\": {\n    \"title\": \"Onsite retail kiosk signage verification in Makati\",\n    \"summary\": \"Find a local Makati inspector to visit a retail kiosk tomorrow before 5pm, confirm new signage is installed, capture timestamped photos, and send a short written report noting any issues.\",\n    \"seeking\": {\n      \"actorKinds\": [\n        \"human\"\n      ],\n      \"supplyKinds\": [\n        \"field_inspection\",\n        \"operations_support\"\n      ]\n    },\n    \"outputKinds\": [\n      \"inspection_report\",\n      \"photo_evidence\"\n    ],\n    \"missingDetails\": [\n      \"Exact kiosk address/location in Makati\",\n      \"Access instructions (entry/escort/parking) and any contact person on-site\",\n      \"Tomorrow’s date and confirm timezone\",\n      \"Signage identifiers to verify (e.g., brand/model/location on kiosk) beyond 'new signage'\",\n      \"Preferred photo requirements (what angles/shots) and report format/length constraints\",\n      \"Any safety requirements or restricted areas\"\n    ],\n    \"constraints\": {\n      \"budgetCurrency\": \"USD\",\n      \"budgetMin\": 300,\n      \"budgetMax\": 500,\n      \"timeWindow\": {\n        \"end\": \"tomorrow_before_5pm\",\n        \"timezone\": \"unspecified\"\n      },\n      \"serviceLocation\": \"Makati\"\n    }\n  },\n  \"routing\": {\n    \"routeFamily\": \"worker_market\",\n    \"complexityLevel\": \"low\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": true\n  },\n  \"planning\": {\n    \"leadRole\": \"field_inspector\",\n    \"executionProfile\": {\n      \"executionModes\": [\n        \"onsite_visit\"\n      ],\n      \"requiresHumanPresence\": true,\n      \"requiresLocalAccess\": true,\n      \"requiresVerifiedEvidence\": true,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": true,\n      \"riskTier\": \"medium\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\n        \"photo_evidence\",\n        \"inspection_report\"\n      ],\n      \"requiredEvidenceClaims\": [\n        \"new signage is actually installed\",\n        \"timestamped photos were captured\",\n        \"short written report identifies any issues\"\n      ],\n      \"mustHaveOwnerAcceptance\": false,\n      \"mustHaveLocationSignal\": true,\n      \"mustHaveSignature\": false,\n      \"verificationRequirements\": {\n        \"photoEvidenceMustBeTimestamped\": true\n      }\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"medium\",\n      \"reasons\": [\n        \"Onsite execution depends on missing address/access and scheduling details.\",\n        \"Specific signage verification criteria are not defined beyond 'new signage'.\"\n      ]\n    },\n    \"phases\": [\n      {\n        \"phaseKey\": \"onsite_inspection_and_evidence_capture\",\n        \"title\": \"Visit kiosk, confirm signage installation, capture timestamped photos, note any issues\"\n      },\n      {\n        \"phaseKey\": \"compile_short_written_report\",\n        \"title\": \"Send short written report summarizing findings and issues\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"field_inspector\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\n      \"sup_local_field_ops_inspector\",\n      \"sup_remote_qa_documentation_agent\"\n    ],\n    \"roleMatches\": {\n      \"field_inspector\": \"sup_local_field_ops_inspector\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"clarify_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+    "rawTextSha256": "7074ed745fcd0e88294847e227fd4a9dc2eabeb743d8a5d8aacf9b9d2586a3a8",
+    "actual": {
+      "schemaVersion": 1,
+      "scenarioId": "eval-embodied-onsite-property-inspection",
+      "extraction": {
+        "title": "Onsite retail kiosk signage verification in Makati",
+        "summary": "Find a local Makati inspector to visit a retail kiosk tomorrow before 5pm, confirm new signage is installed, capture timestamped photos, and send a short written report noting any issues.",
+        "seeking": {
+          "actorKinds": [
+            "human"
+          ],
+          "supplyKinds": [
+            "field_inspection",
+            "operations_support"
+          ]
+        },
+        "outputKinds": [
+          "inspection_report",
+          "photo_evidence"
+        ],
+        "missingDetails": [
+          "Exact kiosk address/location in Makati",
+          "Access instructions (entry/escort/parking) and any contact person on-site",
+          "Tomorrow’s date and confirm timezone",
+          "Signage identifiers to verify (e.g., brand/model/location on kiosk) beyond 'new signage'",
+          "Preferred photo requirements (what angles/shots) and report format/length constraints",
+          "Any safety requirements or restricted areas"
+        ],
+        "constraints": {
+          "budgetCurrency": "USD",
+          "budgetMin": 300,
+          "budgetMax": 500,
+          "timeWindow": {
+            "end": "tomorrow_before_5pm",
+            "timezone": "unspecified"
+          },
+          "serviceLocation": "Makati"
+        }
+      },
+      "routing": {
+        "routeFamily": "worker_market",
+        "complexityLevel": "low",
+        "needsPlan": true,
+        "humanRequired": true,
+        "needsClarification": true
+      },
+      "planning": {
+        "leadRole": "field_inspector",
+        "executionProfile": {
+          "executionModes": [
+            "onsite_visit"
+          ],
+          "requiresHumanPresence": true,
+          "requiresLocalAccess": true,
+          "requiresVerifiedEvidence": true,
+          "requiresScheduling": true,
+          "requiresGeography": true,
+          "riskTier": "medium"
+        },
+        "verificationPlan": {
+          "requiredArtifactKinds": [
+            "photo_evidence",
+            "inspection_report"
+          ],
+          "requiredEvidenceClaims": [
+            "new signage is actually installed",
+            "timestamped photos were captured",
+            "short written report identifies any issues"
+          ],
+          "mustHaveOwnerAcceptance": false,
+          "mustHaveLocationSignal": true,
+          "mustHaveSignature": false,
+          "verificationRequirements": {
+            "photoEvidenceMustBeTimestamped": true
+          }
+        },
+        "planCollapseRisk": {
+          "riskLevel": "medium",
+          "reasons": [
+            "Onsite execution depends on missing address/access and scheduling details.",
+            "Specific signage verification criteria are not defined beyond 'new signage'."
+          ]
+        },
+        "phases": [
+          {
+            "phaseKey": "onsite_inspection_and_evidence_capture",
+            "title": "Visit kiosk, confirm signage installation, capture timestamped photos, note any issues"
+          },
+          {
+            "phaseKey": "compile_short_written_report",
+            "title": "Send short written report summarizing findings and issues"
+          }
+        ],
+        "roleSlots": [
+          {
+            "roleKey": "field_inspector",
+            "requiredActorKinds": [
+              "human"
+            ],
+            "required": true
+          }
+        ],
+        "noMicrotaskExplosion": true
+      },
+      "matching": {
+        "leadRanking": [
+          "sup_local_field_ops_inspector",
+          "sup_remote_qa_documentation_agent"
+        ],
+        "roleMatches": {
+          "field_inspector": "sup_local_field_ops_inspector"
+        }
+      },
+      "policy": {
+        "nextAction": "clarify_request",
+        "requiresOwnerApproval": true,
+        "shouldOpenRequest": true,
+        "shouldCreateFulfillment": false,
+        "shouldCreateFulfillmentSteps": false
+      }
+    },
+    "metrics": {
+      "scenarioId": "eval-embodied-onsite-property-inspection",
+      "actualPath": "fixtures\\request\\eval-embodied-onsite-property-inspection.json",
+      "comparisonErrors": [
+        "eval-embodied-onsite-property-inspection.json: extraction.title mismatch",
+        "eval-embodied-onsite-property-inspection.json: extraction.outputKinds missing expected values",
+        "eval-embodied-onsite-property-inspection.json: extraction.seeking.actorKinds mismatch",
+        "eval-embodied-onsite-property-inspection.json: extraction.seeking.supplyKinds mismatch",
+        "eval-embodied-onsite-property-inspection.json: extraction.constraints.timeWindows mismatch",
+        "eval-embodied-onsite-property-inspection.json: extraction.constraints.requiresHumanPresence mismatch",
+        "eval-embodied-onsite-property-inspection.json: extraction.constraints.requiresVerifiedEvidence mismatch",
+        "eval-embodied-onsite-property-inspection.json: extraction.constraints.verificationRequirements mismatch",
+        "eval-embodied-onsite-property-inspection.json: routing.complexityLevel mismatch",
+        "eval-embodied-onsite-property-inspection.json: routing.needsClarification mismatch",
+        "eval-embodied-onsite-property-inspection.json: planning.executionProfile mismatch",
+        "eval-embodied-onsite-property-inspection.json: planning.verificationPlan mismatch",
+        "eval-embodied-onsite-property-inspection.json: planning.planCollapseRisk mismatch",
+        "eval-embodied-onsite-property-inspection.json: missing planning.roleSlots entry for qa_documentation",
+        "eval-embodied-onsite-property-inspection.json: matching.roleMatches.qa_documentation mismatch",
+        "eval-embodied-onsite-property-inspection.json: policy.nextAction mismatch"
+      ],
+      "contractPass": false,
+      "leadTop1Correct": true,
+      "leadRecallAt3": true,
+      "overDecomposition": false,
+      "forbiddenMutation": false,
+      "embodiedStepRecall": 0.5,
+      "generativePlanCollapse": 0.5,
+      "verificationCompleteness": 0,
+      "falseCompletion": false,
+      "callSuccess": true,
+      "parseSuccess": true,
+      "policyActionAcceptable": true,
+      "requiredRoleSlotCoverage": 1,
+      "optionalRoleSlotCoverage": 0,
+      "semanticEmbodiedStepRecall": 1,
+      "semanticVerificationCompleteness": 1
+    },
+    "reasoning": [],
+    "finishReason": "stop",
+    "usage": {
+      "inputTokens": 1418,
+      "inputTokenDetails": {
+        "noCacheTokens": 1418,
+        "cacheReadTokens": 0
+      },
+      "outputTokens": 847,
+      "outputTokenDetails": {
+        "textTokens": 847,
+        "reasoningTokens": 0
+      },
+      "totalTokens": 2265,
+      "raw": {
+        "input_tokens": 1418,
+        "input_tokens_details": {
+          "cached_tokens": 0
+        },
+        "output_tokens": 847,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "reasoningTokens": 0,
+      "cachedInputTokens": 0
+    },
+    "warnings": [],
+    "request": {
+      "body": {
+        "maxOutputTokens": 1600,
+        "temperature": 0,
+        "seed": 7,
+        "prompt": [
+          {
+            "role": "system",
+            "content": "You are evaluating work requests against a fixed structured orchestration contract. Produce faithful structured output, not persuasive prose.\n\nRules:\n1. Return exactly one JSON object and no surrounding prose.\n2. Use only facts from the request input and the candidate supply list.\n3. Do not invent budget, deadline, location, access, proof, or staffing facts that were not given.\n4. Rank and reference only the supplied candidate supplyIds.\n5. Choose the lead supply before adding optional collaborator roles.\n6. Keep the plan bounded. Avoid microtask explosion and do not emit a long task tree when a small phase plan is enough.\n7. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, physical measurement, or location-specific proof, preserve those requirements explicitly.\n8. Generated summaries, checklists, or reports are not proof that physical work happened.\n9. If missing location, access, timing, safety, or proof details materially change executability, mark that through clarification-safe routing and policy rather than pretending the work is ready.\n10. Do not set shouldCreateFulfillment or shouldCreateFulfillmentSteps to true unless the scenario explicitly provides accepted approval and execution context.\n11. Use normalized snake_case output labels instead of prose labels whenever a field is categorical or contract-facing.\n12. Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.\n13. Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.\n14. Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.\n15. Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.\n16. Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.\n17. For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.\n18. For embodied work, verificationPlan should use requiredArtifactKinds, requiredEvidenceClaims, mustHaveOwnerAcceptance, mustHaveLocationSignal, and mustHaveSignature when those claims are justified.\n19. For collapse-risk reporting, use planCollapseRisk.riskLevel plus planCollapseRisk.reasons[].\n20. Use routeFamily values such as worker_market, direct_specialist, direct_tool, or no_good_fit rather than freeform route prose.\n21. Mark routing.needsClarification true only when missing facts materially change route selection, execution modality, or closure safety. Do not force clarification for execution details when the lead route is already credible.\n\nAllowed policy.nextAction values:\n- clarify_request\n- show_lead_shortlist\n- show_team_plan\n- draft_commitment\n- open_request\n- create_fulfillment\n- block_and_escalate\n\nRequired output shape:\n{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"<copy input scenarioId>\",\n  \"extraction\": {\n    \"title\": \"string\",\n    \"summary\": \"string\",\n    \"seeking\": {\n      \"actorKinds\": [\"string\"],\n      \"supplyKinds\": [\"string\"]\n    },\n    \"outputKinds\": [\"string\"],\n    \"missingDetails\": [\"string\"],\n    \"constraints\": {}\n  },\n  \"routing\": {\n    \"routeFamily\": \"string\",\n    \"complexityLevel\": \"low|medium|high\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": false\n  },\n  \"planning\": {\n    \"leadRole\": \"string\",\n    \"executionProfile\": {},\n    \"verificationPlan\": {},\n    \"planCollapseRisk\": {},\n    \"phases\": [\n      {\n        \"phaseKey\": \"string\",\n        \"title\": \"string\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"string\",\n        \"requiredActorKinds\": [\"string\"],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\"candidate supplyId\"],\n    \"roleMatches\": {\n      \"roleKey\": \"candidate supplyId\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"one allowed action\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Scenario ID:\neval-embodied-onsite-property-inspection\n\nRequest actor:\n{\n  \"kind\": \"human\",\n  \"id\": \"actor_lena_tan\",\n  \"displayName\": \"Lena Tan\"\n}\n\nRaw request:\nI need someone local in Makati to visit our retail kiosk tomorrow before 5pm, confirm the new signage is actually installed, take timestamped photos, and send a short written report with any issues. Budget is around 300 to 500 USD.\n\nCandidate supplies:\n[\n  {\n    \"supplyId\": \"sup_local_field_ops_inspector\",\n    \"title\": \"Local Field Operations Inspector\",\n    \"actorKinds\": [\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"field_inspection\",\n      \"operations_support\"\n    ],\n    \"summary\": \"Performs onsite inspections, captures evidence, and files structured field reports.\"\n  },\n  {\n    \"supplyId\": \"sup_remote_qa_documentation_agent\",\n    \"title\": \"Remote QA Documentation Agent\",\n    \"actorKinds\": [\n      \"agent\",\n      \"human\"\n    ],\n    \"supplyKinds\": [\n      \"qa_documentation\",\n      \"reporting_support\"\n    ],\n    \"summary\": \"Produces reports and structured summaries from provided evidence.\"\n  },\n  {\n    \"supplyId\": \"sup_generic_chat_agent\",\n    \"title\": \"Generic Chat Agent\",\n    \"actorKinds\": [\n      \"agent\"\n    ],\n    \"supplyKinds\": [\n      \"generalist\"\n    ],\n    \"summary\": \"General text assistance with no local execution capability.\"\n  }\n]\n\nReturn the JSON object now.\n\nAdditional output requirements:\n- Copy the input scenarioId into output.scenarioId.\n- Keep schemaVersion set to 1.\n- Use an empty array or empty object when a subfield is relevant but no value is justified.\n- For non-embodied requests, executionProfile, verificationPlan, and planCollapseRisk may stay empty objects if no stronger claim is supported.\n- For embodied or verification-heavy requests, executionProfile, verificationPlan, and planCollapseRisk should be explicit.\n- leadRanking should list the best candidates first.\n- roleMatches should only map roles that are actually justified by the request."
+              }
+            ]
+          }
+        ],
+        "providerOptions": {
+          "gateway": {
+            "order": [
+              "openai",
+              "azure"
+            ]
+          }
+        },
+        "headers": {
+          "user-agent": "ai/6.0.116"
+        }
+      }
+    },
+    "response": {
+      "id": "aitxt-GG1JOhkumsz53jfHqtkD7Mms",
+      "timestamp": "2026-05-14T23:07:42.664Z",
+      "modelId": "openai/gpt-5.4-nano",
+      "headers": {
+        "access-control-allow-headers": "Content-Type, Authorization, ai-gateway-auth-method, ai-gateway-protocol-version, ai-model-id, ai-language-model-id, ai-language-model-specification-version, ai-image-model-specification-version, ai-embedding-model-specification-version, ai-language-model-streaming, ai-reporting-tags, ai-reporting-user, http-referer, x-title, anthropic-beta",
+        "access-control-allow-methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-encoding": "br",
+        "content-type": "application/json",
+        "date": "Thu, 14 May 2026 23:07:41 GMT",
+        "server": "Vercel",
+        "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+        "transfer-encoding": "chunked",
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "x-matched-path": "/v3/ai/language-model",
+        "x-vercel-cache": "MISS",
+        "x-vercel-id": "sin1::fra1::7v9xv-1778800056044-ba3c3af7e034"
+      },
+      "body": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-embodied-onsite-property-inspection\",\n  \"extraction\": {\n    \"title\": \"Onsite retail kiosk signage verification in Makati\",\n    \"summary\": \"Find a local Makati inspector to visit a retail kiosk tomorrow before 5pm, confirm new signage is installed, capture timestamped photos, and send a short written report noting any issues.\",\n    \"seeking\": {\n      \"actorKinds\": [\n        \"human\"\n      ],\n      \"supplyKinds\": [\n        \"field_inspection\",\n        \"operations_support\"\n      ]\n    },\n    \"outputKinds\": [\n      \"inspection_report\",\n      \"photo_evidence\"\n    ],\n    \"missingDetails\": [\n      \"Exact kiosk address/location in Makati\",\n      \"Access instructions (entry/escort/parking) and any contact person on-site\",\n      \"Tomorrow’s date and confirm timezone\",\n      \"Signage identifiers to verify (e.g., brand/model/location on kiosk) beyond 'new signage'\",\n      \"Preferred photo requirements (what angles/shots) and report format/length constraints\",\n      \"Any safety requirements or restricted areas\"\n    ],\n    \"constraints\": {\n      \"budgetCurrency\": \"USD\",\n      \"budgetMin\": 300,\n      \"budgetMax\": 500,\n      \"timeWindow\": {\n        \"end\": \"tomorrow_before_5pm\",\n        \"timezone\": \"unspecified\"\n      },\n      \"serviceLocation\": \"Makati\"\n    }\n  },\n  \"routing\": {\n    \"routeFamily\": \"worker_market\",\n    \"complexityLevel\": \"low\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": true\n  },\n  \"planning\": {\n    \"leadRole\": \"field_inspector\",\n    \"executionProfile\": {\n      \"executionModes\": [\n        \"onsite_visit\"\n      ],\n      \"requiresHumanPresence\": true,\n      \"requiresLocalAccess\": true,\n      \"requiresVerifiedEvidence\": true,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": true,\n      \"riskTier\": \"medium\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\n        \"photo_evidence\",\n        \"inspection_report\"\n      ],\n      \"requiredEvidenceClaims\": [\n        \"new signage is actually installed\",\n        \"timestamped photos were captured\",\n        \"short written report identifies any issues\"\n      ],\n      \"mustHaveOwnerAcceptance\": false,\n      \"mustHaveLocationSignal\": true,\n      \"mustHaveSignature\": false,\n      \"verificationRequirements\": {\n        \"photoEvidenceMustBeTimestamped\": true\n      }\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"medium\",\n      \"reasons\": [\n        \"Onsite execution depends on missing address/access and scheduling details.\",\n        \"Specific signage verification criteria are not defined beyond 'new signage'.\"\n      ]\n    },\n    \"phases\": [\n      {\n        \"phaseKey\": \"onsite_inspection_and_evidence_capture\",\n        \"title\": \"Visit kiosk, confirm signage installation, capture timestamped photos, note any issues\"\n      },\n      {\n        \"phaseKey\": \"compile_short_written_report\",\n        \"title\": \"Send short written report summarizing findings and issues\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"field_inspector\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\n      \"sup_local_field_ops_inspector\",\n      \"sup_remote_qa_documentation_agent\"\n    ],\n    \"roleMatches\": {\n      \"field_inspector\": \"sup_local_field_ops_inspector\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"clarify_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_0bf8d9bc4ad835b3006a0655b8add881969c1e38f62d4a9062",
+                "phase": "final_answer"
+              }
+            }
+          }
+        ],
+        "finishReason": {
+          "unified": "stop"
+        },
+        "usage": {
+          "inputTokens": {
+            "total": 1418,
+            "noCache": 1418,
+            "cacheRead": 0
+          },
+          "outputTokens": {
+            "total": 847,
+            "text": 847,
+            "reasoning": 0
+          },
+          "raw": {
+            "input_tokens": 1418,
+            "input_tokens_details": {
+              "cached_tokens": 0
+            },
+            "output_tokens": 847,
+            "output_tokens_details": {
+              "reasoning_tokens": 0
+            }
+          }
+        },
+        "providerMetadata": {
+          "openai": {
+            "responseId": "resp_0bf8d9bc4ad835b3006a0655b8760081969374bd4f0fa65cbd",
+            "serviceTier": "default"
+          },
+          "gateway": {
+            "routing": {
+              "originalModelId": "openai/gpt-5.4-nano",
+              "resolvedProvider": "openai",
+              "resolvedProviderApiModelId": "gpt-5.4-nano",
+              "fallbacksAvailable": [
+                "azure"
+              ],
+              "planningReasoning": "BYOK credentials available for: openai. System credentials planned for: openai, azure. Total execution order: openai(BYOK) → openai(system) → azure(system)",
+              "canonicalSlug": "openai/gpt-5.4-nano",
+              "finalProvider": "openai",
+              "modelAttemptCount": 1,
+              "modelAttempts": [
+                {
+                  "modelId": "openai:gpt-5.4-nano",
+                  "canonicalSlug": "openai/gpt-5.4-nano",
+                  "success": true,
+                  "providerAttemptCount": 1,
+                  "providerAttempts": [
+                    {
+                      "provider": "openai",
+                      "internalModelId": "openai:gpt-5.4-nano",
+                      "providerApiModelId": "gpt-5.4-nano",
+                      "credentialType": "byok",
+                      "success": true,
+                      "startTime": 1778800056355,
+                      "endTime": 1778800061703,
+                      "statusCode": 200,
+                      "providerResponseId": "resp_0bf8d9bc4ad835b3006a0655b8760081969374bd4f0fa65cbd"
+                    }
+                  ]
+                }
+              ],
+              "totalProviderAttemptCount": 1
+            },
+            "cost": "0",
+            "marketCost": "0.00134235",
+            "generationId": "gen_01KRMBXNZTR7Z5G1DX6A977R2A"
+          }
+        },
+        "warnings": [
+          {
+            "type": "unsupported",
+            "feature": "seed"
+          },
+          {
+            "type": "unsupported",
+            "feature": "temperature",
+            "details": "temperature is not supported for reasoning models"
+          }
+        ]
+      },
+      "messages": [
+        {
+          "role": "assistant",
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"schemaVersion\": 1,\n  \"scenarioId\": \"eval-embodied-onsite-property-inspection\",\n  \"extraction\": {\n    \"title\": \"Onsite retail kiosk signage verification in Makati\",\n    \"summary\": \"Find a local Makati inspector to visit a retail kiosk tomorrow before 5pm, confirm new signage is installed, capture timestamped photos, and send a short written report noting any issues.\",\n    \"seeking\": {\n      \"actorKinds\": [\n        \"human\"\n      ],\n      \"supplyKinds\": [\n        \"field_inspection\",\n        \"operations_support\"\n      ]\n    },\n    \"outputKinds\": [\n      \"inspection_report\",\n      \"photo_evidence\"\n    ],\n    \"missingDetails\": [\n      \"Exact kiosk address/location in Makati\",\n      \"Access instructions (entry/escort/parking) and any contact person on-site\",\n      \"Tomorrow’s date and confirm timezone\",\n      \"Signage identifiers to verify (e.g., brand/model/location on kiosk) beyond 'new signage'\",\n      \"Preferred photo requirements (what angles/shots) and report format/length constraints\",\n      \"Any safety requirements or restricted areas\"\n    ],\n    \"constraints\": {\n      \"budgetCurrency\": \"USD\",\n      \"budgetMin\": 300,\n      \"budgetMax\": 500,\n      \"timeWindow\": {\n        \"end\": \"tomorrow_before_5pm\",\n        \"timezone\": \"unspecified\"\n      },\n      \"serviceLocation\": \"Makati\"\n    }\n  },\n  \"routing\": {\n    \"routeFamily\": \"worker_market\",\n    \"complexityLevel\": \"low\",\n    \"needsPlan\": true,\n    \"humanRequired\": true,\n    \"needsClarification\": true\n  },\n  \"planning\": {\n    \"leadRole\": \"field_inspector\",\n    \"executionProfile\": {\n      \"executionModes\": [\n        \"onsite_visit\"\n      ],\n      \"requiresHumanPresence\": true,\n      \"requiresLocalAccess\": true,\n      \"requiresVerifiedEvidence\": true,\n      \"requiresScheduling\": true,\n      \"requiresGeography\": true,\n      \"riskTier\": \"medium\"\n    },\n    \"verificationPlan\": {\n      \"requiredArtifactKinds\": [\n        \"photo_evidence\",\n        \"inspection_report\"\n      ],\n      \"requiredEvidenceClaims\": [\n        \"new signage is actually installed\",\n        \"timestamped photos were captured\",\n        \"short written report identifies any issues\"\n      ],\n      \"mustHaveOwnerAcceptance\": false,\n      \"mustHaveLocationSignal\": true,\n      \"mustHaveSignature\": false,\n      \"verificationRequirements\": {\n        \"photoEvidenceMustBeTimestamped\": true\n      }\n    },\n    \"planCollapseRisk\": {\n      \"riskLevel\": \"medium\",\n      \"reasons\": [\n        \"Onsite execution depends on missing address/access and scheduling details.\",\n        \"Specific signage verification criteria are not defined beyond 'new signage'.\"\n      ]\n    },\n    \"phases\": [\n      {\n        \"phaseKey\": \"onsite_inspection_and_evidence_capture\",\n        \"title\": \"Visit kiosk, confirm signage installation, capture timestamped photos, note any issues\"\n      },\n      {\n        \"phaseKey\": \"compile_short_written_report\",\n        \"title\": \"Send short written report summarizing findings and issues\"\n      }\n    ],\n    \"roleSlots\": [\n      {\n        \"roleKey\": \"field_inspector\",\n        \"requiredActorKinds\": [\n          \"human\"\n        ],\n        \"required\": true\n      }\n    ],\n    \"noMicrotaskExplosion\": true\n  },\n  \"matching\": {\n    \"leadRanking\": [\n      \"sup_local_field_ops_inspector\",\n      \"sup_remote_qa_documentation_agent\"\n    ],\n    \"roleMatches\": {\n      \"field_inspector\": \"sup_local_field_ops_inspector\"\n    }\n  },\n  \"policy\": {\n    \"nextAction\": \"clarify_request\",\n    \"requiresOwnerApproval\": true,\n    \"shouldOpenRequest\": true,\n    \"shouldCreateFulfillment\": false,\n    \"shouldCreateFulfillmentSteps\": false\n  }\n}",
+              "providerOptions": {
+                "openai": {
+                  "itemId": "msg_0bf8d9bc4ad835b3006a0655b8add881969c1e38f62d4a9062",
+                  "phase": "final_answer"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "providerMetadata": {
+      "openai": {
+        "responseId": "resp_0bf8d9bc4ad835b3006a0655b8760081969374bd4f0fa65cbd",
+        "serviceTier": "default"
+      },
+      "gateway": {
+        "routing": {
+          "originalModelId": "openai/gpt-5.4-nano",
+          "resolvedProvider": "openai",
+          "resolvedProviderApiModelId": "gpt-5.4-nano",
+          "fallbacksAvailable": [
+            "azure"
+          ],
+          "planningReasoning": "BYOK credentials available for: openai. System credentials planned for: openai, azure. Total execution order: openai(BYOK) → openai(system) → azure(system)",
+          "canonicalSlug": "openai/gpt-5.4-nano",
+          "finalProvider": "openai",
+          "modelAttemptCount": 1,
+          "modelAttempts": [
+            {
+              "modelId": "openai:gpt-5.4-nano",
+              "canonicalSlug": "openai/gpt-5.4-nano",
+              "success": true,
+              "providerAttemptCount": 1,
+              "providerAttempts": [
+                {
+                  "provider": "openai",
+                  "internalModelId": "openai:gpt-5.4-nano",
+                  "providerApiModelId": "gpt-5.4-nano",
+                  "credentialType": "byok",
+                  "success": true,
+                  "startTime": 1778800056355,
+                  "endTime": 1778800061703,
+                  "statusCode": 200,
+                  "providerResponseId": "resp_0bf8d9bc4ad835b3006a0655b8760081969374bd4f0fa65cbd"
+                }
+              ]
+            }
+          ],
+          "totalProviderAttemptCount": 1
+        },
+        "cost": "0",
+        "marketCost": "0.00134235",
+        "generationId": "gen_01KRMBXNZTR7Z5G1DX6A977R2A"
+      }
+    }
+  }
+}

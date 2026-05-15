@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-pickup-handoff-clarify",
+  "extraction": {
+    "title": "Pick up signed contract and complete witnessed supplier handoff",
+    "summary": "Same-day contract pick up, supplier handoff, and proof once the locations are confirmed.",
+    "seeking": {
+      "actorKinds": ["human"],
+      "supplyKinds": ["pickup_dropoff", "local_runner"]
+    },
+    "outputKinds": ["handoff_receipt", "signature", "delivery_confirmation"],
+    "constraints": {
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "requiresWitness": true,
+      "verificationRequirements": ["handoff_signature", "delivery_confirmation"]
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "low",
+    "needsPlan": false,
+    "humanRequired": true,
+    "needsClarification": true
+  },
+  "planning": {
+    "leadRole": "courier_runner",
+    "executionProfile": {
+      "executionModes": ["pickup_dropoff", "witnessed_handoff"],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "high"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["receipt", "signature", "evidence"],
+      "requiredEvidenceClaims": ["handoff_signature", "delivery_confirmation"],
+      "mustHaveOwnerAcceptance": false,
+      "mustHaveLocationSignal": true,
+      "mustHaveSignature": true
+    },
+    "planCollapseRisk": {
+      "riskLevel": "high",
+      "reasons": [
+        "pickup and dropoff locations are missing",
+        "remote summary cannot prove physical handoff"
+      ]
+    },
+    "noMicrotaskExplosion": true,
+    "phases": [
+      {
+        "phaseKey": "confirm_locations",
+        "title": "Confirm pickup and handoff locations before execution"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "courier_runner",
+        "requiredActorKinds": ["human"],
+        "required": true
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_local_courier_runner",
+      "sup_remote_ops_agent",
+      "sup_generic_chat_agent"
+    ],
+    "roleMatches": {
+      "courier_runner": "sup_local_courier_runner"
+    }
+  },
+  "policy": {
+    "nextAction": "clarify_request",
+    "requiresOwnerApproval": false,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

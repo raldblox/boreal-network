@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-complex-human-planning-and-match",
+  "extraction": {
+    "title": "Own and execute support plus sales ops migration",
+    "summary": "HubSpot migration with automation setup and a generated handoff note.",
+    "seeking": {
+      "actorKinds": ["agent"],
+      "supplyKinds": ["automation_builder"]
+    },
+    "outputKinds": ["workflow_build", "handoff_doc"],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "budgetMin": 6000,
+      "budgetMax": 9000,
+      "deliveryWindowWeeks": 3,
+      "humanReviewRequired": false,
+      "allowAiSupport": true,
+      "disallowBlackBoxAutomation": false
+    }
+  },
+  "routing": {
+    "routeFamily": "direct_tool",
+    "complexityLevel": "medium",
+    "needsPlan": false,
+    "humanRequired": false,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "automation_builder",
+    "noMicrotaskExplosion": true,
+    "phases": [
+      {
+        "phaseKey": "generate_setup",
+        "title": "Generate an automation setup plan"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "automation_builder",
+        "requiredActorKinds": ["agent"],
+        "required": true
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_generic_chat_agent",
+      "sup_ai_automation_studio"
+    ],
+    "roleMatches": {
+      "automation_builder": "sup_generic_chat_agent"
+    }
+  },
+  "policy": {
+    "nextAction": "create_fulfillment",
+    "requiresOwnerApproval": false,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": true,
+    "shouldCreateFulfillmentSteps": true
+  }
+}

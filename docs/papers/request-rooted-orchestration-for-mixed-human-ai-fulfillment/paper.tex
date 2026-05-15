@@ -1,9 +1,17 @@
 \documentclass[10pt,conference]{IEEEtran}
 
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\usepackage{tabularx}
+\usepackage{tikz}
 \usepackage{url}
 \usepackage{hyperref}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+\pgfplotsset{compat=1.18}
 
 \title{Request-Rooted Orchestration for Mixed Human-AI Fulfillment}
 
@@ -21,7 +29,7 @@ AI-capable systems are increasingly used to perform external digital work, but c
 
 We present a request-rooted orchestration model for mixed human-AI fulfillment in which a single durable \texttt{Request} persists across intake, routing, \texttt{Commitment}, \texttt{Fulfillment}, \texttt{Artifact} delivery, \texttt{Transaction} state, and append-only \texttt{RequestEvent} history. The model separates current summary state from durable ledger history and distinguishes ephemeral execution signals such as typing, token streams, progress ticks, and runtime logs from business-meaningful state transitions. It also preserves explicit representation of embodied constraints, human-presence requirements, and verification obligations instead of allowing planners to optimize them away.
 
-We implement the model in Boreal Network as a docs-first, machine-readable contract stack with JSON Schema, OpenAPI, event contracts, deterministic fixtures, and an evaluation harness for extraction, matching, planning, and mutation safety. We further define a lead-first orchestration policy that matches a primary \texttt{Supply} before decomposing work into \texttt{FulfillmentStep} sub-work, aiming to reduce over-decomposition, false completion, and premature execution. This paper contributes a durable object model for request-native work systems, a framing of generative plan collapse in embodied and digital fulfillment, and an artifact-backed methodology for evaluating continuity, traceability, human routing, and approval safety in external work orchestration.
+We implement the model in Boreal Network as a docs-first, machine-readable contract stack with JSON Schema, OpenAPI, event contracts, deterministic fixtures, and an evaluation harness for extraction, matching, planning, and mutation safety. We further define a lead-first orchestration policy that matches a primary \texttt{Supply} before decomposing work into \texttt{FulfillmentStep} sub-work, aiming to reduce over-decomposition, false completion, and premature execution. In a deterministic four-scenario benchmark spanning one digital and three embodied cases, the request-rooted baseline achieves 100\% contract pass, 100\% embodied-step recall, and 0\% false completion, while task-first and direct-tool baselines expose distinct failure modes: complete over-decomposition in the former and 100\% embodied-collapse plus 75\% false completion in the latter. A complementary live-model study across five OpenAI-routed models and two frozen prompt presets shows that current models can recover the correct lead and stay inside safe action bands while still failing exact canonical conformance and under-specifying verification fields. This paper contributes a durable object model for request-native work systems, a framing of generative plan collapse in embodied and digital fulfillment, and an artifact-backed methodology for evaluating continuity, traceability, human routing, and approval safety in external work orchestration.
 \end{abstract}
 
 \section{Introduction}
@@ -29,6 +37,9 @@ We implement the model in Boreal Network as a docs-first, machine-readable contr
 
 \section{Problem}
 \input{sections/problem}
+
+\section{Formal Problem Setting}
+\input{sections/formalization}
 
 \section{Design Requirements}
 \input{sections/design-requirements}
@@ -54,7 +65,7 @@ We implement the model in Boreal Network as a docs-first, machine-readable contr
 \section{Case Studies}
 \input{sections/case-studies}
 
-\section{Evaluation Methodology}
+\section{Evaluation and Preliminary Results}
 \input{sections/evaluation}
 
 \section{Related Work}

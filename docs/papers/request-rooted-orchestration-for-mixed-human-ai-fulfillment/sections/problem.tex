@@ -2,8 +2,51 @@ Systems for AI-assisted work commonly inherit one of three weak defaults. The fi
 
 The task-first default creates a particularly important distortion. If the planner can call browser tools, APIs, search, and generation routines, it will often decompose the work according to those capabilities. Steps requiring local access, physical presence, field measurement, or witnessed completion are harder to represent and often harder to route. As a result, the planner may weaken or remove them. What remains is a plan optimized for what the system can execute digitally rather than for what the request actually requires.
 
+\begin{table}[t]
+\caption{Coordination defaults and dominant failure modes.}
+\label{tab:coordination-defaults}
+\centering
+\footnotesize
+\begin{tabularx}{\columnwidth}{p{1.45cm}p{1.75cm}X}
+\toprule
+Default & Root unit & Dominant failure mode \\
+\midrule
+Chat-first & Conversation thread & Weak approval, payment, and proof structure \\
+Listing-first & Supply listing or posted task & Assumes demand is already scoped \\
+Tool-first & Callable step & Omits non-digital or access-constrained work \\
+Request-rooted & Durable request thread & Higher modeling cost, but preserves continuity and proof obligations \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 We describe this failure mode as \emph{generative plan collapse}. A plan has collapsed in this sense when it appears complete and actionable in language, but omits one or more execution-critical steps because those steps are embodied, access-constrained, or difficult to verify through the planner's native action surface. The collapse is not merely about low-quality generation. It is structural. The system is rewarded for producing a coherent plan inside its sandbox, even when the true completion path lies partly outside that sandbox.
 
 Several examples illustrate the problem. An onsite property inspection may be replaced by a generated checklist and a summary template. A hardware or facility audit may be reframed as documentation review. A document pickup or witnessed dropoff may be reduced to an email draft. Field photography may be replaced by synthetic imagery or unverifiable stock references. A compliance visit may be summarized from remote assumptions rather than site-specific evidence. In each case, the planner still produces something that looks productive, but the work thread has drifted away from executability.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  >=Latex,
+  node distance=2mm,
+  box/.style={draw, rounded corners, align=center, font=\scriptsize, minimum height=7mm, text width=1.75cm, inner sep=1.5pt},
+  arrow/.style={->, thick}
+]
+\node[box] (r1) {Request};
+\node[box, right=of r1] (p1) {Tool-first\\digital plan};
+\node[box, right=of p1] (c1) {Generated\\closure};
+\draw[arrow] (r1) -- (p1);
+\draw[arrow] (p1) -- (c1);
+
+\node[box, below=7mm of r1] (r2) {Request};
+\node[box, right=of r2] (l2) {Lead route};
+\node[box, right=of l2] (p2) {Embodied +\\digital plan};
+\node[box, right=of p2] (v2) {Verified\\completion};
+\draw[arrow] (r2) -- (l2);
+\draw[arrow] (l2) -- (p2);
+\draw[arrow] (p2) -- (v2);
+\end{tikzpicture}
+\caption{Generative plan collapse contrasted with request-rooted correction. The top lane optimizes for callable digital actions; the bottom lane preserves route and verification requirements before completion.}
+\label{fig:collapse}
+\end{figure}
 
 This is not only a user-experience issue. It is also a systems integrity issue. When omitted embodied steps are not represented explicitly, the system loses the ability to enforce approvals, require the right kind of proof, or distinguish valid completion from narrative closure. The problem is therefore not simply that current planners are imperfect. It is that the surrounding object model often gives them no durable place to record what kind of work must happen, who must do it, where it must occur, or what evidence would count as completion.

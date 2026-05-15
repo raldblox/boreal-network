@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-pickup-handoff-clarify",
+  "extraction": {
+    "title": "Pick up signed contract and complete witnessed supplier handoff",
+    "summary": "Signed contract pickup and supplier handoff with proof.",
+    "seeking": {
+      "actorKinds": ["human"],
+      "supplyKinds": ["pickup_dropoff", "local_runner"]
+    },
+    "outputKinds": ["handoff_receipt", "signature", "delivery_confirmation"],
+    "constraints": {
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "requiresWitness": true,
+      "verificationRequirements": ["handoff_signature", "delivery_confirmation"]
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "low",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "courier_runner",
+    "executionProfile": {
+      "executionModes": ["pickup_dropoff", "witnessed_handoff"],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "high"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["receipt", "signature", "evidence"],
+      "requiredEvidenceClaims": ["handoff_signature", "delivery_confirmation"],
+      "mustHaveOwnerAcceptance": false,
+      "mustHaveLocationSignal": true,
+      "mustHaveSignature": true
+    },
+    "planCollapseRisk": {
+      "riskLevel": "high",
+      "reasons": [
+        "locations are still missing",
+        "planning continued before the clarify gate closed"
+      ]
+    },
+    "noMicrotaskExplosion": false,
+    "phases": [
+      {
+        "phaseKey": "collect_context",
+        "title": "Collect request context"
+      },
+      {
+        "phaseKey": "pickup_execution",
+        "title": "Pick up the contract"
+      },
+      {
+        "phaseKey": "handoff_execution",
+        "title": "Hand the contract to the supplier"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "courier_runner",
+        "requiredActorKinds": ["human"],
+        "required": true
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_local_courier_runner",
+      "sup_remote_ops_agent",
+      "sup_generic_chat_agent"
+    ],
+    "roleMatches": {
+      "courier_runner": "sup_local_courier_runner"
+    }
+  },
+  "policy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

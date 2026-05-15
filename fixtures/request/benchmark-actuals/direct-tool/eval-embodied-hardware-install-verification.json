@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-hardware-install-verification",
+  "extraction": {
+    "title": "Verify barcode scanner installation at Quezon City warehouse",
+    "summary": "Generated installation note for the warehouse scanner rollout.",
+    "seeking": {
+      "actorKinds": ["agent"],
+      "supplyKinds": ["qa_documentation"]
+    },
+    "outputKinds": ["verification_note"],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "fixedAmount": 250,
+      "serviceLocation": "Quezon City warehouse",
+      "timeWindows": ["tomorrow morning"],
+      "requiresHumanPresence": false,
+      "requiresVerifiedEvidence": false,
+      "verificationRequirements": ["verification_note"]
+    }
+  },
+  "routing": {
+    "routeFamily": "direct_tool",
+    "complexityLevel": "low",
+    "needsPlan": false,
+    "humanRequired": false,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "qa_documentation",
+    "executionProfile": {
+      "executionModes": ["remote_digital"],
+      "requiresHumanPresence": false,
+      "requiresLocalAccess": false,
+      "requiresVerifiedEvidence": false,
+      "requiresScheduling": false,
+      "requiresGeography": false,
+      "riskTier": "low"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": ["delivery"],
+      "requiredEvidenceClaims": ["verification_note"],
+      "mustHaveOwnerAcceptance": false,
+      "mustHaveLocationSignal": false,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "low",
+      "reasons": ["planner reduces hardware verification to generated documentation"]
+    },
+    "noMicrotaskExplosion": true,
+    "phases": [
+      {
+        "phaseKey": "draft_note",
+        "title": "Draft verification note"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "qa_documentation",
+        "requiredActorKinds": ["agent"],
+        "required": true
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_remote_documentation_agent",
+      "sup_generic_chat_agent"
+    ],
+    "roleMatches": {
+      "qa_documentation": "sup_remote_documentation_agent"
+    }
+  },
+  "policy": {
+    "nextAction": "create_fulfillment",
+    "requiresOwnerApproval": false,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": true,
+    "shouldCreateFulfillmentSteps": true
+  }
+}

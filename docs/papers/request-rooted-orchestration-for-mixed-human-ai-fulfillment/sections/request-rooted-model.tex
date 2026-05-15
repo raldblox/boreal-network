@@ -1,5 +1,33 @@
 Our model uses \texttt{Request} as the durable demand-side root. A request begins from need: someone needs work done and opens a thread that may still be ambiguous. That thread can then survive clarification, routing, approval, funding, execution, proof, delivery, and payout without leaving the same durable object family. This is a deliberate contrast to models that begin with a catalog item, a chat session, or a detached task tree.
 
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+  >=Latex,
+  node distance=1.5mm,
+  box/.style={draw, rounded corners, align=center, font=\scriptsize, minimum height=8mm, text width=1.45cm, inner sep=1pt},
+  ledger/.style={draw, rounded corners, align=center, font=\scriptsize, minimum height=7mm, text width=8.1cm, inner sep=1pt},
+  arrow/.style={->, thick}
+]
+\node[box] (req) {Request};
+\node[box, right=of req] (com) {Commitment};
+\node[box, right=of com] (ful) {Fulfillment};
+\node[box, right=of ful] (art) {Artifact};
+\node[box, right=of art] (txn) {Transaction};
+\draw[arrow] (req) -- (com);
+\draw[arrow] (com) -- (ful);
+\draw[arrow] (ful) -- (art);
+\draw[arrow] (art) -- (txn);
+\node[ledger, below=5mm of com, xshift=1.5cm] (evt) {Append-only \texttt{RequestEvent} ledger for durable history, replay, and audit};
+\draw[arrow] (req.south) -- ++(0,-1.6mm) -| (evt.west);
+\draw[arrow] (com.south) -- ++(0,-1.6mm) |- (evt.west);
+\draw[arrow] (ful.south) -- ++(0,-1.6mm) |- (evt.east);
+\draw[arrow] (art.south) -- ++(0,-1.6mm) |- (evt.east);
+\end{tikzpicture}
+\caption{Request-rooted lifecycle with adjacent durable objects. The request remains the demand-side root while commitment, fulfillment, proof, payment, and durable history stay attached to the same work thread.}
+\label{fig:lifecycle}
+\end{figure}
+
 The surrounding objects preserve explicit boundaries. \texttt{Actor} represents participant identity. \texttt{Supply} represents published capability that can be matched, invited, hired, or routed. \texttt{RequestParticipant} makes actor-to-request relationships explicit rather than hiding them in ad hoc arrays. \texttt{Commitment} represents a commercial or approval boundary such as a proposal, assignment, or accepted route. \texttt{Fulfillment} represents an execution lane that has actually started. \texttt{FulfillmentStep} represents bounded sub-work under that lane. \texttt{Artifact} represents output or proof. \texttt{Transaction} represents payment or settlement state. \texttt{RequestEvent} provides append-only history.
 
 This object split matters because it allows continuity without overloading the request root. The request stores current summary state, such as the brief, visibility, high-level constraints, current status, and active references. It does not need to store every event, artifact, or payment update inline. Full history lives in the event ledger and adjacent durable objects. This separation keeps the root object readable while still allowing replay, audit, and projection rebuilds.

@@ -15,6 +15,9 @@
     "web:db:migrate": "pnpm --filter @boreal/web db:migrate",
     "web:test": "pnpm --filter @boreal/web test",
     "evals:request-processing": "node tests/contracts/run-request-processing-evals.mjs",
-    "evals:request-processing:sample": "node tests/contracts/run-request-processing-evals.mjs --actual fixtures/request/eval-complex-human-planning-and-match.actual.sample.json"
+    "evals:request-processing:sample": "node tests/contracts/run-request-processing-evals.mjs --actual fixtures/request/eval-complex-human-planning-and-match.actual.sample.json",
+    "evals:request-processing:benchmark": "node tests/contracts/run-request-processing-benchmark.mjs",
+    "evals:request-processing:live": "pnpm --filter @boreal/web eval:request-processing:live",
+    "evals:request-processing:live:study": "pnpm --filter @boreal/web eval:request-processing:live --model openai/gpt-4.1-nano --model openai/gpt-5.4-nano --model openai/gpt-5-mini --model openai/o4-mini --model openai/gpt-5-pro --prompt neutral_contract_v2 --prompt boreal_canon_v2 --output-dir C:\\Users\\raldb\\boreal-network\\docs\\papers\\request-rooted-orchestration-for-mixed-human-ai-fulfillment\\results\\live-benchmark\\study-openai-multimodel-v1"
   }
 }

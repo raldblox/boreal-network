@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-complex-human-planning-and-match",
+  "extraction": {
+    "title": "Own and execute support plus sales ops migration",
+    "summary": "HubSpot migration with workflow build, operator training, and a documented migration plan for the team.",
+    "seeking": {
+      "actorKinds": ["human", "agent"],
+      "supplyKinds": ["migration_lead", "automation_builder", "documentation_support"]
+    },
+    "outputKinds": ["migration_plan", "workflow_build", "handoff_doc", "operator_training"],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "budgetMin": 6000,
+      "budgetMax": 9000,
+      "deliveryWindowWeeks": 3,
+      "humanReviewRequired": true,
+      "allowAiSupport": true,
+      "disallowBlackBoxAutomation": true
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "high",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "migration_lead",
+    "noMicrotaskExplosion": false,
+    "phases": [
+      {
+        "phaseKey": "requirements_capture",
+        "title": "Capture all requirements"
+      },
+      {
+        "phaseKey": "tool_inventory",
+        "title": "Inventory all current tools"
+      },
+      {
+        "phaseKey": "crm_schema_design",
+        "title": "Design CRM schema"
+      },
+      {
+        "phaseKey": "data_export",
+        "title": "Export support and sales data"
+      },
+      {
+        "phaseKey": "automation_build",
+        "title": "Build automations"
+      },
+      {
+        "phaseKey": "qa_review",
+        "title": "Run QA on flows"
+      },
+      {
+        "phaseKey": "training_and_docs",
+        "title": "Prepare training and documentation"
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "migration_lead",
+        "requiredActorKinds": ["human"],
+        "required": true
+      },
+      {
+        "roleKey": "automation_builder",
+        "requiredActorKinds": ["human", "agent"],
+        "required": true
+      },
+      {
+        "roleKey": "documentation_support",
+        "requiredActorKinds": ["human"],
+        "required": false
+      }
+    ]
+  },
+  "matching": {
+    "leadRanking": [
+      "sup_ai_automation_studio",
+      "sup_human_ops_migration_lead",
+      "sup_copy_only_documentation_team",
+      "sup_generic_chat_agent"
+    ],
+    "roleMatches": {
+      "migration_lead": "sup_ai_automation_studio",
+      "automation_builder": "sup_ai_automation_studio",
+      "documentation_support": "sup_copy_only_documentation_team"
+    }
+  },
+  "policy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}
