@@ -119,6 +119,16 @@ async function getDesktopBridgeDiscoverySnapshot() {
             typeof settings.autoResolveSupplyId === "string"
               ? settings.autoResolveSupplyId
               : null,
+          defaultModel:
+            typeof settings.defaultModel === "string" &&
+            settings.defaultModel.trim().length > 0
+              ? settings.defaultModel
+              : null,
+          defaultReasoning:
+            typeof settings.defaultReasoning === "string" &&
+            settings.defaultReasoning.trim().length > 0
+              ? settings.defaultReasoning
+              : null,
         }
       : null,
     readiness: {
@@ -245,10 +255,24 @@ async function resolveDesktopTurnRuntimePolicy({
 }
 
 function isAutoResolvableOwnedPrivateRequest(request) {
+  const executionProfile = request?.derived?.executionProfile ?? null;
+  const verificationPlan = request?.derived?.verificationPlan ?? null;
+  const clarificationNeeded = request?.derived?.clarificationNeeded ?? null;
+  const requiresEmbodiedOrProofHeavyLane =
+    executionProfile?.requiresHumanPresence === true ||
+    executionProfile?.requiresLocalAccess === true ||
+    executionProfile?.requiresVerifiedEvidence === true ||
+    (Array.isArray(verificationPlan?.requiredEvidenceClaims) &&
+      verificationPlan.requiredEvidenceClaims.length > 0) ||
+    verificationPlan?.mustHaveLocationSignal === true ||
+    verificationPlan?.mustHaveSignature === true;
+
   return (
     request?.visibility === "private" &&
     request?.status === "open" &&
-    !request?.activeRefs?.activeFulfillmentId
+    !request?.activeRefs?.activeFulfillmentId &&
+    clarificationNeeded?.required !== true &&
+    !requiresEmbodiedOrProofHeavyLane
   );
 }
 

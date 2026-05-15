@@ -253,7 +253,7 @@ The first desktop-local browser bridge should stay constrained like this:
 - stream ephemeral execution feedback only
 - allow one localhost-only discovery read such as `/discover` so Boreal web can auto-link a running desktop runtime without a manual copy-paste setup flow
 - `/discover` may expose bridge-link readiness, Codex worker readiness, and Boreal resolver readiness as separate local states; do not collapse them into one fake `connected` truth
-- `/discover` may also expose local desktop auto-resolve policy such as `autoResolveOwnedPrivate` and one desktop-default supply id, but those remain local runtime state instead of durable Boreal request truth
+- `/discover` may also expose local desktop auto-resolve policy such as `autoResolveOwnedPrivate`, one desktop-default supply id, and the desktop-default Codex model and reasoning level, but those remain local runtime state instead of durable Boreal request truth
 - expose read-only local bridge metadata such as `/health` and desktop model-access reads such as `/models` only behind the same session-token and localhost-origin checks
 - never act as durable Boreal request truth by itself
 

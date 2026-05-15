@@ -149,7 +149,7 @@ Verify:
 - desktop should clear extra writable roots and keep network off for public or external tracked request lanes even if broader local settings exist
 - desktop localhost bridge should bind to `127.0.0.1` only, require a valid session token, and reject non-localhost origins
 - desktop localhost bridge `/discover` should stay localhost-origin constrained, expose only local bridge-link metadata plus separate local readiness states for bridge, Codex worker, and Boreal resolver, and never become a durable Boreal identity or request ledger
-- desktop localhost bridge `/discover` may expose local desktop auto-resolve policy and desktop-default supply selection, but those fields must remain local runtime hints and must not override durable request routing truth
+- desktop localhost bridge `/discover` may expose local desktop auto-resolve policy, desktop-default supply selection, and desktop-default Codex model or reasoning selection, but those fields must remain local runtime hints and must not override durable request routing truth
 - desktop localhost bridge `/models` should require the same valid session token, stay localhost-origin constrained, and return only the connected desktop runtime model catalog instead of a second Boreal model ledger
 - desktop peer runtime should create or reuse one stable peer keypair under `.boreal-work/desktop/peer-runtime.json`
 - desktop peer runtime should listen on the Boreal control topic and expose its listening state without changing Boreal actor identity semantics

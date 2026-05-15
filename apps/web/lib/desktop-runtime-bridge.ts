@@ -51,6 +51,8 @@ export type DesktopResolverSnapshot = {
 export type DesktopResolverPolicySnapshot = {
   autoResolveOwnedPrivate?: boolean;
   autoResolveSupplyId?: string | null;
+  defaultModel?: string | null;
+  defaultReasoning?: string | null;
 };
 
 export type DesktopRuntimeReadinessSnapshot = {

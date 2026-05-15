@@ -31,6 +31,7 @@ import type { BorealSupplyDraft } from "@/lib/supply";
 import type { ChatMessage } from "@/lib/types";
 import { cn, fetcher } from "@/lib/utils";
 import { ChevronDownIcon } from "./icons";
+import { RequestPlanPanel } from "./request-plan-panel";
 import { RequestActivityMessage } from "./request-activity-timeline";
 import { toast } from "./toast";
 
@@ -560,6 +561,8 @@ export function RequestTracker({
             </div>
           </section>
 
+          <RequestPlanPanel request={request} scope="open" />
+
           <div className="space-y-4">
             {stages.map((stage, index) => {
               const isExpanded = expandedStages.includes(stage.id);
@@ -720,6 +723,8 @@ const REQUEST_ROUTE_INHERIT_DEFAULT = "__inherit_default__";
 type DesktopRuntimeState = {
   autoResolveOwnedPrivate: boolean;
   autoResolveSupplyId: string | null;
+  defaultModel: string | null;
+  defaultReasoning: string | null;
   detail: string;
   label: string;
   linked: boolean;
@@ -768,6 +773,10 @@ function RouteAndWorkersPanel({
     request,
   });
   const currentSupply = activeRouteSupply ?? preferredSupply;
+  const desktopModelSelection = describeDesktopModelSelection({
+    desktopRuntimePolicy,
+    desktopRuntimeState,
+  });
   const preferredSupplyMatchesRequest =
     !preferredSupply || doesOwnedSupplyMatchRequest(request, preferredSupply);
   const desktopDefaultSupply =
@@ -943,6 +952,10 @@ function RouteAndWorkersPanel({
                   ? "Enabled for owned private requests."
                   : "Disabled on this desktop."
               }
+            />
+            <RouteFactRow
+              label="Desktop model"
+              value={desktopModelSelection}
             />
             <RouteFactRow
               label="Desktop default"
@@ -1470,11 +1483,21 @@ function getDesktopRuntimeState(
     typeof discovery?.policy?.autoResolveSupplyId === "string"
       ? discovery.policy.autoResolveSupplyId
       : null;
+  const defaultModel =
+    typeof discovery?.policy?.defaultModel === "string"
+      ? discovery.policy.defaultModel
+      : null;
+  const defaultReasoning =
+    typeof discovery?.policy?.defaultReasoning === "string"
+      ? discovery.policy.defaultReasoning
+      : null;
 
   if (requestLaneReady) {
     return {
       autoResolveOwnedPrivate,
       autoResolveSupplyId,
+      defaultModel,
+      defaultReasoning,
       detail:
         "This browser can see a connected Boreal Desktop with Codex worker access and Boreal resolver auth.",
       label: "Desktop runtime is ready for private request execution.",
@@ -1489,6 +1512,8 @@ function getDesktopRuntimeState(
     return {
       autoResolveOwnedPrivate,
       autoResolveSupplyId,
+      defaultModel,
+      defaultReasoning,
       detail:
         "Codex worker access is ready, but the desktop still needs Boreal resolver approval before it can carry request work.",
       label: "Desktop worker is ready, but Boreal auth is missing.",
@@ -1503,6 +1528,8 @@ function getDesktopRuntimeState(
     return {
       autoResolveOwnedPrivate,
       autoResolveSupplyId,
+      defaultModel,
+      defaultReasoning,
       detail:
         "The localhost bridge is visible, but the desktop has not connected its Codex worker yet.",
       label: "Desktop bridge is visible, but worker access is offline.",
@@ -1516,6 +1543,8 @@ function getDesktopRuntimeState(
   return {
     autoResolveOwnedPrivate,
     autoResolveSupplyId,
+    defaultModel,
+    defaultReasoning,
     detail:
       "Open Boreal Desktop on this machine to expose local runtime readiness here.",
     label: "Desktop runtime is not linked yet.",
@@ -1524,6 +1553,34 @@ function getDesktopRuntimeState(
     requestLaneReady,
     resolverReady,
   };
+}
+
+function describeDesktopModelSelection({
+  desktopRuntimePolicy,
+  desktopRuntimeState,
+}: {
+  desktopRuntimePolicy: DesktopRuntimeDiscoveryPayload["policy"] | null | undefined;
+  desktopRuntimeState: DesktopRuntimeState;
+}) {
+  if (!desktopRuntimeState.modelAccessReady) {
+    return "Desktop model access is offline.";
+  }
+
+  const modelId =
+    typeof desktopRuntimePolicy?.defaultModel === "string"
+      ? desktopRuntimePolicy.defaultModel
+      : desktopRuntimeState.defaultModel;
+
+  if (!modelId) {
+    return "Desktop has worker access, but no default model is pinned yet.";
+  }
+
+  const reasoning =
+    typeof desktopRuntimePolicy?.defaultReasoning === "string"
+      ? desktopRuntimePolicy.defaultReasoning
+      : desktopRuntimeState.defaultReasoning;
+
+  return reasoning ? `${modelId} / ${reasoning}` : modelId;
 }
 
 function describeDesktopDefaultRoute({
