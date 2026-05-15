@@ -447,7 +447,7 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onFinish: async ({ messages: finishedMessages }) => {
-        if (activeRequest) {
+        if (activeRequest || requestMode) {
           return;
         }
 
@@ -488,6 +488,7 @@ export async function POST(request: Request) {
         }
       },
       onError: (error) => {
+        console.error("Chat stream error:", error);
         if (
           error instanceof Error &&
           error.message?.includes(
@@ -495,6 +496,9 @@ export async function POST(request: Request) {
           )
         ) {
           return "Boreal model access is unavailable right now.";
+        }
+        if (error instanceof Error && error.message?.trim()) {
+          return error.message;
         }
         return "Oops, an error occurred!";
       },

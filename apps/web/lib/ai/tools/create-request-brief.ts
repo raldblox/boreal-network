@@ -29,12 +29,14 @@ export const createRequestBrief = ({
     description:
       "Create or initialize a durable Boreal Request draft and open its live request brief document. Prefer raw body first. Title or summary may stay blank if the user has not clearly established them yet. Include same-turn structured facts like budget, deadline, location, execution mode, access, or proof requirements when the user explicitly stated them. Only use when the user explicitly wants a new request or wants to turn the current work ask into a Request.",
     inputSchema: z.object({
-      title: z.string().min(1).max(200).optional(),
-      summary: z.string().min(1).max(1000).optional(),
-      body: z.string().min(1),
+      title: z.string().max(200).optional(),
+      summary: z.string().max(1000).optional(),
+      body: z.string(),
       constraints: z.record(z.string(), z.unknown()).optional(),
       embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
-      outputKinds: z.array(z.string().min(1)).optional(),
+      outputKinds: z
+        .union([z.string().min(1), z.array(z.string().min(1))])
+        .optional(),
       seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
       deadline: requestDeadlineInputSchema.optional(),
@@ -56,19 +58,70 @@ export const createRequestBrief = ({
         chatId,
         visibility,
         patch: {
-          brief: {
+          brief: buildCreateRequestBriefPayload({
             title,
             summary,
             body,
-            constraints: mergeRequestConstraintInputs({
-              constraints,
-              embodiedConstraints,
-            }),
+            constraints,
+            embodiedConstraints,
             outputKinds,
-          },
-          ...(seeking !== undefined ? { seeking } : {}),
-          ...(budget !== undefined ? { budget } : {}),
-          ...(deadline !== undefined ? { deadline } : {}),
+          }),
+          ...(seeking !== undefined
+            ? { seeking: seeking as any }
+            : {}),
+          ...(budget !== undefined ? { budget: budget as any } : {}),
+          ...(deadline !== undefined
+            ? { deadline: deadline as any }
+            : {}),
         },
       }),
   });
+
+function normalizeOptionalText(value: string | undefined) {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
+function normalizeRequiredText(value: string) {
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new Error("Request body is required.");
+  }
+
+  return normalized;
+}
+
+function buildCreateRequestBriefPayload({
+  title,
+  summary,
+  body,
+  constraints,
+  embodiedConstraints,
+  outputKinds,
+}: {
+  title: string | undefined;
+  summary: string | undefined;
+  body: string;
+  constraints: Record<string, unknown> | undefined;
+  embodiedConstraints: z.infer<typeof requestEmbodiedConstraintInputSchema> | undefined;
+  outputKinds: string | string[] | undefined;
+}) {
+  const normalizedTitle = normalizeOptionalText(title);
+  const normalizedSummary = normalizeOptionalText(summary);
+  const mergedConstraints = mergeRequestConstraintInputs({
+    constraints,
+    embodiedConstraints,
+  });
+  const normalizedOutputKinds =
+    typeof outputKinds === "string" ? [outputKinds] : outputKinds;
+
+  return {
+    ...(normalizedTitle ? { title: normalizedTitle } : {}),
+    ...(normalizedSummary ? { summary: normalizedSummary } : {}),
+    body: normalizeRequiredText(body),
+    ...(mergedConstraints ? { constraints: mergedConstraints } : {}),
+    ...(normalizedOutputKinds !== undefined
+      ? { outputKinds: normalizedOutputKinds }
+      : {}),
+  };
+}

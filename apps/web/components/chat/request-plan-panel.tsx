@@ -1,546 +1,712 @@
 "use client";
 
+import { LoaderCircleIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { BorealRequestDraft } from "@/lib/request";
 
 type RequestPlanPanelProps = {
   request: BorealRequestDraft;
   scope: "draft" | "open";
+  onOpenRequest?: () => Promise<void>;
+  isOpeningRequest?: boolean;
 };
 
-type PlanCardDescriptor = {
+type PlanFact = {
   label: string;
   value: string;
-  detail?: string;
+};
+
+type PlanNeed = {
+  label: string;
+  detail: string;
+};
+
+type FlowStep = {
+  title: string;
+  summary: string;
+  items: string[];
+  proof?: string;
+  statusLabel: string;
+  roleSummary?: string;
+};
+
+type PlannedRole = {
+  title: string;
+  summary: string;
+  required: boolean;
+  actorKinds: string;
 };
 
 export function RequestPlanPanel({
   request,
   scope,
+  onOpenRequest,
+  isOpeningRequest = false,
 }: RequestPlanPanelProps) {
-  const hasStructuredPlan = hasStructuredRequestPlan(request);
+  const understandingItems = getUnderstandingItems(request);
+  const missingItems = getMissingItems(request);
+  const plannedRoles = getPlannedRoles(request);
+  const flowSteps = getFlowSteps(request);
+  const planNarrative = getPlanNarrative(request, flowSteps, plannedRoles);
+  const hasPlanContent =
+    understandingItems.length > 0 ||
+    missingItems.length > 0 ||
+    plannedRoles.length > 0 ||
+    flowSteps.length > 0;
 
-  if (!hasStructuredPlan) {
+  if (!hasPlanContent) {
     return (
-      <section className="rounded-[24px] border border-border/60 bg-muted/[0.18] p-4 md:p-5">
+      <section className="rounded-[22px] border border-border/60 bg-muted/[0.18] p-3.5 md:p-4">
         <div className="space-y-2">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            Derived planning view
+            Boreal plan
           </div>
-          <div className="text-sm leading-7 text-muted-foreground">
+          <div className="text-[13px] leading-6 text-muted-foreground">
             {scope === "draft"
-              ? "Boreal has not derived planning hints from the editable brief yet."
-              : "Boreal does not have enough request structure yet to show a clear read-only planner projection."}
+              ? "Boreal is still waiting for enough request detail to turn this into a usable plan."
+              : "Boreal does not have enough request structure yet to show a clear plan."}
           </div>
         </div>
 
-        <div className="mt-4 rounded-[20px] border border-dashed border-border/60 bg-background/92 px-4 py-4">
-          <div className="text-[15px] leading-7 text-foreground">
+        <div className="mt-3 rounded-[18px] border border-dashed border-border/60 bg-background/92 px-3.5 py-3">
+          <div className="text-[14px] leading-6 text-foreground">
             Add the real ask first.
           </div>
-          <div className="mt-2 text-sm leading-6 text-muted-foreground">
-            {getEmptyPlanStateDetail(request)}
+          <div className="mt-1.5 text-[13px] leading-5.5 text-muted-foreground">
+            Once the brief contains the actual work, Boreal will outline the captured facts, missing details, and planned flow here.
           </div>
         </div>
       </section>
     );
   }
 
-  const planCards: PlanCardDescriptor[] = [
-    {
-      label: "Outcome",
-      value: getOutcomeValue(request),
-      detail: getOutcomeDetail(request),
-    },
-    {
-      label: "Route intent",
-      value: getRouteIntentValue(request, scope),
-      detail: getRouteIntentDetail(request),
-    },
-    {
-      label: "Lead lane",
-      value: getLeadLaneValue(request),
-      detail: getLeadLaneDetail(request),
-    },
-    {
-      label: "Team shape",
-      value: getTeamShapeValue(request),
-      detail: getTeamShapeDetail(request),
-    },
-    {
-      label: "Execution lane",
-      value: getExecutionLaneValue(request),
-      detail: getExecutionLaneDetail(request),
-    },
-    {
-      label: "Proof plan",
-      value: getProofPlanValue(request),
-      detail: getProofPlanDetail(request),
-    },
-    {
-      label: "Current gate",
-      value: getCurrentGateValue(request),
-      detail: getCurrentGateDetail(request),
-    },
-    {
-      label: "Next action",
-      value: getNextActionValue(request),
-      detail: getNextActionDetail(request),
-    },
-  ];
+  const canOpenRequest =
+    scope === "draft" && request.derived.readiness.readyForOpen;
 
   return (
-    <section className="rounded-[24px] border border-border/60 bg-muted/[0.18] p-4 md:p-5">
+    <section className="rounded-[22px] border border-border/60 bg-muted/[0.18] p-3.5 md:p-4">
       <div className="space-y-2">
         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-          Derived planning view
+          Boreal plan
         </div>
-        <div className="text-sm leading-7 text-muted-foreground">
-          {scope === "draft"
-            ? "This read-only projection is derived from the editable brief. Update the brief fields to change it."
-            : "This read-only projection reflects Boreal's current route, execution, and proof view for the live request."}
+        <div className="text-[13px] leading-6 text-muted-foreground">
+          {planNarrative}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {plannedRoles.length > 0 ? (
+            <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+              {plannedRoles.length} {plannedRoles.length === 1 ? "role" : "roles"}
+            </div>
+          ) : null}
+          {flowSteps.length > 0 ? (
+            <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+              {flowSteps.length} {flowSteps.length === 1 ? "phase" : "phases"}
+            </div>
+          ) : null}
+          {request.derived.clarificationNeeded.required ? (
+            <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+              clarification needed
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-2">
-        {planCards.map((card) => (
-          <PlanCard
-            detail={card.detail}
-            key={card.label}
-            label={card.label}
-            value={card.value}
-          />
-        ))}
-      </div>
-
-      {request.derived.roleSlots.length > 0 ? (
-        <section className="mt-4 space-y-3">
+      <div className="mt-3 grid gap-3 xl:grid-cols-2">
+        <section className="rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            Planned roles
+            What Boreal understood
           </div>
-          <div className="grid gap-3 xl:grid-cols-2">
-            {request.derived.roleSlots.map((slot) => (
-              <RoleSlotCard key={slot.roleKey} request={request} roleKey={slot.roleKey} />
+          <div className="mt-2.5 space-y-2.5">
+            {understandingItems.length > 0 ? (
+              understandingItems.map((item) => (
+                <FactRow key={`${item.label}:${item.value}`} item={item} />
+              ))
+            ) : (
+              <div className="text-[13px] leading-5.5 text-muted-foreground">
+                Boreal still needs a clearer work ask before it can summarize the request cleanly.
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+            {missingItems.length > 0 ? "Need from you" : "Open check"}
+          </div>
+          <div className="mt-2.5 space-y-2.5">
+            {missingItems.length > 0 ? (
+              missingItems.map((item) => (
+                <NeedRow key={item.label} item={item} />
+              ))
+            ) : (
+              <div className="space-y-1.5">
+                <div className="text-[14px] leading-6 text-foreground">
+                  This draft is ready to open.
+                </div>
+                <div className="text-[13px] leading-5.5 text-muted-foreground">
+                  Boreal has enough core brief structure to open the request and start routing or replies.
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {flowSteps.length > 0 ? (
+        <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+              Planned steps
+            </div>
+            {request.derived.noMicrotaskExplosion ? (
+              <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                bounded plan
+              </div>
+            ) : null}
+          </div>
+
+          <div className="mt-3 space-y-0">
+            {flowSteps.map((step, index) => (
+              <FlowStepRow
+                index={index}
+                key={`${index}:${step.title}`}
+                showConnector={index < flowSteps.length - 1}
+                step={step}
+              />
             ))}
           </div>
         </section>
       ) : null}
 
-      {request.derived.phases.length > 0 ? (
-        <section className="mt-4 space-y-3">
+      {plannedRoles.length > 0 ? (
+        <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            Planned steps
+            Roles needed
           </div>
-          <div className="space-y-3">
-            {request.derived.phases.map((phase, index) => (
-              <PhaseCard index={index} key={phase.phaseKey} phase={phase} request={request} />
+          <div className="mt-3 grid gap-2.5 md:grid-cols-2">
+            {plannedRoles.map((role) => (
+              <div
+                className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5"
+                key={`${role.title}:${role.actorKinds}`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-[14px] leading-6 text-foreground">{role.title}</div>
+                  <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                    {role.required ? "required" : "optional"}
+                  </div>
+                </div>
+                <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+                  {role.summary}
+                </div>
+                <div className="mt-2 text-[12px] leading-5 text-muted-foreground">
+                  Actor types: {role.actorKinds}
+                </div>
+              </div>
             ))}
           </div>
         </section>
+      ) : null}
+
+      {scope === "draft" ? (
+        <div className="mt-3 flex flex-col gap-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <div className="text-[12px] font-medium text-foreground">
+              {canOpenRequest
+                ? "Plan is ready to approve."
+                : "Plan still needs a few details."}
+            </div>
+            <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+              {canOpenRequest
+                ? "Approve this plan to open the request and start routing or replies."
+                : request.derived.readiness.summary}
+            </div>
+          </div>
+          <Button
+            className="md:shrink-0"
+            disabled={!canOpenRequest || isOpeningRequest || !onOpenRequest}
+            onClick={() => {
+              if (!onOpenRequest) {
+                return;
+              }
+
+              void onOpenRequest();
+            }}
+            type="button"
+          >
+            {isOpeningRequest ? (
+              <>
+                <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+                Approving...
+              </>
+            ) : (
+              "Approve plan and open request"
+            )}
+          </Button>
+        </div>
       ) : null}
     </section>
   );
 }
 
-function PlanCard({ label, value, detail }: PlanCardDescriptor) {
+function FactRow({ item }: { item: PlanFact }) {
   return (
-    <div className="rounded-[20px] border border-border/60 bg-background/92 px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
-      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-        {label}
+    <div className="space-y-0.5">
+      <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+        {item.label}
       </div>
-      <div className="mt-2 text-[15px] leading-7 text-foreground">{value}</div>
-      {detail ? (
-        <div className="mt-2 text-sm leading-6 text-muted-foreground">
-          {detail}
-        </div>
-      ) : null}
+      <div className="text-[14px] leading-6 text-foreground">{item.value}</div>
     </div>
   );
 }
 
-function RoleSlotCard({
-  request,
-  roleKey,
-}: {
-  request: BorealRequestDraft;
-  roleKey: string;
-}) {
-  const roleSlot = request.derived.roleSlots.find((slot) => slot.roleKey === roleKey);
-  if (!roleSlot) {
-    return null;
-  }
-
+function NeedRow({ item }: { item: PlanNeed }) {
   return (
-    <div className="rounded-[20px] border border-border/60 bg-background/92 px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="text-[14px] font-medium leading-6 text-foreground">
-          {roleSlot.title}
-        </div>
-        <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-          {roleSlot.required ? "Required" : "Optional"}
-        </div>
+    <div className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5">
+      <div className="text-[13px] font-medium leading-5.5 text-foreground">
+        {item.label}
       </div>
-      <div className="mt-2 text-sm leading-6 text-muted-foreground">
-        Actors: {roleSlot.requiredActorKinds.map((kind) => formatLabel(kind)).join(", ")}
+      <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+        {item.detail}
       </div>
-      {roleSlot.preferredSupplyKinds.length > 0 ? (
-        <div className="mt-1 text-sm leading-6 text-muted-foreground">
-          Supply fit: {roleSlot.preferredSupplyKinds.map((kind) => formatLabel(kind)).join(", ")}
-        </div>
-      ) : null}
-      {roleSlot.summary ? (
-        <div className="mt-2 text-sm leading-6 text-muted-foreground">
-          {roleSlot.summary}
-        </div>
-      ) : null}
     </div>
   );
 }
 
-function PhaseCard({
+function FlowStepRow({
   index,
-  phase,
-  request,
+  step,
+  showConnector,
 }: {
   index: number;
-  phase: BorealRequestDraft["derived"]["phases"][number];
-  request: BorealRequestDraft;
+  step: FlowStep;
+  showConnector: boolean;
 }) {
-  const roleTitles = phase.roleKeys
-    .map((roleKey) =>
-      request.derived.roleSlots.find((slot) => slot.roleKey === roleKey)?.title ??
-      formatLabel(roleKey)
-    )
-    .filter((title) => title.length > 0);
-
   return (
-    <div className="rounded-[20px] border border-border/60 bg-background/92 px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
-      <div className="flex items-start gap-3">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border/70 bg-muted/30 text-[12px] font-medium text-foreground">
+    <div className="relative flex gap-2.5 pb-3 last:pb-0">
+      <div className="relative flex w-7 shrink-0 justify-center">
+        <div className="relative z-10 flex size-7 items-center justify-center rounded-full border border-border/70 bg-background text-[11px] font-medium text-foreground">
           {index + 1}
         </div>
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="text-[14px] font-medium leading-6 text-foreground">
-            {phase.title}
+        {showConnector ? (
+          <div className="absolute top-7 bottom-0 w-px bg-border/60" />
+        ) : null}
+      </div>
+
+      <div className="min-w-0 flex-1 rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-[14px] leading-6 text-foreground">{step.title}</div>
+          <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+            {step.statusLabel}
           </div>
-          <div className="text-sm leading-6 text-muted-foreground">
-            {phase.summary}
-          </div>
-          {roleTitles.length > 0 ? (
-            <div className="text-sm leading-6 text-muted-foreground">
-              Roles: {roleTitles.join(", ")}
-            </div>
-          ) : null}
-          {phase.requiredEvidenceClaims.length > 0 ? (
-            <div className="text-sm leading-6 text-muted-foreground">
-              Proof: {phase.requiredEvidenceClaims.map((claim) => formatLabel(claim)).join(", ")}
-            </div>
-          ) : null}
         </div>
+        <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+          {step.summary}
+        </div>
+        {step.items.length > 0 ? (
+          <div className="mt-2.5 space-y-1.5">
+            {step.items.map((item) => (
+              <div
+                className="flex items-start gap-2 text-[13px] leading-5.5 text-muted-foreground"
+                key={item}
+              >
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-foreground/45" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {step.roleSummary ? (
+          <div className="mt-2 text-[13px] leading-5.5 text-muted-foreground">
+            Roles: {step.roleSummary}
+          </div>
+        ) : null}
+        {step.proof ? (
+          <div className="mt-2 text-[13px] leading-5.5 text-muted-foreground">
+            Proof: {step.proof}
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function getOutcomeValue(request: BorealRequestDraft) {
-  const summaryCandidate =
-    request.brief.summary?.trim() ||
-    request.brief.body?.trim() ||
-    request.brief.title?.trim() ||
-    "No outcome has been captured yet.";
+function getPlanNarrative(
+  request: BorealRequestDraft,
+  flowSteps: FlowStep[],
+  plannedRoles: PlannedRole[]
+) {
+  const location = request.derived.embodiedConstraintSet.serviceLocation?.trim();
 
-  return truncateText(summaryCandidate, 180);
+  if (request.derived.embodiedConstraintSet.requiresEmbodiedHandling) {
+    if (location) {
+      return `Boreal planned this as real-world work in ${location}. The request keeps the local execution, proof, and review inside one thread.`;
+    }
+
+    return "Boreal planned this as real-world work. The request keeps the execution, proof, and review inside one thread.";
+  }
+
+  if (flowSteps.length > 1) {
+    return `Boreal turned the ask into a bounded ${flowSteps.length}-phase request${plannedRoles.length > 0 ? ` with ${plannedRoles.length} planned role${plannedRoles.length === 1 ? "" : "s"}` : ""}.`;
+  }
+
+  return "Boreal turned the ask into a bounded request plan. Edit the brief to change the roles, phases, or missing details.";
 }
 
-function hasStructuredRequestPlan(request: BorealRequestDraft) {
-  return (
-    Boolean(request.derived.leadRole) ||
-    request.derived.roleSlots.length > 0 ||
-    request.derived.phases.length > 0
+function getUnderstandingItems(request: BorealRequestDraft): PlanFact[] {
+  const items: PlanFact[] = [];
+  const ask =
+    request.brief.body?.trim() ||
+    request.brief.summary?.trim() ||
+    request.brief.title?.trim();
+  const location = request.derived.embodiedConstraintSet.serviceLocation?.trim();
+  const schedule = request.derived.embodiedConstraintSet.timeWindows[0]?.trim();
+  const headcount = extractHeadcount(request);
+  const proof = getProofSummary(request);
+
+  if (ask) {
+    items.push({
+      label: "Ask",
+      value: truncateText(ask, 180),
+    });
+  }
+
+  if (location) {
+    items.push({
+      label: "Location",
+      value: location,
+    });
+  }
+
+  if (schedule) {
+    items.push({
+      label: "When",
+      value: schedule,
+    });
+  }
+
+  if (headcount) {
+    items.push({
+      label: "Size",
+      value: headcount,
+    });
+  }
+
+  if (proof) {
+    items.push({
+      label: "Proof",
+      value: proof,
+    });
+  }
+
+  return items;
+}
+
+function getMissingItems(request: BorealRequestDraft): PlanNeed[] {
+  if (!request.derived.clarificationNeeded.required) {
+    return [];
+  }
+
+  return request.derived.clarificationNeeded.missingDetails.map((detail) =>
+    describeMissingDetail(detail)
   );
 }
 
-function getEmptyPlanStateDetail(request: BorealRequestDraft) {
-  const hasBriefSeed =
-    request.brief.title?.trim() ||
-    request.brief.summary?.trim() ||
-    request.brief.body?.trim();
-  const hasRouteSeed =
-    request.brief.outputKinds?.length ||
-    request.seeking.supplyKinds?.length ||
-    request.seeking.actorKinds?.length;
+function getFlowSteps(request: BorealRequestDraft): FlowStep[] {
+  const phases =
+    request.derived.phases.length > 0
+      ? request.derived.phases
+      : buildFallbackFlowSteps(request);
 
-  if (hasBriefSeed || hasRouteSeed) {
-    return "The brief still needs clearer deliverables, route signals, or execution constraints before Boreal can turn it into read-only roles and planned steps.";
+  return phases.map((phase) => ({
+    title: getPhaseTitle(request, phase),
+    summary: getPhaseSummary(request, phase),
+    items: getPhaseItems(request, phase),
+    proof:
+      phase.requiredEvidenceClaims.length > 0
+        ? phase.requiredEvidenceClaims.map((claim) => formatLabel(claim)).join(", ")
+        : undefined,
+    statusLabel: getPhaseStatusLabel(phase.phaseKey),
+    roleSummary: getPhaseRoleSummary(request, phase),
+  }));
+}
+
+function getPlannedRoles(request: BorealRequestDraft): PlannedRole[] {
+  if (request.derived.roleSlots.length === 0) {
+    return [];
   }
 
-  return "Once the brief contains the actual work ask, Boreal will derive the lead lane, team shape, planned steps, and proof gates here as a read-only projection.";
+  return request.derived.roleSlots.map((roleSlot) => ({
+    title: roleSlot.title,
+    summary:
+      roleSlot.summary?.trim() ||
+      "Support this request inside the same durable request thread.",
+    required: roleSlot.required,
+    actorKinds:
+      roleSlot.requiredActorKinds.length > 0
+        ? roleSlot.requiredActorKinds.map((kind) => formatLabel(kind)).join(", ")
+        : "not specified",
+  }));
 }
 
-function getOutcomeDetail(request: BorealRequestDraft) {
-  const parts = [
-    request.brief.outputKinds?.length
-      ? `Deliverables: ${formatTokenList(request.brief.outputKinds)}`
-      : null,
-    request.seeking.supplyKinds?.length
-      ? `Supply: ${formatTokenList(request.seeking.supplyKinds)}`
-      : null,
-    request.seeking.actorKinds?.length
-      ? `Actors: ${formatTokenList(request.seeking.actorKinds)}`
-      : null,
-  ].filter((part): part is string => Boolean(part));
-
-  return parts.length > 0
-    ? parts.join(" | ")
-    : "The request still needs clearer deliverables or target supply signals.";
-}
-
-function getRouteIntentValue(
+function getPhaseTitle(
   request: BorealRequestDraft,
-  scope: "draft" | "open"
+  phase: BorealRequestDraft["derived"]["phases"][number]
 ) {
-  if (request.derived.routeSummary?.trim()) {
-    return request.derived.routeSummary.trim();
-  }
-
-  if (scope === "draft") {
-    return "Route summary will firm up after the request opens or once route facts are clearer.";
-  }
-
-  return "Route summary is still thin. Boreal needs a stronger lead and route definition.";
-}
-
-function getRouteIntentDetail(request: BorealRequestDraft) {
-  const parts = [
-    request.derived.routeFamily
-      ? `Route family: ${formatLabel(request.derived.routeFamily)}`
-      : null,
-    request.derived.executionKind
-      ? `Execution: ${formatLabel(request.derived.executionKind)}`
-      : null,
-    request.derived.matchingMode
-      ? `Matching: ${formatLabel(request.derived.matchingMode)}`
-      : null,
-    request.seeking.teamMode
-      ? `Team mode: ${formatLabel(request.seeking.teamMode)}`
-      : null,
-  ].filter((part): part is string => Boolean(part));
-
-  return parts.length > 0
-    ? parts.join(" | ")
-    : "No explicit route family or matching mode has been attached yet.";
-}
-
-function getLeadLaneValue(request: BorealRequestDraft) {
-  if (!request.derived.leadRole) {
-    return "Lead lane unresolved.";
-  }
-
-  const leadSlot =
-    request.derived.roleSlots.find((slot) => slot.roleKey === request.derived.leadRole) ??
-    null;
-
-  return leadSlot?.title ?? formatLabel(request.derived.leadRole);
-}
-
-function getLeadLaneDetail(request: BorealRequestDraft) {
-  if (!request.derived.leadRole) {
-    return "Boreal still needs stronger route signals before a lead lane is obvious.";
-  }
-
-  const leadSlot =
-    request.derived.roleSlots.find((slot) => slot.roleKey === request.derived.leadRole) ??
-    null;
-  const parts = [
-    leadSlot?.requiredActorKinds.length
-      ? `Actors: ${leadSlot.requiredActorKinds.map((kind) => formatLabel(kind)).join(", ")}`
-      : null,
-    leadSlot?.preferredSupplyKinds.length
-      ? `Supply fit: ${leadSlot.preferredSupplyKinds.map((kind) => formatLabel(kind)).join(", ")}`
-      : null,
-    leadSlot?.summary ?? null,
-  ].filter((part): part is string => Boolean(part));
-
-  return parts.length > 0
-    ? parts.join(" | ")
-    : "This request still needs a clearer lead owner for the route.";
-}
-
-function getTeamShapeValue(request: BorealRequestDraft) {
-  const requiredCount = request.derived.roleSlots.filter((slot) => slot.required).length;
-  const optionalCount = request.derived.roleSlots.filter((slot) => !slot.required).length;
-
-  if (request.derived.roleSlots.length <= 1) {
-    return "Single lead lane.";
-  }
-
-  return `${requiredCount} required role${requiredCount === 1 ? "" : "s"} | ${optionalCount} optional role${optionalCount === 1 ? "" : "s"}`;
-}
-
-function getTeamShapeDetail(request: BorealRequestDraft) {
-  const parts = [
-    request.seeking.teamMode ? `Team mode: ${formatLabel(request.seeking.teamMode)}` : null,
-    request.derived.noMicrotaskExplosion
-      ? "Boreal keeps this as a bounded phase plan, not a microtask tree."
-      : null,
-  ].filter((part): part is string => Boolean(part));
-
-  return parts.length > 0
-    ? parts.join(" | ")
-    : "No extra collaborator slots are needed yet.";
-}
-
-function getExecutionLaneValue(request: BorealRequestDraft) {
-  const executionModes = request.derived.executionProfile.executionModes;
-
-  if (executionModes.length === 0) {
-    return "Execution mode unresolved.";
-  }
-
-  return executionModes.map((mode) => formatLabel(mode)).join(", ");
-}
-
-function getExecutionLaneDetail(request: BorealRequestDraft) {
-  const details = [
-    request.derived.embodiedConstraintSet.serviceLocation?.trim()
-      ? `Location: ${request.derived.embodiedConstraintSet.serviceLocation.trim()}`
-      : null,
-    request.derived.embodiedConstraintSet.timeWindows.length > 0
-      ? `Time: ${request.derived.embodiedConstraintSet.timeWindows.join(", ")}`
-      : null,
-    request.derived.embodiedConstraintSet.accessRequirements.length > 0
-      ? `Access: ${request.derived.embodiedConstraintSet.accessRequirements.join(", ")}`
-      : null,
-    `Risk tier: ${formatLabel(request.derived.executionProfile.riskTier)}`,
-  ].filter((detail): detail is string => Boolean(detail));
-
-  return details.join(" | ");
-}
-
-function getProofPlanValue(request: BorealRequestDraft) {
-  const artifactKinds = request.derived.verificationPlan.requiredArtifactKinds;
-  const claims = request.derived.verificationPlan.requiredEvidenceClaims;
-
-  if (artifactKinds.length === 0 && claims.length === 0) {
-    return "No extra proof gate is attached yet.";
-  }
-
-  const artifactLabel =
-    artifactKinds.length > 0
-      ? `Artifacts: ${artifactKinds.map((kind) => formatLabel(kind)).join(", ")}`
-      : null;
-  const claimLabel =
-    claims.length > 0
-      ? `Claims: ${claims.map((claim) => formatLabel(claim)).join(", ")}`
-      : null;
-
-  return [artifactLabel, claimLabel]
-    .filter((part): part is string => Boolean(part))
-    .join(" | ");
-}
-
-function getProofPlanDetail(request: BorealRequestDraft) {
-  const controls = [
-    request.derived.verificationPlan.mustHaveOwnerAcceptance
-      ? "Owner acceptance"
-      : null,
-    request.derived.verificationPlan.mustHaveLocationSignal
-      ? "Location signal"
-      : null,
-    request.derived.verificationPlan.mustHaveSignature ? "Signature" : null,
-  ].filter((part): part is string => Boolean(part));
-
-  return controls.length > 0
-    ? `Controls: ${controls.join(", ")}`
-    : "The current lane does not require extra proof controls yet.";
-}
-
-function getCurrentGateValue(request: BorealRequestDraft) {
-  if (!request.derived.clarificationNeeded.required) {
-    return "No clarification gate is currently blocking progress.";
-  }
-
-  return `Still needed: ${request.derived.clarificationNeeded.missingDetails
-    .map((detail) => detail.replace(/_/g, " "))
-    .join(", ")}.`;
-}
-
-function getCurrentGateDetail(request: BorealRequestDraft) {
-  const clarificationReasons =
-    request.derived.clarificationNeeded.reasons.length > 0
-      ? request.derived.clarificationNeeded.reasons.join(" | ")
-      : null;
-  const collapseRisk =
-    request.derived.planCollapseRisk.reasons.length > 0
-      ? `Collapse risk: ${request.derived.planCollapseRisk.reasons.join(" | ")}`
-      : null;
-
-  return [clarificationReasons, collapseRisk]
-    .filter((part): part is string => Boolean(part))
-    .join(" | ");
-}
-
-function getNextActionValue(request: BorealRequestDraft) {
-  switch (request.status) {
-    case "draft":
-      if (request.derived.clarificationNeeded.required) {
-        return "Clarify the missing execution or proof facts before opening.";
-      }
-
-      if (request.derived.readiness.readyForOpen) {
-        return "Open the request so routing, replies, and durable activity can start.";
-      }
-
-      return "Keep briefing the request until the core ask is stable.";
-    case "open":
-    case "funded":
-      if (request.derived.clarificationNeeded.required) {
-        return "Clarify missing route or proof facts before matching the lead lane.";
-      }
-
-      if (!request.activeRefs.activeFulfillmentId) {
-        return request.visibility === "private"
-          ? "Attach the lead private lane or preferred supply."
-          : "Match the lead and move toward commitment or fulfillment.";
-      }
-
-      return "Keep the active lane attached and move execution forward.";
-    case "in_progress":
-      return "Keep fulfillment active and publish proof-bearing artifacts as work lands.";
-    case "waiting_for_owner":
-      return "Owner clarification or approval is blocking the next step.";
-    case "delivered":
-      return "Review delivery against the proof plan and resolve the request.";
-    case "completed":
-      return "The accepted result is locked. Capture follow-on work as a new request if needed.";
-    case "cancelled":
-      return "This request is closed. Restart as a new request only if the work boundary changed.";
-    case "failed":
-      return "This request failed in-place. Fix the blocking condition or reopen as a new request.";
-    case "funding_required":
-      return "Satisfy the funding boundary before execution can start.";
+  switch (phase.phaseKey) {
+    case "clarify_constraints":
+      return "Lock the missing event details";
+    case "onsite_execution":
+      return request.derived.embodiedConstraintSet.serviceLocation
+        ? "Coordinate the local event work"
+        : "Complete the main work";
+    case "proof_delivery":
+      return "Package the delivery and proof";
+    case "execute_delivery":
+      return "Complete the deliverable";
     default:
-      return "Keep the request moving from demand to a safe next action.";
+      return phase.title;
   }
 }
 
-function getNextActionDetail(request: BorealRequestDraft) {
-  if (request.status === "draft") {
-    return request.derived.readiness.summary;
+function getPhaseSummary(
+  request: BorealRequestDraft,
+  phase: BorealRequestDraft["derived"]["phases"][number]
+) {
+  if (phase.phaseKey === "clarify_constraints") {
+    return request.derived.clarificationNeeded.reasons.length > 0
+      ? request.derived.clarificationNeeded.reasons.join(" ")
+      : phase.summary;
   }
 
-  if (request.latest.summary?.trim()) {
-    return request.latest.summary.trim();
+  if (
+    phase.phaseKey === "onsite_execution" &&
+    request.derived.embodiedConstraintSet.serviceLocation
+  ) {
+    return `Handle the local execution work in ${request.derived.embodiedConstraintSet.serviceLocation} without treating the request as complete too early.`;
   }
 
-  return request.derived.readiness.summary;
+  return phase.summary;
+}
+
+function getPhaseRoleSummary(
+  request: BorealRequestDraft,
+  phase: BorealRequestDraft["derived"]["phases"][number]
+) {
+  if (phase.roleKeys.length === 0) {
+    return "";
+  }
+
+  const roleTitles = phase.roleKeys.map((roleKey) => {
+    const matchingRole = request.derived.roleSlots.find(
+      (roleSlot) => roleSlot.roleKey === roleKey
+    );
+
+    return matchingRole?.title ?? formatLabel(roleKey);
+  });
+
+  return roleTitles.join(", ");
+}
+
+function getPhaseItems(
+  request: BorealRequestDraft,
+  phase: BorealRequestDraft["derived"]["phases"][number]
+) {
+  if (phase.phaseKey === "clarify_constraints") {
+    return request.derived.clarificationNeeded.missingDetails.map(
+      (detail) => describeMissingDetail(detail).label
+    );
+  }
+
+  if (phase.phaseKey === "onsite_execution") {
+    return [
+      request.derived.embodiedConstraintSet.serviceLocation
+        ? `Run in ${request.derived.embodiedConstraintSet.serviceLocation}`
+        : null,
+      request.derived.embodiedConstraintSet.timeWindows[0]
+        ? `Target timing: ${request.derived.embodiedConstraintSet.timeWindows[0]}`
+        : null,
+      extractHeadcount(request) ? `Target size: ${extractHeadcount(request)}` : null,
+    ].filter((item): item is string => Boolean(item));
+  }
+
+  if (phase.phaseKey === "proof_delivery") {
+    const proofItems = [
+      request.derived.verificationPlan.mustHaveLocationSignal
+        ? "Include location-backed proof"
+        : null,
+      request.derived.verificationPlan.mustHaveOwnerAcceptance
+        ? "Collect owner acceptance"
+        : null,
+      request.derived.verificationPlan.mustHaveSignature
+        ? "Collect signature proof"
+        : null,
+    ].filter((item): item is string => Boolean(item));
+
+    if (proofItems.length > 0) {
+      return proofItems;
+    }
+  }
+
+  return [];
+}
+
+function getPhaseStatusLabel(phaseKey: string) {
+  switch (phaseKey) {
+    case "clarify_constraints":
+      return "needed now";
+    case "proof_delivery":
+    case "handoff_review":
+      return "final";
+    default:
+      return "next";
+  }
+}
+
+function buildFallbackFlowSteps(
+  request: BorealRequestDraft
+): BorealRequestDraft["derived"]["phases"] {
+  const fallbackPhases: BorealRequestDraft["derived"]["phases"] = [];
+
+  if (request.derived.clarificationNeeded.required) {
+    fallbackPhases.push({
+      phaseKey: "clarify_constraints",
+      title: "Lock the missing work details",
+      summary:
+        "Boreal still needs a few execution-critical details before the request is ready to route cleanly.",
+      roleKeys:
+        request.derived.leadRole ? [request.derived.leadRole] : [],
+      requiredEvidenceClaims: [],
+    });
+  }
+
+  if (request.derived.embodiedConstraintSet.requiresEmbodiedHandling) {
+    fallbackPhases.push({
+      phaseKey: "onsite_execution",
+      title: "Complete the local verification work",
+      summary:
+        "Handle the real-world visit, verification, and evidence capture inside the same request thread.",
+      roleKeys:
+        request.derived.roleSlots.length > 0
+          ? request.derived.roleSlots
+              .filter((roleSlot) => roleSlot.required)
+              .map((roleSlot) => roleSlot.roleKey)
+          : request.derived.leadRole
+            ? [request.derived.leadRole]
+            : [],
+      requiredEvidenceClaims: [],
+    });
+  }
+
+  if (request.derived.verificationPlan.requiredEvidenceClaims.length > 0) {
+    fallbackPhases.push({
+      phaseKey: "proof_delivery",
+      title: "Publish proof and final delivery",
+      summary:
+        "Attach the proof-bearing delivery package so review and closure stay truthful.",
+      roleKeys:
+        request.derived.roleSlots.length > 0
+          ? request.derived.roleSlots.map((roleSlot) => roleSlot.roleKey)
+          : request.derived.leadRole
+            ? [request.derived.leadRole]
+            : [],
+      requiredEvidenceClaims:
+        request.derived.verificationPlan.requiredEvidenceClaims,
+    });
+  }
+
+  if (fallbackPhases.length === 0 && request.brief.body?.trim()) {
+    fallbackPhases.push({
+      phaseKey: "execute_delivery",
+      title: "Complete the requested work",
+      summary:
+        "Boreal has the ask, but the planner has not yet expanded it into a richer phase plan.",
+      roleKeys:
+        request.derived.leadRole ? [request.derived.leadRole] : [],
+      requiredEvidenceClaims: [],
+    });
+  }
+
+  return fallbackPhases;
+}
+
+function describeMissingDetail(detail: string): PlanNeed {
+  switch (detail) {
+    case "execution_modes":
+      return {
+        label: "Execution mode",
+        detail: "Say if this should run onsite, remote, or hybrid so Boreal can route it correctly.",
+      };
+    case "access_requirements":
+      return {
+        label: "Access details",
+        detail: "Add venue, organizer access, booking context, or other local access details needed to do the work.",
+      };
+    case "service_location":
+      return {
+        label: "Exact location",
+        detail: "Add the city, venue, or service area where the work needs to happen.",
+      };
+    case "time_windows":
+      return {
+        label: "Time window",
+        detail: "Add the actual schedule window or target timing for the work.",
+      };
+    case "verification_requirements":
+      return {
+        label: "Success proof",
+        detail: "Say what evidence or completion proof should be delivered back to the request.",
+      };
+    default:
+      return {
+        label: formatLabel(detail),
+        detail: "Add this missing request detail before opening the request.",
+      };
+  }
+}
+
+function getProofSummary(request: BorealRequestDraft) {
+  const parts: string[] = [];
+
+  if (request.derived.verificationPlan.mustHaveLocationSignal) {
+    parts.push("location signal");
+  }
+
+  if (request.derived.verificationPlan.mustHaveOwnerAcceptance) {
+    parts.push("owner acceptance");
+  }
+
+  if (request.derived.verificationPlan.mustHaveSignature) {
+    parts.push("signature");
+  }
+
+  if (request.derived.verificationPlan.requiredArtifactKinds.length > 0) {
+    parts.push(
+      request.derived.verificationPlan.requiredArtifactKinds
+        .map((kind) => formatLabel(kind))
+        .join(", ")
+    );
+  }
+
+  return parts.length > 0 ? parts.join(" | ") : "";
+}
+
+function extractHeadcount(request: BorealRequestDraft) {
+  const source = [
+    request.brief.title ?? "",
+    request.brief.summary ?? "",
+    request.brief.body ?? "",
+  ].join(" ");
+  const match = source.match(/\b(\d{1,4})\s*(pax|people|attendees|guests)\b/i);
+
+  if (!match) {
+    return "";
+  }
+
+  return `${match[1]} ${match[2].toLowerCase()}`;
 }
 
 function formatLabel(value: string) {
   return value.replace(/_/g, " ");
-}
-
-function formatTokenList(values: string[]) {
-  return values.map((value) => formatLabel(value)).join(", ");
 }
 
 function truncateText(value: string, maxLength: number) {

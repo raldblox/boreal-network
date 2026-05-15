@@ -1,6 +1,8 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
+import { SparklesIcon as SparklesIconLucide } from "lucide-react";
 import type { Vote } from "@/lib/db/schema";
+import type { RequestStatus } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import { cn, sanitizeText } from "@/lib/utils";
 import { MessageContent, MessageResponse } from "../ai-elements/message";
@@ -31,6 +33,7 @@ const PurePreviewMessage = ({
   isReadonly,
   requiresScrollPadding: _requiresScrollPadding,
   onEdit,
+  requestStatus,
 }: {
   addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
   chatId: string;
@@ -42,6 +45,7 @@ const PurePreviewMessage = ({
   isReadonly: boolean;
   requiresScrollPadding: boolean;
   onEdit?: (message: ChatMessage) => void;
+  requestStatus?: RequestStatus | null;
 }) => {
   const attachmentsFromMessage = message.parts.filter(
     (part) => part.type === "file"
@@ -51,6 +55,7 @@ const PurePreviewMessage = ({
 
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
+  const isDraftRequest = requestStatus === "draft";
 
   const hasAnyContent = message.parts?.some(
     (part) =>
@@ -137,6 +142,22 @@ const PurePreviewMessage = ({
       type === "tool-publishArtifact"
     ) {
       const { toolCallId, state } = part;
+      const isDraftRequestTool =
+        isDraftRequest &&
+        (type === "tool-createRequestBrief" ||
+          type === "tool-updateRequestBrief" ||
+          type === "tool-updateRequestConstraints" ||
+          type === "tool-updateRequestBudgetTiming" ||
+          type === "tool-updateRequestRouteSummary");
+
+      if (isDraftRequestTool && state === "output-available" && part.output) {
+        return null;
+      }
+
+      if (isDraftRequestTool) {
+        return <DraftRequestPendingNote key={toolCallId} />;
+      }
+
       const titleByType: Record<string, string> = {
         "tool-createRequestBrief": "New request brief",
         "tool-updateRequestBrief": "Update request brief",
@@ -314,7 +335,7 @@ const PurePreviewMessage = ({
     return null;
   });
 
-  const actions = !isReadonly && (
+const actions = !isReadonly && (
     <MessageActions
       chatId={chatId}
       isLoading={isLoading}
@@ -325,6 +346,16 @@ const PurePreviewMessage = ({
     />
   );
 
+  const renderableParts = (parts ?? []).filter(
+    (part): part is NonNullable<typeof part> => part !== null
+  );
+  const hasVisibleContent =
+    Boolean(attachments) || renderableParts.length > 0;
+
+  if (isAssistant && !isThinking && !hasVisibleContent) {
+    return null;
+  }
+
   const content = isThinking ? (
     <div className="flex h-[calc(13px*1.65)] items-center text-[13px] leading-[1.65]">
       <Shimmer className="font-medium" duration={1}>
@@ -334,7 +365,7 @@ const PurePreviewMessage = ({
   ) : (
     <>
       {attachments}
-      {parts}
+      {renderableParts}
       {actions}
     </>
   );
@@ -369,6 +400,25 @@ const PurePreviewMessage = ({
     </div>
   );
 };
+
+function DraftRequestPendingNote() {
+  return (
+    <div className="w-full max-w-[42rem] rounded-[20px] border border-border/60 bg-background/92 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground">
+          <SparklesIconLucide size={14} />
+        </div>
+        <div className="text-sm font-medium text-foreground">
+          Boreal is structuring the request
+        </div>
+      </div>
+      <div className="mt-2 text-sm leading-6 text-muted-foreground">
+        Capturing the ask, the required roles, and the execution flow inside the
+        request.
+      </div>
+    </div>
+  );
+}
 
 export const PreviewMessage = PurePreviewMessage;
 

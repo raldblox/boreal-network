@@ -3,7 +3,11 @@ import type { Session } from "next-auth";
 import { z } from "zod";
 import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
-import { applyRequestBriefPatch } from "./request-briefing-shared";
+import {
+  applyRequestBriefPatch,
+  requestBudgetInputSchema,
+  requestDeadlineInputSchema,
+} from "./request-briefing-shared";
 
 type UpdateRequestBudgetTimingProps = {
   session: Session;
@@ -11,20 +15,6 @@ type UpdateRequestBudgetTimingProps = {
   chatId: string;
   visibility: RequestVisibility;
 };
-
-const budgetSchema = z.object({
-  mode: z.enum(["none", "fixed", "range", "open"]),
-  currency: z.string().regex(/^[A-Z]{3}$/).optional(),
-  fixedAmount: z.number().nonnegative().optional(),
-  minAmount: z.number().nonnegative().optional(),
-  maxAmount: z.number().nonnegative().optional(),
-  notes: z.string().min(1).optional(),
-});
-
-const deadlineSchema = z.object({
-  targetAt: z.string().datetime().optional(),
-  notes: z.string().min(1).optional(),
-});
 
 export const updateRequestBudgetTiming = ({
   session,
@@ -35,10 +25,7 @@ export const updateRequestBudgetTiming = ({
   tool({
     description:
       "Update request budget and timing details for the active Request draft.",
-    inputSchema: z.object({
-      budget: budgetSchema.optional(),
-      deadline: deadlineSchema.optional(),
-    }),
+    inputSchema: requestBudgetTimingSchema,
     execute: async ({ budget, deadline }) =>
       applyRequestBriefPatch({
         session,
@@ -46,8 +33,15 @@ export const updateRequestBudgetTiming = ({
         chatId,
         visibility,
         patch: {
-          ...(budget !== undefined ? { budget } : {}),
-          ...(deadline !== undefined ? { deadline } : {}),
+          ...(budget !== undefined ? { budget: budget as any } : {}),
+          ...(deadline !== undefined
+            ? { deadline: deadline as any }
+            : {}),
         },
       }),
   });
+
+const requestBudgetTimingSchema = z.object({
+  budget: requestBudgetInputSchema.optional(),
+  deadline: requestDeadlineInputSchema.optional(),
+});

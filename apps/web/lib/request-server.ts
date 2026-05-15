@@ -1127,6 +1127,7 @@ export async function createFulfillmentForRequestById({
   const isOwner = requestDraft.ownerId === actorUserId;
   const useDirectOwnerPrivateLane =
     !commitmentId && isOwner && requestDraft.visibility === "private";
+  let matchedSupplyRecord: Awaited<ReturnType<typeof getSupplyById>> = null;
   const existingCommitment = commitmentId
     ? await getCommitmentById({ id: commitmentId })
     : null;
@@ -1178,23 +1179,23 @@ export async function createFulfillmentForRequestById({
   }
 
   if (supplyId) {
-    const selectedSupply = await getSupplyById({ id: supplyId });
-    if (!selectedSupply) {
+    matchedSupplyRecord = await getSupplyById({ id: supplyId });
+    if (!matchedSupplyRecord) {
       throw new Error("Supply not found");
     }
 
-    if (selectedSupply.ownerId !== actorUserId) {
+    if (matchedSupplyRecord.ownerId !== actorUserId) {
       throw new Error("Supply does not belong to fulfillment actor");
     }
 
-    if (selectedSupply.status !== "published") {
+    if (matchedSupplyRecord.status !== "published") {
       throw new Error("Published supply required");
     }
 
     if (
       actorResolverClientId &&
-      selectedSupply.bindings?.resolverClientId &&
-      selectedSupply.bindings.resolverClientId !== actorResolverClientId
+      matchedSupplyRecord.bindings?.resolverClientId &&
+      matchedSupplyRecord.bindings.resolverClientId !== actorResolverClientId
     ) {
       throw new Error("Supply is not bound to this resolver client");
     }
@@ -1233,6 +1234,12 @@ export async function createFulfillmentForRequestById({
   const now = new Date();
   const fulfillmentId = generateUUID();
   const nextLead = lead ?? actor;
+  const seededSteps = buildSeedFulfillmentSteps({
+    initialStatus,
+    lead: nextLead,
+    matchedSupplyRecord,
+    request: requestDraft,
+  });
   const createdFulfillment = await saveFulfillment({
     id: fulfillmentId,
     key: buildObjectKey("fulfillment", summary, fulfillmentId),
@@ -1244,7 +1251,7 @@ export async function createFulfillmentForRequestById({
     contributors,
     summary,
     artifactIds: [],
-    steps: [],
+    steps: seededSteps,
     ...(metadata ? { metadata } : {}),
     plannedAt: now,
     ...(initialStatus === "ready" ? { readyAt: now } : {}),
@@ -1621,6 +1628,183 @@ function buildObjectKey(prefix: string, label: string, id: string) {
     .replace(/^-+|-+$/g, "");
 
   return slug ? `${prefix}-${slug}` : `${prefix}-${id.slice(0, 8)}`;
+}
+
+function buildSeedFulfillmentSteps({
+  initialStatus,
+  lead,
+  matchedSupplyRecord,
+  request,
+}: {
+  initialStatus: "planned" | "ready" | "active";
+  lead: RequestActorRef;
+  matchedSupplyRecord: Awaited<ReturnType<typeof getSupplyById>>;
+  request: BorealRequestDraft;
+}): RequestFulfillmentStep[] {
+  const phases =
+    request.derived.phases.length > 0
+      ? request.derived.phases
+      : [
+          {
+            phaseKey: "execute_delivery",
+            title: "Complete the requested deliverable",
+            summary:
+              request.brief.summary?.trim() ||
+              request.brief.body?.trim() ||
+              "Carry the request from execution through delivery inside one fulfillment lane.",
+            roleKeys: request.derived.leadRole
+              ? [request.derived.leadRole]
+              : [],
+            requiredEvidenceClaims:
+              request.derived.verificationPlan.requiredEvidenceClaims,
+          },
+        ];
+  const supplyAssignee = toSupplyActorRef(matchedSupplyRecord);
+
+  return phases.map((phase, index) => {
+    const stepId = generateUUID();
+    const isFirstStep = index === 0;
+    const resolvedAssignee = resolveSeedStepAssignee({
+      index,
+      initialStatus,
+      lead,
+      phase,
+      supplyAssignee,
+    });
+    const stepStatus =
+      initialStatus === "active"
+        ? isFirstStep
+          ? "active"
+          : "todo"
+        : initialStatus === "ready"
+          ? isFirstStep
+            ? "ready"
+            : "todo"
+          : "todo";
+
+    return {
+      id: stepId,
+      kind: phase.phaseKey,
+      title: phase.title,
+      status: stepStatus,
+      ...(resolvedAssignee
+        ? {
+            assignee: resolvedAssignee,
+          }
+        : {}),
+      metadata: {
+        plannerGenerated: true,
+        phaseKey: phase.phaseKey,
+        phaseSummary: phase.summary,
+        roleKeys: phase.roleKeys,
+        requiredEvidenceClaims: phase.requiredEvidenceClaims,
+        ...(matchedSupplyRecord
+          ? {
+              assignedSupplyId: matchedSupplyRecord.id,
+              assignedSupplyLabel:
+                matchedSupplyRecord.profile.displayName.trim() ||
+                matchedSupplyRecord.key,
+            }
+          : {}),
+        source: "request_phase_plan",
+      },
+    } satisfies RequestFulfillmentStep;
+  }).map((step, index, steps) => ({
+    ...step,
+    ...(index > 0 ? { dependsOnStepIds: [steps[index - 1]!.id] } : {}),
+  }));
+}
+
+function shouldSeedLeadAssignee({
+  initialStatus,
+  index,
+  phase,
+}: {
+  initialStatus: "planned" | "ready" | "active";
+  index: number;
+  phase: BorealRequestDraft["derived"]["phases"][number];
+}) {
+  if (initialStatus === "active" && index === 0) {
+    return true;
+  }
+
+  if (index === 0 && phase.roleKeys.length <= 1) {
+    return true;
+  }
+
+  return false;
+}
+
+function resolveSeedStepAssignee({
+  index,
+  initialStatus,
+  lead,
+  phase,
+  supplyAssignee,
+}: {
+  index: number;
+  initialStatus: "planned" | "ready" | "active";
+  lead: RequestActorRef;
+  phase: BorealRequestDraft["derived"]["phases"][number];
+  supplyAssignee: RequestActorRef | null;
+}) {
+  if (lead.kind === "runtime" || lead.kind === "tool") {
+    return shouldSeedLeadAssignee({ initialStatus, index, phase }) ? lead : null;
+  }
+
+  if (supplyAssignee) {
+    return supplyAssignee;
+  }
+
+  return shouldSeedLeadAssignee({ initialStatus, index, phase }) ? lead : null;
+}
+
+function toSupplyActorRef(
+  supply: Awaited<ReturnType<typeof getSupplyById>>
+): RequestActorRef | null {
+  if (!supply) {
+    return null;
+  }
+
+  const preferredKind = supply.capability.fulfillmentActorKinds[0] ?? "human";
+  const displayName =
+    supply.profile.displayName.trim() ||
+    supply.profile.headline?.trim() ||
+    supply.key;
+
+  switch (preferredKind) {
+    case "runtime":
+      return {
+        kind: "runtime",
+        id: supply.bindings.runtimeActorId?.trim() || supply.id,
+        ...(displayName ? { displayName } : {}),
+      };
+    case "tool":
+      return {
+        kind: "tool",
+        id: supply.bindings.providerRef?.trim() || supply.id,
+        ...(displayName ? { displayName } : {}),
+      };
+    case "agent":
+      return {
+        kind: "agent",
+        id: supply.ownerId,
+        ...(displayName ? { displayName } : {}),
+      };
+    case "organization":
+      return {
+        kind: "organization",
+        id: supply.ownerId,
+        ...(displayName ? { displayName } : {}),
+      };
+    case "human":
+    default:
+      return {
+        kind: "human",
+        id: supply.ownerId,
+        ...(displayName ? { displayName } : {}),
+      };
+  }
 }
 
 async function loadFulfillmentProofArtifacts({

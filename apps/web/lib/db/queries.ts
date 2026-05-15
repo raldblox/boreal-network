@@ -43,6 +43,7 @@ import {
   type RequestSeeking,
   type RequestStatus,
   type RequestVisibility,
+  normalizeRequestBrief,
   toPublicRequestPoolEntry,
 } from "@/lib/request";
 import type {
@@ -1392,7 +1393,7 @@ export function toRequestDraft(record: RequestRecord): BorealRequestDraft {
     visibility: record.visibility,
     createdById: record.createdById,
     ownerId: record.ownerId,
-    brief: record.brief,
+    brief: normalizeRequestBrief(record.brief),
     seeking: record.seeking ?? {},
     routing: record.routing ?? {},
     budget: record.budget,

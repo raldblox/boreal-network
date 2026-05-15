@@ -3,13 +3,19 @@ import { ArrowDownIcon } from "lucide-react";
 import { useEffect, useMemo, useRef } from "react";
 import { useMessages } from "@/hooks/use-messages";
 import type { Vote } from "@/lib/db/schema";
-import type { RequestActivityEntry, RequestStatus } from "@/lib/request";
+import type {
+  BorealRequestDraft,
+  RequestActivityEntry,
+  RequestStatus,
+} from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
+import { SparklesIcon } from "./icons";
 import { PreviewMessage, ThinkingMessage } from "./message";
 import { RequestActivityMessage } from "./request-activity-timeline";
+import { RequestPlanPanel } from "./request-plan-panel";
 
 type MessagesProps = {
   addToolApprovalResponse: UseChatHelpers<ChatMessage>["addToolApprovalResponse"];
@@ -26,10 +32,13 @@ type MessagesProps = {
   isLoading?: boolean;
   selectedModelId: string;
   isRequestMode: boolean;
+  request?: BorealRequestDraft | null;
   requestStatus?: RequestStatus | null;
   onEditMessage?: (message: ChatMessage) => void;
   displayMode?: "timeline" | "activity" | "chat";
   contentClassName?: string;
+  onApproveDraftPlan?: () => Promise<void>;
+  isOpeningDraftPlan?: boolean;
 };
 
 function PureMessages({
@@ -46,11 +55,14 @@ function PureMessages({
   isArtifactVisible,
   isLoading,
   isRequestMode,
+  request,
   requestStatus,
   selectedModelId: _selectedModelId,
   onEditMessage,
   displayMode = "timeline",
   contentClassName,
+  onApproveDraftPlan,
+  isOpeningDraftPlan = false,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -107,6 +119,21 @@ function PureMessages({
             activity,
           }))
         : [];
+    const derivedDraftItems =
+      displayMode === "timeline" &&
+      request?.status === "draft" &&
+      shouldRenderDraftPlanMessage(request, status)
+        ? [
+            {
+              type: "draft-plan" as const,
+              id: `draft-plan:${request.id}:${request.updatedAt}`,
+              timestamp:
+                Date.parse(request.updatedAt || request.createdAt || "") || 0,
+              index: Number.MAX_SAFE_INTEGER,
+              request,
+            },
+          ]
+        : [];
 
     if (displayMode === "chat") {
       return messageItems;
@@ -116,7 +143,7 @@ function PureMessages({
       return activityItems;
     }
 
-    return [...messageItems, ...activityItems].sort((left, right) => {
+    return [...messageItems, ...activityItems, ...derivedDraftItems].sort((left, right) => {
       if (left.timestamp !== right.timestamp) {
         return left.timestamp - right.timestamp;
       }
@@ -130,17 +157,26 @@ function PureMessages({
           return 1;
         }
 
+        if (left.type === "draft-plan") {
+          return 1;
+        }
+
+        if (right.type === "draft-plan") {
+          return -1;
+        }
+
         return left.type === "activity" ? -1 : 1;
       }
 
       return left.index - right.index;
     });
-  }, [activities, displayMode, messages, requestStatus]);
+  }, [activities, displayMode, messages, request, requestStatus]);
 
   const showEmptyGreeting =
     displayMode === "timeline" &&
     messages.length === 0 &&
     activities.length === 0 &&
+    !(request && request.status === "draft") &&
     !isLoading;
 
   const showEmptyActivityState =
@@ -148,7 +184,6 @@ function PureMessages({
 
   const showEmptyChatState =
     displayMode === "chat" && messages.length === 0 && !isLoading;
-
   return (
     <div className="relative flex-1 bg-background">
       {showEmptyGreeting && (
@@ -211,6 +246,13 @@ function PureMessages({
                   ).length
                 }
               />
+            ) : item.type === "draft-plan" ? (
+              <DraftPlanMessage
+                isOpeningDraftPlan={isOpeningDraftPlan}
+                key={item.id}
+                onApproveDraftPlan={onApproveDraftPlan}
+                request={item.request}
+              />
             ) : (
               <PreviewMessage
                 addToolApprovalResponse={addToolApprovalResponse}
@@ -225,6 +267,7 @@ function PureMessages({
                 message={item.message}
                 onEdit={onEditMessage}
                 regenerate={regenerate}
+                requestStatus={requestStatus}
                 requiresScrollPadding={
                   hasSentMessage &&
                   messages.length > 0 &&
@@ -268,3 +311,59 @@ function PureMessages({
 }
 
 export const Messages = PureMessages;
+
+function DraftPlanMessage({
+  request,
+  onApproveDraftPlan,
+  isOpeningDraftPlan,
+}: {
+  request: BorealRequestDraft;
+  onApproveDraftPlan?: () => Promise<void>;
+  isOpeningDraftPlan?: boolean;
+}) {
+  return (
+    <div
+      className="group/message w-full"
+      data-role="assistant"
+      data-testid="draft-plan-message"
+    >
+      <div className="animate-[fade-up_0.32s_cubic-bezier(0.22,1,0.36,1)] flex items-start gap-3">
+        <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/50">
+            <SparklesIcon size={13} />
+          </div>
+        </div>
+        <div className="min-w-0 flex-1">
+          <RequestPlanPanel
+            isOpeningRequest={isOpeningDraftPlan}
+            onOpenRequest={onApproveDraftPlan}
+            request={request}
+            scope="draft"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function shouldRenderDraftPlanMessage(
+  request: BorealRequestDraft,
+  status: UseChatHelpers<ChatMessage>["status"]
+) {
+  if (status === "submitted" || status === "streaming") {
+    return false;
+  }
+
+  const hasBriefContent =
+    Boolean(request.brief.title?.trim()) ||
+    Boolean(request.brief.summary?.trim()) ||
+    Boolean(request.brief.body?.trim());
+  const hasConstraintContent =
+    Object.keys(request.brief.constraints ?? {}).length > 0;
+  const hasPlannerContent =
+    request.derived.roleSlots.length > 0 ||
+    request.derived.phases.length > 0 ||
+    request.derived.clarificationNeeded.required;
+
+  return hasBriefContent || hasConstraintContent || hasPlannerContent;
+}

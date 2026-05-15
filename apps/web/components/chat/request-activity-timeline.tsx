@@ -38,11 +38,12 @@ export function RequestActivityTimeline({
       {orderedActivities.map((activity, index) => (
         <RequestActivityMessage
           activity={activity}
-          ownerUserId={ownerUserId}
-          isReadonly={isReadonly}
           index={index}
+          isReadonly={isReadonly}
           key={activity.eventId}
+          ownerUserId={ownerUserId}
           totalCount={orderedActivities.length}
+          variant="timeline"
         />
       ))}
     </>
@@ -55,12 +56,14 @@ export function RequestActivityMessage({
   isReadonly,
   index,
   totalCount,
+  variant = "timeline",
 }: {
   activity: RequestActivityEntry;
   ownerUserId: string | null;
   isReadonly: boolean;
   index: number;
   totalCount: number;
+  variant?: "timeline" | "stage";
 }) {
   const isOwnerActivity =
     Boolean(ownerUserId) && activity.actor.id === ownerUserId;
@@ -86,7 +89,7 @@ export function RequestActivityMessage({
 
       {text ? (
         <MessageContent
-          className="text-[14px] leading-7"
+          className="text-[13px] leading-6"
           data-testid="request-activity-content"
         >
           <MessageResponse>{text}</MessageResponse>
@@ -94,14 +97,14 @@ export function RequestActivityMessage({
       ) : null}
 
       {secondaryDetail ? (
-        <div className="text-[12px] leading-6 text-muted-foreground">
+        <div className="text-[11px] leading-5.5 text-muted-foreground">
           <MessageResponse>{secondaryDetail}</MessageResponse>
         </div>
       ) : null}
 
       {!showArtifactFirst ? artifactPreview : null}
 
-      <div className="text-[11px] text-muted-foreground/60 opacity-0 transition-opacity duration-150 group-hover/message:opacity-100">
+      <div className="text-[10px] text-muted-foreground/60 opacity-0 transition-opacity duration-150 group-hover/message:opacity-100">
         {formatDistanceToNow(new Date(activity.occurredAt), {
           addSuffix: true,
         })}
@@ -109,23 +112,41 @@ export function RequestActivityMessage({
     </>
   );
 
+  if (variant === "stage") {
+    return (
+      <div
+        className="group/message w-full"
+        data-role="assistant"
+      >
+        <div className="rounded-[16px] border border-border/60 bg-background/92 px-3 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.025)]">
+          <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/68">
+            <span>{formatActivityLabel(activity.eventType)}</span>
+            <span className="text-border">•</span>
+            <span>{formatLabel(activity.aggregateType)}</span>
+          </div>
+          <div className="space-y-2">{content}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="group/message w-full"
       data-role="assistant"
     >
-      <div className="grid grid-cols-[28px_minmax(0,1fr)] gap-x-3">
+      <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-x-2.5">
         <div className="relative">
           {index > 0 ? (
-            <div className="absolute left-1/2 top-0 h-2.5 w-px -translate-x-1/2 bg-border/70" />
+            <div className="absolute left-1/2 top-0 h-2 w-px -translate-x-1/2 bg-border/70" />
           ) : null}
           {index < totalCount - 1 ? (
-            <div className="absolute left-1/2 top-7 -bottom-3 w-px -translate-x-1/2 bg-border/70" />
+            <div className="absolute left-1/2 top-6 -bottom-2.5 w-px -translate-x-1/2 bg-border/70" />
           ) : null}
-          <div className="relative z-10 flex h-7 items-center justify-center">
+          <div className="relative z-10 flex h-6 items-center justify-center">
             <div
               className={cn(
-                "flex size-7 items-center justify-center rounded-full border shadow-sm",
+                "flex size-6 items-center justify-center rounded-full border shadow-sm",
                 isOwnerActivity
                   ? "border-foreground/10 bg-foreground text-background"
                   : "border-border/70 bg-background text-muted-foreground"
@@ -136,9 +157,9 @@ export function RequestActivityMessage({
           </div>
         </div>
 
-        <div className="min-w-0 pb-3 pt-0.5">
-          <div className="rounded-[20px] border border-border/60 bg-background/92 px-4 py-3.5 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/68">
+        <div className="min-w-0 pb-2.5 pt-0.5">
+          <div className="rounded-[16px] border border-border/60 bg-background/92 px-3 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.025)]">
+            <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/68">
               <span>{formatActivityLabel(activity.eventType)}</span>
               <span className="text-border">•</span>
               <span>{formatLabel(activity.aggregateType)}</span>

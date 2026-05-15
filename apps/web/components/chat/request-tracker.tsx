@@ -2,7 +2,7 @@
 
 import type { UseChatHelpers } from "@ai-sdk/react";
 import { ArrowDownIcon, CheckIcon, LoaderCircleIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMessages } from "@/hooks/use-messages";
 import {
   discoverDesktopRuntime,
   isDesktopBridgeSupportedOrigin,
@@ -22,8 +21,6 @@ import {
 import type {
   BorealRequestDraft,
   RequestActivityEntry,
-  RequestBudget,
-  RequestDeadline,
   RequestFulfillment,
   RequestStatus,
 } from "@/lib/request";
@@ -31,7 +28,6 @@ import type { BorealSupplyDraft } from "@/lib/supply";
 import type { ChatMessage } from "@/lib/types";
 import { cn, fetcher } from "@/lib/utils";
 import { ChevronDownIcon } from "./icons";
-import { RequestPlanPanel } from "./request-plan-panel";
 import { RequestActivityMessage } from "./request-activity-timeline";
 import { toast } from "./toast";
 
@@ -107,14 +103,208 @@ export function RequestTracker({
   const [expandedStages, setExpandedStages] = useState<TrackerStageId[]>(() =>
     getDefaultExpandedStages(request.status)
   );
+  const [followMode, setFollowMode] = useState<"auto" | "manual">("auto");
   const [isSavingPreferredSupply, setIsSavingPreferredSupply] = useState(false);
-  const { containerRef, endRef, isAtBottom, scrollToBottom, reset } =
-    useMessages({ status });
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const stageRefs = useRef<Record<TrackerStageId, HTMLDivElement | null>>({
+    brief_terms: null,
+    route_workers: null,
+    work_delivery: null,
+    review_resolve: null,
+  });
+  const autoScrollLockRef = useRef(false);
+  const autoScrollUnlockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior,
+    });
+  }, []);
+
+  const isStageMostlyVisible = useCallback((stageId: TrackerStageId) => {
+    const container = containerRef.current;
+    const stageNode = stageRefs.current[stageId];
+
+    if (!container || !stageNode) {
+      return false;
+    }
+
+    const viewportTop = container.scrollTop;
+    const viewportBottom = viewportTop + container.clientHeight;
+    const stageTop = stageNode.offsetTop;
+    const stageBottom = stageTop + stageNode.offsetHeight;
+    const visibleTop = Math.max(stageTop, viewportTop);
+    const visibleBottom = Math.min(stageBottom, viewportBottom);
+    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+    const visibilityThreshold = Math.min(stageNode.offsetHeight * 0.45, 240);
+
+    return visibleHeight >= visibilityThreshold;
+  }, []);
+
+  const scrollStageIntoView = useCallback(
+    (stageId: TrackerStageId, behavior: ScrollBehavior = "smooth") => {
+      const container = containerRef.current;
+      const stageNode = stageRefs.current[stageId];
+
+      if (!container || !stageNode) {
+        return;
+      }
+
+      autoScrollLockRef.current = true;
+
+      if (autoScrollUnlockTimeoutRef.current) {
+        clearTimeout(autoScrollUnlockTimeoutRef.current);
+      }
+
+      container.scrollTo({
+        top: Math.max(0, stageNode.offsetTop - 12),
+        behavior,
+      });
+
+      autoScrollUnlockTimeoutRef.current = setTimeout(() => {
+        autoScrollLockRef.current = false;
+      }, behavior === "smooth" ? 420 : 120);
+    },
+    []
+  );
+
+  const resumeLiveStage = useCallback(() => {
+    setFollowMode("auto");
+    setExpandedStages((current) =>
+      current.includes(currentStageId) ? current : [currentStageId, ...current]
+    );
+    requestAnimationFrame(() => {
+      scrollStageIntoView(currentStageId, "smooth");
+    });
+  }, [currentStageId, scrollStageIntoView]);
+
+  const handleStageToggle = useCallback(
+    (stageId: TrackerStageId) => {
+      if (stageId !== currentStageId) {
+        setFollowMode("manual");
+      }
+
+      setExpandedStages((current) => {
+        const isExpanded = current.includes(stageId);
+
+        if (stageId === currentStageId) {
+          return isExpanded ? current : [...current, stageId];
+        }
+
+        return isExpanded
+          ? current.filter((id) => id !== stageId)
+          : [...current, stageId];
+      });
+
+      if (stageId === currentStageId) {
+        requestAnimationFrame(() => {
+          scrollStageIntoView(stageId, "smooth");
+        });
+      }
+    },
+    [currentStageId, scrollStageIntoView]
+  );
 
   useEffect(() => {
     setExpandedStages(getDefaultExpandedStages(request.status));
-    reset();
-  }, [currentStageId, request.id, request.status, reset]);
+    setFollowMode("auto");
+
+    requestAnimationFrame(() => {
+      scrollStageIntoView(currentStageId, "instant");
+    });
+  }, [currentStageId, request.id, request.status, scrollStageIntoView]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const updateBottomState = () => {
+      setIsAtBottom(
+        container.scrollTop + container.clientHeight >=
+          container.scrollHeight - 100
+      );
+    };
+
+    updateBottomState();
+    container.addEventListener("scroll", updateBottomState, { passive: true });
+
+    const resizeObserver = new ResizeObserver(updateBottomState);
+    resizeObserver.observe(container);
+
+    return () => {
+      container.removeEventListener("scroll", updateBottomState);
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const handleTrackerScroll = () => {
+      if (autoScrollLockRef.current) {
+        return;
+      }
+
+      if (followMode === "auto" && !isStageMostlyVisible(currentStageId)) {
+        setFollowMode("manual");
+      }
+    };
+
+    container.addEventListener("scroll", handleTrackerScroll, { passive: true });
+    return () => {
+      container.removeEventListener("scroll", handleTrackerScroll);
+    };
+  }, [containerRef, currentStageId, followMode, isStageMostlyVisible]);
+
+  useEffect(() => {
+    if (followMode !== "auto") {
+      return;
+    }
+
+    if (
+      expandedStages.includes(currentStageId) &&
+      isStageMostlyVisible(currentStageId)
+    ) {
+      return;
+    }
+
+    setExpandedStages((current) =>
+      current.includes(currentStageId) ? current : [currentStageId, ...current]
+    );
+
+    requestAnimationFrame(() => {
+      scrollStageIntoView(currentStageId, "smooth");
+    });
+  }, [
+    activities.length,
+    currentStageId,
+    expandedStages,
+    followMode,
+    isStageMostlyVisible,
+    request.updatedAt,
+    scrollStageIntoView,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      if (autoScrollUnlockTimeoutRef.current) {
+        clearTimeout(autoScrollUnlockTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const activeFulfillmentKey = request.activeRefs.activeFulfillmentId
     ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/fulfillments/${request.activeRefs.activeFulfillmentId}`
@@ -206,13 +396,9 @@ export function RequestTracker({
     requestViewerUserId === request.ownerId &&
     Boolean(request.activeRefs.activeFulfillmentId) &&
     typeof onResolveDeliveredRequest === "function";
+  const showReturnToLiveStage =
+    followMode === "manual" || !expandedStages.includes(currentStageId);
 
-  const requestTitle = request.brief.title?.trim() || "Untitled request";
-  const requestHeadline =
-    request.latest.summary?.trim() ||
-    request.derived.routeSummary?.trim() ||
-    request.brief.summary?.trim() ||
-    "Boreal keeps route, delivery, and review attached to this one request room.";
   const routeSummaryValue = getRouteSummaryValue({
     activeFulfillment,
     activeRouteSupply,
@@ -224,20 +410,6 @@ export function RequestTracker({
     : desktopRuntimeState.requestLaneReady
       ? "Desktop runtime is connected and ready for a private execution lane."
       : "No worker is attached to this request yet.";
-  const routeMetaItems = [
-    activeFulfillment
-      ? getActiveRouteMeta(activeFulfillment, activeRouteSupply)
-      : request.derived.routeFamily
-        ? `${formatLabel(request.derived.routeFamily)} route`
-        : "Route pending",
-    activeFulfillment
-      ? `${formatLabel(activeFulfillment.status)} fulfillment`
-      : request.derived.executionKind
-        ? `${formatLabel(request.derived.executionKind)} execution`
-        : "Execution pending",
-    request.routing.preferredSupplyId ? "Preferred route set" : "No route override",
-  ];
-
   const handlePreferredSupplyChange = async (value: string) => {
     if (!onUpdatePreferredSupply) {
       return;
@@ -276,54 +448,54 @@ export function RequestTracker({
       title: "Ask and terms",
       summary:
         "Lock the ask, scope, and terms before routing starts.",
-      meta: [
-        formatBudgetSummary(request.budget),
-        formatDeadlineSummary(request.deadline),
-        `${formatLabel(request.visibility)} visibility`,
-      ],
       body: (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <InfoCard
-              detail={request.brief.summary?.trim() || request.derived.readiness.summary}
-              label="Brief"
-              value={request.brief.body?.trim() || "No brief yet."}
-            />
-            <InfoCard
-              detail={formatTokenList(request.brief.tags, "No tags yet.")}
-              label="Deliverables"
-              value={formatTokenList(
-                request.brief.outputKinds,
-                "No deliverables set yet."
-              )}
-            />
-            <InfoCard
-              detail={formatExecutionDetail(request)}
-              label="Execution"
-              value={formatExecutionValue(request)}
-            />
-            <InfoCard
-              detail={formatVerificationDetail(request)}
-              label="Proof gate"
-              value={formatVerificationValue(request)}
-            />
-            <InfoCard
-              detail={formatConstraintDetail(request.brief.constraints)}
-              label="Constraints"
-              value={
-                request.derived.missingDetails.length > 0
-                  ? `Still needed: ${request.derived.missingDetails
-                      .map((detail) => detail.replace(/_/g, " "))
-                      .join(", ")}.`
-                  : "Core request details are in place."
-              }
-            />
-            <InfoCard
-              detail={request.latest.lastEventAt ? `Last event ${formatTimestamp(request.latest.lastEventAt)}` : undefined}
-              label="Readiness"
-              value={request.derived.readiness.summary}
-            />
-          </div>
+        <div className="space-y-4">
+          <CompactFactPanel
+            facts={[
+              {
+                detail:
+                  request.brief.summary?.trim() ||
+                  request.derived.readiness.summary,
+                label: "Brief",
+                value: request.brief.body?.trim() || "No brief yet.",
+              },
+              {
+                detail: formatTokenList(request.brief.tags, "No tags yet."),
+                label: "Deliverables",
+                value: formatTokenList(
+                  request.brief.outputKinds,
+                  "No deliverables set yet."
+                ),
+              },
+              {
+                detail: formatExecutionDetail(request),
+                label: "Execution",
+                value: formatExecutionValue(request),
+              },
+              {
+                detail: formatVerificationDetail(request),
+                label: "Proof gate",
+                value: formatVerificationValue(request),
+              },
+              {
+                detail: formatConstraintDetail(request.brief.constraints),
+                label: "Constraints",
+                value:
+                  request.derived.missingDetails.length > 0
+                    ? `Still needed: ${request.derived.missingDetails
+                        .map((detail) => detail.replace(/_/g, " "))
+                        .join(", ")}.`
+                    : "Core request details are in place.",
+              },
+              {
+                detail: request.latest.lastEventAt
+                  ? `Last event ${formatTimestamp(request.latest.lastEventAt)}`
+                  : undefined,
+                label: "Readiness",
+                value: request.derived.readiness.summary,
+              },
+            ]}
+          />
 
           <StageActivityStack
             activities={stageActivities.brief_terms}
@@ -339,35 +511,34 @@ export function RequestTracker({
       title: "Routing and ownership",
       summary:
         "Show who should lead the work and how it will move forward.",
-      meta: routeMetaItems,
       body: (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <InfoCard
-              detail={request.seeking.notes?.trim() || "No routing note yet."}
-              label="Route summary"
-              value={routeSummaryValue}
-            />
-            <InfoCard
-              detail={
-                request.seeking.teamMode
+        <div className="space-y-4">
+          <CompactFactPanel
+            facts={[
+              {
+                detail: request.seeking.notes?.trim() || "No routing note yet.",
+                label: "Route summary",
+                value: routeSummaryValue,
+              },
+              {
+                detail: request.seeking.teamMode
                   ? `Team mode: ${formatLabel(request.seeking.teamMode)}`
-                  : "No team mode set."
-              }
-              label="Workers"
-              value={workerSummaryValue}
-            />
-            <InfoCard
-              detail={formatClarificationDetail(request)}
-              label="Clarification gate"
-              value={formatClarificationValue(request)}
-            />
-            <InfoCard
-              detail={formatCollapseRiskDetail(request)}
-              label="Collapse risk"
-              value={formatCollapseRiskValue(request)}
-            />
-          </div>
+                  : "No team mode set.",
+                label: "Workers",
+                value: workerSummaryValue,
+              },
+              {
+                detail: formatClarificationDetail(request),
+                label: "Clarification gate",
+                value: formatClarificationValue(request),
+              },
+              {
+                detail: formatCollapseRiskDetail(request),
+                label: "Collapse risk",
+                value: formatCollapseRiskValue(request),
+              },
+            ]}
+          />
 
           <RouteAndWorkersPanel
             activeFulfillment={activeFulfillment}
@@ -404,51 +575,36 @@ export function RequestTracker({
       title: "Execution and delivery",
       summary:
         "Track the active work lane, current progress, and delivered proof.",
-      meta: [
-        activeFulfillment
-          ? `${formatLabel(activeFulfillment.status)} fulfillment`
-          : "No active fulfillment",
-        request.activeRefs.latestArtifactId
-          ? "Delivery artifact attached"
-          : "No delivery artifact yet",
-        request.status === "waiting_for_owner"
-          ? "Waiting for owner"
-          : request.status === "in_progress"
-            ? "Execution active"
-            : request.status === "delivered"
-              ? "Delivered"
-              : "Work pending",
-      ],
       body: (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <InfoCard
-              detail={
-                activeFulfillment?.steps.length
+        <div className="space-y-4">
+          <CompactFactPanel
+            facts={[
+              {
+                detail: activeFulfillment?.steps.length
                   ? `${activeFulfillment.steps.length} fulfillment steps recorded.`
-                  : "No fulfillment steps recorded yet."
-              }
-              label="Work status"
-              value={
-                activeFulfillment?.summary?.trim() ||
-                request.latest.summary?.trim() ||
-                "Execution updates and delivered work will appear here."
-              }
-            />
-            <InfoCard
-              detail={
-                activeFulfillment?.updatedAt
+                  : "No fulfillment steps recorded yet.",
+                label: "Work status",
+                value:
+                  activeFulfillment?.summary?.trim() ||
+                  request.latest.summary?.trim() ||
+                  "Execution updates and delivered work will appear here.",
+              },
+              {
+                detail: activeFulfillment?.updatedAt
                   ? `Updated ${formatTimestamp(activeFulfillment.updatedAt)}`
-                  : "No active fulfillment update yet."
-              }
-              label="Artifacts"
-              value={
-                request.activeRefs.latestArtifactId
+                  : "No active fulfillment update yet.",
+                label: "Artifacts",
+                value: request.activeRefs.latestArtifactId
                   ? "A delivery or supporting artifact is attached to this request."
-                  : "No artifact has been attached yet."
-              }
-            />
-          </div>
+                  : "No artifact has been attached yet.",
+              },
+            ]}
+          />
+
+          <FulfillmentStepsPanel
+            activeRouteSupply={activeRouteSupply}
+            fulfillment={activeFulfillment}
+          />
 
           <StageActivityStack
             activities={stageActivities.work_delivery}
@@ -464,38 +620,37 @@ export function RequestTracker({
       title: "Review and resolve",
       summary:
         "Close the loop once delivery lands, or capture the final failed or cancelled state when the request stops moving.",
-      meta: [
-        canResolveDelivery ? "Owner confirmation ready" : "No resolution action pending",
-        request.status === "completed" ? "Resolved" : "Still open",
-      ],
       body: (
-        <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto]">
-            <InfoCard
-              detail={
-                request.status === "delivered"
-                  ? "The current fulfillment is waiting on the owner decision."
-                  : request.status === "completed"
-                    ? "No more action is needed in this room."
-                    : request.status === "failed"
-                      ? "The room preserves the final failure state."
-                      : request.status === "cancelled"
-                        ? "The room preserves the final cancellation state."
-                        : "Final review actions appear here after delivery."
-              }
-              label="Resolution"
-              value={getResolutionSummary(request.status)}
+        <div className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+            <CompactFactPanel
+              facts={[
+                {
+                  detail:
+                    request.status === "delivered"
+                      ? "The current fulfillment is waiting on the owner decision."
+                      : request.status === "completed"
+                        ? "No more action is needed in this room."
+                        : request.status === "failed"
+                          ? "The room preserves the final failure state."
+                          : request.status === "cancelled"
+                            ? "The room preserves the final cancellation state."
+                            : "Final review actions appear here after delivery.",
+                  label: "Resolution",
+                  value: getResolutionSummary(request.status),
+                },
+              ]}
             />
             {canResolveDelivery ? (
-              <div className="rounded-[24px] border border-emerald-300/40 bg-emerald-50/70 p-4 dark:bg-emerald-500/10">
+              <div className="rounded-[18px] border border-emerald-300/40 bg-emerald-50/70 px-3.5 py-3 dark:bg-emerald-500/10">
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
                   Owner action
                 </div>
-                <div className="mt-2 max-w-[14rem] text-sm leading-6 text-foreground">
+                <div className="mt-1.5 max-w-[13rem] text-[13px] leading-5.5 text-foreground">
                   Confirm delivery to resolve the request and lock the accepted result.
                 </div>
                 <Button
-                  className="mt-4"
+                  className="mt-3"
                   disabled={isResolvingDeliveredRequest}
                   onClick={() => void onResolveDeliveredRequest?.()}
                   size="sm"
@@ -523,197 +678,211 @@ export function RequestTracker({
   return (
     <div className="relative flex-1 bg-background">
       <div className="absolute inset-0 overflow-y-auto" ref={containerRef}>
-        <div className="mx-auto flex min-h-full max-w-5xl flex-col gap-5 px-3 py-6 md:px-4 md:py-7">
-          <section className="rounded-[32px] border border-border/60 bg-background/94 p-6 shadow-[0_18px_55px_rgba(15,23,42,0.05)]">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl space-y-3">
-                <div className="inline-flex rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/72">
-                  Request room
-                </div>
-                <div className="space-y-2">
-                  <h1 className="text-2xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-3xl">
-                    {requestTitle}
-                  </h1>
-                  <p className="text-sm leading-7 text-muted-foreground md:text-[15px]">
-                    {requestHeadline}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <SummaryTile
-                  label="Status"
-                  value={formatLabel(request.status)}
-                />
-                <SummaryTile
-                  label="Budget"
-                  value={formatBudgetSummary(request.budget)}
-                />
-                <SummaryTile
-                  label="Deadline"
-                  value={formatDeadlineSummary(request.deadline)}
-                />
-                <SummaryTile
-                  label="Current stage"
-                  value={formatLabel(currentStageId)}
-                />
-              </div>
-            </div>
-          </section>
-
-          <RequestPlanPanel request={request} scope="open" />
-
-          <div className="space-y-4">
+        <div className="mx-auto flex min-h-full max-w-5xl flex-col gap-3 px-3 py-3.5 md:px-4 md:py-4">
+          <div className="space-y-3">
             {stages.map((stage, index) => {
               const isExpanded = expandedStages.includes(stage.id);
               const isDone = index < completedStageCount;
               const isCurrent = !isDone && stage.id === currentStageId;
+              const showConnector = index < stages.length - 1;
+              const showIncomingConnector = index > 0;
+              const incomingConnectorClassName =
+                index <= completedStageCount
+                  ? "bg-emerald-400/80 dark:bg-emerald-400/80"
+                  : isCurrent
+                    ? "bg-sky-400/80 dark:bg-sky-400/80"
+                    : "bg-border/60";
+              const outgoingConnectorClassName = isDone
+                ? "bg-emerald-400/80 dark:bg-emerald-400/80"
+                : isCurrent
+                  ? "bg-sky-400/80 dark:bg-sky-400/80"
+                  : "bg-border/60";
 
               return (
-                <section
-                  className={cn(
-                    "overflow-hidden rounded-[28px] border bg-background/94 shadow-[0_14px_45px_rgba(15,23,42,0.04)] transition-colors",
-                    isCurrent
-                      ? "border-foreground/12"
-                      : "border-border/60"
-                  )}
+                <div
+                  className="relative"
                   key={stage.id}
+                  ref={(node) => {
+                    stageRefs.current[stage.id] = node;
+                  }}
                 >
-                  <button
-                    className="w-full px-5 py-5 text-left md:px-6"
-                    onClick={() =>
-                      setExpandedStages((current) =>
-                        current.includes(stage.id)
-                          ? current.filter((id) => id !== stage.id)
-                          : [...current, stage.id]
-                      )
-                    }
-                    type="button"
+                  {showIncomingConnector ? (
+                    <div
+                      className={cn(
+                        "pointer-events-none absolute left-[2.125rem] top-[-0.75rem] z-10 bottom-[calc(100%-1rem)] w-px md:left-[2.375rem]",
+                        incomingConnectorClassName
+                      )}
+                    />
+                  ) : null}
+                  {showConnector ? (
+                    <div
+                      className={cn(
+                        "pointer-events-none absolute left-[2.125rem] top-[3rem] z-10 bottom-[-0.75rem] w-px md:left-[2.375rem]",
+                        outgoingConnectorClassName
+                      )}
+                    />
+                  ) : null}
+                  <section
+                    className={cn(
+                      "relative z-0 overflow-hidden rounded-[24px] border bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.035)] transition-colors",
+                      isCurrent
+                        ? "border-foreground/12"
+                        : "border-border/60"
+                    )}
                   >
-                    <div className="flex items-start gap-4">
+                    <button
+                      aria-controls={`request-stage-${stage.id}`}
+                      aria-expanded={isExpanded}
+                      className="relative w-full px-4 py-4 text-left md:px-5"
+                      onClick={() => handleStageToggle(stage.id)}
+                      type="button"
+                    >
                       <div
                         className={cn(
-                          "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border text-sm font-semibold shadow-sm",
+                          "pointer-events-none absolute left-4 top-4 z-20 flex size-8 items-center justify-center text-sm font-semibold md:left-5",
                           isDone
-                            ? "border-emerald-300/70 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300"
+                            ? "text-emerald-300"
                             : isCurrent
-                              ? "border-sky-300/70 bg-sky-50 text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300"
-                              : "border-border/70 bg-background text-muted-foreground"
+                              ? "text-sky-300"
+                              : "text-muted-foreground"
                         )}
                       >
-                        {isDone ? <CheckIcon className="size-4" /> : index + 1}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/72">
-                              Stage {index + 1}
-                            </span>
+                        <span className="absolute inset-0 rounded-full bg-background" />
+                        <span
+                          className={cn(
+                            "absolute inset-0 rounded-full border shadow-sm",
+                            isDone
+                              ? "border-emerald-300/70 bg-emerald-500/12 dark:bg-emerald-500/18"
+                              : isCurrent
+                                ? "border-sky-300/70 bg-sky-500/12 dark:bg-sky-500/18"
+                                : "border-border/70 bg-background"
+                          )}
+                        />
+                        <span className="relative z-10 flex items-center justify-center">
+                          {isDone ? (
+                            <CheckIcon className="size-4" />
+                          ) : (
                             <span
                               className={cn(
-                                "rounded-full border px-2.5 py-1 text-[11px] font-medium",
-                                isDone
-                                  ? "border-emerald-300/70 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300"
-                                  : isCurrent
-                                    ? "border-sky-300/70 bg-sky-50 text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300"
-                                    : "border-border/60 bg-muted/35 text-muted-foreground"
+                                "size-2 rounded-full",
+                                isCurrent
+                                  ? "bg-current"
+                                  : "bg-muted-foreground/35"
                               )}
-                            >
-                              {isDone ? "Complete" : isCurrent ? "Current" : "Queued"}
-                            </span>
-                          </div>
-                          <div
-                            className={cn(
-                              "shrink-0 text-muted-foreground transition-transform duration-200",
-                              isExpanded ? "rotate-180" : "rotate-0"
-                            )}
-                          >
-                            <ChevronDownIcon size={16} />
-                          </div>
+                            />
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex items-start justify-between gap-3 pl-[3.625rem] md:pl-[3.875rem]">
+                        <div className="min-w-0 flex-1">
+                          <h2 className="text-base font-medium tracking-tight">
+                            {stage.title}
+                          </h2>
+                          <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-muted-foreground">
+                            {stage.summary}
+                          </p>
                         </div>
 
-                        <h2 className="mt-3 text-lg font-medium tracking-tight">
-                          {stage.title}
-                        </h2>
-                        <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
-                          {stage.summary}
-                        </p>
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          {stage.meta.map((metaItem) => (
-                            <span
-                              className="rounded-full border border-border/60 bg-muted/[0.3] px-3 py-1 text-[12px] text-muted-foreground"
-                              key={metaItem}
-                            >
-                              {metaItem}
-                            </span>
-                          ))}
+                        <div
+                          className={cn(
+                            "shrink-0 pt-1 text-muted-foreground transition-transform duration-200",
+                            isExpanded ? "rotate-180" : "rotate-0"
+                          )}
+                        >
+                          <ChevronDownIcon size={16} />
+                        </div>
+                      </div>
+                    </button>
+
+                    <div
+                      className={cn(
+                        "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                        isExpanded
+                          ? "grid-rows-[1fr] opacity-100"
+                          : "grid-rows-[0fr] opacity-0"
+                      )}
+                      id={`request-stage-${stage.id}`}
+                    >
+                      <div className="min-h-0 overflow-hidden">
+                        <div
+                          className={cn(
+                            "border-t border-border/60 px-4 pl-[3.75rem] transition-[padding,transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:px-5 md:pl-[4.25rem]",
+                            isExpanded
+                              ? "translate-y-0 py-4 opacity-100"
+                              : "-translate-y-1 py-0 opacity-0"
+                          )}
+                        >
+                          {stage.body}
                         </div>
                       </div>
                     </div>
-                  </button>
-
-                  {isExpanded ? (
-                    <div className="border-t border-border/60 px-5 py-5 md:px-6">
-                      {stage.body}
-                    </div>
-                  ) : null}
-                </section>
+                  </section>
+                </div>
               );
             })}
           </div>
 
-          <div className="min-h-[24px] min-w-[24px] shrink-0" ref={endRef} />
         </div>
       </div>
 
-      <button
-        aria-label="Scroll to bottom"
-        className={`absolute bottom-4 left-1/2 z-10 flex h-8 -translate-x-1/2 items-center rounded-full border border-border/60 bg-background/92 px-3.5 text-[10px] shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 ${
-          isAtBottom
-            ? "pointer-events-none scale-90 opacity-0"
-            : "pointer-events-auto scale-100 opacity-100"
-        }`}
-        onClick={() => scrollToBottom("smooth")}
-        type="button"
-      >
-        <ArrowDownIcon className="size-3 text-muted-foreground" />
-      </button>
+      {showReturnToLiveStage ? (
+        <button
+          className="absolute bottom-4 left-1/2 z-10 inline-flex h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-border/60 bg-background/92 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 hover:scale-[1.02]"
+          onClick={resumeLiveStage}
+          type="button"
+        >
+          <span className="size-2 rounded-full bg-sky-400" />
+          Back to live step
+        </button>
+      ) : (
+        <button
+          aria-label="Scroll to bottom"
+          className={`absolute bottom-4 left-1/2 z-10 flex h-8 -translate-x-1/2 items-center rounded-full border border-border/60 bg-background/92 px-3.5 text-[10px] shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 ${
+            isAtBottom
+              ? "pointer-events-none scale-90 opacity-0"
+              : "pointer-events-auto scale-100 opacity-100"
+          }`}
+          onClick={() => scrollToBottom("smooth")}
+          type="button"
+        >
+          <ArrowDownIcon className="size-3 text-muted-foreground" />
+        </button>
+      )}
     </div>
   );
 }
 
-function SummaryTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-[9rem] rounded-[22px] border border-border/60 bg-muted/[0.24] px-4 py-3">
-      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-        {label}
-      </div>
-      <div className="mt-2 text-sm leading-6 text-foreground">{value}</div>
-    </div>
-  );
-}
-
-function InfoCard({
-  label,
-  value,
-  detail,
-}: {
+type CompactFact = {
+  detail?: string;
   label: string;
   value: string;
-  detail?: string;
-}) {
+};
+
+function CompactFactPanel({ facts }: { facts: CompactFact[] }) {
   return (
-    <div className="rounded-[24px] border border-border/60 bg-muted/[0.24] px-4 py-4">
-      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-        {label}
-      </div>
-      <div className="mt-2 text-[15px] leading-7 text-foreground">{value}</div>
-      {detail ? (
-        <div className="mt-2 text-sm leading-6 text-muted-foreground">
-          {detail}
+    <div className="overflow-hidden rounded-[18px] border border-border/60 bg-background/92">
+      {facts.map((fact, index) => (
+        <div
+          className={cn(
+            "space-y-0.5 px-3.5 py-3",
+            index > 0 ? "border-t border-border/60" : undefined
+          )}
+          key={`${fact.label}:${fact.value}`}
+        >
+          <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+            {fact.label}
+          </div>
+          <div className="min-w-0 text-[14px] leading-6 text-foreground">
+            {fact.value}
+          </div>
+          {fact.detail ? (
+            <div className="text-[12px] leading-5 text-muted-foreground">
+              {fact.detail}
+            </div>
+          ) : null}
         </div>
-      ) : null}
+      ))}
     </div>
   );
 }
@@ -787,13 +956,13 @@ function RouteAndWorkersPanel({
       : null;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
-      <div className="space-y-4">
-        <div className="rounded-[24px] border border-border/60 bg-muted/[0.24] px-4 py-4">
+    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,20rem)]">
+      <div className="space-y-3">
+        <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
             Route
           </div>
-          <div className="mt-3 space-y-3">
+          <div className="mt-2.5 space-y-2.5">
             <RouteFactRow
               label="Current lane"
               value={getCurrentRouteLaneValue({
@@ -826,12 +995,12 @@ function RouteAndWorkersPanel({
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-border/60 bg-muted/[0.24] px-4 py-4">
+        <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
             Workers
           </div>
           {activeFulfillment ? (
-            <div className="mt-4 space-y-3">
+            <div className="mt-3 space-y-2.5">
               <WorkerRow actor={activeFulfillment.lead} label="Lead" />
               {activeFulfillment.contributors.length > 0 ? (
                 <div className="space-y-2">
@@ -844,13 +1013,13 @@ function RouteAndWorkersPanel({
                   ))}
                 </div>
               ) : (
-                <div className="text-sm leading-6 text-muted-foreground">
+                <div className="text-[13px] leading-5.5 text-muted-foreground">
                   No contributors are attached yet.
                 </div>
               )}
             </div>
           ) : (
-            <div className="mt-3 text-sm leading-6 text-muted-foreground">
+            <div className="mt-2.5 text-[13px] leading-5.5 text-muted-foreground">
               {desktopRuntimeState.requestLaneReady
                 ? "Desktop runtime is ready for private execution, but no fulfillment has started yet."
                 : "No worker is attached to the active request yet."}
@@ -859,11 +1028,11 @@ function RouteAndWorkersPanel({
         </div>
 
         {canManagePrivateRouting ? (
-          <div className="rounded-[24px] border border-border/60 bg-muted/[0.24] px-4 py-4">
+          <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
             <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
               Route controls
             </div>
-            <div className="mt-3 space-y-3">
+            <div className="mt-2.5 space-y-2.5">
               <Select
                 disabled={isLoadingOwnedSupplies || isSavingPreferredSupply}
                 onValueChange={(value) => {
@@ -901,7 +1070,7 @@ function RouteAndWorkersPanel({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-sm leading-6 text-muted-foreground">
+              <p className="text-[13px] leading-5.5 text-muted-foreground">
                 {isLoadingOwnedSupplies
                   ? "Refreshing published capabilities from Boreal web."
                   : publishedOwnedSupplies.length === 0
@@ -915,17 +1084,17 @@ function RouteAndWorkersPanel({
         ) : null}
       </div>
 
-      <div className="rounded-[24px] border border-border/60 bg-muted/[0.24] px-4 py-4">
+      <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
           Desktop runtime
         </div>
-        <div className="mt-3 space-y-3">
-          <div className="text-[15px] leading-7 text-foreground">
+        <div className="mt-2.5 space-y-2.5">
+          <div className="text-[14px] leading-6 text-foreground">
             {isLoadingDesktopRuntimeDiscovery
               ? "Checking local desktop runtime."
               : desktopRuntimeState.label}
           </div>
-          <div className="text-sm leading-6 text-muted-foreground">
+          <div className="text-[13px] leading-5.5 text-muted-foreground">
             {isDesktopRuntimeSupportedOrigin
               ? desktopRuntimeState.detail
               : "Desktop runtime visibility only works when Boreal web is running on localhost."}
@@ -944,7 +1113,7 @@ function RouteAndWorkersPanel({
               label="Private request lane"
             />
           </div>
-          <div className="space-y-3 border-t border-border/60 pt-3">
+          <div className="space-y-2.5 border-t border-border/60 pt-2.5">
             <RouteFactRow
               label="Auto-resolve"
               value={
@@ -999,26 +1168,33 @@ function StageActivityStack({
 }) {
   if (activities.length === 0) {
     return (
-      <div className="rounded-[22px] border border-border/60 bg-background/92 px-4 py-4 text-sm leading-6 text-muted-foreground">
+      <div className="rounded-[16px] border border-dashed border-border/60 bg-muted/[0.12] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
         {emptyLabel}
       </div>
     );
   }
 
   return (
-    <div className="rounded-[24px] border border-border/60 bg-background/92 px-4 py-3">
-      <div className="space-y-1">
-        {activities.map((activity, index) => (
+    <div className="space-y-2">
+      {activities.map((activity, index) => (
+        <div
+          className="animate-[fade-up_0.28s_cubic-bezier(0.22,1,0.36,1)]"
+          key={activity.eventId}
+          style={{
+            animationDelay: `${Math.min(index, 4) * 45}ms`,
+            animationFillMode: "both",
+          }}
+        >
           <RequestActivityMessage
             activity={activity}
             index={index}
             isReadonly={isReadonly}
-            key={activity.eventId}
             ownerUserId={ownerUserId}
             totalCount={activities.length}
+            variant="stage"
           />
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -1033,12 +1209,14 @@ function WorkerRow({
   const name = actor.displayName?.trim() || actor.handle?.trim() || actor.id;
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-background px-3.5 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-background/92 px-3 py-2.5">
       <div className="min-w-0 space-y-1">
         <div className="text-[11px] uppercase leading-none tracking-[0.14em] text-muted-foreground">
           {label}
         </div>
-        <div className="truncate text-sm leading-6 text-foreground">{name}</div>
+        <div className="truncate text-[13px] leading-5.5 text-foreground">
+          {name}
+        </div>
       </div>
       <div className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] uppercase leading-none tracking-[0.14em] text-muted-foreground">
         {formatLabel(actor.kind)}
@@ -1047,13 +1225,100 @@ function WorkerRow({
   );
 }
 
+function FulfillmentStepsPanel({
+  fulfillment,
+  activeRouteSupply,
+}: {
+  fulfillment: RequestFulfillment | null;
+  activeRouteSupply: BorealSupplyDraft | null;
+}) {
+  if (!fulfillment || fulfillment.steps.length === 0) {
+    return (
+      <div className="rounded-[16px] border border-dashed border-border/60 bg-muted/[0.12] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
+        No execution steps are attached yet. Once a fulfillment lane opens, Boreal will show seeded step ownership here.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+        Execution steps
+      </div>
+      <div className="mt-3 space-y-2.5">
+        {fulfillment.steps.map((step, index) => (
+          <FulfillmentStepCard
+            activeRouteSupply={activeRouteSupply}
+            index={index}
+            key={step.id}
+            step={step}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FulfillmentStepCard({
+  step,
+  index,
+  activeRouteSupply,
+}: {
+  step: RequestFulfillment["steps"][number];
+  index: number;
+  activeRouteSupply: BorealSupplyDraft | null;
+}) {
+  const assigneeLabel = getStepAssigneeLabel(step);
+  const supplyLabel = getStepSupplyLabel(step, activeRouteSupply);
+  const roleKeys = formatStepRoleKeys(step);
+  const evidenceClaims = formatStepEvidenceClaims(step);
+
+  return (
+    <div className="rounded-[16px] border border-border/60 bg-muted/[0.18] px-3 py-2.5">
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="rounded-full border border-border/70 bg-background/80 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+            Step {index + 1}
+          </div>
+          <div className="rounded-full border border-border/70 bg-background/80 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+            {formatLabel(step.status)}
+          </div>
+        </div>
+        <div className="text-[14px] leading-6 text-foreground">{step.title}</div>
+        {typeof step.metadata?.phaseSummary === "string" &&
+        step.metadata.phaseSummary.trim().length > 0 ? (
+          <div className="text-[13px] leading-5.5 text-muted-foreground">
+            {step.metadata.phaseSummary.trim()}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-[12px] leading-5 text-muted-foreground">
+          <InlineMeta label="Owner" value={assigneeLabel} />
+          <InlineMeta label="Lane" value={supplyLabel} />
+          <InlineMeta label="Role keys" value={roleKeys} />
+          {evidenceClaims ? (
+            <InlineMeta label="Proof" value={evidenceClaims} />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InlineMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <span>
+      <span className="text-foreground/60">{label}:</span> {value}
+    </span>
+  );
+}
+
 function RouteFactRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="space-y-1">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+    <div className="space-y-0.5">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
         {label}
       </div>
-      <div className="text-sm leading-6 text-foreground">{value}</div>
+      <div className="text-[13px] leading-5.5 text-foreground">{value}</div>
     </div>
   );
 }
@@ -1140,50 +1405,6 @@ function isResolveStageActivity(activity: RequestActivityEntry) {
     ].includes(activity.eventType) ||
     ["completed", "cancelled", "failed"].includes(activity.requestStatus ?? "")
   );
-}
-
-function formatBudgetSummary(budget: RequestBudget | null) {
-  if (!budget) {
-    return "Budget unset";
-  }
-
-  if (budget.mode === "fixed" && budget.fixedAmount != null) {
-    return `${budget.currency ?? ""} ${budget.fixedAmount}`.trim();
-  }
-
-  if (
-    budget.mode === "range" &&
-    (budget.minAmount != null || budget.maxAmount != null)
-  ) {
-    return `${budget.currency ?? ""} ${budget.minAmount ?? "?"}-${budget.maxAmount ?? "?"}`.trim();
-  }
-
-  if (budget.mode === "open") {
-    return "Open budget";
-  }
-
-  if (budget.mode === "none") {
-    return "No budget";
-  }
-
-  return "Budget set";
-}
-
-function formatDeadlineSummary(deadline: RequestDeadline | null) {
-  if (!deadline?.targetAt) {
-    return "No deadline";
-  }
-
-  const target = new Date(deadline.targetAt);
-  if (Number.isNaN(target.getTime())) {
-    return "Deadline set";
-  }
-
-  return target.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
 
 function formatTokenList(values: string[] | undefined, emptyLabel: string) {
@@ -1310,6 +1531,66 @@ function formatCollapseRiskDetail(request: BorealRequestDraft) {
   return request.derived.planCollapseRisk.reasons.join(" · ");
 }
 
+function getStepAssigneeLabel(step: RequestFulfillment["steps"][number]) {
+  if (!step.assignee) {
+    return "Unassigned";
+  }
+
+  return (
+    step.assignee.displayName?.trim() ||
+    step.assignee.handle?.trim() ||
+    step.assignee.id
+  );
+}
+
+function getStepSupplyLabel(
+  step: RequestFulfillment["steps"][number],
+  activeRouteSupply: BorealSupplyDraft | null
+) {
+  const assignedSupplyLabel =
+    typeof step.metadata?.assignedSupplyLabel === "string"
+      ? step.metadata.assignedSupplyLabel.trim()
+      : "";
+
+  if (assignedSupplyLabel.length > 0) {
+    return assignedSupplyLabel;
+  }
+
+  if (activeRouteSupply) {
+    return getOwnedSupplyLabel(activeRouteSupply);
+  }
+
+  return "Lead lane";
+}
+
+function formatStepRoleKeys(step: RequestFulfillment["steps"][number]) {
+  const roleKeys = Array.isArray(step.metadata?.roleKeys)
+    ? step.metadata.roleKeys
+        .filter((roleKey): roleKey is string => typeof roleKey === "string")
+        .map((roleKey) => formatLabel(roleKey))
+    : [];
+
+  if (roleKeys.length === 0) {
+    return "No role keys attached";
+  }
+
+  return roleKeys.join(", ");
+}
+
+function formatStepEvidenceClaims(step: RequestFulfillment["steps"][number]) {
+  const evidenceClaims = Array.isArray(step.metadata?.requiredEvidenceClaims)
+    ? step.metadata.requiredEvidenceClaims
+        .filter((claim): claim is string => typeof claim === "string")
+        .map((claim) => formatLabel(claim))
+    : [];
+
+  if (evidenceClaims.length === 0) {
+    return "";
+  }
+
+  return evidenceClaims.join(", ");
+}
+
 function formatLabel(value: string) {
   return value.replace(/_/g, " ");
 }
@@ -1424,21 +1705,6 @@ function describeWorkerSummary(fulfillment: RequestFulfillment) {
   }
 
   return `${leadLabel} is the active worker on this request.`;
-}
-
-function getActiveRouteMeta(
-  fulfillment: RequestFulfillment,
-  activeRouteSupply: BorealSupplyDraft | null
-) {
-  if (fulfillment.supplyId) {
-    return `${getOwnedSupplyLabel(activeRouteSupply)} active`;
-  }
-
-  if (fulfillment.lead.kind === "runtime") {
-    return "Desktop runtime active";
-  }
-
-  return `${formatLabel(fulfillment.lead.kind)} route active`;
 }
 
 function getRouteSummaryValue({

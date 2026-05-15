@@ -110,6 +110,7 @@ export function ChatShell() {
   );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isStartingRequest, setIsStartingRequest] = useState(false);
+  const [isOpeningDraftRequest, setIsOpeningDraftRequest] = useState(false);
   const [isOpenRequestChatVisible, setIsOpenRequestChatVisible] = useState(false);
   const [isResolvingDeliveredRequest, setIsResolvingDeliveredRequest] =
     useState(false);
@@ -237,14 +238,22 @@ export function ChatShell() {
       return;
     }
 
-    setArtifact((currentArtifact) => ({
-      ...currentArtifact,
-      documentId: activeRequest.documentId,
-      title: activeRequest.brief.title?.trim() || "Untitled request",
-      kind: "code",
-      isVisible: true,
-      status: "idle",
-    }));
+    setArtifact((currentArtifact) =>
+      currentArtifact.isVisible &&
+      currentArtifact.documentId === activeRequest.documentId
+        ? {
+            ...currentArtifact,
+            isVisible: false,
+          }
+        : {
+            ...currentArtifact,
+            documentId: activeRequest.documentId,
+            title: activeRequest.brief.title?.trim() || "Untitled request",
+            kind: "code",
+            isVisible: true,
+            status: "idle",
+          }
+    );
   };
 
   const handleCreateRequest = async () => {
@@ -308,6 +317,16 @@ export function ChatShell() {
     }
   };
 
+  const handleOpenRequest = async () => {
+    setIsOpeningDraftRequest(true);
+
+    try {
+      await openRequest();
+    } finally {
+      setIsOpeningDraftRequest(false);
+    }
+  };
+
   return (
     <>
       <div className="flex h-dvh w-full flex-row overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.22)_100%)]">
@@ -328,13 +347,11 @@ export function ChatShell() {
 
           <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/96 md:rounded-none md:rounded-tl-[28px] md:border md:border-border/60 md:shadow-[0_18px_55px_rgba(15,23,42,0.05)]">
             <RequestBriefingPanel
-              isArtifactVisible={isArtifactVisible}
+              isLoading={isLoading}
               isReadonly={isReadonly}
               isRequestMode={isRequestMode}
               isStartingRequest={isStartingRequest}
-              onOpenDocument={openRequestDocument}
               onSaveDraft={saveRequestDraft}
-              onOpenRequest={openRequest}
               onSetRequestPromptOptimizerEnabled={
                 setRequestPromptOptimizerEnabled
               }
@@ -364,7 +381,10 @@ export function ChatShell() {
                 isReadonly={isReadonly}
                 isRequestMode={isRequestMode}
                 messages={messages}
+                request={activeRequest}
                 requestStatus={activeRequest?.status ?? null}
+                isOpeningDraftPlan={isOpeningDraftRequest}
+                onApproveDraftPlan={handleOpenRequest}
                 onEditMessage={(msg) => {
                   const text = msg.parts
                     ?.filter((p) => p.type === "text")
@@ -381,15 +401,22 @@ export function ChatShell() {
               />
             )}
 
-            {isOpenedRequest ? (
+            {activeRequest ? (
               <div className="pointer-events-none absolute right-4 bottom-4 z-20 flex flex-col gap-2">
                 <button
-                  className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-float)] transition-transform duration-200 hover:scale-[1.02]"
+                  aria-pressed={isArtifactVisible}
+                  className={cn(
+                    "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/50 shadow-[var(--shadow-float)] backdrop-blur transition-transform duration-200 hover:scale-[1.02]",
+                    isArtifactVisible
+                      ? "bg-accent text-accent-foreground"
+                      : "bg-card/95 text-foreground"
+                  )}
                   onClick={openRequestDocument}
                   type="button"
                 >
                   <BracesIcon className="size-4" />
                 </button>
+                {isOpenedRequest ? (
                 <button
                   aria-pressed={isOpenRequestChatVisible}
                   className={cn(
@@ -403,6 +430,7 @@ export function ChatShell() {
                 >
                   <MessageSquareIcon className="size-4" />
                 </button>
+                ) : null}
               </div>
             ) : null}
 
@@ -518,6 +546,7 @@ export function ChatShell() {
                   isReadonly={isReadonly}
                   isRequestMode={isRequestMode}
                   messages={messages}
+                  request={activeRequest}
                   requestStatus={activeRequest?.status ?? null}
                   onEditMessage={(msg) => {
                     const text = msg.parts

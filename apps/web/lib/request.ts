@@ -872,7 +872,7 @@ export function applyRequestPatch(
   patch: RequestPatch,
   updatedAt: string
 ): BorealRequestDraft {
-  const nextBrief: RequestBrief = {
+  const nextBrief = normalizeRequestBrief({
     ...currentDraft.brief,
     ...patch.brief,
     constraints:
@@ -887,7 +887,7 @@ export function applyRequestPatch(
       patch.brief?.tags === undefined
         ? (currentDraft.brief.tags ?? [])
         : patch.brief.tags,
-  };
+  });
   const nextSeeking = normalizeSeeking({
     ...currentDraft.seeking,
     ...patch.seeking,
@@ -921,7 +921,7 @@ export function applyRequestPatch(
     }),
     latest: normalizeLatest(patch.latest ?? currentDraft.latest),
     updatedAt,
-    key: slugifyRequestKey(nextBrief.title, currentDraft.id),
+    key: slugifyRequestKey(nextBrief.title || nextBrief.body, currentDraft.id),
     derived: {
       ...currentDraft.derived,
       ...patch.derived,
@@ -945,10 +945,6 @@ export function deriveRequestState(
   >
 ): RequestDerived {
   const missingDetails: string[] = [];
-
-  if (!hasText(draft.brief.title)) {
-    missingDetails.push("title");
-  }
 
   if (!hasText(draft.brief.body)) {
     missingDetails.push("body");
@@ -974,8 +970,7 @@ export function deriveRequestState(
   const structuralPlanning = deriveStructuralPlanningState(draft, embodiedPlanning);
   missingDetails.push(...embodiedPlanning.missingDetails);
 
-  const hasBriefCore =
-    hasText(draft.brief.title) && hasText(draft.brief.body);
+  const hasBriefCore = hasText(draft.brief.body);
   const hasRouteReadiness =
     hasText(draft.derived.routeFamily) && hasText(draft.derived.routeSummary);
   const hasEmbodiedBlockingGaps = embodiedPlanning.missingDetails.length > 0;
@@ -1006,7 +1001,7 @@ export function deriveRequestState(
     : {
         state: "collecting_brief",
         summary:
-          "Keep briefing the request. Boreal still needs the core title and body.",
+          "Keep briefing the request. Boreal still needs the core ask in the brief body.",
         readyForOpen: false,
         readyForMatch: false,
       };
@@ -1094,7 +1089,8 @@ export function extractEditableRequestPatchFromContent(
 }
 
 export function getRequestTitle(draft: Pick<BorealRequestDraft, "brief">) {
-  return normalizeText(draft.brief.title) || "Untitled request";
+  const normalizedBrief = normalizeRequestBrief(draft.brief);
+  return normalizedBrief.title || "Untitled request";
 }
 
 export function slugifyRequestKey(title: string | undefined, id: string): string {
@@ -1143,8 +1139,8 @@ function deriveEmbodiedPlanningState(
   );
   const requiresWitness = getConstraintBoolean(constraints, "requiresWitness");
   const requiresWitnessResolved = requiresWitness === true;
-  const serviceLocation = getConstraintText(constraints, "serviceLocation");
-  const timeWindows = getConstraintStringArray(constraints, "timeWindows");
+  const explicitServiceLocation = getConstraintText(constraints, "serviceLocation");
+  const explicitTimeWindows = getConstraintStringArray(constraints, "timeWindows");
   const accessRequirements = getConstraintStringArray(
     constraints,
     "accessRequirements"
@@ -1153,11 +1149,21 @@ function deriveEmbodiedPlanningState(
     constraints,
     "safetyRequirements"
   );
-  const verificationRequirements = getConstraintStringArray(
+  const explicitVerificationRequirements = getConstraintStringArray(
     constraints,
     "verificationRequirements"
   );
   const inferredEmbodiedModes = inferExecutionModes(requestText);
+  const serviceLocation =
+    explicitServiceLocation ?? inferServiceLocation(requestText);
+  const timeWindows =
+    explicitTimeWindows.length > 0
+      ? explicitTimeWindows
+      : inferTimeWindows(requestText);
+  const verificationRequirements =
+    explicitVerificationRequirements.length > 0
+      ? explicitVerificationRequirements
+      : inferVerificationRequirements(requestText);
   const explicitEmbodiedMode = executionModes.some(isEmbodiedExecutionMode);
   const inferredEmbodiedMode = inferredEmbodiedModes.some(
     isEmbodiedExecutionMode
@@ -1859,17 +1865,91 @@ function formatPlanningLabel(value: string): string {
     .join(" ");
 }
 
-function normalizeEditableBrief(
-  brief: z.infer<typeof requestBriefSchema> | undefined
+export function normalizeRequestBrief(
+  brief: Partial<RequestBrief> | undefined
 ): RequestBrief {
+  const title = normalizeText(brief?.title);
+  const summary = normalizeText(brief?.summary);
+  const body = normalizeText(brief?.body);
+  const normalizedTitle = title || deriveRequestTitleFromBody(body);
+  const normalizedSummary =
+    summary || deriveRequestSummaryFromBody(body, normalizedTitle);
+
   return {
-    title: normalizeText(brief?.title),
-    summary: normalizeText(brief?.summary),
-    body: normalizeText(brief?.body),
+    title: normalizedTitle,
+    summary: normalizedSummary,
+    body,
     constraints: normalizeRecord(brief?.constraints),
     outputKinds: normalizeStringArray(brief?.outputKinds),
     tags: normalizeStringArray(brief?.tags),
   };
+}
+
+function normalizeEditableBrief(
+  brief: z.infer<typeof requestBriefSchema> | undefined
+): RequestBrief {
+  return normalizeRequestBrief(brief);
+}
+
+function deriveRequestTitleFromBody(body: string) {
+  const normalizedBody = normalizeWhitespace(body);
+  if (!normalizedBody) {
+    return "";
+  }
+
+  const firstSentence = normalizedBody.split(/[\n.!?]/)[0]?.trim() ?? "";
+  let candidate = firstSentence
+    .replace(
+      /^(please\s+|can you\s+|could you\s+|would you\s+|help me\s+|make me\s+|make us\s+|i need\s+|we need\s+|i want\s+|we want\s+)/i,
+      ""
+    )
+    .trim();
+
+  if (!candidate) {
+    candidate = firstSentence;
+  }
+
+  const words = candidate.split(/\s+/).filter(Boolean);
+  const shortened =
+    words.length > 10 ? `${words.slice(0, 10).join(" ")}…` : candidate;
+
+  return capitalizeSentence(shortened);
+}
+
+function deriveRequestSummaryFromBody(body: string, title: string) {
+  const normalizedBody = normalizeWhitespace(body);
+  if (!normalizedBody) {
+    return "";
+  }
+
+  if (normalizedBody.length <= 180) {
+    return normalizedBody;
+  }
+
+  const firstSentenceMatch = normalizedBody.match(/^(.+?[.!?])(?:\s|$)/);
+  const firstSentence = firstSentenceMatch?.[1]?.trim() ?? "";
+
+  if (
+    firstSentence &&
+    firstSentence.length <= 180 &&
+    firstSentence.toLowerCase() !== title.toLowerCase()
+  ) {
+    return firstSentence;
+  }
+
+  return `${normalizedBody.slice(0, 177).trimEnd()}…`;
+}
+
+function normalizeWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function capitalizeSentence(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
 function getConstraintBoolean(
@@ -1918,7 +1998,15 @@ function inferExecutionModes(text: string): RequestExecutionMode[] {
   }
 
   if (
-    /\bon[-\s]?site\b|\bsite visit\b|\bin person\b|\bin-person\b/.test(
+      /\bon[-\s]?site\b|\bsite visit\b|\bin person\b|\bin-person\b/.test(
+        normalizedText
+      )
+  ) {
+    inferredModes.add("onsite_visit");
+  }
+
+  if (
+    /\bvisit\b.*\b(site|store|kiosk|office|property|venue|branch|location)\b/.test(
       normalizedText
     )
   ) {
@@ -1926,9 +2014,18 @@ function inferExecutionModes(text: string): RequestExecutionMode[] {
   }
 
   if (
-    /\binspect(?:ion)?\b|\bfield audit\b|\binventory audit\b|\bcount inventory\b/.test(
+      /\binspect(?:ion)?\b|\bfield audit\b|\binventory audit\b|\bcount inventory\b/.test(
+        normalizedText
+      )
+  ) {
+    inferredModes.add("field_inspection");
+  }
+
+  if (
+    /\b(verify|confirm|check)\b.*\b(installed|signage|setup|condition|display)\b/.test(
       normalizedText
-    )
+    ) ||
+    /\btimestamp(?:ed)? photo|\bphotos?\b|\bvideo proof\b/.test(normalizedText)
   ) {
     inferredModes.add("field_inspection");
   }
@@ -1942,6 +2039,74 @@ function inferExecutionModes(text: string): RequestExecutionMode[] {
   }
 
   return Array.from(inferredModes);
+}
+
+function inferServiceLocation(text: string): string | undefined {
+  const normalizedText = text.replace(/\s+/g, " ").trim();
+  const patterns = [
+    /\blocal in\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2})\b/,
+    /\bin\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2})\s+(?:to|for|before|after|tomorrow|today|this|on)\b/,
+    /\bin\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2})(?=,|\.|$)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = normalizedText.match(pattern);
+    const location = match?.[1]?.trim();
+    if (location) {
+      return location;
+    }
+  }
+
+  return undefined;
+}
+
+function inferTimeWindows(text: string): string[] {
+  const normalizedText = text.replace(/\s+/g, " ").trim();
+  const matches: string[] = [];
+  const patterns = [
+    /\b(tomorrow before\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i,
+    /\b(today before\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i,
+    /\b(this\s+[A-Za-z]+\s+\d{1,2})\b/i,
+    /\b(on\s+[A-Za-z]+\s+\d{1,2})\b/i,
+    /\b(by\s+[A-Za-z]+\s+\d{1,2})\b/i,
+    /\b(tomorrow)\b/i,
+    /\b(today)\b/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = normalizedText.match(pattern);
+    const value = match?.[1]?.trim();
+    if (value && !matches.includes(value)) {
+      matches.push(value);
+    }
+  }
+
+  return matches;
+}
+
+function inferVerificationRequirements(text: string): string[] {
+  const normalizedText = text.toLowerCase();
+  const requirements = new Set<string>();
+
+  if (/\btimestamp(?:ed)? photos?\b/.test(normalizedText)) {
+    requirements.add("timestamped_photos");
+  } else if (/\bphotos?\b|\bphoto proof\b/.test(normalizedText)) {
+    requirements.add("photo_evidence");
+  }
+
+  if (/\bvideo proof\b|\bvideo\b/.test(normalizedText)) {
+    requirements.add("video_evidence");
+  }
+
+  if (/\bwritten report\b|\breport\b/.test(normalizedText)) {
+    requirements.add("written_report");
+  }
+
+  if (/\bissues?\b/.test(normalizedText)) {
+    requirements.add("issue_log");
+  }
+
+  return Array.from(requirements);
 }
 
 function isEmbodiedExecutionMode(mode: RequestExecutionMode): boolean {

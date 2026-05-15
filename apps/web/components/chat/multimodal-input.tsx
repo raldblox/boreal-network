@@ -506,6 +506,7 @@ function PureMultimodalInput({
         messages.length === 0 &&
         attachments.length === 0 &&
         uploadQueue.length === 0 &&
+        !isRequestMode &&
         !isOpenedRequest && (
           <SuggestedActions
             chatId={chatId}
@@ -596,7 +597,7 @@ function PureMultimodalInput({
         <PromptInputTextarea
           className={cn(
             "px-4 pb-1.5 pt-4 text-[13px] leading-7 placeholder:text-muted-foreground/35",
-            isOpenedRequest ? "min-h-16" : "min-h-24"
+            isRequestMode || isOpenedRequest ? "min-h-16" : "min-h-24"
           )}
           data-testid="multimodal-input"
           onChange={handleInput}
@@ -637,7 +638,7 @@ function PureMultimodalInput({
             editingMessage
               ? "Edit your message..."
               : activeRequest?.status === "draft"
-                ? "Brief the request. Add the ask, budget, deadline, constraints, or deliverables..."
+                ? "Describe the request..."
                 : activeRequest
                   ? "Post an update, change request details, or ask what should happen next..."
                   : isRequestMode

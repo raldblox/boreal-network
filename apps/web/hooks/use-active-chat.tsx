@@ -871,7 +871,10 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to create request");
+        const error = await response.json().catch(() => null);
+        throw new Error(
+          error?.cause || error?.message || "Failed to create request"
+        );
       }
 
       const data = (await response.json()) as {
@@ -896,10 +899,13 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       mutate(unstable_serialize(getRequestHistoryPaginationKey));
 
       return data.request;
-    } catch (_error) {
+    } catch (error) {
       toast({
         type: "error",
-        description: "Failed to start a new request.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to start a new request.",
       });
       return null;
     }

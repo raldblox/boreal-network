@@ -5,6 +5,7 @@ import {
   getRequestByChatId,
   getRequestById,
   getRequestsByUserId,
+  getUserById,
   toRequestDraft,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
@@ -125,6 +126,14 @@ export async function POST(request: Request) {
   const actor = await getRequestActorContext(request);
   if (!actor || actor.kind !== "session") {
     return new ChatbotError("unauthorized:chat").toResponse();
+  }
+
+  const existingUser = await getUserById({ id: actor.userId });
+  if (!existingUser) {
+    return new ChatbotError(
+      "unauthorized:auth",
+      "Your local session points to a deleted user record. Sign out, then sign in again."
+    ).toResponse();
   }
 
   let body: z.infer<typeof createRequestSchema>;

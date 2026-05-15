@@ -29,9 +29,11 @@ export const updateRequestConstraints = ({
     inputSchema: z.object({
       constraints: z.record(z.string(), z.unknown()).default({}),
       embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
-      outputKinds: z.array(z.string().min(1)).optional(),
+      outputKinds: z
+        .union([z.string().min(1), z.array(z.string().min(1))])
+        .optional(),
       seeking: requestSeekingInputSchema.optional(),
-      tags: z.array(z.string().min(1)).optional(),
+      tags: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
     }),
     execute: async ({
       constraints,
@@ -51,10 +53,13 @@ export const updateRequestConstraints = ({
               constraints,
               embodiedConstraints,
             }),
-            outputKinds,
-            tags,
+            outputKinds:
+              typeof outputKinds === "string" ? [outputKinds] : outputKinds,
+            tags: typeof tags === "string" ? [tags] : tags,
           },
-          ...(seeking !== undefined ? { seeking } : {}),
+          ...(seeking !== undefined
+            ? { seeking: seeking as any }
+            : {}),
         },
       }),
   });

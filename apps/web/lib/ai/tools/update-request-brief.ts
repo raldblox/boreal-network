@@ -29,12 +29,14 @@ export const updateRequestBrief = ({
     description:
       "Update the live Request object with explicit title, body, optional summary, or same-turn structured briefing details like budget, deadline, execution mode, location, access, or proof requirements. Prefer this for freeform user asks. If the user only gave one raw work description, update body with that explicit wording and leave unknown fields untouched instead of manufacturing extra fields.",
     inputSchema: z.object({
-      title: z.string().min(1).max(200).optional(),
-      summary: z.string().min(1).max(1000).optional(),
-      body: z.string().min(1).optional(),
+      title: z.string().max(200).optional(),
+      summary: z.string().max(1000).optional(),
+      body: z.string().optional(),
       constraints: z.record(z.string(), z.unknown()).optional(),
       embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
-      outputKinds: z.array(z.string().min(1)).optional(),
+      outputKinds: z
+        .union([z.string().min(1), z.array(z.string().min(1))])
+        .optional(),
       seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
       deadline: requestDeadlineInputSchema.optional(),
@@ -56,19 +58,62 @@ export const updateRequestBrief = ({
         chatId,
         visibility,
         patch: {
-          brief: {
+          brief: buildUpdateRequestBriefPayload({
             title,
             summary,
             body,
-            constraints: mergeRequestConstraintInputs({
-              constraints,
-              embodiedConstraints,
-            }),
+            constraints,
+            embodiedConstraints,
             outputKinds,
-          },
-          ...(seeking !== undefined ? { seeking } : {}),
-          ...(budget !== undefined ? { budget } : {}),
-          ...(deadline !== undefined ? { deadline } : {}),
+          }),
+          ...(seeking !== undefined
+            ? { seeking: seeking as any }
+            : {}),
+          ...(budget !== undefined ? { budget: budget as any } : {}),
+          ...(deadline !== undefined
+            ? { deadline: deadline as any }
+            : {}),
         },
       }),
   });
+
+function normalizeOptionalText(value: string | undefined) {
+  const normalized = value?.trim();
+  return normalized ? normalized : undefined;
+}
+
+function buildUpdateRequestBriefPayload({
+  title,
+  summary,
+  body,
+  constraints,
+  embodiedConstraints,
+  outputKinds,
+}: {
+  title: string | undefined;
+  summary: string | undefined;
+  body: string | undefined;
+  constraints: Record<string, unknown> | undefined;
+  embodiedConstraints: z.infer<typeof requestEmbodiedConstraintInputSchema> | undefined;
+  outputKinds: string | string[] | undefined;
+}) {
+  const normalizedTitle = normalizeOptionalText(title);
+  const normalizedSummary = normalizeOptionalText(summary);
+  const normalizedBody = normalizeOptionalText(body);
+  const mergedConstraints = mergeRequestConstraintInputs({
+    constraints,
+    embodiedConstraints,
+  });
+  const normalizedOutputKinds =
+    typeof outputKinds === "string" ? [outputKinds] : outputKinds;
+
+  return {
+    ...(normalizedTitle ? { title: normalizedTitle } : {}),
+    ...(normalizedSummary ? { summary: normalizedSummary } : {}),
+    ...(normalizedBody ? { body: normalizedBody } : {}),
+    ...(mergedConstraints ? { constraints: mergedConstraints } : {}),
+    ...(normalizedOutputKinds !== undefined
+      ? { outputKinds: normalizedOutputKinds }
+      : {}),
+  };
+}
