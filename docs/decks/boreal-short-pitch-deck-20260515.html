@@ -20,13 +20,13 @@
       --danger: #ff6f87;
       --danger-dim: rgba(255, 111, 135, 0.12);
       --shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
-      --hero: 90px;
-      --h1: 64px;
-      --h2: 36px;
-      --h3: 24px;
-      --body: 21px;
-      --small: 16px;
-      --tiny: 12px;
+      --hero: 72px;
+      --h1: 50px;
+      --h2: 30px;
+      --h3: 20px;
+      --body: 18px;
+      --small: 14px;
+      --tiny: 11px;
       --radius: 22px;
       --ease: cubic-bezier(0.16, 1, 0.3, 1);
       --sans: "Segoe UI Variable", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
@@ -59,8 +59,8 @@
       inset: 0;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      padding: 62px 82px 92px;
+      justify-content: flex-start;
+      padding: 46px 64px 76px;
       opacity: 0;
       pointer-events: none;
       background:
@@ -76,7 +76,7 @@
       position: absolute;
       top: 24px;
       bottom: 24px;
-      width: 156px;
+      width: 112px;
       pointer-events: none;
       border: 1px solid rgba(255, 255, 255, 0.04);
       opacity: 0.7;
@@ -140,7 +140,7 @@
       line-height: 0.96;
       letter-spacing: -3px;
       font-weight: 700;
-      max-width: 1160px;
+      max-width: 1040px;
     }
 
     .h1 {
@@ -149,7 +149,7 @@
       line-height: 1;
       letter-spacing: -2px;
       font-weight: 700;
-      max-width: 1120px;
+      max-width: 980px;
     }
 
     .h2 {
@@ -285,7 +285,7 @@
     .statement {
       max-width: 1120px;
       font-family: var(--mono);
-      font-size: 50px;
+      font-size: 38px;
       line-height: 1.04;
       letter-spacing: -2px;
       font-weight: 700;
@@ -293,7 +293,7 @@
 
     .mega-number {
       font-family: var(--mono);
-      font-size: 62px;
+      font-size: 50px;
       line-height: 1;
       letter-spacing: -2px;
       color: var(--accent);
@@ -307,7 +307,7 @@
     }
 
     .flow-step {
-      min-height: 128px;
+      min-height: 102px;
       border-radius: 18px;
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.03);
@@ -342,7 +342,7 @@
     .check {
       position: relative;
       padding-left: 18px;
-      font-size: 18px;
+      font-size: 16px;
       line-height: 1.35;
       color: var(--text-soft);
     }
@@ -367,9 +367,9 @@
 
     .hero-visual {
       position: relative;
-      min-height: 440px;
+      min-height: 340px;
       border: 1px solid var(--border);
-      border-radius: 30px;
+      border-radius: 24px;
       background:
         radial-gradient(circle at 22% 24%, rgba(137,255,123,0.16), transparent 24%),
         radial-gradient(circle at 78% 76%, rgba(255,216,77,0.08), transparent 26%),
@@ -381,9 +381,9 @@
     .hero-visual::before {
       content: "";
       position: absolute;
-      inset: 22px;
+      inset: 16px;
       border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 24px;
+      border-radius: 18px;
       pointer-events: none;
     }
 
@@ -395,26 +395,26 @@
     }
 
     .orb-a {
-      width: 140px;
-      height: 140px;
-      left: -30px;
-      top: -26px;
+      width: 110px;
+      height: 110px;
+      left: -22px;
+      top: -20px;
       background: rgba(137,255,123,0.18);
     }
 
     .orb-b {
-      width: 110px;
-      height: 110px;
-      right: -14px;
-      bottom: 14px;
+      width: 90px;
+      height: 90px;
+      right: -10px;
+      bottom: 10px;
       background: rgba(255,216,77,0.12);
     }
 
     .visual-window {
       position: absolute;
       border: 1px solid rgba(255,255,255,0.09);
-      border-radius: 24px;
-      padding: 16px;
+      border-radius: 20px;
+      padding: 12px;
       background: rgba(8, 15, 21, 0.92);
       box-shadow: 0 18px 50px rgba(0,0,0,0.28);
     }
@@ -422,7 +422,7 @@
     .window-top {
       display: flex;
       gap: 6px;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
 
     .window-top span {
@@ -433,10 +433,10 @@
     }
 
     .window-line {
-      height: 10px;
+      height: 8px;
       border-radius: 999px;
       background: rgba(255,255,255,0.08);
-      margin-top: 8px;
+      margin-top: 6px;
     }
 
     .window-line.wide { width: 88%; }
@@ -445,25 +445,25 @@
     .window-line.accent-line { background: rgba(137,255,123,0.2); }
 
     .window-chat {
-      left: 34px;
-      top: 42px;
-      width: 236px;
+      left: 24px;
+      top: 28px;
+      width: 200px;
       transform: rotate(-4deg);
     }
 
     .window-request {
-      left: 174px;
-      top: 132px;
-      width: 286px;
+      left: 126px;
+      top: 98px;
+      width: 236px;
       border-color: var(--border-strong);
       background: rgba(8, 18, 13, 0.94);
       box-shadow: 0 0 34px rgba(137,255,123,0.12);
     }
 
     .window-runtime {
-      right: 34px;
-      bottom: 46px;
-      width: 248px;
+      right: 24px;
+      bottom: 28px;
+      width: 204px;
       transform: rotate(3deg);
     }
 
@@ -477,16 +477,16 @@
 
     .window-value {
       font-family: var(--mono);
-      font-size: 24px;
+      font-size: 18px;
       line-height: 1.15;
-      margin-top: 10px;
+      margin-top: 8px;
     }
 
     .hero-spine {
       position: absolute;
-      left: 300px;
-      top: 92px;
-      bottom: 92px;
+      left: 246px;
+      top: 76px;
+      bottom: 70px;
       width: 2px;
       background: linear-gradient(180deg, rgba(137,255,123,0), rgba(137,255,123,0.9), rgba(137,255,123,0));
       box-shadow: 0 0 18px rgba(137,255,123,0.2);
@@ -494,31 +494,31 @@
 
     .thread-node {
       position: absolute;
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 999px;
       background: var(--accent);
       box-shadow: 0 0 14px rgba(137,255,123,0.42);
-      left: 294px;
+      left: 240px;
     }
 
-    .node-top { top: 132px; }
-    .node-mid { top: 224px; }
-    .node-low { top: 316px; }
+    .node-top { top: 104px; }
+    .node-mid { top: 176px; }
+    .node-low { top: 248px; }
 
     .thread-break-stage {
       display: grid;
       grid-template-columns: 0.86fr 0.24fr 1.1fr;
       gap: 18px;
       align-items: center;
-      min-height: 360px;
+      min-height: 270px;
     }
 
     .stage-frame {
       position: relative;
-      min-height: 320px;
+      min-height: 230px;
       border: 1px solid var(--border);
-      border-radius: 28px;
+      border-radius: 22px;
       background: linear-gradient(180deg, rgba(8, 14, 20, 0.96), rgba(5, 10, 14, 0.98));
       box-shadow: var(--shadow);
       overflow: hidden;
@@ -527,26 +527,26 @@
     .stage-frame::before {
       content: "";
       position: absolute;
-      inset: 18px;
+      inset: 14px;
       border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 22px;
+      border-radius: 16px;
       pointer-events: none;
     }
 
     .chat-thread {
       position: absolute;
-      left: 24px;
-      right: 24px;
-      top: 34px;
+      left: 18px;
+      right: 18px;
+      top: 22px;
       display: grid;
-      gap: 12px;
+      gap: 10px;
     }
 
     .bubble {
       max-width: 78%;
-      padding: 12px 14px;
-      border-radius: 18px;
-      font-size: 16px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      font-size: 14px;
       line-height: 1.35;
       color: var(--text-soft);
       background: rgba(255,255,255,0.05);
@@ -565,7 +565,7 @@
 
     .break-axis {
       position: relative;
-      min-height: 280px;
+      min-height: 220px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -574,7 +574,7 @@
     .fracture {
       position: relative;
       width: 100%;
-      height: 180px;
+      height: 140px;
     }
 
     .fracture::before,
@@ -596,7 +596,7 @@
       top: 50%;
       transform: translate(-50%, -50%);
       font-family: var(--mono);
-      font-size: 48px;
+      font-size: 36px;
       color: var(--danger);
       text-shadow: 0 0 20px rgba(255,111,135,0.3);
     }
@@ -604,7 +604,7 @@
     .fracture-label {
       position: absolute;
       left: 50%;
-      top: calc(50% + 42px);
+      top: calc(50% + 28px);
       transform: translateX(-50%);
       font-family: var(--mono);
       font-size: 11px;
@@ -616,20 +616,20 @@
 
     .scatter-cloud {
       position: absolute;
-      inset: 24px;
+      inset: 18px;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
       align-content: center;
     }
 
     .scatter-card {
-      padding: 16px 14px;
-      border-radius: 18px;
+      padding: 12px 10px;
+      border-radius: 14px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.03);
       font-family: var(--mono);
-      font-size: 15px;
+      font-size: 13px;
       line-height: 1.35;
       color: var(--text-soft);
       box-shadow: 0 12px 28px rgba(0,0,0,0.16);
@@ -647,7 +647,7 @@
       grid-template-columns: 0.86fr 0.84fr 0.9fr;
       gap: 18px;
       align-items: center;
-      min-height: 350px;
+      min-height: 270px;
     }
 
     .need-stack {
@@ -656,19 +656,19 @@
     }
 
     .need-chip {
-      padding: 16px 18px;
+      padding: 12px 14px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.035);
       font-family: var(--mono);
-      font-size: 15px;
+      font-size: 13px;
       color: var(--text-soft);
       box-shadow: 0 12px 28px rgba(0,0,0,0.16);
     }
 
     .funnel-stage {
       position: relative;
-      min-height: 320px;
+      min-height: 240px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -676,8 +676,8 @@
 
     .funnel-shell {
       position: relative;
-      width: 250px;
-      height: 214px;
+      width: 210px;
+      height: 178px;
       clip-path: polygon(0 0, 100% 0, 70% 58%, 70% 100%, 30% 100%, 30% 58%);
       background: linear-gradient(180deg, rgba(255,111,135,0.18), rgba(255,111,135,0.04));
       border: 1px solid rgba(255,111,135,0.3);
@@ -686,46 +686,46 @@
 
     .funnel-core {
       position: absolute;
-      inset: 16px 16px 22px 16px;
+      inset: 14px 14px 18px 14px;
       clip-path: polygon(0 0, 100% 0, 69% 58%, 69% 100%, 31% 100%, 31% 58%);
       background: linear-gradient(180deg, rgba(21, 10, 14, 0.96), rgba(12, 7, 10, 0.98));
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 16px;
       text-align: center;
       font-family: var(--mono);
-      font-size: 19px;
+      font-size: 16px;
       line-height: 1.28;
       color: var(--text);
     }
 
     .funnel-drop {
       position: absolute;
-      bottom: 30px;
-      width: 18px;
-      height: 70px;
+      bottom: 20px;
+      width: 14px;
+      height: 54px;
       border-radius: 999px;
       background: linear-gradient(180deg, rgba(255,111,135,0.86), rgba(255,111,135,0.06));
       box-shadow: 0 0 16px rgba(255,111,135,0.22);
     }
 
     .output-orb {
-      width: 192px;
-      height: 192px;
+      width: 150px;
+      height: 150px;
       border-radius: 999px;
       border: 1px solid rgba(137,255,123,0.24);
       background: radial-gradient(circle at 50% 40%, rgba(137,255,123,0.18), rgba(9,16,22,0.98) 68%);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 24px;
+      padding: 18px;
       text-align: center;
       font-family: var(--mono);
-      font-size: 24px;
+      font-size: 18px;
       line-height: 1.2;
       box-shadow: 0 0 30px rgba(137,255,123,0.12);
-      margin-bottom: 18px;
+      margin-bottom: 12px;
     }
 
     .runtime-stage {
@@ -733,17 +733,17 @@
       grid-template-columns: 1fr 170px 1fr;
       gap: 18px;
       align-items: center;
-      min-height: 360px;
+      min-height: 280px;
     }
 
     .surface-window {
       position: relative;
-      min-height: 320px;
-      border-radius: 26px;
+      min-height: 240px;
+      border-radius: 22px;
       border: 1px solid var(--border);
       background: linear-gradient(180deg, rgba(8, 15, 21, 0.96), rgba(5, 9, 13, 0.99));
       box-shadow: var(--shadow);
-      padding: 18px;
+      padding: 14px;
       overflow: hidden;
     }
 
@@ -768,8 +768,8 @@
 
     .surface-lines {
       display: grid;
-      gap: 10px;
-      margin-top: 14px;
+      gap: 8px;
+      margin-top: 10px;
     }
 
     .surface-chip {
@@ -789,18 +789,18 @@
     }
 
     .surface-log {
-      padding: 12px 14px;
-      border-radius: 16px;
+      padding: 10px 12px;
+      border-radius: 14px;
       background: rgba(255,255,255,0.035);
       border: 1px solid rgba(255,255,255,0.05);
-      font-size: 15px;
+      font-size: 13px;
       line-height: 1.4;
       color: var(--text-soft);
     }
 
     .runtime-center {
       position: relative;
-      min-height: 320px;
+      min-height: 240px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -818,19 +818,19 @@
     .spine-stack {
       position: relative;
       display: grid;
-      gap: 14px;
+      gap: 12px;
       z-index: 1;
     }
 
     .spine-pill {
-      min-width: 138px;
-      padding: 12px 14px;
+      min-width: 124px;
+      padding: 10px 12px;
       border-radius: 999px;
       border: 1px solid rgba(137,255,123,0.22);
       background: rgba(8, 16, 12, 0.94);
       text-align: center;
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 12px;
       letter-spacing: 1px;
       text-transform: uppercase;
       color: var(--text);
@@ -844,9 +844,9 @@
 
     .graph-stage {
       position: relative;
-      min-height: 360px;
+      min-height: 290px;
       border: 1px solid var(--border);
-      border-radius: 30px;
+      border-radius: 24px;
       background:
         radial-gradient(circle at 50% 50%, rgba(137,255,123,0.08), transparent 24%),
         linear-gradient(180deg, rgba(7, 12, 18, 0.98), rgba(5, 9, 13, 0.99));
@@ -858,8 +858,8 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      width: 184px;
-      height: 184px;
+      width: 146px;
+      height: 146px;
       transform: translate(-50%, -50%);
       border-radius: 999px;
       border: 1px solid rgba(137,255,123,0.26);
@@ -868,9 +868,9 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 24px;
+      padding: 18px;
       font-family: var(--mono);
-      font-size: 24px;
+      font-size: 18px;
       line-height: 1.18;
       box-shadow: 0 0 30px rgba(137,255,123,0.12);
     }
@@ -878,28 +878,155 @@
     .graph-core::before {
       content: "";
       position: absolute;
-      inset: -56px;
+      inset: -42px;
       border: 1px dashed rgba(137,255,123,0.14);
       border-radius: 999px;
     }
 
     .orbit-card {
       position: absolute;
-      width: 220px;
-      padding: 16px 18px;
-      border-radius: 20px;
+      width: 184px;
+      padding: 12px 14px;
+      border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.035);
       box-shadow: 0 16px 40px rgba(0,0,0,0.18);
     }
 
-    .orbit-card.top-left { left: 38px; top: 34px; }
-    .orbit-card.top-right { right: 38px; top: 34px; }
-    .orbit-card.bottom-left { left: 52px; bottom: 34px; }
-    .orbit-card.bottom-right { right: 52px; bottom: 34px; }
+    .orbit-card.top-left { left: 28px; top: 24px; }
+    .orbit-card.top-right { right: 28px; top: 24px; }
+    .orbit-card.bottom-left { left: 36px; bottom: 24px; }
+    .orbit-card.bottom-right { right: 36px; bottom: 24px; }
 
     .orbit-card .tiny {
       color: var(--accent);
+    }
+
+    .lead-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 22px;
+    }
+
+    .lead-pill {
+      padding: 14px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(137,255,123,0.18);
+      background: rgba(8, 16, 12, 0.78);
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+    }
+
+    .lead-pill.primary {
+      background: rgba(137,255,123,0.12);
+      color: var(--accent);
+      border-color: rgba(137,255,123,0.3);
+    }
+
+    .default-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .default-card {
+      position: relative;
+      min-height: 226px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(9, 15, 21, 0.96), rgba(5, 10, 14, 0.98));
+      padding: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .default-card.strong-card {
+      border-color: rgba(137,255,123,0.28);
+      background: linear-gradient(180deg, rgba(8, 18, 13, 0.96), rgba(6, 11, 9, 0.98));
+    }
+
+    .default-path {
+      margin-top: 14px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .default-node {
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.035);
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--text-soft);
+    }
+
+    .default-node.root-node {
+      border-color: rgba(137,255,123,0.22);
+      background: rgba(137,255,123,0.1);
+      color: var(--text);
+    }
+
+    .default-arrow {
+      text-align: center;
+      font-family: var(--mono);
+      color: var(--text-muted);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .default-fail {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 16px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--text-soft);
+    }
+
+    .proof-contrast {
+      display: grid;
+      grid-template-columns: 1fr 110px 1fr;
+      gap: 14px;
+      align-items: center;
+      margin-top: 26px;
+    }
+
+    .proof-card {
+      padding: 14px 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.035);
+      min-height: 120px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.16);
+    }
+
+    .proof-card.weak-proof {
+      border-color: rgba(255,111,135,0.22);
+      background: rgba(255,111,135,0.07);
+    }
+
+    .proof-card.strong-proof {
+      border-color: rgba(137,255,123,0.22);
+      background: rgba(137,255,123,0.08);
+    }
+
+    .proof-mark {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 40px;
+      color: var(--danger);
+      text-shadow: 0 0 20px rgba(255,111,135,0.24);
     }
 
     .notes {
@@ -975,11 +1102,14 @@
     }
 
     @media (max-width: 1320px) {
-      .slide { padding: 52px 56px 92px; }
+      .slide { padding: 40px 44px 72px; }
       .notes { left: 56px; right: 56px; }
-      .hero { font-size: 74px; }
-      .h1 { font-size: 52px; }
-      .body { font-size: 19px; }
+      .hero { font-size: 62px; }
+      .h1 { font-size: 42px; }
+      .body { font-size: 17px; }
+      .default-grid,
+      .lead-strip,
+      .proof-contrast { grid-template-columns: 1fr; }
       .cover-grid,
       .split,
       .thread-break-stage,
@@ -1195,34 +1325,60 @@
           <div class="small">Payment and payout close the loop.</div>
         </div>
       </div>
+      <div class="lead-strip animate">
+        <div class="lead-pill primary">Lead route first</div>
+        <div class="lead-pill">Plan second</div>
+        <div class="lead-pill">Decompose only when needed</div>
+      </div>
       <div class="notes">
         This is the core product slide. Simple and mechanical.
       </div>
     </section>
 
     <section class="slide alt">
-      <div class="eyebrow animate">05 / Why This Wins</div>
-      <div class="h1 animate mt-20">Request-rooted beats listing-rooted and chat-only.</div>
+      <div class="eyebrow animate">05 / Weak Defaults</div>
+      <div class="h1 animate mt-20">Most systems start from the wrong root.</div>
       <div class="rule animate mt-24"></div>
-      <div class="triple animate mt-32">
-        <div class="panel strong">
-          <div class="tiny">Continuity</div>
-          <div class="h3 mt-12">One request survives the lifecycle.</div>
-          <p class="small mt-12">The system does not fork work into disconnected flows.</p>
+      <div class="default-grid animate mt-32">
+        <div class="default-card">
+          <div class="tiny">Chat-first</div>
+          <div class="default-path">
+            <div class="default-node root-node">Conversation thread</div>
+            <div class="default-arrow">↓</div>
+            <div class="default-node">Implicit work state</div>
+          </div>
+          <div class="default-fail"><span class="danger">Fails:</span> approval, proof, and payment stay weak.</div>
         </div>
-        <div class="panel">
-          <div class="tiny">Commercial truth</div>
-          <div class="h3 mt-12">Approval, proof, and money stay first-class.</div>
-          <p class="small mt-12">Not hidden inside chat messages or side tools.</p>
+        <div class="default-card">
+          <div class="tiny">Listing-first</div>
+          <div class="default-path">
+            <div class="default-node root-node">Supply listing</div>
+            <div class="default-arrow">↓</div>
+            <div class="default-node">Buyer must already know the job</div>
+          </div>
+          <div class="default-fail"><span class="danger">Fails:</span> ambiguous demand gets forced into premature scope.</div>
         </div>
-        <div class="panel strong">
-          <div class="tiny">Mixed fulfillment</div>
-          <div class="h3 mt-12">Human and AI work on the same thread.</div>
-          <p class="small mt-12">The system resists false completion by design.</p>
+        <div class="default-card">
+          <div class="tiny">Tool-first</div>
+          <div class="default-path">
+            <div class="default-node root-node">Callable step</div>
+            <div class="default-arrow">↓</div>
+            <div class="default-node">Digital-only plan</div>
+          </div>
+          <div class="default-fail"><span class="danger">Fails:</span> non-digital or access-constrained work disappears.</div>
+        </div>
+        <div class="default-card strong-card">
+          <div class="tiny">Request-rooted</div>
+          <div class="default-path">
+            <div class="default-node root-node">Durable request thread</div>
+            <div class="default-arrow">↓</div>
+            <div class="default-node">Commitment, fulfillment, proof, payout</div>
+          </div>
+          <div class="default-fail"><span class="accent">Wins:</span> continuity stays intact across the whole work lifecycle.</div>
         </div>
       </div>
       <div class="notes">
-        This folds product thesis and competitive contrast into one cleaner slide.
+        This comes straight from the paper: weak defaults versus request-rooted correction.
       </div>
     </section>
 
@@ -1290,6 +1446,19 @@
             <div class="surface-log">Direct fulfillment and artifact lanes.</div>
             <div class="surface-log">Local execution without becoming the system of record.</div>
           </div>
+        </div>
+      </div>
+      <div class="proof-contrast animate">
+        <div class="proof-card weak-proof">
+          <div class="tiny">Narrative closure</div>
+          <div class="h3 mt-12">“Inspection completed.”</div>
+          <p class="small mt-12">A summary or checklist can look convincing without proving the work happened.</p>
+        </div>
+        <div class="proof-mark">≠</div>
+        <div class="proof-card strong-proof">
+          <div class="tiny">Execution proof</div>
+          <div class="h3 mt-12">Artifact matched to the job.</div>
+          <p class="small mt-12">Photo, signature, access log, receipt, or delivery evidence appropriate to the execution mode.</p>
         </div>
       </div>
       <p class="body animate mt-32" style="max-width: 1060px;">
