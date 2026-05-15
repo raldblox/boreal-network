@@ -109,6 +109,7 @@ export function ChatShell() {
     null
   );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [isStartingRequest, setIsStartingRequest] = useState(false);
   const [isOpenRequestChatVisible, setIsOpenRequestChatVisible] = useState(false);
   const [isResolvingDeliveredRequest, setIsResolvingDeliveredRequest] =
     useState(false);
@@ -247,25 +248,38 @@ export function ChatShell() {
   };
 
   const handleCreateRequest = async () => {
-    const createdRequest = await createRequest();
-    if (!createdRequest) {
-      return null;
+    setIsStartingRequest(true);
+
+    try {
+      const createdRequest = await createRequest();
+      if (!createdRequest) {
+        return null;
+      }
+
+      setArtifact((currentArtifact) => ({
+        ...currentArtifact,
+        documentId: createdRequest.documentId,
+        title: createdRequest.brief.title?.trim() || "Untitled request",
+        kind: "code",
+        isVisible: true,
+        status: "idle",
+      }));
+
+      return createdRequest;
+    } finally {
+      setIsStartingRequest(false);
     }
-
-    setArtifact((currentArtifact) => ({
-      ...currentArtifact,
-      documentId: createdRequest.documentId,
-      title: createdRequest.brief.title?.trim() || "Untitled request",
-      kind: "code",
-      isVisible: true,
-      status: "idle",
-    }));
-
-    return createdRequest;
   };
 
   const ensureRequestForSend = async () => {
-    return;
+    if (!isRequestMode || activeRequest) {
+      return;
+    }
+
+    const createdRequest = await handleCreateRequest();
+    if (!createdRequest) {
+      throw new Error("Failed to start a new request.");
+    }
   };
 
   const handleResolveDeliveredRequest = async () => {
@@ -317,6 +331,7 @@ export function ChatShell() {
               isArtifactVisible={isArtifactVisible}
               isReadonly={isReadonly}
               isRequestMode={isRequestMode}
+              isStartingRequest={isStartingRequest}
               onOpenDocument={openRequestDocument}
               onSaveDraft={saveRequestDraft}
               onOpenRequest={openRequest}

@@ -9,14 +9,15 @@ import type {
   BorealRequestDraft,
   RequestBudget,
   RequestDeadline,
-  RequestStatus,
 } from "@/lib/request";
+import { RequestPlanPanel } from "./request-plan-panel";
 
 type RequestBriefingPanelProps = {
   request: BorealRequestDraft | null;
   isReadonly: boolean;
   isArtifactVisible: boolean;
   isRequestMode: boolean;
+  isStartingRequest: boolean;
   onSaveDraft: () => Promise<void>;
   onOpenRequest: () => Promise<void>;
   onOpenDocument: () => void;
@@ -29,6 +30,7 @@ export function RequestBriefingPanel({
   isReadonly,
   isArtifactVisible,
   isRequestMode,
+  isStartingRequest,
   onSaveDraft,
   onOpenRequest,
   onOpenDocument,
@@ -70,9 +72,16 @@ export function RequestBriefingPanel({
           <div className="min-w-0 space-y-1">
             <div className="text-sm font-medium">Start request</div>
             <div className="text-[13px] leading-6 text-muted-foreground">
-              Your first message opens the request thread. Use assist when a
-              rough ask needs help turning into a clear brief.
+              {isStartingRequest
+                ? "Starting the request and opening the brief now."
+                : "Your first message opens the request thread. Use assist when a rough ask needs help turning into a clear brief."}
             </div>
+            {isStartingRequest ? (
+              <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                <LoaderCircleIcon className="size-4 animate-spin" />
+                <span>Creating request draft...</span>
+              </div>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2">{optimizerToggle}</div>
         </div>
@@ -83,38 +92,36 @@ export function RequestBriefingPanel({
   if (request.status !== "draft") {
     const title = request.brief.title?.trim() || "Untitled request";
     const planningNote = getRequestPlanningNote(request);
+    const requestFacts = [
+      request.status.replace(/_/g, " "),
+      formatBudgetSummary(request.budget),
+      formatDeadlineSummary(request.deadline),
+      request.visibility,
+      request.derived.routeFamily
+        ? request.derived.routeFamily.replace(/_/g, " ")
+        : null,
+    ].filter((fact): fact is string => Boolean(fact));
 
     return (
-      <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="min-w-0 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="truncate text-sm font-medium md:text-[15px]">
+      <div className="bg-background/92 px-3 pb-0 pt-3 backdrop-blur-xl md:px-4">
+        <div className="mx-auto max-w-5xl">
+          <div className="rounded-[28px] border border-border/60 bg-background/94 px-5 py-5 shadow-[0_14px_45px_rgba(15,23,42,0.04)] md:px-6">
+            <div className="min-w-0 space-y-2">
+              <div className="text-lg font-medium tracking-tight md:text-[22px]">
                 {title}
               </div>
-              <Badge
-                className={cn(
-                  "rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize",
-                  getRequestStatusBadgeClassName(request.status)
-                )}
-                variant="secondary"
-              >
-                {request.status.replace(/_/g, " ")}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
-              <span>{formatBudgetSummary(request.budget)}</span>
-              <span>{formatDeadlineSummary(request.deadline)}</span>
-              <span>{request.visibility}</span>
-              {request.derived.routeFamily ? (
-                <span>{request.derived.routeFamily.replace(/_/g, " ")}</span>
+              <div className="text-sm leading-7 text-muted-foreground md:text-[15px]">
+                {planningNote ||
+                  "Boreal keeps the route, delivery, and final resolution attached to this request."}
+              </div>
+              {requestFacts.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+                  {requestFacts.map((fact) => (
+                    <span key={fact}>{fact}</span>
+                  ))}
+                </div>
               ) : null}
             </div>
-            {planningNote ? (
-              <div className="text-[12px] leading-6 text-muted-foreground">
-                {planningNote}
-              </div>
-            ) : null}
           </div>
         </div>
       </div>
@@ -133,71 +140,75 @@ export function RequestBriefingPanel({
 
   return (
     <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="truncate text-sm font-medium md:text-[15px]">
-              {title}
+      <div className="mx-auto max-w-4xl space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="truncate text-sm font-medium md:text-[15px]">
+                {title}
+              </div>
+              <Badge className="rounded-full" variant="secondary">
+                Draft
+              </Badge>
             </div>
-            <Badge className="rounded-full" variant="secondary">
-              Draft
-            </Badge>
-          </div>
-          <div className="text-[13px] leading-6 text-muted-foreground">
-            {summary}
-          </div>
-          {planningFacts.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
-              {planningFacts.map((fact) => (
-                <span key={fact}>{fact}</span>
-              ))}
+            <div className="text-[13px] leading-6 text-muted-foreground">
+              {summary}
             </div>
-          ) : null}
+            {planningFacts.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
+                {planningFacts.map((fact) => (
+                  <span key={fact}>{fact}</span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {optimizerToggle}
+            <Button onClick={onOpenDocument} variant="outline">
+              {isArtifactVisible ? "Focus brief" : "Open brief"}
+            </Button>
+            <Button
+              disabled={isSavingDraft || isOpeningRequest}
+              onClick={() => {
+                setIsSavingDraft(true);
+                void onSaveDraft().finally(() => {
+                  setIsSavingDraft(false);
+                });
+              }}
+              variant="outline"
+            >
+              {isSavingDraft ? (
+                <>
+                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save draft"
+              )}
+            </Button>
+            <Button
+              disabled={!canOpenRequest || isSavingDraft || isOpeningRequest}
+              onClick={() => {
+                setIsOpeningRequest(true);
+                void onOpenRequest().finally(() => {
+                  setIsOpeningRequest(false);
+                });
+              }}
+            >
+              {isOpeningRequest ? (
+                <>
+                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+                  Opening...
+                </>
+              ) : (
+                "Open request"
+              )}
+            </Button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {optimizerToggle}
-          <Button onClick={onOpenDocument} variant="outline">
-            {isArtifactVisible ? "Focus brief" : "Open brief"}
-          </Button>
-          <Button
-            disabled={isSavingDraft || isOpeningRequest}
-            onClick={() => {
-              setIsSavingDraft(true);
-              void onSaveDraft().finally(() => {
-                setIsSavingDraft(false);
-              });
-            }}
-            variant="outline"
-          >
-            {isSavingDraft ? (
-              <>
-                <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save draft"
-            )}
-          </Button>
-          <Button
-            disabled={!canOpenRequest || isSavingDraft || isOpeningRequest}
-            onClick={() => {
-              setIsOpeningRequest(true);
-              void onOpenRequest().finally(() => {
-                setIsOpeningRequest(false);
-              });
-            }}
-          >
-            {isOpeningRequest ? (
-              <>
-                <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                Opening...
-              </>
-            ) : (
-              "Open request"
-            )}
-          </Button>
-        </div>
+        <RequestPlanPanel request={request} scope="draft" />
       </div>
     </div>
   );
@@ -248,8 +259,21 @@ function formatDeadlineSummary(deadline: RequestDeadline | null) {
 }
 
 function getDraftPlanningFacts(request: BorealRequestDraft) {
+  const hasStructuredPlan = hasStructuredRequestPlan(request);
+  const shouldShowExecution =
+    hasStructuredPlan ||
+    request.derived.embodiedConstraintSet.requiresEmbodiedHandling ||
+    request.derived.verificationPlan.requiredEvidenceClaims.length > 0 ||
+    request.derived.clarificationNeeded.required;
+
   const facts = [
-    `Execution: ${formatExecutionSummary(request)}`,
+    hasStructuredPlan && request.derived.leadRole
+      ? `Lead: ${request.derived.roleSlots.find((slot) => slot.roleKey === request.derived.leadRole)?.title ?? request.derived.leadRole.replace(/_/g, " ")}`
+      : null,
+    shouldShowExecution ? `Execution: ${formatExecutionSummary(request)}` : null,
+    hasStructuredPlan && request.derived.phases.length > 0
+      ? `${request.derived.phases.length} planned step${request.derived.phases.length === 1 ? "" : "s"}`
+      : null,
     getServiceLocationSummary(request),
     getVerificationSummary(request),
     request.derived.clarificationNeeded.required
@@ -286,6 +310,14 @@ function formatExecutionSummary(request: BorealRequestDraft) {
   return executionModes.map((mode) => mode.replace(/_/g, " ")).join(", ");
 }
 
+function hasStructuredRequestPlan(request: BorealRequestDraft) {
+  return (
+    Boolean(request.derived.leadRole) ||
+    request.derived.roleSlots.length > 0 ||
+    request.derived.phases.length > 0
+  );
+}
+
 function getServiceLocationSummary(request: BorealRequestDraft) {
   const serviceLocation =
     request.derived.embodiedConstraintSet.serviceLocation?.trim();
@@ -303,28 +335,4 @@ function getVerificationSummary(request: BorealRequestDraft) {
   return `Proof: ${evidenceClaims
     .map((claim) => claim.replace(/_/g, " "))
     .join(", ")}`;
-}
-
-function getRequestStatusBadgeClassName(status: RequestStatus) {
-  switch (status) {
-    case "draft":
-      return "border-zinc-300/70 bg-zinc-100 text-zinc-700 dark:border-zinc-500/40 dark:bg-zinc-500/10 dark:text-zinc-300";
-    case "open":
-    case "in_progress":
-      return "border-sky-300/70 bg-sky-50 text-sky-700 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-300";
-    case "funding_required":
-    case "waiting_for_owner":
-      return "border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300";
-    case "funded":
-    case "completed":
-      return "border-emerald-300/70 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-300";
-    case "delivered":
-      return "border-violet-300/70 bg-violet-50 text-violet-700 dark:border-violet-500/40 dark:bg-violet-500/10 dark:text-violet-300";
-    case "failed":
-      return "border-rose-300/70 bg-rose-50 text-rose-700 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300";
-    case "cancelled":
-      return "border-zinc-400/70 bg-zinc-100 text-zinc-700 dark:border-zinc-500/40 dark:bg-zinc-500/10 dark:text-zinc-300";
-    default:
-      return "border-border/60 bg-background/70 text-foreground";
-  }
 }
