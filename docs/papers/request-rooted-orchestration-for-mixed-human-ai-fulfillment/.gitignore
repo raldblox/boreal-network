@@ -4,3 +4,6 @@
 *.log
 *.out
 *.pdf
+results/live-benchmark/dry-run/
+results/live-benchmark/full-*/
+results/live-benchmark/smoke-*/
