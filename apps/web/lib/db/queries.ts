@@ -31,6 +31,7 @@ import {
   type RequestActorRef,
   type RequestArtifactContainer,
   type RequestArtifactKind,
+  type RequestArtifactMetadata,
   type RequestBrief,
   type RequestBudget,
   type RequestDeadline,
@@ -1753,6 +1754,7 @@ export async function saveArtifactRecord({
   title,
   summary,
   container,
+  metadata,
   createdBy,
 }: {
   id: string;
@@ -1764,6 +1766,7 @@ export async function saveArtifactRecord({
   title: string;
   summary?: string;
   container: RequestArtifactContainer;
+  metadata?: RequestArtifactMetadata;
   createdBy: RequestActorRef;
 }) {
   try {
@@ -1779,6 +1782,7 @@ export async function saveArtifactRecord({
         title,
         summary,
         container,
+        ...(metadata ? { metadata } : {}),
         createdBy,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -2049,6 +2053,16 @@ function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntr
             container: normalizeArtifactContainer(
               normalizeObject(artifactPayload.container) as Record<string, unknown>
             ),
+            ...(normalizeObject(artifactPayload.metadata)
+              ? {
+                  metadata: normalizeArtifactMetadata(
+                    normalizeObject(artifactPayload.metadata) as Record<
+                      string,
+                      unknown
+                    >
+                  ),
+                }
+              : {}),
           }
         : undefined,
   };
@@ -2178,6 +2192,80 @@ function normalizeArtifactContainer(
       : {}),
     ...(normalizeOptionalString(container.sourceUri)
       ? { sourceUri: String(container.sourceUri) }
+      : {}),
+  };
+}
+
+function normalizeArtifactMetadata(
+  metadata: Record<string, unknown>
+): RequestArtifactMetadata {
+  const normalizedEvidenceClaims = Array.isArray(metadata.evidenceClaims)
+    ? metadata.evidenceClaims
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+    : [];
+  const locationSignal = normalizeObject(metadata.locationSignal);
+  const witness = normalizeObject(metadata.witness);
+  const captureIntegrity = normalizeObject(metadata.captureIntegrity);
+
+  return {
+    ...(normalizedEvidenceClaims.length > 0
+      ? { evidenceClaims: normalizedEvidenceClaims }
+      : {}),
+    ...(locationSignal
+      ? {
+          locationSignal: {
+            ...(normalizeOptionalString(locationSignal.label)
+              ? { label: String(locationSignal.label) }
+              : {}),
+            ...(normalizeOptionalString(locationSignal.source)
+              ? { source: String(locationSignal.source) }
+              : {}),
+            ...(typeof locationSignal.latitude === "number"
+              ? { latitude: locationSignal.latitude }
+              : {}),
+            ...(typeof locationSignal.longitude === "number"
+              ? { longitude: locationSignal.longitude }
+              : {}),
+          },
+        }
+      : {}),
+    ...(witness
+      ? {
+          witness: {
+            ...(normalizeOptionalString(witness.actorId)
+              ? { actorId: String(witness.actorId) }
+              : {}),
+            ...(normalizeOptionalString(witness.name)
+              ? { name: String(witness.name) }
+              : {}),
+            ...(normalizeOptionalString(witness.note)
+              ? { note: String(witness.note) }
+              : {}),
+          },
+        }
+      : {}),
+    ...(normalizeOptionalString(metadata.captureTime)
+      ? { captureTime: String(metadata.captureTime) }
+      : {}),
+    ...(captureIntegrity
+      ? {
+          captureIntegrity: {
+            ...(normalizeOptionalString(captureIntegrity.method)
+              ? { method: String(captureIntegrity.method) }
+              : {}),
+            ...(normalizeOptionalString(captureIntegrity.sha256)
+              ? { sha256: String(captureIntegrity.sha256) }
+              : {}),
+            ...(typeof captureIntegrity.verified === "boolean"
+              ? { verified: captureIntegrity.verified }
+              : {}),
+            ...(normalizeOptionalString(captureIntegrity.notes)
+              ? { notes: String(captureIntegrity.notes) }
+              : {}),
+          },
+        }
       : {}),
   };
 }

@@ -30,6 +30,7 @@ import {
   type CommitmentKind,
   type CommitmentTerms,
   createInitialRequestDraft,
+  evaluateRequestVerificationCoverage,
   extractEditableRequestPatchFromContent,
   type BorealRequestDraft,
   type FulfillmentStatus,
@@ -39,6 +40,8 @@ import {
   type RequestArtifactContainer,
   type RequestArtifactDocumentKind,
   type RequestArtifactKind,
+  type RequestArtifactMetadata,
+  type RequestVerificationArtifactInput,
   type RequestFulfillmentStep,
   type RequestPatch,
   type RequestStatus,
@@ -553,6 +556,7 @@ export async function publishArtifactForRequest({
   summary,
   fulfillmentId,
   stepId,
+  metadata,
   dataStream,
   ...artifactInput
 }: {
@@ -563,6 +567,7 @@ export async function publishArtifactForRequest({
   summary?: string;
   fulfillmentId?: string;
   stepId?: string;
+  metadata?: RequestArtifactMetadata;
   dataStream?: UIMessageStreamWriter<ChatMessage>;
 } & PublishArtifactInput) {
   const existingRequest = await getRequestByChatId({ chatId });
@@ -578,6 +583,7 @@ export async function publishArtifactForRequest({
     summary,
     fulfillmentId,
     stepId,
+    metadata,
     ...artifactInput,
     dataStream,
     source: "tool.publish_artifact",
@@ -608,6 +614,7 @@ export async function publishArtifactForRequestById({
   summary,
   fulfillmentId,
   stepId,
+  metadata,
   dataStream,
   idempotencyKey,
   source = "api.requests.artifacts.create",
@@ -620,6 +627,7 @@ export async function publishArtifactForRequestById({
   summary?: string;
   fulfillmentId?: string;
   stepId?: string;
+  metadata?: RequestArtifactMetadata;
   dataStream?: UIMessageStreamWriter<ChatMessage>;
   idempotencyKey?: string;
   source?: string;
@@ -741,6 +749,9 @@ export async function publishArtifactForRequestById({
           title: existingArtifact.title,
           summary: existingArtifact.summary ?? undefined,
           container: existingArtifact.container,
+          ...(existingArtifact.metadata
+            ? { metadata: existingArtifact.metadata as RequestArtifactMetadata }
+            : {}),
           artifactKind: existingArtifact.kind,
           requestStatus: requestDraft.status,
         };
@@ -803,6 +814,7 @@ export async function publishArtifactForRequestById({
     title,
     summary,
     container: artifactContainer,
+    metadata,
     createdBy: actor,
   });
 
@@ -888,6 +900,12 @@ export async function publishArtifactForRequestById({
         title: createdArtifact.title,
         summary: createdArtifact.summary ?? undefined,
         container: createdArtifact.container,
+        ...(createdArtifact.metadata
+          ? {
+              metadata:
+                createdArtifact.metadata as RequestArtifactMetadata,
+            }
+          : {}),
       },
     },
     occurredAt: now,
@@ -919,6 +937,9 @@ export async function publishArtifactForRequestById({
     title: createdArtifact.title,
     summary: createdArtifact.summary ?? undefined,
     container: createdArtifact.container,
+    ...(createdArtifact.metadata
+      ? { metadata: createdArtifact.metadata as RequestArtifactMetadata }
+      : {}),
     artifactKind: createdArtifact.kind,
     requestStatus: nextDraft.status,
   };
@@ -1335,6 +1356,10 @@ export async function updateFulfillmentForRequestById({
     throw new Error("Forbidden");
   }
 
+  if (status === "accepted" && actorUserId !== requestDraft.ownerId) {
+    throw new Error("Only request owner can accept delivered fulfillment");
+  }
+
   ensureFulfillmentTransitionAllowed(existingFulfillment.status, status);
 
   const normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
@@ -1357,11 +1382,41 @@ export async function updateFulfillmentForRequestById({
 
   const actor = toHumanActorRef(actorUserId);
   const now = new Date();
+  const nextArtifactIds = artifactIds ?? existingFulfillment.artifactIds;
+  const nextArtifacts =
+    artifactIds !== undefined
+      ? await loadFulfillmentProofArtifacts({
+          requestId: requestDraft.id,
+          artifactIds: nextArtifactIds,
+        })
+      : null;
+
+  if (status === "delivered" || status === "accepted") {
+    const proofArtifacts =
+      nextArtifacts ??
+      (await loadFulfillmentProofArtifacts({
+        requestId: requestDraft.id,
+        artifactIds: nextArtifactIds,
+      }));
+    const verificationCoverage = evaluateRequestVerificationCoverage({
+      verificationPlan: requestDraft.derived.verificationPlan,
+      artifacts: proofArtifacts,
+      stage: status === "accepted" ? "acceptance" : "delivery",
+      ownerAccepted: actorUserId === requestDraft.ownerId,
+    });
+
+    if (!verificationCoverage.satisfied) {
+      throw new Error(
+        buildVerificationGateMessage(status, verificationCoverage)
+      );
+    }
+  }
+
   const updatedFulfillment = await updateFulfillmentById({
     id: existingFulfillment.id,
     status,
     summary,
-    artifactIds: artifactIds ?? existingFulfillment.artifactIds,
+    artifactIds: nextArtifactIds,
     steps: steps ?? existingFulfillment.steps,
     contributors: contributors ?? existingFulfillment.contributors,
     ...(metadata !== undefined ? { metadata } : {}),
@@ -1566,6 +1621,57 @@ function buildObjectKey(prefix: string, label: string, id: string) {
     .replace(/^-+|-+$/g, "");
 
   return slug ? `${prefix}-${slug}` : `${prefix}-${id.slice(0, 8)}`;
+}
+
+async function loadFulfillmentProofArtifacts({
+  requestId,
+  artifactIds,
+}: {
+  requestId: string;
+  artifactIds: string[];
+}): Promise<RequestVerificationArtifactInput[]> {
+  if (artifactIds.length === 0) {
+    return [];
+  }
+
+  const artifacts = await Promise.all(
+    artifactIds.map(async (artifactId) => {
+      const artifact = await getArtifactById({ id: artifactId });
+      if (!artifact) {
+        throw new Error(`Artifact not found: ${artifactId}`);
+      }
+
+      if (artifact.requestId !== requestId) {
+        throw new Error("Artifact does not belong to request");
+      }
+
+      return {
+        kind: artifact.kind,
+        metadata: (artifact.metadata as RequestArtifactMetadata | null) ?? null,
+      } satisfies RequestVerificationArtifactInput;
+    })
+  );
+
+  return artifacts;
+}
+
+function buildVerificationGateMessage(
+  status: "delivered" | "accepted",
+  coverage: ReturnType<typeof evaluateRequestVerificationCoverage>
+) {
+  const missingParts = [
+    coverage.missingArtifactKinds.length > 0
+      ? `artifact kinds: ${coverage.missingArtifactKinds.join(", ")}`
+      : null,
+    coverage.missingEvidenceClaims.length > 0
+      ? `evidence claims: ${coverage.missingEvidenceClaims.join(", ")}`
+      : null,
+    coverage.missingChecks.length > 0
+      ? `checks: ${coverage.missingChecks.join(", ")}`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return `Cannot mark fulfillment ${status} until proof covers ${missingParts.join("; ")}.`;
 }
 
 function normalizeIdempotencyKey(value: string | undefined) {

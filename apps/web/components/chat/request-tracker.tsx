@@ -202,6 +202,7 @@ export function RequestTracker({
 
   const canResolveDelivery =
     request.status === "delivered" &&
+    requestViewerUserId === request.ownerId &&
     Boolean(request.activeRefs.activeFulfillmentId) &&
     typeof onResolveDeliveredRequest === "function";
 

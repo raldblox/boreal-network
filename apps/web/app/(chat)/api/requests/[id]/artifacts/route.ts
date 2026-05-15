@@ -1,4 +1,11 @@
 import { z } from "zod";
+import {
+  artifactDocumentKindInputSchema,
+  artifactExternalRefContainerInputSchema,
+  artifactKindInputSchema,
+  artifactObjectRefContainerInputSchema,
+  requestArtifactMetadataInputSchema,
+} from "@/lib/request-artifact-schemas";
 import { ChatbotError } from "@/lib/errors";
 import { publishArtifactForRequestById } from "@/lib/request-server";
 import {
@@ -6,66 +13,29 @@ import {
   hasResolverScope,
 } from "@/lib/resolver-session";
 
-const artifactKindSchema = z.enum([
-  "brief",
-  "plan",
-  "draft",
-  "file",
-  "media",
-  "delivery",
-  "evidence",
-  "receipt",
-  "signature",
-  "link",
-]);
-
-const externalRefContainerSchema = z.object({
-  kind: z.literal("external_ref"),
-  uri: z.string().url(),
-  mediaKind: z
-    .enum(["image", "audio", "video", "pdf", "binary", "archive", "other"])
-    .optional(),
-  mimeType: z.string().min(1).max(200).optional(),
-  filename: z.string().min(1).max(260).optional(),
-  byteSize: z.number().int().nonnegative().optional(),
-  sha256: z.string().min(1).max(128).optional(),
-  previewDocumentId: z.string().uuid().optional(),
-});
-
-const objectRefContainerSchema = z.object({
-  kind: z.literal("object_ref"),
-  objectKey: z.string().min(1).max(512),
-  storageProvider: z.string().min(1).max(120),
-  storageBucket: z.string().min(1).max(200).optional(),
-  mediaKind: z
-    .enum(["image", "audio", "video", "pdf", "binary", "archive", "other"])
-    .optional(),
-  mimeType: z.string().min(1).max(200).optional(),
-  filename: z.string().min(1).max(260).optional(),
-  byteSize: z.number().int().nonnegative().optional(),
-  sha256: z.string().min(1).max(128).optional(),
-  previewDocumentId: z.string().uuid().optional(),
-  sourceUri: z.string().url().optional(),
-});
-
 const createArtifactSchema = z.union([
   z.object({
-    artifactKind: artifactKindSchema,
-    documentKind: z.enum(["text", "code", "image", "sheet"]).default("text"),
+    artifactKind: artifactKindInputSchema,
+    documentKind: artifactDocumentKindInputSchema.default("text"),
     title: z.string().min(1).max(200),
     summary: z.string().min(1).max(1000).optional(),
     content: z.string().min(1),
     fulfillmentId: z.string().uuid().optional(),
     stepId: z.string().min(1).max(200).optional(),
+    metadata: requestArtifactMetadataInputSchema.optional(),
     idempotencyKey: z.string().uuid().optional(),
   }),
   z.object({
-    artifactKind: artifactKindSchema,
+    artifactKind: artifactKindInputSchema,
     title: z.string().min(1).max(200),
     summary: z.string().min(1).max(1000).optional(),
-    container: z.union([externalRefContainerSchema, objectRefContainerSchema]),
+    container: z.union([
+      artifactExternalRefContainerInputSchema,
+      artifactObjectRefContainerInputSchema,
+    ]),
     fulfillmentId: z.string().uuid().optional(),
     stepId: z.string().min(1).max(200).optional(),
+    metadata: requestArtifactMetadataInputSchema.optional(),
     idempotencyKey: z.string().uuid().optional(),
   }),
 ]);
@@ -116,6 +86,7 @@ export async function POST(
       summary: body.summary,
       fulfillmentId: body.fulfillmentId,
       stepId: body.stepId,
+      metadata: body.metadata,
       ...("content" in body
         ? {
             content: body.content,

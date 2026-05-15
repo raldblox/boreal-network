@@ -154,6 +154,13 @@ export async function PATCH(
 
     if (
       error instanceof Error &&
+      error.message === "Only request owner can accept delivered fulfillment"
+    ) {
+      return new ChatbotError("forbidden:chat", error.message).toResponse();
+    }
+
+    if (
+      error instanceof Error &&
       (error.message === "Fulfillment not found" ||
         error.message === "Request not found")
     ) {
@@ -163,6 +170,9 @@ export async function PATCH(
     if (
       error instanceof Error &&
       (error.message.startsWith("Invalid fulfillment transition:") ||
+        error.message.startsWith("Cannot mark fulfillment ") ||
+        error.message.startsWith("Artifact not found:") ||
+        error.message === "Artifact does not belong to request" ||
         error.message === "Failed to update fulfillment")
     ) {
       return new ChatbotError("bad_request:api", error.message).toResponse();

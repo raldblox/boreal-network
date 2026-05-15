@@ -306,6 +306,47 @@ export type RequestArtifactContainer =
   | RequestExternalRefArtifactContainer
   | RequestObjectRefArtifactContainer;
 
+export type RequestArtifactLocationSignal = {
+  label?: string;
+  source?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+export type RequestArtifactWitness = {
+  actorId?: string;
+  name?: string;
+  note?: string;
+};
+
+export type RequestArtifactCaptureIntegrity = {
+  method?: string;
+  sha256?: string;
+  verified?: boolean;
+  notes?: string;
+};
+
+export type RequestArtifactMetadata = {
+  evidenceClaims?: string[];
+  locationSignal?: RequestArtifactLocationSignal;
+  witness?: RequestArtifactWitness;
+  captureTime?: string;
+  captureIntegrity?: RequestArtifactCaptureIntegrity;
+};
+
+export type RequestVerificationArtifactInput = {
+  kind: RequestArtifactKind;
+  metadata?: RequestArtifactMetadata | null;
+};
+
+export type RequestVerificationCoverage = {
+  satisfied: boolean;
+  artifactCount: number;
+  missingArtifactKinds: RequestArtifactKind[];
+  missingEvidenceClaims: string[];
+  missingChecks: string[];
+};
+
 export type RequestActivityEntry = {
   eventId: string;
   requestId: string;
@@ -347,8 +388,89 @@ export type RequestActivityEntry = {
     title: string;
     summary?: string;
     container: RequestArtifactContainer;
+    metadata?: RequestArtifactMetadata;
   };
 };
+
+export function evaluateRequestVerificationCoverage({
+  verificationPlan,
+  artifacts,
+  stage,
+  ownerAccepted,
+}: {
+  verificationPlan: RequestVerificationPlan;
+  artifacts: RequestVerificationArtifactInput[];
+  stage: "delivery" | "acceptance";
+  ownerAccepted: boolean;
+}): RequestVerificationCoverage {
+  const proofArtifacts = artifacts.filter(
+    (artifact): artifact is RequestVerificationArtifactInput =>
+      artifact != null && typeof artifact.kind === "string"
+  );
+  const normalizedEvidenceClaims = new Set<string>();
+  const presentArtifactKinds = new Set<RequestArtifactKind>();
+  let hasLocationSignal = false;
+  let hasSignature = false;
+
+  for (const artifact of proofArtifacts) {
+    presentArtifactKinds.add(artifact.kind);
+    hasSignature ||= artifact.kind === "signature";
+
+    const metadata = artifact.metadata;
+    if (!metadata) {
+      continue;
+    }
+
+    hasLocationSignal ||= hasArtifactLocationSignal(metadata);
+    hasSignature ||= metadata.evidenceClaims?.some((claim) =>
+      /\bsignature\b|\bsigned\b/.test(claim.toLowerCase())
+    ) ?? false;
+
+    for (const claim of metadata.evidenceClaims ?? []) {
+      const normalizedClaim = normalizeVerificationClaim(claim);
+      if (normalizedClaim) {
+        normalizedEvidenceClaims.add(normalizedClaim);
+      }
+    }
+  }
+
+  const missingArtifactKinds = verificationPlan.requiredArtifactKinds.filter(
+    (requiredKind) =>
+      !artifactSatisfiesVerificationKind(
+        requiredKind,
+        proofArtifacts,
+        presentArtifactKinds,
+        normalizedEvidenceClaims,
+        hasSignature
+      )
+  );
+  const missingEvidenceClaims = verificationPlan.requiredEvidenceClaims.filter(
+    (requiredClaim) =>
+      !normalizedEvidenceClaims.has(normalizeVerificationClaim(requiredClaim))
+  );
+  const missingChecks = [
+    verificationPlan.mustHaveLocationSignal && !hasLocationSignal
+      ? "location signal"
+      : null,
+    verificationPlan.mustHaveSignature && !hasSignature ? "signature" : null,
+    stage === "acceptance" &&
+    verificationPlan.mustHaveOwnerAcceptance &&
+    !ownerAccepted
+      ? "owner acceptance"
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    satisfied:
+      missingArtifactKinds.length === 0 &&
+      missingEvidenceClaims.length === 0 &&
+      missingChecks.length === 0,
+    artifactCount: proofArtifacts.length,
+    missingArtifactKinds,
+    missingEvidenceClaims,
+    missingChecks,
+  };
+}
 
 export type BorealRequestDraft = {
   id: string;
@@ -1625,6 +1747,76 @@ function buildPlanCollapseReasons({
   }
 
   return Array.from(new Set(reasons));
+}
+
+function artifactSatisfiesVerificationKind(
+  requiredKind: RequestArtifactKind,
+  artifacts: RequestVerificationArtifactInput[],
+  presentArtifactKinds: Set<RequestArtifactKind>,
+  normalizedEvidenceClaims: Set<string>,
+  hasSignature: boolean
+) {
+  if (presentArtifactKinds.has(requiredKind)) {
+    return true;
+  }
+
+  switch (requiredKind) {
+    case "evidence":
+      return artifacts.some(hasProofBearingMetadata);
+    case "receipt":
+      return Array.from(normalizedEvidenceClaims).some((claim) =>
+        /\breceipt\b|\bhandoff\b|\bdelivery\b/.test(claim)
+      );
+    case "signature":
+      return hasSignature;
+    default:
+      return false;
+  }
+}
+
+function hasProofBearingMetadata(artifact: RequestVerificationArtifactInput) {
+  const metadata = artifact.metadata;
+  if (!metadata) {
+    return false;
+  }
+
+  return (
+    (metadata.evidenceClaims?.length ?? 0) > 0 ||
+    hasArtifactLocationSignal(metadata) ||
+    hasArtifactWitness(metadata) ||
+    hasArtifactCaptureIntegrity(metadata)
+  );
+}
+
+function hasArtifactLocationSignal(metadata: RequestArtifactMetadata) {
+  return Boolean(
+    metadata.locationSignal?.label?.trim() ||
+      metadata.locationSignal?.source?.trim() ||
+      metadata.locationSignal?.latitude != null ||
+      metadata.locationSignal?.longitude != null
+  );
+}
+
+function hasArtifactWitness(metadata: RequestArtifactMetadata) {
+  return Boolean(
+    metadata.witness?.actorId?.trim() ||
+      metadata.witness?.name?.trim() ||
+      metadata.witness?.note?.trim()
+  );
+}
+
+function hasArtifactCaptureIntegrity(metadata: RequestArtifactMetadata) {
+  return Boolean(
+    metadata.captureIntegrity?.method?.trim() ||
+      metadata.captureIntegrity?.sha256?.trim() ||
+      metadata.captureIntegrity?.verified === true ||
+      metadata.captureIntegrity?.notes?.trim() ||
+      metadata.captureTime?.trim()
+  );
+}
+
+function normalizeVerificationClaim(value: string) {
+  return value.trim().toLowerCase();
 }
 
 function deriveVerificationArtifactKinds({

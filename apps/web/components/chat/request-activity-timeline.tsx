@@ -251,23 +251,24 @@ function getPrimaryActivityText(activity: RequestActivityEntry) {
 
 function getSecondaryActivityDetail(activity: RequestActivityEntry) {
   const detail = activity.detail?.trim();
+  const artifactProofDetail = formatArtifactProofDetail(activity);
 
   if (!detail) {
-    return null;
+    return artifactProofDetail;
   }
 
   if (
     activity.eventType === "request.opened" ||
     activity.eventType.startsWith("fulfillment.")
   ) {
-    return null;
+    return artifactProofDetail;
   }
 
   if (detail === activity.summary.trim()) {
-    return null;
+    return artifactProofDetail;
   }
 
-  return detail;
+  return artifactProofDetail ? `${detail} · ${artifactProofDetail}` : detail;
 }
 
 function getDocumentArtifactPreview(activity: RequestActivityEntry) {
@@ -299,4 +300,45 @@ function formatActivityLabel(value: string) {
 
 function formatLabel(value: string) {
   return value.replace(/_/g, " ");
+}
+
+function formatArtifactProofDetail(activity: RequestActivityEntry) {
+  const metadata = activity.artifact?.metadata;
+  if (!metadata) {
+    return null;
+  }
+
+  const parts = [
+    metadata.evidenceClaims?.length
+      ? `Evidence: ${metadata.evidenceClaims.map(formatLabel).join(", ")}`
+      : null,
+    metadata.locationSignal?.label?.trim()
+      ? `Location: ${metadata.locationSignal.label.trim()}`
+      : null,
+    metadata.witness?.name?.trim()
+      ? `Witness: ${metadata.witness.name.trim()}`
+      : null,
+    metadata.captureTime?.trim()
+      ? `Captured: ${formatCaptureTime(metadata.captureTime)}`
+      : null,
+    metadata.captureIntegrity?.method?.trim()
+      ? `Integrity: ${metadata.captureIntegrity.method.trim()}`
+      : null,
+  ].filter((part): part is string => Boolean(part));
+
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+function formatCaptureTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }

@@ -208,6 +208,7 @@ ${JSON.stringify(
           id: entry.artifact.id,
           kind: entry.artifact.kind,
           title: entry.artifact.title,
+          metadata: entry.artifact.metadata,
         }
       : undefined,
   })),
