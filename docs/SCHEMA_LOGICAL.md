@@ -208,19 +208,38 @@ Derived fields kept separate from the canonical brief:
 - `derived.paymentMode`
 - `derived.matchingMode`
 - `derived.candidatePool`
+- `derived.leadRole`
+- `derived.roleSlots`
+- `derived.phases`
+- `derived.noMicrotaskExplosion`
 - `derived.missingDetails`
 - `derived.readiness`
 - `derived.routeSummary`
+- `derived.executionProfile`
+- `derived.embodiedConstraintSet`
+- `derived.verificationPlan`
+- `derived.planCollapseRisk`
+- `derived.clarificationNeeded`
+
+Conceptual grouping rule:
+
+- route-facing derived state includes route family, execution kind, payment mode, matching mode, candidate pool, and route summary
+- structural planning derived state includes lead role, role slots, phase plans, and anti-microtask guardrails
+- execution and proof derived state includes embodied execution profile, verification plan, collapse risk, and clarification requirements
+
+The current shape may keep these fields flat under one `derived` block for implementation compatibility.
+That does not make them buyer-authored brief fields.
 
 Draft rule:
 
 - a `Request` may be created early in `draft` status before routing, matching, commitment, or fulfillment details are complete
 - not every chat turn creates a `Request`; request creation must be explicit at the product layer or policy layer
 - draft-mode UI may expose only a safe editable request-input subset
+- that editable subset is `visibility`, `brief`, `seeking`, `budget`, and `deadline`
 - `brief.summary` is optional compression, not a readiness gate
 - `seeking` may be partial while the request is still being formed
 - `routing.preferredSupplyId` may be updated by the owner after open only for private request execution control
-- system-owned fields such as ids, ownership refs, keys, status progression, timestamps, and derived projections stay server-owned and should be shown as a read-only projection outside `draft`
+- system-owned fields such as ids, ownership refs, keys, status progression, timestamps, routing, active refs, latest summary, and derived projections stay server-owned and should be shown as a read-only projection outside the editable subset
 
 ### `Fulfillment`
 

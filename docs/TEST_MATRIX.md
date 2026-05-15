@@ -109,6 +109,8 @@ Verify:
 - draft request-object JSON accepts edits only while the request status is `draft`
 - non-draft request-object JSON is read-only and shows the full canonical object
 - `save draft` and `open request` normalize the latest draft-input projection before the durable `Request` is written
+- draft request-input JSON accepts edits only for `visibility`, `brief`, `seeking`, `budget`, and `deadline`
+- draft request-input JSON should reject or ignore attempts to persist ids, status, routing, active refs, latest summary, timestamps, or planner-derived fields
 - title plus body should be enough for `ready_to_open`; `brief.summary` should stay optional
 - one-turn request briefing should preserve explicitly stated budget or deadline in structured canonical fields instead of only embedding them in freeform brief text
 - request mode may ask clarifying questions before draft readiness when missing location, access, timing, or proof fields materially change embodied execution safety
@@ -161,7 +163,9 @@ Verify:
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
 - planner outputs stay derived and rebuildable
+- planner-derived lead role, role slots, phase plans, execution profile, and proof-planning fields stay outside the buyer-authored brief surface
 - plan-collapse detection should trigger clarification or block-and-escalate when required embodied work is being omitted
+- public request-pool projections should not expose the full planner-internal projection by default
 
 ### Supply-management contract tests
 

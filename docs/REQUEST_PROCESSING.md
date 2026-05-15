@@ -37,6 +37,8 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
 4. Draft normalization
    Produce a derived `MatchSpec` with brief, output kinds, constraints, budget, urgency, and actor requirements.
    In the web request-briefing surface, manual editing may touch only the draft-input projection.
+   That editable projection is limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
+   Ids, status, routing, active refs, latest summary, timestamps, and planner projections must remain read-only.
    Before `save draft`, request-tool mutation, or `open request`, normalize that draft-input projection back into the same durable `Request`.
    If one user turn explicitly includes brief text plus budget or deadline, the request-brief mutation layer should preserve both the narrative brief and the structured canonical fields in the same write.
    Title and body are the first readiness-bearing brief fields. `brief.summary` is optional compression and should not be manufactured only to satisfy readiness.
@@ -53,6 +55,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
 9. Fulfillment planning
    For medium or high complexity work, derive a `RoutePlan` with `RoleSlot` and `PhasePlan` outputs.
    When embodied or verification-heavy work is detected, also derive an `ExecutionProfile`, `EmbodiedConstraintSet`, `VerificationPlan`, and `PlanCollapseRisk` summary as read-only planning outputs before execution begins.
+   Those planning outputs may project onto `Request.derived`, but they remain system-owned, rebuildable, and non-editable by the buyer.
 10. Team assembly
    Match optional collaborator slots only after a credible lead route exists, except bounded direct-tool routes.
 11. Commitment drafting
@@ -139,6 +142,7 @@ The request root should update through:
 - lifecycle status
 - `activeRefs`
 - `latest`
+- system-owned `derived` planning projections when route or execution understanding changes
 
 Do not start fulfillment in `active` state while the request is still `funding_required`.
 
@@ -188,6 +192,10 @@ These objects are derived and rebuildable, not durable roots:
 - `EmbodiedConstraintSet`
 - `VerificationPlan`
 - `PlanCollapseRisk`
+- `RequestDerived.leadRole`
+- `RequestDerived.roleSlots`
+- `RequestDerived.phases`
+- `RequestDerived.noMicrotaskExplosion`
 
 ## Invariants
 
@@ -197,6 +205,7 @@ These objects are derived and rebuildable, not durable roots:
 - Mutation tools are the only layer allowed to commit canonical writes.
 - Once a request draft exists, subsequent briefing updates should mutate the same `Request` instead of forking a second durable demand object.
 - Draft-mode manual editing must stay limited to user-editable request-input fields; system-owned fields remain server-owned and rebuildable.
+- Planner-visible lead roles, role slots, phase plans, execution profiles, and proof plans must not be treated as buyer-authored brief fields.
 - `brief.summary` may stay blank without blocking `ready_to_open` when title and body are already present.
 - `brief.tags` may exist as optional labels, but matching prep should prefer `seeking`.
 - `FulfillmentStep` is the default home for generated sub-work.

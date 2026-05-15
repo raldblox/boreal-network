@@ -146,6 +146,8 @@ Every mutation call should return:
 - `create_request_brief` and `update_request_brief` should prefer title plus body first and must not fabricate `brief.summary` only to satisfy a shape.
 - Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
+- The editable request-input projection must stay limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
+- Planner-derived fields such as lead role, role slots, phase plans, execution profile, verification plan, and collapse-risk outputs must remain read-only and system-owned.
 - Planner tools should detect when a request requires non-substitutable human or embodied execution and must not flatten those requirements into a digital-only plan.
 - Planner and policy outputs should explicitly model proof obligations for verification-heavy work before fulfillment or closure.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.

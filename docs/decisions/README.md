@@ -31,3 +31,4 @@ Accepted decisions:
 - [0011-desktop-trust-tiers-and-isolated-worker-mode.md](0011-desktop-trust-tiers-and-isolated-worker-mode.md)
 - [0012-request-briefing-assist-profile.md](0012-request-briefing-assist-profile.md)
 - [0013-embodied-fulfillment-planner-honesty-first.md](0013-embodied-fulfillment-planner-honesty-first.md)
+- [0014-request-draft-input-and-readonly-planner-projection.md](0014-request-draft-input-and-readonly-planner-projection.md)

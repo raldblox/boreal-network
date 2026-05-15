@@ -20,7 +20,7 @@ Guardrails:
 3. it must preserve explicit facts and leave missing facts missing
 4. it must not create canonical objects directly
 5. explicit request mode before the first durable draft should still end in exactly one `create_request_brief` mutation
-6. draft and open request behavior still follow the same canonical tool boundaries
+6. draft and open request behavior must still respect the canonical split between draft-input mutation and open-room durable activity writes
 
 ## Consequences
 
@@ -28,3 +28,4 @@ Guardrails:
 - request-mode UX may expose a toggle for this assist profile
 - evaluation and test coverage must continue to check that the profile does not invent budget, deadline, deliverables, actor requirements, or other missing request facts
 - future work may compare prompt profiles offline, but the live assist layer must stay outside canonical mutation logic
+- this decision does not canonize planner-visible role slots, phase plans, or execution-proof planning on the request root by itself

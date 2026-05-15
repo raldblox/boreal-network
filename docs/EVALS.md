@@ -14,6 +14,7 @@ A high-scoring match system that mutates too early is still failing.
 Verify that a raw ask becomes the expected brief, optional structured `seeking`, constraints, output kinds, budget shape, and missing-field list.
 If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.
 Verify that requests implying onsite work, pickup or dropoff, field inspection, witnessed handoff, measurement, or other non-substitutable human execution surface those requirements instead of rewriting them as digital-only work.
+Verify that planner-derived role, phase, execution, and proof outputs do not leak back into the buyer-authored editable brief surface.
 
 ### 2. Route and complexity evals
 
@@ -39,6 +40,7 @@ For embodied or verification-heavy asks, verify that policy prefers clarificatio
 Verify that Boreal does not create `Fulfillment`, `FulfillmentStep`, `Artifact`, or settlement-side writes before approval and required commercial gates.
 Verify that the one owner-private desktop auto-fulfillment lane can create `Fulfillment` directly without `Commitment`, while public or cross-actor lanes still require the commitment gate.
 Verify that manual request-input edits cannot mutate system-owned request fields directly and must normalize through the same durable `Request`.
+Verify that public-safe request projections do not expose owner-only or planner-internal fields beyond the approved public subset.
 Verify that open request room behavior does not fall back to draft-only brief mutation when the safer durable write is a `Commitment`, `Artifact`, or `RequestEvent`.
 Verify that direct resolver APIs and chat mutation tools produce equivalent durable request-side outcomes for commitment and artifact writes.
 Verify that direct resolver APIs and chat mutation tools produce equivalent durable request-side outcomes for commitment acceptance and fulfillment lifecycle writes.

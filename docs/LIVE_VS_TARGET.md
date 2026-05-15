@@ -83,6 +83,7 @@ Today, the machine-readable baseline proves:
 - a deterministic end-to-end thread can be read without inventing missing IDs, statuses, or event names
 - the repo is structured to host governed JS or TS workspaces under shared workspace discovery rules
 - one complex human-led request can be evaluated deterministically across extraction, planning, matching, and policy outputs
+- one request may now carry read-only planner-derived lead-role, role-slot, phase, execution, and proof-planning projections without weakening `brief` as the owner-editable input surface
 - one desktop-local browser bridge can expose ephemeral SSE events from Electron main over `127.0.0.1` with session-token and localhost-origin checks
 - one desktop-local browser bridge can expose the connected desktop runtime model catalog through a guarded localhost-only `/models` read surface for browser model selectors
 - one localhost Boreal web chat surface can dispatch one selected `Codex/Desktop` prompt turn through a guarded localhost-only `POST /chat` bridge write and stream the reply back into the web message list
@@ -110,6 +111,7 @@ These are intended next layers, not fully modeled proof yet:
 - implementation profiles under `standards/`
 - executable offline eval runners and score dashboards for planner, matcher, and policy quality against live model outputs
 - embodied and verification-heavy request lanes with explicit execution-modality and proof-planning outputs, initially as narrow private or curated lanes rather than a broad public local-services market
+- cleaner grouped request-derived planning projections and thinner public-safe request projections
 
 ## Claiming Rules
 
