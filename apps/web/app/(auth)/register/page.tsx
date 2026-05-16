@@ -66,7 +66,7 @@ function RegisterPageContent() {
         Create a Boreal account
       </h1>
       <p className="text-sm leading-7 text-muted-foreground">
-        Start a request and keep the work, proof, and outcome in one place.
+        Start a paid request or join the curated supply whitelist.
       </p>
       <AuthForm action={handleSubmit} defaultEmail={email}>
         <input name="callbackUrl" type="hidden" value={callbackUrl} />

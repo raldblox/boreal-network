@@ -40,6 +40,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { guestRegex } from "@/lib/constants";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,17 +60,23 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { setOpenMobile, toggleSidebar } = useSidebar();
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const isGuest = guestRegex.test(user?.email ?? "");
   const isRootView = pathname === "/";
+  const isHomeMode = isRootView && !searchParams.get("mode");
+  const isChatMode = isRootView && searchParams.get("mode") === "chat";
+  const isSuppliesView =
+    pathname === "/supplies" || pathname.startsWith("/supplies/");
   const isNewRequestMode =
     isRootView && searchParams.get("mode") === "request";
+  const isWhitelistMode =
+    pathname === "/supplies/new" && searchParams.get("entry") === "whitelist";
   const isNewSupplyMode = pathname === "/supplies/new";
   const isDesktopMode =
     pathname === "/download/boreal-desktop" || pathname === "/download/desktop";
-  const isNewChatMode = isRootView && !isNewRequestMode;
 
   const handleDeleteAll = () => {
     setShowDeleteAllDialog(false);
-    router.replace("/");
+    router.replace("/?mode=chat");
     mutate(unstable_serialize(getChatHistoryPaginationKey), [], {
       revalidate: false,
     });
@@ -125,17 +132,33 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                    isActive={isNewChatMode}
+                    isActive={isHomeMode}
                     onClick={() => {
                       setOpenMobile(false);
                       router.push("/");
                     }}
-                    tooltip="New chat"
+                    tooltip="Home"
                   >
                     <PenSquareIcon className="size-4" />
-                    <span className="font-medium">New chat</span>
+                    <span className="font-medium">Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {!isGuest ? (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                      isActive={isChatMode}
+                      onClick={() => {
+                        setOpenMobile(false);
+                        router.push("/?mode=chat");
+                      }}
+                      tooltip="New chat"
+                    >
+                      <MessageSquareIcon className="size-4" />
+                      <span className="font-medium">New chat</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : null}
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
@@ -144,13 +167,45 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       setOpenMobile(false);
                       router.push("/?mode=request");
                     }}
-                    tooltip="Start request"
+                    tooltip="Post request"
                   >
                     <FilePenLineIcon className="size-4" />
-                    <span className="font-medium">Start request</span>
+                    <span className="font-medium">Post request</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {user && (
+                {user && isGuest ? (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                      isActive={isWhitelistMode}
+                      onClick={() => {
+                        setOpenMobile(false);
+                        router.push("/supplies/new?entry=whitelist");
+                      }}
+                      tooltip="Supply whitelist"
+                    >
+                      <PackageIcon className="size-4" />
+                      <span className="font-medium">Supply whitelist</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : null}
+                {user && !isGuest ? (
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                      isActive={isSuppliesView}
+                      onClick={() => {
+                        setOpenMobile(false);
+                        router.push("/supplies");
+                      }}
+                      tooltip="Supplies"
+                    >
+                      <PackageIcon className="size-4" />
+                      <span className="font-medium">Supplies</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : null}
+                {user && !isGuest ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
@@ -159,14 +214,14 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         setOpenMobile(false);
                         router.push("/supplies/new");
                       }}
-                      tooltip="New capability"
+                      tooltip="New supply"
                     >
                       <PackageIcon className="size-4" />
-                      <span className="font-medium">New capability</span>
+                      <span className="font-medium">New supply</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )}
-                {user && (
+                ) : null}
+                {user && !isGuest ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
@@ -181,8 +236,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <span className="font-medium">Desktop</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )}
-                {user && (
+                ) : null}
+                {user && !isGuest ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
@@ -193,13 +248,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       <span className="text-[13px]">Clear chats</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )}
+                ) : null}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-          <SidebarSupplies user={user} />
-          <SidebarRequests user={user} />
-          <SidebarHistory user={user} />
+          {!isGuest ? <SidebarSupplies user={user} /> : null}
+          {!isGuest ? <SidebarRequests user={user} /> : null}
+          {!isGuest ? <SidebarHistory user={user} /> : null}
         </SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border pt-2 pb-3">
           {user && <SidebarUserNav user={user} />}

@@ -1,22 +1,26 @@
 "use client";
 
+import { ArrowRightIcon, FilePenLineIcon, PackageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { suggestions } from "@/lib/constants";
+import {
+  borealHomepageCopy,
+  borealWhitelistTracks,
+} from "@/lib/marketing";
+import { Button } from "@/components/ui/button";
 import { SparklesIcon } from "./icons";
 
 export function Preview() {
   const router = useRouter();
 
-  const handleAction = (query?: string) => {
-    const url = query ? `/?query=${encodeURIComponent(query)}` : "/";
-    router.push(url);
+  const handleRoute = (href: string) => {
+    router.push(href);
   };
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden rounded-[32px] border border-border/60 bg-background/92 shadow-[0_28px_90px_rgba(15,23,42,0.08)]">
+    <div className="relative flex h-full flex-col overflow-hidden rounded-[32px] border border-border/60 bg-background">
       <div className="relative flex h-16 shrink-0 items-center justify-between border-b border-border/50 px-5">
         <div className="flex items-center gap-3">
-          <div className="flex size-8 items-center justify-center rounded-2xl border border-border/60 bg-muted/45">
+          <div className="flex size-8 items-center justify-center rounded-2xl border border-border/60">
             <SparklesIcon size={12} />
           </div>
           <div className="flex flex-col leading-none">
@@ -33,39 +37,60 @@ export function Preview() {
 
       <div className="relative flex flex-1 flex-col justify-between px-8 py-8">
         <div className="max-w-lg">
-          <div className="inline-flex rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
-            One accountable thread
+          <div className="inline-flex rounded-full border border-border/60 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground/70">
+            {borealHomepageCopy.eyebrow}
           </div>
           <h2 className="mt-5 text-3xl font-semibold tracking-tight text-balance text-foreground [font-family:var(--font-display)] md:text-4xl">
-            Start with the work. Keep the outcome attached.
+            {borealHomepageCopy.title}
           </h2>
           <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            Write the ask once, route it to the right worker or team, deliver
-            in the same room, and keep proof and payout connected.
+            {borealHomepageCopy.body}
+          </p>
+          <p className="mt-4 text-sm leading-7 text-foreground/78">
+            {borealHomepageCopy.support}
           </p>
         </div>
 
         <div className="mt-8 grid w-full max-w-2xl gap-3 md:grid-cols-2">
-          {suggestions.map((suggestion) => (
-            <button
-              className="rounded-2xl border border-border/60 bg-muted/[0.26] px-4 py-3 text-left text-[12px] leading-6 text-muted-foreground/76 transition-colors duration-200 hover:border-foreground/15 hover:bg-muted/[0.42] hover:text-foreground"
-              key={suggestion}
-              onClick={() => handleAction(suggestion)}
-              type="button"
-            >
-              {suggestion}
-            </button>
-          ))}
+          {borealWhitelistTracks.map((track, index) => {
+            const Icon = index === 0 ? FilePenLineIcon : PackageIcon;
+
+            return (
+              <button
+                className="rounded-2xl border border-border/60 px-4 py-4 text-left text-[12px] leading-6 text-muted-foreground/76 transition-colors duration-200 hover:border-foreground/15 hover:text-foreground"
+                key={track.label}
+                onClick={() => handleRoute(track.href)}
+                type="button"
+              >
+                <div className="flex items-center gap-2 text-foreground/80">
+                  <Icon className="size-3.5" />
+                  <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground/72">
+                    {track.label}
+                  </span>
+                </div>
+                <p className="mt-3">{track.body}</p>
+              </button>
+            );
+          })}
         </div>
 
-        <div className="mt-8 rounded-[26px] border border-border/60 bg-muted/[0.28] px-4 py-4">
-          <button
-            className="flex w-full items-center rounded-2xl bg-background px-4 py-3 text-left text-[13px] text-muted-foreground/55 transition-colors hover:text-muted-foreground/75"
-            onClick={() => handleAction()}
+        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <Button
+            className="rounded-full"
+            onClick={() => handleRoute("/?mode=request")}
             type="button"
           >
-            Describe the work you need...
-          </button>
+            Post a paid request
+            <ArrowRightIcon className="size-4" />
+          </Button>
+          <Button
+            className="rounded-full"
+            onClick={() => handleRoute("/supplies/new?entry=whitelist")}
+            type="button"
+            variant="outline"
+          >
+            Join supply whitelist
+          </Button>
         </div>
       </div>
     </div>

@@ -17,7 +17,7 @@ const PureSidebarSupplyItem = ({
   setOpenMobile: (open: boolean) => void;
 }) => {
   const supplyTitle =
-    supply.profile.displayName.trim() || "Untitled capability";
+    supply.profile.displayName.trim() || "Untitled supply";
 
   return (
     <SidebarMenuItem>

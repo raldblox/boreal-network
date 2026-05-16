@@ -31,6 +31,7 @@ These are safe to state as present canon truth:
 - `apps/web/` is the first activated implementation workspace.
 - The first commercial wedge is startup and SMB buyers of high-value digital work with fuzzy intake and mixed human-plus-AI fulfillment.
 - The primary business model is funded-request GMV take rate first, with premium workflow and private-supply layers later.
+- The current launch motion is buyer-funded request pilots first and curated supply whitelist second.
 - Risk escalation is mandatory when a change could break canon, contracts, durable history, or workspace boundaries.
 - Match the lead first, plan the work second, and decompose only when needed.
 - Planner, matcher, policy, and mutation boundaries are canonical Boreal processing layers.

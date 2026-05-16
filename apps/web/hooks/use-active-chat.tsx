@@ -74,7 +74,9 @@ type ActiveChatContextValue = {
   isRequestMode: boolean;
   requestPromptOptimizerEnabled: boolean;
   setRequestPromptOptimizerEnabled: Dispatch<SetStateAction<boolean>>;
-  createRequest: () => Promise<BorealRequestDraft | null>;
+  createRequest: (options?: {
+    preferredSupplyId?: string | null;
+  }) => Promise<BorealRequestDraft | null>;
   saveRequestDraft: () => Promise<void>;
   openRequest: () => Promise<void>;
   updateRequestPreferredSupply: (preferredSupplyId: string | null) => Promise<void>;
@@ -265,6 +267,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const chatIdFromUrl = extractChatId(pathname);
   const isNewChat = !chatIdFromUrl;
   const requestModeFromUrl = searchParams.get("mode") === "request";
+  const preferredSupplyIdFromUrl = searchParams.get("preferredSupplyId");
   const newChatIdRef = useRef(generateUUID());
   const prevPathnameRef = useRef(pathname);
 
@@ -823,7 +826,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const query = params.get("query");
-    if (query && !hasAppendedQueryRef.current) {
+    if (
+      query &&
+      !preferredSupplyIdFromUrl &&
+      !hasAppendedQueryRef.current
+    ) {
       hasAppendedQueryRef.current = true;
       window.history.replaceState(
         {},
@@ -835,7 +842,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         parts: [{ type: "text", text: query }],
       });
     }
-  }, [sendMessage, chatId]);
+  }, [preferredSupplyIdFromUrl, sendMessage, chatId]);
 
   useAutoResume({
     autoResume: !isNewChat && !!chatData,
@@ -854,7 +861,9 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     { revalidateOnFocus: false }
   );
 
-  const createRequest = useCallback(async () => {
+  const createRequest = useCallback(async (options?: {
+    preferredSupplyId?: string | null;
+  }) => {
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests`,
@@ -880,17 +889,40 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       const data = (await response.json()) as {
         request: BorealRequestDraft | null;
       };
+      let nextRequest = data.request;
+
+      if (nextRequest && options?.preferredSupplyId?.trim()) {
+        const routingResponse = await fetchWithErrorHandlers(
+          `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests/${nextRequest.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              routing: {
+                preferredSupplyId: options.preferredSupplyId.trim(),
+              },
+            }),
+          }
+        );
+
+        const routingData = (await routingResponse.json()) as {
+          request: BorealRequestDraft | null;
+        };
+        nextRequest = routingData.request ?? nextRequest;
+      }
 
       router.push(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}`);
       await mutate<ChatDataResponse>(
         chatDataKey,
         {
           messages: [],
-          visibility: data.request?.visibility ?? visibility,
+          visibility: nextRequest?.visibility ?? visibility,
           ownerUserId: chatData?.ownerUserId ?? null,
           viewerUserId: chatData?.viewerUserId ?? null,
           isReadonly: false,
-          request: data.request,
+          request: nextRequest,
         },
         {
           revalidate: false,
@@ -898,7 +930,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       );
       mutate(unstable_serialize(getRequestHistoryPaginationKey));
 
-      return data.request;
+      return nextRequest;
     } catch (error) {
       toast({
         type: "error",

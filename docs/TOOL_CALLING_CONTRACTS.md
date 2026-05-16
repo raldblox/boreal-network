@@ -147,6 +147,7 @@ Every mutation call should return:
 - Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
 - The editable request-input projection must stay limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
+- Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.
 - Planner-derived fields such as lead role, role slots, phase plans, execution profile, verification plan, and collapse-risk outputs must remain read-only and system-owned.
 - Planner tools should detect when a request requires non-substitutable human or embodied execution and must not flatten those requirements into a digital-only plan.
 - Planner and policy outputs should explicitly model proof obligations for verification-heavy work before fulfillment or closure.

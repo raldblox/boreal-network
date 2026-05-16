@@ -29,6 +29,12 @@ Use it as the shortest trusted source for pitch decks, idea roasts, investor app
 - Boreal is the fulfillment thread for AI-native external work
 - it keeps matching, execution, proof, and payment on one durable object
 
+## Current Launch Motion
+
+- paid request pilots first
+- curated supply whitelist second
+- initial supply intake is strongest where AI-only execution still breaks on judgment, verification, or handoff
+
 ## Primary Buyer
 
 - startups and SMBs

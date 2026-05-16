@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { Inter, Libre_Caslon_Text } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -13,29 +13,23 @@ export const metadata: Metadata = {
     template: "%s | Boreal",
   },
   description:
-    "Boreal turns a work request into one accountable thread across humans and AI.",
+    "Boreal is for work that AI cannot fully finish on its own.",
 };
 
 export const viewport = {
   maximumScale: 1,
 };
 
-const geist = Geist({
+const inter = Inter({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-geist",
+  variable: "--font-sans",
 });
 
-const geistMono = Geist_Mono({
+const libreCaslonText = Libre_Caslon_Text({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-geist-mono",
-});
-
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  display: "swap",
-  weight: "400",
+  weight: ["400", "700"],
   variable: "--font-display",
 });
 
@@ -66,7 +60,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      className={`${geist.variable} ${geistMono.variable} ${instrumentSerif.variable}`}
+      className={`${inter.variable} ${libreCaslonText.variable}`}
       lang="en"
       suppressHydrationWarning
     >

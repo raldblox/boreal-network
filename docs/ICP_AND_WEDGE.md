@@ -42,6 +42,21 @@ Representative request classes:
 - media and content production work
 - specialist operator work that needs review, proof, and payout
 
+## Current Launch Motion
+
+The best first motion for this wedge is:
+
+- paid buyer requests first
+- curated supply whitelist second
+
+That keeps validation focused on real demand and real fulfillment pressure.
+
+The whitelist should prefer:
+
+- real scenarios where AI-only plans break
+- workflows that still need human judgment or verification
+- supply that can explain what completed work should look like
+
 These classes fit Boreal because they share the same properties:
 
 - high urgency

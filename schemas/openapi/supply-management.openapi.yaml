@@ -48,7 +48,7 @@ paths:
                   hasMore:
                     type: boolean
     post:
-      summary: Create an explicit draft Supply from one preset.
+      summary: Create an explicit draft Supply from one preset, or enable one Boreal-managed starter supply.
       requestBody:
         required: false
         content:
@@ -65,6 +65,13 @@ paths:
                     - digital_product
                     - desktop_runtime
                     - provider_capability
+                starterWorkerKey:
+                  type: string
+                  enum:
+                    - video-generation
+                publish:
+                  type: boolean
+              description: Provide `preset` for a manual draft, or `starterWorkerKey` with optional `publish` for a Boreal-managed starter supply.
       responses:
         "200":
           description: The newly created draft supply.

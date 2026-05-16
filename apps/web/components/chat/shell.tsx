@@ -1,7 +1,8 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { BracesIcon, MessageSquareIcon, XIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -116,12 +117,15 @@ export function ChatShell() {
     useState(false);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
   const { setArtifact } = useArtifact();
+  const searchParams = useSearchParams();
+  const preferredSupplyIdFromUrl = searchParams.get("preferredSupplyId");
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
   const autoOpenedRequestRef = useRef<string | null>(null);
   const autoOpenedDeliveryArtifactRef = useRef<string | null>(null);
   const suppressAutoOpenRequestRef = useRef<string | null>(null);
+  const supplyBootstrapRef = useRef<string | null>(null);
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
@@ -130,6 +134,7 @@ export function ChatShell() {
       autoOpenedRequestRef.current = null;
       autoOpenedDeliveryArtifactRef.current = null;
       suppressAutoOpenRequestRef.current = null;
+      supplyBootstrapRef.current = null;
       stopRef.current();
       setArtifact(initialArtifactData);
       setEditingMessage(null);
@@ -256,11 +261,13 @@ export function ChatShell() {
     );
   };
 
-  const handleCreateRequest = async () => {
+  const handleCreateRequest = useCallback(async (options?: {
+    preferredSupplyId?: string | null;
+  }) => {
     setIsStartingRequest(true);
 
     try {
-      const createdRequest = await createRequest();
+      const createdRequest = await createRequest(options);
       if (!createdRequest) {
         return null;
       }
@@ -278,7 +285,7 @@ export function ChatShell() {
     } finally {
       setIsStartingRequest(false);
     }
-  };
+  }, [createRequest, setArtifact]);
 
   const ensureRequestForSend = async () => {
     if (!isRequestMode || activeRequest) {
@@ -290,6 +297,43 @@ export function ChatShell() {
       throw new Error("Failed to start a new request.");
     }
   };
+
+  useEffect(() => {
+    if (
+      !isRequestMode ||
+      activeRequest ||
+      !preferredSupplyIdFromUrl ||
+      isStartingRequest
+    ) {
+      return;
+    }
+
+    const bootstrapKey = `${chatId}:${preferredSupplyIdFromUrl}`;
+    if (supplyBootstrapRef.current === bootstrapKey) {
+      return;
+    }
+
+    supplyBootstrapRef.current = bootstrapKey;
+
+    void handleCreateRequest({
+      preferredSupplyId: preferredSupplyIdFromUrl,
+    })
+      .then((createdRequest) => {
+        if (!createdRequest) {
+          supplyBootstrapRef.current = null;
+        }
+      })
+      .catch(() => {
+        supplyBootstrapRef.current = null;
+      });
+  }, [
+    activeRequest,
+    chatId,
+    handleCreateRequest,
+    isRequestMode,
+    isStartingRequest,
+    preferredSupplyIdFromUrl,
+  ]);
 
   const handleResolveDeliveredRequest = async () => {
     if (!activeRequest || activeRequest.status !== "delivered") {

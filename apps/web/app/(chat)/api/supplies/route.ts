@@ -1,5 +1,8 @@
 import { z } from "zod";
 import {
+  isBorealWorkerStarterKey,
+} from "@/lib/boreal-workers/starter-catalog";
+import {
   getSuppliesByUserId,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
@@ -7,7 +10,10 @@ import {
   getRequestActorContext,
   hasResolverScope,
 } from "@/lib/resolver-session";
-import { createSupplyDraft } from "@/lib/supply-server";
+import {
+  createBorealWorkerStarterSupply,
+  createSupplyDraft,
+} from "@/lib/supply-server";
 
 const createSupplySchema = z.object({
   preset: z
@@ -18,7 +24,15 @@ const createSupplySchema = z.object({
       "desktop_runtime",
       "provider_capability",
     ])
-    .default("agent_worker"),
+    .optional(),
+  starterWorkerKey: z
+    .string()
+    .optional()
+    .refine(
+      (value) => value === undefined || isBorealWorkerStarterKey(value),
+      "Invalid starter worker key."
+    ),
+  publish: z.boolean().optional(),
 });
 
 export async function GET(request: Request) {
@@ -76,11 +90,24 @@ export async function POST(request: Request) {
     ).toResponse();
   }
 
+  if (body.preset && body.starterWorkerKey) {
+    return new ChatbotError(
+      "bad_request:api",
+      "Choose either preset or starterWorkerKey, not both."
+    ).toResponse();
+  }
+
   try {
-    const supply = await createSupplyDraft({
-      userId: actor.userId,
-      preset: body.preset,
-    });
+    const supply = body.starterWorkerKey
+      ? await createBorealWorkerStarterSupply({
+          userId: actor.userId,
+          workerKey: body.starterWorkerKey,
+          publish: body.publish ?? false,
+        })
+      : await createSupplyDraft({
+          userId: actor.userId,
+          preset: body.preset ?? "agent_worker",
+        });
 
     return Response.json({ supply }, { status: 200 });
   } catch {

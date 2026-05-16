@@ -5,7 +5,7 @@ import {
   PackageIcon,
   Trash2Icon,
 } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { toast } from "@/components/chat/toast";
@@ -32,6 +32,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { borealWhitelistPrompts } from "@/lib/marketing";
+import {
+  buildSurfaceTopNavLinks,
+  SidebarSurfaceTopNav,
+} from "@/components/chat/surface-top-nav";
 import type {
   BorealSupplyDraft,
   SupplyActorKind,
@@ -104,9 +109,12 @@ function extractSupplyId(pathname: string): string | null {
 export function SupplyShell() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { mutate } = useSWRConfig();
   const supplyId = extractSupplyId(pathname);
   const isNewSupplyRoute = pathname === "/supplies/new";
+  const isWhitelistEntry =
+    isNewSupplyRoute && searchParams.get("entry") === "whitelist";
   const [draft, setDraft] = useState<BorealSupplyDraft | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -284,34 +292,53 @@ export function SupplyShell() {
 
   if (isNewSupplyRoute) {
     return (
-      <div className="flex h-dvh flex-col overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.34)_100%)]">
-        <header className="border-b border-border/50 bg-background/92 backdrop-blur-xl">
-          <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-3 px-4 md:px-6">
-            <div className="flex size-9 items-center justify-center rounded-2xl border border-border/60 bg-background shadow-sm">
-              <PackageIcon className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-medium">New capability</div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
-                Capability first
-              </div>
-            </div>
-          </div>
-        </header>
+      <div className="flex h-dvh w-full flex-row overflow-hidden bg-sidebar">
+        <div className="flex min-w-0 flex-1 flex-col bg-transparent">
+          <SidebarSurfaceTopNav
+            links={buildSurfaceTopNavLinks(isWhitelistEntry ? "whitelist" : undefined)}
+            subtitle={isWhitelistEntry ? "Supply whitelist" : "New supply"}
+          />
 
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 overflow-auto px-4 py-8 md:px-6 md:py-10">
+          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/96 md:rounded-none md:rounded-tl-[28px] md:border md:border-border/60 md:shadow-[0_18px_55px_rgba(15,23,42,0.05)]">
+            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 overflow-auto px-4 py-8 md:px-6 md:py-10">
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex rounded-full border border-border/60 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
-              Capability draft
+              {isWhitelistEntry ? "Supply whitelist" : "Capability draft"}
             </div>
             <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-5xl">
-              Start with the capability, not the runtime.
+              {isWhitelistEntry
+                ? "Show us the work AI alone will not finish."
+                : "Start with the capability, not the runtime."}
             </h1>
             <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
-              Describe what gets done first. Runtime binding stays optional, so
-              one desktop or provider can back more than one capability.
+              {isWhitelistEntry
+                ? "We are curating early supply around real workflows where mixed human and AI execution matters. Choose the closest lane below, then describe the scenario, the human steps, and the proof of completion."
+                : "Describe what gets done first. Runtime binding stays optional, so one desktop or provider can back more than one capability."}
             </p>
           </div>
+
+          {isWhitelistEntry ? (
+            <div className="rounded-[28px] border border-border/60 bg-background/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+              <div className="max-w-3xl">
+                <div className="text-base font-medium tracking-tight text-foreground">
+                  What to tell us
+                </div>
+                <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                  This whitelist is for real workflows where the winning plan still needs human judgment, verification, handoff, or delivery.
+                </p>
+              </div>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {borealWhitelistPrompts.map((prompt) => (
+                  <div
+                    className="rounded-2xl border border-border/60 bg-muted/[0.2] px-4 py-4 text-sm leading-7 text-foreground/86"
+                    key={prompt}
+                  >
+                    {prompt}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {presetCards.map((preset) => (
@@ -335,6 +362,8 @@ export function SupplyShell() {
                 </p>
               </button>
             ))}
+          </div>
+            </div>
           </div>
         </div>
       </div>

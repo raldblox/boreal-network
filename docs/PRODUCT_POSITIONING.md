@@ -47,6 +47,10 @@ Buyer-safe wording:
 
 Boreal helps you turn a work request into a completed outcome without losing context across matching, execution, proof, or payment.
 
+Current launch copy can be more direct:
+
+Boreal is for work that AI cannot fully finish on its own.
+
 ## Technical Reading
 
 Technical-safe wording:
@@ -84,3 +88,14 @@ This positioning keeps Boreal distinct from:
 - agencies that depend on manual delivery
 
 Boreal begins with demand and carries that demand through fulfillment.
+
+## Launch Motion
+
+When describing current access, lead with:
+
+- paid request pilots
+- curated supply whitelist
+
+Do not frame the current product as instant marketplace liquidity.
+
+Frame it as one serious request carried through to completion, with curated supply joining where the work needs it.

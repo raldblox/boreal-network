@@ -51,8 +51,8 @@ export const Greeting = ({
         {isDraftRequest
           ? "Shape the request here. Start with the ask, then add budget, deadline, constraints, and what done looks like."
           : isPendingRequestStart
-            ? "Write the first request message here. Boreal will create the durable request only after you send it."
-          : isOpenedRequest
+            ? "Write the first serious request message here. Boreal will create the durable request only after you send it."
+            : isOpenedRequest
             ? "Move the request forward here. Post updates, adjust details, ask for recent activity, or decide the next step."
             : "Describe the work, the outcome, or the specialist you need. Boreal keeps the chat connected to the request when real work starts."}
       </motion.div>

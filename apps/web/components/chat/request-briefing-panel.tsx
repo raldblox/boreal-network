@@ -1,10 +1,13 @@
 "use client";
 
 import { LoaderCircleIcon } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
+import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import type { BorealSupplyDraft } from "@/lib/supply";
+import { cn, fetcher } from "@/lib/utils";
 import type {
   BorealRequestDraft,
   RequestBudget,
@@ -33,6 +36,21 @@ export function RequestBriefingPanel({
   onSetRequestPromptOptimizerEnabled,
 }: RequestBriefingPanelProps) {
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const searchParams = useSearchParams();
+  const selectedSupplyId =
+    request?.routing.preferredSupplyId ??
+    (isRequestMode ? searchParams.get("preferredSupplyId") : null);
+  const selectedSupplyKey = selectedSupplyId
+    ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/supplies/${selectedSupplyId}`
+    : null;
+  const { data: selectedSupplyData } = useSWR<{ supply: BorealSupplyDraft }>(
+    selectedSupplyKey,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+    }
+  );
+  const selectedSupply = selectedSupplyData?.supply ?? null;
 
   if (isReadonly || (!request && !isRequestMode)) {
     return null;
@@ -71,14 +89,21 @@ export function RequestBriefingPanel({
             <div className="text-sm font-medium">Start request</div>
             <div className="text-[13px] leading-6 text-muted-foreground">
               {isStartingRequest
-                ? "Starting the request and opening the brief now."
-                : "Your first message opens the request thread. Use assist when a rough ask needs help turning into a clear brief."}
+                ? selectedSupply
+                  ? `Starting the request and pinning ${getSelectedSupplyLabel(selectedSupply)} now.`
+                  : "Starting the request and opening the brief now."
+                : selectedSupply
+                  ? `${getSelectedSupplyLabel(selectedSupply)} is pinned for this private request. Your next message should only describe the work or instructions you want done.`
+                  : "Your first message opens the request thread. Use assist when a rough ask needs help turning into a clear brief."}
             </div>
             {isStartingRequest ? (
               <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                 <LoaderCircleIcon className="size-4 animate-spin" />
                 <span>Creating request draft...</span>
               </div>
+            ) : null}
+            {selectedSupply ? (
+              <PinnedSupplyBanner supply={selectedSupply} />
             ) : null}
           </div>
           <div className="flex flex-wrap gap-2">{optimizerToggle}</div>
@@ -141,6 +166,11 @@ export function RequestBriefingPanel({
                 {title}
               </div>
             </div>
+            {selectedSupply ? (
+              <div className="mt-3">
+                <PinnedSupplyBanner supply={selectedSupply} />
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -229,6 +259,27 @@ function getRequestPlanningNote(request: BorealRequestDraft) {
   ].filter((note): note is string => Boolean(note));
 
   return notes.join(" ");
+}
+
+function PinnedSupplyBanner({ supply }: { supply: BorealSupplyDraft }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-muted/[0.18] px-3.5 py-3">
+      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+        Pinned worker
+      </div>
+      <div className="mt-1.5 text-sm font-medium text-foreground">
+        {getSelectedSupplyLabel(supply)}
+      </div>
+      <div className="mt-1 text-[13px] leading-6 text-muted-foreground">
+        {supply.profile.summary?.trim() ||
+          "This supply stays pinned on the request while you write the brief."}
+      </div>
+    </div>
+  );
+}
+
+function getSelectedSupplyLabel(supply: BorealSupplyDraft) {
+  return supply.profile.displayName.trim() || supply.key || "Untitled supply";
 }
 
 function formatExecutionSummary(request: BorealRequestDraft) {

@@ -1,5 +1,10 @@
 import "server-only";
 
+import { borealWorkerSupplyFactories } from "@/lib/boreal-workers";
+import {
+  type BorealWorkerStarterKey,
+  getBorealWorkerKeyFromMetadata,
+} from "@/lib/boreal-workers/starter-catalog";
 import {
   createInitialSupplyDraft,
   applySupplyPatch,
@@ -12,6 +17,7 @@ import { generateUUID } from "@/lib/utils";
 import {
   deleteSupplyById,
   getSupplyById,
+  getSuppliesByUserId,
   getSupplyUsageSummaryById,
   saveSupplyDraft,
   toSupplyDraft,
@@ -50,6 +56,88 @@ export async function createSupplyDraft({
   });
 
   return draft;
+}
+
+export async function createBorealWorkerStarterSupply({
+  userId,
+  workerKey,
+  publish = false,
+}: {
+  userId: string;
+  workerKey: BorealWorkerStarterKey;
+  publish?: boolean;
+}): Promise<BorealSupplyDraft> {
+  const existingSupplies = await getSuppliesByUserId({
+    id: userId,
+    limit: 100,
+    startingAfter: null,
+    endingBefore: null,
+  });
+  const existingStarterSupply =
+    existingSupplies.supplies.find(
+      (supply) => getBorealWorkerKeyFromMetadata(supply.metadata) === workerKey
+    ) ?? null;
+
+  if (existingStarterSupply) {
+    if (!publish || existingStarterSupply.status === "published") {
+      return existingStarterSupply;
+    }
+
+    if (existingStarterSupply.status === "draft") {
+      return publishSupplyDraft({
+        supplyId: existingStarterSupply.id,
+        userId,
+      });
+    }
+
+    if (existingStarterSupply.status === "paused") {
+      return persistSupplyPatch({
+        supplyId: existingStarterSupply.id,
+        userId,
+        patch: {
+          status: "published",
+        },
+      });
+    }
+
+    throw new Error("Retired starter supply cannot be reused");
+  }
+
+  const supplyFactory = borealWorkerSupplyFactories[workerKey];
+  if (!supplyFactory) {
+    throw new Error("Starter supply factory not found");
+  }
+
+  const now = new Date().toISOString();
+  const draft = supplyFactory({
+    id: generateUUID(),
+    userId,
+    createdAt: now,
+  });
+
+  await saveSupplyDraft({
+    id: draft.id,
+    key: draft.key,
+    ownerId: draft.ownerId,
+    status: draft.status,
+    visibility: draft.visibility,
+    profile: draft.profile,
+    capability: draft.capability,
+    availability: draft.availability,
+    pricing: draft.pricing,
+    source: draft.source,
+    bindings: draft.bindings,
+    metadata: draft.metadata,
+  });
+
+  if (!publish) {
+    return draft;
+  }
+
+  return publishSupplyDraft({
+    supplyId: draft.id,
+    userId,
+  });
 }
 
 export async function persistSupplyPatch({

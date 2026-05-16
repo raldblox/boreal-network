@@ -82,6 +82,25 @@ Private supply, enterprise control planes, and deeper runtime integration may be
 
 They are not the first category claim.
 
+## Current Launch Motion
+
+The near-term launch motion should stay simple:
+
+- buyer-funded request pilots first
+- curated supply whitelist second
+
+The first public ask is not broad free browsing.
+
+It is:
+
+- bring one serious request that needs to get done
+
+Supply intake should stay curated around workflows where:
+
+- AI alone is not enough
+- human judgment, verification, or handoff still matter
+- proof of completion is part of the job
+
 ## Why This Category Is Real
 
 The market signals are already visible in public company and platform behavior:

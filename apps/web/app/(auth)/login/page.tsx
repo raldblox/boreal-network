@@ -64,7 +64,7 @@ function LoginPageContent() {
         Sign in to Boreal
       </h1>
       <p className="text-sm leading-7 text-muted-foreground">
-        Pick up your requests, collaborators, and delivered work.
+        Pick up your requests, supply lanes, and delivered work.
       </p>
       <AuthForm action={handleSubmit} defaultEmail={email}>
         <input name="callbackUrl" type="hidden" value={callbackUrl} />

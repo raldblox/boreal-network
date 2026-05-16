@@ -2,6 +2,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
 import { SparklesIcon } from "@/components/chat/icons";
 import { Preview } from "@/components/chat/preview";
+import { borealHomepageCopy } from "@/lib/marketing";
 
 export default function AuthLayout({
   children,
@@ -42,22 +43,21 @@ export default function AuthLayout({
         </div>
 
         <div className="hidden min-h-dvh flex-col justify-between px-10 py-10 xl:flex">
-          <div className="max-w-xl space-y-5">
+            <div className="max-w-xl space-y-5">
             <div className="inline-flex rounded-full border border-border/60 bg-background/76 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/72">
-              From ask to outcome
+              {borealHomepageCopy.eyebrow}
             </div>
             <h2 className="max-w-xl text-5xl font-semibold tracking-tight text-balance [font-family:var(--font-display)]">
-              Turn a work request into one accountable thread.
+              {borealHomepageCopy.title}
             </h2>
             <p className="max-w-lg text-[15px] leading-8 text-muted-foreground">
-              Boreal keeps the ask, the work, the proof, and the payout connected
-              while the thread moves across humans and AI.
+              {borealHomepageCopy.body}
             </p>
             <Link
               className="inline-flex text-sm text-foreground underline-offset-4 hover:underline"
-              href="/download/boreal-desktop"
+              href="/supplies/new?entry=whitelist"
             >
-              See Boreal Desktop
+              Join supply whitelist
             </Link>
           </div>
 

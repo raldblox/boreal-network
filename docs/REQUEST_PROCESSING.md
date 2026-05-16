@@ -31,6 +31,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    Stay chat-only until the owner or policy explicitly chooses to open a `Request`.
    In the web `New request` mode, entering the mode alone must not create a durable `Request`.
    The first durable draft should be created only when the owner sends the first request brief turn or uses another explicit create action.
+   Selecting one owned supply from the web supply hub may count as that explicit create action for a private request, but it should pin `routing.preferredSupplyId` without injecting synthetic brief text on the owner's behalf.
    Optional request-briefing assist may restructure that first turn for clarity, but it must still end in exactly one `create_request_brief` mutation instead of a parallel hidden write path.
 3. Request draft
    Produce a derived `RequestDraft`.

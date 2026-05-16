@@ -106,6 +106,7 @@ Should expose:
 The first supply-management web slice should support:
 
 - explicit draft creation from a typed preset such as human service, agent worker, digital product, desktop runtime, or provider capability
+- explicit starter-supply enable from a Boreal-managed worker key, with optional immediate publish into a private or unlisted lane
 - owner-scoped supply draft reads and list reads through browser session or resolver auth with `supplies:read_private`
 - owner-scoped draft updates for profile, capability, availability, pricing, visibility, source, binding metadata, and freeform metadata
 - owner-scoped delete for `draft` supply, or `retired` supply with no durable commitment or fulfillment activity

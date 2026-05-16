@@ -97,6 +97,7 @@ Verify:
 - not every chat turn creates a durable request
 - entering `New request` mode alone does not create a durable request
 - the first send in `New request` mode creates one draft request instead of a second root object
+- selecting one supply from the supply hub may create one private draft request and pin `routing.preferredSupplyId` without auto-sending synthetic prompt text
 - request-briefing assist or optimizer profiles in request mode must still create at most one draft request on first send
 - request draft extraction is deterministic for canonical fixtures
 - request-briefing assist or optimizer profiles may improve wording clarity but must not invent budget, deadline, deliverables, actor requirements, or constraints
@@ -130,6 +131,7 @@ Verify:
 - funding-required requests should not start fulfillment directly in `active`
 - fulfillment planning for embodied or verification-heavy work should derive explicit execution modality and proof requirements before closure becomes possible
 - owner-scoped request routing updates should allow set or clear of `routing.preferredSupplyId` only on private requests
+- pinned-supply request drafts should surface the selected worker in the UI while keeping the editable brief buyer-authored
 - public request projections should not expose `routing.preferredSupplyId`
 - execution-grade artifacts should require an accepted commitment or active fulfillment role instead of arbitrary public responder access
 - artifact publication should accept both document-backed content and richer external or object reference containers
@@ -173,6 +175,7 @@ Verify:
 
 - entering the new-supply route alone does not publish supply automatically
 - explicit supply draft creation creates one durable supply row
+- starter-supply enable should create or reuse one worker-backed supply row instead of duplicating the same starter lane
 - draft updates mutate the same supply row instead of creating replacements
 - delete should allow draft supply and unused retired supply only
 - delete should reject published or paused supply
@@ -183,6 +186,7 @@ Verify:
 - pause and retire transitions honor the canonical supply state machine
 - runtime or resolver binding metadata remains optional
 - runtime or resolver binding metadata does not replace the durable supply owner actor
+- starter-supply enable with immediate publish should keep the starter in private or unlisted lanes and make it selectable for request routing
 
 ### Planner evals
 

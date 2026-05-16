@@ -43,7 +43,7 @@ async function SidebarShell({ children }: { children: React.ReactNode }) {
         />
         <Suspense fallback={<div className="flex h-dvh" />}>
           <ActiveChatProvider>
-            <ModeShell />
+            <ModeShell user={session?.user} />
           </ActiveChatProvider>
         </Suspense>
         {children}

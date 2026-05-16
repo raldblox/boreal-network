@@ -42,7 +42,7 @@ export function SidebarSupplies({ user }: { user: User | undefined }) {
     return (
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
-          Capabilities
+          Supplies
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <div className="flex flex-col gap-1 px-3">
@@ -67,11 +67,11 @@ export function SidebarSupplies({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
-          Capabilities
+          Supplies
         </SidebarGroupLabel>
         <SidebarGroupContent>
           <div className="mx-3 rounded-2xl border border-sidebar-border/35 bg-sidebar-accent/12 px-3 py-3 text-[12px] leading-6 text-sidebar-foreground/58">
-            Start a capability draft and it will appear here.
+            Start a supply draft and it will appear here.
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -81,7 +81,7 @@ export function SidebarSupplies({ user }: { user: User | undefined }) {
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
-        Capabilities
+        Supplies
       </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>
