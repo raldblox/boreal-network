@@ -72,8 +72,10 @@ Account setup notes:
 
 - `Neon` account needed for `POSTGRES_URL`
 - `Vercel` account needed for deployment and easiest env flow
+- `Runway` API key needed for Boreal-managed video generation via `RUNWAYML_API_SECRET`
 - `Auth.js` is package code, not a separate hosted account
 - Redis is optional and should not block first local scaffold work
+- `BLOB_READ_WRITE_TOKEN` is required once provider outputs are mirrored into durable Boreal storage
 
 ## Canon Boundary
 

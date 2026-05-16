@@ -1,11 +1,16 @@
 import { z } from "zod";
 import type { BorealRequestDraft } from "@/lib/request";
 import {
+  executeRunwayVideoTask,
+  runwayAssetUriSchema,
+} from "@/lib/providers/runway";
+import {
   applySupplyPatch,
   createInitialSupplyDraft,
   type BorealSupplyDraft,
   type SupplyPatch,
 } from "@/lib/supply";
+import { mirrorRemoteObjectToBlob } from "./storage";
 import type {
   BorealWorkerCommitmentDraft,
   BorealWorkerDefinition,
@@ -14,42 +19,52 @@ import type {
 } from "./types";
 import {
   borealWorkerArtifactDescriptorSchema,
+  parseBorealWorkerResult,
   borealWorkerStoredAssetSchema,
 } from "./types";
 
-export type VideoGenerationWorkerInput = {
-  requestId: string;
-  title: string;
-  brief: string;
-  aspectRatio: "16:9" | "9:16" | "1:1";
-  durationSeconds?: number;
-  styleHints: string[];
-};
-
-export type VideoGenerationWorkerResult = {
-  providerTaskId: string;
-  providerStatus: "queued" | "running" | "completed";
-  sourceVideoUrl?: string;
-};
-
-export const videoGenerationWorkerInputSchema = z
+const videoGenerationWorkerBaseInputSchema = z
   .object({
     requestId: z.string().uuid(),
     title: z.string().min(1).max(200),
     brief: z.string().min(1),
     aspectRatio: z.enum(["16:9", "9:16", "1:1"]),
-    durationSeconds: z.number().int().positive().max(600).optional(),
+    durationSeconds: z.number().int().min(2).max(10).optional(),
     styleHints: z.array(z.string().min(1)),
   })
   .strict();
+
+const textToVideoWorkerInputSchema = videoGenerationWorkerBaseInputSchema.extend({
+  generationMode: z.literal("text_to_video"),
+});
+
+const imageToVideoWorkerInputSchema = videoGenerationWorkerBaseInputSchema.extend({
+  generationMode: z.literal("image_to_video"),
+  promptImageUri: runwayAssetUriSchema,
+});
+
+export const videoGenerationWorkerInputSchema = z.discriminatedUnion(
+  "generationMode",
+  [textToVideoWorkerInputSchema, imageToVideoWorkerInputSchema]
+);
+
+export type VideoGenerationWorkerInput = z.infer<
+  typeof videoGenerationWorkerInputSchema
+>;
 
 export const videoGenerationWorkerResultSchema = z
   .object({
     providerTaskId: z.string().min(1).max(200),
     providerStatus: z.enum(["queued", "running", "completed"]),
     sourceVideoUrl: z.string().url().optional(),
+    outputPublicUrl: z.string().url().optional(),
+    storedAsset: borealWorkerStoredAssetSchema.optional(),
   })
   .strict();
+
+export type VideoGenerationWorkerResult = z.infer<
+  typeof videoGenerationWorkerResultSchema
+>;
 
 export const videoGenerationWorkerStoredAssetSchema = borealWorkerStoredAssetSchema
   .extend({
@@ -111,19 +126,56 @@ function inferAspectRatio(request: BorealRequestDraft): "16:9" | "9:16" | "1:1" 
 function inferDurationSeconds(request: BorealRequestDraft) {
   const body = requestText(request);
 
-  if (body.includes("15 second") || body.includes("15s")) {
-    return 15;
+  if (
+    body.includes("10 second") ||
+    body.includes("10s") ||
+    body.includes("15 second") ||
+    body.includes("15s") ||
+    body.includes("30 second") ||
+    body.includes("30s") ||
+    body.includes("60 second") ||
+    body.includes("1 minute")
+  ) {
+    return 10;
   }
 
-  if (body.includes("30 second") || body.includes("30s")) {
-    return 30;
-  }
-
-  if (body.includes("60 second") || body.includes("1 minute")) {
-    return 60;
+  if (body.includes("6 second") || body.includes("6s")) {
+    return 6;
   }
 
   return undefined;
+}
+
+function toRunwayImageToVideoRatio(
+  input: Extract<VideoGenerationWorkerInput, { generationMode: "image_to_video" }>
+) {
+  if (input.aspectRatio === "9:16") {
+    return "720:1280" as const;
+  }
+
+  if (input.aspectRatio === "1:1") {
+    return "960:960" as const;
+  }
+
+  return "1280:720" as const;
+}
+
+function toRunwayTextToVideoRatio(
+  input: Extract<VideoGenerationWorkerInput, { generationMode: "text_to_video" }>
+) {
+  if (input.aspectRatio === "9:16") {
+    return "720:1280" as const;
+  }
+
+  return "1280:720" as const;
+}
+
+function sanitizeFilenameSegment(value: string) {
+  return value
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function buildVideoGenerationTerms(
@@ -210,17 +262,19 @@ export const videoGenerationWorker: BorealWorkerDefinition<
     storedAssetSchema: videoGenerationWorkerStoredAssetSchema,
     artifactSchema: videoGenerationWorkerArtifactSchema,
     inputExample: {
+      generationMode: "text_to_video",
       requestId: "00000000-0000-0000-0000-000000000000",
       title: "Launch teaser video",
       brief: "Create a short launch teaser video for Boreal with bold motion and product UI callouts.",
       aspectRatio: "16:9",
-      durationSeconds: 30,
+      durationSeconds: 10,
       styleHints: ["cinematic", "product teaser"],
     },
     resultExample: {
       providerTaskId: "runway-task-123",
-      providerStatus: "queued",
+      providerStatus: "completed",
       sourceVideoUrl: "https://example.com/source.mp4",
+      outputPublicUrl: "https://example.com/mirrored.mp4",
     },
   },
   supply: {
@@ -296,6 +350,7 @@ export const videoGenerationWorker: BorealWorkerDefinition<
     const body = request.brief.body?.trim() || request.brief.summary?.trim() || title;
 
     return videoGenerationWorkerInputSchema.parse({
+      generationMode: "text_to_video",
       requestId: request.id,
       title,
       brief: body,
@@ -316,6 +371,65 @@ export const videoGenerationWorker: BorealWorkerDefinition<
         ...parsedAsset.container,
         mediaKind: "video",
       },
+    });
+  },
+  async execute(input) {
+    const parsedInput = videoGenerationWorkerInputSchema.parse(input);
+    const durationSeconds = parsedInput.durationSeconds ?? 5;
+
+    const runwayResult =
+      parsedInput.generationMode === "image_to_video"
+        ? await executeRunwayVideoTask({
+            mode: "image_to_video",
+            model: "gen4.5",
+            promptImageUri: parsedInput.promptImageUri,
+            promptText: parsedInput.brief,
+            ratio: toRunwayImageToVideoRatio(parsedInput),
+            duration: durationSeconds,
+          })
+        : await executeRunwayVideoTask({
+            mode: "text_to_video",
+            model: "gen4.5",
+            promptText: parsedInput.brief,
+            ratio: toRunwayTextToVideoRatio(parsedInput),
+            duration: durationSeconds,
+          });
+
+    if (!runwayResult.completedTask) {
+      return parseBorealWorkerResult(this, {
+        providerTaskId: runwayResult.submission.id,
+        providerStatus: "queued",
+      });
+    }
+
+    const sourceVideoUrl = runwayResult.completedTask.output[0];
+    const mirrored = await mirrorRemoteObjectToBlob({
+      sourceUrl: sourceVideoUrl,
+      pathPrefix: this.storage.pathPrefix,
+      filenameBase: [
+        parsedInput.requestId,
+        sanitizeFilenameSegment(parsedInput.title) || "video-generation",
+      ].join("/"),
+      mediaKind: "video",
+      mimeType: "video/mp4",
+    });
+
+    const storedAsset = videoGenerationWorkerStoredAssetSchema.parse({
+      title: parsedInput.title,
+      summary: `Runway ${parsedInput.generationMode} output for ${parsedInput.requestId}.`,
+      container: {
+        ...mirrored.container,
+        mediaKind: "video",
+      },
+      sourceUrl: sourceVideoUrl,
+    });
+
+    return parseBorealWorkerResult(this, {
+      providerTaskId: runwayResult.submission.id,
+      providerStatus: "completed",
+      sourceVideoUrl,
+      outputPublicUrl: mirrored.publicUrl,
+      storedAsset,
     });
   },
   metadata: {

@@ -32,3 +32,4 @@ Accepted decisions:
 - [0012-request-briefing-assist-profile.md](0012-request-briefing-assist-profile.md)
 - [0013-embodied-fulfillment-planner-honesty-first.md](0013-embodied-fulfillment-planner-honesty-first.md)
 - [0014-request-draft-input-and-readonly-planner-projection.md](0014-request-draft-input-and-readonly-planner-projection.md)
+- [0015-boreal-workers-web-execution-layer-and-video-generation-first.md](0015-boreal-workers-web-execution-layer-and-video-generation-first.md)

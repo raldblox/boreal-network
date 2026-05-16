@@ -104,6 +104,9 @@ importers:
       '@radix-ui/react-use-controllable-state':
         specifier: ^1.2.2
         version: 1.2.2(@types/react@19.2.14)(react@19.0.1)
+      '@runwayml/sdk':
+        specifier: ^3.21.0
+        version: 3.21.0
       '@streamdown/cjk':
         specifier: ^1.0.2
         version: 1.0.3(@types/mdast@4.0.4)(micromark-util-types@2.0.2)(micromark@4.0.2)(react@19.0.1)(unified@11.0.5)
@@ -2291,6 +2294,10 @@ packages:
     resolution: {integrity: sha512-hPt/bgL5cE+Qp+/TPHBqptcAgPzgj46mPcg/16zNUmbQk0j+mOEQV/+Lqu8QRtDV3Ek95Q6FeFITpuhl6OTsAA==}
     cpu: [x64]
     os: [win32]
+
+  '@runwayml/sdk@3.21.0':
+    resolution: {integrity: sha512-af7TvNIjdYOE/zpBE1Qk8o3HzEd4A0OHUZBGCAca/jNN5T+KY2wX7UC3ZjZEEjXXlX6v+9GNHIMpAlplku5OGg==}
+    hasBin: true
 
   '@shikijs/core@3.23.0':
     resolution: {integrity: sha512-NSWQz0riNb67xthdm5br6lAkvpDJRTgB36fxlo37ZzM2yq0PQFFzbd8psqC2XMPgCzo1fW6cVi18+ArJ44wqgA==}
@@ -6686,6 +6693,8 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.60.3':
     optional: true
+
+  '@runwayml/sdk@3.21.0': {}
 
   '@shikijs/core@3.23.0':
     dependencies:
