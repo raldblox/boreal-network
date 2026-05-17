@@ -80,6 +80,7 @@ type ActiveChatContextValue = {
   saveRequestDraft: () => Promise<void>;
   openRequest: () => Promise<void>;
   updateRequestPreferredSupply: (preferredSupplyId: string | null) => Promise<void>;
+  retryBlockedFulfillment: () => Promise<void>;
   resolveDeliveredFulfillment: () => Promise<void>;
 };
 
@@ -874,6 +875,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
           },
           body: JSON.stringify({
             chatId,
+            preferredSupplyId: options?.preferredSupplyId?.trim() || undefined,
             visibility,
           }),
         }
@@ -889,29 +891,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       const data = (await response.json()) as {
         request: BorealRequestDraft | null;
       };
-      let nextRequest = data.request;
-
-      if (nextRequest && options?.preferredSupplyId?.trim()) {
-        const routingResponse = await fetchWithErrorHandlers(
-          `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests/${nextRequest.id}`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              routing: {
-                preferredSupplyId: options.preferredSupplyId.trim(),
-              },
-            }),
-          }
-        );
-
-        const routingData = (await routingResponse.json()) as {
-          request: BorealRequestDraft | null;
-        };
-        nextRequest = routingData.request ?? nextRequest;
-      }
+      const nextRequest = data.request;
 
       router.push(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}`);
       await mutate<ChatDataResponse>(
@@ -1132,6 +1112,36 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     ]
   );
 
+  const retryBlockedFulfillment = useCallback(async () => {
+    if (!activeRequest?.activeRefs.activeFulfillmentId) {
+      throw new Error("No blocked fulfillment is available to retry.");
+    }
+
+    await fetchWithErrorHandlers(
+      `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/fulfillments/${activeRequest.activeRefs.activeFulfillmentId}/retry`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          idempotencyKey: generateUUID(),
+        }),
+      }
+    );
+
+    if (requestActivityKey) {
+      await mutate(requestActivityKey);
+    }
+    await mutate(chatDataKey);
+    await mutate(unstable_serialize(getRequestHistoryPaginationKey));
+  }, [
+    activeRequest?.activeRefs.activeFulfillmentId,
+    chatDataKey,
+    mutate,
+    requestActivityKey,
+  ]);
+
   const value = useMemo<ActiveChatContextValue>(
     () => ({
       chatId,
@@ -1163,6 +1173,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       saveRequestDraft,
       openRequest,
       updateRequestPreferredSupply,
+      retryBlockedFulfillment,
       resolveDeliveredFulfillment: async () => {
         if (!activeRequest?.activeRefs.activeFulfillmentId) {
           throw new Error("No delivered fulfillment is available to resolve.");
@@ -1219,6 +1230,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       saveRequestDraft,
       openRequest,
       updateRequestPreferredSupply,
+      retryBlockedFulfillment,
       mutate,
       chatDataKey,
       requestActivityKey,

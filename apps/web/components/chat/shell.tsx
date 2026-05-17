@@ -104,6 +104,7 @@ export function ChatShell() {
     saveRequestDraft,
     openRequest,
     updateRequestPreferredSupply,
+    retryBlockedFulfillment,
     resolveDeliveredFulfillment,
   } = useActiveChat();
 
@@ -115,6 +116,8 @@ export function ChatShell() {
   const [isOpeningDraftRequest, setIsOpeningDraftRequest] = useState(false);
   const [isOpenRequestChatVisible, setIsOpenRequestChatVisible] = useState(false);
   const [isResolvingDeliveredRequest, setIsResolvingDeliveredRequest] =
+    useState(false);
+  const [isRetryingBlockedFulfillment, setIsRetryingBlockedFulfillment] =
     useState(false);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
   const { setArtifact } = useArtifact();
@@ -335,6 +338,32 @@ export function ChatShell() {
     }
   };
 
+  const handleRetryBlockedFulfillment = async () => {
+    if (!activeRequest || activeRequest.status !== "waiting_for_owner") {
+      return;
+    }
+
+    setIsRetryingBlockedFulfillment(true);
+
+    try {
+      await retryBlockedFulfillment();
+      toast({
+        type: "success",
+        description: "Delivery lane resumed.",
+      });
+    } catch (error) {
+      toast({
+        type: "error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to retry delivery.",
+      });
+    } finally {
+      setIsRetryingBlockedFulfillment(false);
+    }
+  };
+
   const handleOpenRequest = async () => {
     setIsOpeningDraftRequest(true);
 
@@ -382,7 +411,9 @@ export function ChatShell() {
               <RequestTracker
                 activities={activities}
                 isReadonly={isReadonly}
+                isRetryingBlockedFulfillment={isRetryingBlockedFulfillment}
                 isResolvingDeliveredRequest={isResolvingDeliveredRequest}
+                onRetryBlockedFulfillment={handleRetryBlockedFulfillment}
                 onResolveDeliveredRequest={handleResolveDeliveredRequest}
                 onUpdatePreferredSupply={updateRequestPreferredSupply}
                 request={activeRequest}

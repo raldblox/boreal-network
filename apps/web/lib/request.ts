@@ -1356,7 +1356,9 @@ function deriveStructuralPlanningState(
   phases: RequestPhasePlan[];
   noMicrotaskExplosion: boolean;
 } {
-  const supplyKinds = normalizeStringArray(draft.seeking.supplyKinds);
+  const supplyKinds = collapseGenericPlanningSupplyKinds(
+    normalizeStringArray(draft.seeking.supplyKinds)
+  );
   const actorKinds = normalizeActorKinds(draft.seeking.actorKinds);
   const outputKinds = normalizeStringArray(draft.brief.outputKinds);
   const teamMode = normalizeText(draft.seeking.teamMode)?.toLowerCase() ?? "";
@@ -1855,6 +1857,27 @@ function normalizeRoleKey(value: string): string {
     default:
       return normalized || "support_role";
   }
+}
+
+function collapseGenericPlanningSupplyKinds(supplyKinds: string[]) {
+  const genericKinds = new Set([
+    "agent_worker",
+    "human_service",
+    "digital_product",
+    "runtime_executor",
+    "provider_capability",
+    "team_service",
+  ]);
+  const normalizedSupplyKinds = supplyKinds.filter((kind) => kind.trim().length > 0);
+  const hasSpecificKinds = normalizedSupplyKinds.some(
+    (kind) => !genericKinds.has(kind)
+  );
+
+  if (!hasSpecificKinds) {
+    return normalizedSupplyKinds;
+  }
+
+  return normalizedSupplyKinds.filter((kind) => !genericKinds.has(kind));
 }
 
 function formatPlanningLabel(value: string): string {

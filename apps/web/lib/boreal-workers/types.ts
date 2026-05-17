@@ -204,6 +204,54 @@ export const borealWorkerStoredAssetSchema = z
   })
   .strict();
 
+export type BorealWorkerRecoveryStage =
+  | "provider_poll"
+  | "mirror_output"
+  | "publish_artifact"
+  | "rerun_worker";
+
+export const borealWorkerRecoveryStageSchema = z.enum([
+  "provider_poll",
+  "mirror_output",
+  "publish_artifact",
+  "rerun_worker",
+]);
+
+export const borealWorkerFulfillmentStateSchema = z
+  .object({
+    displayName: z.string().min(1).max(200),
+    input: z.record(z.string(), z.unknown()),
+    prompt: z.string().min(1).max(4000).optional(),
+    provider: z.record(z.string(), z.unknown()).optional(),
+    providerStatus: z.string().min(1).max(64).optional(),
+    providerTaskId: z.string().min(1).max(200).optional(),
+    requestStatusAtStart: z.string().min(1).max(64).optional(),
+    retryable: z.boolean().optional(),
+    recoveryStage: borealWorkerRecoveryStageSchema.optional(),
+    errorMessage: z.string().min(1).max(2000).optional(),
+    sourceVideoUrl: z.string().url().optional(),
+    storedObjectKey: z.string().min(1).max(400).optional(),
+    storedAsset: borealWorkerStoredAssetSchema.optional(),
+    artifact: borealWorkerArtifactDescriptorSchema.optional(),
+    workerKey: z.string().min(1).max(200),
+    lastAttemptAt: z.string().min(1).max(120).optional(),
+  })
+  .strict();
+
+export type BorealWorkerFulfillmentState = z.infer<
+  typeof borealWorkerFulfillmentStateSchema
+>;
+
+export const borealWorkerFulfillmentMetadataSchema = z
+  .object({
+    borealWorker: borealWorkerFulfillmentStateSchema,
+  })
+  .passthrough();
+
+export type BorealWorkerFulfillmentMetadata = z.infer<
+  typeof borealWorkerFulfillmentMetadataSchema
+>;
+
 export type BorealWorkerInputShape = Record<string, unknown>;
 export type BorealWorkerResultShape = Record<string, unknown>;
 
@@ -238,6 +286,10 @@ export type BorealWorkerDefinition<
   draftCommitment(request: BorealRequestDraft): BorealWorkerCommitmentDraft | null;
   buildInput(request: BorealRequestDraft): TInput;
   buildArtifact(asset: BorealWorkerStoredAsset): BorealWorkerArtifactDescriptor;
+  resume?: (context: {
+    input: TInput;
+    metadata: Record<string, unknown>;
+  }) => Promise<TResult>;
   metadata?: Record<string, unknown>;
   execute?: (input: TInput) => Promise<TResult>;
 };
@@ -277,4 +329,65 @@ export function parseBorealWorkerArtifactDescriptor(
   artifact: unknown
 ): BorealWorkerArtifactDescriptor {
   return borealWorkerArtifactDescriptorSchema.parse(artifact);
+}
+
+export function parseBorealWorkerFulfillmentMetadata(
+  metadata: unknown
+): BorealWorkerFulfillmentState | null {
+  const parsed = borealWorkerFulfillmentMetadataSchema.safeParse(metadata);
+  if (!parsed.success) {
+    return null;
+  }
+
+  return parsed.data.borealWorker;
+}
+
+export class BorealWorkerRecoverableError extends Error {
+  readonly recoveryStage: BorealWorkerRecoveryStage;
+  readonly providerStatus?: string;
+  readonly providerTaskId?: string;
+  readonly sourceVideoUrl?: string;
+  readonly storedAsset?: BorealWorkerStoredAsset;
+
+  constructor(
+    message: string,
+    {
+      recoveryStage,
+      providerStatus,
+      providerTaskId,
+      sourceVideoUrl,
+      storedAsset,
+      cause,
+    }: {
+      recoveryStage: BorealWorkerRecoveryStage;
+      providerStatus?: string;
+      providerTaskId?: string;
+      sourceVideoUrl?: string;
+      storedAsset?: BorealWorkerStoredAsset;
+      cause?: unknown;
+    }
+  ) {
+    super(message);
+    this.name = "BorealWorkerRecoverableError";
+    this.recoveryStage = recoveryStage;
+    this.providerStatus = providerStatus;
+    this.providerTaskId = providerTaskId;
+    this.sourceVideoUrl = sourceVideoUrl;
+    this.storedAsset = storedAsset;
+
+    if (cause !== undefined) {
+      Object.defineProperty(this, "cause", {
+        configurable: true,
+        enumerable: false,
+        value: cause,
+        writable: true,
+      });
+    }
+  }
+}
+
+export function isBorealWorkerRecoverableError(
+  error: unknown
+): error is BorealWorkerRecoverableError {
+  return error instanceof BorealWorkerRecoverableError;
 }

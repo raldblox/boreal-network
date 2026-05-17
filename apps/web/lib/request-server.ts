@@ -20,11 +20,21 @@ import {
   saveRequestDraft,
   toRequestFulfillment,
   toRequestDraft,
+  toSupplyDraft,
   updateChatTitleById,
   updateCommitmentById,
   updateFulfillmentById,
   updateRequestDraftById,
 } from "@/lib/db/queries";
+import {
+  getBorealWorker,
+  isBorealWorkerRecoverableError,
+  parseBorealWorkerArtifactDescriptor,
+  parseBorealWorkerFulfillmentMetadata,
+  parseBorealWorkerInput,
+  parseBorealWorkerStoredAsset,
+} from "@/lib/boreal-workers";
+import { getBorealWorkerKeyFromSupply } from "@/lib/boreal-workers/starter-catalog";
 import {
   applyRequestPatch,
   type CommitmentKind,
@@ -251,6 +261,10 @@ export async function setRequestPreferredSupply({
       routing: {
         preferredSupplyId: normalizedPreferredSupplyId,
       },
+      ...buildDraftSeedFromPreferredSupply({
+        requestDraft,
+        selectedSupply,
+      }),
     },
   });
 }
@@ -297,6 +311,506 @@ export async function openRequestDraft({
   });
 
   return nextDraft;
+}
+
+export async function maybeAutoRunPinnedBorealWorkerForRequest({
+  requestId,
+  userId,
+}: {
+  requestId: string;
+  userId: string;
+}) {
+  const existingRequest = await getRequestById({ id: requestId });
+  if (!existingRequest) {
+    throw new Error("Request not found");
+  }
+
+  const requestDraft = toRequestDraft(existingRequest);
+  const preferredSupplyId = requestDraft.routing.preferredSupplyId?.trim();
+  if (!preferredSupplyId) {
+    return null;
+  }
+
+  if (
+    requestDraft.visibility !== "private" ||
+    requestDraft.ownerId !== userId ||
+    requestDraft.status !== "open"
+  ) {
+    return null;
+  }
+
+  const selectedSupply = await getSupplyById({ id: preferredSupplyId });
+  if (!selectedSupply || selectedSupply.ownerId !== userId) {
+    return null;
+  }
+
+  const workerKey = getBorealWorkerKeyFromSupply(toSupplyDraft(selectedSupply));
+  if (!workerKey) {
+    return null;
+  }
+
+  const worker = getBorealWorker(workerKey);
+  if (!worker || !worker.execute) {
+    return null;
+  }
+
+  let activeFulfillment = requestDraft.activeRefs.activeFulfillmentId
+    ? await getFulfillmentById({
+        id: requestDraft.activeRefs.activeFulfillmentId,
+      })
+    : null;
+
+  if (activeFulfillment && !isTerminalFulfillmentStatus(activeFulfillment.status)) {
+    return toRequestFulfillment(activeFulfillment);
+  }
+
+  const workerInput = worker.buildInput(requestDraft);
+  const workerPrompt = extractBorealWorkerPrompt(workerInput);
+  const workerMetadata = buildInitialBorealWorkerMetadata({
+    requestStatusAtStart: requestDraft.status,
+    worker,
+    workerInput,
+    workerPrompt,
+  });
+
+  const leadActor = toSupplyActorRef(selectedSupply) ?? undefined;
+
+  const createdFulfillment = await createFulfillmentForRequestById({
+    requestId: requestDraft.id,
+    actorUserId: userId,
+    summary: `${worker.displayName} started this request.`,
+    ...(leadActor ? { lead: leadActor } : {}),
+    supplyId: selectedSupply.id,
+    initialStatus: "active",
+    metadata: workerMetadata,
+    source: "system.request.open.auto_run",
+  });
+
+  activeFulfillment = await getFulfillmentById({ id: createdFulfillment.id });
+  if (!activeFulfillment) {
+    throw new Error("Fulfillment not found");
+  }
+
+  return continueBorealWorkerFulfillmentAttempt({
+    actorUserId: userId,
+    currentMetadata: activeFulfillment.metadata ?? workerMetadata,
+    fulfillmentId: activeFulfillment.id,
+    requestDraft,
+    source: "system.request.open.auto_run",
+    worker,
+    workerInput,
+    workerPrompt,
+  });
+}
+
+type AttachedBorealWorker = NonNullable<ReturnType<typeof getBorealWorker>>;
+
+function buildInitialBorealWorkerMetadata({
+  requestStatusAtStart,
+  worker,
+  workerInput,
+  workerPrompt,
+}: {
+  requestStatusAtStart: RequestStatus;
+  worker: AttachedBorealWorker;
+  workerInput: Record<string, unknown>;
+  workerPrompt: string;
+}) {
+  return {
+    borealWorker: {
+      displayName: worker.displayName,
+      input: workerInput,
+      ...(workerPrompt ? { prompt: workerPrompt } : {}),
+      provider: worker.provider,
+      providerStatus: "starting",
+      requestStatusAtStart,
+      workerKey: worker.workerKey,
+    },
+  } satisfies Record<string, unknown>;
+}
+
+async function publishBorealWorkerStoredAsset({
+  actorUserId,
+  currentMetadata,
+  fulfillmentId,
+  requestDraft,
+  source,
+  storedAsset,
+  worker,
+  workerInput,
+  workerPrompt,
+  workerResult,
+}: {
+  actorUserId: string;
+  currentMetadata: Record<string, unknown>;
+  fulfillmentId: string;
+  requestDraft: BorealRequestDraft;
+  source: string;
+  storedAsset: ReturnType<typeof parseBorealWorkerStoredAsset>;
+  worker: AttachedBorealWorker;
+  workerInput: Record<string, unknown>;
+  workerPrompt: string;
+  workerResult: Record<string, unknown>;
+}) {
+  const artifactDescriptor = parseBorealWorkerArtifactDescriptor(
+    worker.buildArtifact(storedAsset)
+  );
+  const nextMetadata = buildBorealWorkerFulfillmentMetadata({
+    artifactDescriptor,
+    currentMetadata,
+    workerDisplayName: worker.displayName,
+    workerInput,
+    workerKey: worker.workerKey,
+    workerPrompt,
+    workerProvider: worker.provider,
+    workerResult: {
+      ...workerResult,
+      storedAsset,
+    },
+  });
+
+  try {
+    await publishArtifactForRequestById({
+      requestId: requestDraft.id,
+      actorUserId,
+      artifactKind: artifactDescriptor.artifactKind,
+      title: artifactDescriptor.title,
+      summary: artifactDescriptor.summary,
+      fulfillmentId,
+      container: artifactDescriptor.container,
+      source,
+    });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Boreal could not attach the rendered delivery.";
+
+    return updateFulfillmentForRequestById({
+      fulfillmentId,
+      actorUserId,
+      status: "blocked",
+      summary: `${worker.displayName} paused before delivery could be attached: ${errorMessage}`,
+      metadata: buildBorealWorkerFulfillmentMetadata({
+        artifactDescriptor,
+        currentMetadata: nextMetadata,
+        errorMessage,
+        recoveryStage: "publish_artifact",
+        retryable: true,
+        workerDisplayName: worker.displayName,
+        workerInput,
+        workerKey: worker.workerKey,
+        workerPrompt,
+        workerProvider: worker.provider,
+        workerResult: {
+          ...workerResult,
+          storedAsset,
+        },
+      }),
+      source,
+    });
+  }
+
+  return updateFulfillmentForRequestById({
+    fulfillmentId,
+    actorUserId,
+    status: "delivered",
+    summary: `${worker.displayName} delivered the render.`,
+    metadata: nextMetadata,
+    source,
+  });
+}
+
+async function handleBorealWorkerExecutionError({
+  actorUserId,
+  currentMetadata,
+  error,
+  fulfillmentId,
+  source,
+  worker,
+  workerInput,
+  workerPrompt,
+}: {
+  actorUserId: string;
+  currentMetadata: Record<string, unknown>;
+  error: unknown;
+  fulfillmentId: string;
+  source: string;
+  worker: AttachedBorealWorker;
+  workerInput: Record<string, unknown>;
+  workerPrompt: string;
+}) {
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : `${worker.displayName} failed to complete this request.`;
+
+  if (isBorealWorkerRecoverableError(error)) {
+    return updateFulfillmentForRequestById({
+      fulfillmentId,
+      actorUserId,
+      status: "blocked",
+      summary: `${worker.displayName} paused and can retry from the same lane: ${errorMessage}`,
+      metadata: buildBorealWorkerFulfillmentMetadata({
+        currentMetadata,
+        errorMessage,
+        recoveryStage: error.recoveryStage,
+        retryable: true,
+        workerDisplayName: worker.displayName,
+        workerInput,
+        workerKey: worker.workerKey,
+        workerPrompt,
+        workerProvider: worker.provider,
+        workerResult: {
+          providerStatus: error.providerStatus ?? "blocked",
+          ...(error.providerTaskId
+            ? { providerTaskId: error.providerTaskId }
+            : {}),
+          ...(error.sourceVideoUrl
+            ? { sourceVideoUrl: error.sourceVideoUrl }
+            : {}),
+          ...(error.storedAsset ? { storedAsset: error.storedAsset } : {}),
+        },
+      }),
+      source,
+    });
+  }
+
+  return updateFulfillmentForRequestById({
+    fulfillmentId,
+    actorUserId,
+    status: "failed",
+    summary: `${worker.displayName} failed: ${errorMessage}`,
+    metadata: buildBorealWorkerFulfillmentMetadata({
+      currentMetadata,
+      errorMessage,
+      workerDisplayName: worker.displayName,
+      workerInput,
+      workerKey: worker.workerKey,
+      workerPrompt,
+      workerProvider: worker.provider,
+      workerResult: {
+        providerStatus: "failed",
+      },
+    }),
+    source,
+  });
+}
+
+async function continueBorealWorkerFulfillmentAttempt({
+  actorUserId,
+  currentMetadata,
+  fulfillmentId,
+  requestDraft,
+  resumeFromMetadata = false,
+  source,
+  worker,
+  workerInput,
+  workerPrompt,
+}: {
+  actorUserId: string;
+  currentMetadata: Record<string, unknown>;
+  fulfillmentId: string;
+  requestDraft: BorealRequestDraft;
+  resumeFromMetadata?: boolean;
+  source: string;
+  worker: AttachedBorealWorker;
+  workerInput: Record<string, unknown>;
+  workerPrompt: string;
+}) {
+  if (!worker.execute) {
+    throw new Error("Boreal worker execution is unavailable");
+  }
+
+  try {
+    const workerResult =
+      resumeFromMetadata && worker.resume
+        ? await worker.resume({
+            input: workerInput,
+            metadata: currentMetadata,
+          })
+        : await worker.execute(workerInput);
+
+    const nextMetadata = buildBorealWorkerFulfillmentMetadata({
+      currentMetadata,
+      workerDisplayName: worker.displayName,
+      workerInput,
+      workerKey: worker.workerKey,
+      workerPrompt,
+      workerProvider: worker.provider,
+      workerResult,
+    });
+
+    if (!workerResult.storedAsset) {
+      return updateFulfillmentForRequestById({
+        fulfillmentId,
+        actorUserId,
+        status: "active",
+        summary:
+          workerResult.providerStatus === "queued"
+            ? `${worker.displayName} queued the provider render.`
+            : `${worker.displayName} is still running.`,
+        metadata: nextMetadata,
+        source,
+      });
+    }
+
+    return publishBorealWorkerStoredAsset({
+      actorUserId,
+      currentMetadata: nextMetadata,
+      fulfillmentId,
+      requestDraft,
+      source,
+      storedAsset: parseBorealWorkerStoredAsset(workerResult.storedAsset),
+      worker,
+      workerInput,
+      workerPrompt,
+      workerResult,
+    });
+  } catch (error) {
+    return handleBorealWorkerExecutionError({
+      actorUserId,
+      currentMetadata,
+      error,
+      fulfillmentId,
+      source,
+      worker,
+      workerInput,
+      workerPrompt,
+    });
+  }
+}
+
+export async function retryBlockedBorealWorkerFulfillmentById({
+  fulfillmentId,
+  actorUserId,
+  idempotencyKey,
+  source = "api.fulfillments.retry",
+}: {
+  fulfillmentId: string;
+  actorUserId: string;
+  idempotencyKey?: string;
+  source?: string;
+}) {
+  const existingFulfillment = await getFulfillmentById({ id: fulfillmentId });
+  if (!existingFulfillment) {
+    throw new Error("Fulfillment not found");
+  }
+
+  const existingRequest = await getRequestById({ id: existingFulfillment.requestId });
+  if (!existingRequest) {
+    throw new Error("Request not found");
+  }
+
+  const requestDraft = toRequestDraft(existingRequest);
+  if (requestDraft.ownerId !== actorUserId) {
+    throw new Error("Only request owner can retry blocked fulfillment");
+  }
+
+  if (existingFulfillment.status !== "blocked") {
+    throw new Error("Only blocked fulfillment can be retried");
+  }
+
+  const workerState = parseBorealWorkerFulfillmentMetadata(
+    existingFulfillment.metadata
+  );
+  if (!workerState) {
+    throw new Error("Blocked fulfillment is not managed by a Boreal worker");
+  }
+
+  const worker = getBorealWorker(workerState.workerKey);
+  if (!worker || !worker.execute) {
+    throw new Error("Boreal worker is unavailable");
+  }
+
+  const normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
+  if (normalizedIdempotencyKey) {
+    const existingEvent = await getRequestEventByIdempotencyKey({
+      requestId: requestDraft.id,
+      idempotencyKey: normalizedIdempotencyKey,
+    });
+
+    if (existingEvent && existingEvent.aggregateId === existingFulfillment.id) {
+      const replayFulfillment = await getFulfillmentById({
+        id: existingFulfillment.id,
+      });
+
+      if (replayFulfillment) {
+        return toRequestFulfillment(replayFulfillment);
+      }
+    }
+  }
+
+  let workerInput: Record<string, unknown>;
+  try {
+    workerInput = parseBorealWorkerInput(worker, workerState.input);
+  } catch {
+    workerInput = worker.buildInput(requestDraft);
+  }
+  const workerPrompt = extractBorealWorkerPrompt(workerInput);
+  const resumedMetadata = buildBorealWorkerFulfillmentMetadata({
+    currentMetadata: existingFulfillment.metadata ?? {},
+    workerDisplayName: worker.displayName,
+    workerInput,
+    workerKey: worker.workerKey,
+    workerPrompt,
+    workerProvider: worker.provider,
+    workerResult: {
+      providerStatus: "retrying",
+      ...(workerState.providerTaskId
+        ? { providerTaskId: workerState.providerTaskId }
+        : {}),
+      ...(workerState.sourceVideoUrl
+        ? { sourceVideoUrl: workerState.sourceVideoUrl }
+        : {}),
+      ...(workerState.storedAsset ? { storedAsset: workerState.storedAsset } : {}),
+    },
+  });
+
+  await updateFulfillmentForRequestById({
+    fulfillmentId,
+    actorUserId,
+    status: "active",
+    summary: `${worker.displayName} resumed this delivery lane.`,
+    metadata: resumedMetadata,
+    source,
+  });
+
+  if (workerState.storedAsset) {
+    return publishBorealWorkerStoredAsset({
+      actorUserId,
+      currentMetadata: resumedMetadata,
+      fulfillmentId,
+      requestDraft,
+      source,
+      storedAsset: parseBorealWorkerStoredAsset(workerState.storedAsset),
+      worker,
+      workerInput,
+      workerPrompt,
+      workerResult: {
+        providerStatus: workerState.providerStatus ?? "completed",
+        ...(workerState.providerTaskId
+          ? { providerTaskId: workerState.providerTaskId }
+          : {}),
+        ...(workerState.sourceVideoUrl
+          ? { sourceVideoUrl: workerState.sourceVideoUrl }
+          : {}),
+        storedAsset: workerState.storedAsset,
+      },
+    });
+  }
+
+  return continueBorealWorkerFulfillmentAttempt({
+    actorUserId,
+    currentMetadata: resumedMetadata,
+    fulfillmentId,
+    requestDraft,
+    resumeFromMetadata: true,
+    source,
+    worker,
+    workerInput,
+    workerPrompt,
+  });
 }
 
 export function streamRequestDraftToArtifact({
@@ -2091,6 +2605,62 @@ function hasRootRequestChange(
     });
 }
 
+function buildDraftSeedFromPreferredSupply({
+  requestDraft,
+  selectedSupply,
+}: {
+  requestDraft: BorealRequestDraft;
+  selectedSupply: NonNullable<Awaited<ReturnType<typeof getSupplyById>>>;
+}): Pick<RequestPatch, "brief" | "seeking"> {
+  if (requestDraft.status !== "draft") {
+    return {};
+  }
+
+  const nextSupplyKinds =
+    (requestDraft.seeking.supplyKinds?.length ?? 0) === 0
+      ? deriveRequestFacingSupplyKindsFromSupply(selectedSupply.capability.supplyKinds)
+      : [];
+  const nextActorKinds =
+    (requestDraft.seeking.actorKinds?.length ?? 0) === 0
+      ? selectedSupply.capability.fulfillmentActorKinds
+      : [];
+  const nextOutputKinds =
+    (requestDraft.brief.outputKinds?.length ?? 0) === 0
+      ? selectedSupply.capability.outputKinds.filter(
+          (kind) =>
+            kind.trim().length > 0 &&
+            kind !== "delivery" &&
+            kind !== "draft"
+        )
+      : [];
+
+  return {
+    ...(nextOutputKinds.length > 0
+      ? {
+          brief: {
+            outputKinds: nextOutputKinds,
+          },
+        }
+      : {}),
+    ...(nextSupplyKinds.length > 0 || nextActorKinds.length > 0
+      ? {
+          seeking: {
+            ...(nextActorKinds.length > 0
+              ? {
+                  actorKinds: nextActorKinds,
+                }
+              : {}),
+            ...(nextSupplyKinds.length > 0
+              ? {
+                  supplyKinds: nextSupplyKinds,
+                }
+              : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 function splitIntoSlices(content: string): string[] {
   const slices: string[] = [];
 
@@ -2101,4 +2671,117 @@ function splitIntoSlices(content: string): string[] {
   slices.push(content);
 
   return slices;
+}
+
+function deriveRequestFacingSupplyKindsFromSupply(supplyKinds: string[]) {
+  const genericKinds = new Set([
+    "agent_worker",
+    "human_service",
+    "digital_product",
+    "runtime_executor",
+    "provider_capability",
+    "team_service",
+  ]);
+  const normalizedSupplyKinds = supplyKinds.filter((kind) => kind.trim().length > 0);
+  const specificKinds = normalizedSupplyKinds.filter(
+    (kind) => !genericKinds.has(kind)
+  );
+
+  return specificKinds.length > 0 ? specificKinds : normalizedSupplyKinds;
+}
+
+function extractBorealWorkerPrompt(input: Record<string, unknown>) {
+  const promptValue =
+    typeof input.brief === "string"
+      ? input.brief
+      : typeof input.prompt === "string"
+        ? input.prompt
+        : typeof input.title === "string"
+          ? input.title
+          : "";
+
+  return promptValue.trim();
+}
+
+function buildBorealWorkerFulfillmentMetadata({
+  artifactDescriptor,
+  currentMetadata,
+  errorMessage,
+  recoveryStage,
+  retryable,
+  workerKey,
+  workerDisplayName,
+  workerProvider,
+  workerInput,
+  workerPrompt,
+  workerResult,
+}: {
+  artifactDescriptor?: Record<string, unknown>;
+  currentMetadata: Record<string, unknown>;
+  errorMessage?: string;
+  recoveryStage?: string;
+  retryable?: boolean;
+  workerKey: string;
+  workerDisplayName: string;
+  workerProvider: Record<string, unknown>;
+  workerInput: Record<string, unknown>;
+  workerPrompt: string;
+  workerResult: Record<string, unknown>;
+}) {
+  const existingWorkerMetadata = normalizeObjectMetadata(currentMetadata.borealWorker);
+  const {
+    errorMessage: _existingErrorMessage,
+    recoveryStage: _existingRecoveryStage,
+    retryable: _existingRetryable,
+    ...persistedWorkerMetadata
+  } = existingWorkerMetadata;
+  const normalizedStoredAsset =
+    workerResult.storedAsset &&
+    typeof workerResult.storedAsset === "object" &&
+    !Array.isArray(workerResult.storedAsset)
+      ? (workerResult.storedAsset as Record<string, unknown>)
+      : null;
+  const normalizedStoredContainer =
+    normalizedStoredAsset?.container &&
+    typeof normalizedStoredAsset.container === "object" &&
+    !Array.isArray(normalizedStoredAsset.container)
+      ? (normalizedStoredAsset.container as Record<string, unknown>)
+      : null;
+
+  return {
+    ...currentMetadata,
+    borealWorker: {
+      ...persistedWorkerMetadata,
+      displayName: workerDisplayName,
+      input: workerInput,
+      ...(workerPrompt ? { prompt: workerPrompt } : {}),
+      provider: workerProvider,
+      providerStatus:
+        typeof workerResult.providerStatus === "string"
+          ? workerResult.providerStatus
+          : "completed",
+      ...(typeof workerResult.providerTaskId === "string"
+        ? { providerTaskId: workerResult.providerTaskId }
+        : {}),
+      ...(typeof workerResult.sourceVideoUrl === "string"
+        ? { sourceVideoUrl: workerResult.sourceVideoUrl }
+        : {}),
+      ...(typeof normalizedStoredContainer?.objectKey === "string"
+        ? { storedObjectKey: normalizedStoredContainer.objectKey }
+        : {}),
+      ...(normalizedStoredAsset ? { storedAsset: normalizedStoredAsset } : {}),
+      ...(artifactDescriptor ? { artifact: artifactDescriptor } : {}),
+      ...(retryable !== undefined ? { retryable } : {}),
+      ...(recoveryStage ? { recoveryStage } : {}),
+      ...(errorMessage ? { errorMessage } : {}),
+      lastAttemptAt: new Date().toISOString(),
+      workerKey,
+    },
+  } satisfies Record<string, unknown>;
+}
+
+function normalizeObjectMetadata(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }

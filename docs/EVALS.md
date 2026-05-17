@@ -48,6 +48,7 @@ Verify that direct resolver APIs and chat mutation tools produce equivalent dura
 Verify that tracked desktop execution uses selected `Request` and `Fulfillment` lane context without treating the full local transcript as canonical Boreal history.
 Verify that richer artifact containers for file, media, PDF, audio, video, binary, and archive outputs keep stable metadata and lane bindings.
 Verify that request closure is blocked when required embodied steps or proof obligations are missing.
+Verify that retryable first-party worker failures move fulfillment to `blocked`, preserve worker recovery metadata, and resume the same lane instead of forcing a fresh request.
 
 ## Fixture Shape
 

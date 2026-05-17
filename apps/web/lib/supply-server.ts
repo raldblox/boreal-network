@@ -3,7 +3,7 @@ import "server-only";
 import { borealWorkerSupplyFactories } from "@/lib/boreal-workers";
 import {
   type BorealWorkerStarterKey,
-  getBorealWorkerKeyFromMetadata,
+  getBorealWorkerKeyFromSupply,
 } from "@/lib/boreal-workers/starter-catalog";
 import {
   createInitialSupplyDraft,
@@ -74,9 +74,9 @@ export async function createBorealWorkerStarterSupply({
     endingBefore: null,
   });
   const existingStarterSupply =
-    existingSupplies.supplies.find(
-      (supply) => getBorealWorkerKeyFromMetadata(supply.metadata) === workerKey
-    ) ?? null;
+    existingSupplies.supplies
+      .filter((supply) => getBorealWorkerKeyFromSupply(supply) === workerKey)
+      .sort(compareStarterSupplyCandidates)[0] ?? null;
 
   if (existingStarterSupply) {
     if (!publish || existingStarterSupply.status === "published") {
@@ -341,4 +341,24 @@ export async function deleteSupplyDraft({
   }
 
   return toSupplyDraft(deletedSupply);
+}
+
+function compareStarterSupplyCandidates(
+  left: BorealSupplyDraft,
+  right: BorealSupplyDraft
+) {
+  const statusPriority = {
+    published: 3,
+    paused: 2,
+    draft: 1,
+    retired: 0,
+  } satisfies Record<BorealSupplyDraft["status"], number>;
+
+  const statusDelta =
+    statusPriority[right.status] - statusPriority[left.status];
+  if (statusDelta !== 0) {
+    return statusDelta;
+  }
+
+  return right.updatedAt.localeCompare(left.updatedAt);
 }

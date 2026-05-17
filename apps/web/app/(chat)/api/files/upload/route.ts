@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { auth } from "@/app/(auth)/auth";
+import { buildAbsoluteSignedBlobDeliveryUrl } from "@/lib/blob-delivery";
+import { generateUUID } from "@/lib/utils";
 
 const FileSchema = z.object({
   file: z
@@ -49,11 +51,23 @@ export async function POST(request: Request) {
     const fileBuffer = await file.arrayBuffer();
 
     try {
-      const data = await put(`${safeName}`, fileBuffer, {
-        access: "public",
+      const pathname = `chat-attachments/${session.user.id}/${generateUUID()}-${safeName}`;
+      const data = await put(pathname, fileBuffer, {
+        access: "private",
+        addRandomSuffix: false,
+        contentType: file.type || undefined,
       });
 
-      return NextResponse.json(data);
+      return NextResponse.json({
+        url: buildAbsoluteSignedBlobDeliveryUrl({
+          pathname: data.pathname || pathname,
+          requestUrl: request.url,
+          filename: safeName,
+        }),
+        pathname: data.pathname || pathname,
+        filename: safeName,
+        contentType: data.contentType ?? file.type,
+      });
     } catch (_error) {
       return NextResponse.json({ error: "Upload failed" }, { status: 500 });
     }

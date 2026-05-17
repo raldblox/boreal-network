@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev --turbo",
     "dev:migrated": "tsx lib/db/migrate.ts && next dev --turbo",
-    "build": "tsx lib/db/migrate && next build",
+    "build": "next build",
+    "build:migrated": "tsx lib/db/migrate.ts && next build",
     "start": "next start",
     "check": "ultracite check",
     "fix": "ultracite fix",
@@ -37,7 +38,7 @@
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
     "@vercel/analytics": "^1.3.1",
-    "@vercel/blob": "^0.24.1",
+    "@vercel/blob": "^2.3.0",
     "@vercel/functions": "^2.0.0",
     "@vercel/otel": "^1.12.0",
     "ai": "6.0.116",

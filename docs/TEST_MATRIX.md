@@ -98,6 +98,8 @@ Verify:
 - entering `New request` mode alone does not create a durable request
 - the first send in `New request` mode creates one draft request instead of a second root object
 - selecting one supply from the supply hub may create one private draft request and pin `routing.preferredSupplyId` without auto-sending synthetic prompt text
+- request creation with `preferredSupplyId` should return the draft with seeded `seeking` and worker-facing output defaults when those fields were still empty
+- supply-started draft requests should not auto-open the raw request-object panel before the owner writes the worker prompt
 - request-briefing assist or optimizer profiles in request mode must still create at most one draft request on first send
 - request draft extraction is deterministic for canonical fixtures
 - request-briefing assist or optimizer profiles may improve wording clarity but must not invent budget, deadline, deliverables, actor requirements, or constraints
@@ -132,6 +134,10 @@ Verify:
 - fulfillment planning for embodied or verification-heavy work should derive explicit execution modality and proof requirements before closure becomes possible
 - owner-scoped request routing updates should allow set or clear of `routing.preferredSupplyId` only on private requests
 - pinned-supply request drafts should surface the selected worker in the UI while keeping the editable brief buyer-authored
+- specialized pinned supplies should not expand one generic worker lane into duplicate derived role slots when one worker is already selected
+- opening one owner-private request with a pinned Boreal-managed worker may auto-create one fulfillment lane and should preserve worker prompt plus provider status in fulfillment metadata
+- retryable first-party worker failures should move that same fulfillment lane to `blocked`, keep worker recovery metadata, and avoid terminally failing the request immediately
+- `POST /api/fulfillments/{id}/retry` should resume the same blocked fulfillment lane and reuse stored output when the worker already finished provider execution
 - public request projections should not expose `routing.preferredSupplyId`
 - execution-grade artifacts should require an accepted commitment or active fulfillment role instead of arbitrary public responder access
 - artifact publication should accept both document-backed content and richer external or object reference containers

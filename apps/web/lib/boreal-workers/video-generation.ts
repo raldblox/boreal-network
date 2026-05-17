@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { BorealRequestDraft } from "@/lib/request";
 import {
+  waitForRunwayTaskOutput,
   executeRunwayVideoTask,
   runwayAssetUriSchema,
 } from "@/lib/providers/runway";
@@ -11,14 +12,14 @@ import {
   type SupplyPatch,
 } from "@/lib/supply";
 import { mirrorRemoteObjectToBlob } from "./storage";
-import type {
-  BorealWorkerCommitmentDraft,
-  BorealWorkerDefinition,
-  BorealWorkerStoredAsset,
-  BorealWorkerSupplyMetadata,
-} from "./types";
 import {
+  BorealWorkerRecoverableError,
   borealWorkerArtifactDescriptorSchema,
+  type BorealWorkerCommitmentDraft,
+  type BorealWorkerDefinition,
+  type BorealWorkerStoredAsset,
+  type BorealWorkerSupplyMetadata,
+  parseBorealWorkerFulfillmentMetadata,
   parseBorealWorkerResult,
   borealWorkerStoredAssetSchema,
 } from "./types";
@@ -57,7 +58,6 @@ export const videoGenerationWorkerResultSchema = z
     providerTaskId: z.string().min(1).max(200),
     providerStatus: z.enum(["queued", "running", "completed"]),
     sourceVideoUrl: z.string().url().optional(),
-    outputPublicUrl: z.string().url().optional(),
     storedAsset: borealWorkerStoredAssetSchema.optional(),
   })
   .strict();
@@ -178,6 +178,37 @@ function sanitizeFilenameSegment(value: string) {
     .replace(/^-|-$/g, "");
 }
 
+async function mirrorVideoOutputToStoredAsset({
+  input,
+  pathPrefix,
+  sourceVideoUrl,
+}: {
+  input: VideoGenerationWorkerInput;
+  pathPrefix: string;
+  sourceVideoUrl: string;
+}) {
+  const mirrored = await mirrorRemoteObjectToBlob({
+    sourceUrl: sourceVideoUrl,
+    pathPrefix,
+    filenameBase: [
+      input.requestId,
+      sanitizeFilenameSegment(input.title) || "video-generation",
+    ].join("/"),
+    mediaKind: "video",
+    mimeType: "video/mp4",
+  });
+
+  return videoGenerationWorkerStoredAssetSchema.parse({
+    title: input.title,
+    summary: `Runway ${input.generationMode} output for ${input.requestId}.`,
+    container: {
+      ...mirrored.container,
+      mediaKind: "video",
+    },
+    sourceUrl: sourceVideoUrl,
+  });
+}
+
 function buildVideoGenerationTerms(
   request: BorealRequestDraft
 ): BorealWorkerCommitmentDraft {
@@ -274,7 +305,21 @@ export const videoGenerationWorker: BorealWorkerDefinition<
       providerTaskId: "runway-task-123",
       providerStatus: "completed",
       sourceVideoUrl: "https://example.com/source.mp4",
-      outputPublicUrl: "https://example.com/mirrored.mp4",
+      storedAsset: {
+        title: "Launch teaser video",
+        summary:
+          "Runway text_to_video output for 00000000-0000-0000-0000-000000000000.",
+        container: {
+          kind: "object_ref",
+          objectKey:
+            "boreal-workers/video-generation/00000000-0000-0000-0000-000000000000/launch-teaser-video.mp4",
+          storageProvider: "vercel_blob",
+          mediaKind: "video",
+          mimeType: "video/mp4",
+          filename: "launch-teaser-video.mp4",
+          sourceUri: "https://example.com/source.mp4",
+        },
+      },
     },
   },
   supply: {
@@ -373,6 +418,70 @@ export const videoGenerationWorker: BorealWorkerDefinition<
       },
     });
   },
+  async resume({ input, metadata }) {
+    const parsedInput = videoGenerationWorkerInputSchema.parse(input);
+    const workerState = parseBorealWorkerFulfillmentMetadata(metadata);
+    const providerTaskId = workerState?.providerTaskId?.trim() || undefined;
+    let sourceVideoUrl = workerState?.sourceVideoUrl?.trim() || undefined;
+
+    if (!sourceVideoUrl && providerTaskId) {
+      try {
+        const completedTask = await waitForRunwayTaskOutput(providerTaskId);
+        sourceVideoUrl = completedTask.output[0];
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.startsWith("Runway task failed:")
+        ) {
+          throw error;
+        }
+
+        throw new BorealWorkerRecoverableError(
+          "Runway render is not ready to resume yet.",
+          {
+            recoveryStage: "provider_poll",
+            providerStatus: "running",
+            providerTaskId,
+            cause: error,
+          }
+        );
+      }
+    }
+
+    if (!sourceVideoUrl || !providerTaskId) {
+      if (!videoGenerationWorker.execute) {
+        throw new Error("Video generation execution is unavailable");
+      }
+
+      return videoGenerationWorker.execute(parsedInput);
+    }
+
+    try {
+      const storedAsset = await mirrorVideoOutputToStoredAsset({
+        input: parsedInput,
+        pathPrefix: this.storage.pathPrefix,
+        sourceVideoUrl,
+      });
+
+      return parseBorealWorkerResult(this, {
+        providerTaskId,
+        providerStatus: "completed",
+        sourceVideoUrl,
+        storedAsset,
+      });
+    } catch (error) {
+      throw new BorealWorkerRecoverableError(
+        "Failed to mirror the generated video into Boreal storage.",
+        {
+          recoveryStage: "mirror_output",
+          providerStatus: "completed",
+          providerTaskId,
+          sourceVideoUrl,
+          cause: error,
+        }
+      );
+    }
+  },
   async execute(input) {
     const parsedInput = videoGenerationWorkerInputSchema.parse(input);
     const durationSeconds = parsedInput.durationSeconds ?? 5;
@@ -403,32 +512,30 @@ export const videoGenerationWorker: BorealWorkerDefinition<
     }
 
     const sourceVideoUrl = runwayResult.completedTask.output[0];
-    const mirrored = await mirrorRemoteObjectToBlob({
-      sourceUrl: sourceVideoUrl,
-      pathPrefix: this.storage.pathPrefix,
-      filenameBase: [
-        parsedInput.requestId,
-        sanitizeFilenameSegment(parsedInput.title) || "video-generation",
-      ].join("/"),
-      mediaKind: "video",
-      mimeType: "video/mp4",
-    });
-
-    const storedAsset = videoGenerationWorkerStoredAssetSchema.parse({
-      title: parsedInput.title,
-      summary: `Runway ${parsedInput.generationMode} output for ${parsedInput.requestId}.`,
-      container: {
-        ...mirrored.container,
-        mediaKind: "video",
-      },
-      sourceUrl: sourceVideoUrl,
-    });
+    let storedAsset: BorealWorkerStoredAsset;
+    try {
+      storedAsset = await mirrorVideoOutputToStoredAsset({
+        input: parsedInput,
+        pathPrefix: this.storage.pathPrefix,
+        sourceVideoUrl,
+      });
+    } catch (error) {
+      throw new BorealWorkerRecoverableError(
+        "Failed to mirror the generated video into Boreal storage.",
+        {
+          recoveryStage: "mirror_output",
+          providerStatus: "completed",
+          providerTaskId: runwayResult.submission.id,
+          sourceVideoUrl,
+          cause: error,
+        }
+      );
+    }
 
     return parseBorealWorkerResult(this, {
       providerTaskId: runwayResult.submission.id,
       providerStatus: "completed",
       sourceVideoUrl,
-      outputPublicUrl: mirrored.publicUrl,
       storedAsset,
     });
   },

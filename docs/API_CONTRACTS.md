@@ -131,6 +131,7 @@ For the first web slice, `Request` create and update must support:
 
 - explicit `New request` mode without a durable write until first send
 - first-send draft creation for request-mode intake
+- optional `preferredSupplyId` on create so one private request can be born with a selected worker already pinned
 - public-safe listing of `open` plus `public` requests for network or desktop pooling
 - public-safe detail reads for one request by id
 - explicit `save draft` normalization from the live request-input document surface
@@ -141,6 +142,7 @@ For the first web slice, `Request` create and update must support:
 - request budget and timing updates
 - request route-summary updates
 - explicit transition from `draft` to `open`
+- `open_request` may asynchronously start one owner-private Boreal-managed worker lane when the request already has a pinned preferred supply
 - manual request-object editing only while the request stays in `draft`
 - full canonical request-object projection as read-only once the request leaves `draft`
 - public request pool reads must exclude owner-only draft fields and should expose a public-safe request projection instead
@@ -187,10 +189,13 @@ The first resolver-facing web slice now exposes:
 - `POST /api/requests/{id}/fulfillments`
 - `GET /api/fulfillments/{id}`
 - `PATCH /api/fulfillments/{id}`
+- `POST /api/fulfillments/{id}/retry`
 
 Accepted responder lanes may create fulfillment after owner acceptance.
 Owned private resolver lanes may create fulfillment without `commitmentId` when the same Boreal owner is authorizing direct desktop execution.
 When fulfillment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before opening the lane.
+Owner-private Boreal-managed web workers may also open one direct fulfillment lane after `open_request`, but the provider-facing payload should stay reduced to worker-specific prompt and execution inputs instead of the entire request object.
+Retryable internal worker or storage handoff failures should move that same fulfillment lane to `blocked`, preserve the worker input and provider recovery metadata, and resume through `POST /api/fulfillments/{id}/retry` instead of terminally failing the request immediately.
 
 Desktop chat execution may also bind one local thread to a selected `Request` and optional `Fulfillment` lane.
 That binding is local execution context only.

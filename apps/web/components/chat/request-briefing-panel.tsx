@@ -6,6 +6,10 @@ import { useState } from "react";
 import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  getBorealWorkerKeyFromSupply,
+  getBorealWorkerStarter,
+} from "@/lib/boreal-workers/starter-catalog";
 import type { BorealSupplyDraft } from "@/lib/supply";
 import { cn, fetcher } from "@/lib/utils";
 import type {
@@ -262,6 +266,8 @@ function getRequestPlanningNote(request: BorealRequestDraft) {
 }
 
 function PinnedSupplyBanner({ supply }: { supply: BorealSupplyDraft }) {
+  const workerStarter = getBorealWorkerStarterForSupply(supply);
+
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/[0.18] px-3.5 py-3">
       <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
@@ -274,12 +280,30 @@ function PinnedSupplyBanner({ supply }: { supply: BorealSupplyDraft }) {
         {supply.profile.summary?.trim() ||
           "This supply stays pinned on the request while you write the brief."}
       </div>
+      {workerStarter ? (
+        <div className="mt-2 rounded-xl border border-border/60 bg-background/70 px-3 py-2.5">
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+            Prompt this worker
+          </div>
+          <div className="mt-1 text-[13px] leading-6 text-foreground">
+            Your next message becomes the core prompt for this worker.
+          </div>
+          <div className="mt-1 text-[12px] leading-5.5 text-muted-foreground">
+            Example: {workerStarter.tryPrompt}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
 function getSelectedSupplyLabel(supply: BorealSupplyDraft) {
   return supply.profile.displayName.trim() || supply.key || "Untitled supply";
+}
+
+function getBorealWorkerStarterForSupply(supply: BorealSupplyDraft) {
+  const workerKey = getBorealWorkerKeyFromSupply(supply);
+  return workerKey ? getBorealWorkerStarter(workerKey) : null;
 }
 
 function formatExecutionSummary(request: BorealRequestDraft) {

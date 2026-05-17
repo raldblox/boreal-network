@@ -296,6 +296,10 @@ function PureMultimodalInput({
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isOpenedRequest = Boolean(activeRequest && activeRequest.status !== "draft");
   const showSubmitPending = isSubmitPending && status === "ready";
+  const pinnedWorkerPromptPlaceholder = getPinnedWorkerPromptPlaceholder(
+    activeRequest,
+    isRequestMode,
+  );
 
   const handleRequestSuggestionSelect = useCallback(
     (suggestion: string) => {
@@ -386,13 +390,13 @@ function PureMultimodalInput({
 
       if (response.ok) {
         const data = await response.json();
-        const { url, pathname, contentType } = data;
+          const { url, pathname, filename, contentType } = data;
 
-        return {
-          url,
-          name: pathname,
-          contentType,
-        };
+          return {
+            url,
+            name: filename ?? pathname,
+            contentType,
+          };
       }
       const { error } = await response.json();
       toast.error(error);
@@ -637,8 +641,10 @@ function PureMultimodalInput({
           placeholder={
             editingMessage
               ? "Edit your message..."
-              : activeRequest?.status === "draft"
-                ? "Describe the request..."
+              : pinnedWorkerPromptPlaceholder
+                ? pinnedWorkerPromptPlaceholder
+                : activeRequest?.status === "draft"
+                  ? "Describe the request..."
                 : activeRequest
                   ? "Post an update, change request details, or ask what should happen next..."
                   : isRequestMode
@@ -1326,3 +1332,25 @@ function PureStopButton({
 }
 
 const StopButton = memo(PureStopButton);
+
+function getPinnedWorkerPromptPlaceholder(
+  activeRequest: BorealRequestDraft | null,
+  isRequestMode: boolean,
+) {
+  const supplyKinds = activeRequest?.seeking.supplyKinds ?? [];
+  const hasVideoGenerationWorker = supplyKinds.includes("video_generation");
+
+  if (activeRequest?.status === "draft" && hasVideoGenerationWorker) {
+    return "Write the video prompt for the pinned worker...";
+  }
+
+  if (activeRequest && hasVideoGenerationWorker) {
+    return "Refine the video prompt, ask for another render, or post a delivery note...";
+  }
+
+  if (isRequestMode && !activeRequest) {
+    return "Write the first request message...";
+  }
+
+  return null;
+}

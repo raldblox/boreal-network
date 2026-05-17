@@ -8,7 +8,8 @@ import type {
 export type MirrorRemoteObjectToBlobResult = {
   container: RequestObjectRefArtifactContainer;
   sourceUrl: string;
-  publicUrl: string;
+  blobUrl: string;
+  downloadUrl: string;
 };
 
 function sanitizePathSegment(value: string) {
@@ -70,7 +71,8 @@ export async function mirrorRemoteObjectToBlob({
   const sha256 = createHash("sha256").update(fileBuffer).digest("hex");
 
   const uploaded = await put(objectKey, fileBuffer, {
-    access: "public",
+    access: "private",
+    addRandomSuffix: false,
     contentType: resolvedMimeType,
   });
 
@@ -87,6 +89,7 @@ export async function mirrorRemoteObjectToBlob({
       sourceUri: sourceUrl,
     },
     sourceUrl,
-    publicUrl: uploaded.url,
+    blobUrl: uploaded.url,
+    downloadUrl: uploaded.downloadUrl,
   };
 }

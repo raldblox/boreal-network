@@ -31,7 +31,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    Stay chat-only until the owner or policy explicitly chooses to open a `Request`.
    In the web `New request` mode, entering the mode alone must not create a durable `Request`.
    The first durable draft should be created only when the owner sends the first request brief turn or uses another explicit create action.
-   Selecting one owned supply from the web supply hub may count as that explicit create action for a private request, but it should pin `routing.preferredSupplyId` without injecting synthetic brief text on the owner's behalf.
+   Selecting one owned supply from the web supply hub may count as that explicit create action for a private request, but it should pin `routing.preferredSupplyId`, seed request-side matching intent from that supply, and still avoid injecting synthetic brief text on the owner's behalf.
    Optional request-briefing assist may restructure that first turn for clarity, but it must still end in exactly one `create_request_brief` mutation instead of a parallel hidden write path.
 3. Request draft
    Produce a derived `RequestDraft`.
@@ -99,6 +99,24 @@ That shortcut is only valid when:
 - the request is owner-controlled
 - the request is `private`
 - the resolver runtime is acting for the same owner through Boreal-issued resolver auth
+
+Owner-private Boreal-managed web workers may use a similar direct lane after the owner opens the request:
+
+- `Request` -> `Fulfillment` -> `Artifact`
+
+That shortcut is only valid when:
+
+- the request is `private`
+- the request has one pinned Boreal-managed preferred supply
+- the worker execution is first-party and owned by the same Boreal account
+- provider execution still consumes only the worker-specific prompt and provider-safe inputs, not the full durable request object
+
+When that first-party worker run hits a retryable internal handoff failure, Boreal should:
+
+- keep the same `Fulfillment` lane
+- move that lane to `blocked` instead of terminal `failed`
+- preserve worker input plus provider recovery metadata on the fulfillment
+- resume through explicit retry on the same lane before opening any fresh request or fresh fulfillment
 
 Public or cross-actor execution should still prefer:
 

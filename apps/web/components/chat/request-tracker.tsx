@@ -1,7 +1,13 @@
 "use client";
 
 import type { UseChatHelpers } from "@ai-sdk/react";
-import { ArrowDownIcon, CheckIcon, LoaderCircleIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ArrowDownIcon,
+  CheckIcon,
+  LoaderCircleIcon,
+  XIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
@@ -35,7 +41,9 @@ type RequestTrackerProps = {
   request: BorealRequestDraft;
   activities: RequestActivityEntry[];
   isReadonly: boolean;
+  isRetryingBlockedFulfillment: boolean;
   isResolvingDeliveredRequest: boolean;
+  onRetryBlockedFulfillment?: () => Promise<void>;
   onResolveDeliveredRequest?: () => Promise<void>;
   onUpdatePreferredSupply?: (preferredSupplyId: string | null) => Promise<void>;
   requestViewerUserId: string | null;
@@ -48,8 +56,21 @@ type TrackerStageId =
   | "work_delivery"
   | "review_resolve";
 
-function getDefaultExpandedStages(status: RequestStatus): TrackerStageId[] {
-  const currentStageId = getCurrentTrackerStageId(status);
+type TrackerStageVisualState =
+  | "done"
+  | "current"
+  | "pending"
+  | "blocked"
+  | "failed"
+  | "cancelled";
+
+function getDefaultExpandedStages(
+  status: RequestStatus,
+  hasFulfillmentFailure = false
+): TrackerStageId[] {
+  const currentStageId = getCurrentTrackerStageId(status, {
+    hasFulfillmentFailure,
+  });
 
   if (status === "delivered") {
     return ["work_delivery", currentStageId];
@@ -58,40 +79,24 @@ function getDefaultExpandedStages(status: RequestStatus): TrackerStageId[] {
   return [currentStageId];
 }
 
-function getCompletedTrackerStageCount(status: RequestStatus) {
-  switch (status) {
-    case "funded":
-      return 1;
-    case "in_progress":
-    case "waiting_for_owner":
-      return 2;
-    case "delivered":
-      return 3;
-    case "completed":
-      return 4;
-    case "cancelled":
-    case "failed":
-      return 3;
-    case "open":
-    case "funding_required":
-    case "draft":
-    default:
-      return 0;
-  }
-}
-
 export function RequestTracker({
   request,
   activities,
   isReadonly,
+  isRetryingBlockedFulfillment,
   isResolvingDeliveredRequest,
+  onRetryBlockedFulfillment,
   onResolveDeliveredRequest,
   onUpdatePreferredSupply,
   requestViewerUserId,
   status,
 }: RequestTrackerProps) {
-  const currentStageId = getCurrentTrackerStageId(request.status);
-  const completedStageCount = getCompletedTrackerStageCount(request.status);
+  const hasFulfillmentFailure = activities.some(
+    (activity) => activity.eventType === "fulfillment.failed"
+  );
+  const currentStageId = getCurrentTrackerStageId(request.status, {
+    hasFulfillmentFailure,
+  });
   const isRequestOwner =
     typeof requestViewerUserId === "string" &&
     requestViewerUserId === request.ownerId;
@@ -101,7 +106,7 @@ export function RequestTracker({
     request.status !== "draft" &&
     typeof onUpdatePreferredSupply === "function";
   const [expandedStages, setExpandedStages] = useState<TrackerStageId[]>(() =>
-    getDefaultExpandedStages(request.status)
+    getDefaultExpandedStages(request.status, hasFulfillmentFailure)
   );
   const [followMode, setFollowMode] = useState<"auto" | "manual">("auto");
   const [isSavingPreferredSupply, setIsSavingPreferredSupply] = useState(false);
@@ -214,13 +219,19 @@ export function RequestTracker({
   );
 
   useEffect(() => {
-    setExpandedStages(getDefaultExpandedStages(request.status));
+    setExpandedStages(getDefaultExpandedStages(request.status, hasFulfillmentFailure));
     setFollowMode("auto");
 
     requestAnimationFrame(() => {
       scrollStageIntoView(currentStageId, "instant");
     });
-  }, [currentStageId, request.id, request.status, scrollStageIntoView]);
+  }, [
+    currentStageId,
+    hasFulfillmentFailure,
+    request.id,
+    request.status,
+    scrollStageIntoView,
+  ]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -321,6 +332,9 @@ export function RequestTracker({
         : 4000,
   });
   const activeFulfillment = activeFulfillmentData?.fulfillment ?? null;
+  const activeFulfillmentWorkerState = getBorealWorkerTrackerState(
+    activeFulfillment
+  );
   const preferredSupplyKey =
     canManagePrivateRouting && request.routing.preferredSupplyId
       ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/supplies/${request.routing.preferredSupplyId}`
@@ -396,6 +410,13 @@ export function RequestTracker({
     requestViewerUserId === request.ownerId &&
     Boolean(request.activeRefs.activeFulfillmentId) &&
     typeof onResolveDeliveredRequest === "function";
+  const canRetryBlockedFulfillment =
+    requestViewerUserId === request.ownerId &&
+    activeFulfillment?.status === "blocked" &&
+    activeFulfillmentWorkerState?.retryable === true &&
+    typeof onRetryBlockedFulfillment === "function";
+  const showsLegacyFailedWorkerNote =
+    request.status === "failed" && hasFulfillmentFailure;
   const showReturnToLiveStage =
     followMode === "manual" || !expandedStages.includes(currentStageId);
 
@@ -601,6 +622,46 @@ export function RequestTracker({
             ]}
           />
 
+          {canRetryBlockedFulfillment ? (
+            <div className="rounded-[18px] border border-amber-300/35 bg-amber-50/70 px-3.5 py-3 dark:bg-amber-500/10">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
+                Recovery
+              </div>
+              <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
+                {getBlockedFulfillmentRecoverySummary(activeFulfillment)}
+              </div>
+              <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                Retry the same worker lane without opening a new request.
+              </div>
+              <Button
+                className="mt-3"
+                disabled={isRetryingBlockedFulfillment}
+                onClick={() => void onRetryBlockedFulfillment?.()}
+                size="sm"
+                variant="outline"
+              >
+                {isRetryingBlockedFulfillment ? (
+                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+                ) : null}
+                {isRetryingBlockedFulfillment ? "Retrying..." : "Retry delivery"}
+              </Button>
+            </div>
+          ) : null}
+
+          {showsLegacyFailedWorkerNote ? (
+            <div className="rounded-[18px] border border-rose-300/30 bg-rose-50/70 px-3.5 py-3 dark:bg-rose-500/10">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300">
+                Terminal failure
+              </div>
+              <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
+                This request was sealed by the older failure path before Boreal could pause and retry the same worker lane.
+              </div>
+              <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                New retryable worker errors now stop in a blocked state instead of rendering this room as complete.
+              </div>
+            </div>
+          ) : null}
+
           <FulfillmentStepsPanel
             activeRouteSupply={activeRouteSupply}
             fulfillment={activeFulfillment}
@@ -682,21 +743,43 @@ export function RequestTracker({
           <div className="space-y-3">
             {stages.map((stage, index) => {
               const isExpanded = expandedStages.includes(stage.id);
-              const isDone = index < completedStageCount;
-              const isCurrent = !isDone && stage.id === currentStageId;
+              const stageState = getTrackerStageVisualState({
+                activeFulfillmentStatus: activeFulfillment?.status ?? null,
+                currentStageId,
+                hasFulfillmentFailure,
+                requestStatus: request.status,
+                stageId: stage.id,
+              });
+              const previousStageState =
+                index > 0
+                  ? getTrackerStageVisualState({
+                      activeFulfillmentStatus: activeFulfillment?.status ?? null,
+                      currentStageId,
+                      hasFulfillmentFailure,
+                      requestStatus: request.status,
+                      stageId: stages[index - 1]!.id,
+                    })
+                  : null;
+              const isDone = stageState === "done";
+              const isCurrent =
+                stageState === "current" ||
+                stageState === "blocked" ||
+                stageState === "failed" ||
+                stageState === "cancelled";
               const showConnector = index < stages.length - 1;
               const showIncomingConnector = index > 0;
-              const incomingConnectorClassName =
-                index <= completedStageCount
-                  ? "bg-emerald-400/80 dark:bg-emerald-400/80"
-                  : isCurrent
-                    ? "bg-sky-400/80 dark:bg-sky-400/80"
-                    : "bg-border/60";
-              const outgoingConnectorClassName = isDone
-                ? "bg-emerald-400/80 dark:bg-emerald-400/80"
-                : isCurrent
-                  ? "bg-sky-400/80 dark:bg-sky-400/80"
-                  : "bg-border/60";
+              const incomingConnectorClassName = showIncomingConnector
+                ? getTrackerStageConnectorClassName(previousStageState)
+                : "bg-border/60";
+              const outgoingConnectorClassName = getTrackerStageConnectorClassName(
+                stageState
+              );
+              const trackerAccentClassName = getTrackerStageAccentClassName(
+                stageState
+              );
+              const trackerRingClassName = getTrackerStageRingClassName(
+                stageState
+              );
 
               return (
                 <div
@@ -740,34 +823,28 @@ export function RequestTracker({
                       <div
                         className={cn(
                           "pointer-events-none absolute left-4 top-4 z-20 flex size-8 items-center justify-center text-sm font-semibold md:left-5",
-                          isDone
-                            ? "text-emerald-300"
-                            : isCurrent
-                              ? "text-sky-300"
-                              : "text-muted-foreground"
+                          trackerAccentClassName
                         )}
                       >
                         <span className="absolute inset-0 rounded-full bg-background" />
                         <span
                           className={cn(
                             "absolute inset-0 rounded-full border shadow-sm",
-                            isDone
-                              ? "border-emerald-300/70 bg-emerald-500/12 dark:bg-emerald-500/18"
-                              : isCurrent
-                                ? "border-sky-300/70 bg-sky-500/12 dark:bg-sky-500/18"
-                                : "border-border/70 bg-background"
+                            trackerRingClassName
                           )}
                         />
                         <span className="relative z-10 flex items-center justify-center">
                           {isDone ? (
                             <CheckIcon className="size-4" />
+                          ) : stageState === "failed" ? (
+                            <XIcon className="size-4" />
+                          ) : stageState === "blocked" ? (
+                            <AlertTriangleIcon className="size-4" />
                           ) : (
                             <span
                               className={cn(
                                 "size-2 rounded-full",
-                                isCurrent
-                                  ? "bg-current"
-                                  : "bg-muted-foreground/35"
+                                isCurrent ? "bg-current" : "bg-muted-foreground/35"
                               )}
                             />
                           )}
@@ -1026,6 +1103,10 @@ function RouteAndWorkersPanel({
             </div>
           )}
         </div>
+
+        {activeFulfillment ? (
+          <ActiveWorkerPromptCard fulfillment={activeFulfillment} />
+        ) : null}
 
         {canManagePrivateRouting ? (
           <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
@@ -1345,7 +1426,14 @@ function RuntimeStateRow({
   );
 }
 
-function getCurrentTrackerStageId(status: RequestStatus): TrackerStageId {
+function getCurrentTrackerStageId(
+  status: RequestStatus,
+  {
+    hasFulfillmentFailure = false,
+  }: {
+    hasFulfillmentFailure?: boolean;
+  } = {}
+): TrackerStageId {
   switch (status) {
     case "open":
     case "funding_required":
@@ -1357,12 +1445,140 @@ function getCurrentTrackerStageId(status: RequestStatus): TrackerStageId {
       return "work_delivery";
     case "delivered":
     case "completed":
-    case "cancelled":
-    case "failed":
       return "review_resolve";
+    case "cancelled":
+      return "review_resolve";
+    case "failed":
+      return hasFulfillmentFailure ? "work_delivery" : "review_resolve";
     case "draft":
     default:
       return "brief_terms";
+  }
+}
+
+function getTrackerStageVisualState({
+  activeFulfillmentStatus,
+  currentStageId,
+  hasFulfillmentFailure,
+  requestStatus,
+  stageId,
+}: {
+  activeFulfillmentStatus: RequestFulfillment["status"] | null;
+  currentStageId: TrackerStageId;
+  hasFulfillmentFailure: boolean;
+  requestStatus: RequestStatus;
+  stageId: TrackerStageId;
+}): TrackerStageVisualState {
+  const stageOrder: TrackerStageId[] = [
+    "brief_terms",
+    "route_workers",
+    "work_delivery",
+    "review_resolve",
+  ];
+  const stageIndex = stageOrder.indexOf(stageId);
+  const currentIndex = stageOrder.indexOf(currentStageId);
+
+  if (requestStatus === "completed") {
+    return "done";
+  }
+
+  if (requestStatus === "failed") {
+    const failedStageIndex = stageOrder.indexOf(
+      hasFulfillmentFailure ? "work_delivery" : "review_resolve"
+    );
+
+    if (stageIndex < failedStageIndex) {
+      return "done";
+    }
+
+    if (stageIndex === failedStageIndex) {
+      return "failed";
+    }
+
+    return "pending";
+  }
+
+  if (requestStatus === "cancelled") {
+    if (stageIndex < currentIndex) {
+      return "done";
+    }
+
+    if (stageId === currentStageId) {
+      return "cancelled";
+    }
+
+    return "pending";
+  }
+
+  if (activeFulfillmentStatus === "blocked" && stageId === "work_delivery") {
+    if (stageIndex < currentIndex) {
+      return "done";
+    }
+
+    return "blocked";
+  }
+
+  if (stageIndex < currentIndex) {
+    return "done";
+  }
+
+  if (stageId === currentStageId) {
+    return "current";
+  }
+
+  return "pending";
+}
+
+function getTrackerStageAccentClassName(stageState: TrackerStageVisualState) {
+  switch (stageState) {
+    case "done":
+      return "text-emerald-300";
+    case "current":
+      return "text-sky-300";
+    case "blocked":
+      return "text-amber-300";
+    case "failed":
+      return "text-rose-300";
+    case "cancelled":
+      return "text-zinc-300";
+    case "pending":
+    default:
+      return "text-muted-foreground";
+  }
+}
+
+function getTrackerStageRingClassName(stageState: TrackerStageVisualState) {
+  switch (stageState) {
+    case "done":
+      return "border-emerald-300/70 bg-emerald-500/12 dark:bg-emerald-500/18";
+    case "current":
+      return "border-sky-300/70 bg-sky-500/12 dark:bg-sky-500/18";
+    case "blocked":
+      return "border-amber-300/70 bg-amber-500/12 dark:bg-amber-500/18";
+    case "failed":
+      return "border-rose-300/70 bg-rose-500/12 dark:bg-rose-500/18";
+    case "cancelled":
+      return "border-zinc-300/70 bg-zinc-500/12 dark:bg-zinc-500/18";
+    case "pending":
+    default:
+      return "border-border/70 bg-background";
+  }
+}
+
+function getTrackerStageConnectorClassName(stageState: TrackerStageVisualState | null) {
+  switch (stageState) {
+    case "done":
+      return "bg-emerald-400/80 dark:bg-emerald-400/80";
+    case "current":
+      return "bg-sky-400/80 dark:bg-sky-400/80";
+    case "cancelled":
+      return "bg-zinc-400/80 dark:bg-zinc-400/80";
+    case "blocked":
+    case "failed":
+    case "pending":
+    case null:
+    default:
+      return "bg-border/60";
   }
 }
 
@@ -1404,6 +1620,57 @@ function isResolveStageActivity(activity: RequestActivityEntry) {
       "fulfillment.failed",
     ].includes(activity.eventType) ||
     ["completed", "cancelled", "failed"].includes(activity.requestStatus ?? "")
+  );
+}
+
+function getBorealWorkerTrackerState(
+  fulfillment: RequestFulfillment | null
+): {
+  errorMessage?: string;
+  providerStatus?: string;
+  recoveryStage?: string;
+  retryable?: boolean;
+  workerKey?: string;
+} | null {
+  const rawWorkerState = fulfillment?.metadata?.borealWorker;
+  if (!rawWorkerState || typeof rawWorkerState !== "object" || Array.isArray(rawWorkerState)) {
+    return null;
+  }
+
+  const workerState = rawWorkerState as Record<string, unknown>;
+  return {
+    errorMessage:
+      typeof workerState.errorMessage === "string"
+        ? workerState.errorMessage
+        : undefined,
+    providerStatus:
+      typeof workerState.providerStatus === "string"
+        ? workerState.providerStatus
+        : undefined,
+    recoveryStage:
+      typeof workerState.recoveryStage === "string"
+        ? workerState.recoveryStage
+        : undefined,
+    retryable:
+      typeof workerState.retryable === "boolean"
+        ? workerState.retryable
+        : undefined,
+    workerKey:
+      typeof workerState.workerKey === "string" ? workerState.workerKey : undefined,
+  };
+}
+
+function getBlockedFulfillmentRecoverySummary(
+  fulfillment: RequestFulfillment | null
+) {
+  const workerState = getBorealWorkerTrackerState(fulfillment);
+  if (workerState?.errorMessage) {
+    return workerState.errorMessage;
+  }
+
+  return (
+    fulfillment?.summary?.trim() ||
+    "The worker lane is paused and ready for another delivery attempt."
   );
 }
 
@@ -1705,6 +1972,71 @@ function describeWorkerSummary(fulfillment: RequestFulfillment) {
   }
 
   return `${leadLabel} is the active worker on this request.`;
+}
+
+function ActiveWorkerPromptCard({
+  fulfillment,
+}: {
+  fulfillment: RequestFulfillment;
+}) {
+  const workerPrompt = getFulfillmentWorkerPrompt(fulfillment);
+  const providerStatus = getFulfillmentWorkerProviderStatus(fulfillment);
+
+  if (!workerPrompt && !providerStatus) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
+      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+        Worker request
+      </div>
+      <div className="mt-2.5 space-y-2.5">
+        {workerPrompt ? (
+          <RouteFactRow label="Prompt" value={workerPrompt} />
+        ) : null}
+        {providerStatus ? (
+          <RouteFactRow label="Provider status" value={providerStatus} />
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function getFulfillmentWorkerPrompt(fulfillment: RequestFulfillment) {
+  const metadata =
+    fulfillment.metadata && typeof fulfillment.metadata === "object"
+      ? (fulfillment.metadata as Record<string, unknown>)
+      : null;
+  const borealWorker =
+    metadata?.borealWorker &&
+    typeof metadata.borealWorker === "object" &&
+    !Array.isArray(metadata.borealWorker)
+      ? (metadata.borealWorker as Record<string, unknown>)
+      : null;
+  const prompt = borealWorker?.prompt;
+
+  return typeof prompt === "string" && prompt.trim().length > 0
+    ? prompt.trim()
+    : null;
+}
+
+function getFulfillmentWorkerProviderStatus(fulfillment: RequestFulfillment) {
+  const metadata =
+    fulfillment.metadata && typeof fulfillment.metadata === "object"
+      ? (fulfillment.metadata as Record<string, unknown>)
+      : null;
+  const borealWorker =
+    metadata?.borealWorker &&
+    typeof metadata.borealWorker === "object" &&
+    !Array.isArray(metadata.borealWorker)
+      ? (metadata.borealWorker as Record<string, unknown>)
+      : null;
+  const providerStatus = borealWorker?.providerStatus;
+
+  return typeof providerStatus === "string" && providerStatus.trim().length > 0
+    ? providerStatus.trim().replace(/_/g, " ")
+    : null;
 }
 
 function getRouteSummaryValue({

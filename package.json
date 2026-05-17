@@ -12,6 +12,7 @@
     "peer:start": "pnpm --filter @boreal/peer start",
     "web:dev": "pnpm --filter @boreal/web dev",
     "web:build": "pnpm --filter @boreal/web build",
+    "web:build:migrated": "pnpm --filter @boreal/web build:migrated",
     "web:db:migrate": "pnpm --filter @boreal/web db:migrate",
     "web:test": "pnpm --filter @boreal/web test",
     "evals:request-processing": "node tests/contracts/run-request-processing-evals.mjs",

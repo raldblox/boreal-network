@@ -1,3 +1,5 @@
+import type { BorealSupplyDraft } from "@/lib/supply";
+
 export const borealWorkerStarterCatalog = [
   {
     workerKey: "video-generation",
@@ -33,7 +35,7 @@ export function getBorealWorkerStarter(
 
 export function getBorealWorkerKeyFromMetadata(
   metadata: Record<string, unknown> | undefined
-) {
+): BorealWorkerStarterKey | null {
   if (!metadata) {
     return null;
   }
@@ -44,7 +46,57 @@ export function getBorealWorkerKeyFromMetadata(
   }
 
   const workerKey = (rawWorker as Record<string, unknown>).workerKey;
-  return typeof workerKey === "string" && workerKey.length > 0
+  return typeof workerKey === "string" && isBorealWorkerStarterKey(workerKey)
     ? workerKey
     : null;
+}
+
+export function getBorealWorkerKeyFromSupply(
+  supply:
+    | Pick<
+        BorealSupplyDraft,
+        "bindings" | "capability" | "key" | "metadata" | "profile"
+      >
+    | null
+    | undefined
+): BorealWorkerStarterKey | null {
+  if (!supply) {
+    return null;
+  }
+
+  const metadataWorkerKey = getBorealWorkerKeyFromMetadata(supply.metadata);
+  if (metadataWorkerKey) {
+    return metadataWorkerKey;
+  }
+
+  const providerRef = supply.bindings.providerRef?.trim().toLowerCase();
+  if (providerRef === "runway/video-generation") {
+    return "video-generation";
+  }
+
+  const capabilityKinds = supply.capability.supplyKinds.map((kind) =>
+    kind.trim().toLowerCase()
+  );
+  if (capabilityKinds.includes("video_generation")) {
+    return "video-generation";
+  }
+
+  const profileTags = supply.profile.tags.map((tag) => tag.trim().toLowerCase());
+  if (profileTags.includes("video_generation")) {
+    return "video-generation";
+  }
+
+  const fingerprint = [
+    supply.key,
+    supply.profile.displayName,
+    supply.profile.headline,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (fingerprint.includes("video generation")) {
+    return "video-generation";
+  }
+
+  return null;
 }

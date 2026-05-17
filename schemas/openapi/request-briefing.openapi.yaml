@@ -91,6 +91,9 @@ paths:
                   enum:
                     - private
                     - public
+                preferredSupplyId:
+                  type: string
+                  format: uuid
       responses:
         "200":
           description: The newly created or existing request draft.
@@ -142,6 +145,9 @@ paths:
         When the request is still in `draft`, the live request-object document
         may be edited through a safe request-input subset only. `save_draft` and
         `open_request` normalize that subset back into the durable `Request`.
+        For owner-private Boreal-managed worker lanes, `open_request` may also
+        asynchronously start one fulfillment after the request opens when
+        `routing.preferredSupplyId` already pins an executable first-party supply.
         Once the request leaves `draft`, the full canonical request object is
         rendered read-only.
   /api/requests/{id}/activity:
@@ -381,6 +387,41 @@ paths:
       responses:
         "200":
           description: The updated or idempotently replayed fulfillment.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - fulfillment
+                properties:
+                  fulfillment:
+                    $ref: "#/components/schemas/WebFulfillment"
+  /api/fulfillments/{id}/retry:
+    post:
+      summary: Resume one blocked Boreal-managed fulfillment lane from the same request lane.
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebFulfillmentRetry"
+      responses:
+        "200":
+          description: The resumed or idempotently replayed fulfillment.
           content:
             application/json:
               schema:
@@ -1131,9 +1172,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/WebFulfillmentStep"
-        metadata:
-          type: object
-          additionalProperties: true
+          metadata:
+            type: object
+            additionalProperties: true
+          idempotencyKey:
+            type: string
+            format: uuid
+    WebFulfillmentRetry:
+      type: object
+      additionalProperties: false
+      properties:
         idempotencyKey:
           type: string
           format: uuid

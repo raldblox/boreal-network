@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { z } from "zod";
 import {
   getChatById,
@@ -15,13 +16,18 @@ import {
 } from "@/lib/resolver-session";
 import {
   ensureRequestDraftForChat,
+  maybeAutoRunPinnedBorealWorkerForRequest,
   openRequestDraft,
   persistRequestPatch,
+  setRequestPreferredSupply,
 } from "@/lib/request-server";
+
+export const maxDuration = 60;
 
 const createRequestSchema = z.object({
   chatId: z.string().uuid(),
   visibility: z.enum(["public", "private"]).default("private"),
+  preferredSupplyId: z.string().uuid().optional(),
 });
 
 const patchRequestSchema = z.object({
@@ -151,13 +157,45 @@ export async function POST(request: Request) {
     return new ChatbotError("forbidden:chat").toResponse();
   }
 
-  const requestDraft = await ensureRequestDraftForChat({
-    chatId: body.chatId,
-    userId: actor.userId,
-    visibility: body.visibility,
-  });
+  try {
+    const requestDraft = await ensureRequestDraftForChat({
+      chatId: body.chatId,
+      userId: actor.userId,
+      visibility: body.visibility,
+    });
+    const nextRequest = body.preferredSupplyId
+      ? await setRequestPreferredSupply({
+          requestId: requestDraft.id,
+          userId: actor.userId,
+          preferredSupplyId: body.preferredSupplyId,
+        })
+      : requestDraft;
 
-  return Response.json({ request: requestDraft }, { status: 200 });
+    return Response.json({ request: nextRequest }, { status: 200 });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      ["Request not found", "Supply not found"].includes(error.message)
+    ) {
+      return new ChatbotError("not_found:database").toResponse();
+    }
+
+    if (
+      error instanceof Error &&
+      [
+        "Preferred supply is only available for private requests",
+        "Supply does not belong to request owner",
+        "Published supply required",
+      ].includes(error.message)
+    ) {
+      return new ChatbotError("bad_request:api", error.message).toResponse();
+    }
+
+    return new ChatbotError(
+      "bad_request:database",
+      "Failed to create request draft"
+    ).toResponse();
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -193,6 +231,23 @@ export async function PATCH(request: Request) {
             userId: actor.userId,
             patch: {},
           });
+
+    if (
+      body.action === "open_request" &&
+      nextDraft.routing.preferredSupplyId &&
+      nextDraft.visibility === "private"
+    ) {
+      after(async () => {
+        try {
+          await maybeAutoRunPinnedBorealWorkerForRequest({
+            requestId: nextDraft.id,
+            userId: actor.userId,
+          });
+        } catch {
+          return;
+        }
+      });
+    }
 
     return Response.json({ request: nextDraft }, { status: 200 });
   } catch (error) {

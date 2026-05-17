@@ -57,6 +57,7 @@ Run from the monorepo root after dependencies are installed:
 
 - `pnpm web:dev`
 - `pnpm web:build`
+- `pnpm web:build:migrated`
 - `pnpm web:db:migrate`
 - `pnpm web:test`
 
@@ -64,9 +65,16 @@ Or run directly against the workspace:
 
 - `pnpm --filter @boreal/web dev`
 - `pnpm --filter @boreal/web build`
+- `pnpm --filter @boreal/web build:migrated`
 - `pnpm --filter @boreal/web db:migrate`
 - `pnpm --filter @boreal/web eval:request-processing:live`
 - `pnpm --filter @boreal/web test`
+
+Build rule:
+
+- `build` is compile-only and should match local and Vercel production builds
+- `db:migrate` is explicit and should run separately from the build step
+- `build:migrated` is only for operator-controlled environments where applying schema before compile is intentional
 
 Account setup notes:
 
