@@ -1,6 +1,7 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import type { BorealRequestDraft, RequestActivityEntry } from "@/lib/request";
+import type { SupplyStatus, SupplyVisibility } from "@/lib/supply";
 
 export const artifactsPrompt = `
 Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), and spreadsheets. Changes appear in real-time.
@@ -172,6 +173,22 @@ export type RequestHints = {
   country: Geo["country"];
 };
 
+export type RequestSupplyContextSummary = {
+  id: string;
+  key: string;
+  status: SupplyStatus;
+  visibility: SupplyVisibility;
+  displayName: string;
+  headline: string;
+  summary: string;
+  supplyKinds: string[];
+  fulfillmentActorKinds: string[];
+  outputKinds: string[];
+  executionChannels: string[];
+  pricingMode: string | null;
+  sourceKind: string;
+};
+
 export const getRequestPromptFromHints = (requestHints: RequestHints) => `\
 About the origin of user's request:
 - lat: ${requestHints.latitude}
@@ -189,6 +206,8 @@ export const systemPrompt = ({
   requestMode,
   requestPromptOptimizerEnabled,
   activeRequest,
+  preferredSupplySummary,
+  candidateSupplySummaries,
   recentActivity,
   requestRoomRole,
 }: {
@@ -197,6 +216,8 @@ export const systemPrompt = ({
   requestMode?: boolean;
   requestPromptOptimizerEnabled?: boolean;
   activeRequest?: BorealRequestDraft | null;
+  preferredSupplySummary?: RequestSupplyContextSummary | null;
+  candidateSupplySummaries?: RequestSupplyContextSummary[];
   recentActivity?: RequestActivityEntry[];
   requestRoomRole?: "draft_owner" | "open_owner" | "open_responder" | null;
 }) => {
@@ -246,7 +267,25 @@ ${JSON.stringify(
 - clarificationRequired: ${
         activeRequest.derived.clarificationNeeded.required ? "yes" : "no"
       }
-- assignmentProposalState: ${activeRequest.derived.assignmentProposal.state}`
+- assignmentProposalState: ${activeRequest.derived.assignmentProposal.state}
+${
+        preferredSupplySummary
+          ? `- preferredSupplySummary: ${JSON.stringify(
+              preferredSupplySummary,
+              null,
+              2
+            )}`
+          : "- preferredSupplySummary: none"
+      }
+${
+        candidateSupplySummaries && candidateSupplySummaries.length > 0
+          ? `- candidateSupplySummaries: ${JSON.stringify(
+              candidateSupplySummaries,
+              null,
+              2
+            )}`
+          : "- candidateSupplySummaries: []"
+      }`
     : "";
   const recentActivityPrompt =
     activeRequest && recentActivity && recentActivity.length > 0

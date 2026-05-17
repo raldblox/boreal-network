@@ -18,7 +18,11 @@ import {
   DEFAULT_CHAT_MODEL,
   getCapabilities,
 } from "@/lib/ai/models";
-import { type RequestHints, systemPrompt } from "@/lib/ai/prompts";
+import {
+  type RequestHints,
+  type RequestSupplyContextSummary,
+  systemPrompt,
+} from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
 import { createRequestBrief } from "@/lib/ai/tools/create-request-brief";
 import { createDocument } from "@/lib/ai/tools/create-document";
@@ -40,9 +44,11 @@ import {
   getMessagesByChatId,
   getRequestActivityByRequestId,
   getRequestByChatId,
+  getSupplyById,
   saveChat,
   saveMessages,
   toRequestDraft,
+  toSupplyDraft,
   updateChatTitleById,
   updateMessage,
 } from "@/lib/db/queries";
@@ -143,6 +149,27 @@ function shouldAllowPreDraftClarification(text: string): boolean {
   return embodiedClarificationPattern.test(text);
 }
 
+function toRequestSupplyContextSummary(
+  supply: ReturnType<typeof toSupplyDraft>
+): RequestSupplyContextSummary {
+  return {
+    id: supply.id,
+    key: supply.key,
+    status: supply.status,
+    visibility: supply.visibility,
+    displayName: supply.profile.displayName.trim() || supply.key,
+    headline: supply.profile.headline?.trim() || "",
+    summary:
+      supply.profile.summary?.trim() || supply.profile.description?.trim() || "",
+    supplyKinds: supply.capability.supplyKinds,
+    fulfillmentActorKinds: supply.capability.fulfillmentActorKinds,
+    outputKinds: supply.capability.outputKinds,
+    executionChannels: supply.capability.executionChannels,
+    pricingMode: supply.pricing?.mode ?? null,
+    sourceKind: supply.source.kind,
+  };
+}
+
 function getStreamContext() {
   try {
     return createResumableStreamContext({ waitUntil: after });
@@ -215,6 +242,34 @@ export async function POST(request: Request) {
       });
     let messagesFromDb: DBMessage[] = [];
     let titlePromise: Promise<string> | null = null;
+    const includeOwnerSupplyPromptContext =
+      activeRequest != null && activeRequest.ownerId === session.user.id;
+    const preferredSupplySummary =
+      includeOwnerSupplyPromptContext &&
+      activeRequest?.routing.preferredSupplyId?.trim()
+        ? await getSupplyById({
+            id: activeRequest.routing.preferredSupplyId.trim(),
+          }).then((record) => (record ? toRequestSupplyContextSummary(toSupplyDraft(record)) : null))
+        : null;
+    const candidateSupplySummaries =
+      includeOwnerSupplyPromptContext && activeRequest
+        ? (
+            await Promise.all(
+              (activeRequest.derived.candidatePool ?? [])
+                .filter(
+                  (supplyId) =>
+                    supplyId &&
+                    supplyId !== activeRequest.routing.preferredSupplyId?.trim()
+                )
+                .slice(0, 3)
+                .map((supplyId) =>
+                  getSupplyById({ id: supplyId }).then((record) =>
+                    record ? toRequestSupplyContextSummary(toSupplyDraft(record)) : null
+                  )
+                )
+            )
+          ).filter((value): value is NonNullable<typeof value> => value != null)
+        : [];
 
     if (chat) {
       if (chat.userId !== session.user.id && !canUsePublicRequestRoom) {
@@ -357,6 +412,8 @@ export async function POST(request: Request) {
             requestMode,
             requestPromptOptimizerEnabled,
             activeRequest,
+            preferredSupplySummary,
+            candidateSupplySummaries,
             recentActivity,
             requestRoomRole,
           }),

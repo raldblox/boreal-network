@@ -21,6 +21,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
 2. Decision layer
    Boreal extracts meaning, classifies route, retrieves supply, ranks candidates, and decides the next action.
    Optional request-briefing assist profiles may normalize terse asks into a clearer derived brief shape inside this layer, but they remain read-only and non-durable until a mutation tool writes the `Request`.
+   When routing context already exists, this layer may also consume owner-safe preferred-supply and candidate-supply summaries, but it must not treat those summaries as buyer-authored brief text or attached execution truth.
 3. Execution layer
    Only approved mutation tools write `Request`, `Commitment`, `Fulfillment`, `FulfillmentStep`, `Artifact`, or `Transaction`.
 

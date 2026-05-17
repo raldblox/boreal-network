@@ -121,6 +121,7 @@ Verify:
 - selected or pinned supply should stay in `routing.preferredSupplyId` and must not be rewritten into fake buyer-authored brief text
 - preselected supply may narrow the likely route but must not imply a real match or assigned worker before matching, selection, or fulfillment attachment actually happened
 - preselected supply may make the request feel faster, but must not bypass clarification, proof, funding, approval, or safety rules
+- owner-safe planner prompt context may include preferred-supply and bounded candidate-supply summaries after retrieval, while responder or public lanes must not inherit owner-private routing hints
 - open request rooms should not force every user message through draft brief mutation tools
 - public open request activity should be fetchable from a durable request activity endpoint
 - public open request detail should be fetchable by id through a direct request API surface

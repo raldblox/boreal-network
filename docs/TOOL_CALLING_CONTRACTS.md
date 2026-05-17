@@ -166,6 +166,15 @@ Every mutation call should return:
 - Public or external execution lanes must not inherit owner-private desktop assumptions.
 - Human-required, embodied, verification-heavy, and local-runtime-dependent work should remain first-class planning realities instead of being flattened into digital-only execution.
 
+## Planner and policy prompt context
+
+- Planner and policy prompt owners should receive the raw ask plus the normalized request-input projection.
+- Prompt context should include `visibility`, `budget`, `deadline`, `seeking.actorKinds`, and `seeking.supplyKinds` when present.
+- Prompt context should include `routing.preferredSupplyId` when present, but treat it as routing context only.
+- When supply retrieval already happened in an owner-safe lane, prompt context may include a preferred-supply summary and bounded candidate-supply summaries to support capability-first planning.
+- Public or responder lanes must not receive owner-private preferred-supply or candidate-supply context that the request flow has not made safe to expose.
+- Prompt context should include lane trust tier plus embodied, proof, and local-runtime constraints when those realities are known.
+
 ## Safety Rules
 
 - Planner tools must not create canonical objects.
