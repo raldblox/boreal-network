@@ -292,6 +292,8 @@ export function RequestTracker({
     followMode === "manual" ||
     selectedView !== "monitor" ||
     focusedStageId !== currentStageId;
+  const showBackToLiveControl =
+    selectedView !== "activity" && showReturnToLiveStage;
 
   const routeSummaryValue = getRouteSummaryValue({
     activeFulfillment,
@@ -601,6 +603,7 @@ export function RequestTracker({
     activeStageActivities.length > 0
       ? activeStageActivities[activeStageActivities.length - 1]
       : null;
+  const isViewingLiveStage = activeStage.id === currentStageId;
   const nextActionSummary = getWorkroomNextActionSummary({
     activeFulfillment,
     canResolveDelivery,
@@ -635,13 +638,14 @@ export function RequestTracker({
                   stageState === "blocked" ||
                   stageState === "failed" ||
                   stageState === "cancelled";
+                const isLiveStage = stage.id === currentStageId;
 
                 return (
                   <button
                     className={cn(
                       "group flex min-w-[12rem] flex-1 items-start gap-3 rounded-[18px] border px-3 py-3 text-left transition-colors",
                       isFocused
-                        ? "border-foreground/14 bg-muted/[0.18]"
+                        ? "border-foreground/16 bg-muted/[0.24] shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
                         : "border-border/60 bg-background/88 hover:bg-muted/[0.12]"
                     )}
                     key={stage.id}
@@ -681,8 +685,20 @@ export function RequestTracker({
                       </span>
                     </span>
                     <span className="min-w-0 flex-1 space-y-1">
-                      <span className="block text-[13px] font-medium tracking-tight text-foreground">
-                        {stage.title}
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <span className="block text-[13px] font-medium tracking-tight text-foreground">
+                          {stage.title}
+                        </span>
+                        {isLiveStage ? (
+                          <span className="rounded-full border border-sky-200/70 bg-sky-50 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-200">
+                            Live
+                          </span>
+                        ) : null}
+                        {isFocused && !isLiveStage ? (
+                          <span className="rounded-full border border-border/70 bg-background/94 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                            Focused
+                          </span>
+                        ) : null}
                       </span>
                       <span className="block text-[12px] leading-5 text-muted-foreground">
                         {stage.summary}
@@ -734,6 +750,11 @@ export function RequestTracker({
                       <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
                         {activeStage.title}
                       </div>
+                      {!isViewingLiveStage ? (
+                        <div className="rounded-full border border-border/60 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                          Focused
+                        </div>
+                      ) : null}
                       <div className="rounded-full border border-border/60 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                         {formatTrackerStageState(activeStageState)}
                       </div>
@@ -741,6 +762,11 @@ export function RequestTracker({
                     <div className="mt-2 text-[15px] leading-6 text-foreground">
                       {activeStage.summary}
                     </div>
+                    {!isViewingLiveStage ? (
+                      <div className="mt-2 text-[12px] leading-5 text-muted-foreground">
+                        Live stage remains {currentLiveStage.title.toLowerCase()} until new work or proof lands.
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="space-y-4 px-4 py-4 md:px-5">
@@ -945,7 +971,7 @@ export function RequestTracker({
             <aside className="space-y-3 xl:sticky xl:top-3 xl:self-start">
               <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                  Current stage
+                  {isViewingLiveStage ? "Current stage" : "Live stage"}
                 </div>
                 <div className="mt-2 text-[15px] leading-6 text-foreground">
                   {currentLiveStage.title}
@@ -1021,7 +1047,7 @@ export function RequestTracker({
         </div>
       </div>
 
-      {showReturnToLiveStage ? (
+      {showBackToLiveControl ? (
         <button
           className="absolute bottom-4 left-1/2 z-10 inline-flex h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-border/60 bg-background/92 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 hover:scale-[1.02]"
           onClick={resumeLiveStage}
