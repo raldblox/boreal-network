@@ -281,6 +281,20 @@ export function RequestTracker({
     requestViewerUserId === request.ownerId &&
     Boolean(request.activeRefs.activeFulfillmentId) &&
     typeof onResolveDeliveredRequest === "function";
+  const artifactActivities = useMemo(
+    () => orderedActivities.filter((activity) => Boolean(activity.artifact)),
+    [orderedActivities]
+  );
+  const deliveryArtifactActivities = useMemo(
+    () => [...artifactActivities].reverse(),
+    [artifactActivities]
+  );
+  const latestDeliveryArtifact =
+    deliveryArtifactActivities.find(
+      (activity) => activity.artifact?.kind === "delivery"
+    )?.artifact ??
+    deliveryArtifactActivities[0]?.artifact ??
+    null;
   const canRetryBlockedFulfillment =
     requestViewerUserId === request.ownerId &&
     activeFulfillment?.status === "blocked" &&
@@ -615,134 +629,124 @@ export function RequestTracker({
   return (
     <div className="relative flex-1 bg-background">
       <div className="absolute inset-0 overflow-y-auto" ref={containerRef}>
-        <div className="mx-auto flex min-h-full max-w-6xl flex-col gap-3 px-3 py-3.5 md:px-4 md:py-4">
-          <section className="rounded-[22px] border border-border/60 bg-background/94 p-3 shadow-[0_12px_34px_rgba(15,23,42,0.03)] md:p-4">
-            <div className="flex flex-wrap items-center gap-2">
-              {stages.map((stage) => {
-                const stageState = getTrackerStageVisualState({
-                  activeFulfillmentStatus: activeFulfillment?.status ?? null,
-                  currentStageId,
-                  hasFulfillmentFailure,
-                  requestStatus: request.status,
-                  stageId: stage.id,
-                });
-                const isFocused = stage.id === focusedStageId;
-                const trackerAccentClassName = getTrackerStageAccentClassName(
-                  stageState
-                );
-                const trackerRingClassName = getTrackerStageRingClassName(
-                  stageState
-                );
-                const isDone = stageState === "done";
-                const isTerminal =
-                  stageState === "blocked" ||
-                  stageState === "failed" ||
-                  stageState === "cancelled";
-                const isLiveStage = stage.id === currentStageId;
+        <div className="flex min-h-full flex-col gap-3 px-3 py-3.5 md:px-4 md:py-4">
+          <div className="flex flex-wrap gap-2">
+            {([
+              { id: "monitor", label: "Monitor" },
+              { id: "activity", label: "Activity" },
+              { id: "truth", label: "Request truth" },
+              { id: "delivery", label: "Delivery" },
+            ] as const).map((view) => (
+              <button
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
+                  selectedView === view.id
+                    ? "border-foreground/14 bg-foreground text-background"
+                    : "border-border/60 bg-background/88 text-muted-foreground hover:text-foreground"
+                )}
+                key={view.id}
+                onClick={() => {
+                  setSelectedView(view.id);
+                  if (view.id !== "monitor") {
+                    setFollowMode("manual");
+                  }
+                  requestAnimationFrame(() => {
+                    scrollToTop("smooth");
+                  });
+                }}
+                type="button"
+              >
+                {view.label}
+              </button>
+            ))}
+          </div>
 
-                return (
-                  <button
-                    className={cn(
-                      "group flex min-w-[12rem] flex-1 items-start gap-3 rounded-[18px] border px-3 py-3 text-left transition-colors",
-                      isFocused
-                        ? "border-foreground/16 bg-muted/[0.24] shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
-                        : "border-border/60 bg-background/88 hover:bg-muted/[0.12]"
-                    )}
-                    key={stage.id}
-                    onClick={() => handleStageFocus(stage.id)}
-                    type="button"
-                  >
-                    <span
-                      className={cn(
-                        "relative mt-0.5 flex size-7 shrink-0 items-center justify-center text-sm font-semibold",
-                        trackerAccentClassName
-                      )}
-                    >
-                      <span className="absolute inset-0 rounded-full bg-background" />
-                      <span
+          <div className="mx-auto w-full max-w-6xl">
+            {selectedView === "monitor" ? (
+              <section className="rounded-[22px] border border-border/60 bg-background/94 p-3 shadow-[0_12px_34px_rgba(15,23,42,0.03)] md:p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {stages.map((stage) => {
+                    const stageState = getTrackerStageVisualState({
+                      activeFulfillmentStatus: activeFulfillment?.status ?? null,
+                      currentStageId,
+                      hasFulfillmentFailure,
+                      requestStatus: request.status,
+                      stageId: stage.id,
+                    });
+                    const isFocused = stage.id === focusedStageId;
+                    const trackerAccentClassName = getTrackerStageAccentClassName(
+                      stageState
+                    );
+                    const trackerRingClassName = getTrackerStageRingClassName(
+                      stageState
+                    );
+                    const isDone = stageState === "done";
+                    const isTerminal =
+                      stageState === "blocked" ||
+                      stageState === "failed" ||
+                      stageState === "cancelled";
+
+                    return (
+                      <button
                         className={cn(
-                          "absolute inset-0 rounded-full border shadow-sm",
-                          trackerRingClassName
+                          "group flex min-h-[7.5rem] min-w-[12rem] flex-1 items-start gap-3 rounded-[18px] border px-3 py-3 text-left transition-colors",
+                          isFocused
+                            ? "border-foreground/16 bg-muted/[0.24] shadow-[0_10px_24px_rgba(15,23,42,0.04)]"
+                            : "border-border/60 bg-background/88 hover:bg-muted/[0.12]"
                         )}
-                      />
-                      <span className="relative z-10 flex items-center justify-center">
-                        {isDone ? (
-                          <CheckIcon className="size-3.5" />
-                        ) : stageState === "failed" ? (
-                          <XIcon className="size-3.5" />
-                        ) : stageState === "blocked" ? (
-                          <AlertTriangleIcon className="size-3.5" />
-                        ) : (
+                        key={stage.id}
+                        onClick={() => handleStageFocus(stage.id)}
+                        type="button"
+                      >
+                        <span
+                          className={cn(
+                            "relative mt-0.5 flex size-7 shrink-0 items-center justify-center text-sm font-semibold",
+                            trackerAccentClassName
+                          )}
+                        >
+                          <span className="absolute inset-0 rounded-full bg-background" />
                           <span
                             className={cn(
-                              "size-2 rounded-full",
-                              isFocused || isTerminal
-                                ? "bg-current"
-                                : "bg-muted-foreground/35"
+                              "absolute inset-0 rounded-full border shadow-sm",
+                              trackerRingClassName
                             )}
                           />
-                        )}
-                      </span>
-                    </span>
-                    <span className="min-w-0 flex-1 space-y-1">
-                      <span className="flex flex-wrap items-center gap-1.5">
-                        <span className="block text-[13px] font-medium tracking-tight text-foreground">
-                          {stage.title}
+                          <span className="relative z-10 flex items-center justify-center">
+                            {isDone ? (
+                              <CheckIcon className="size-3.5" />
+                            ) : stageState === "failed" ? (
+                              <XIcon className="size-3.5" />
+                            ) : stageState === "blocked" ? (
+                              <AlertTriangleIcon className="size-3.5" />
+                            ) : (
+                              <span
+                                className={cn(
+                                  "size-2 rounded-full",
+                                  isFocused || isTerminal
+                                    ? "bg-current"
+                                    : "bg-muted-foreground/35"
+                                )}
+                              />
+                            )}
+                          </span>
                         </span>
-                        {isLiveStage ? (
-                          <span className="rounded-full border border-sky-200/70 bg-sky-50 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-sky-700 dark:border-sky-400/20 dark:bg-sky-500/10 dark:text-sky-200">
-                            Live
+                        <span className="min-w-0 flex-1 space-y-1">
+                          <span className="block text-[14px] font-medium tracking-tight text-foreground">
+                            {stage.title}
                           </span>
-                        ) : null}
-                        {isFocused && !isLiveStage ? (
-                          <span className="rounded-full border border-border/70 bg-background/94 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                            Focused
+                          <span className="block min-h-10 overflow-hidden text-[12px] leading-5 text-muted-foreground [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                            {stage.summary}
                           </span>
-                        ) : null}
-                      </span>
-                      <span className="block text-[12px] leading-5 text-muted-foreground">
-                        {stage.summary}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
 
-          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
             <div className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {([
-                  { id: "monitor", label: "Monitor" },
-                  { id: "activity", label: "Activity" },
-                  { id: "truth", label: "Request truth" },
-                  { id: "delivery", label: "Delivery" },
-                ] as const).map((view) => (
-                  <button
-                    className={cn(
-                      "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
-                      selectedView === view.id
-                        ? "border-foreground/14 bg-foreground text-background"
-                        : "border-border/60 bg-background/88 text-muted-foreground hover:text-foreground"
-                    )}
-                    key={view.id}
-                    onClick={() => {
-                      setSelectedView(view.id);
-                      if (view.id !== "monitor") {
-                        setFollowMode("manual");
-                      }
-                      requestAnimationFrame(() => {
-                        scrollToTop("smooth");
-                      });
-                    }}
-                    type="button"
-                  >
-                    {view.label}
-                  </button>
-                ))}
-              </div>
-
               {selectedView === "monitor" ? (
                 <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
                   <div className="border-b border-border/60 px-4 py-4 md:px-5">
@@ -750,11 +754,6 @@ export function RequestTracker({
                       <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
                         {activeStage.title}
                       </div>
-                      {!isViewingLiveStage ? (
-                        <div className="rounded-full border border-border/60 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                          Focused
-                        </div>
-                      ) : null}
                       <div className="rounded-full border border-border/60 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                         {formatTrackerStageState(activeStageState)}
                       </div>
@@ -901,7 +900,7 @@ export function RequestTracker({
                       Delivery
                     </div>
                     <div className="mt-2 text-[15px] leading-6 text-foreground">
-                      Execution steps, proof, and owner closeout stay here.
+                      Delivered artifacts, proof, and owner closeout stay here.
                     </div>
                   </div>
                   <div className="space-y-4 px-4 py-4 md:px-5">
@@ -922,18 +921,46 @@ export function RequestTracker({
                           value: formatVerificationValue(request),
                         },
                         {
-                          detail:
-                            request.activeRefs.latestArtifactId
+                          detail: latestDeliveryArtifact?.summary?.trim()
+                            ? latestDeliveryArtifact.summary.trim()
+                            : request.activeRefs.latestArtifactId
                               ? "A proof or delivery artifact is already attached."
                               : "No proof-bearing artifact is attached yet.",
                           label: "Delivery package",
                           value:
-                            request.activeRefs.latestArtifactId
-                              ? "Artifact linked to this request."
+                            latestDeliveryArtifact
+                              ? latestDeliveryArtifact.title
+                              : request.activeRefs.latestArtifactId
+                                ? "Artifact linked to this request."
                               : "Still waiting on a delivery package.",
                         },
                       ]}
                     />
+
+                    <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                        Artifacts and proof
+                      </div>
+                      {deliveryArtifactActivities.length > 0 ? (
+                        <div className="mt-3 space-y-3">
+                          {deliveryArtifactActivities.map((activity, index) => (
+                            <RequestActivityMessage
+                              activity={activity}
+                              index={index}
+                              isReadonly={isReadonly}
+                              key={activity.eventId}
+                              ownerUserId={request.ownerId}
+                              totalCount={deliveryArtifactActivities.length}
+                              variant="stage"
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-[13px] leading-5.5 text-muted-foreground">
+                          No delivery or proof artifacts have been attached yet.
+                        </div>
+                      )}
+                    </div>
 
                     <FulfillmentStepsPanel
                       activeRouteSupply={activeRouteSupply}
@@ -969,18 +996,6 @@ export function RequestTracker({
             </div>
 
             <aside className="space-y-3 xl:sticky xl:top-3 xl:self-start">
-              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                  {isViewingLiveStage ? "Current stage" : "Live stage"}
-                </div>
-                <div className="mt-2 text-[15px] leading-6 text-foreground">
-                  {currentLiveStage.title}
-                </div>
-                <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
-                  {currentLiveStage.summary}
-                </div>
-              </div>
-
               <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
                   What happens next
@@ -1043,6 +1058,7 @@ export function RequestTracker({
                 </div>
               ) : null}
             </aside>
+          </div>
           </div>
         </div>
       </div>

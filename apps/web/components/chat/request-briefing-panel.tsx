@@ -130,25 +130,24 @@ export function RequestBriefingPanel({
     ].filter((fact): fact is string => Boolean(fact));
 
     return (
-      <div className="bg-background/92 px-3 pb-0 pt-2 backdrop-blur-xl md:px-4">
-        <div className="mx-auto max-w-5xl">
-          <div className="rounded-[22px] border border-border/60 bg-background/94 px-4 py-3 shadow-[0_10px_28px_rgba(15,23,42,0.035)] md:px-5">
-            <div className="min-w-0 space-y-1.5">
-              <div className="text-base font-medium tracking-tight md:text-[18px]">
+      <div className="bg-background/92 px-3 pb-0 pt-4 backdrop-blur-xl md:px-4 md:pt-5">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-[24px] border border-border/60 bg-background/94 px-5 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.035)] md:px-6 md:py-5">
+          <div className="min-w-0 space-y-2">
+              <div className="text-[22px] font-medium leading-[1.05] tracking-tight md:text-[30px]">
                 {title}
               </div>
-              <div className="text-[13px] leading-6 text-muted-foreground">
+              <div className="max-w-4xl text-[13px] leading-6 text-muted-foreground md:text-[14px]">
                 {planningNote ||
                   "Boreal keeps the route, delivery, and final resolution attached to this request."}
               </div>
               {requestFacts.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/78">
                   {requestFacts.map((fact) => (
                     <span key={fact}>{fact}</span>
                   ))}
                 </div>
               ) : null}
-            </div>
           </div>
         </div>
       </div>
