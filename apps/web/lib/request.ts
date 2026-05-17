@@ -1,4 +1,11 @@
 import { z } from "zod";
+import {
+  deriveRequestPlannerState,
+  type RequestAssignmentProposal,
+  type RequestLeadRankingEntry,
+  type RequestOutcomeClaim,
+  type RequestRoleMatch,
+} from "./request-planner";
 
 export type RequestVisibility = "private" | "public";
 export type RequestActorKind =
@@ -168,6 +175,11 @@ export type RequestDerived = {
   roleSlots: RequestRoleSlot[];
   phases: RequestPhasePlan[];
   noMicrotaskExplosion: boolean;
+  outcomeClaims: RequestOutcomeClaim[];
+  leadRanking: RequestLeadRankingEntry[];
+  roleMatches: RequestRoleMatch[];
+  assignmentProposal: RequestAssignmentProposal;
+  replanReasons: string[];
   missingDetails: string[];
   readiness: RequestReadiness;
   routeSummary?: string;
@@ -619,6 +631,11 @@ type RequestDocumentObject = {
     roleSlots: RequestRoleSlot[];
     phases: RequestPhasePlan[];
     noMicrotaskExplosion: boolean;
+    outcomeClaims: RequestOutcomeClaim[];
+    leadRanking: RequestLeadRankingEntry[];
+    roleMatches: RequestRoleMatch[];
+    assignmentProposal: RequestAssignmentProposal;
+    replanReasons: string[];
     missingDetails: string[];
     readiness: RequestReadiness;
     routeSummary: string | null;
@@ -844,6 +861,11 @@ export function createInitialRequestDraft({
       roleSlots: [],
       phases: [],
       noMicrotaskExplosion: true,
+      outcomeClaims: [],
+      leadRanking: [],
+      roleMatches: [],
+      assignmentProposal: createDefaultAssignmentProposal(),
+      replanReasons: [],
       missingDetails: [],
       readiness: {
         state: "collecting_brief",
@@ -941,7 +963,7 @@ export function applyRequestPatch(
 export function deriveRequestState(
   draft: Pick<
     BorealRequestDraft,
-    "brief" | "seeking" | "budget" | "deadline" | "derived"
+    "brief" | "seeking" | "routing" | "activeRefs" | "budget" | "deadline" | "derived"
   >
 ): RequestDerived {
   const missingDetails: string[] = [];
@@ -966,14 +988,13 @@ export function deriveRequestState(
     }
   }
 
-  const embodiedPlanning = deriveEmbodiedPlanningState(draft);
-  const structuralPlanning = deriveStructuralPlanningState(draft, embodiedPlanning);
-  missingDetails.push(...embodiedPlanning.missingDetails);
+  const plannerState = deriveRequestPlannerState(draft);
+  missingDetails.push(...plannerState.clarificationNeeded.missingDetails);
 
   const hasBriefCore = hasText(draft.brief.body);
   const hasRouteReadiness =
     hasText(draft.derived.routeFamily) && hasText(draft.derived.routeSummary);
-  const hasEmbodiedBlockingGaps = embodiedPlanning.missingDetails.length > 0;
+  const hasEmbodiedBlockingGaps = plannerState.clarificationNeeded.required;
 
   const readiness: RequestReadiness = hasBriefCore && !hasEmbodiedBlockingGaps
     ? hasRouteReadiness
@@ -994,7 +1015,7 @@ export function deriveRequestState(
     : hasBriefCore && hasEmbodiedBlockingGaps
       ? {
           state: "collecting_brief",
-          summary: embodiedPlanning.summary,
+          summary: plannerState.embodiedSummary,
           readyForOpen: false,
           readyForMatch: false,
         }
@@ -1009,17 +1030,22 @@ export function deriveRequestState(
   return {
     ...draft.derived,
     candidatePool: draft.derived.candidatePool ?? [],
-    leadRole: structuralPlanning.leadRole,
-    roleSlots: structuralPlanning.roleSlots,
-    phases: structuralPlanning.phases,
-    noMicrotaskExplosion: structuralPlanning.noMicrotaskExplosion,
+    leadRole: plannerState.leadRole,
+    roleSlots: plannerState.roleSlots,
+    phases: plannerState.phases,
+    noMicrotaskExplosion: plannerState.noMicrotaskExplosion,
+    outcomeClaims: plannerState.outcomeClaims,
+    leadRanking: plannerState.leadRanking,
+    roleMatches: plannerState.roleMatches,
+    assignmentProposal: plannerState.assignmentProposal,
+    replanReasons: plannerState.replanReasons,
     missingDetails: Array.from(new Set(missingDetails)),
     readiness,
-    executionProfile: embodiedPlanning.executionProfile,
-    embodiedConstraintSet: embodiedPlanning.embodiedConstraintSet,
-    verificationPlan: embodiedPlanning.verificationPlan,
-    planCollapseRisk: embodiedPlanning.planCollapseRisk,
-    clarificationNeeded: embodiedPlanning.clarificationNeeded,
+    executionProfile: plannerState.executionProfile,
+    embodiedConstraintSet: plannerState.embodiedConstraintSet,
+    verificationPlan: plannerState.verificationPlan,
+    planCollapseRisk: plannerState.planCollapseRisk,
+    clarificationNeeded: plannerState.clarificationNeeded,
   };
 }
 
@@ -1107,787 +1133,6 @@ function hasText(value: string | undefined | null): boolean {
   return Boolean(value && value.trim().length > 0);
 }
 
-function deriveEmbodiedPlanningState(
-  draft: Pick<BorealRequestDraft, "brief" | "derived">
-): {
-  missingDetails: string[];
-  summary: string;
-  executionProfile: RequestExecutionProfile;
-  embodiedConstraintSet: RequestEmbodiedConstraintSet;
-  verificationPlan: RequestVerificationPlan;
-  planCollapseRisk: RequestPlanCollapseRisk;
-  clarificationNeeded: RequestClarificationNeeded;
-} {
-  const constraints = normalizeRecord(draft.brief.constraints);
-  const requestText = [draft.brief.title, draft.brief.summary, draft.brief.body]
-    .filter(Boolean)
-    .join("\n");
-  const executionModes = normalizeExecutionModes(
-    getConstraintStringArray(constraints, "executionModes")
-  );
-  const requiresHumanPresence = getConstraintBoolean(
-    constraints,
-    "requiresHumanPresence"
-  );
-  const requiresLocalAccess = getConstraintBoolean(
-    constraints,
-    "requiresLocalAccess"
-  );
-  const requiresVerifiedEvidence = getConstraintBoolean(
-    constraints,
-    "requiresVerifiedEvidence"
-  );
-  const requiresWitness = getConstraintBoolean(constraints, "requiresWitness");
-  const requiresWitnessResolved = requiresWitness === true;
-  const explicitServiceLocation = getConstraintText(constraints, "serviceLocation");
-  const explicitTimeWindows = getConstraintStringArray(constraints, "timeWindows");
-  const accessRequirements = getConstraintStringArray(
-    constraints,
-    "accessRequirements"
-  );
-  const safetyRequirements = getConstraintStringArray(
-    constraints,
-    "safetyRequirements"
-  );
-  const explicitVerificationRequirements = getConstraintStringArray(
-    constraints,
-    "verificationRequirements"
-  );
-  const inferredEmbodiedModes = inferExecutionModes(requestText);
-  const serviceLocation =
-    explicitServiceLocation ?? inferServiceLocation(requestText);
-  const timeWindows =
-    explicitTimeWindows.length > 0
-      ? explicitTimeWindows
-      : inferTimeWindows(requestText);
-  const verificationRequirements =
-    explicitVerificationRequirements.length > 0
-      ? explicitVerificationRequirements
-      : inferVerificationRequirements(requestText);
-  const explicitEmbodiedMode = executionModes.some(isEmbodiedExecutionMode);
-  const inferredEmbodiedMode = inferredEmbodiedModes.some(
-    isEmbodiedExecutionMode
-  );
-  const resolvedExecutionModes =
-    executionModes.length > 0
-      ? executionModes
-      : inferredEmbodiedModes.length > 0
-        ? inferredEmbodiedModes
-        : (["remote_digital"] satisfies RequestExecutionMode[]);
-  const requiresHumanPresenceResolved =
-    requiresHumanPresence === true ||
-    resolvedExecutionModes.some(isEmbodiedExecutionMode);
-  const requiresLocalAccessResolved =
-    requiresLocalAccess === true ||
-    hasText(serviceLocation) ||
-    accessRequirements.length > 0 ||
-    resolvedExecutionModes.some(
-      (mode) =>
-        mode === "onsite_visit" ||
-        mode === "field_inspection" ||
-        mode === "pickup_dropoff" ||
-        mode === "witnessed_handoff"
-    );
-  const requiresVerifiedEvidenceResolved =
-    requiresVerifiedEvidence === true ||
-    requiresWitnessResolved ||
-    verificationRequirements.length > 0;
-  const requiresSchedulingResolved =
-    timeWindows.length > 0 ||
-    requiresSchedulingContext(requestText, resolvedExecutionModes);
-  const requiresGeographyResolved =
-    hasText(serviceLocation) ||
-    resolvedExecutionModes.some(isEmbodiedExecutionMode);
-  const needsEmbodiedHandling =
-    explicitEmbodiedMode ||
-    inferredEmbodiedMode ||
-    requiresHumanPresenceResolved ||
-    requiresLocalAccessResolved ||
-    requiresVerifiedEvidenceResolved ||
-    requiresWitnessResolved ||
-    Boolean(serviceLocation) ||
-    timeWindows.length > 0 ||
-    accessRequirements.length > 0 ||
-    verificationRequirements.length > 0;
-
-  const missingDetails: string[] = [];
-  if (needsEmbodiedHandling && executionModes.length === 0) {
-    missingDetails.push("execution_modes");
-  }
-
-  if (needsEmbodiedHandling && !serviceLocation) {
-    missingDetails.push("service_location");
-  }
-
-  if (
-    needsEmbodiedHandling &&
-    timeWindows.length === 0 &&
-    requiresSchedulingResolved
-  ) {
-    missingDetails.push("time_windows");
-  }
-
-  if (
-    needsEmbodiedHandling &&
-    accessRequirements.length === 0 &&
-    (requiresLocalAccessResolved ||
-      explicitEmbodiedMode ||
-      inferredEmbodiedModes.includes("onsite_visit") ||
-      inferredEmbodiedModes.includes("field_inspection") ||
-      inferredEmbodiedModes.includes("witnessed_handoff"))
-  ) {
-    missingDetails.push("access_requirements");
-  }
-
-  if (
-    needsEmbodiedHandling &&
-    verificationRequirements.length === 0 &&
-    (requiresVerifiedEvidenceResolved ||
-      requiresWitnessResolved ||
-      explicitEmbodiedMode ||
-      inferredEmbodiedMode)
-  ) {
-    missingDetails.push("verification_requirements");
-  }
-
-  const clarificationReasons = missingDetails.map((detail) =>
-    getClarificationReason(detail)
-  );
-  const planCollapseReasons = buildPlanCollapseReasons({
-    needsEmbodiedHandling,
-    missingDetails,
-    requiresVerifiedEvidence: requiresVerifiedEvidenceResolved,
-    requiresWitness: requiresWitnessResolved,
-    resolvedExecutionModes,
-  });
-  const verificationPlan: RequestVerificationPlan = {
-    requiredArtifactKinds: deriveVerificationArtifactKinds({
-      needsEmbodiedHandling,
-      requiresWitness: requiresWitnessResolved,
-      verificationRequirements,
-    }),
-    requiredEvidenceClaims: verificationRequirements,
-    mustHaveOwnerAcceptance:
-      needsEmbodiedHandling &&
-      requiresVerifiedEvidenceResolved &&
-      !requiresWitnessResolved,
-    mustHaveLocationSignal:
-      needsEmbodiedHandling && Boolean(serviceLocation),
-    mustHaveSignature:
-      requiresWitnessResolved ||
-      verificationRequirements.some((claim) =>
-        /\bsignature\b|\bsigned\b/.test(claim.toLowerCase())
-      ),
-  };
-  const executionProfile: RequestExecutionProfile = {
-    executionModes: resolvedExecutionModes,
-    requiresHumanPresence: requiresHumanPresenceResolved,
-    requiresLocalAccess: requiresLocalAccessResolved,
-    requiresVerifiedEvidence: requiresVerifiedEvidenceResolved,
-    requiresScheduling: requiresSchedulingResolved,
-    requiresGeography: requiresGeographyResolved,
-    riskTier:
-      needsEmbodiedHandling &&
-      (missingDetails.length > 0 || requiresWitnessResolved)
-        ? "high"
-        : needsEmbodiedHandling
-          ? "moderate"
-          : "low",
-  };
-  const embodiedConstraintSet: RequestEmbodiedConstraintSet = {
-    requiresEmbodiedHandling: needsEmbodiedHandling,
-    executionModes: resolvedExecutionModes,
-    ...(serviceLocation ? { serviceLocation } : {}),
-    timeWindows,
-    accessRequirements,
-    safetyRequirements,
-    verificationRequirements,
-    requiresHumanPresence: requiresHumanPresenceResolved,
-    requiresLocalAccess: requiresLocalAccessResolved,
-    requiresVerifiedEvidence: requiresVerifiedEvidenceResolved,
-    requiresWitness: requiresWitnessResolved,
-  };
-  const clarificationNeeded: RequestClarificationNeeded = {
-    required: missingDetails.length > 0,
-    missingDetails,
-    reasons: clarificationReasons,
-  };
-  const planCollapseRisk: RequestPlanCollapseRisk = {
-    riskLevel:
-      planCollapseReasons.length === 0
-        ? "low"
-        : missingDetails.length > 0 || requiresWitnessResolved
-          ? "high"
-          : "moderate",
-    reasons: planCollapseReasons,
-  };
-
-  const summary =
-    missingDetails.length > 0
-      ? `Core briefing is present, but Boreal still needs ${missingDetails
-          .map((detail) => detail.replace(/_/g, " "))
-          .join(", ")} before this request is safe to route or close.`
-      : needsEmbodiedHandling
-        ? "Core briefing includes the embodied execution and proof details Boreal needs to route this request safely."
-        : "Core briefing is present. This request can be opened now and refined further before matching. Summary is still optional.";
-
-  return {
-    missingDetails,
-    summary,
-    executionProfile,
-    embodiedConstraintSet,
-    verificationPlan,
-    planCollapseRisk,
-    clarificationNeeded,
-  };
-}
-
-function deriveStructuralPlanningState(
-  draft: Pick<BorealRequestDraft, "brief" | "seeking" | "derived">,
-  embodiedPlanning: {
-    executionProfile: RequestExecutionProfile;
-    embodiedConstraintSet: RequestEmbodiedConstraintSet;
-    verificationPlan: RequestVerificationPlan;
-    clarificationNeeded: RequestClarificationNeeded;
-  }
-): {
-  leadRole?: string;
-  roleSlots: RequestRoleSlot[];
-  phases: RequestPhasePlan[];
-  noMicrotaskExplosion: boolean;
-} {
-  const supplyKinds = collapseGenericPlanningSupplyKinds(
-    normalizeStringArray(draft.seeking.supplyKinds)
-  );
-  const actorKinds = normalizeActorKinds(draft.seeking.actorKinds);
-  const outputKinds = normalizeStringArray(draft.brief.outputKinds);
-  const teamMode = normalizeText(draft.seeking.teamMode)?.toLowerCase() ?? "";
-  const hasPlanningSeed =
-    hasText(draft.brief.title) ||
-    hasText(draft.brief.summary) ||
-    hasText(draft.brief.body) ||
-    Object.keys(normalizeRecord(draft.brief.constraints)).length > 0 ||
-    outputKinds.length > 0 ||
-    supplyKinds.length > 0 ||
-    actorKinds.length > 0 ||
-    teamMode.length > 0 ||
-    hasText(draft.derived.routeFamily) ||
-    hasText(draft.derived.routeSummary) ||
-    embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling ||
-    embodiedPlanning.verificationPlan.requiredArtifactKinds.length > 0 ||
-    embodiedPlanning.verificationPlan.requiredEvidenceClaims.length > 0 ||
-    embodiedPlanning.clarificationNeeded.required;
-
-  if (!hasPlanningSeed) {
-    return {
-      roleSlots: [],
-      phases: [],
-      noMicrotaskExplosion: true,
-    };
-  }
-
-  const leadRole = deriveLeadRoleKey({
-    actorKinds,
-    outputKinds,
-    supplyKinds,
-    executionModes: embodiedPlanning.executionProfile.executionModes,
-  });
-  const leadPreferredSupplyKinds = supplyKinds.length > 0 ? [supplyKinds[0]] : [];
-  const roleSlots: RequestRoleSlot[] = [
-    createRoleSlot({
-      roleKey: leadRole,
-      preferredSupplyKinds: leadPreferredSupplyKinds,
-      required: true,
-      requiredActorKinds: deriveRoleActorKinds({
-        actorKinds,
-        embodiedPlanning,
-        isLead: true,
-        roleKey: leadRole,
-        supplyKind: leadPreferredSupplyKinds[0],
-      }),
-      summary: buildRoleSlotSummary({
-        embodiedPlanning,
-        isLead: true,
-        outputKinds,
-        roleKey: leadRole,
-      }),
-    }),
-  ];
-
-  for (const [index, supplyKind] of supplyKinds.slice(1).entries()) {
-    const roleKey = normalizeRoleKey(supplyKind);
-    if (roleSlots.some((slot) => slot.roleKey === roleKey)) {
-      continue;
-    }
-
-    roleSlots.push(
-      createRoleSlot({
-        roleKey,
-        preferredSupplyKinds: [supplyKind],
-        required: shouldRequireCollaboratorRole({
-          embodiedPlanning,
-          index,
-          outputKinds,
-          supplyKinds,
-          teamMode,
-        }),
-        requiredActorKinds: deriveRoleActorKinds({
-          actorKinds,
-          embodiedPlanning,
-          isLead: false,
-          roleKey,
-          supplyKind,
-        }),
-        summary: buildRoleSlotSummary({
-          embodiedPlanning,
-          isLead: false,
-          outputKinds,
-          roleKey,
-        }),
-      })
-    );
-  }
-
-  const needsDocumentationSupport =
-    embodiedPlanning.verificationPlan.requiredEvidenceClaims.length > 0 &&
-    !roleSlots.some((slot) =>
-      /documentation|qa|report|evidence/.test(slot.roleKey)
-    );
-
-  if (needsDocumentationSupport) {
-    roleSlots.push(
-      createRoleSlot({
-        roleKey: "qa_documentation",
-        preferredSupplyKinds: [],
-        required: false,
-        requiredActorKinds: deriveRoleActorKinds({
-          actorKinds,
-          embodiedPlanning,
-          isLead: false,
-          roleKey: "qa_documentation",
-        }),
-        summary:
-          "Support evidence packaging, written reporting, or owner-facing delivery notes.",
-      })
-    );
-  }
-
-  const phases = derivePhasePlans({
-    embodiedPlanning,
-    leadRole,
-    outputKinds,
-    roleSlots,
-    teamMode,
-  });
-
-  return {
-    leadRole,
-    roleSlots,
-    phases,
-    noMicrotaskExplosion: true,
-  };
-}
-
-function createRoleSlot({
-  roleKey,
-  preferredSupplyKinds,
-  required,
-  requiredActorKinds,
-  summary,
-}: {
-  roleKey: string;
-  preferredSupplyKinds: string[];
-  required: boolean;
-  requiredActorKinds: RequestActorKind[];
-  summary?: string;
-}): RequestRoleSlot {
-  return {
-    roleKey,
-    title: formatPlanningLabel(roleKey),
-    preferredSupplyKinds,
-    required,
-    requiredActorKinds,
-    ...(summary ? { summary } : {}),
-  };
-}
-
-function deriveLeadRoleKey({
-  actorKinds,
-  outputKinds,
-  supplyKinds,
-  executionModes,
-}: {
-  actorKinds: RequestActorKind[];
-  outputKinds: string[];
-  supplyKinds: string[];
-  executionModes: RequestExecutionMode[];
-}): string {
-  const primarySupplyKind = supplyKinds[0];
-  if (primarySupplyKind) {
-    return normalizeRoleKey(primarySupplyKind);
-  }
-
-  if (executionModes.includes("field_inspection")) {
-    return "field_inspector";
-  }
-
-  if (executionModes.includes("onsite_visit")) {
-    return "onsite_operator";
-  }
-
-  if (executionModes.includes("pickup_dropoff")) {
-    return "pickup_operator";
-  }
-
-  if (executionModes.includes("witnessed_handoff")) {
-    return "witness_operator";
-  }
-
-  if (outputKinds.some((kind) => /migration|integration|handoff/.test(kind))) {
-    return "delivery_lead";
-  }
-
-  if (actorKinds.length === 1) {
-    return `${actorKinds[0]}_lead`;
-  }
-
-  return "specialist_lead";
-}
-
-function deriveRoleActorKinds({
-  actorKinds,
-  embodiedPlanning,
-  isLead,
-  roleKey,
-  supplyKind,
-}: {
-  actorKinds: RequestActorKind[];
-  embodiedPlanning: {
-    executionProfile: RequestExecutionProfile;
-    verificationPlan: RequestVerificationPlan;
-  };
-  isLead: boolean;
-  roleKey: string;
-  supplyKind?: string;
-}): RequestActorKind[] {
-  const normalizedActorKinds = actorKinds.length > 0 ? actorKinds : [];
-  const roleFingerprint = `${roleKey} ${supplyKind ?? ""}`.toLowerCase();
-
-  if (isLead && embodiedPlanning.executionProfile.requiresHumanPresence) {
-    return ["human"];
-  }
-
-  if (/runtime/.test(roleFingerprint)) {
-    return ["runtime"];
-  }
-
-  if (/provider|tool|api/.test(roleFingerprint)) {
-    return ["tool"];
-  }
-
-  if (/agent|automation/.test(roleFingerprint)) {
-    return normalizedActorKinds.length > 0
-      ? normalizedActorKinds.filter((kind) => kind !== "tool" && kind !== "runtime")
-      : (["agent"] satisfies RequestActorKind[]);
-  }
-
-  if (/documentation|qa|report|evidence/.test(roleFingerprint)) {
-    if (normalizedActorKinds.length > 0) {
-      const documentationActorKinds = normalizedActorKinds.filter(
-        (kind) => kind === "human" || kind === "agent"
-      );
-      if (documentationActorKinds.length > 0) {
-        return documentationActorKinds;
-      }
-    }
-
-    return ["human", "agent"];
-  }
-
-  if (normalizedActorKinds.length > 0) {
-    return normalizedActorKinds;
-  }
-
-  return ["human"];
-}
-
-function buildRoleSlotSummary({
-  embodiedPlanning,
-  isLead,
-  outputKinds,
-  roleKey,
-}: {
-  embodiedPlanning: {
-    embodiedConstraintSet: RequestEmbodiedConstraintSet;
-    verificationPlan: RequestVerificationPlan;
-  };
-  isLead: boolean;
-  outputKinds: string[];
-  roleKey: string;
-}): string {
-  if (isLead && embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling) {
-    return "Own the lead execution lane without flattening onsite or proof-heavy work into a digital-only result.";
-  }
-
-  if (
-    /documentation|qa|report|evidence/.test(roleKey) &&
-    embodiedPlanning.verificationPlan.requiredEvidenceClaims.length > 0
-  ) {
-    return "Keep evidence, reporting, and owner-facing delivery attached to the request.";
-  }
-
-  if (outputKinds.length > 0) {
-    return `Support deliverables such as ${outputKinds
-      .slice(0, 3)
-      .map((kind) => formatPlanningLabel(kind))
-      .join(", ")}.`;
-  }
-
-  return "Support the lead lane only where the request clearly needs extra execution help.";
-}
-
-function shouldRequireCollaboratorRole({
-  embodiedPlanning,
-  index,
-  outputKinds,
-  supplyKinds,
-  teamMode,
-}: {
-  embodiedPlanning: {
-    embodiedConstraintSet: RequestEmbodiedConstraintSet;
-  };
-  index: number;
-  outputKinds: string[];
-  supplyKinds: string[];
-  teamMode: string;
-}): boolean {
-  const explicitTeamMode = /\bteam\b|\bmulti\b|\bcollab\b|\bpair\b|\bsquad\b/.test(
-    teamMode
-  );
-  const highComplexityDigital =
-    !embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling &&
-    (supplyKinds.length >= 3 || outputKinds.length >= 4 || explicitTeamMode);
-
-  return highComplexityDigital && index === 0;
-}
-
-function derivePhasePlans({
-  embodiedPlanning,
-  leadRole,
-  outputKinds,
-  roleSlots,
-  teamMode,
-}: {
-  embodiedPlanning: {
-    executionProfile: RequestExecutionProfile;
-    verificationPlan: RequestVerificationPlan;
-    clarificationNeeded: RequestClarificationNeeded;
-    embodiedConstraintSet: RequestEmbodiedConstraintSet;
-  };
-  leadRole: string;
-  outputKinds: string[];
-  roleSlots: RequestRoleSlot[];
-  teamMode: string;
-}): RequestPhasePlan[] {
-  const phases: RequestPhasePlan[] = [];
-  const evidenceClaims =
-    embodiedPlanning.verificationPlan.requiredEvidenceClaims ?? [];
-
-  if (embodiedPlanning.clarificationNeeded.required) {
-    phases.push({
-      phaseKey: "clarify_constraints",
-      title: "Clarify execution, access, and proof constraints",
-      summary:
-        "Lock the missing facts that materially affect route selection, execution safety, or closure truth.",
-      roleKeys: [leadRole],
-      requiredEvidenceClaims: [],
-    });
-  }
-
-  if (embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling) {
-    phases.push({
-      phaseKey: deriveEmbodiedExecutionPhaseKey(
-        embodiedPlanning.executionProfile.executionModes
-      ),
-      title: deriveEmbodiedExecutionPhaseTitle(
-        embodiedPlanning.executionProfile.executionModes
-      ),
-      summary:
-        "Execute the physical or local-access work inside the request lane before treating anything as complete.",
-      roleKeys: getExecutionRoleKeys(roleSlots),
-      requiredEvidenceClaims: [],
-    });
-
-    phases.push({
-      phaseKey: "proof_delivery",
-      title: "Capture proof and publish the delivery package",
-      summary:
-        "Attach evidence and the final delivery inside the same request thread so review and closure stay truthful.",
-      roleKeys: getProofRoleKeys(roleSlots),
-      requiredEvidenceClaims: evidenceClaims,
-    });
-
-    return phases.slice(0, 3);
-  }
-
-  const explicitTeamMode = /\bteam\b|\bmulti\b|\bcollab\b|\bpair\b|\bsquad\b/.test(
-    teamMode
-  );
-  const needsStructuredExecution =
-    roleSlots.length > 1 || outputKinds.length > 2 || explicitTeamMode;
-
-  if (needsStructuredExecution) {
-    phases.push({
-      phaseKey: "scope_route",
-      title: "Lock scope and the lead execution lane",
-      summary:
-        "Confirm the lead owner, route boundary, and how supporting roles attach to the request.",
-      roleKeys: [leadRole],
-      requiredEvidenceClaims: [],
-    });
-  }
-
-  phases.push({
-    phaseKey: "execute_delivery",
-    title: needsStructuredExecution
-      ? "Produce the core deliverables"
-      : "Complete the requested deliverable",
-    summary:
-      "Keep execution inside one request thread and avoid exploding the work into a brittle task tree too early.",
-    roleKeys: roleSlots.filter((slot) => slot.required).map((slot) => slot.roleKey),
-    requiredEvidenceClaims: [],
-  });
-
-  if (
-    outputKinds.some((kind) => /handoff|training|doc|report|plan/.test(kind)) ||
-    roleSlots.length > 1
-  ) {
-    phases.push({
-      phaseKey: "handoff_review",
-      title: "Publish handoff package and owner review",
-      summary:
-        "Bundle the outputs, context, and approval-facing material before final closure.",
-      roleKeys: getProofRoleKeys(roleSlots),
-      requiredEvidenceClaims: evidenceClaims,
-    });
-  }
-
-  return phases.slice(0, 3);
-}
-
-function deriveEmbodiedExecutionPhaseKey(
-  executionModes: RequestExecutionMode[]
-): string {
-  if (executionModes.includes("field_inspection")) {
-    return "field_execution";
-  }
-
-  if (executionModes.includes("pickup_dropoff")) {
-    return "handoff_execution";
-  }
-
-  if (executionModes.includes("witnessed_handoff")) {
-    return "witness_execution";
-  }
-
-  return "onsite_execution";
-}
-
-function deriveEmbodiedExecutionPhaseTitle(
-  executionModes: RequestExecutionMode[]
-): string {
-  if (executionModes.includes("field_inspection")) {
-    return "Complete the onsite inspection";
-  }
-
-  if (executionModes.includes("pickup_dropoff")) {
-    return "Complete the pickup, dropoff, or handoff";
-  }
-
-  if (executionModes.includes("witnessed_handoff")) {
-    return "Complete the witnessed handoff";
-  }
-
-  return "Complete the onsite work";
-}
-
-function getExecutionRoleKeys(roleSlots: RequestRoleSlot[]): string[] {
-  const requiredRoleKeys = roleSlots
-    .filter((slot) => slot.required)
-    .map((slot) => slot.roleKey);
-
-  return requiredRoleKeys.length > 0
-    ? requiredRoleKeys
-    : roleSlots.slice(0, 1).map((slot) => slot.roleKey);
-}
-
-function getProofRoleKeys(roleSlots: RequestRoleSlot[]): string[] {
-  const proofRoleKeys = roleSlots
-    .filter((slot) =>
-      /documentation|qa|report|evidence/.test(slot.roleKey)
-    )
-    .map((slot) => slot.roleKey);
-
-  if (proofRoleKeys.length > 0) {
-    return proofRoleKeys;
-  }
-
-  return getExecutionRoleKeys(roleSlots);
-}
-
-function normalizeRoleKey(value: string): string {
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-
-  switch (normalized) {
-    case "field_inspection":
-      return "field_inspector";
-    case "human_service":
-      return "service_lead";
-    case "agent_worker":
-      return "agent_operator";
-    case "provider_capability":
-      return "tool_operator";
-    case "runtime_executor":
-    case "desktop_runtime":
-      return "runtime_operator";
-    default:
-      return normalized || "support_role";
-  }
-}
-
-function collapseGenericPlanningSupplyKinds(supplyKinds: string[]) {
-  const genericKinds = new Set([
-    "agent_worker",
-    "human_service",
-    "digital_product",
-    "runtime_executor",
-    "provider_capability",
-    "team_service",
-  ]);
-  const normalizedSupplyKinds = supplyKinds.filter((kind) => kind.trim().length > 0);
-  const hasSpecificKinds = normalizedSupplyKinds.some(
-    (kind) => !genericKinds.has(kind)
-  );
-
-  if (!hasSpecificKinds) {
-    return normalizedSupplyKinds;
-  }
-
-  return normalizedSupplyKinds.filter((kind) => !genericKinds.has(kind));
-}
-
-function formatPlanningLabel(value: string): string {
-  return value
-    .split("_")
-    .filter((segment) => segment.length > 0)
-    .map((segment) => `${segment.charAt(0).toUpperCase()}${segment.slice(1)}`)
-    .join(" ");
-}
-
 export function normalizeRequestBrief(
   brief: Partial<RequestBrief> | undefined
 ): RequestBrief {
@@ -1973,185 +1218,6 @@ function capitalizeSentence(value: string) {
   }
 
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
-}
-
-function getConstraintBoolean(
-  constraints: Record<string, unknown>,
-  key: string
-): boolean | undefined {
-  const value = constraints[key];
-  return typeof value === "boolean" ? value : undefined;
-}
-
-function getConstraintText(
-  constraints: Record<string, unknown>,
-  key: string
-): string | undefined {
-  const value = constraints[key];
-  return typeof value === "string" && value.trim().length > 0
-    ? value.trim()
-    : undefined;
-}
-
-function getConstraintStringArray(
-  constraints: Record<string, unknown>,
-  key: string
-): string[] {
-  const value = constraints[key];
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value
-    .filter((entry): entry is string => typeof entry === "string")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-}
-
-function inferExecutionModes(text: string): RequestExecutionMode[] {
-  const normalizedText = text.toLowerCase();
-  const inferredModes = new Set<RequestExecutionMode>();
-
-  if (
-    /\bcall\b|\bmeeting\b|\bzoom\b|\binterview\b|\bworkshop\b|\bsession\b/.test(
-      normalizedText
-    )
-  ) {
-    inferredModes.add("remote_sync");
-  }
-
-  if (
-      /\bon[-\s]?site\b|\bsite visit\b|\bin person\b|\bin-person\b/.test(
-        normalizedText
-      )
-  ) {
-    inferredModes.add("onsite_visit");
-  }
-
-  if (
-    /\bvisit\b.*\b(site|store|kiosk|office|property|venue|branch|location)\b/.test(
-      normalizedText
-    )
-  ) {
-    inferredModes.add("onsite_visit");
-  }
-
-  if (
-      /\binspect(?:ion)?\b|\bfield audit\b|\binventory audit\b|\bcount inventory\b/.test(
-        normalizedText
-      )
-  ) {
-    inferredModes.add("field_inspection");
-  }
-
-  if (
-    /\b(verify|confirm|check)\b.*\b(installed|signage|setup|condition|display)\b/.test(
-      normalizedText
-    ) ||
-    /\btimestamp(?:ed)? photo|\bphotos?\b|\bvideo proof\b/.test(normalizedText)
-  ) {
-    inferredModes.add("field_inspection");
-  }
-
-  if (/\bpick[\s-]?up\b|\bdrop[\s-]?off\b|\bcourier\b/.test(normalizedText)) {
-    inferredModes.add("pickup_dropoff");
-  }
-
-  if (/\bwitness(?:ed|ing)?\b|\bhandoff\b|\bsigned handoff\b/.test(normalizedText)) {
-    inferredModes.add("witnessed_handoff");
-  }
-
-  return Array.from(inferredModes);
-}
-
-function inferServiceLocation(text: string): string | undefined {
-  const normalizedText = text.replace(/\s+/g, " ").trim();
-  const patterns = [
-    /\blocal in\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2})\b/,
-    /\bin\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2})\s+(?:to|for|before|after|tomorrow|today|this|on)\b/,
-    /\bin\s+([A-Z][A-Za-z]+(?:\s+[A-Z][A-Za-z]+){0,2})(?=,|\.|$)/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = normalizedText.match(pattern);
-    const location = match?.[1]?.trim();
-    if (location) {
-      return location;
-    }
-  }
-
-  return undefined;
-}
-
-function inferTimeWindows(text: string): string[] {
-  const normalizedText = text.replace(/\s+/g, " ").trim();
-  const matches: string[] = [];
-  const patterns = [
-    /\b(tomorrow before\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i,
-    /\b(today before\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b/i,
-    /\b(this\s+[A-Za-z]+\s+\d{1,2})\b/i,
-    /\b(on\s+[A-Za-z]+\s+\d{1,2})\b/i,
-    /\b(by\s+[A-Za-z]+\s+\d{1,2})\b/i,
-    /\b(tomorrow)\b/i,
-    /\b(today)\b/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = normalizedText.match(pattern);
-    const value = match?.[1]?.trim();
-    if (value && !matches.includes(value)) {
-      matches.push(value);
-    }
-  }
-
-  return matches;
-}
-
-function inferVerificationRequirements(text: string): string[] {
-  const normalizedText = text.toLowerCase();
-  const requirements = new Set<string>();
-
-  if (/\btimestamp(?:ed)? photos?\b/.test(normalizedText)) {
-    requirements.add("timestamped_photos");
-  } else if (/\bphotos?\b|\bphoto proof\b/.test(normalizedText)) {
-    requirements.add("photo_evidence");
-  }
-
-  if (/\bvideo proof\b|\bvideo\b/.test(normalizedText)) {
-    requirements.add("video_evidence");
-  }
-
-  if (/\bwritten report\b|\breport\b/.test(normalizedText)) {
-    requirements.add("written_report");
-  }
-
-  if (/\bissues?\b/.test(normalizedText)) {
-    requirements.add("issue_log");
-  }
-
-  return Array.from(requirements);
-}
-
-function isEmbodiedExecutionMode(mode: RequestExecutionMode): boolean {
-  return (
-    mode === "onsite_visit" ||
-    mode === "field_inspection" ||
-    mode === "pickup_dropoff" ||
-    mode === "witnessed_handoff"
-  );
-}
-
-function requiresSchedulingContext(
-  text: string,
-  explicitExecutionModes: RequestExecutionMode[]
-): boolean {
-  if (explicitExecutionModes.some(isEmbodiedExecutionMode)) {
-    return true;
-  }
-
-  return /\btoday\b|\btomorrow\b|\bby\b|\bbefore\b|\bafter\b|\bwindow\b|\bschedule\b|\bappointment\b|\bvisit\b/.test(
-    text.toLowerCase()
-  );
 }
 
 function normalizeSeeking(
@@ -2378,6 +1444,35 @@ function normalizeNumber(value: number | undefined): number | undefined {
   return value;
 }
 
+function toRequestDerivedProjection(
+  derived: RequestDerived
+): RequestDocumentObject["derived"] {
+  return {
+    routeFamily: derived.routeFamily ?? null,
+    executionKind: derived.executionKind ?? null,
+    paymentMode: derived.paymentMode ?? null,
+    matchingMode: derived.matchingMode ?? null,
+    candidatePool: derived.candidatePool ?? [],
+    leadRole: derived.leadRole ?? null,
+    roleSlots: derived.roleSlots,
+    phases: derived.phases,
+    noMicrotaskExplosion: derived.noMicrotaskExplosion,
+    outcomeClaims: derived.outcomeClaims,
+    leadRanking: derived.leadRanking,
+    roleMatches: derived.roleMatches,
+    assignmentProposal: derived.assignmentProposal,
+    replanReasons: derived.replanReasons,
+    missingDetails: derived.missingDetails,
+    readiness: derived.readiness,
+    routeSummary: derived.routeSummary ?? null,
+    executionProfile: derived.executionProfile,
+    embodiedConstraintSet: derived.embodiedConstraintSet,
+    verificationPlan: derived.verificationPlan,
+    planCollapseRisk: derived.planCollapseRisk,
+    clarificationNeeded: derived.clarificationNeeded,
+  };
+}
+
 function toEditableRequestDocument(
   draft: BorealRequestDraft
 ): EditableRequestDocument {
@@ -2410,25 +1505,7 @@ function toEditableRequestDocument(
         routing: normalizeRouting(draft.routing),
         activeRefs: normalizeActiveRefs(draft.activeRefs),
         latest: normalizeLatest(draft.latest),
-        derived: {
-          routeFamily: draft.derived.routeFamily ?? null,
-          executionKind: draft.derived.executionKind ?? null,
-          paymentMode: draft.derived.paymentMode ?? null,
-          matchingMode: draft.derived.matchingMode ?? null,
-          candidatePool: draft.derived.candidatePool ?? [],
-          leadRole: draft.derived.leadRole ?? null,
-          roleSlots: draft.derived.roleSlots,
-          phases: draft.derived.phases,
-          noMicrotaskExplosion: draft.derived.noMicrotaskExplosion,
-          missingDetails: draft.derived.missingDetails,
-          readiness: draft.derived.readiness,
-          routeSummary: draft.derived.routeSummary ?? null,
-          executionProfile: draft.derived.executionProfile,
-          embodiedConstraintSet: draft.derived.embodiedConstraintSet,
-          verificationPlan: draft.derived.verificationPlan,
-          planCollapseRisk: draft.derived.planCollapseRisk,
-          clarificationNeeded: draft.derived.clarificationNeeded,
-        },
+        derived: toRequestDerivedProjection(draft.derived),
         createdAt: draft.createdAt,
         updatedAt: draft.updatedAt,
       },
@@ -2467,25 +1544,7 @@ function toRequestDocumentObject(
     deadline: draft.deadline,
     activeRefs: normalizeActiveRefs(draft.activeRefs),
     latest: normalizeLatest(draft.latest),
-    derived: {
-      routeFamily: draft.derived.routeFamily ?? null,
-      executionKind: draft.derived.executionKind ?? null,
-      paymentMode: draft.derived.paymentMode ?? null,
-      matchingMode: draft.derived.matchingMode ?? null,
-      candidatePool: draft.derived.candidatePool ?? [],
-      leadRole: draft.derived.leadRole ?? null,
-      roleSlots: draft.derived.roleSlots,
-      phases: draft.derived.phases,
-      noMicrotaskExplosion: draft.derived.noMicrotaskExplosion,
-      missingDetails: draft.derived.missingDetails,
-      readiness: draft.derived.readiness,
-      routeSummary: draft.derived.routeSummary ?? null,
-      executionProfile: draft.derived.executionProfile,
-      embodiedConstraintSet: draft.derived.embodiedConstraintSet,
-      verificationPlan: draft.derived.verificationPlan,
-      planCollapseRisk: draft.derived.planCollapseRisk,
-      clarificationNeeded: draft.derived.clarificationNeeded,
-    },
+    derived: toRequestDerivedProjection(draft.derived),
     parallelFulfillmentAllowed: false,
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
@@ -2544,59 +1603,14 @@ function createDefaultClarificationNeeded(): RequestClarificationNeeded {
   };
 }
 
-function getClarificationReason(detail: string): string {
-  switch (detail) {
-    case "execution_modes":
-      return "Boreal still needs the execution mode before routing this request safely.";
-    case "service_location":
-      return "Boreal still needs the service location before routing embodied work.";
-    case "time_windows":
-      return "Boreal still needs the time window before scheduling embodied work.";
-    case "access_requirements":
-      return "Boreal still needs the access requirements before assigning embodied work.";
-    case "verification_requirements":
-      return "Boreal still needs the proof requirements before this request can close safely.";
-    default:
-      return `Boreal still needs ${detail.replace(/_/g, " ")} before this request can move safely.`;
-  }
-}
-
-function buildPlanCollapseReasons({
-  needsEmbodiedHandling,
-  missingDetails,
-  requiresVerifiedEvidence,
-  requiresWitness,
-  resolvedExecutionModes,
-}: {
-  needsEmbodiedHandling: boolean;
-  missingDetails: string[];
-  requiresVerifiedEvidence: boolean;
-  requiresWitness: boolean;
-  resolvedExecutionModes: RequestExecutionMode[];
-}): string[] {
-  const reasons: string[] = [];
-
-  if (needsEmbodiedHandling) {
-    reasons.push("request includes embodied or access-constrained work");
-  }
-
-  if (resolvedExecutionModes.some(isEmbodiedExecutionMode)) {
-    reasons.push("digital-only planning would omit required execution modes");
-  }
-
-  if (requiresVerifiedEvidence) {
-    reasons.push("generated summaries alone are not sufficient proof");
-  }
-
-  if (requiresWitness) {
-    reasons.push("witnessed completion cannot be replaced by a generic report");
-  }
-
-  for (const detail of missingDetails) {
-    reasons.push(getClarificationReason(detail));
-  }
-
-  return Array.from(new Set(reasons));
+function createDefaultAssignmentProposal(): RequestAssignmentProposal {
+  return {
+    state: "unfilled",
+    summary:
+      "Planner structure exists, but no real lead or support lane is attached yet.",
+    lead: null,
+    support: [],
+  };
 }
 
 function artifactSatisfiesVerificationKind(
@@ -2667,52 +1681,4 @@ function hasArtifactCaptureIntegrity(metadata: RequestArtifactMetadata) {
 
 function normalizeVerificationClaim(value: string) {
   return value.trim().toLowerCase();
-}
-
-function deriveVerificationArtifactKinds({
-  needsEmbodiedHandling,
-  requiresWitness,
-  verificationRequirements,
-}: {
-  needsEmbodiedHandling: boolean;
-  requiresWitness: boolean;
-  verificationRequirements: string[];
-}): RequestArtifactKind[] {
-  const kinds = new Set<RequestArtifactKind>();
-  const normalizedClaims = verificationRequirements.map((claim) =>
-    claim.toLowerCase()
-  );
-
-  if (needsEmbodiedHandling || verificationRequirements.length > 0) {
-    kinds.add("evidence");
-  }
-
-  if (
-    normalizedClaims.some((claim) =>
-      /\breport\b|\bnote\b|\bsummary\b|\bverification\b|\bconfirmation\b/.test(
-        claim
-      )
-    )
-  ) {
-    kinds.add("delivery");
-  }
-
-  if (
-    requiresWitness ||
-    normalizedClaims.some((claim) =>
-      /\bsignature\b|\bsigned\b/.test(claim)
-    )
-  ) {
-    kinds.add("signature");
-  }
-
-  if (
-    normalizedClaims.some((claim) =>
-      /\breceipt\b|\bhandoff\b|\bdelivery\b/.test(claim)
-    )
-  ) {
-    kinds.add("receipt");
-  }
-
-  return Array.from(kinds);
 }

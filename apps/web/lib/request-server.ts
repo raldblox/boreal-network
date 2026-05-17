@@ -2212,6 +2212,18 @@ function buildSeedFulfillmentSteps({
         phaseSummary: phase.summary,
         roleKeys: phase.roleKeys,
         requiredEvidenceClaims: phase.requiredEvidenceClaims,
+        outcomeClaimKeys: request.derived.outcomeClaims.map(
+          (claim) => claim.claimKey
+        ),
+        assignmentProposalState: request.derived.assignmentProposal.state,
+        assignmentLeadStatus:
+          request.derived.assignmentProposal.lead?.status ?? "open",
+        ...(request.derived.assignmentProposal.lead?.supplyId
+          ? {
+              assignmentLeadSupplyId:
+                request.derived.assignmentProposal.lead.supplyId,
+            }
+          : {}),
         ...(matchedSupplyRecord
           ? {
               assignedSupplyId: matchedSupplyRecord.id,

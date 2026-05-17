@@ -57,6 +57,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
 9. Fulfillment planning
    For medium or high complexity work, derive a `RoutePlan` with `RoleSlot` and `PhasePlan` outputs.
    When embodied or verification-heavy work is detected, also derive an `ExecutionProfile`, `EmbodiedConstraintSet`, `VerificationPlan`, and `PlanCollapseRisk` summary as read-only planning outputs before execution begins.
+   The same read-only planner projection may also derive `outcomeClaims`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` so the request can show how close it is to executable truth without pretending matching or assignment already happened.
    Those planning outputs may project onto `Request.derived`, but they remain system-owned, rebuildable, and non-editable by the buyer.
 10. Team assembly
    Match optional collaborator slots only after a credible lead route exists, except bounded direct-tool routes.
@@ -246,6 +247,11 @@ These objects are derived and rebuildable, not durable roots:
 - `RequestDerived.roleSlots`
 - `RequestDerived.phases`
 - `RequestDerived.noMicrotaskExplosion`
+- `RequestDerived.outcomeClaims`
+- `RequestDerived.leadRanking`
+- `RequestDerived.roleMatches`
+- `RequestDerived.assignmentProposal`
+- `RequestDerived.replanReasons`
 
 ## Invariants
 
@@ -257,6 +263,7 @@ These objects are derived and rebuildable, not durable roots:
 - Draft-mode manual editing must stay limited to user-editable request-input fields; system-owned fields remain server-owned and rebuildable.
 - Planner-visible lead roles, role slots, phase plans, execution profiles, and proof plans must not be treated as buyer-authored brief fields.
 - `RequestDerived.leadRole` and `RequestDerived.roleSlots` remain canonical even when the UI explains them as capability or worker-type language.
+- `RequestDerived.outcomeClaims`, `RequestDerived.leadRanking`, `RequestDerived.roleMatches`, `RequestDerived.assignmentProposal`, and `RequestDerived.replanReasons` stay read-only planner state and must not be confused for durable buyer-authored or matcher-attached truth.
 - `brief.summary` may stay blank without blocking `ready_to_open` when title and body are already present.
 - `brief.tags` may exist as optional labels, but matching prep should prefer `seeking`.
 - `FulfillmentStep` is the default home for generated sub-work.

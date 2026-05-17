@@ -35,12 +35,20 @@ Planner outputs may include:
 - `RequestDraft`
 - `MatchSpec`
 - `RoutePlan`
+- `leadRole`
+- `roleSlots`
+- `phases`
 - `ExecutionProfile`
 - `EmbodiedConstraintSet`
 - `VerificationPlan`
 - `PlanCollapseRisk`
-- `RoleSlot[]`
-- `PhasePlan[]`
+- `ClarificationNeeded`
+- `noMicrotaskExplosion`
+- `outcomeClaims`
+- `leadRanking`
+- `roleMatches`
+- `assignmentProposal`
+- `replanReasons`
 
 ### Matcher tools
 
@@ -131,6 +139,33 @@ Every mutation call should return:
 - `emittedEvents[]`
 - `output`
 
+## Planner worldview and completion rules
+
+- Planner outputs should stay capability-first before they imply assignment-first execution.
+- `leadRole` and `roleSlots` are the canonical planner-owned field names, even when the UI explains them as lead worker type or capability lanes.
+- Capability, worker-type, or lane language is interpretive only. It must not replace the canonical planner field names.
+- Planner outputs should preserve one serious `Request` thread instead of exploding the ask into fake task trees.
+- Planner outputs must not imply that a real match is attached before matching has actually happened for this request flow.
+- Planner outputs must not imply that a worker is assigned before matching, selection, or fulfillment attachment actually happened.
+- Planner and policy outputs must model human-required, local-runtime-required, and verification-heavy work explicitly when those realities are present.
+- Provider execution, runtime access, or polished generated output is never enough to mark completion when proof, review, or human execution still matters.
+- `digital_product` or near-instant delivery routes should not be forced into the same fulfillment-heavy request UX when the truthful path is closer to direct delivery plus durable proof.
+- `open_request`, `draft_commitment`, `create_fulfillment`, and `resolve_request` must all preserve the rule that completion outranks generation.
+
+## Preselected supply behavior
+
+- Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.
+- Preselected supply may bias route selection and make the UX faster, but it does not mean a real match is already attached.
+- Preselected supply may narrow the likely lead lane, but it does not bypass clarification, proof, funding, approval, or safety gates.
+- Preselected supply may influence planner and matcher outputs, but those outputs must still stay read-only until a mutation tool writes the durable route or execution object.
+
+## Worker modality and trust context
+
+- Planner and policy should distinguish owner-private, public, and cross-actor request lanes when deciding safe execution behavior.
+- Local runtime availability is a worker modality and trust signal, not proof of completion by itself.
+- Public or external execution lanes must not inherit owner-private desktop assumptions.
+- Human-required, embodied, verification-heavy, and local-runtime-dependent work should remain first-class planning realities instead of being flattened into digital-only execution.
+
 ## Safety Rules
 
 - Planner tools must not create canonical objects.
@@ -149,8 +184,10 @@ Every mutation call should return:
 - The editable request-input projection must stay limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
 - Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.
 - Planner-derived fields such as lead role, role slots, phase plans, execution profile, verification plan, and collapse-risk outputs must remain read-only and system-owned.
+- Planner-derived fields such as `leadRole`, `roleSlots`, `phases`, `executionProfile`, `verificationPlan`, `planCollapseRisk`, `clarificationNeeded`, `noMicrotaskExplosion`, `outcomeClaims`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` must remain canonical, read-only, and system-owned.
 - Planner tools should detect when a request requires non-substitutable human or embodied execution and must not flatten those requirements into a digital-only plan.
 - Planner and policy outputs should explicitly model proof obligations for verification-heavy work before fulfillment or closure.
+- Planner, matcher, and policy outputs must not imply assignment or completion before the required route, proof, and closure conditions are actually satisfied.
 - `Fulfillment` and `FulfillmentStep` must not be created before the approved commercial boundary is satisfied.
 - The one exception is the owner-private desktop auto-resolution lane, where the owner's private request may authorize direct fulfillment without a separate commitment object.
 - `update_request_routing` may set or clear `routing.preferredSupplyId` only for the private request owner.

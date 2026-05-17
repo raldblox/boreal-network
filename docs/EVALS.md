@@ -14,6 +14,7 @@ A high-scoring match system that mutates too early is still failing.
 Verify that a raw ask becomes the expected brief, optional structured `seeking`, constraints, output kinds, budget shape, and missing-field list.
 If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.
 Verify that pinned-supply routing context stays outside the buyer-authored brief and does not appear as synthetic prompt text when the request started from a supply selection.
+Verify that selected supply context remains in `routing.preferredSupplyId` or equivalent routing fields instead of being rewritten into buyer-authored brief text.
 Verify that requests implying onsite work, pickup or dropoff, field inspection, witnessed handoff, measurement, or other non-substitutable human execution surface those requirements instead of rewriting them as digital-only work.
 Verify that planner-derived role, phase, execution, and proof outputs do not leak back into the buyer-authored editable brief surface.
 
@@ -24,7 +25,11 @@ Verify that the request lands in the correct route family and complexity band.
 ### 3. Planning evals
 
 Verify lead-role choice, role-slot choice, phase count, and whether Boreal avoided pointless microtask decomposition.
+Verify that `leadRole` and `roleSlots` remain the canonical planner output names even when the UX explains them through capability or worker-type language.
+Verify that planner outputs stay capability-first and do not imply assignment before matching, selection, or fulfillment attachment actually happened.
+Verify that additive planner projections such as `outcomeClaims`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` stay read-only and do not overclaim beyond real route attachment.
 Verify that non-substitutable embodied outcomes produce explicit execution modality and verification planning instead of generic generated subtasks.
+Verify that `digital_product` or near-instant delivery asks are not forced into a heavier fulfillment plan when the more truthful path is direct delivery plus durable proof.
 
 ### 4. Matching evals
 
@@ -35,6 +40,8 @@ Verify that the correct lead and collaborator supplies appear in the top-ranked 
 Verify the next action.
 Examples: clarify, show shortlist, draft commitment, or block and escalate.
 For embodied or verification-heavy asks, verify that policy prefers clarification or escalation when place, access, timing, or proof requirements are missing.
+Verify that preselected supply may narrow the route, but does not bypass clarification, proof, funding, approval, or safety gates.
+Verify that policy does not imply completion before proof and closure conditions are satisfied.
 
 ### 6. Mutation safety evals
 
@@ -49,6 +56,7 @@ Verify that tracked desktop execution uses selected `Request` and `Fulfillment` 
 Verify that richer artifact containers for file, media, PDF, audio, video, binary, and archive outputs keep stable metadata and lane bindings.
 Verify that request closure is blocked when required embodied steps or proof obligations are missing.
 Verify that retryable first-party worker failures move fulfillment to `blocked`, preserve worker recovery metadata, and resume the same lane instead of forcing a fresh request.
+Verify that public or cross-actor lanes do not inherit owner-private desktop assumptions when planner, matcher, or policy outputs are evaluated.
 
 ## Fixture Shape
 
@@ -95,12 +103,16 @@ Recommended subfields:
 - `planning.executionProfile`
 - `planning.verificationPlan`
 - `planning.planCollapseRisk`
+- `planning.clarificationNeeded`
 - `planning.leadRole`
 - `planning.phases[]`
 - `planning.roleSlots[]`
 - `planning.noMicrotaskExplosion`
+- `planning.outcomeClaims[]`
 - `matching.leadRanking[]`
 - `matching.roleMatches`
+- `matching.assignmentProposal`
+- `matching.replanReasons[]`
 - `policy.nextAction`
 - `policy.requiresOwnerApproval`
 - `policy.preferredSupplyId`
@@ -153,6 +165,7 @@ Metric intent:
 - `generativePlanCollapse` measures the complement of embodied-step recall on embodied scenarios.
 - `verificationCompleteness` measures whether required proof claims remain represented.
 - `falseCompletionRate` measures whether the system moves toward fulfillment or closure while embodied or verification obligations remain unresolved.
+- `requiredRoleSlotCoverage` and `optionalRoleSlotCoverage` should be interpreted against canonical `roleSlots`, even when the UI explains those slots as capability lanes.
 - `callSuccessRate` measures whether the provider returned any model output at all, separating infrastructure or access failure from planning quality.
 - `parseSuccessRate` measures whether the returned output was valid JSON for the frozen contract shape.
 - `policyActionAcceptability` measures whether the chosen next action stayed inside the safe action band for the scenario, even when it differed from the exact fixture-preferred action.

@@ -67,6 +67,13 @@ Rules:
 16. Leave unknown title, summary, seeking, budget, deadline, and route fields untouched. Missing fields should stay visible through \`derived.missingDetails\`.
 17. If the request implies onsite work, field inspection, pickup or dropoff, witnessed handoff, physical measurement, or location-specific verification, do not flatten it into digital-only work.
 18. Generated summaries, reports, or checklists are not substitutes for physical presence, witnessing, pickup, delivery, inspection, measurement, or proof capture.
+19. If \`routing.preferredSupplyId\` is present, treat it as pinned or selected supply context only. It does not mean a real match or assigned worker already exists.
+20. Pinned supply may narrow the route, but it does not bypass clarification, proof, funding, approval, or safety rules.
+21. Keep \`leadRole\`, \`roleSlots\`, \`phases\`, \`executionProfile\`, \`verificationPlan\`, \`planCollapseRisk\`, \`clarificationNeeded\`, \`noMicrotaskExplosion\`, \`outcomeClaims\`, \`leadRanking\`, \`roleMatches\`, \`assignmentProposal\`, and \`replanReasons\` system-owned and read-only. Capability or worker-type wording is interpretive only.
+22. Do not imply matching, assignment, or completion before the request actually has them.
+23. Do not treat runtime access or provider execution as equivalent to completion.
+24. If the request is closer to digital product or instant delivery, do not inflate it into a heavier fulfillment path than the real route requires.
+25. Public or cross-actor request lanes must not inherit owner-private desktop assumptions.
 
 Mode split:
 - Draft request mode is for forming the Request root object.
@@ -92,6 +99,23 @@ Derived fields:
 - missing details
 - readiness
 - route summary
+- leadRole
+- roleSlots
+- phases
+- executionProfile
+- verificationPlan
+- planCollapseRisk
+- clarificationNeeded
+- noMicrotaskExplosion
+- outcomeClaims
+- leadRanking
+- roleMatches
+- assignmentProposal
+- replanReasons
+
+Routing context:
+- \`routing.preferredSupplyId\` may represent pinned or selected supply context.
+- That routing context is system-owned and must not be rewritten into buyer-authored brief text.
 
 Use these tools for the active Request:
 - \`createRequestBrief\`
@@ -115,6 +139,8 @@ Embodied fulfillment discipline:
 - If location, access, time-window, safety, or proof facts are missing, prefer clarification or leave the request visibly incomplete instead of pretending the plan is ready.
 - Never treat a generated summary, checklist, or report as proof that a physical step happened.
 - Do not allow false closure when non-substitutable claims lack explicit steps or proof obligations.
+- Do not delete human-required steps because a generative or runtime lane exists.
+- Do not treat runtime access or provider execution as proof that the work is complete.
 `;
 
 export const regularPrompt = `You are a helpful assistant. Keep responses concise and direct.
@@ -135,6 +161,8 @@ Use it as a private drafting aid only:
 - Do not backfill \`brief.summary\` just to satisfy a shape.
 - If a fact is missing, leave it missing and let \`derived.missingDetails\` stay honest.
 - If the ask implies onsite work, field work, pickup or dropoff, witnessing, or proof-heavy execution, preserve that explicitly instead of rewriting it into digital-only work.
+- If pinned supply context exists, keep it in routing and do not rewrite it into buyer-authored brief text.
+- Do not imply assignment, matching, or completion before the request actually has them.
 `;
 
 export type RequestHints = {
@@ -192,6 +220,34 @@ ${JSON.stringify(
       2
 )}`
     : "No active request draft is open yet.";
+  const activeRequestContextPrompt = activeRequest
+    ? `Planner context:
+- laneTrustTier: ${
+        activeRequest.visibility === "private"
+          ? requestRoomRole === "open_responder"
+            ? "cross_actor"
+            : "owner_private"
+          : "public"
+      }
+- preferredSupplyId: ${
+        activeRequest.routing.preferredSupplyId?.trim() || "none"
+      } (selected or pinned supply context only; not assignment)
+- requiresHumanPresence: ${
+        activeRequest.derived.executionProfile.requiresHumanPresence ? "yes" : "no"
+      }
+- requiresLocalAccess: ${
+        activeRequest.derived.executionProfile.requiresLocalAccess ? "yes" : "no"
+      }
+- requiresVerifiedEvidence: ${
+        activeRequest.derived.executionProfile.requiresVerifiedEvidence
+          ? "yes"
+          : "no"
+      }
+- clarificationRequired: ${
+        activeRequest.derived.clarificationNeeded.required ? "yes" : "no"
+      }
+- assignmentProposalState: ${activeRequest.derived.assignmentProposal.state}`
+    : "";
   const recentActivityPrompt =
     activeRequest && recentActivity && recentActivity.length > 0
       ? `Recent request activity:
@@ -226,6 +282,7 @@ ${JSON.stringify(
 - Do not invent missing facts.
 - If the same turn explicitly states budget, deadline, seeking details, execution mode, service location, access needs, or proof requirements, include them in the same \`createRequestBrief\` call.
 - If the request implies embodied work and critical location, access, timing, or proof fields are missing, one clarification question is allowed before creating the draft. Do not create a fake digital-only request just to satisfy request mode.
+- If a supply is already pinned later in routing, that narrows the route but does not mean the request already has a real match or assigned lane.
 - Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.`
     : !activeRequest
       ? ""
@@ -240,7 +297,8 @@ ${JSON.stringify(
 - If the user explicitly stated budget or deadline in the same turn, do not leave those structured fields null.
 - If the user explicitly stated execution mode, service location, access, time-window, safety, or proof requirements, persist them in request constraints instead of leaving them only in prose.
 - If the draft implies embodied work, do not rewrite it into a digital-only request. Let missing location, access, timing, or verification fields remain visible through \`derived.missingDetails\`.
-- Use top-level seeking for matching-facing structure, not generated tags.`
+- Use top-level seeking for matching-facing structure, not generated tags.
+- If \`routing.preferredSupplyId\` exists, treat it as pinned route context only. Do not imply assignment or completion from it alone.`
       : `Open request room rules:
 - This Request is already open. Do not treat it like a draft request.
 - You may answer directly when the user asks about progress, recent activity, blockers, or what should happen next.
@@ -251,6 +309,8 @@ ${JSON.stringify(
             ? "The current user is responding to another user's public request. Do not rewrite owner-authored brief, budget, deadline, or visibility fields."
             : "The current user owns this open request room. Root request edits should be explicit and rare; prefer commitments, artifacts, and activity over rewriting the brief."
         }
+- Preferred or pinned supply context may narrow the route, but it does not mean the request is already matched or assigned.
+- Public or cross-actor request lanes must not inherit owner-private desktop assumptions.
 - For embodied or verification-heavy work, do not describe the request as done until the required evidence and owner review path are explicit.
 - If you reference recent activity, use only the provided request activity context.`;
   const optimizerPrompt =
@@ -260,10 +320,10 @@ ${JSON.stringify(
       : "";
 
   if (!supportsTools) {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${activeRequestContextPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
+  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${activeRequestContextPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
 };
 
 export const codePrompt = `

@@ -118,6 +118,9 @@ Verify:
 - one-turn request briefing should preserve explicitly stated budget or deadline in structured canonical fields instead of only embedding them in freeform brief text
 - request mode may ask clarifying questions before draft readiness when missing location, access, timing, or proof fields materially change embodied execution safety
 - structured matching intent should land in top-level `seeking` rather than relying on generated `brief.tags`
+- selected or pinned supply should stay in `routing.preferredSupplyId` and must not be rewritten into fake buyer-authored brief text
+- preselected supply may narrow the likely route but must not imply a real match or assigned worker before matching, selection, or fulfillment attachment actually happened
+- preselected supply may make the request feel faster, but must not bypass clarification, proof, funding, approval, or safety rules
 - open request rooms should not force every user message through draft brief mutation tools
 - public open request activity should be fetchable from a durable request activity endpoint
 - public open request detail should be fetchable by id through a direct request API surface
@@ -172,6 +175,11 @@ Verify:
 - lead-match flow happens before decomposition for complex work
 - planner outputs stay derived and rebuildable
 - planner-derived lead role, role slots, phase plans, execution profile, and proof-planning fields stay outside the buyer-authored brief surface
+- `leadRole` and `roleSlots` remain the canonical planner field names even when the UI explains them as capability or worker-type language
+- planner outputs stay capability-first before they imply assignment-first execution
+- additive planner outputs such as `outcomeClaims`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` stay read-only and rebuildable
+- planner outputs must not imply a real match is attached before matching actually happened for that request flow
+- planner outputs must preserve embodied, local-runtime, and verification-heavy work as first-class planning realities
 - plan-collapse detection should trigger clarification or block-and-escalate when required embodied work is being omitted
 - public request-pool projections should not expose the full planner-internal projection by default
 
@@ -221,6 +229,8 @@ Verify:
 - approval-gated writes are not triggered early
 - block-and-escalate behavior appears when canon or funding boundaries are violated
 - embodied or verification-heavy asks prefer clarification or escalation over false digital completion
+- policy does not imply completion before proof and closure conditions are satisfied
+- public or cross-actor lanes do not inherit owner-private desktop assumptions in planner, matcher, or policy behavior
 - deterministic benchmark outputs expose false-completion and forbidden-mutation rates clearly across competing planning styles
 
 ### Risk governance tests
