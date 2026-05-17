@@ -658,17 +658,14 @@ export type RequestPatch = {
   routing?: Partial<RequestRouting>;
   budget?: RequestBudget | null;
   deadline?: RequestDeadline | null;
-  derived?: Partial<
-    Pick<
-      RequestDerived,
-      | "routeFamily"
-      | "executionKind"
-      | "paymentMode"
-      | "matchingMode"
-      | "candidatePool"
-      | "routeSummary"
-    >
-  >;
+  derived?: {
+    routeFamily?: string | null;
+    executionKind?: string | null;
+    paymentMode?: string | null;
+    matchingMode?: string | null;
+    candidatePool?: string[];
+    routeSummary?: string | null;
+  };
   activeRefs?: Partial<RequestActiveRefs>;
   latest?: RequestLatest;
 };
@@ -926,6 +923,30 @@ export function applyRequestPatch(
     ...currentDraft.routing,
     ...patch.routing,
   });
+  const nextDerivedRouteFamily =
+    patch.derived?.routeFamily === undefined
+      ? currentDraft.derived.routeFamily
+      : normalizeText(patch.derived.routeFamily ?? undefined);
+  const nextDerivedExecutionKind =
+    patch.derived?.executionKind === undefined
+      ? currentDraft.derived.executionKind
+      : normalizeText(patch.derived.executionKind ?? undefined);
+  const nextDerivedPaymentMode =
+    patch.derived?.paymentMode === undefined
+      ? currentDraft.derived.paymentMode
+      : normalizeText(patch.derived.paymentMode ?? undefined);
+  const nextDerivedMatchingMode =
+    patch.derived?.matchingMode === undefined
+      ? currentDraft.derived.matchingMode
+      : normalizeText(patch.derived.matchingMode ?? undefined);
+  const nextDerivedRouteSummary =
+    patch.derived?.routeSummary === undefined
+      ? currentDraft.derived.routeSummary
+      : normalizeText(patch.derived.routeSummary ?? undefined);
+  const nextDerivedCandidatePool =
+    patch.derived?.candidatePool === undefined
+      ? (currentDraft.derived.candidatePool ?? [])
+      : normalizeStringArray(patch.derived.candidatePool);
 
   const nextDraft: BorealRequestDraft = {
     ...currentDraft,
@@ -946,11 +967,12 @@ export function applyRequestPatch(
     key: slugifyRequestKey(nextBrief.title || nextBrief.body, currentDraft.id),
     derived: {
       ...currentDraft.derived,
-      ...patch.derived,
-      candidatePool:
-        patch.derived?.candidatePool === undefined
-          ? (currentDraft.derived.candidatePool ?? [])
-          : patch.derived.candidatePool,
+      routeFamily: nextDerivedRouteFamily,
+      executionKind: nextDerivedExecutionKind,
+      paymentMode: nextDerivedPaymentMode,
+      matchingMode: nextDerivedMatchingMode,
+      candidatePool: nextDerivedCandidatePool,
+      routeSummary: nextDerivedRouteSummary,
     },
   };
 
@@ -990,10 +1012,15 @@ export function deriveRequestState(
 
   const plannerState = deriveRequestPlannerState(draft);
   missingDetails.push(...plannerState.clarificationNeeded.missingDetails);
+  const routeFamily = normalizeText(draft.derived.routeFamily);
+  const executionKind = normalizeText(draft.derived.executionKind);
+  const paymentMode = normalizeText(draft.derived.paymentMode);
+  const matchingMode = normalizeText(draft.derived.matchingMode);
+  const routeSummary = normalizeText(draft.derived.routeSummary);
+  const candidatePool = normalizeStringArray(draft.derived.candidatePool);
 
   const hasBriefCore = hasText(draft.brief.body);
-  const hasRouteReadiness =
-    hasText(draft.derived.routeFamily) && hasText(draft.derived.routeSummary);
+  const hasRouteReadiness = hasText(routeFamily) && hasText(routeSummary);
   const hasEmbodiedBlockingGaps = plannerState.clarificationNeeded.required;
 
   const readiness: RequestReadiness = hasBriefCore && !hasEmbodiedBlockingGaps
@@ -1029,7 +1056,11 @@ export function deriveRequestState(
 
   return {
     ...draft.derived,
-    candidatePool: draft.derived.candidatePool ?? [],
+    routeFamily,
+    executionKind,
+    paymentMode,
+    matchingMode,
+    candidatePool,
     leadRole: plannerState.leadRole,
     roleSlots: plannerState.roleSlots,
     phases: plannerState.phases,
@@ -1041,6 +1072,7 @@ export function deriveRequestState(
     replanReasons: plannerState.replanReasons,
     missingDetails: Array.from(new Set(missingDetails)),
     readiness,
+    routeSummary,
     executionProfile: plannerState.executionProfile,
     embodiedConstraintSet: plannerState.embodiedConstraintSet,
     verificationPlan: plannerState.verificationPlan,

@@ -157,6 +157,9 @@ Every mutation call should return:
 - Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.
 - Preselected supply may bias route selection and make the UX faster, but it does not mean a real match is already attached.
 - Preselected supply may narrow the likely lead lane, but it does not bypass clarification, proof, funding, approval, or safety gates.
+- If pinned supply does not yet truthfully fit the current route, planner outputs should keep it candidate-only instead of upgrading it to selected lead truth.
+- Owner-private draft routing may preseed route-facing derived fields from pinned supply only when that narrowed route is already truthful for the current request.
+- Clearing pinned supply should remove only that preferred-supply route bias and must not leave stale direct-route hints behind.
 - Preselected supply may influence planner and matcher outputs, but those outputs must still stay read-only until a mutation tool writes the durable route or execution object.
 - Once owner-private direct fulfillment is actually being created, a valid `routing.preferredSupplyId` may attach that execution lane if no explicit `supplyId` was supplied.
 

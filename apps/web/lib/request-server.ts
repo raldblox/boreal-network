@@ -224,6 +224,7 @@ export async function setRequestPreferredSupply({
     throw new Error("Forbidden");
   }
 
+  const requestDraft = toRequestDraft(existingRequest);
   const normalizedPreferredSupplyId = preferredSupplyId?.trim() || undefined;
 
   if (!normalizedPreferredSupplyId) {
@@ -232,11 +233,13 @@ export async function setRequestPreferredSupply({
       userId,
       patch: {
         routing: {},
+        ...buildDraftClearFromPreferredSupply({
+          requestDraft,
+        }),
       },
     });
   }
 
-  const requestDraft = toRequestDraft(existingRequest);
   if (requestDraft.visibility !== "private") {
     throw new Error("Preferred supply is only available for private requests");
   }
@@ -2628,11 +2631,12 @@ function buildDraftSeedFromPreferredSupply({
 }: {
   requestDraft: BorealRequestDraft;
   selectedSupply: NonNullable<Awaited<ReturnType<typeof getSupplyById>>>;
-}): Pick<RequestPatch, "brief" | "seeking"> {
+}): Pick<RequestPatch, "brief" | "seeking" | "derived"> {
   if (requestDraft.status !== "draft") {
     return {};
   }
 
+  const previousPreferredSupplyId = requestDraft.routing.preferredSupplyId?.trim();
   const nextSupplyKinds =
     (requestDraft.seeking.supplyKinds?.length ?? 0) === 0
       ? deriveRequestFacingSupplyKindsFromSupply(selectedSupply.capability.supplyKinds)
@@ -2650,6 +2654,11 @@ function buildDraftSeedFromPreferredSupply({
             kind !== "draft"
         )
       : [];
+  const derivedRouteSeed = buildPreferredSupplyDerivedRouteSeed({
+    requestDraft,
+    selectedSupply,
+    previousPreferredSupplyId,
+  });
 
   return {
     ...(nextOutputKinds.length > 0
@@ -2675,7 +2684,237 @@ function buildDraftSeedFromPreferredSupply({
           },
         }
       : {}),
+    ...(derivedRouteSeed
+      ? {
+          derived: derivedRouteSeed,
+        }
+      : {}),
   };
+}
+
+function buildDraftClearFromPreferredSupply({
+  requestDraft,
+}: {
+  requestDraft: BorealRequestDraft;
+}): Pick<RequestPatch, "derived"> {
+  if (requestDraft.status !== "draft") {
+    return {};
+  }
+
+  const previousPreferredSupplyId = requestDraft.routing.preferredSupplyId?.trim();
+  const currentCandidatePool = requestDraft.derived.candidatePool ?? [];
+  const nextCandidatePool = previousPreferredSupplyId
+    ? currentCandidatePool.filter((supplyId) => supplyId !== previousPreferredSupplyId)
+    : currentCandidatePool;
+  const shouldClearCandidatePool = nextCandidatePool.length !== currentCandidatePool.length;
+  const shouldClearPreferredRouteBias = isPreferredSupplyRouteBias(
+    requestDraft.derived.matchingMode
+  );
+
+  if (!shouldClearCandidatePool && !shouldClearPreferredRouteBias) {
+    return {};
+  }
+
+  return {
+    derived: {
+      ...(shouldClearCandidatePool ? { candidatePool: nextCandidatePool } : {}),
+      ...(shouldClearPreferredRouteBias
+        ? {
+            routeFamily: null,
+            executionKind: null,
+            paymentMode: null,
+            matchingMode: null,
+            routeSummary: null,
+          }
+        : {}),
+    },
+  };
+}
+
+function buildPreferredSupplyDerivedRouteSeed({
+  requestDraft,
+  selectedSupply,
+  previousPreferredSupplyId,
+}: {
+  requestDraft: BorealRequestDraft;
+  selectedSupply: NonNullable<Awaited<ReturnType<typeof getSupplyById>>>;
+  previousPreferredSupplyId?: string;
+}): RequestPatch["derived"] | undefined {
+  const currentCandidatePool = requestDraft.derived.candidatePool ?? [];
+  const nextCandidatePool = [
+    selectedSupply.id,
+    ...currentCandidatePool.filter(
+      (supplyId) =>
+        supplyId &&
+        supplyId !== selectedSupply.id &&
+        supplyId !== previousPreferredSupplyId
+    ),
+  ];
+  const shouldReplacePreferredRouteBias =
+    !hasText(requestDraft.derived.routeFamily) ||
+    !hasText(requestDraft.derived.routeSummary) ||
+    isPreferredSupplyRouteBias(requestDraft.derived.matchingMode);
+
+  if (
+    !shouldReplacePreferredRouteBias ||
+    !selectedSupplyCanLeadDraftRoute({
+      requestDraft,
+      selectedSupply,
+    })
+  ) {
+    return nextCandidatePool.length > 0
+      ? {
+          candidatePool: nextCandidatePool,
+        }
+      : undefined;
+  }
+
+  const supplyDraft = toSupplyDraft(selectedSupply);
+  const routeFamily = derivePreferredSupplyRouteFamily(supplyDraft);
+  const executionKind = derivePreferredSupplyExecutionKind(supplyDraft);
+  const paymentMode = derivePreferredSupplyPaymentMode(supplyDraft);
+  const matchingMode = derivePreferredSupplyMatchingMode(supplyDraft);
+  const routeSummary = buildPreferredSupplyRouteSummary({
+    routeFamily,
+    selectedSupply: supplyDraft,
+  });
+
+  return {
+    candidatePool: nextCandidatePool,
+    routeFamily,
+    executionKind,
+    paymentMode,
+    matchingMode,
+    routeSummary,
+  };
+}
+
+function selectedSupplyCanLeadDraftRoute({
+  requestDraft,
+  selectedSupply,
+}: {
+  requestDraft: BorealRequestDraft;
+  selectedSupply: NonNullable<Awaited<ReturnType<typeof getSupplyById>>>;
+}) {
+  const supplyDraft = toSupplyDraft(selectedSupply);
+  const actorKinds = new Set(supplyDraft.capability.fulfillmentActorKinds);
+  const executionChannels = new Set(supplyDraft.capability.executionChannels);
+  const executionProfile = requestDraft.derived.executionProfile;
+  const embodiedConstraints = requestDraft.derived.embodiedConstraintSet;
+
+  if (executionProfile.requiresHumanPresence && !actorKinds.has("human")) {
+    return false;
+  }
+
+  if (
+    executionProfile.requiresLocalAccess &&
+    !actorKinds.has("human") &&
+    !actorKinds.has("runtime") &&
+    !executionChannels.has("resolver_runtime")
+  ) {
+    return false;
+  }
+
+  if (
+    embodiedConstraints.requiresEmbodiedHandling &&
+    executionChannels.has("instant_download")
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function isPreferredSupplyRouteBias(matchingMode: string | undefined) {
+  return Boolean(matchingMode?.startsWith("preferred_supply_"));
+}
+
+function derivePreferredSupplyRouteFamily(supplyDraft: ReturnType<typeof toSupplyDraft>) {
+  return supplyDraft.source.kind === "manual" ? "direct_specialist" : "direct_tool";
+}
+
+function derivePreferredSupplyExecutionKind(
+  supplyDraft: ReturnType<typeof toSupplyDraft>
+) {
+  const executionChannels = new Set(supplyDraft.capability.executionChannels);
+  const actorKinds = new Set(supplyDraft.capability.fulfillmentActorKinds);
+
+  if (executionChannels.has("instant_download")) {
+    return "instant_delivery";
+  }
+
+  if (executionChannels.has("api") && executionChannels.has("request_room")) {
+    return "hybrid_tool_room";
+  }
+
+  if (executionChannels.has("api")) {
+    return "provider_api";
+  }
+
+  if (executionChannels.has("resolver_runtime")) {
+    return "local_runtime";
+  }
+
+  if (executionChannels.has("request_room")) {
+    if (actorKinds.has("human") && actorKinds.has("agent")) {
+      return "hybrid_human_agent";
+    }
+
+    if (actorKinds.has("human")) {
+      return "human_request_room";
+    }
+
+    if (actorKinds.has("agent")) {
+      return "agent_request_room";
+    }
+
+    if (actorKinds.has("runtime")) {
+      return "runtime_request_room";
+    }
+  }
+
+  return "specialist_request_room";
+}
+
+function derivePreferredSupplyPaymentMode(
+  supplyDraft: ReturnType<typeof toSupplyDraft>
+) {
+  switch (supplyDraft.pricing?.mode) {
+    case "fixed":
+      return "fixed_request";
+    case "range":
+      return "range_quote";
+    case "quote":
+      return "quote_request";
+    case "open":
+      return "open_pricing";
+    default:
+      return "quote_request";
+  }
+}
+
+function derivePreferredSupplyMatchingMode(
+  supplyDraft: ReturnType<typeof toSupplyDraft>
+) {
+  return supplyDraft.source.kind === "manual"
+    ? "preferred_supply_direct"
+    : "preferred_supply_tool";
+}
+
+function buildPreferredSupplyRouteSummary({
+  routeFamily,
+  selectedSupply,
+}: {
+  routeFamily: string;
+  selectedSupply: ReturnType<typeof toSupplyDraft>;
+}) {
+  const displayName = selectedSupply.profile.displayName.trim() || "selected supply";
+
+  if (routeFamily === "direct_tool") {
+    return `Pinned supply narrows this request into a direct tool or runtime lane with ${displayName}. Boreal should still keep any human, proof, and approval obligations explicit before execution attaches or completion is claimed.`;
+  }
+
+  return `Pinned supply narrows this request into a direct specialist lane with ${displayName}. Boreal should still keep clarification, proof, funding, and approval gates explicit before execution attaches.`;
 }
 
 function splitIntoSlices(content: string): string[] {
@@ -2705,6 +2944,10 @@ function deriveRequestFacingSupplyKindsFromSupply(supplyKinds: string[]) {
   );
 
   return specificKinds.length > 0 ? specificKinds : normalizedSupplyKinds;
+}
+
+function hasText(value: string | null | undefined): boolean {
+  return Boolean(value && value.trim().length > 0);
 }
 
 function extractBorealWorkerPrompt(input: Record<string, unknown>) {

@@ -222,6 +222,9 @@ Low-complexity requests should not be turned into microtask plans.
 - Preselected supply should stay in `routing.preferredSupplyId`, not be rewritten into fake buyer-authored brief text.
 - Preselected supply may bias route selection and make the request feel faster, but it does not mean a real match is already attached.
 - Preselected supply may narrow the likely lead lane, but it does not bypass clarification, proof, funding, approval, or safety rules.
+- If preselected supply does not yet truthfully fit the current route, planner outputs should keep it candidate-only instead of upgrading it to selected lead truth.
+- In owner-private draft flows, preselected supply may also preseed route-facing derived state such as candidate pool, route family, execution kind, payment mode, matching mode, and route summary when that route narrowing is already truthful.
+- Clearing preselected supply should also clear only that preferred-supply route bias instead of leaving stale direct-route hints behind.
 - Planner and matcher outputs may take preselected supply into account, but they remain read-only until a mutation tool writes durable route or execution truth.
 
 ## Worker modality and trust context

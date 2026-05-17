@@ -99,6 +99,7 @@ Verify:
 - the first send in `New request` mode creates one draft request instead of a second root object
 - selecting one supply from the supply hub may create one private draft request and pin `routing.preferredSupplyId` without auto-sending synthetic prompt text
 - request creation with `preferredSupplyId` should return the draft with seeded `seeking` and worker-facing output defaults when those fields were still empty
+- owner-private preferred-supply draft seeding may also add truthful route-facing derived defaults such as candidate pool, route family, execution kind, payment mode, matching mode, and route summary
 - supply-started draft requests should not auto-open the raw request-object panel before the owner writes the worker prompt
 - request-briefing assist or optimizer profiles in request mode must still create at most one draft request on first send
 - request draft extraction is deterministic for canonical fixtures
@@ -121,6 +122,8 @@ Verify:
 - selected or pinned supply should stay in `routing.preferredSupplyId` and must not be rewritten into fake buyer-authored brief text
 - preselected supply may narrow the likely route but must not imply a real match or assigned worker before matching, selection, or fulfillment attachment actually happened
 - preselected supply may make the request feel faster, but must not bypass clarification, proof, funding, approval, or safety rules
+- pinned supply that does not yet truthfully fit the current route should stay candidate-only in planner outputs instead of becoming selected lead truth
+- clearing pinned supply should remove only the preferred-supply route bias and must not leave stale direct-route hints in draft-derived state
 - owner-safe planner prompt context may include preferred-supply and bounded candidate-supply summaries after retrieval, while responder or public lanes must not inherit owner-private routing hints
 - open request rooms should not force every user message through draft brief mutation tools
 - public open request activity should be fetchable from a durable request activity endpoint

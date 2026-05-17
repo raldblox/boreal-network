@@ -94,11 +94,19 @@ export function deriveRequestPlannerState(
     brief: draft.brief,
     embodiedPlanning,
   });
+  const preferredSupplyRouteSelected = isPreferredSupplyRouteSelected({
+    candidatePool: draft.derived.candidatePool ?? [],
+    matchingMode: normalizeText(draft.derived.matchingMode),
+    preferredSupplyId: normalizeText(draft.routing.preferredSupplyId),
+    routeFamily: normalizeText(draft.derived.routeFamily),
+    routeSummary: normalizeText(draft.derived.routeSummary),
+  });
   const leadRanking = deriveLeadRanking({
     candidatePool: draft.derived.candidatePool ?? [],
     leadRole: structuralPlanning.leadRole,
     preferredSupplyId: normalizeText(draft.routing.preferredSupplyId),
     hasActiveFulfillment: hasText(draft.activeRefs.activeFulfillmentId),
+    preferredSupplyRouteSelected,
   });
   const roleMatches = deriveRoleMatches({
     candidatePool: draft.derived.candidatePool ?? [],
@@ -106,11 +114,13 @@ export function deriveRequestPlannerState(
     preferredSupplyId: normalizeText(draft.routing.preferredSupplyId),
     roleSlots: structuralPlanning.roleSlots,
     hasActiveFulfillment: hasText(draft.activeRefs.activeFulfillmentId),
+    preferredSupplyRouteSelected,
   });
   const assignmentProposal = deriveAssignmentProposal({
     preferredSupplyId: normalizeText(draft.routing.preferredSupplyId),
     roleMatches,
     hasActiveFulfillment: hasText(draft.activeRefs.activeFulfillmentId),
+    preferredSupplyRouteSelected,
   });
   const replanReasons = deriveReplanReasons({
     assignmentProposal,
@@ -609,16 +619,18 @@ function deriveLeadRanking({
   leadRole,
   preferredSupplyId,
   hasActiveFulfillment,
+  preferredSupplyRouteSelected,
 }: {
   candidatePool: string[];
   leadRole?: string;
   preferredSupplyId: string;
   hasActiveFulfillment: boolean;
+  preferredSupplyRouteSelected: boolean;
 }): RequestLeadRankingEntry[] {
   const resolvedRoleKey = leadRole ?? "specialist_lead";
   const entries: RequestLeadRankingEntry[] = [];
 
-  if (preferredSupplyId) {
+  if (preferredSupplyId && preferredSupplyRouteSelected) {
     entries.push({
       roleKey: resolvedRoleKey,
       supplyId: preferredSupplyId,
@@ -628,6 +640,16 @@ function deriveLeadRanking({
       summary: hasActiveFulfillment
         ? "Execution is already attached to the lead lane for this request."
         : "Pinned supply narrows the lead lane, but matching is still read-only until execution is attached.",
+    });
+  } else if (preferredSupplyId) {
+    entries.push({
+      roleKey: resolvedRoleKey,
+      supplyId: preferredSupplyId,
+      source: "preferred_supply",
+      status: "candidate",
+      confidence: "low",
+      summary:
+        "Pinned supply is present, but Boreal has not yet confirmed that it truthfully narrows the lead lane for this request.",
     });
   } else if (hasActiveFulfillment) {
     entries.push({
@@ -676,12 +698,14 @@ function deriveRoleMatches({
   preferredSupplyId,
   roleSlots,
   hasActiveFulfillment,
+  preferredSupplyRouteSelected,
 }: {
   candidatePool: string[];
   leadRole?: string;
   preferredSupplyId: string;
   roleSlots: RequestRoleSlot[];
   hasActiveFulfillment: boolean;
+  preferredSupplyRouteSelected: boolean;
 }): RequestRoleMatch[] {
   const remainingCandidates = candidatePool.filter(
     (supplyId) => supplyId && supplyId !== preferredSupplyId
@@ -689,7 +713,7 @@ function deriveRoleMatches({
 
   return roleSlots.map((slot) => {
     const isLead = slot.roleKey === leadRole;
-    if (isLead && preferredSupplyId) {
+    if (isLead && preferredSupplyId && preferredSupplyRouteSelected) {
       return {
         roleKey: slot.roleKey,
         required: slot.required,
@@ -700,6 +724,19 @@ function deriveRoleMatches({
         summary: hasActiveFulfillment
           ? "Execution lane is already attached for the lead lane."
           : "Pinned supply narrows the lead lane, but execution is not attached yet.",
+      } satisfies RequestRoleMatch;
+    }
+
+    if (isLead && preferredSupplyId) {
+      return {
+        roleKey: slot.roleKey,
+        required: slot.required,
+        supplyId: preferredSupplyId,
+        source: "preferred_supply",
+        status: "candidate",
+        confidence: "low",
+        summary:
+          "Pinned supply is present, but Boreal still needs a truthful route fit before treating it as the selected lead lane.",
       } satisfies RequestRoleMatch;
     }
 
@@ -746,10 +783,12 @@ function deriveAssignmentProposal({
   preferredSupplyId,
   roleMatches,
   hasActiveFulfillment,
+  preferredSupplyRouteSelected,
 }: {
   preferredSupplyId: string;
   roleMatches: RequestRoleMatch[];
   hasActiveFulfillment: boolean;
+  preferredSupplyRouteSelected: boolean;
 }): RequestAssignmentProposal {
   const lead = roleMatches[0] ?? null;
   const support = roleMatches.slice(1);
@@ -764,7 +803,7 @@ function deriveAssignmentProposal({
     };
   }
 
-  if (preferredSupplyId) {
+  if (preferredSupplyId && preferredSupplyRouteSelected) {
     return {
       state: "selected_supply",
       summary:
@@ -829,6 +868,35 @@ function deriveReplanReasons({
   }
 
   return Array.from(reasons);
+}
+
+function isPreferredSupplyRouteSelected({
+  candidatePool,
+  matchingMode,
+  preferredSupplyId,
+  routeFamily,
+  routeSummary,
+}: {
+  candidatePool: string[];
+  matchingMode?: string;
+  preferredSupplyId: string;
+  routeFamily?: string;
+  routeSummary?: string;
+}) {
+  if (!preferredSupplyId) {
+    return false;
+  }
+
+  if (matchingMode?.startsWith("preferred_supply_")) {
+    return true;
+  }
+
+  const firstCandidate = candidatePool.find((candidateId) => hasText(candidateId));
+  return (
+    firstCandidate === preferredSupplyId &&
+    hasText(routeSummary) &&
+    (routeFamily === "direct_specialist" || routeFamily === "direct_tool")
+  );
 }
 
 function createRoleSlot({

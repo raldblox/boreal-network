@@ -16,6 +16,9 @@ If a request-briefing assist or optimizer profile is active, verify that it impr
 Verify that pinned-supply routing context stays outside the buyer-authored brief and does not appear as synthetic prompt text when the request started from a supply selection.
 Verify that selected supply context remains in `routing.preferredSupplyId` or equivalent routing fields instead of being rewritten into buyer-authored brief text.
 Verify that owner-safe planner prompt context may include preferred-supply and bounded candidate-supply summaries when retrieval already happened, while responder or public lanes do not inherit owner-private routing hints.
+Verify that owner-private pinned supply may preseed route-facing derived fields only when that route narrowing is already truthful for the current request.
+Verify that clearing pinned supply removes only that preferred-supply route bias and does not leave stale direct-route hints behind.
+Verify that pinned supply stays candidate-only in planner outputs until the current request truth actually supports that narrowed lead lane.
 Verify that requests implying onsite work, pickup or dropoff, field inspection, witnessed handoff, measurement, or other non-substitutable human execution surface those requirements instead of rewriting them as digital-only work.
 Verify that planner-derived role, phase, execution, and proof outputs do not leak back into the buyer-authored editable brief surface.
 
