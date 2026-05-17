@@ -48,6 +48,7 @@ Verify that policy does not imply completion before proof and closure conditions
 
 Verify that Boreal does not create `Fulfillment`, `FulfillmentStep`, `Artifact`, or settlement-side writes before approval and required commercial gates.
 Verify that the one owner-private desktop auto-fulfillment lane can create `Fulfillment` directly without `Commitment`, while public or cross-actor lanes still require the commitment gate.
+Verify that owner-private direct fulfillment creation may inherit one valid `routing.preferredSupplyId` into attached execution truth when no explicit `supplyId` was passed.
 Verify that manual request-input edits cannot mutate system-owned request fields directly and must normalize through the same durable `Request`.
 Verify that public-safe request projections do not expose owner-only or planner-internal fields beyond the approved public subset.
 Verify that open request room behavior does not fall back to draft-only brief mutation when the safer durable write is a `Commitment`, `Artifact`, or `RequestEvent`.

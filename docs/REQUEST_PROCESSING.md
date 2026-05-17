@@ -118,6 +118,8 @@ That shortcut is only valid when:
 - the worker execution is first-party and owned by the same Boreal account
 - provider execution still consumes only the worker-specific prompt and provider-safe inputs, not the full durable request object
 
+When one owner-private direct fulfillment lane is created without an explicit `supplyId`, a valid `routing.preferredSupplyId` may attach that fulfillment lane and seed execution ownership truthfully.
+
 When that first-party worker run hits a retryable internal handoff failure, Boreal should:
 
 - keep the same `Fulfillment` lane

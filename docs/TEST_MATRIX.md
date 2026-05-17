@@ -132,6 +132,7 @@ Verify:
 - direct fulfillment create should require an accepted commitment
 - direct fulfillment create may omit commitment only for owned private requests driven by the same owner through the desktop auto-resolution lane
 - direct fulfillment create with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows
+- owner-private direct fulfillment create may attach one valid `routing.preferredSupplyId` when no explicit `supplyId` was passed
 - accepted responder lanes should be able to create fulfillment after owner acceptance
 - direct fulfillment updates should reject invalid state transitions
 - funding-required requests should not start fulfillment directly in `active`

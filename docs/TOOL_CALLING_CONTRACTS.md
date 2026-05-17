@@ -158,6 +158,7 @@ Every mutation call should return:
 - Preselected supply may bias route selection and make the UX faster, but it does not mean a real match is already attached.
 - Preselected supply may narrow the likely lead lane, but it does not bypass clarification, proof, funding, approval, or safety gates.
 - Preselected supply may influence planner and matcher outputs, but those outputs must still stay read-only until a mutation tool writes the durable route or execution object.
+- Once owner-private direct fulfillment is actually being created, a valid `routing.preferredSupplyId` may attach that execution lane if no explicit `supplyId` was supplied.
 
 ## Worker modality and trust context
 

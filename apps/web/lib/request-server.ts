@@ -1641,6 +1641,11 @@ export async function createFulfillmentForRequestById({
   const isOwner = requestDraft.ownerId === actorUserId;
   const useDirectOwnerPrivateLane =
     !commitmentId && isOwner && requestDraft.visibility === "private";
+  const preferredSupplyId = requestDraft.routing.preferredSupplyId?.trim();
+  const resolvedSupplyId = supplyId?.trim() || undefined;
+  const effectiveSupplyId =
+    resolvedSupplyId ??
+    (useDirectOwnerPrivateLane && preferredSupplyId ? preferredSupplyId : undefined);
   let matchedSupplyRecord: Awaited<ReturnType<typeof getSupplyById>> = null;
   const existingCommitment = commitmentId
     ? await getCommitmentById({ id: commitmentId })
@@ -1692,8 +1697,8 @@ export async function createFulfillmentForRequestById({
     }
   }
 
-  if (supplyId) {
-    matchedSupplyRecord = await getSupplyById({ id: supplyId });
+  if (effectiveSupplyId) {
+    matchedSupplyRecord = await getSupplyById({ id: effectiveSupplyId });
     if (!matchedSupplyRecord) {
       throw new Error("Supply not found");
     }
@@ -1747,7 +1752,7 @@ export async function createFulfillmentForRequestById({
   const actor = toHumanActorRef(actorUserId);
   const now = new Date();
   const fulfillmentId = generateUUID();
-  const nextLead = lead ?? actor;
+  const nextLead = lead ?? toSupplyActorRef(matchedSupplyRecord) ?? actor;
   const seededSteps = buildSeedFulfillmentSteps({
     initialStatus,
     lead: nextLead,
@@ -1759,7 +1764,7 @@ export async function createFulfillmentForRequestById({
     key: buildObjectKey("fulfillment", summary, fulfillmentId),
     requestId: requestDraft.id,
     commitmentId: existingCommitment?.id ?? null,
-    ...(supplyId ? { supplyId } : {}),
+    ...(effectiveSupplyId ? { supplyId: effectiveSupplyId } : {}),
     status: initialStatus,
     lead: nextLead,
     contributors,
