@@ -2,15 +2,13 @@
 
 import { memo } from "react";
 import type { RequestStatus } from "@/lib/request";
-import {
-  buildSurfaceTopNavLinks,
-  SidebarSurfaceTopNav,
-} from "./surface-top-nav";
+import { SidebarSurfaceTopNav } from "./surface-top-nav";
 import { VisibilitySelector, type VisibilityType } from "./visibility-selector";
 
 function PureChatHeader({
   chatId,
   requestId,
+  requestTitle,
   selectedVisibilityType,
   isReadonly,
   isRequestMode,
@@ -18,6 +16,7 @@ function PureChatHeader({
 }: {
   chatId: string;
   requestId?: string | null;
+  requestTitle?: string | null;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   isRequestMode: boolean;
@@ -25,7 +24,6 @@ function PureChatHeader({
 }) {
   return (
     <SidebarSurfaceTopNav
-      links={buildSurfaceTopNavLinks(isRequestMode ? "request" : undefined)}
       rightSlot={
         !isReadonly ? (
           <VisibilitySelector
@@ -35,14 +33,13 @@ function PureChatHeader({
           />
         ) : undefined
       }
-      subtitle={
-        requestStatus === "draft"
-          ? "Drafting request"
-          : requestStatus
-            ? "Live request"
-            : isRequestMode
-              ? "Start request"
-              : "Chat"
+      title={
+        requestTitle?.trim() ||
+        (requestStatus === "draft"
+          ? "Start request"
+          : isRequestMode
+            ? "Request"
+            : "Chat")
       }
     />
   );
@@ -52,6 +49,7 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
   return (
     prevProps.chatId === nextProps.chatId &&
     prevProps.requestId === nextProps.requestId &&
+    prevProps.requestTitle === nextProps.requestTitle &&
     prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
     prevProps.isReadonly === nextProps.isReadonly &&
     prevProps.isRequestMode === nextProps.isRequestMode &&

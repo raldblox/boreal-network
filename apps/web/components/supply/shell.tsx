@@ -5,6 +5,7 @@ import {
   PackageIcon,
   Trash2Icon,
 } from "lucide-react";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -33,10 +34,19 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { borealWhitelistPrompts } from "@/lib/marketing";
+import { SidebarSurfaceTopNav } from "@/components/chat/surface-top-nav";
 import {
-  buildSurfaceTopNavLinks,
-  SidebarSurfaceTopNav,
-} from "@/components/chat/surface-top-nav";
+  surfaceBodyClassName,
+  surfaceCardClassName,
+  surfaceCardTitleClassName,
+  surfaceColumnClassName,
+  surfaceHeroTitleClassName,
+  surfacePageClassName,
+  surfaceScrollClassName,
+  surfaceShellClassName,
+  surfaceSplitScrollClassName,
+  surfaceViewportClassName,
+} from "@/components/chat/surface-layout";
 import type {
   BorealSupplyDraft,
   SupplyActorKind,
@@ -292,25 +302,30 @@ export function SupplyShell() {
 
   if (isNewSupplyRoute) {
     return (
-      <div className="flex h-dvh w-full flex-row overflow-hidden bg-sidebar">
-        <div className="flex min-w-0 flex-1 flex-col bg-transparent">
+      <div className={surfacePageClassName}>
+        <div className={surfaceColumnClassName}>
           <SidebarSurfaceTopNav
-            links={buildSurfaceTopNavLinks(isWhitelistEntry ? "whitelist" : undefined)}
-            subtitle={isWhitelistEntry ? "Supply whitelist" : "New supply"}
+            rightSlot={
+              <Button asChild size="sm" variant="outline">
+                <Link href="/?mode=request">Post request</Link>
+              </Button>
+            }
+            title={isWhitelistEntry ? "Supply whitelist" : "New supply"}
           />
 
-          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/96 md:rounded-none md:rounded-tl-[28px] md:border md:border-border/60 md:shadow-[0_18px_55px_rgba(15,23,42,0.05)]">
-            <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-10 overflow-auto px-4 py-8 md:px-6 md:py-10">
+          <div className={surfaceShellClassName}>
+            <div className={surfaceViewportClassName}>
+              <div className={cn(surfaceScrollClassName, "gap-10")}>
           <div className="max-w-3xl space-y-4">
-            <div className="inline-flex rounded-full border border-border/60 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
+            <div className="inline-flex rounded-full border border-border/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
               {isWhitelistEntry ? "Supply whitelist" : "Capability draft"}
             </div>
-            <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-5xl">
+            <h1 className={surfaceHeroTitleClassName}>
               {isWhitelistEntry
                 ? "Show us the work AI alone will not finish."
                 : "Start with the capability, not the runtime."}
             </h1>
-            <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
+            <p className={surfaceBodyClassName}>
               {isWhitelistEntry
                 ? "We are curating early supply around real workflows where mixed human and AI execution matters. Choose the closest lane below, then describe the scenario, the human steps, and the proof of completion."
                 : "Describe what gets done first. Runtime binding stays optional, so one desktop or provider can back more than one capability."}
@@ -318,9 +333,9 @@ export function SupplyShell() {
           </div>
 
           {isWhitelistEntry ? (
-            <div className="rounded-[28px] border border-border/60 bg-background/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+            <div className={surfaceCardClassName}>
               <div className="max-w-3xl">
-                <div className="text-base font-medium tracking-tight text-foreground">
+                <div className={surfaceCardTitleClassName}>
                   What to tell us
                 </div>
                 <p className="mt-2 text-sm leading-7 text-muted-foreground">
@@ -330,7 +345,7 @@ export function SupplyShell() {
               <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {borealWhitelistPrompts.map((prompt) => (
                   <div
-                    className="rounded-2xl border border-border/60 bg-muted/[0.2] px-4 py-4 text-sm leading-7 text-foreground/86"
+                    className="rounded-2xl border border-border/60 px-4 py-4 text-sm leading-7 text-foreground/86"
                     key={prompt}
                   >
                     {prompt}
@@ -343,14 +358,14 @@ export function SupplyShell() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {presetCards.map((preset) => (
               <button
-                className="group rounded-[28px] border border-border/60 bg-background/88 p-6 text-left shadow-[0_20px_60px_rgba(15,23,42,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:border-foreground/15 hover:shadow-[0_24px_70px_rgba(15,23,42,0.08)]"
+                className="group rounded-[28px] border border-border/60 bg-transparent p-6 text-left transition-colors duration-200 hover:border-foreground/15"
                 disabled={isSubmitting}
                 key={preset.preset}
                 onClick={() => void createSupplyFromPreset(preset.preset)}
                 type="button"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-lg font-medium tracking-tight">
+                  <div className={surfaceCardTitleClassName}>
                     {preset.label}
                   </div>
                   <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/60 transition-colors group-hover:text-muted-foreground">
@@ -363,6 +378,7 @@ export function SupplyShell() {
               </button>
             ))}
           </div>
+              </div>
             </div>
           </div>
         </div>
@@ -397,31 +413,38 @@ export function SupplyShell() {
 
   return (
     <>
-      <div className="flex h-dvh flex-col overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.3)_100%)]">
-        <header className="border-b border-border/50 bg-background/92 backdrop-blur-xl">
-          <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 md:px-6">
-            <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-2xl border border-border/60 bg-background shadow-sm">
-                  <PackageIcon className="size-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-lg font-semibold tracking-tight">
-                    {draft.profile.displayName.trim() || "Untitled capability"}
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-                    <StatusBadge status={draft.status} />
-                    <span>{formatLabel(draft.visibility)}</span>
-                    <span className="text-border">|</span>
-                    <span>{formatLabel(draft.source.kind)}</span>
-                    <span className="text-border">|</span>
-                    <span>Updated {formatTimestamp(draft.updatedAt)}</span>
-                  </div>
-                </div>
+      <div className={surfacePageClassName}>
+        <div className={surfaceColumnClassName}>
+          <SidebarSurfaceTopNav
+            title={draft.profile.displayName.trim() || "Untitled supply"}
+          />
+
+          <div className={surfaceShellClassName}>
+            <div className={surfaceViewportClassName}>
+              <div className={surfaceSplitScrollClassName}>
+          <div className="min-w-0 space-y-8">
+            <div className="max-w-3xl space-y-3">
+              <div className="inline-flex rounded-full border border-border/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
+                Capability editor
               </div>
+              <h1 className={surfaceHeroTitleClassName}>
+                Shape one clear capability buyers can trust.
+              </h1>
+              <p className={surfaceBodyClassName}>
+                Describe what gets done, who fulfills it, how it runs, and
+                what the buyer should expect.
+              </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              <div className="mr-auto flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
+                <StatusBadge status={draft.status} />
+                <span>{formatLabel(draft.visibility)}</span>
+                <span className="text-border">|</span>
+                <span>{formatLabel(draft.source.kind)}</span>
+                <span className="text-border">|</span>
+                <span>Updated {formatTimestamp(draft.updatedAt)}</span>
+              </div>
               <Button
                 disabled={!canDelete || isSubmitting}
                 onClick={() => setShowDeleteDialog(true)}
@@ -464,26 +487,9 @@ export function SupplyShell() {
                 </Button>
               ) : null}
             </div>
-          </div>
-        </header>
 
-        <div className="mx-auto grid h-full w-full max-w-7xl flex-1 gap-8 overflow-auto px-4 py-8 md:px-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="min-w-0 space-y-8">
-            <div className="max-w-3xl space-y-3">
-              <div className="inline-flex rounded-full border border-border/60 bg-background/80 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
-                Capability editor
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-4xl">
-                Shape one clear capability buyers can trust.
-              </h1>
-              <p className="text-sm leading-7 text-muted-foreground md:text-[15px]">
-                Describe what gets done, who fulfills it, how it runs, and
-                what the buyer should expect.
-              </p>
-            </div>
-
-            <section className="overflow-hidden rounded-[32px] border border-border/60 bg-background/92 shadow-[0_24px_80px_rgba(15,23,42,0.06)]">
-              <div className="border-b border-border/60 bg-muted/[0.38] px-6 py-5 md:px-8">
+            <section className="overflow-hidden rounded-[32px] border border-border/60 bg-transparent">
+              <div className="border-b border-border/60 px-6 py-5 md:px-8">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0">
                     <div className="text-base font-medium tracking-tight">
@@ -1065,7 +1071,7 @@ export function SupplyShell() {
           </div>
 
           <aside className="space-y-5 xl:sticky xl:top-8 xl:self-start">
-            <section className="rounded-[28px] border border-border/60 bg-background/92 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+            <section className={surfaceCardClassName}>
               <div className="text-base font-medium tracking-tight">
                 Capability summary
               </div>
@@ -1107,18 +1113,21 @@ export function SupplyShell() {
               </div>
             </section>
 
-            <section className="rounded-[28px] border border-border/60 bg-background/92 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+            <section className={surfaceCardClassName}>
               <div className="text-base font-medium tracking-tight">
                 Object preview
               </div>
               <p className="mt-2 text-sm leading-7 text-muted-foreground">
                 Live machine-readable view of the current capability.
               </p>
-              <pre className="mt-4 max-h-[28rem] overflow-auto rounded-[22px] border border-border/60 bg-muted/[0.35] p-4 text-[11px] leading-6 text-foreground">
+              <pre className="mt-4 max-h-[28rem] overflow-auto rounded-[22px] border border-border/60 p-4 text-[11px] leading-6 text-foreground">
                 {renderSupplyJson(draft)}
               </pre>
             </section>
           </aside>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

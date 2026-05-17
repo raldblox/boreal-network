@@ -101,7 +101,7 @@
   --popover-foreground: oklch(0.94 0 0);
   --primary: oklch(0.94 0 0);
   --primary-foreground: oklch(0.195 0 0);
-  --secondary: oklch(0.26 0 0);
+  --secondary: oklch(0.22 0 0);
   --secondary-foreground: oklch(0.75 0 0);
   --muted: oklch(0.165 0 0);
   --muted-foreground: oklch(0.6 0 0);
@@ -381,7 +381,7 @@ textarea:focus-visible {
 }
 
 .cm-editor {
-  @apply bg-transparent! outline-hidden! text-[13px]! leading-[1.6]!;
+  @apply h-full! min-h-0! bg-transparent! outline-hidden! text-[13px]! leading-[1.6]!;
   font-family:
     "SF Mono", "Cascadia Code", "Fira Code", "JetBrains Mono", ui-monospace,
     monospace !important;
@@ -396,7 +396,7 @@ textarea:focus-visible {
 }
 
 .cm-scroller {
-  @apply overflow-auto!;
+  @apply h-full! min-h-0! overflow-auto!;
 }
 
 .ͼo.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,

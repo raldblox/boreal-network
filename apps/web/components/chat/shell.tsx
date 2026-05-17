@@ -37,6 +37,7 @@ import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
 import { RequestBriefingPanel } from "./request-briefing-panel";
 import { RequestTracker } from "./request-tracker";
+import { surfaceShellClassName } from "./surface-layout";
 import { toast } from "./toast";
 
 function getAutoOpenArtifactTarget(
@@ -177,26 +178,8 @@ export function ChatShell() {
       return;
     }
 
-    if (autoOpenedRequestRef.current === activeRequest.id) {
-      return;
-    }
-
-    if (suppressAutoOpenRequestRef.current === activeRequest.id) {
-      autoOpenedRequestRef.current = activeRequest.id;
-      suppressAutoOpenRequestRef.current = null;
-      return;
-    }
-
     autoOpenedRequestRef.current = activeRequest.id;
-
-    setArtifact((currentArtifact) => ({
-      ...currentArtifact,
-      documentId: activeRequest.documentId,
-      title: activeRequest.brief.title?.trim() || "Untitled request",
-      kind: "code",
-      isVisible: true,
-      status: "idle",
-    }));
+    suppressAutoOpenRequestRef.current = null;
   }, [activeRequest, isRequestMode, setArtifact]);
 
   useEffect(() => {
@@ -272,20 +255,11 @@ export function ChatShell() {
         return null;
       }
 
-      setArtifact((currentArtifact) => ({
-        ...currentArtifact,
-        documentId: createdRequest.documentId,
-        title: createdRequest.brief.title?.trim() || "Untitled request",
-        kind: "code",
-        isVisible: true,
-        status: "idle",
-      }));
-
       return createdRequest;
     } finally {
       setIsStartingRequest(false);
     }
-  }, [createRequest, setArtifact]);
+  }, [createRequest]);
 
   const ensureRequestForSend = async () => {
     if (!isRequestMode || activeRequest) {
@@ -373,7 +347,7 @@ export function ChatShell() {
 
   return (
     <>
-      <div className="flex h-dvh w-full flex-row overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.22)_100%)]">
+      <div className="flex h-dvh w-full flex-row overflow-hidden bg-sidebar">
         <div
           className={cn(
             "flex min-w-0 flex-col bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
@@ -386,10 +360,11 @@ export function ChatShell() {
             isRequestMode={isRequestMode}
             requestId={activeRequest?.id ?? null}
             requestStatus={activeRequest?.status ?? null}
+            requestTitle={activeRequest?.brief.title ?? null}
             selectedVisibilityType={visibilityType}
           />
 
-          <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background/96 md:rounded-none md:rounded-tl-[28px] md:border md:border-border/60 md:shadow-[0_18px_55px_rgba(15,23,42,0.05)]">
+          <div className={surfaceShellClassName}>
             <RequestBriefingPanel
               isLoading={isLoading}
               isReadonly={isReadonly}

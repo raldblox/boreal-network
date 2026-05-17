@@ -116,8 +116,15 @@ export const codeArtifact = new Artifact<"code", Metadata>({
   },
   content: ({ metadata, setMetadata, ...props }) => (
     <>
-      <div className="relative min-h-[200px]">
-        <CodeEditor {...props} />
+      <div
+        className={props.isInline
+          ? "relative h-full min-h-0 w-full"
+          : "relative flex min-h-0 flex-1 flex-col"}
+      >
+        <CodeEditor
+          {...props}
+          className="h-full"
+        />
       </div>
 
       {metadata?.outputs && (

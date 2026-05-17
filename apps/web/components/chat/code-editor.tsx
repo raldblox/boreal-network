@@ -6,6 +6,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import { basicSetup } from "codemirror";
 import { memo, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 import type { Suggestion } from "@/lib/db/schema";
 
 type EditorProps = {
@@ -16,6 +17,7 @@ type EditorProps = {
   isCurrentVersion: boolean;
   currentVersionIndex: number;
   suggestions: Suggestion[];
+  className?: string;
 };
 
 function PureCodeEditor({
@@ -23,6 +25,7 @@ function PureCodeEditor({
   onSaveContent,
   status,
   isReadonly,
+  className,
 }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorView | null>(null);
@@ -141,7 +144,7 @@ function PureCodeEditor({
 
   return (
     <div
-      className="not-prose relative w-full min-h-[300px] pb-[calc(50dvh)]"
+      className={cn("not-prose relative h-full min-h-0 w-full", className)}
       ref={containerRef}
     />
   );

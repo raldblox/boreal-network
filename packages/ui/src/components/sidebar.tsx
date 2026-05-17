@@ -304,10 +304,6 @@ function SidebarRail({ className, ...props }: React.ComponentProps<"button">) {
           isCollapsed ? "top-0" : "top-[calc(3.5rem-6px)] cursor-w-resize"
         )}
       />
-      <div className={cn(
-        "pointer-events-none absolute bottom-0 left-0 w-[calc(100vw-var(--sidebar-width-icon))] rounded-tl-[12px] border-t border-l border-sidebar-border opacity-0 transition-opacity duration-150 group-hover/rail:opacity-100",
-        isCollapsed ? "top-0" : "top-14"
-      )} />
     </div>
   )
 }

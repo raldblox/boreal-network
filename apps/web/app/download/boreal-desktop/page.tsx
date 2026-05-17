@@ -8,12 +8,27 @@ import {
   LaptopMinimal,
   Radio,
   ShieldCheck,
-  Sparkles,
   Workflow,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import {
+  surfaceBodyClassName,
+  surfaceCardClassName,
+  surfaceCardTitleClassName,
+  surfaceColumnClassName,
+  surfaceEyebrowClassName,
+  surfaceHeroTitleClassName,
+  surfacePageClassName,
+  surfaceScrollClassName,
+  surfaceSectionClassName,
+  surfaceSectionTitleClassName,
+  surfaceShellClassName,
+  surfaceViewportClassName,
+} from "@/components/chat/surface-layout";
+import {
+  SurfaceTopNav,
+} from "@/components/chat/surface-top-nav";
 import { DesktopRuntimeMonitor } from "./desktop-runtime-monitor";
 
 export const metadata: Metadata = {
@@ -57,57 +72,24 @@ const nextSteps = [
   "Add richer file transport only when delivery and proof handling need it.",
 ];
 
-function SectionHeading({
-  eyebrow,
-  title,
-  body,
-}: {
-  eyebrow: string;
-  title: string;
-  body: string;
-}) {
-  return (
-    <div className="space-y-3">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-        {eyebrow}
-      </p>
-      <div className="space-y-3">
-        <h2 className="max-w-3xl font-display text-3xl tracking-tight text-foreground sm:text-4xl">
-          {title}
-        </h2>
-        <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-          {body}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export default function BorealDesktopDownloadPage() {
   return (
-    <main className="min-h-dvh bg-background text-foreground">
-      <div className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col px-6 py-8 sm:px-10 lg:px-12">
-        <header className="flex items-center justify-between gap-4 border-b border-border/70 pb-5">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-card shadow-[var(--shadow-card)]">
-              <LaptopMinimal className="size-4 text-foreground" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Boreal Desktop</p>
-              <p className="text-xs text-muted-foreground">
-                Private execution for real requests
-              </p>
-            </div>
-          </div>
-          <Button asChild variant="ghost" className="rounded-full">
-            <Link href="/login">
-              Open web app
-              <ArrowRight className="size-4" />
-            </Link>
-          </Button>
-        </header>
+    <div className={surfacePageClassName}>
+      <div className={surfaceColumnClassName}>
+        <SurfaceTopNav
+          rightSlot={
+            <Button asChild size="sm">
+              <Link href="/?mode=request">Post request</Link>
+            </Button>
+          }
+          title="Boreal Desktop"
+        />
 
-        <section className="grid flex-1 gap-10 py-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-start lg:gap-14 lg:py-16">
+        <div className={surfaceShellClassName}>
+          <main className="min-h-0 flex-1 text-foreground">
+            <div className={surfaceViewportClassName}>
+              <div className={surfaceScrollClassName}>
+        <section className="border-b border-border/60 pb-12 md:pb-16">
           <div className="space-y-8">
             <div className="flex flex-wrap gap-3">
               <Badge
@@ -125,10 +107,11 @@ export default function BorealDesktopDownloadPage() {
             </div>
 
             <div className="space-y-5">
-              <h1 className="max-w-4xl font-display text-5xl tracking-tight text-foreground sm:text-6xl lg:text-7xl">
+              <p className={surfaceEyebrowClassName}>Desktop</p>
+              <h1 className={surfaceHeroTitleClassName}>
                 Boreal Desktop gives one request a real local workspace.
               </h1>
-              <p className="max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
+              <p className={surfaceBodyClassName}>
                 Do the work locally. Keep private context off the shared thread
                 by default. When something matters, send back the delivery,
                 proof, or status update.
@@ -139,7 +122,7 @@ export default function BorealDesktopDownloadPage() {
               <Button
                 asChild
                 size="lg"
-                className="h-12 rounded-full px-6 text-sm font-semibold"
+                className="h-12 rounded-full px-6 text-sm font-medium"
               >
                 <Link href="/login?callbackUrl=%2F%3Fmode%3Drequest">
                   Join desktop alpha
@@ -150,7 +133,7 @@ export default function BorealDesktopDownloadPage() {
                 disabled
                 variant="outline"
                 size="lg"
-                className="h-12 rounded-full px-6 text-sm font-semibold"
+                className="h-12 rounded-full px-6 text-sm font-medium"
               >
                 <Download className="size-4" />
                 Windows build soon
@@ -163,7 +146,7 @@ export default function BorealDesktopDownloadPage() {
             </p>
 
             <div className="grid gap-4 pt-2 sm:grid-cols-3">
-              <div className="rounded-3xl border border-border/70 bg-card px-5 py-4 shadow-[var(--shadow-card)]">
+              <div className={surfaceCardClassName}>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Live now
                 </p>
@@ -172,7 +155,7 @@ export default function BorealDesktopDownloadPage() {
                   browsing, and request-side delivery or status actions.
                 </p>
               </div>
-              <div className="rounded-3xl border border-border/70 bg-card px-5 py-4 shadow-[var(--shadow-card)]">
+              <div className={surfaceCardClassName}>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   What stays on Boreal
                 </p>
@@ -181,7 +164,7 @@ export default function BorealDesktopDownloadPage() {
                   delivery, and the proof.
                 </p>
               </div>
-              <div className="rounded-3xl border border-border/70 bg-card px-5 py-4 shadow-[var(--shadow-card)]">
+              <div className={surfaceCardClassName}>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   Next up
                 </p>
@@ -192,87 +175,57 @@ export default function BorealDesktopDownloadPage() {
               </div>
             </div>
           </div>
-
-          <aside className="space-y-5 rounded-[2rem] border border-border/70 bg-card p-6 shadow-[var(--shadow-float)] sm:p-7">
-            <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full border border-border/70 bg-background">
-                <Sparkles className="size-4 text-foreground" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  Why this shell exists
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Private execution without losing the thread
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {reasons.map((reason) => (
-                <div
-                  key={reason}
-                  className="rounded-2xl border border-border/70 bg-background px-4 py-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <BadgeCheck className="mt-0.5 size-4 shrink-0 text-foreground" />
-                    <p className="text-sm leading-7 text-foreground">{reason}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-2xl border border-border/70 bg-background px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Live now
-              </p>
-              <p className="mt-3 text-sm leading-7 text-foreground">
-                Boreal Desktop now exposes a guarded localhost bridge and a
-                real peer-backed runtime identity. The main web chat can
-                auto-link a running desktop runtime from the model picker,
-                while the browser monitor below stays available when you need
-                diagnostics.
-              </p>
-            </div>
-          </aside>
         </section>
 
-        <Separator className="bg-border/70" />
+        <section className={surfaceSectionClassName}>
+          <p className={surfaceEyebrowClassName}>Why this shell exists</p>
+          <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
+            Private execution without losing the request thread.
+          </h2>
 
-        <section className="py-12 lg:py-16">
-          <SectionHeading
-            eyebrow="Local monitor"
-            title="See desktop runtime state in the browser without making the browser do the work."
-            body="Use this page for optional localhost diagnostics when you want to inspect the bridge directly. Routine desktop linking should happen from the web chat model picker without a separate setup page."
-          />
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+            {reasons.map((reason) => (
+              <div className={surfaceCardClassName} key={reason}>
+                <div className="flex items-start gap-3">
+                  <BadgeCheck className="mt-0.5 size-4 shrink-0 text-foreground" />
+                  <p className="text-sm leading-7 text-foreground">{reason}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className={surfaceSectionClassName}>
+          <p className={surfaceEyebrowClassName}>Local monitor</p>
+          <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
+            See desktop runtime state in the browser without making the browser do the work.
+          </h2>
+          <p className={cn(surfaceBodyClassName, "mt-4")}>
+            Use this page for optional localhost diagnostics when you want to inspect the bridge directly. Routine desktop linking should happen from the web chat model picker without a separate setup page.
+          </p>
 
           <div className="mt-10">
             <DesktopRuntimeMonitor />
           </div>
         </section>
 
-        <Separator className="bg-border/70" />
+        <section className={surfaceSectionClassName}>
+          <p className={surfaceEyebrowClassName}>What it can do now</p>
+          <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
+            A desktop workspace for real requests, not just another model window.
+          </h2>
+          <p className={cn(surfaceBodyClassName, "mt-4")}>
+            Boreal Desktop is for owners and operators who need a private place to inspect, execute, and deliver work while keeping the shared request thread intact.
+          </p>
 
-        <section className="space-y-10 py-12 lg:py-16">
-          <SectionHeading
-            eyebrow="What it can do now"
-            title="A desktop workspace for real requests, not just another model window."
-            body="Boreal Desktop is for owners and operators who need a private place to inspect, execute, and deliver work while keeping the shared request thread intact."
-          />
-
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="mt-8 grid gap-5 lg:grid-cols-2">
             {liveCapabilities.map(({ icon: Icon, title, body }) => (
-              <div
-                key={title}
-                className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-[var(--shadow-card)] sm:p-7"
-              >
+              <div className={surfaceCardClassName} key={title}>
                 <div className="flex items-center gap-3">
-                  <div className="flex size-11 items-center justify-center rounded-full border border-border/70 bg-background">
+                  <div className="flex size-11 items-center justify-center rounded-full border border-border/70">
                     <Icon className="size-4 text-foreground" />
                   </div>
-                  <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                    {title}
-                  </h3>
+                  <h3 className={surfaceCardTitleClassName}>{title}</h3>
                 </div>
                 <p className="mt-5 text-sm leading-7 text-muted-foreground">
                   {body}
@@ -282,14 +235,16 @@ export default function BorealDesktopDownloadPage() {
           </div>
         </section>
 
-        <Separator className="bg-border/70" />
-
-        <section className="grid gap-8 py-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start lg:gap-14 lg:py-16">
-          <SectionHeading
-            eyebrow="How it works"
-            title="Work locally. Publish only what matters."
-            body="Desktop does the private execution. Boreal web keeps the shared request thread. That split keeps local work fast and auditable without turning every runtime detail into business history."
-          />
+        <section className={cn(surfaceSectionClassName, "grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start lg:gap-14")}>
+          <div>
+            <p className={surfaceEyebrowClassName}>How it works</p>
+            <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
+              Work locally. Publish only what matters.
+            </h2>
+            <p className={cn(surfaceBodyClassName, "mt-4")}>
+              Desktop does the private execution. Boreal web keeps the shared request thread. That split keeps local work fast and auditable without turning every runtime detail into business history.
+            </p>
+          </div>
 
           <div className="space-y-4">
             {[
@@ -309,17 +264,12 @@ export default function BorealDesktopDownloadPage() {
                 body: "Push delivery, proof, evidence, or status updates back into the Boreal request thread instead of syncing the full local transcript.",
               },
             ].map(({ step, title, body }) => (
-              <div
-                key={step}
-                className="rounded-[2rem] border border-border/70 bg-card p-6 shadow-[var(--shadow-card)] sm:p-7"
-              >
+              <div className={surfaceCardClassName} key={step}>
                 <div className="flex items-center gap-4">
                   <span className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
                     {step}
                   </span>
-                  <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                    {title}
-                  </h3>
+                  <h3 className={surfaceCardTitleClassName}>{title}</h3>
                 </div>
                 <p className="mt-4 text-sm leading-7 text-muted-foreground">
                   {body}
@@ -329,21 +279,20 @@ export default function BorealDesktopDownloadPage() {
           </div>
         </section>
 
-        <Separator className="bg-border/70" />
-
-        <section className="grid gap-8 py-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14 lg:py-16">
-          <SectionHeading
-            eyebrow="What lands next"
-            title="Peer transport is live. Next is making it more request-aware."
-            body="Boreal already has the desktop shell, localhost bridge, and the first Pear or Hyperswarm foundation. Next is tying request lanes more tightly into transport and delivery handling without letting transport replace the shared request thread."
-          />
+        <section className={cn(surfaceSectionClassName, "grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-14")}>
+          <div>
+            <p className={surfaceEyebrowClassName}>What lands next</p>
+            <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
+              Peer transport is live. Next is making it more request-aware.
+            </h2>
+            <p className={cn(surfaceBodyClassName, "mt-4")}>
+              Boreal already has the desktop shell, localhost bridge, and the first Pear or Hyperswarm foundation. Next is tying request lanes more tightly into transport and delivery handling without letting transport replace the shared request thread.
+            </p>
+          </div>
 
           <div className="space-y-4">
             {nextSteps.map((item) => (
-              <div
-                key={item}
-                className="rounded-[2rem] border border-border/70 bg-card px-5 py-5 shadow-[var(--shadow-card)]"
-              >
+              <div className={surfaceCardClassName} key={item}>
                 <div className="flex items-start gap-3">
                   <Radio className="mt-1 size-4 shrink-0 text-foreground" />
                   <p className="text-sm leading-7 text-foreground">{item}</p>
@@ -352,7 +301,26 @@ export default function BorealDesktopDownloadPage() {
             ))}
           </div>
         </section>
+
+        <footer className="mt-12 border-t border-border/60 py-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+            <div className={surfaceCardTitleClassName}>Boreal Desktop</div>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Link href="/">Home</Link>
+              <Link href="/?mode=request">Post request</Link>
+              <Link href="/supplies/new?entry=whitelist">Supply whitelist</Link>
+            </div>
+          </div>
+        </footer>
+              </div>
+            </div>
+          </main>
+        </div>
       </div>
-    </main>
+    </div>
   );
+}
+
+function cn(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
 }

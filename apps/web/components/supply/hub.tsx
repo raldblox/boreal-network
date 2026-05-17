@@ -3,8 +3,6 @@
 import {
   ArrowRightIcon,
   PackagePlusIcon,
-  PackageSearchIcon,
-  SparklesIcon,
   WandSparklesIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -16,9 +14,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   borealWorkerStarterCatalog,
-  getBorealWorkerKeyFromMetadata,
+  getBorealWorkerKeyFromSupply,
   type BorealWorkerStarterKey,
 } from "@/lib/boreal-workers/starter-catalog";
+import {
+  SidebarSurfaceTopNav,
+} from "@/components/chat/surface-top-nav";
+import {
+  surfaceBodyClassName,
+  surfaceCardClassName,
+  surfaceCardTitleClassName,
+  surfaceColumnClassName,
+  surfaceEyebrowClassName,
+  surfaceHeroTitleClassName,
+  surfacePageClassName,
+  surfaceScrollClassName,
+  surfaceSectionClassName,
+  surfaceShellClassName,
+  surfaceViewportClassName,
+} from "@/components/chat/surface-layout";
 import type { BorealSupplyDraft } from "@/lib/supply";
 import { cn, fetcher } from "@/lib/utils";
 
@@ -56,12 +70,18 @@ export function SupplyHub() {
     const next = new Map<string, BorealSupplyDraft>();
 
     for (const supply of supplies) {
-      const workerKey = getBorealWorkerKeyFromMetadata(supply.metadata);
-      if (!workerKey || next.has(workerKey)) {
+      const workerKey = getBorealWorkerKeyFromSupply(supply);
+      if (!workerKey) {
         continue;
       }
 
-      next.set(workerKey, supply);
+      const currentMatch = next.get(workerKey);
+      if (
+        !currentMatch ||
+        compareStarterSupplyPreference(supply, currentMatch) < 0
+      ) {
+        next.set(workerKey, supply);
+      }
     }
 
     return next;
@@ -107,22 +127,33 @@ export function SupplyHub() {
   };
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-[linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--muted)/0.28)_100%)]">
-      <header className="border-b border-border/50 bg-background/92 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 md:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-2xl border border-border/60 bg-background shadow-sm">
-              <PackageSearchIcon className="size-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-medium">Supplies</div>
-              <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
-                Owned lanes
-              </div>
-            </div>
-          </div>
+    <div className={surfacePageClassName}>
+      <div className={surfaceColumnClassName}>
+        <SidebarSurfaceTopNav
+          rightSlot={
+            <Button onClick={() => router.push("/supplies/new")} size="sm" variant="outline">
+              New supply
+            </Button>
+          }
+          title="Supply studio"
+        />
 
-          <div className="flex items-center gap-2">
+        <div className={surfaceShellClassName}>
+          <div className={surfaceViewportClassName}>
+            <div className={cn(surfaceScrollClassName, "gap-10")}>
+        <section className="max-w-3xl space-y-4">
+          <div className="inline-flex rounded-full border border-border/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
+            Supply studio
+          </div>
+          <h1 className={surfaceHeroTitleClassName}>
+            Enable supply lanes, then route work through them.
+          </h1>
+          <p className={surfaceBodyClassName}>
+            Keep Boreal-owned supplies visible in one place, turn starter lanes
+            on without leaving the web app, and start a private request with
+            the right supply already pinned.
+          </p>
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             <Button
               className="rounded-full"
               onClick={() => router.push("/supplies/new")}
@@ -140,28 +171,13 @@ export function SupplyHub() {
               Back to chat
             </Button>
           </div>
-        </div>
-      </header>
-
-      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 overflow-auto px-4 py-8 md:px-6 md:py-10">
-        <section className="max-w-3xl space-y-4">
-          <div className="inline-flex rounded-full border border-border/60 bg-background/82 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
-            Supply studio
-          </div>
-          <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-balance [font-family:var(--font-display)] md:text-5xl">
-            Enable supply lanes, then route work through them.
-          </h1>
-          <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-[15px]">
-            Keep Boreal-owned supplies visible in one place, turn starter lanes
-            on without leaving the web app, and start a private request with
-            the right supply already pinned.
-          </p>
         </section>
 
-        <section className="space-y-4">
+        <section className={cn(surfaceSectionClassName, "space-y-4")}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              <p className={surfaceEyebrowClassName}>Active lanes</p>
+              <h2 className="mt-2 text-xl font-medium tracking-tight text-foreground">
                 Ready to route
               </h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
@@ -169,7 +185,7 @@ export function SupplyHub() {
               </p>
             </div>
             <Badge
-              className="rounded-full border-border/60 bg-background/82 text-foreground/75"
+              className="rounded-full border-border/60 bg-transparent text-foreground/75"
               variant="secondary"
             >
               {publishedSupplies.length} active
@@ -180,7 +196,7 @@ export function SupplyHub() {
             <div className="grid gap-4 md:grid-cols-2">
               {[0, 1].map((item) => (
                 <div
-                  className="rounded-[28px] border border-border/60 bg-background/88 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]"
+                  className={surfaceCardClassName}
                   key={item}
                 >
                   <div className="h-4 w-36 animate-pulse rounded-full bg-muted" />
@@ -193,21 +209,16 @@ export function SupplyHub() {
               Boreal could not load your supplies right now.
             </div>
           ) : publishedSupplies.length === 0 ? (
-            <div className="rounded-[28px] border border-border/60 bg-background/88 px-5 py-5 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-9 items-center justify-center rounded-2xl border border-border/60 bg-muted/40 text-muted-foreground">
-                  <SparklesIcon className="size-4" />
+            <div className={surfaceCardClassName}>
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-foreground">
+                  No active supplies yet
                 </div>
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-foreground">
-                    No active supplies yet
-                  </div>
-                  <p className="text-sm leading-7 text-muted-foreground">
-                    Turn on one starter supply below, or create your own draft,
-                    publish it as private or unlisted, then use it as the
-                    pinned worker for the next request.
-                  </p>
-                </div>
+                <p className="text-sm leading-7 text-muted-foreground">
+                  Turn on one starter supply below, or create your own draft,
+                  publish it as private or unlisted, then use it as the
+                  pinned worker for the next request.
+                </p>
               </div>
             </div>
           ) : (
@@ -219,10 +230,11 @@ export function SupplyHub() {
           )}
         </section>
 
-        <section className="space-y-4">
+        <section className={cn(surfaceSectionClassName, "space-y-4")}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-foreground">
+              <p className={surfaceEyebrowClassName}>Starter lanes</p>
+              <h2 className="mt-2 text-xl font-medium tracking-tight text-foreground">
                 Starter supplies
               </h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
@@ -230,7 +242,7 @@ export function SupplyHub() {
               </p>
             </div>
             <Badge
-              className="rounded-full border-border/60 bg-background/82 text-foreground/75"
+              className="rounded-full border-border/60 bg-transparent text-foreground/75"
               variant="secondary"
             >
               {borealWorkerStarterCatalog.length} starter
@@ -254,6 +266,9 @@ export function SupplyHub() {
             })}
           </div>
         </section>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -262,17 +277,17 @@ export function SupplyHub() {
 function PublishedSupplyCard({ supply }: { supply: BorealSupplyDraft }) {
   const router = useRouter();
   const supplyTitle = supply.profile.displayName.trim() || "Untitled supply";
-  const workerKey = getBorealWorkerKeyFromMetadata(supply.metadata);
+  const workerKey = getBorealWorkerKeyFromSupply(supply);
   const starter = workerKey
     ? borealWorkerStarterCatalog.find((entry) => entry.workerKey === workerKey) ??
       null
     : null;
 
   return (
-    <div className="rounded-[28px] border border-border/60 bg-background/88 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+    <div className={surfaceCardClassName}>
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2">
-          <div className="text-lg font-semibold tracking-tight text-foreground">
+          <div className={surfaceCardTitleClassName}>
             {supplyTitle}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/72">
@@ -315,7 +330,7 @@ function PublishedSupplyCard({ supply }: { supply: BorealSupplyDraft }) {
           }
           size="sm"
         >
-          Use in request
+          Start request
           <ArrowRightIcon className="size-4" />
         </Button>
         <Button
@@ -347,10 +362,10 @@ function StarterSupplyCard({
   const canTryNow = existingSupply?.status === "published";
 
   return (
-    <div className="rounded-[28px] border border-border/60 bg-background/88 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+    <div className={surfaceCardClassName}>
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2">
-          <div className="text-lg font-semibold tracking-tight text-foreground">
+          <div className={surfaceCardTitleClassName}>
             {starter.title}
           </div>
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/72">
@@ -398,7 +413,7 @@ function StarterSupplyCard({
               onClick={() => router.push(buildUseSupplyUrl(existingSupply.id))}
               size="sm"
             >
-              Use now
+              Start request
               <ArrowRightIcon className="size-4" />
             </Button>
             <Button
@@ -427,7 +442,7 @@ function StarterSupplyCard({
             size="sm"
           >
             <WandSparklesIcon className="size-4" />
-            {isBusy ? "Enabling..." : "Enable and try"}
+            {isBusy ? "Enabling..." : "Enable and start"}
           </Button>
         )}
       </div>
@@ -471,4 +486,23 @@ function buildUseSupplyUrl(supplyId: string) {
   });
 
   return `/?${params.toString()}`;
+}
+
+function compareStarterSupplyPreference(
+  left: BorealSupplyDraft,
+  right: BorealSupplyDraft
+) {
+  const statusPriority = {
+    published: 3,
+    paused: 2,
+    draft: 1,
+    retired: 0,
+  } satisfies Record<BorealSupplyDraft["status"], number>;
+
+  const statusDelta = statusPriority[right.status] - statusPriority[left.status];
+  if (statusDelta !== 0) {
+    return statusDelta;
+  }
+
+  return right.updatedAt.localeCompare(left.updatedAt);
 }
