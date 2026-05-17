@@ -27,13 +27,13 @@ import {
 import type {
   BorealRequestDraft,
   RequestActivityEntry,
+  RequestBudget,
   RequestFulfillment,
   RequestStatus,
 } from "@/lib/request";
 import type { BorealSupplyDraft } from "@/lib/supply";
 import type { ChatMessage } from "@/lib/types";
 import { cn, fetcher } from "@/lib/utils";
-import { ChevronDownIcon } from "./icons";
 import { RequestActivityMessage } from "./request-activity-timeline";
 import { toast } from "./toast";
 
@@ -64,20 +64,7 @@ type TrackerStageVisualState =
   | "failed"
   | "cancelled";
 
-function getDefaultExpandedStages(
-  status: RequestStatus,
-  hasFulfillmentFailure = false
-): TrackerStageId[] {
-  const currentStageId = getCurrentTrackerStageId(status, {
-    hasFulfillmentFailure,
-  });
-
-  if (status === "delivered") {
-    return ["work_delivery", currentStageId];
-  }
-
-  return [currentStageId];
-}
+type WorkroomViewId = "monitor" | "activity" | "truth" | "delivery";
 
 export function RequestTracker({
   request,
@@ -105,23 +92,24 @@ export function RequestTracker({
     request.visibility === "private" &&
     request.status !== "draft" &&
     typeof onUpdatePreferredSupply === "function";
-  const [expandedStages, setExpandedStages] = useState<TrackerStageId[]>(() =>
-    getDefaultExpandedStages(request.status, hasFulfillmentFailure)
-  );
+  const [selectedView, setSelectedView] = useState<WorkroomViewId>("monitor");
+  const [focusedStageId, setFocusedStageId] =
+    useState<TrackerStageId>(currentStageId);
   const [followMode, setFollowMode] = useState<"auto" | "manual">("auto");
   const [isSavingPreferredSupply, setIsSavingPreferredSupply] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
-  const stageRefs = useRef<Record<TrackerStageId, HTMLDivElement | null>>({
-    brief_terms: null,
-    route_workers: null,
-    work_delivery: null,
-    review_resolve: null,
-  });
-  const autoScrollLockRef = useRef(false);
-  const autoScrollUnlockTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
+  const scrollToTop = useCallback((behavior: ScrollBehavior = "smooth") => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    container.scrollTo({
+      top: 0,
+      behavior,
+    });
+  }, []);
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     const container = containerRef.current;
     if (!container) {
@@ -134,104 +122,35 @@ export function RequestTracker({
     });
   }, []);
 
-  const isStageMostlyVisible = useCallback((stageId: TrackerStageId) => {
-    const container = containerRef.current;
-    const stageNode = stageRefs.current[stageId];
-
-    if (!container || !stageNode) {
-      return false;
-    }
-
-    const viewportTop = container.scrollTop;
-    const viewportBottom = viewportTop + container.clientHeight;
-    const stageTop = stageNode.offsetTop;
-    const stageBottom = stageTop + stageNode.offsetHeight;
-    const visibleTop = Math.max(stageTop, viewportTop);
-    const visibleBottom = Math.min(stageBottom, viewportBottom);
-    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
-    const visibilityThreshold = Math.min(stageNode.offsetHeight * 0.45, 240);
-
-    return visibleHeight >= visibilityThreshold;
-  }, []);
-
-  const scrollStageIntoView = useCallback(
-    (stageId: TrackerStageId, behavior: ScrollBehavior = "smooth") => {
-      const container = containerRef.current;
-      const stageNode = stageRefs.current[stageId];
-
-      if (!container || !stageNode) {
-        return;
-      }
-
-      autoScrollLockRef.current = true;
-
-      if (autoScrollUnlockTimeoutRef.current) {
-        clearTimeout(autoScrollUnlockTimeoutRef.current);
-      }
-
-      container.scrollTo({
-        top: Math.max(0, stageNode.offsetTop - 12),
-        behavior,
-      });
-
-      autoScrollUnlockTimeoutRef.current = setTimeout(() => {
-        autoScrollLockRef.current = false;
-      }, behavior === "smooth" ? 420 : 120);
-    },
-    []
-  );
-
   const resumeLiveStage = useCallback(() => {
+    setSelectedView("monitor");
     setFollowMode("auto");
-    setExpandedStages((current) =>
-      current.includes(currentStageId) ? current : [currentStageId, ...current]
-    );
+    setFocusedStageId(currentStageId);
     requestAnimationFrame(() => {
-      scrollStageIntoView(currentStageId, "smooth");
+      scrollToTop("smooth");
     });
-  }, [currentStageId, scrollStageIntoView]);
+  }, [currentStageId, scrollToTop]);
 
-  const handleStageToggle = useCallback(
+  const handleStageFocus = useCallback(
     (stageId: TrackerStageId) => {
-      if (stageId !== currentStageId) {
-        setFollowMode("manual");
-      }
-
-      setExpandedStages((current) => {
-        const isExpanded = current.includes(stageId);
-
-        if (stageId === currentStageId) {
-          return isExpanded ? current : [...current, stageId];
-        }
-
-        return isExpanded
-          ? current.filter((id) => id !== stageId)
-          : [...current, stageId];
+      setSelectedView("monitor");
+      setFocusedStageId(stageId);
+      setFollowMode(stageId === currentStageId ? "auto" : "manual");
+      requestAnimationFrame(() => {
+        scrollToTop("smooth");
       });
-
-      if (stageId === currentStageId) {
-        requestAnimationFrame(() => {
-          scrollStageIntoView(stageId, "smooth");
-        });
-      }
     },
-    [currentStageId, scrollStageIntoView]
+    [currentStageId, scrollToTop]
   );
 
   useEffect(() => {
-    setExpandedStages(getDefaultExpandedStages(request.status, hasFulfillmentFailure));
+    setSelectedView("monitor");
     setFollowMode("auto");
-
+    setFocusedStageId(currentStageId);
     requestAnimationFrame(() => {
-      scrollStageIntoView(currentStageId, "instant");
+      scrollToTop("instant");
     });
-  }, [
-    currentStageId,
-    hasFulfillmentFailure,
-    request.id,
-    request.status,
-    scrollStageIntoView,
-  ]);
+  }, [currentStageId, hasFulfillmentFailure, request.id, request.status, scrollToTop]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -259,63 +178,12 @@ export function RequestTracker({
   }, []);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const handleTrackerScroll = () => {
-      if (autoScrollLockRef.current) {
-        return;
-      }
-
-      if (followMode === "auto" && !isStageMostlyVisible(currentStageId)) {
-        setFollowMode("manual");
-      }
-    };
-
-    container.addEventListener("scroll", handleTrackerScroll, { passive: true });
-    return () => {
-      container.removeEventListener("scroll", handleTrackerScroll);
-    };
-  }, [containerRef, currentStageId, followMode, isStageMostlyVisible]);
-
-  useEffect(() => {
     if (followMode !== "auto") {
       return;
     }
 
-    if (
-      expandedStages.includes(currentStageId) &&
-      isStageMostlyVisible(currentStageId)
-    ) {
-      return;
-    }
-
-    setExpandedStages((current) =>
-      current.includes(currentStageId) ? current : [currentStageId, ...current]
-    );
-
-    requestAnimationFrame(() => {
-      scrollStageIntoView(currentStageId, "smooth");
-    });
-  }, [
-    activities.length,
-    currentStageId,
-    expandedStages,
-    followMode,
-    isStageMostlyVisible,
-    request.updatedAt,
-    scrollStageIntoView,
-  ]);
-
-  useEffect(() => {
-    return () => {
-      if (autoScrollUnlockTimeoutRef.current) {
-        clearTimeout(autoScrollUnlockTimeoutRef.current);
-      }
-    };
-  }, []);
+    setFocusedStageId(currentStageId);
+  }, [activities.length, currentStageId, followMode, request.updatedAt]);
 
   const activeFulfillmentKey = request.activeRefs.activeFulfillmentId
     ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/fulfillments/${request.activeRefs.activeFulfillmentId}`
@@ -418,7 +286,9 @@ export function RequestTracker({
   const showsLegacyFailedWorkerNote =
     request.status === "failed" && hasFulfillmentFailure;
   const showReturnToLiveStage =
-    followMode === "manual" || !expandedStages.includes(currentStageId);
+    followMode === "manual" ||
+    selectedView !== "monitor" ||
+    focusedStageId !== currentStageId;
 
   const routeSummaryValue = getRouteSummaryValue({
     activeFulfillment,
@@ -430,7 +300,7 @@ export function RequestTracker({
     ? describeWorkerSummary(activeFulfillment)
     : desktopRuntimeState.requestLaneReady
       ? "Desktop runtime is connected and ready for a private execution lane."
-      : "No worker is attached to this request yet.";
+      : "No live lead or support lane is attached to this request yet.";
   const handlePreferredSupplyChange = async (value: string) => {
     if (!onUpdatePreferredSupply) {
       return;
@@ -518,12 +388,6 @@ export function RequestTracker({
             ]}
           />
 
-          <StageActivityStack
-            activities={stageActivities.brief_terms}
-            emptyLabel="Briefing and opening activity will appear here."
-            isReadonly={isReadonly}
-            ownerUserId={request.ownerId}
-          />
         </div>
       ),
     },
@@ -545,7 +409,7 @@ export function RequestTracker({
                 detail: request.seeking.teamMode
                   ? `Team mode: ${formatLabel(request.seeking.teamMode)}`
                   : "No team mode set.",
-                label: "Workers",
+                label: "Lead and support lanes",
                 value: workerSummaryValue,
               },
               {
@@ -582,12 +446,6 @@ export function RequestTracker({
             request={request}
           />
 
-          <StageActivityStack
-            activities={stageActivities.route_workers}
-            emptyLabel="Routing, proposal, and assignment activity will appear here."
-            isReadonly={isReadonly}
-            ownerUserId={request.ownerId}
-          />
         </div>
       ),
     },
@@ -604,7 +462,7 @@ export function RequestTracker({
                 detail: activeFulfillment?.steps.length
                   ? `${activeFulfillment.steps.length} fulfillment steps recorded.`
                   : "No fulfillment steps recorded yet.",
-                label: "Work status",
+                label: "Execution realities",
                 value:
                   activeFulfillment?.summary?.trim() ||
                   request.latest.summary?.trim() ||
@@ -614,10 +472,10 @@ export function RequestTracker({
                 detail: activeFulfillment?.updatedAt
                   ? `Updated ${formatTimestamp(activeFulfillment.updatedAt)}`
                   : "No active fulfillment update yet.",
-                label: "Artifacts",
+                label: "Proof required",
                 value: request.activeRefs.latestArtifactId
                   ? "A delivery or supporting artifact is attached to this request."
-                  : "No artifact has been attached yet.",
+                  : "No proof-bearing delivery has been attached yet.",
               },
             ]}
           />
@@ -667,12 +525,6 @@ export function RequestTracker({
             fulfillment={activeFulfillment}
           />
 
-          <StageActivityStack
-            activities={stageActivities.work_delivery}
-            emptyLabel="Work progress and delivery artifacts will appear here."
-            isReadonly={isReadonly}
-            ownerUserId={request.ownerId}
-          />
         </div>
       ),
     },
@@ -725,181 +577,413 @@ export function RequestTracker({
             ) : null}
           </div>
 
-          <StageActivityStack
-            activities={stageActivities.review_resolve}
-            emptyLabel="Review and closure events will appear here."
-            isReadonly={isReadonly}
-            ownerUserId={request.ownerId}
-          />
         </div>
       ),
     },
   ];
 
+  const activeStage =
+    stages.find((stage) => stage.id === focusedStageId) ?? stages[0];
+  const activeStageActivities = stageActivities[focusedStageId];
+  const latestFocusedActivity =
+    activeStageActivities.length > 0
+      ? activeStageActivities[activeStageActivities.length - 1]
+      : null;
+
   return (
     <div className="relative flex-1 bg-background">
       <div className="absolute inset-0 overflow-y-auto" ref={containerRef}>
-        <div className="mx-auto flex min-h-full max-w-5xl flex-col gap-3 px-3 py-3.5 md:px-4 md:py-4">
-          <div className="space-y-3">
-            {stages.map((stage, index) => {
-              const isExpanded = expandedStages.includes(stage.id);
-              const stageState = getTrackerStageVisualState({
-                activeFulfillmentStatus: activeFulfillment?.status ?? null,
-                currentStageId,
-                hasFulfillmentFailure,
-                requestStatus: request.status,
-                stageId: stage.id,
-              });
-              const previousStageState =
-                index > 0
-                  ? getTrackerStageVisualState({
-                      activeFulfillmentStatus: activeFulfillment?.status ?? null,
-                      currentStageId,
-                      hasFulfillmentFailure,
-                      requestStatus: request.status,
-                      stageId: stages[index - 1]!.id,
-                    })
-                  : null;
-              const isDone = stageState === "done";
-              const isCurrent =
-                stageState === "current" ||
-                stageState === "blocked" ||
-                stageState === "failed" ||
-                stageState === "cancelled";
-              const showConnector = index < stages.length - 1;
-              const showIncomingConnector = index > 0;
-              const incomingConnectorClassName = showIncomingConnector
-                ? getTrackerStageConnectorClassName(previousStageState)
-                : "bg-border/60";
-              const outgoingConnectorClassName = getTrackerStageConnectorClassName(
-                stageState
-              );
-              const trackerAccentClassName = getTrackerStageAccentClassName(
-                stageState
-              );
-              const trackerRingClassName = getTrackerStageRingClassName(
-                stageState
-              );
+        <div className="mx-auto flex min-h-full max-w-6xl flex-col gap-3 px-3 py-3.5 md:px-4 md:py-4">
+          <section className="rounded-[22px] border border-border/60 bg-background/94 p-3 shadow-[0_12px_34px_rgba(15,23,42,0.03)] md:p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              {stages.map((stage) => {
+                const stageState = getTrackerStageVisualState({
+                  activeFulfillmentStatus: activeFulfillment?.status ?? null,
+                  currentStageId,
+                  hasFulfillmentFailure,
+                  requestStatus: request.status,
+                  stageId: stage.id,
+                });
+                const isFocused = stage.id === focusedStageId;
+                const trackerAccentClassName = getTrackerStageAccentClassName(
+                  stageState
+                );
+                const trackerRingClassName = getTrackerStageRingClassName(
+                  stageState
+                );
+                const isDone = stageState === "done";
+                const isTerminal =
+                  stageState === "blocked" ||
+                  stageState === "failed" ||
+                  stageState === "cancelled";
 
-              return (
-                <div
-                  className="relative"
-                  key={stage.id}
-                  ref={(node) => {
-                    stageRefs.current[stage.id] = node;
-                  }}
-                >
-                  {showIncomingConnector ? (
-                    <div
-                      className={cn(
-                        "pointer-events-none absolute left-[2.125rem] top-[-0.75rem] z-10 bottom-[calc(100%-1rem)] w-px md:left-[2.375rem]",
-                        incomingConnectorClassName
-                      )}
-                    />
-                  ) : null}
-                  {showConnector ? (
-                    <div
-                      className={cn(
-                        "pointer-events-none absolute left-[2.125rem] top-[3rem] z-10 bottom-[-0.75rem] w-px md:left-[2.375rem]",
-                        outgoingConnectorClassName
-                      )}
-                    />
-                  ) : null}
-                  <section
+                return (
+                  <button
                     className={cn(
-                      "relative z-0 overflow-hidden rounded-[24px] border bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.035)] transition-colors",
-                      isCurrent
-                        ? "border-foreground/12"
-                        : "border-border/60"
+                      "group flex min-w-[12rem] flex-1 items-start gap-3 rounded-[18px] border px-3 py-3 text-left transition-colors",
+                      isFocused
+                        ? "border-foreground/14 bg-muted/[0.18]"
+                        : "border-border/60 bg-background/88 hover:bg-muted/[0.12]"
                     )}
+                    key={stage.id}
+                    onClick={() => handleStageFocus(stage.id)}
+                    type="button"
                   >
-                    <button
-                      aria-controls={`request-stage-${stage.id}`}
-                      aria-expanded={isExpanded}
-                      className="relative w-full px-4 py-4 text-left md:px-5"
-                      onClick={() => handleStageToggle(stage.id)}
-                      type="button"
-                    >
-                      <div
-                        className={cn(
-                          "pointer-events-none absolute left-4 top-4 z-20 flex size-8 items-center justify-center text-sm font-semibold md:left-5",
-                          trackerAccentClassName
-                        )}
-                      >
-                        <span className="absolute inset-0 rounded-full bg-background" />
-                        <span
-                          className={cn(
-                            "absolute inset-0 rounded-full border shadow-sm",
-                            trackerRingClassName
-                          )}
-                        />
-                        <span className="relative z-10 flex items-center justify-center">
-                          {isDone ? (
-                            <CheckIcon className="size-4" />
-                          ) : stageState === "failed" ? (
-                            <XIcon className="size-4" />
-                          ) : stageState === "blocked" ? (
-                            <AlertTriangleIcon className="size-4" />
-                          ) : (
-                            <span
-                              className={cn(
-                                "size-2 rounded-full",
-                                isCurrent ? "bg-current" : "bg-muted-foreground/35"
-                              )}
-                            />
-                          )}
-                        </span>
-                      </div>
-
-                      <div className="flex items-start justify-between gap-3 pl-[3.625rem] md:pl-[3.875rem]">
-                        <div className="min-w-0 flex-1">
-                          <h2 className="text-base font-medium tracking-tight">
-                            {stage.title}
-                          </h2>
-                          <p className="mt-1.5 max-w-3xl text-[13px] leading-6 text-muted-foreground">
-                            {stage.summary}
-                          </p>
-                        </div>
-
-                        <div
-                          className={cn(
-                            "shrink-0 pt-1 text-muted-foreground transition-transform duration-200",
-                            isExpanded ? "rotate-180" : "rotate-0"
-                          )}
-                        >
-                          <ChevronDownIcon size={16} />
-                        </div>
-                      </div>
-                    </button>
-
-                    <div
+                    <span
                       className={cn(
-                        "grid transition-[grid-template-rows,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                        isExpanded
-                          ? "grid-rows-[1fr] opacity-100"
-                          : "grid-rows-[0fr] opacity-0"
+                        "relative mt-0.5 flex size-7 shrink-0 items-center justify-center text-sm font-semibold",
+                        trackerAccentClassName
                       )}
-                      id={`request-stage-${stage.id}`}
                     >
-                      <div className="min-h-0 overflow-hidden">
-                        <div
-                          className={cn(
-                            "border-t border-border/60 px-4 pl-[3.75rem] transition-[padding,transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:px-5 md:pl-[4.25rem]",
-                            isExpanded
-                              ? "translate-y-0 py-4 opacity-100"
-                              : "-translate-y-1 py-0 opacity-0"
-                          )}
-                        >
-                          {stage.body}
-                        </div>
+                      <span className="absolute inset-0 rounded-full bg-background" />
+                      <span
+                        className={cn(
+                          "absolute inset-0 rounded-full border shadow-sm",
+                          trackerRingClassName
+                        )}
+                      />
+                      <span className="relative z-10 flex items-center justify-center">
+                        {isDone ? (
+                          <CheckIcon className="size-3.5" />
+                        ) : stageState === "failed" ? (
+                          <XIcon className="size-3.5" />
+                        ) : stageState === "blocked" ? (
+                          <AlertTriangleIcon className="size-3.5" />
+                        ) : (
+                          <span
+                            className={cn(
+                              "size-2 rounded-full",
+                              isFocused || isTerminal
+                                ? "bg-current"
+                                : "bg-muted-foreground/35"
+                            )}
+                          />
+                        )}
+                      </span>
+                    </span>
+                    <span className="min-w-0 flex-1 space-y-1">
+                      <span className="block text-[13px] font-medium tracking-tight text-foreground">
+                        {stage.title}
+                      </span>
+                      <span className="block text-[12px] leading-5 text-muted-foreground">
+                        {stage.summary}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {([
+                  { id: "monitor", label: "Monitor" },
+                  { id: "activity", label: "Activity" },
+                  { id: "truth", label: "Request truth" },
+                  { id: "delivery", label: "Delivery" },
+                ] as const).map((view) => (
+                  <button
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
+                      selectedView === view.id
+                        ? "border-foreground/14 bg-foreground text-background"
+                        : "border-border/60 bg-background/88 text-muted-foreground hover:text-foreground"
+                    )}
+                    key={view.id}
+                    onClick={() => {
+                      setSelectedView(view.id);
+                      if (view.id !== "monitor") {
+                        setFollowMode("manual");
+                      }
+                      requestAnimationFrame(() => {
+                        scrollToTop("smooth");
+                      });
+                    }}
+                    type="button"
+                  >
+                    {view.label}
+                  </button>
+                ))}
+              </div>
+
+              {selectedView === "monitor" ? (
+                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                        {activeStage.title}
+                      </div>
+                      <div className="rounded-full border border-border/60 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                        {formatLabel(request.status)}
                       </div>
                     </div>
-                  </section>
-                </div>
-              );
-            })}
-          </div>
+                    <div className="mt-2 text-[15px] leading-6 text-foreground">
+                      {activeStage.summary}
+                    </div>
+                  </div>
 
+                  <div className="space-y-4 px-4 py-4 md:px-5">
+                    {activeStage.body}
+
+                    <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                          Latest movement
+                        </div>
+                        <button
+                          className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+                          onClick={() => {
+                            setSelectedView("activity");
+                            setFollowMode("manual");
+                            requestAnimationFrame(() => {
+                              scrollToTop("smooth");
+                            });
+                          }}
+                          type="button"
+                        >
+                          Open activity
+                        </button>
+                      </div>
+                      {latestFocusedActivity ? (
+                        <div className="mt-3">
+                          <RequestActivityMessage
+                            activity={latestFocusedActivity}
+                            index={0}
+                            isReadonly={isReadonly}
+                            ownerUserId={request.ownerId}
+                            totalCount={1}
+                            variant="stage"
+                          />
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-[13px] leading-5.5 text-muted-foreground">
+                          No movement has landed in this stage yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
+              {selectedView === "activity" ? (
+                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                      Activity
+                    </div>
+                    <div className="mt-2 text-[15px] leading-6 text-foreground">
+                      Request truth updates land here in chronological order.
+                    </div>
+                  </div>
+                  <div className="px-4 py-4 md:px-5">
+                    <StageActivityStack
+                      activities={activities}
+                      emptyLabel="No request activity yet."
+                      isReadonly={isReadonly}
+                      ownerUserId={request.ownerId}
+                    />
+                  </div>
+                </section>
+              ) : null}
+
+              {selectedView === "truth" ? (
+                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                      Request truth
+                    </div>
+                    <div className="mt-2 text-[15px] leading-6 text-foreground">
+                      Durable request facts, route context, and readiness live here.
+                    </div>
+                  </div>
+                  <div className="space-y-4 px-4 py-4 md:px-5">
+                    <CompactFactPanel
+                      facts={[
+                        {
+                          detail:
+                            request.brief.summary?.trim() ||
+                            "No summary captured yet.",
+                          label: "Ask",
+                          value: request.brief.body?.trim() || "No request brief yet.",
+                        },
+                        {
+                          detail:
+                            request.deadline?.targetAt?.trim() ||
+                            "No deadline captured.",
+                          label: "Budget and timing",
+                          value:
+                            formatBudgetSummary(request.budget) ||
+                            "Budget unset.",
+                        },
+                        {
+                          detail: formatConstraintDetail(request.brief.constraints),
+                          label: "Terms and constraints",
+                          value:
+                            request.derived.readiness.summary ||
+                            "No readiness summary yet.",
+                        },
+                        {
+                          detail: request.seeking.notes?.trim() || "No route note yet.",
+                          label: "Route context",
+                          value: routeSummaryValue,
+                        },
+                        {
+                          detail: formatSeekingSummary(request),
+                          label: "Pinned or requested lanes",
+                          value:
+                            describePinnedSupplyNote({
+                              preferredSupply,
+                              request,
+                            }) || "No preferred supply pinned yet.",
+                        },
+                      ]}
+                    />
+                  </div>
+                </section>
+              ) : null}
+
+              {selectedView === "delivery" ? (
+                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                      Delivery
+                    </div>
+                    <div className="mt-2 text-[15px] leading-6 text-foreground">
+                      Execution steps, proof, and owner closeout stay here.
+                    </div>
+                  </div>
+                  <div className="space-y-4 px-4 py-4 md:px-5">
+                    <CompactFactPanel
+                      facts={[
+                        {
+                          detail: activeFulfillment?.updatedAt
+                            ? `Updated ${formatTimestamp(activeFulfillment.updatedAt)}`
+                            : "No active fulfillment update yet.",
+                          label: "Live lane",
+                          value:
+                            activeFulfillment?.summary?.trim() ||
+                            "No active fulfillment lane is attached yet.",
+                        },
+                        {
+                          detail: formatVerificationDetail(request),
+                          label: "Proof required",
+                          value: formatVerificationValue(request),
+                        },
+                        {
+                          detail:
+                            request.activeRefs.latestArtifactId
+                              ? "A proof or delivery artifact is already attached."
+                              : "No proof-bearing artifact is attached yet.",
+                          label: "Delivery package",
+                          value:
+                            request.activeRefs.latestArtifactId
+                              ? "Artifact linked to this request."
+                              : "Still waiting on a delivery package.",
+                        },
+                      ]}
+                    />
+
+                    <FulfillmentStepsPanel
+                      activeRouteSupply={activeRouteSupply}
+                      fulfillment={activeFulfillment}
+                    />
+
+                    {canResolveDelivery ? (
+                      <div className="rounded-[18px] border border-emerald-300/40 bg-emerald-50/70 px-3.5 py-3 dark:bg-emerald-500/10">
+                        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
+                          Owner action
+                        </div>
+                        <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
+                          Confirm delivery to resolve the request and lock the accepted result.
+                        </div>
+                        <Button
+                          className="mt-3"
+                          disabled={isResolvingDeliveredRequest}
+                          onClick={() => void onResolveDeliveredRequest?.()}
+                          size="sm"
+                        >
+                          {isResolvingDeliveredRequest ? (
+                            <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+                          ) : null}
+                          {isResolvingDeliveredRequest
+                            ? "Resolving..."
+                            : "Confirm delivery"}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
+              ) : null}
+            </div>
+
+            <aside className="space-y-3">
+              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                  Live focus
+                </div>
+                <div className="mt-2 text-[15px] leading-6 text-foreground">
+                  {stages.find((stage) => stage.id === currentStageId)?.title ??
+                    "Ask and terms"}
+                </div>
+                <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+                  {stages.find((stage) => stage.id === currentStageId)?.summary ??
+                    "This request is still collecting core terms."}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                  Lead lane
+                </div>
+                <div className="mt-2 text-[14px] leading-6 text-foreground">
+                  {workerSummaryValue}
+                </div>
+                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                  {routeSummaryValue}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                  Execution realities
+                </div>
+                <div className="mt-2 text-[14px] leading-6 text-foreground">
+                  {formatExecutionValue(request)}
+                </div>
+                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                  {formatExecutionDetail(request)}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                  Proof required
+                </div>
+                <div className="mt-2 text-[14px] leading-6 text-foreground">
+                  {formatVerificationValue(request)}
+                </div>
+                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                  {formatVerificationDetail(request)}
+                </div>
+              </div>
+
+              {request.derived.clarificationNeeded.required ? (
+                <div className="rounded-[22px] border border-amber-300/35 bg-amber-50/70 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)] dark:bg-amber-500/10">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
+                    Still needs clarification
+                  </div>
+                  <div className="mt-2 text-[14px] leading-6 text-foreground">
+                    {formatClarificationValue(request)}
+                  </div>
+                  <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                    {formatClarificationDetail(request)}
+                  </div>
+                </div>
+              ) : null}
+            </aside>
+          </div>
         </div>
       </div>
 
@@ -1074,34 +1158,34 @@ function RouteAndWorkersPanel({
 
         <div className="rounded-[18px] border border-border/60 bg-muted/[0.18] px-3.5 py-3.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            Workers
+            Lead and support lanes
           </div>
           {activeFulfillment ? (
             <div className="mt-3 space-y-2.5">
-              <WorkerRow actor={activeFulfillment.lead} label="Lead" />
+              <WorkerRow actor={activeFulfillment.lead} label="Lead lane" />
               {activeFulfillment.contributors.length > 0 ? (
                 <div className="space-y-2">
                   {activeFulfillment.contributors.map((actor) => (
                     <WorkerRow
                       actor={actor}
                       key={`${actor.kind}:${actor.id}`}
-                      label="Contributor"
+                      label="Support lane"
                     />
                   ))}
                 </div>
               ) : (
                 <div className="text-[13px] leading-5.5 text-muted-foreground">
-                  No contributors are attached yet.
+                  No support lanes are attached yet.
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="mt-2.5 text-[13px] leading-5.5 text-muted-foreground">
-              {desktopRuntimeState.requestLaneReady
-                ? "Desktop runtime is ready for private execution, but no fulfillment has started yet."
-                : "No worker is attached to the active request yet."}
-            </div>
-          )}
+          </div>
+        ) : (
+          <div className="mt-2.5 text-[13px] leading-5.5 text-muted-foreground">
+            {desktopRuntimeState.requestLaneReady
+              ? "Desktop runtime is ready for private execution, but no live lane has started yet."
+              : "No live lead or support lane is attached to this request yet."}
+          </div>
+        )}
         </div>
 
         {activeFulfillment ? (
@@ -1682,6 +1766,29 @@ function formatTokenList(values: string[] | undefined, emptyLabel: string) {
   return values.map((value) => formatLabel(value)).join(", ");
 }
 
+function formatBudgetSummary(budget: RequestBudget | null) {
+  if (!budget) {
+    return "Budget unset.";
+  }
+
+  if (budget.mode === "fixed" && budget.fixedAmount != null) {
+    return `${budget.currency ?? ""} ${budget.fixedAmount}`.trim();
+  }
+
+  if (
+    budget.mode === "range" &&
+    (budget.minAmount != null || budget.maxAmount != null)
+  ) {
+    return `${budget.currency ?? ""} ${budget.minAmount ?? "?"}-${budget.maxAmount ?? "?"}`.trim();
+  }
+
+  if (budget.notes?.trim()) {
+    return budget.notes.trim();
+  }
+
+  return budget.mode === "open" ? "Budget open." : "Budget unset.";
+}
+
 function formatSeekingSummary(request: BorealRequestDraft) {
   const parts = [
     request.seeking.actorKinds?.length
@@ -1922,7 +2029,7 @@ function describePinnedSupplyNote({
 }) {
   if (request.routing.preferredSupplyId) {
     return preferredSupply
-      ? `${getOwnedSupplyLabel(preferredSupply)} is pinned for this private request.`
+      ? `${getOwnedSupplyLabel(preferredSupply)} is pinned for this private request. It narrows the route but is not attached yet.`
       : "This request points to a preferred capability that is unavailable for this account.";
   }
 
@@ -1971,7 +2078,7 @@ function describeWorkerSummary(fulfillment: RequestFulfillment) {
     return `${leadLabel} is leading with ${fulfillment.contributors.length} contributor${fulfillment.contributors.length === 1 ? "" : "s"}.`;
   }
 
-  return `${leadLabel} is the active worker on this request.`;
+  return `${leadLabel} is the active lead lane on this request.`;
 }
 
 function ActiveWorkerPromptCard({
@@ -2064,7 +2171,7 @@ function getRouteSummaryValue({
 
   return (
     request.derived.routeSummary?.trim() ||
-    "Boreal will show the active route here as the request gets assigned."
+    "Boreal will show the active route here as the request gets matched or a live lane is attached."
   );
 }
 

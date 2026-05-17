@@ -7,6 +7,7 @@ This file defines Boreal's canonical request-processing flow before durable muta
 Match the lead first.
 Plan the work second.
 Decompose only when needed.
+Complete the work, not just generate the answer.
 
 Do not silently turn ordinary chat into a durable request.
 `Request` creation must stay explicit.
@@ -77,6 +78,10 @@ Open request room behavior should prefer:
 - `Commitment` for pricing, quotes, and formal proposals
 - `Artifact` for drafts, proof, files, and deliveries
 - `RequestEvent` for durable visible activity
+
+The open request room should behave like a monitored workroom, not a planner-first dashboard.
+It should optimize for current status, next action, ownership, blockers, proof, and resolution instead of exposing every planner-derived field with equal visual weight.
+It renders request truth and current work state from the `Request` and adjacent durable objects, not planner-debug state.
 
 Realtime execution feedback may use an ephemeral transport lane for:
 
@@ -196,6 +201,32 @@ Do not treat every open-room message as a brief rewrite.
 
 Low-complexity requests should not be turned into microtask plans.
 
+## Planner worldview and completion rules
+
+- Planner outputs should stay capability-first before they imply assignment-first execution.
+- `RequestDerived.leadRole` and `RequestDerived.roleSlots` remain the canonical planner-owned fields, even when the UI explains them as worker type or capability lane.
+- Capability or worker-type wording is interpretive only. It should not replace the canonical planner field names.
+- Planner outputs should preserve one serious `Request` thread instead of exploding the ask into brittle task trees.
+- Planner outputs must not imply that a real match is attached before matching has actually happened for this request flow.
+- Planner outputs must not imply that a worker is assigned before matching, selection, or fulfillment attachment actually happened.
+- Planner outputs must preserve embodied, human-required, local-runtime-required, and verification-heavy work as first-class planning realities.
+- Generated summaries, runtime access, or provider execution are not proof of completion by themselves.
+- `digital_product` or near-instant delivery asks should not be inflated into the same fulfillment-heavy request UX when a lighter direct-delivery path is more truthful.
+
+## Preselected supply behavior
+
+- Preselected supply should stay in `routing.preferredSupplyId`, not be rewritten into fake buyer-authored brief text.
+- Preselected supply may bias route selection and make the request feel faster, but it does not mean a real match is already attached.
+- Preselected supply may narrow the likely lead lane, but it does not bypass clarification, proof, funding, approval, or safety rules.
+- Planner and matcher outputs may take preselected supply into account, but they remain read-only until a mutation tool writes durable route or execution truth.
+
+## Worker modality and trust context
+
+- Planner and policy should distinguish owner-private, public, and cross-actor request lanes when deciding safe execution behavior.
+- Local runtime availability is a worker modality and trust signal, not proof of completion by itself.
+- Public or external execution lanes must not inherit owner-private desktop assumptions.
+- Provider-only or runtime-only execution is never enough to mark completion when human proof or review still matters.
+
 ## Derived Planning Objects
 
 These objects are derived and rebuildable, not durable roots:
@@ -225,6 +256,7 @@ These objects are derived and rebuildable, not durable roots:
 - Once a request draft exists, subsequent briefing updates should mutate the same `Request` instead of forking a second durable demand object.
 - Draft-mode manual editing must stay limited to user-editable request-input fields; system-owned fields remain server-owned and rebuildable.
 - Planner-visible lead roles, role slots, phase plans, execution profiles, and proof plans must not be treated as buyer-authored brief fields.
+- `RequestDerived.leadRole` and `RequestDerived.roleSlots` remain canonical even when the UI explains them as capability or worker-type language.
 - `brief.summary` may stay blank without blocking `ready_to_open` when title and body are already present.
 - `brief.tags` may exist as optional labels, but matching prep should prefer `seeking`.
 - `FulfillmentStep` is the default home for generated sub-work.
@@ -234,4 +266,5 @@ These objects are derived and rebuildable, not durable roots:
 - direct resolver APIs and chat mutation tools should map to the same durable request-side writes
 - owner-private desktop auto-resolution creates one fulfillment directly without creating a commitment object first when desktop owner policy enables it
 - non-substitutable embodied work must not be downgraded into a digital-only plan or generated summary
+- matching, assignment, and completion must not be implied before the real route, proof, and closure conditions are satisfied
 - requests that require human presence, local access, or verification-heavy completion should not resolve until the required proof path is represented explicitly
