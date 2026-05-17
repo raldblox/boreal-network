@@ -418,7 +418,6 @@ export function ChatShell() {
                 onUpdatePreferredSupply={updateRequestPreferredSupply}
                 request={activeRequest}
                 requestViewerUserId={requestViewerUserId}
-                status={status}
               />
             ) : (
               <Messages

@@ -1,6 +1,4 @@
 "use client";
-
-import type { UseChatHelpers } from "@ai-sdk/react";
 import {
   AlertTriangleIcon,
   ArrowDownIcon,
@@ -32,9 +30,11 @@ import type {
   RequestStatus,
 } from "@/lib/request";
 import type { BorealSupplyDraft } from "@/lib/supply";
-import type { ChatMessage } from "@/lib/types";
 import { cn, fetcher } from "@/lib/utils";
-import { RequestActivityMessage } from "./request-activity-timeline";
+import {
+  RequestActivityMessage,
+  RequestActivityTimeline,
+} from "./request-activity-timeline";
 import { toast } from "./toast";
 
 type RequestTrackerProps = {
@@ -47,7 +47,6 @@ type RequestTrackerProps = {
   onResolveDeliveredRequest?: () => Promise<void>;
   onUpdatePreferredSupply?: (preferredSupplyId: string | null) => Promise<void>;
   requestViewerUserId: string | null;
-  status: UseChatHelpers<ChatMessage>["status"];
 };
 
 type TrackerStageId =
@@ -76,7 +75,6 @@ export function RequestTracker({
   onResolveDeliveredRequest,
   onUpdatePreferredSupply,
   requestViewerUserId,
-  status,
 }: RequestTrackerProps) {
   const hasFulfillmentFailure = activities.some(
     (activity) => activity.eventType === "fulfillment.failed"
@@ -264,14 +262,19 @@ export function RequestTracker({
   const preferredSupplySelectionValue =
     request.routing.preferredSupplyId ?? REQUEST_ROUTE_INHERIT_DEFAULT;
 
+  const orderedActivities = useMemo(
+    () => [...activities].sort((left, right) => left.sequence - right.sequence),
+    [activities]
+  );
+
   const stageActivities = useMemo(() => {
     return {
-      brief_terms: activities.filter(isBriefStageActivity),
-      route_workers: activities.filter(isRouteStageActivity),
-      work_delivery: activities.filter(isWorkStageActivity),
-      review_resolve: activities.filter(isResolveStageActivity),
+      brief_terms: orderedActivities.filter(isBriefStageActivity),
+      route_workers: orderedActivities.filter(isRouteStageActivity),
+      work_delivery: orderedActivities.filter(isWorkStageActivity),
+      review_resolve: orderedActivities.filter(isResolveStageActivity),
     } satisfies Record<TrackerStageId, RequestActivityEntry[]>;
-  }, [activities]);
+  }, [orderedActivities]);
 
   const canResolveDelivery =
     request.status === "delivered" &&
@@ -359,12 +362,12 @@ export function RequestTracker({
                 ),
               },
               {
-                detail: formatExecutionDetail(request),
+                detail: formatExecutionDetailDisplay(request),
                 label: "Execution",
                 value: formatExecutionValue(request),
               },
               {
-                detail: formatVerificationDetail(request),
+                detail: formatVerificationDetailDisplay(request),
                 label: "Proof gate",
                 value: formatVerificationValue(request),
               },
@@ -413,12 +416,12 @@ export function RequestTracker({
                 value: workerSummaryValue,
               },
               {
-                detail: formatClarificationDetail(request),
+                detail: formatClarificationDetailDisplay(request),
                 label: "Clarification gate",
                 value: formatClarificationValue(request),
               },
               {
-                detail: formatCollapseRiskDetail(request),
+                detail: formatCollapseRiskDetailDisplay(request),
                 label: "Collapse risk",
                 value: formatCollapseRiskValue(request),
               },
@@ -584,11 +587,27 @@ export function RequestTracker({
 
   const activeStage =
     stages.find((stage) => stage.id === focusedStageId) ?? stages[0];
+  const activeStageState = getTrackerStageVisualState({
+    activeFulfillmentStatus: activeFulfillment?.status ?? null,
+    currentStageId,
+    hasFulfillmentFailure,
+    requestStatus: request.status,
+    stageId: activeStage.id,
+  });
+  const currentLiveStage =
+    stages.find((stage) => stage.id === currentStageId) ?? stages[0];
   const activeStageActivities = stageActivities[focusedStageId];
   const latestFocusedActivity =
     activeStageActivities.length > 0
       ? activeStageActivities[activeStageActivities.length - 1]
       : null;
+  const nextActionSummary = getWorkroomNextActionSummary({
+    activeFulfillment,
+    canResolveDelivery,
+    canRetryBlockedFulfillment,
+    currentStageId,
+    request,
+  });
 
   return (
     <div className="relative flex-1 bg-background">
@@ -716,7 +735,7 @@ export function RequestTracker({
                         {activeStage.title}
                       </div>
                       <div className="rounded-full border border-border/60 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                        {formatLabel(request.status)}
+                        {formatTrackerStageState(activeStageState)}
                       </div>
                     </div>
                     <div className="mt-2 text-[15px] leading-6 text-foreground">
@@ -778,12 +797,17 @@ export function RequestTracker({
                     </div>
                   </div>
                   <div className="px-4 py-4 md:px-5">
-                    <StageActivityStack
-                      activities={activities}
-                      emptyLabel="No request activity yet."
-                      isReadonly={isReadonly}
-                      ownerUserId={request.ownerId}
-                    />
+                    {orderedActivities.length > 0 ? (
+                      <RequestActivityTimeline
+                        activities={orderedActivities}
+                        isReadonly={isReadonly}
+                        ownerUserId={request.ownerId}
+                      />
+                    ) : (
+                      <div className="rounded-[16px] border border-dashed border-border/60 bg-muted/[0.12] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
+                        No request activity yet.
+                      </div>
+                    )}
                   </div>
                 </section>
               ) : null}
@@ -830,7 +854,7 @@ export function RequestTracker({
                           value: routeSummaryValue,
                         },
                         {
-                          detail: formatSeekingSummary(request),
+                          detail: formatSeekingSummaryDisplay(request),
                           label: "Pinned or requested lanes",
                           value:
                             describePinnedSupplyNote({
@@ -867,7 +891,7 @@ export function RequestTracker({
                             "No active fulfillment lane is attached yet.",
                         },
                         {
-                          detail: formatVerificationDetail(request),
+                          detail: formatVerificationDetailDisplay(request),
                           label: "Proof required",
                           value: formatVerificationValue(request),
                         },
@@ -918,18 +942,28 @@ export function RequestTracker({
               ) : null}
             </div>
 
-            <aside className="space-y-3">
+            <aside className="space-y-3 xl:sticky xl:top-3 xl:self-start">
               <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
                 <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                  Live focus
+                  Current stage
                 </div>
                 <div className="mt-2 text-[15px] leading-6 text-foreground">
-                  {stages.find((stage) => stage.id === currentStageId)?.title ??
-                    "Ask and terms"}
+                  {currentLiveStage.title}
                 </div>
                 <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
-                  {stages.find((stage) => stage.id === currentStageId)?.summary ??
-                    "This request is still collecting core terms."}
+                  {currentLiveStage.summary}
+                </div>
+              </div>
+
+              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                  What happens next
+                </div>
+                <div className="mt-2 text-[14px] leading-6 text-foreground">
+                  {nextActionSummary.value}
+                </div>
+                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                  {nextActionSummary.detail}
                 </div>
               </div>
 
@@ -953,7 +987,7 @@ export function RequestTracker({
                   {formatExecutionValue(request)}
                 </div>
                 <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  {formatExecutionDetail(request)}
+                  {formatExecutionDetailDisplay(request)}
                 </div>
               </div>
 
@@ -965,7 +999,7 @@ export function RequestTracker({
                   {formatVerificationValue(request)}
                 </div>
                 <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  {formatVerificationDetail(request)}
+                  {formatVerificationDetailDisplay(request)}
                 </div>
               </div>
 
@@ -978,7 +1012,7 @@ export function RequestTracker({
                     {formatClarificationValue(request)}
                   </div>
                   <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                    {formatClarificationDetail(request)}
+                    {formatClarificationDetailDisplay(request)}
                   </div>
                 </div>
               ) : null}
@@ -996,7 +1030,7 @@ export function RequestTracker({
           <span className="size-2 rounded-full bg-sky-400" />
           Back to live step
         </button>
-      ) : (
+      ) : selectedView === "activity" ? (
         <button
           aria-label="Scroll to bottom"
           className={`absolute bottom-4 left-1/2 z-10 flex h-8 -translate-x-1/2 items-center rounded-full border border-border/60 bg-background/92 px-3.5 text-[10px] shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 ${
@@ -1009,7 +1043,7 @@ export function RequestTracker({
         >
           <ArrowDownIcon className="size-3 text-muted-foreground" />
         </button>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -1666,6 +1700,24 @@ function getTrackerStageConnectorClassName(stageState: TrackerStageVisualState |
   }
 }
 
+function formatTrackerStageState(stageState: TrackerStageVisualState) {
+  switch (stageState) {
+    case "done":
+      return "Done";
+    case "current":
+      return "Live";
+    case "blocked":
+      return "Blocked";
+    case "failed":
+      return "Failed";
+    case "cancelled":
+      return "Cancelled";
+    case "pending":
+    default:
+      return "Pending";
+  }
+}
+
 function isBriefStageActivity(activity: RequestActivityEntry) {
   return (
     activity.eventType === "request.opened" ||
@@ -1789,6 +1841,161 @@ function formatBudgetSummary(budget: RequestBudget | null) {
   return budget.mode === "open" ? "Budget open." : "Budget unset.";
 }
 
+function formatSeekingSummaryDisplay(request: BorealRequestDraft) {
+  const parts = [
+    request.seeking.actorKinds?.length
+      ? `Actors: ${formatTokenList(request.seeking.actorKinds, "")}`
+      : null,
+    request.seeking.supplyKinds?.length
+      ? `Supply: ${formatTokenList(request.seeking.supplyKinds, "")}`
+      : null,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" | ") : "No seeking filters yet.";
+}
+
+function formatExecutionDetailDisplay(request: BorealRequestDraft) {
+  const details = [
+    request.derived.embodiedConstraintSet.serviceLocation?.trim()
+      ? `Location: ${request.derived.embodiedConstraintSet.serviceLocation.trim()}`
+      : null,
+    request.derived.embodiedConstraintSet.timeWindows.length > 0
+      ? `Time: ${request.derived.embodiedConstraintSet.timeWindows.join(", ")}`
+      : null,
+    request.derived.embodiedConstraintSet.accessRequirements.length > 0
+      ? `Access: ${request.derived.embodiedConstraintSet.accessRequirements.join(", ")}`
+      : null,
+  ].filter((detail): detail is string => Boolean(detail));
+
+  if (details.length === 0) {
+    return request.derived.executionProfile.requiresHumanPresence
+      ? "Embodied execution is required, but place, schedule, or access details are still thin."
+      : "This request currently fits a digital or remote execution lane.";
+  }
+
+  return details.join(" | ");
+}
+
+function formatVerificationDetailDisplay(request: BorealRequestDraft) {
+  const requirements = [
+    request.derived.verificationPlan.mustHaveOwnerAcceptance
+      ? "Owner acceptance required"
+      : null,
+    request.derived.verificationPlan.mustHaveLocationSignal
+      ? "Location signal required"
+      : null,
+    request.derived.verificationPlan.mustHaveSignature
+      ? "Signature required"
+      : null,
+  ].filter((detail): detail is string => Boolean(detail));
+
+  if (requirements.length === 0) {
+    return "No extra proof controls are attached yet.";
+  }
+
+  return requirements.join(" | ");
+}
+
+function formatClarificationDetailDisplay(request: BorealRequestDraft) {
+  if (!request.derived.clarificationNeeded.required) {
+    return "Boreal can keep moving from the currently captured request facts.";
+  }
+
+  return request.derived.clarificationNeeded.reasons.join(" | ");
+}
+
+function formatCollapseRiskDetailDisplay(request: BorealRequestDraft) {
+  if (request.derived.planCollapseRisk.reasons.length === 0) {
+    return "No structural plan-collapse risk is currently flagged.";
+  }
+
+  return request.derived.planCollapseRisk.reasons.join(" | ");
+}
+
+function getWorkroomNextActionSummary({
+  activeFulfillment,
+  canResolveDelivery,
+  canRetryBlockedFulfillment,
+  currentStageId,
+  request,
+}: {
+  activeFulfillment: RequestFulfillment | null;
+  canResolveDelivery: boolean;
+  canRetryBlockedFulfillment: boolean;
+  currentStageId: TrackerStageId;
+  request: BorealRequestDraft;
+}) {
+  if (canResolveDelivery) {
+    return {
+      value: "Owner review should close the loop.",
+      detail: "Confirm delivery once the proof package and result look right.",
+    };
+  }
+
+  if (canRetryBlockedFulfillment) {
+    return {
+      value: "The live lane is paused.",
+      detail: "Retry the same delivery lane instead of opening a new request.",
+    };
+  }
+
+  if (request.derived.clarificationNeeded.required) {
+    return {
+      value: formatClarificationValue(request),
+      detail:
+        "These missing details still change safe routing or truthful closure.",
+    };
+  }
+
+  if (request.status === "completed") {
+    return {
+      value: "The request is resolved.",
+      detail: "No more room action is needed unless you open a new request.",
+    };
+  }
+
+  if (request.status === "cancelled" || request.status === "failed") {
+    return {
+      value: "The room is preserving the final state.",
+      detail: "Review the activity log and artifacts if follow-up work is needed.",
+    };
+  }
+
+  if (currentStageId === "brief_terms") {
+    return {
+      value: "Keep the ask and terms stable.",
+      detail:
+        "Once the request facts are sufficient, Boreal can keep routing and execution honest.",
+    };
+  }
+
+  if (currentStageId === "route_workers") {
+    return {
+      value: "Narrow the lead lane.",
+      detail: request.routing.preferredSupplyId
+        ? "Pinned supply already narrows the route, but it still needs a real live lane."
+        : "Boreal is still converging on the right lead lane before work starts.",
+    };
+  }
+
+  if (currentStageId === "work_delivery") {
+    return {
+      value: activeFulfillment
+        ? "Keep execution moving and attach proof."
+        : "Wait for a live fulfillment lane.",
+      detail: activeFulfillment
+        ? "Delivery truth should land inside this same request room."
+        : "Once a live lane starts, execution and proof will appear here.",
+    };
+  }
+
+  return {
+    value: "Close the loop truthfully.",
+    detail:
+      "Review proof, accept the result if correct, or preserve the final failure state.",
+  };
+}
+
 function formatSeekingSummary(request: BorealRequestDraft) {
   const parts = [
     request.seeking.actorKinds?.length
@@ -1799,7 +2006,7 @@ function formatSeekingSummary(request: BorealRequestDraft) {
       : null,
   ].filter(Boolean);
 
-  return parts.length > 0 ? parts.join(" · ") : "No seeking filters yet.";
+  return parts.length > 0 ? parts.join(" | ") : "No seeking filters yet.";
 }
 
 function formatConstraintDetail(constraints: Record<string, unknown> | undefined) {
@@ -1841,7 +2048,7 @@ function formatExecutionDetail(request: BorealRequestDraft) {
       : "This request currently fits a digital or remote execution lane.";
   }
 
-  return details.join(" · ");
+  return details.join(" | ");
 }
 
 function formatVerificationValue(request: BorealRequestDraft) {
@@ -1872,7 +2079,7 @@ function formatVerificationDetail(request: BorealRequestDraft) {
     return "No extra proof controls are attached yet.";
   }
 
-  return requirements.join(" · ");
+  return requirements.join(" | ");
 }
 
 function formatClarificationValue(request: BorealRequestDraft) {
@@ -1890,7 +2097,7 @@ function formatClarificationDetail(request: BorealRequestDraft) {
     return "Boreal can keep moving from the currently captured request facts.";
   }
 
-  return request.derived.clarificationNeeded.reasons.join(" · ");
+  return request.derived.clarificationNeeded.reasons.join(" | ");
 }
 
 function formatCollapseRiskValue(request: BorealRequestDraft) {
@@ -1902,7 +2109,7 @@ function formatCollapseRiskDetail(request: BorealRequestDraft) {
     return "No structural plan-collapse risk is currently flagged.";
   }
 
-  return request.derived.planCollapseRisk.reasons.join(" · ");
+  return request.derived.planCollapseRisk.reasons.join(" | ");
 }
 
 function getStepAssigneeLabel(step: RequestFulfillment["steps"][number]) {
@@ -2317,3 +2524,4 @@ function describeDesktopDefaultRoute({
 
   return `${getOwnedSupplyLabel(desktopDefaultSupply)} is the desktop default route for private auto-resolve.`;
 }
+

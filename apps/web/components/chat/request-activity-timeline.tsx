@@ -71,15 +71,9 @@ export function RequestActivityMessage({
   const secondaryDetail = getSecondaryActivityDetail(activity);
   const documentArtifact = getDocumentArtifactPreview(activity);
   const artifactPreview = documentArtifact ? (
-    <DocumentPreview
-      isReadonly={isReadonly}
-      result={documentArtifact}
-    />
+    <DocumentPreview isReadonly={isReadonly} result={documentArtifact} />
   ) : activity.artifact ? (
-    <NonDocumentArtifactButton
-      activity={activity}
-      isReadonly={isReadonly}
-    />
+    <NonDocumentArtifactButton activity={activity} isReadonly={isReadonly} />
   ) : null;
   const showArtifactFirst = Boolean(activity.artifact);
 
@@ -114,14 +108,11 @@ export function RequestActivityMessage({
 
   if (variant === "stage") {
     return (
-      <div
-        className="group/message w-full"
-        data-role="assistant"
-      >
+      <div className="group/message w-full" data-role="assistant">
         <div className="rounded-[16px] border border-border/60 bg-background/92 px-3 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.025)]">
           <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/68">
             <span>{formatActivityLabel(activity.eventType)}</span>
-            <span className="text-border">•</span>
+            <span className="text-border">/</span>
             <span>{formatLabel(activity.aggregateType)}</span>
           </div>
           <div className="space-y-2">{content}</div>
@@ -131,10 +122,7 @@ export function RequestActivityMessage({
   }
 
   return (
-    <div
-      className="group/message w-full"
-      data-role="assistant"
-    >
+    <div className="group/message w-full" data-role="assistant">
       <div className="grid grid-cols-[24px_minmax(0,1fr)] gap-x-2.5">
         <div className="relative">
           {index > 0 ? (
@@ -161,7 +149,7 @@ export function RequestActivityMessage({
           <div className="rounded-[16px] border border-border/60 bg-background/92 px-3 py-2.5 shadow-[0_8px_24px_rgba(15,23,42,0.025)]">
             <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/68">
               <span>{formatActivityLabel(activity.eventType)}</span>
-              <span className="text-border">•</span>
+              <span className="text-border">/</span>
               <span>{formatLabel(activity.aggregateType)}</span>
             </div>
             <div className="space-y-2">{content}</div>
@@ -289,7 +277,7 @@ function getSecondaryActivityDetail(activity: RequestActivityEntry) {
     return artifactProofDetail;
   }
 
-  return artifactProofDetail ? `${detail} · ${artifactProofDetail}` : detail;
+  return artifactProofDetail ? `${detail} | ${artifactProofDetail}` : detail;
 }
 
 function getDocumentArtifactPreview(activity: RequestActivityEntry) {
@@ -347,7 +335,7 @@ function formatArtifactProofDetail(activity: RequestActivityEntry) {
       : null,
   ].filter((part): part is string => Boolean(part));
 
-  return parts.length > 0 ? parts.join(" · ") : null;
+  return parts.length > 0 ? parts.join(" | ") : null;
 }
 
 function formatCaptureTime(value: string) {
