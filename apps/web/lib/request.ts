@@ -3,6 +3,7 @@ import {
   deriveRequestPlannerState,
   type RequestAssignmentProposal,
   type RequestLeadRankingEntry,
+  type RequestMatchCandidate,
   type RequestOutcomeClaim,
   type RequestRoleMatch,
 } from "./request-planner";
@@ -171,6 +172,7 @@ export type RequestDerived = {
   paymentMode?: string;
   matchingMode?: string;
   candidatePool?: string[];
+  matchCandidates: RequestMatchCandidate[];
   leadRole?: string;
   roleSlots: RequestRoleSlot[];
   phases: RequestPhasePlan[];
@@ -627,6 +629,7 @@ type RequestDocumentObject = {
     paymentMode: string | null;
     matchingMode: string | null;
     candidatePool: string[];
+    matchCandidates: RequestMatchCandidate[];
     leadRole: string | null;
     roleSlots: RequestRoleSlot[];
     phases: RequestPhasePlan[];
@@ -664,6 +667,7 @@ export type RequestPatch = {
     paymentMode?: string | null;
     matchingMode?: string | null;
     candidatePool?: string[];
+    matchCandidates?: RequestMatchCandidate[];
     routeSummary?: string | null;
   };
   activeRefs?: Partial<RequestActiveRefs>;
@@ -855,6 +859,7 @@ export function createInitialRequestDraft({
     latest: {},
     derived: {
       candidatePool: [],
+      matchCandidates: [],
       roleSlots: [],
       phases: [],
       noMicrotaskExplosion: true,
@@ -947,6 +952,10 @@ export function applyRequestPatch(
     patch.derived?.candidatePool === undefined
       ? (currentDraft.derived.candidatePool ?? [])
       : normalizeStringArray(patch.derived.candidatePool);
+  const nextDerivedMatchCandidates =
+    patch.derived?.matchCandidates === undefined
+      ? (currentDraft.derived.matchCandidates ?? [])
+      : patch.derived.matchCandidates;
 
   const nextDraft: BorealRequestDraft = {
     ...currentDraft,
@@ -972,6 +981,7 @@ export function applyRequestPatch(
       paymentMode: nextDerivedPaymentMode,
       matchingMode: nextDerivedMatchingMode,
       candidatePool: nextDerivedCandidatePool,
+      matchCandidates: nextDerivedMatchCandidates,
       routeSummary: nextDerivedRouteSummary,
     },
   };
@@ -1061,6 +1071,7 @@ export function deriveRequestState(
     paymentMode,
     matchingMode,
     candidatePool,
+    matchCandidates: plannerState.matchCandidates,
     leadRole: plannerState.leadRole,
     roleSlots: plannerState.roleSlots,
     phases: plannerState.phases,
@@ -1485,6 +1496,7 @@ function toRequestDerivedProjection(
     paymentMode: derived.paymentMode ?? null,
     matchingMode: derived.matchingMode ?? null,
     candidatePool: derived.candidatePool ?? [],
+    matchCandidates: derived.matchCandidates,
     leadRole: derived.leadRole ?? null,
     roleSlots: derived.roleSlots,
     phases: derived.phases,

@@ -1432,6 +1432,37 @@ export async function getSupplyById({
   }
 }
 
+export async function getPlannerCandidateSuppliesForRequest({
+  ownerId,
+  requestVisibility,
+  limit,
+}: {
+  ownerId: string;
+  requestVisibility: RequestVisibility;
+  limit: number;
+}): Promise<SupplyRecord[]> {
+  try {
+    return await db
+      .select()
+      .from(supply)
+      .where(
+        and(
+          eq(supply.status, "published"),
+          requestVisibility === "private"
+            ? eq(supply.ownerId, ownerId)
+            : eq(supply.visibility, "public")
+        )
+      )
+      .orderBy(desc(supply.publishedAt), desc(supply.updatedAt))
+      .limit(limit);
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get planner candidate supplies"
+    );
+  }
+}
+
 export async function getSuppliesByUserId({
   id,
   limit,

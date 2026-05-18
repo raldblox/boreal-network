@@ -45,6 +45,7 @@ Planner outputs may include:
 - `ClarificationNeeded`
 - `noMicrotaskExplosion`
 - `outcomeClaims`
+- `matchCandidates`
 - `leadRanking`
 - `roleMatches`
 - `assignmentProposal`
@@ -197,7 +198,8 @@ Every mutation call should return:
 - The editable request-input projection must stay limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
 - Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.
 - Planner-derived fields such as lead role, role slots, phase plans, execution profile, verification plan, and collapse-risk outputs must remain read-only and system-owned.
-- Planner-derived fields such as `leadRole`, `roleSlots`, `phases`, `executionProfile`, `verificationPlan`, `planCollapseRisk`, `clarificationNeeded`, `noMicrotaskExplosion`, `outcomeClaims`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` must remain canonical, read-only, and system-owned.
+- Planner-derived fields such as `leadRole`, `roleSlots`, `phases`, `executionProfile`, `verificationPlan`, `planCollapseRisk`, `clarificationNeeded`, `noMicrotaskExplosion`, `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` must remain canonical, read-only, and system-owned.
+- When retrieval already happened, `matchCandidates` may capture the request-owned candidate-fit snapshot that planner projections read from, but it must still remain read-only and must not be confused for attached execution truth.
 - Planner tools should detect when a request requires non-substitutable human or embodied execution and must not flatten those requirements into a digital-only plan.
 - Planner and policy outputs should explicitly model proof obligations for verification-heavy work before fulfillment or closure.
 - Planner, matcher, and policy outputs must not imply assignment or completion before the required route, proof, and closure conditions are actually satisfied.

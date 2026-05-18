@@ -7,6 +7,7 @@ import {
   getCommitmentById,
   getDocumentById,
   getFulfillmentById,
+  getPlannerCandidateSuppliesForRequest,
   getRequestEventByIdempotencyKey,
   getSupplyById,
   saveArtifactRecord,
@@ -40,6 +41,7 @@ import {
   type CommitmentKind,
   type CommitmentTerms,
   createInitialRequestDraft,
+  deriveRequestState,
   evaluateRequestVerificationCoverage,
   extractEditableRequestPatchFromContent,
   type BorealRequestDraft,
@@ -57,8 +59,15 @@ import {
   type RequestStatus,
   type RequestVisibility,
 } from "@/lib/request";
+import {
+  buildRequestMatchCandidate,
+  deriveCandidatePoolOrder,
+  type RequestMatchCandidate,
+} from "@/lib/request-planner";
 import type { ChatMessage } from "@/lib/types";
 import { generateUUID } from "@/lib/utils";
+
+const REQUEST_PLANNER_CANDIDATE_LIMIT = 24;
 
 export async function ensureRequestDraftForChat({
   chatId,
@@ -166,24 +175,27 @@ export async function persistRequestPatch({
     patch,
     new Date().toISOString()
   );
+  const enrichedDraft = await enrichRequestDraftPlannerMatches({
+    draft: nextDraft,
+  });
 
-  if (!hasRootRequestChange(syncedDraft, nextDraft)) {
+  if (!hasRootRequestChange(syncedDraft, enrichedDraft)) {
     return syncedDraft;
   }
 
   const updatedRequest = await updateRequestDraftById({
-    id: nextDraft.id,
-    key: nextDraft.key,
-    status: nextDraft.status,
-    visibility: nextDraft.visibility,
-    brief: nextDraft.brief,
-    seeking: nextDraft.seeking,
-    routing: nextDraft.routing,
-    budget: nextDraft.budget,
-    deadline: nextDraft.deadline,
-    activeRefs: nextDraft.activeRefs,
-    latest: nextDraft.latest,
-    derived: nextDraft.derived,
+    id: enrichedDraft.id,
+    key: enrichedDraft.key,
+    status: enrichedDraft.status,
+    visibility: enrichedDraft.visibility,
+    brief: enrichedDraft.brief,
+    seeking: enrichedDraft.seeking,
+    routing: enrichedDraft.routing,
+    budget: enrichedDraft.budget,
+    deadline: enrichedDraft.deadline,
+    activeRefs: enrichedDraft.activeRefs,
+    latest: enrichedDraft.latest,
+    derived: enrichedDraft.derived,
   });
 
   if (!updatedRequest) {
@@ -191,19 +203,62 @@ export async function persistRequestPatch({
   }
 
   await saveDocument({
-    id: nextDraft.documentId,
-    title: getRequestDocumentTitle(nextDraft),
-    content: renderRequestDocumentJson(nextDraft),
+    id: enrichedDraft.documentId,
+    title: getRequestDocumentTitle(enrichedDraft),
+    content: renderRequestDocumentJson(enrichedDraft),
     kind: "code",
     userId,
   });
 
   await updateChatTitleById({
-    chatId: nextDraft.chatId,
-    title: getRequestDocumentTitle(nextDraft),
+    chatId: enrichedDraft.chatId,
+    title: getRequestDocumentTitle(enrichedDraft),
   });
 
-  return nextDraft;
+  return enrichedDraft;
+}
+
+async function enrichRequestDraftPlannerMatches({
+  draft,
+}: {
+  draft: BorealRequestDraft;
+}): Promise<BorealRequestDraft> {
+  const candidateSupplyRecords = await getPlannerCandidateSuppliesForRequest({
+    ownerId: draft.ownerId,
+    requestVisibility: draft.visibility,
+    limit: REQUEST_PLANNER_CANDIDATE_LIMIT,
+  });
+  const matchCandidates = candidateSupplyRecords
+    .map((candidateSupplyRecord) =>
+      buildRequestMatchCandidate({
+        requestDraft: draft,
+        supply: toSupplyDraft(candidateSupplyRecord),
+      })
+    )
+    .filter(
+      (candidate): candidate is RequestMatchCandidate => Boolean(candidate)
+    );
+  const candidatePool = deriveCandidatePoolOrder({
+    leadRole: draft.derived.leadRole,
+    matchCandidates,
+    roleSlots: draft.derived.roleSlots,
+  });
+
+  const nextDraft = applyRequestPatch(
+    draft,
+    {
+      derived: {
+        candidatePool,
+        matchCandidates,
+      },
+    },
+    draft.updatedAt
+  );
+
+  return {
+    ...nextDraft,
+    derived: deriveRequestState(nextDraft),
+  };
 }
 
 export async function setRequestPreferredSupply({

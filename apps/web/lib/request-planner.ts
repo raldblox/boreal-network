@@ -11,6 +11,7 @@ import type {
   RequestRoleSlot,
   RequestVerificationPlan,
 } from "./request";
+import type { BorealSupplyDraft } from "./supply";
 
 export type RequestOutcomeClaim = {
   claimKey: string;
@@ -21,6 +22,21 @@ export type RequestOutcomeClaim = {
 };
 
 export type RequestPlannerConfidence = "low" | "moderate" | "high";
+
+export type RequestMatchCandidateRoleScore = {
+  roleKey: string;
+  score: number;
+  confidence: RequestPlannerConfidence;
+};
+
+export type RequestMatchCandidate = {
+  supplyId: string;
+  source: "retrieved" | "preferred_supply";
+  overallScore: number;
+  leadScore: number;
+  roleScores: RequestMatchCandidateRoleScore[];
+  summary: string;
+};
 
 export type RequestPlannerMatchSource =
   | "planner"
@@ -75,6 +91,7 @@ export type RequestPlannerState = {
   planCollapseRisk: RequestPlanCollapseRisk;
   clarificationNeeded: RequestClarificationNeeded;
   outcomeClaims: RequestOutcomeClaim[];
+  matchCandidates: RequestMatchCandidate[];
   leadRanking: RequestLeadRankingEntry[];
   roleMatches: RequestRoleMatch[];
   assignmentProposal: RequestAssignmentProposal;
@@ -96,13 +113,18 @@ export function deriveRequestPlannerState(
   });
   const preferredSupplyRouteSelected = isPreferredSupplyRouteSelected({
     candidatePool: draft.derived.candidatePool ?? [],
+    matchCandidates: draft.derived.matchCandidates ?? [],
     matchingMode: normalizeText(draft.derived.matchingMode),
     preferredSupplyId: normalizeText(draft.routing.preferredSupplyId),
     routeFamily: normalizeText(draft.derived.routeFamily),
     routeSummary: normalizeText(draft.derived.routeSummary),
   });
+  const matchCandidates = normalizeMatchCandidates(
+    draft.derived.matchCandidates ?? []
+  );
   const leadRanking = deriveLeadRanking({
     candidatePool: draft.derived.candidatePool ?? [],
+    matchCandidates,
     leadRole: structuralPlanning.leadRole,
     preferredSupplyId: normalizeText(draft.routing.preferredSupplyId),
     hasActiveFulfillment: hasText(draft.activeRefs.activeFulfillmentId),
@@ -110,6 +132,7 @@ export function deriveRequestPlannerState(
   });
   const roleMatches = deriveRoleMatches({
     candidatePool: draft.derived.candidatePool ?? [],
+    matchCandidates,
     leadRole: structuralPlanning.leadRole,
     preferredSupplyId: normalizeText(draft.routing.preferredSupplyId),
     roleSlots: structuralPlanning.roleSlots,
@@ -139,6 +162,7 @@ export function deriveRequestPlannerState(
     planCollapseRisk: embodiedPlanning.planCollapseRisk,
     clarificationNeeded: embodiedPlanning.clarificationNeeded,
     outcomeClaims,
+    matchCandidates,
     leadRanking,
     roleMatches,
     assignmentProposal,
@@ -616,12 +640,14 @@ function deriveOutcomeClaims({
 
 function deriveLeadRanking({
   candidatePool,
+  matchCandidates,
   leadRole,
   preferredSupplyId,
   hasActiveFulfillment,
   preferredSupplyRouteSelected,
 }: {
   candidatePool: string[];
+  matchCandidates: RequestMatchCandidate[];
   leadRole?: string;
   preferredSupplyId: string;
   hasActiveFulfillment: boolean;
@@ -662,20 +688,41 @@ function deriveLeadRanking({
     });
   }
 
-  for (const supplyId of candidatePool) {
-    if (!supplyId || supplyId === preferredSupplyId) {
-      continue;
-    }
+  if (matchCandidates.length > 0) {
+    for (const matchCandidate of matchCandidates) {
+      if (
+        !matchCandidate.supplyId ||
+        matchCandidate.supplyId === preferredSupplyId ||
+        matchCandidate.leadScore <= 0
+      ) {
+        continue;
+      }
 
-    entries.push({
-      roleKey: resolvedRoleKey,
-      supplyId,
-      source: "candidate_pool",
-      status: "candidate",
-      confidence: "low",
-      summary:
-        "Candidate supply is visible for the lead lane, but no real match is attached yet.",
-    });
+      entries.push({
+        roleKey: resolvedRoleKey,
+        supplyId: matchCandidate.supplyId,
+        source: "candidate_pool",
+        status: "candidate",
+        confidence: scoreToPlannerConfidence(matchCandidate.leadScore),
+        summary: matchCandidate.summary,
+      });
+    }
+  } else {
+    for (const supplyId of candidatePool) {
+      if (!supplyId || supplyId === preferredSupplyId) {
+        continue;
+      }
+
+      entries.push({
+        roleKey: resolvedRoleKey,
+        supplyId,
+        source: "candidate_pool",
+        status: "candidate",
+        confidence: "low",
+        summary:
+          "Candidate supply is visible for the lead lane, but no real match is attached yet.",
+      });
+    }
   }
 
   if (entries.length === 0) {
@@ -694,6 +741,7 @@ function deriveLeadRanking({
 
 function deriveRoleMatches({
   candidatePool,
+  matchCandidates,
   leadRole,
   preferredSupplyId,
   roleSlots,
@@ -701,12 +749,14 @@ function deriveRoleMatches({
   preferredSupplyRouteSelected,
 }: {
   candidatePool: string[];
+  matchCandidates: RequestMatchCandidate[];
   leadRole?: string;
   preferredSupplyId: string;
   roleSlots: RequestRoleSlot[];
   hasActiveFulfillment: boolean;
   preferredSupplyRouteSelected: boolean;
 }): RequestRoleMatch[] {
+  const usedSupplyIds = new Set<string>();
   const remainingCandidates = candidatePool.filter(
     (supplyId) => supplyId && supplyId !== preferredSupplyId
   );
@@ -714,6 +764,7 @@ function deriveRoleMatches({
   return roleSlots.map((slot) => {
     const isLead = slot.roleKey === leadRole;
     if (isLead && preferredSupplyId && preferredSupplyRouteSelected) {
+      usedSupplyIds.add(preferredSupplyId);
       return {
         roleKey: slot.roleKey,
         required: slot.required,
@@ -728,6 +779,7 @@ function deriveRoleMatches({
     }
 
     if (isLead && preferredSupplyId) {
+      usedSupplyIds.add(preferredSupplyId);
       return {
         roleKey: slot.roleKey,
         required: slot.required,
@@ -749,6 +801,27 @@ function deriveRoleMatches({
         confidence: "high",
         summary: "Execution lane is already attached for the lead lane.",
       } satisfies RequestRoleMatch;
+    }
+
+    if (matchCandidates.length > 0) {
+      const roleCandidate = getBestRoleMatchCandidate({
+        matchCandidates,
+        roleKey: slot.roleKey,
+        usedSupplyIds,
+      });
+
+      if (roleCandidate && getRoleScore(roleCandidate, slot.roleKey) > 0) {
+        usedSupplyIds.add(roleCandidate.supplyId);
+        return {
+          roleKey: slot.roleKey,
+          required: slot.required,
+          supplyId: roleCandidate.supplyId,
+          source: "candidate_pool",
+          status: "candidate",
+          confidence: getRoleConfidence(roleCandidate, slot.roleKey),
+          summary: roleCandidate.summary,
+        } satisfies RequestRoleMatch;
+      }
     }
 
     const candidateSupplyId = remainingCandidates.shift();
@@ -870,14 +943,347 @@ function deriveReplanReasons({
   return Array.from(reasons);
 }
 
+function normalizeMatchCandidates(
+  candidates: RequestMatchCandidate[]
+): RequestMatchCandidate[] {
+  return candidates
+    .map((candidate) => {
+      const supplyId = normalizeText(candidate.supplyId);
+      if (!supplyId) {
+        return null;
+      }
+
+      const roleScores = (candidate.roleScores ?? [])
+        .map((roleScore) => {
+          const roleKey = normalizeText(roleScore.roleKey);
+          if (!roleKey || typeof roleScore.score !== "number") {
+            return null;
+          }
+
+          const score = Number.isFinite(roleScore.score) ? roleScore.score : 0;
+          return {
+            roleKey,
+            score,
+            confidence: scoreToPlannerConfidence(score),
+          } satisfies RequestMatchCandidateRoleScore;
+        })
+        .filter((roleScore): roleScore is RequestMatchCandidateRoleScore =>
+          Boolean(roleScore)
+        );
+
+      const leadScore =
+        typeof candidate.leadScore === "number" && Number.isFinite(candidate.leadScore)
+          ? candidate.leadScore
+          : 0;
+      const overallScore =
+        typeof candidate.overallScore === "number" &&
+        Number.isFinite(candidate.overallScore)
+          ? candidate.overallScore
+          : Math.max(leadScore, ...roleScores.map((roleScore) => roleScore.score), 0);
+
+      return {
+        supplyId,
+        source:
+          candidate.source === "preferred_supply" ? "preferred_supply" : "retrieved",
+        overallScore,
+        leadScore,
+        roleScores,
+        summary:
+          normalizeText(candidate.summary) ??
+          "Candidate supply is visible for this request.",
+      } satisfies RequestMatchCandidate;
+    })
+    .filter((candidate): candidate is RequestMatchCandidate => Boolean(candidate))
+    .sort((left, right) => right.overallScore - left.overallScore);
+}
+
+function getRoleScore(candidate: RequestMatchCandidate, roleKey: string) {
+  return (
+    candidate.roleScores.find((roleScore) => roleScore.roleKey === roleKey)?.score ?? 0
+  );
+}
+
+function getRoleConfidence(candidate: RequestMatchCandidate, roleKey: string) {
+  return scoreToPlannerConfidence(getRoleScore(candidate, roleKey));
+}
+
+function getBestRoleMatchCandidate({
+  matchCandidates,
+  roleKey,
+  usedSupplyIds,
+}: {
+  matchCandidates: RequestMatchCandidate[];
+  roleKey: string;
+  usedSupplyIds?: Set<string>;
+}) {
+  return matchCandidates
+    .filter((candidate) => !usedSupplyIds?.has(candidate.supplyId))
+    .sort((left, right) => {
+      const scoreDelta = getRoleScore(right, roleKey) - getRoleScore(left, roleKey);
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      return right.overallScore - left.overallScore;
+    })[0];
+}
+
+function scoreToPlannerConfidence(score: number): RequestPlannerConfidence {
+  if (score >= 80) {
+    return "high";
+  }
+
+  if (score >= 45) {
+    return "moderate";
+  }
+
+  return "low";
+}
+
+function scoreSupplyForRole({
+  executionProfile,
+  outputKinds,
+  preferredSupplyId,
+  roleSlot,
+  supply,
+}: {
+  executionProfile: RequestExecutionProfile;
+  outputKinds: string[];
+  preferredSupplyId?: string;
+  roleSlot: RequestRoleSlot;
+  supply: Pick<
+    BorealSupplyDraft,
+    "id" | "availability" | "capability" | "pricing" | "source"
+  >;
+}) {
+  const actorKinds = new Set(supply.capability.fulfillmentActorKinds);
+  const executionChannels = new Set(supply.capability.executionChannels);
+  const supplyKinds = new Set(supply.capability.supplyKinds);
+  const supplyOutputKinds = new Set(supply.capability.outputKinds);
+  const requiredActorKinds = roleSlot.requiredActorKinds ?? [];
+  const preferredSupplyKinds = roleSlot.preferredSupplyKinds ?? [];
+  let score = 0;
+
+  if (requiredActorKinds.length > 0) {
+    const actorOverlap = requiredActorKinds.filter((kind) => actorKinds.has(kind)).length;
+    if (actorOverlap === 0) {
+      score -= roleSlot.required ? 90 : 35;
+    } else {
+      score += 25 + actorOverlap * 10;
+    }
+  }
+
+  if (preferredSupplyKinds.length > 0) {
+    const supplyKindOverlap = preferredSupplyKinds.filter((kind) =>
+      supplyKinds.has(kind)
+    ).length;
+    if (supplyKindOverlap > 0) {
+      score += 30 + supplyKindOverlap * 10;
+    } else if (roleSlot.required) {
+      score -= 25;
+    }
+  }
+
+  if (outputKinds.length > 0) {
+    const outputOverlap = outputKinds.filter((kind) => supplyOutputKinds.has(kind)).length;
+    score += Math.min(outputOverlap * 8, 24);
+  }
+
+  if (executionProfile.requiresHumanPresence) {
+    if (actorKinds.has("human")) {
+      score += 30;
+    } else {
+      score -= 100;
+    }
+  }
+
+  if (executionProfile.requiresLocalAccess) {
+    if (
+      executionChannels.has("request_room") ||
+      executionChannels.has("resolver_runtime")
+    ) {
+      score += 15;
+    } else {
+      score -= 30;
+    }
+  }
+
+  if (executionProfile.requiresVerifiedEvidence) {
+    if (
+      supplyOutputKinds.has("delivery") ||
+      supplyOutputKinds.has("file") ||
+      supplyOutputKinds.has("media")
+    ) {
+      score += 10;
+    } else {
+      score -= 10;
+    }
+  }
+
+  if (
+    !executionProfile.requiresHumanPresence &&
+    !executionProfile.requiresLocalAccess &&
+    executionChannels.has("instant_download")
+  ) {
+    score += 12;
+  }
+
+  if (supply.availability.acceptingRequests) {
+    score += 10;
+  } else {
+    score -= preferredSupplyId === supply.id ? 10 : 40;
+  }
+
+  if (preferredSupplyId === supply.id) {
+    score += 15;
+  }
+
+  if (supply.source.kind === "catalog" && executionProfile.requiresHumanPresence) {
+    score -= 80;
+  }
+
+  if (supply.source.kind === "provider" && executionProfile.requiresHumanPresence) {
+    score -= 60;
+  }
+
+  if (supply.pricing?.mode === "fixed" && outputKinds.length > 0) {
+    score += 4;
+  }
+
+  return Math.max(score, 0);
+}
+
+export function buildRequestMatchCandidate({
+  requestDraft,
+  supply,
+}: {
+  requestDraft: Pick<
+    BorealRequestDraft,
+    "brief" | "seeking" | "routing" | "derived"
+  >;
+  supply: Pick<
+    BorealSupplyDraft,
+    "id" | "availability" | "capability" | "profile" | "pricing" | "source"
+  >;
+}): RequestMatchCandidate | null {
+  const roleSlots = requestDraft.derived.roleSlots ?? [];
+  if (roleSlots.length === 0) {
+    return null;
+  }
+
+  const roleScores = roleSlots
+    .map((roleSlot) => {
+      const score = scoreSupplyForRole({
+        executionProfile: requestDraft.derived.executionProfile,
+        outputKinds: normalizeStringArray(requestDraft.brief.outputKinds),
+        preferredSupplyId: normalizeText(requestDraft.routing.preferredSupplyId),
+        roleSlot,
+        supply,
+      });
+
+      return {
+        roleKey: roleSlot.roleKey,
+        score,
+        confidence: scoreToPlannerConfidence(score),
+      } satisfies RequestMatchCandidateRoleScore;
+    })
+    .filter((roleScore) => roleScore.score > 0);
+
+  const leadRoleKey = requestDraft.derived.leadRole;
+  const leadScore = leadRoleKey
+    ? (roleScores.find((roleScore) => roleScore.roleKey === leadRoleKey)?.score ?? 0)
+    : 0;
+  const overallScore = Math.max(leadScore, ...roleScores.map((roleScore) => roleScore.score), 0);
+  const isPreferredSupply =
+    normalizeText(requestDraft.routing.preferredSupplyId) === supply.id;
+
+  if (overallScore <= 0 && !isPreferredSupply) {
+    return null;
+  }
+
+  const matchedRoleKeys = roleScores
+    .slice()
+    .sort((left, right) => right.score - left.score)
+    .map((roleScore) => formatPlanningLabel(roleScore.roleKey).toLowerCase());
+
+  return {
+    supplyId: supply.id,
+    source: isPreferredSupply ? "preferred_supply" : "retrieved",
+    overallScore,
+    leadScore,
+    roleScores,
+    summary:
+      matchedRoleKeys.length > 0
+        ? `${supply.profile.displayName.trim() || "Candidate supply"} best fits ${matchedRoleKeys
+            .slice(0, 2)
+            .join(" and ")}.`
+        : `${supply.profile.displayName.trim() || "Candidate supply"} is visible for this request, but fit is still weak.`,
+  };
+}
+
+export function deriveCandidatePoolOrder({
+  leadRole,
+  matchCandidates,
+  roleSlots,
+}: {
+  leadRole?: string;
+  matchCandidates: RequestMatchCandidate[];
+  roleSlots: RequestRoleSlot[];
+}) {
+  const orderedSupplyIds: string[] = [];
+  const usedSupplyIds = new Set<string>();
+
+  const appendSupplyId = (supplyId: string | undefined) => {
+    if (!supplyId || usedSupplyIds.has(supplyId)) {
+      return;
+    }
+
+    usedSupplyIds.add(supplyId);
+    orderedSupplyIds.push(supplyId);
+  };
+
+  if (leadRole) {
+    appendSupplyId(
+      getBestRoleMatchCandidate({
+        matchCandidates,
+        roleKey: leadRole,
+      })?.supplyId
+    );
+  }
+
+  for (const roleSlot of roleSlots) {
+    if (roleSlot.roleKey === leadRole) {
+      continue;
+    }
+
+    appendSupplyId(
+      getBestRoleMatchCandidate({
+        matchCandidates,
+        roleKey: roleSlot.roleKey,
+        usedSupplyIds,
+      })?.supplyId
+    );
+  }
+
+  for (const matchCandidate of matchCandidates
+    .slice()
+    .sort((left, right) => right.overallScore - left.overallScore)) {
+    appendSupplyId(matchCandidate.supplyId);
+  }
+
+  return orderedSupplyIds;
+}
+
 function isPreferredSupplyRouteSelected({
   candidatePool,
+  matchCandidates,
   matchingMode,
   preferredSupplyId,
   routeFamily,
   routeSummary,
 }: {
   candidatePool: string[];
+  matchCandidates: RequestMatchCandidate[];
   matchingMode?: string;
   preferredSupplyId: string;
   routeFamily?: string;
@@ -891,7 +1297,11 @@ function isPreferredSupplyRouteSelected({
     return true;
   }
 
-  const firstCandidate = candidatePool.find((candidateId) => hasText(candidateId));
+  const firstCandidate =
+    matchCandidates
+      .slice()
+      .sort((left, right) => right.leadScore - left.leadScore)[0]?.supplyId ??
+    candidatePool.find((candidateId) => hasText(candidateId));
   return (
     firstCandidate === preferredSupplyId &&
     hasText(routeSummary) &&

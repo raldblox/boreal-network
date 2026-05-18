@@ -208,6 +208,7 @@ Derived fields kept separate from the canonical brief:
 - `derived.paymentMode`
 - `derived.matchingMode`
 - `derived.candidatePool`
+- `derived.matchCandidates`
 - `derived.leadRole`
 - `derived.roleSlots`
 - `derived.phases`
@@ -223,9 +224,10 @@ Derived fields kept separate from the canonical brief:
 
 Conceptual grouping rule:
 
-- route-facing derived state includes route family, execution kind, payment mode, matching mode, candidate pool, and route summary
-- structural planning derived state includes lead role, role slots, phase plans, and anti-microtask guardrails
+- route-facing derived state includes route family, execution kind, payment mode, matching mode, candidate pool, match-candidate snapshots, and route summary
+- structural planning derived state includes lead role, role slots, phase plans, interpreted lead ranking, interpreted role matches, assignment proposal, and anti-microtask guardrails
 - execution and proof derived state includes embodied execution profile, verification plan, collapse risk, and clarification requirements
+- planner-explanation derived state includes outcome claims and replan reasons
 
 The current shape may keep these fields flat under one `derived` block for implementation compatibility.
 That does not make them buyer-authored brief fields.

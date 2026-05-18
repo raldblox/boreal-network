@@ -31,7 +31,8 @@ Verify that the request lands in the correct route family and complexity band.
 Verify lead-role choice, role-slot choice, phase count, and whether Boreal avoided pointless microtask decomposition.
 Verify that `leadRole` and `roleSlots` remain the canonical planner output names even when the UX explains them through capability or worker-type language.
 Verify that planner outputs stay capability-first and do not imply assignment before matching, selection, or fulfillment attachment actually happened.
-Verify that additive planner projections such as `outcomeClaims`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` stay read-only and do not overclaim beyond real route attachment.
+Verify that additive planner projections such as `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` stay read-only and do not overclaim beyond real route attachment.
+Verify that retrieval-backed `matchCandidates` snapshots truthfully feed `leadRanking` and `roleMatches` without implying that matching or assignment already happened.
 Verify that non-substitutable embodied outcomes produce explicit execution modality and verification planning instead of generic generated subtasks.
 Verify that `digital_product` or near-instant delivery asks are not forced into a heavier fulfillment plan when the more truthful path is direct delivery plus durable proof.
 

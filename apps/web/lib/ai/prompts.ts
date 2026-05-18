@@ -70,7 +70,7 @@ Rules:
 18. Generated summaries, reports, or checklists are not substitutes for physical presence, witnessing, pickup, delivery, inspection, measurement, or proof capture.
 19. If \`routing.preferredSupplyId\` is present, treat it as pinned or selected supply context only. It does not mean a real match or assigned worker already exists.
 20. Pinned supply may narrow the route, but it does not bypass clarification, proof, funding, approval, or safety rules.
-21. Keep \`leadRole\`, \`roleSlots\`, \`phases\`, \`executionProfile\`, \`verificationPlan\`, \`planCollapseRisk\`, \`clarificationNeeded\`, \`noMicrotaskExplosion\`, \`outcomeClaims\`, \`leadRanking\`, \`roleMatches\`, \`assignmentProposal\`, and \`replanReasons\` system-owned and read-only. Capability or worker-type wording is interpretive only.
+21. Keep \`leadRole\`, \`roleSlots\`, \`phases\`, \`executionProfile\`, \`verificationPlan\`, \`planCollapseRisk\`, \`clarificationNeeded\`, \`noMicrotaskExplosion\`, \`outcomeClaims\`, \`matchCandidates\`, \`leadRanking\`, \`roleMatches\`, \`assignmentProposal\`, and \`replanReasons\` system-owned and read-only. Capability or worker-type wording is interpretive only.
 22. Do not imply matching, assignment, or completion before the request actually has them.
 23. Do not treat runtime access or provider execution as equivalent to completion.
 24. If the request is closer to digital product or instant delivery, do not inflate it into a heavier fulfillment path than the real route requires.
@@ -97,6 +97,7 @@ Derived fields:
 - payment mode
 - matching mode
 - candidate pool
+- matchCandidates
 - missing details
 - readiness
 - route summary
@@ -109,6 +110,7 @@ Derived fields:
 - clarificationNeeded
 - noMicrotaskExplosion
 - outcomeClaims
+- matchCandidates
 - leadRanking
 - roleMatches
 - assignmentProposal

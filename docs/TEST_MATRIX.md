@@ -182,7 +182,8 @@ Verify:
 - planner-derived lead role, role slots, phase plans, execution profile, and proof-planning fields stay outside the buyer-authored brief surface
 - `leadRole` and `roleSlots` remain the canonical planner field names even when the UI explains them as capability or worker-type language
 - planner outputs stay capability-first before they imply assignment-first execution
-- additive planner outputs such as `outcomeClaims`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` stay read-only and rebuildable
+- additive planner outputs such as `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` stay read-only and rebuildable
+- retrieved planner candidate snapshots should truthfully rebuild `candidatePool`, `leadRanking`, and `roleMatches` from real `Supply` rows without implying attached execution
 - planner outputs must not imply a real match is attached before matching actually happened for that request flow
 - planner outputs must preserve embodied, local-runtime, and verification-heavy work as first-class planning realities
 - plan-collapse detection should trigger clarification or block-and-escalate when required embodied work is being omitted

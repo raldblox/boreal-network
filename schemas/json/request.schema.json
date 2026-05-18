@@ -213,9 +213,15 @@
       "additionalProperties": false,
       "required": [
         "candidatePool",
+        "matchCandidates",
         "roleSlots",
         "phases",
         "noMicrotaskExplosion",
+        "outcomeClaims",
+        "leadRanking",
+        "roleMatches",
+        "assignmentProposal",
+        "replanReasons",
         "missingDetails",
         "readiness",
         "executionProfile",
@@ -354,6 +360,378 @@
         },
         "noMicrotaskExplosion": {
           "type": "boolean"
+        },
+        "outcomeClaims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "claimKey",
+              "summary",
+              "source",
+              "nonSubstitutable",
+              "proofRequired"
+            ],
+            "properties": {
+              "claimKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "brief",
+                  "output_kind",
+                  "execution",
+                  "verification"
+                ]
+              },
+              "nonSubstitutable": {
+                "type": "boolean"
+              },
+              "proofRequired": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "matchCandidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "supplyId",
+              "source",
+              "overallScore",
+              "leadScore",
+              "roleScores",
+              "summary"
+            ],
+            "properties": {
+              "supplyId": {
+                "$ref": "common.schema.json#/$defs/identifier"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "retrieved",
+                  "preferred_supply"
+                ]
+              },
+              "overallScore": {
+                "type": "number"
+              },
+              "leadScore": {
+                "type": "number"
+              },
+              "roleScores": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "roleKey",
+                    "score",
+                    "confidence"
+                  ],
+                  "properties": {
+                    "roleKey": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "score": {
+                      "type": "number"
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "moderate",
+                        "high"
+                      ]
+                    }
+                  }
+                }
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "leadRanking": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "roleKey",
+              "source",
+              "status",
+              "confidence",
+              "summary"
+            ],
+            "properties": {
+              "roleKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "supplyId": {
+                "$ref": "common.schema.json#/$defs/identifier"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "planner",
+                  "candidate_pool",
+                  "preferred_supply",
+                  "fulfillment"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "candidate",
+                  "selected",
+                  "attached"
+                ]
+              },
+              "confidence": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "moderate",
+                  "high"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "roleMatches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "roleKey",
+              "required",
+              "source",
+              "status",
+              "confidence",
+              "summary"
+            ],
+            "properties": {
+              "roleKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "supplyId": {
+                "$ref": "common.schema.json#/$defs/identifier"
+              },
+              "source": {
+                "type": "string",
+                "enum": [
+                  "planner",
+                  "candidate_pool",
+                  "preferred_supply",
+                  "fulfillment"
+                ]
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "candidate",
+                  "selected",
+                  "attached"
+                ]
+              },
+              "confidence": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "moderate",
+                  "high"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "assignmentProposal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "summary",
+            "lead",
+            "support"
+          ],
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": [
+                "unfilled",
+                "candidate_pool",
+                "selected_supply",
+                "execution_attached"
+              ]
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "lead": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "roleKey",
+                    "required",
+                    "source",
+                    "status",
+                    "confidence",
+                    "summary"
+                  ],
+                  "properties": {
+                    "roleKey": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "supplyId": {
+                      "$ref": "common.schema.json#/$defs/identifier"
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "planner",
+                        "candidate_pool",
+                        "preferred_supply",
+                        "fulfillment"
+                      ]
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "open",
+                        "candidate",
+                        "selected",
+                        "attached"
+                      ]
+                    },
+                    "confidence": {
+                      "type": "string",
+                      "enum": [
+                        "low",
+                        "moderate",
+                        "high"
+                      ]
+                    },
+                    "summary": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
+            },
+            "support": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "roleKey",
+                  "required",
+                  "source",
+                  "status",
+                  "confidence",
+                  "summary"
+                ],
+                "properties": {
+                  "roleKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "required": {
+                    "type": "boolean"
+                  },
+                  "supplyId": {
+                    "$ref": "common.schema.json#/$defs/identifier"
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "planner",
+                      "candidate_pool",
+                      "preferred_supply",
+                      "fulfillment"
+                    ]
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "open",
+                      "candidate",
+                      "selected",
+                      "attached"
+                    ]
+                  },
+                  "confidence": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "moderate",
+                      "high"
+                    ]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "replanReasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         },
         "missingDetails": {
           "type": "array",
