@@ -1,6 +1,7 @@
 import { tool, type UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
+import { borealOutputKindSchema } from "@/lib/matching-fingerprints";
 import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import {
@@ -30,7 +31,7 @@ export const updateRequestConstraints = ({
       constraints: z.record(z.string(), z.unknown()).default({}),
       embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
       outputKinds: z
-        .union([z.string().min(1), z.array(z.string().min(1))])
+        .union([borealOutputKindSchema, z.array(borealOutputKindSchema)])
         .optional(),
       seeking: requestSeekingInputSchema.optional(),
       tags: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),

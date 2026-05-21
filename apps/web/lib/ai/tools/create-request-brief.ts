@@ -1,7 +1,8 @@
 import { tool, type UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
-import type { RequestVisibility } from "@/lib/request";
+import { borealOutputKindSchema } from "@/lib/matching-fingerprints";
+import type { RequestOutputKind, RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import {
   applyRequestBriefPatch,
@@ -35,7 +36,7 @@ export const createRequestBrief = ({
       constraints: z.record(z.string(), z.unknown()).optional(),
       embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
       outputKinds: z
-        .union([z.string().min(1), z.array(z.string().min(1))])
+        .union([borealOutputKindSchema, z.array(borealOutputKindSchema)])
         .optional(),
       seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
@@ -104,7 +105,7 @@ function buildCreateRequestBriefPayload({
   body: string;
   constraints: Record<string, unknown> | undefined;
   embodiedConstraints: z.infer<typeof requestEmbodiedConstraintInputSchema> | undefined;
-  outputKinds: string | string[] | undefined;
+  outputKinds: RequestOutputKind | RequestOutputKind[] | undefined;
 }) {
   const normalizedTitle = normalizeOptionalText(title);
   const normalizedSummary = normalizeOptionalText(summary);

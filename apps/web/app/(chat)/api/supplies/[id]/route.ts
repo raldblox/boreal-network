@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { getSupplyById, toSupplyDraft } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
+import {
+  borealActorKindSchema,
+  borealExecutionChannelSchema,
+  borealOutputKindSchema,
+  borealSupplyKindSchema,
+} from "@/lib/matching-fingerprints";
 import { getRequestActorContext } from "@/lib/resolver-session";
 import {
   deleteSupplyDraft,
@@ -28,14 +34,10 @@ const patchSupplySchema = z.object({
         .optional(),
       capability: z
         .object({
-          supplyKinds: z.array(z.string().min(1)).optional(),
-          fulfillmentActorKinds: z
-            .array(
-              z.enum(["human", "agent", "tool", "organization", "runtime"])
-            )
-            .optional(),
-          outputKinds: z.array(z.string().min(1)).optional(),
-          executionChannels: z.array(z.string().min(1)).optional(),
+          supplyKinds: z.array(borealSupplyKindSchema).optional(),
+          fulfillmentActorKinds: z.array(borealActorKindSchema).optional(),
+          outputKinds: z.array(borealOutputKindSchema).optional(),
+          executionChannels: z.array(borealExecutionChannelSchema).optional(),
         })
         .optional(),
       availability: z

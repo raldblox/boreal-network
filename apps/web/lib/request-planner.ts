@@ -9,8 +9,28 @@ import type {
   RequestPhasePlan,
   RequestPlanCollapseRisk,
   RequestRoleSlot,
+  RequestTeamMode,
   RequestVerificationPlan,
 } from "./request";
+import type {
+  BorealOutputKind,
+  BorealRequestEvidenceClaim,
+  BorealRequestMatchingMode,
+  BorealRequestPhaseKey,
+  BorealRequestRoleKey,
+  BorealRequestRouteFamily,
+  BorealSupplyKind,
+} from "./matching-fingerprints";
+import {
+  borealActorKinds,
+  borealOutputKinds,
+  borealRequestEvidenceClaims,
+  borealRequestExecutionModes,
+  borealSupplyKinds,
+  borealRequestRoleKeys,
+  normalizeFingerprintArray,
+  normalizeFingerprintValue,
+} from "./matching-fingerprints";
 import type { BorealSupplyDraft } from "./supply";
 
 export type RequestOutcomeClaim = {
@@ -24,7 +44,7 @@ export type RequestOutcomeClaim = {
 export type RequestPlannerConfidence = "low" | "moderate" | "high";
 
 export type RequestMatchCandidateRoleScore = {
-  roleKey: string;
+  roleKey: BorealRequestRoleKey;
   score: number;
   confidence: RequestPlannerConfidence;
 };
@@ -51,7 +71,7 @@ export type RequestPlannerMatchStatus =
   | "attached";
 
 export type RequestLeadRankingEntry = {
-  roleKey: string;
+  roleKey: BorealRequestRoleKey;
   supplyId?: string;
   source: RequestPlannerMatchSource;
   status: RequestPlannerMatchStatus;
@@ -60,7 +80,7 @@ export type RequestLeadRankingEntry = {
 };
 
 export type RequestRoleMatch = {
-  roleKey: string;
+  roleKey: BorealRequestRoleKey;
   required: boolean;
   supplyId?: string;
   source: RequestPlannerMatchSource;
@@ -81,7 +101,7 @@ export type RequestAssignmentProposal = {
 };
 
 export type RequestPlannerState = {
-  leadRole?: string;
+  leadRole?: BorealRequestRoleKey;
   roleSlots: RequestRoleSlot[];
   phases: RequestPhasePlan[];
   noMicrotaskExplosion: boolean;
@@ -114,9 +134,9 @@ export function deriveRequestPlannerState(
   const preferredSupplyRouteSelected = isPreferredSupplyRouteSelected({
     candidatePool: draft.derived.candidatePool ?? [],
     matchCandidates: draft.derived.matchCandidates ?? [],
-    matchingMode: normalizeText(draft.derived.matchingMode),
+    matchingMode: draft.derived.matchingMode,
     preferredSupplyId: normalizeText(draft.routing.preferredSupplyId),
-    routeFamily: normalizeText(draft.derived.routeFamily),
+    routeFamily: draft.derived.routeFamily,
     routeSummary: normalizeText(draft.derived.routeSummary),
   });
   const matchCandidates = normalizeMatchCandidates(
@@ -213,9 +233,9 @@ function deriveEmbodiedPlanningState(
     constraints,
     "safetyRequirements"
   );
-  const explicitVerificationRequirements = getConstraintStringArray(
-    constraints,
-    "verificationRequirements"
+  const explicitVerificationRequirements = normalizeFingerprintArray(
+    getConstraintStringArray(constraints, "verificationRequirements"),
+    borealRequestEvidenceClaims
   );
   const inferredEmbodiedModes = inferExecutionModes(requestText);
   const serviceLocation =
@@ -415,17 +435,20 @@ function deriveStructuralPlanningState(
     clarificationNeeded: RequestClarificationNeeded;
   }
 ): {
-  leadRole?: string;
+  leadRole?: BorealRequestRoleKey;
   roleSlots: RequestRoleSlot[];
   phases: RequestPhasePlan[];
   noMicrotaskExplosion: boolean;
 } {
   const supplyKinds = collapseGenericPlanningSupplyKinds(
-    normalizeStringArray(draft.seeking.supplyKinds)
+    normalizeFingerprintArray(draft.seeking.supplyKinds, borealSupplyKinds)
   );
   const actorKinds = normalizeActorKinds(draft.seeking.actorKinds);
-  const outputKinds = normalizeStringArray(draft.brief.outputKinds);
-  const teamMode = normalizeText(draft.seeking.teamMode).toLowerCase();
+  const outputKinds = normalizeFingerprintArray(
+    draft.brief.outputKinds,
+    borealOutputKinds
+  );
+  const teamMode = draft.seeking.teamMode ?? "";
   const hasPlanningSeed =
     hasText(draft.brief.title) ||
     hasText(draft.brief.summary) ||
@@ -565,7 +588,7 @@ function deriveOutcomeClaims({
 }): RequestOutcomeClaim[] {
   const claims: RequestOutcomeClaim[] = [];
   const seenClaimKeys = new Set<string>();
-  const outputKinds = normalizeStringArray(brief.outputKinds);
+  const outputKinds = normalizeFingerprintArray(brief.outputKinds, borealOutputKinds);
   const body = normalizeWhitespace(brief.body ?? "");
   const title = normalizeWhitespace(brief.title ?? "");
 
@@ -648,7 +671,7 @@ function deriveLeadRanking({
 }: {
   candidatePool: string[];
   matchCandidates: RequestMatchCandidate[];
-  leadRole?: string;
+  leadRole?: BorealRequestRoleKey;
   preferredSupplyId: string;
   hasActiveFulfillment: boolean;
   preferredSupplyRouteSelected: boolean;
@@ -750,7 +773,7 @@ function deriveRoleMatches({
 }: {
   candidatePool: string[];
   matchCandidates: RequestMatchCandidate[];
-  leadRole?: string;
+  leadRole?: BorealRequestRoleKey;
   preferredSupplyId: string;
   roleSlots: RequestRoleSlot[];
   hasActiveFulfillment: boolean;
@@ -955,14 +978,13 @@ function normalizeMatchCandidates(
 
       const roleScores = (candidate.roleScores ?? [])
         .map((roleScore) => {
-          const roleKey = normalizeText(roleScore.roleKey);
-          if (!roleKey || typeof roleScore.score !== "number") {
+          if (typeof roleScore.score !== "number") {
             return null;
           }
 
           const score = Number.isFinite(roleScore.score) ? roleScore.score : 0;
           return {
-            roleKey,
+            roleKey: normalizeRoleKey(roleScore.roleKey),
             score,
             confidence: scoreToPlannerConfidence(score),
           } satisfies RequestMatchCandidateRoleScore;
@@ -997,13 +1019,19 @@ function normalizeMatchCandidates(
     .sort((left, right) => right.overallScore - left.overallScore);
 }
 
-function getRoleScore(candidate: RequestMatchCandidate, roleKey: string) {
+function getRoleScore(
+  candidate: RequestMatchCandidate,
+  roleKey: BorealRequestRoleKey
+) {
   return (
     candidate.roleScores.find((roleScore) => roleScore.roleKey === roleKey)?.score ?? 0
   );
 }
 
-function getRoleConfidence(candidate: RequestMatchCandidate, roleKey: string) {
+function getRoleConfidence(
+  candidate: RequestMatchCandidate,
+  roleKey: BorealRequestRoleKey
+) {
   return scoreToPlannerConfidence(getRoleScore(candidate, roleKey));
 }
 
@@ -1013,7 +1041,7 @@ function getBestRoleMatchCandidate({
   usedSupplyIds,
 }: {
   matchCandidates: RequestMatchCandidate[];
-  roleKey: string;
+  roleKey: BorealRequestRoleKey;
   usedSupplyIds?: Set<string>;
 }) {
   return matchCandidates
@@ -1048,7 +1076,7 @@ function scoreSupplyForRole({
   supply,
 }: {
   executionProfile: RequestExecutionProfile;
-  outputKinds: string[];
+  outputKinds: BorealOutputKind[];
   preferredSupplyId?: string;
   roleSlot: RequestRoleSlot;
   supply: Pick<
@@ -1175,7 +1203,10 @@ export function buildRequestMatchCandidate({
     .map((roleSlot) => {
       const score = scoreSupplyForRole({
         executionProfile: requestDraft.derived.executionProfile,
-        outputKinds: normalizeStringArray(requestDraft.brief.outputKinds),
+        outputKinds: normalizeFingerprintArray(
+          requestDraft.brief.outputKinds,
+          borealOutputKinds
+        ),
         preferredSupplyId: normalizeText(requestDraft.routing.preferredSupplyId),
         roleSlot,
         supply,
@@ -1226,7 +1257,7 @@ export function deriveCandidatePoolOrder({
   matchCandidates,
   roleSlots,
 }: {
-  leadRole?: string;
+  leadRole?: BorealRequestRoleKey;
   matchCandidates: RequestMatchCandidate[];
   roleSlots: RequestRoleSlot[];
 }) {
@@ -1284,9 +1315,9 @@ function isPreferredSupplyRouteSelected({
 }: {
   candidatePool: string[];
   matchCandidates: RequestMatchCandidate[];
-  matchingMode?: string;
+  matchingMode?: BorealRequestMatchingMode;
   preferredSupplyId: string;
-  routeFamily?: string;
+  routeFamily?: BorealRequestRouteFamily;
   routeSummary?: string;
 }) {
   if (!preferredSupplyId) {
@@ -1316,8 +1347,8 @@ function createRoleSlot({
   requiredActorKinds,
   summary,
 }: {
-  roleKey: string;
-  preferredSupplyKinds: string[];
+  roleKey: BorealRequestRoleKey;
+  preferredSupplyKinds: BorealSupplyKind[];
   required: boolean;
   requiredActorKinds: RequestActorKind[];
   summary?: string;
@@ -1339,10 +1370,10 @@ function deriveLeadRoleKey({
   executionModes,
 }: {
   actorKinds: RequestActorKind[];
-  outputKinds: string[];
-  supplyKinds: string[];
+  outputKinds: BorealOutputKind[];
+  supplyKinds: BorealSupplyKind[];
   executionModes: RequestExecutionMode[];
-}): string {
+}): BorealRequestRoleKey {
   const primarySupplyKind = supplyKinds[0];
   if (primarySupplyKind) {
     return normalizeRoleKey(primarySupplyKind);
@@ -1357,7 +1388,7 @@ function deriveLeadRoleKey({
   }
 
   if (executionModes.includes("pickup_dropoff")) {
-    return "pickup_operator";
+    return "courier_runner";
   }
 
   if (executionModes.includes("witnessed_handoff")) {
@@ -1369,7 +1400,18 @@ function deriveLeadRoleKey({
   }
 
   if (actorKinds.length === 1) {
-    return `${actorKinds[0]}_lead`;
+    switch (actorKinds[0]) {
+      case "human":
+        return "human_lead";
+      case "agent":
+        return "agent_lead";
+      case "tool":
+        return "tool_lead";
+      case "organization":
+        return "organization_lead";
+      case "runtime":
+        return "runtime_lead";
+    }
   }
 
   return "specialist_lead";
@@ -1388,8 +1430,8 @@ function deriveRoleActorKinds({
     verificationPlan: RequestVerificationPlan;
   };
   isLead: boolean;
-  roleKey: string;
-  supplyKind?: string;
+  roleKey: BorealRequestRoleKey;
+  supplyKind?: BorealSupplyKind;
 }): RequestActorKind[] {
   const normalizedActorKinds = actorKinds.length > 0 ? actorKinds : [];
   const roleFingerprint = `${roleKey} ${supplyKind ?? ""}`.toLowerCase();
@@ -1443,8 +1485,8 @@ function buildRoleSlotSummary({
     verificationPlan: RequestVerificationPlan;
   };
   isLead: boolean;
-  outputKinds: string[];
-  roleKey: string;
+  outputKinds: BorealOutputKind[];
+  roleKey: BorealRequestRoleKey;
 }): string {
   if (isLead && embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling) {
     return "Own the lead execution lane without flattening onsite or proof-heavy work into a digital-only result.";
@@ -1478,9 +1520,9 @@ function shouldRequireCollaboratorRole({
     embodiedConstraintSet: RequestEmbodiedConstraintSet;
   };
   index: number;
-  outputKinds: string[];
-  supplyKinds: string[];
-  teamMode: string;
+  outputKinds: BorealOutputKind[];
+  supplyKinds: BorealSupplyKind[];
+  teamMode: RequestTeamMode | "";
 }): boolean {
   const explicitTeamMode = /\bteam\b|\bmulti\b|\bcollab\b|\bpair\b|\bsquad\b/.test(
     teamMode
@@ -1505,10 +1547,10 @@ function derivePhasePlans({
     clarificationNeeded: RequestClarificationNeeded;
     embodiedConstraintSet: RequestEmbodiedConstraintSet;
   };
-  leadRole: string;
-  outputKinds: string[];
+  leadRole: BorealRequestRoleKey;
+  outputKinds: BorealOutputKind[];
   roleSlots: RequestRoleSlot[];
-  teamMode: string;
+  teamMode: RequestTeamMode | "";
 }): RequestPhasePlan[] {
   const phases: RequestPhasePlan[] = [];
   const evidenceClaims =
@@ -1598,7 +1640,7 @@ function derivePhasePlans({
 
 function deriveEmbodiedExecutionPhaseKey(
   executionModes: RequestExecutionMode[]
-): string {
+): BorealRequestPhaseKey {
   if (executionModes.includes("field_inspection")) {
     return "field_execution";
   }
@@ -1632,7 +1674,9 @@ function deriveEmbodiedExecutionPhaseTitle(
   return "Complete the onsite work";
 }
 
-function getExecutionRoleKeys(roleSlots: RequestRoleSlot[]): string[] {
+function getExecutionRoleKeys(
+  roleSlots: RequestRoleSlot[]
+): BorealRequestRoleKey[] {
   const requiredRoleKeys = roleSlots
     .filter((slot) => slot.required)
     .map((slot) => slot.roleKey);
@@ -1642,7 +1686,9 @@ function getExecutionRoleKeys(roleSlots: RequestRoleSlot[]): string[] {
     : roleSlots.slice(0, 1).map((slot) => slot.roleKey);
 }
 
-function getProofRoleKeys(roleSlots: RequestRoleSlot[]): string[] {
+function getProofRoleKeys(
+  roleSlots: RequestRoleSlot[]
+): BorealRequestRoleKey[] {
   const proofRoleKeys = roleSlots
     .filter((slot) =>
       /documentation|qa|report|evidence/.test(slot.roleKey)
@@ -1656,7 +1702,7 @@ function getProofRoleKeys(roleSlots: RequestRoleSlot[]): string[] {
   return getExecutionRoleKeys(roleSlots);
 }
 
-function normalizeRoleKey(value: string): string {
+function normalizeRoleKey(value: string): BorealRequestRoleKey {
   const normalized = value
     .trim()
     .toLowerCase()
@@ -1666,30 +1712,41 @@ function normalizeRoleKey(value: string): string {
   switch (normalized) {
     case "field_inspection":
       return "field_inspector";
+    case "field_verification":
+      return "field_technician";
     case "human_service":
       return "service_lead";
     case "agent_worker":
       return "agent_operator";
+    case "local_runner":
+    case "pickup_dropoff":
+      return "courier_runner";
     case "provider_capability":
       return "tool_operator";
     case "runtime_executor":
     case "desktop_runtime":
       return "runtime_operator";
     default:
-      return normalized || "support_role";
+      return (
+        normalizeFingerprintValue(normalized, borealRequestRoleKeys) ??
+        "support_role"
+      );
   }
 }
 
-function collapseGenericPlanningSupplyKinds(supplyKinds: string[]) {
+function collapseGenericPlanningSupplyKinds(supplyKinds: BorealSupplyKind[]) {
   const genericKinds = new Set([
     "agent_worker",
+    "desktop_runtime",
     "human_service",
     "digital_product",
     "runtime_executor",
     "provider_capability",
     "team_service",
   ]);
-  const normalizedSupplyKinds = supplyKinds.filter((kind) => kind.trim().length > 0);
+  const normalizedSupplyKinds = supplyKinds.filter(
+    (kind): kind is BorealSupplyKind => kind.trim().length > 0
+  );
   const hasSpecificKinds = normalizedSupplyKinds.some(
     (kind) => !genericKinds.has(kind)
   );
@@ -1841,26 +1898,40 @@ function inferTimeWindows(text: string): string[] {
   return matches;
 }
 
-function inferVerificationRequirements(text: string): string[] {
+function inferVerificationRequirements(
+  text: string
+): BorealRequestEvidenceClaim[] {
   const normalizedText = text.toLowerCase();
-  const requirements = new Set<string>();
+  const requirements = new Set<BorealRequestEvidenceClaim>();
 
   if (/\btimestamp(?:ed)? photos?\b/.test(normalizedText)) {
     requirements.add("timestamped_photos");
   } else if (/\bphotos?\b|\bphoto proof\b/.test(normalizedText)) {
-    requirements.add("photo_evidence");
+    requirements.add("photo_proof");
   }
 
-  if (/\bvideo proof\b|\bvideo\b/.test(normalizedText)) {
-    requirements.add("video_evidence");
+  if (/\bserial numbers?\b|\bserials?\b/.test(normalizedText)) {
+    requirements.add("serial_number_capture");
+  }
+
+  if (/\bverification note\b|\bverify note\b/.test(normalizedText)) {
+    requirements.add("verification_note");
   }
 
   if (/\bwritten report\b|\breport\b/.test(normalizedText)) {
     requirements.add("written_report");
   }
 
-  if (/\bissues?\b/.test(normalizedText)) {
-    requirements.add("issue_log");
+  if (/\bhandoff\b|\bsignature\b|\bsigned\b|\bwitness(?:ed)?\b/.test(normalizedText)) {
+    requirements.add("handoff_signature");
+  }
+
+  if (
+    /\bdelivery confirmation\b|\bconfirm delivery\b|\bdelivery receipt\b/.test(
+      normalizedText
+    )
+  ) {
+    requirements.add("delivery_confirmation");
   }
 
   return Array.from(requirements);
@@ -1902,46 +1973,16 @@ function normalizeRecord(
   return value;
 }
 
-function normalizeStringArray(value: string[] | undefined): string[] {
-  if (!value) {
-    return [];
-  }
-
-  return Array.from(
-    new Set(value.map((entry) => entry.trim()).filter(Boolean))
-  );
-}
-
 function normalizeExecutionModes(
   value: string[] | undefined
 ): RequestExecutionMode[] {
-  const allowedModes = new Set<RequestExecutionMode>([
-    "remote_digital",
-    "remote_sync",
-    "onsite_visit",
-    "field_inspection",
-    "pickup_dropoff",
-    "witnessed_handoff",
-  ]);
-
-  return Array.from(
-    new Set(
-      (value ?? []).filter(
-        (entry): entry is RequestExecutionMode =>
-          allowedModes.has(entry as RequestExecutionMode)
-      )
-    )
-  );
+  return normalizeFingerprintArray(value, borealRequestExecutionModes);
 }
 
 function normalizeActorKinds(
   value: RequestActorKind[] | undefined
 ): RequestActorKind[] {
-  if (!value) {
-    return [];
-  }
-
-  return Array.from(new Set(value));
+  return normalizeFingerprintArray(value, borealActorKinds);
 }
 
 function getClarificationReason(detail: string): string {
@@ -2011,7 +2052,7 @@ function deriveVerificationArtifactKinds({
 }: {
   needsEmbodiedHandling: boolean;
   requiresWitness: boolean;
-  verificationRequirements: string[];
+  verificationRequirements: BorealRequestEvidenceClaim[];
 }): RequestArtifactKind[] {
   const kinds = new Set<RequestArtifactKind>();
 

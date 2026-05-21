@@ -1,7 +1,18 @@
 import type { Geo } from "@vercel/functions";
 import type { ArtifactKind } from "@/components/chat/artifact";
+import type {
+  BorealActorKind,
+  BorealExecutionChannel,
+  BorealOutputKind,
+  BorealSupplyKind,
+} from "@/lib/matching-fingerprints";
 import type { BorealRequestDraft, RequestActivityEntry } from "@/lib/request";
-import type { SupplyStatus, SupplyVisibility } from "@/lib/supply";
+import type {
+  SupplyPricing,
+  SupplySourceKind,
+  SupplyStatus,
+  SupplyVisibility,
+} from "@/lib/supply";
 
 export const artifactsPrompt = `
 Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), and spreadsheets. Changes appear in real-time.
@@ -183,12 +194,12 @@ export type RequestSupplyContextSummary = {
   displayName: string;
   headline: string;
   summary: string;
-  supplyKinds: string[];
-  fulfillmentActorKinds: string[];
-  outputKinds: string[];
-  executionChannels: string[];
-  pricingMode: string | null;
-  sourceKind: string;
+  supplyKinds: BorealSupplyKind[];
+  fulfillmentActorKinds: BorealActorKind[];
+  outputKinds: BorealOutputKind[];
+  executionChannels: BorealExecutionChannel[];
+  pricingMode: SupplyPricing["mode"] | null;
+  sourceKind: SupplySourceKind;
 };
 
 export const getRequestPromptFromHints = (requestHints: RequestHints) => `\

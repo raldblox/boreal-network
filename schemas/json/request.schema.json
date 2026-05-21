@@ -70,8 +70,7 @@
         "outputKinds": {
           "type": "array",
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "common.schema.json#/$defs/outputKind"
           },
           "uniqueItems": true
         },
@@ -102,14 +101,11 @@
           "type": "array",
           "uniqueItems": true,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "common.schema.json#/$defs/supplyKind"
           }
         },
         "teamMode": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64
+          "$ref": "common.schema.json#/$defs/requestTeamMode"
         },
         "notes": {
           "type": "string",
@@ -232,24 +228,16 @@
       ],
       "properties": {
         "routeFamily": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
+          "$ref": "common.schema.json#/$defs/requestRouteFamily"
         },
         "executionKind": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
+          "$ref": "common.schema.json#/$defs/requestExecutionKind"
         },
         "paymentMode": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
+          "$ref": "common.schema.json#/$defs/requestPaymentMode"
         },
         "matchingMode": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
+          "$ref": "common.schema.json#/$defs/requestMatchingMode"
         },
         "candidatePool": {
           "type": "array",
@@ -260,9 +248,7 @@
           "uniqueItems": true
         },
         "leadRole": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 128
+          "$ref": "common.schema.json#/$defs/requestRoleKey"
         },
         "roleSlots": {
           "type": "array",
@@ -278,9 +264,7 @@
             ],
             "properties": {
               "roleKey": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
+                "$ref": "common.schema.json#/$defs/requestRoleKey"
               },
               "title": {
                 "type": "string",
@@ -298,8 +282,7 @@
                 "type": "array",
                 "uniqueItems": true,
                 "items": {
-                  "type": "string",
-                  "minLength": 1
+                  "$ref": "common.schema.json#/$defs/supplyKind"
                 }
               },
               "required": {
@@ -326,9 +309,7 @@
             ],
             "properties": {
               "phaseKey": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
+                "$ref": "common.schema.json#/$defs/requestPhaseKey"
               },
               "title": {
                 "type": "string",
@@ -343,16 +324,14 @@
                 "type": "array",
                 "uniqueItems": true,
                 "items": {
-                  "type": "string",
-                  "minLength": 1
+                  "$ref": "common.schema.json#/$defs/requestRoleKey"
                 }
               },
               "requiredEvidenceClaims": {
                 "type": "array",
                 "uniqueItems": true,
                 "items": {
-                  "type": "string",
-                  "minLength": 1
+                  "$ref": "common.schema.json#/$defs/requestEvidenceClaim"
                 }
               }
             }
@@ -443,9 +422,7 @@
                   ],
                   "properties": {
                     "roleKey": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128
+                      "$ref": "common.schema.json#/$defs/requestRoleKey"
                     },
                     "score": {
                       "type": "number"
@@ -482,9 +459,7 @@
             ],
             "properties": {
               "roleKey": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
+                "$ref": "common.schema.json#/$defs/requestRoleKey"
               },
               "supplyId": {
                 "$ref": "common.schema.json#/$defs/identifier"
@@ -537,9 +512,7 @@
             ],
             "properties": {
               "roleKey": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 128
+                "$ref": "common.schema.json#/$defs/requestRoleKey"
               },
               "required": {
                 "type": "boolean"
@@ -621,9 +594,7 @@
                   ],
                   "properties": {
                     "roleKey": {
-                      "type": "string",
-                      "minLength": 1,
-                      "maxLength": 128
+                      "$ref": "common.schema.json#/$defs/requestRoleKey"
                     },
                     "required": {
                       "type": "boolean"
@@ -680,9 +651,7 @@
                 ],
                 "properties": {
                   "roleKey": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
+                    "$ref": "common.schema.json#/$defs/requestRoleKey"
                   },
                   "required": {
                     "type": "boolean"
@@ -792,15 +761,7 @@
               "type": "array",
               "uniqueItems": true,
               "items": {
-                "type": "string",
-                "enum": [
-                  "remote_digital",
-                  "remote_sync",
-                  "onsite_visit",
-                  "field_inspection",
-                  "pickup_dropoff",
-                  "witnessed_handoff"
-                ]
+                "$ref": "common.schema.json#/$defs/requestExecutionMode"
               }
             },
             "requiresHumanPresence": {
@@ -851,15 +812,7 @@
               "type": "array",
               "uniqueItems": true,
               "items": {
-                "type": "string",
-                "enum": [
-                  "remote_digital",
-                  "remote_sync",
-                  "onsite_visit",
-                  "field_inspection",
-                  "pickup_dropoff",
-                  "witnessed_handoff"
-                ]
+                "$ref": "common.schema.json#/$defs/requestExecutionMode"
               }
             },
             "serviceLocation": {
@@ -893,8 +846,7 @@
             "verificationRequirements": {
               "type": "array",
               "items": {
-                "type": "string",
-                "minLength": 1
+                "$ref": "common.schema.json#/$defs/requestEvidenceClaim"
               },
               "uniqueItems": true
             },
@@ -946,8 +898,7 @@
               "type": "array",
               "uniqueItems": true,
               "items": {
-                "type": "string",
-                "minLength": 1
+                "$ref": "common.schema.json#/$defs/requestEvidenceClaim"
               }
             },
             "mustHaveOwnerAcceptance": {

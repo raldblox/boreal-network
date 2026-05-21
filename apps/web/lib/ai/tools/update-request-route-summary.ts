@@ -1,6 +1,12 @@
 import { tool, type UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
+import {
+  borealRequestExecutionKindSchema,
+  borealRequestMatchingModeSchema,
+  borealRequestPaymentModeSchema,
+  borealRequestRouteFamilySchema,
+} from "@/lib/matching-fingerprints";
 import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import { applyRequestBriefPatch } from "./request-briefing-shared";
@@ -23,10 +29,10 @@ export const updateRequestRouteSummary = ({
       "Update the derived route summary for the active Request draft, including route family, execution mode, payment mode, matching mode, and candidate pool.",
     inputSchema: z.object({
       routeSummary: z.string().min(1),
-      routeFamily: z.string().min(1).optional(),
-      executionKind: z.string().min(1).optional(),
-      paymentMode: z.string().min(1).optional(),
-      matchingMode: z.string().min(1).optional(),
+      routeFamily: borealRequestRouteFamilySchema.optional(),
+      executionKind: borealRequestExecutionKindSchema.optional(),
+      paymentMode: borealRequestPaymentModeSchema.optional(),
+      matchingMode: borealRequestMatchingModeSchema.optional(),
       candidatePool: z.array(z.string().min(1)).optional(),
     }),
     execute: async ({

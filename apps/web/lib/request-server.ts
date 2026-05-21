@@ -56,9 +56,17 @@ import {
   type RequestVerificationArtifactInput,
   type RequestFulfillmentStep,
   type RequestPatch,
+  type RequestPhasePlan,
   type RequestStatus,
   type RequestVisibility,
 } from "@/lib/request";
+import type {
+  BorealRequestExecutionKind,
+  BorealRequestMatchingMode,
+  BorealRequestPaymentMode,
+  BorealRequestRouteFamily,
+  BorealSupplyKind,
+} from "@/lib/matching-fingerprints";
 import {
   buildRequestMatchCandidate,
   deriveCandidatePoolOrder,
@@ -2218,7 +2226,7 @@ function buildSeedFulfillmentSteps({
   matchedSupplyRecord: Awaited<ReturnType<typeof getSupplyById>>;
   request: BorealRequestDraft;
 }): RequestFulfillmentStep[] {
-  const phases =
+  const phases: RequestPhasePlan[] =
     request.derived.phases.length > 0
       ? request.derived.phases
       : [
@@ -2880,17 +2888,21 @@ function selectedSupplyCanLeadDraftRoute({
   return true;
 }
 
-function isPreferredSupplyRouteBias(matchingMode: string | undefined) {
+function isPreferredSupplyRouteBias(
+  matchingMode: BorealRequestMatchingMode | undefined
+) {
   return Boolean(matchingMode?.startsWith("preferred_supply_"));
 }
 
-function derivePreferredSupplyRouteFamily(supplyDraft: ReturnType<typeof toSupplyDraft>) {
+function derivePreferredSupplyRouteFamily(
+  supplyDraft: ReturnType<typeof toSupplyDraft>
+): BorealRequestRouteFamily {
   return supplyDraft.source.kind === "manual" ? "direct_specialist" : "direct_tool";
 }
 
 function derivePreferredSupplyExecutionKind(
   supplyDraft: ReturnType<typeof toSupplyDraft>
-) {
+): BorealRequestExecutionKind {
   const executionChannels = new Set(supplyDraft.capability.executionChannels);
   const actorKinds = new Set(supplyDraft.capability.fulfillmentActorKinds);
 
@@ -2933,7 +2945,7 @@ function derivePreferredSupplyExecutionKind(
 
 function derivePreferredSupplyPaymentMode(
   supplyDraft: ReturnType<typeof toSupplyDraft>
-) {
+): BorealRequestPaymentMode {
   switch (supplyDraft.pricing?.mode) {
     case "fixed":
       return "fixed_request";
@@ -2950,7 +2962,7 @@ function derivePreferredSupplyPaymentMode(
 
 function derivePreferredSupplyMatchingMode(
   supplyDraft: ReturnType<typeof toSupplyDraft>
-) {
+): BorealRequestMatchingMode {
   return supplyDraft.source.kind === "manual"
     ? "preferred_supply_direct"
     : "preferred_supply_tool";
@@ -2960,7 +2972,7 @@ function buildPreferredSupplyRouteSummary({
   routeFamily,
   selectedSupply,
 }: {
-  routeFamily: string;
+  routeFamily: BorealRequestRouteFamily;
   selectedSupply: ReturnType<typeof toSupplyDraft>;
 }) {
   const displayName = selectedSupply.profile.displayName.trim() || "selected supply";
@@ -2984,9 +2996,12 @@ function splitIntoSlices(content: string): string[] {
   return slices;
 }
 
-function deriveRequestFacingSupplyKindsFromSupply(supplyKinds: string[]) {
+function deriveRequestFacingSupplyKindsFromSupply(
+  supplyKinds: BorealSupplyKind[]
+): BorealSupplyKind[] {
   const genericKinds = new Set([
     "agent_worker",
+    "desktop_runtime",
     "human_service",
     "digital_product",
     "runtime_executor",

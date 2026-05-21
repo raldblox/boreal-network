@@ -160,6 +160,63 @@ paths:
                     $ref: "#/components/schemas/WebSupply"
 components:
   schemas:
+    BorealSupplyKind:
+      type: string
+      enum:
+        - agent_worker
+        - ai_automation
+        - automation_builder
+        - desktop_runtime
+        - digital_product
+        - documentation_support
+        - field_inspection
+        - field_verification
+        - generalist
+        - hardware_ops
+        - human_service
+        - local_runner
+        - migration_lead
+        - operations_build
+        - operations_support
+        - operator
+        - pickup_dropoff
+        - provider_capability
+        - qa_documentation
+        - reporting_support
+        - runtime_executor
+        - team_service
+        - video_generation
+    BorealOutputKind:
+      type: string
+      enum:
+        - automation_build
+        - delivery
+        - delivery_confirmation
+        - draft
+        - file
+        - handoff_doc
+        - handoff_receipt
+        - inspection_report
+        - issue_log
+        - media
+        - migration_plan
+        - operator_training
+        - photo_evidence
+        - serial_inventory
+        - signature
+        - verification_note
+        - video
+        - workflow_build
+        - workflow_map
+    BorealExecutionChannel:
+      type: string
+      enum:
+        - api
+        - async_thread
+        - instant_download
+        - operator_review
+        - request_room
+        - resolver_runtime
     WebSupplyProfile:
       type: object
       additionalProperties: false
@@ -190,7 +247,7 @@ components:
         supplyKinds:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/BorealSupplyKind"
         fulfillmentActorKinds:
           type: array
           items:
@@ -204,11 +261,11 @@ components:
         outputKinds:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/BorealOutputKind"
         executionChannels:
           type: array
           items:
-            type: string
+            $ref: "#/components/schemas/BorealExecutionChannel"
     WebSupplyAvailability:
       type: object
       additionalProperties: false

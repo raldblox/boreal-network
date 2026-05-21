@@ -2,7 +2,7 @@
 
 import { LoaderCircleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { BorealRequestDraft } from "@/lib/request";
+import type { BorealRequestDraft, RequestPhaseKey } from "@/lib/request";
 
 type RequestPlanPanelProps = {
   request: BorealRequestDraft;
@@ -95,7 +95,7 @@ export function RequestPlanPanel({
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {plannedRoles.length > 0 ? (
             <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-              {plannedRoles.length} {plannedRoles.length === 1 ? "role" : "roles"}
+              {plannedRoles.length} {plannedRoles.length === 1 ? "lane" : "lanes"}
             </div>
           ) : null}
           {flowSteps.length > 0 ? (
@@ -131,7 +131,7 @@ export function RequestPlanPanel({
 
         <section className="rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            {missingItems.length > 0 ? "Need from you" : "Open check"}
+            {missingItems.length > 0 ? "Need from you" : "Open readiness"}
           </div>
           <div className="mt-2.5 space-y-2.5">
             {missingItems.length > 0 ? (
@@ -181,7 +181,7 @@ export function RequestPlanPanel({
       {plannedRoles.length > 0 ? (
         <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            Roles needed
+            Lead and support lanes
           </div>
           <div className="mt-3 grid gap-2.5 md:grid-cols-2">
             {plannedRoles.map((role) => (
@@ -317,7 +317,7 @@ function FlowStepRow({
         ) : null}
         {step.roleSummary ? (
           <div className="mt-2 text-[13px] leading-5.5 text-muted-foreground">
-            Roles: {step.roleSummary}
+            Lanes: {step.roleSummary}
           </div>
         ) : null}
         {step.proof ? (
@@ -349,7 +349,7 @@ function getPlanNarrative(
     return `Boreal turned the ask into a bounded ${flowSteps.length}-phase request${plannedRoles.length > 0 ? ` with ${plannedRoles.length} planned role${plannedRoles.length === 1 ? "" : "s"}` : ""}.`;
   }
 
-  return "Boreal turned the ask into a bounded request plan. Edit the brief to change the roles, phases, or missing details.";
+  return "Boreal turned the ask into a bounded request plan. Edit the brief to change the lead lane, support lanes, phases, or missing details.";
 }
 
 function getUnderstandingItems(request: BorealRequestDraft): PlanFact[] {
@@ -550,7 +550,7 @@ function getPhaseItems(
   return [];
 }
 
-function getPhaseStatusLabel(phaseKey: string) {
+function getPhaseStatusLabel(phaseKey: RequestPhaseKey) {
   switch (phaseKey) {
     case "clarify_constraints":
       return "needed now";

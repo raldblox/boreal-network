@@ -268,6 +268,8 @@ Verify:
 - `RoutePlan` phase and role consistency
 - `RoleSlot` actor-kind and requiredness rules
 - `MatchCandidate` ranking and explanation quality
+- fingerprint enum acceptance and rejection for `outputKinds`, `supplyKinds`, `executionChannels`, route fields, role keys, phase keys, and evidence claims
+- canonical role normalization for `field_verification -> field_technician` and `local_runner` or `pickup_dropoff -> courier_runner`
 
 ### `Request`
 

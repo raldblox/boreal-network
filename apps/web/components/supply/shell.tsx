@@ -36,6 +36,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { borealWhitelistPrompts } from "@/lib/marketing";
 import { SidebarSurfaceTopNav } from "@/components/chat/surface-top-nav";
 import {
+  borealExecutionChannels,
+  borealOutputKinds,
+  borealSupplyKinds,
+  normalizeFingerprintArray,
+  type BorealExecutionChannel,
+  type BorealOutputKind,
+  type BorealSupplyKind,
+} from "@/lib/matching-fingerprints";
+import {
   surfaceBodyClassName,
   surfaceCardClassName,
   surfaceCardTitleClassName,
@@ -641,7 +650,7 @@ export function SupplyShell() {
                                 ...current,
                                 capability: {
                                   ...current.capability,
-                                  supplyKinds: parseCommaSeparated(
+                                  supplyKinds: parseSupplyKinds(
                                     event.target.value
                                   ),
                                 },
@@ -703,7 +712,7 @@ export function SupplyShell() {
                                 ...current,
                                 capability: {
                                   ...current.capability,
-                                  outputKinds: parseCommaSeparated(
+                                  outputKinds: parseOutputKinds(
                                     event.target.value
                                   ),
                                 },
@@ -725,7 +734,7 @@ export function SupplyShell() {
                                 ...current,
                                 capability: {
                                   ...current.capability,
-                                  executionChannels: parseCommaSeparated(
+                                  executionChannels: parseExecutionChannels(
                                     event.target.value
                                   ),
                                 },
@@ -1237,6 +1246,21 @@ function parseCommaSeparated(value: string) {
         .map((entry) => entry.trim())
         .filter(Boolean)
     )
+  );
+}
+
+function parseSupplyKinds(value: string): BorealSupplyKind[] {
+  return normalizeFingerprintArray(parseCommaSeparated(value), borealSupplyKinds);
+}
+
+function parseOutputKinds(value: string): BorealOutputKind[] {
+  return normalizeFingerprintArray(parseCommaSeparated(value), borealOutputKinds);
+}
+
+function parseExecutionChannels(value: string): BorealExecutionChannel[] {
+  return normalizeFingerprintArray(
+    parseCommaSeparated(value),
+    borealExecutionChannels
   );
 }
 

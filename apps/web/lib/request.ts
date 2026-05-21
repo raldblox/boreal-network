@@ -1,5 +1,30 @@
 import { z } from "zod";
 import {
+  borealActorKindSchema,
+  borealOutputKindSchema,
+  borealRequestExecutionKindSchema,
+  borealRequestExecutionModeSchema,
+  borealRequestMatchingModeSchema,
+  borealRequestPaymentModeSchema,
+  borealRequestRouteFamilySchema,
+  borealRequestTeamModeSchema,
+  borealSupplyKindSchema,
+  normalizeFingerprintArray,
+  normalizeFingerprintValue,
+  type BorealActorKind,
+  type BorealOutputKind,
+  type BorealRequestEvidenceClaim,
+  type BorealRequestExecutionKind,
+  type BorealRequestExecutionMode,
+  type BorealRequestMatchingMode,
+  type BorealRequestPaymentMode,
+  type BorealRequestPhaseKey,
+  type BorealRequestRoleKey,
+  type BorealRequestRouteFamily,
+  type BorealRequestTeamMode,
+  type BorealSupplyKind,
+} from "./matching-fingerprints";
+import {
   deriveRequestPlannerState,
   type RequestAssignmentProposal,
   type RequestLeadRankingEntry,
@@ -9,12 +34,17 @@ import {
 } from "./request-planner";
 
 export type RequestVisibility = "private" | "public";
-export type RequestActorKind =
-  | "human"
-  | "agent"
-  | "tool"
-  | "organization"
-  | "runtime";
+export type RequestActorKind = BorealActorKind;
+export type RequestOutputKind = BorealOutputKind;
+export type RequestSupplyKind = BorealSupplyKind;
+export type RequestTeamMode = BorealRequestTeamMode;
+export type RequestRouteFamily = BorealRequestRouteFamily;
+export type RequestExecutionKind = BorealRequestExecutionKind;
+export type RequestPaymentMode = BorealRequestPaymentMode;
+export type RequestMatchingMode = BorealRequestMatchingMode;
+export type RequestEvidenceClaim = BorealRequestEvidenceClaim;
+export type RequestRoleKey = BorealRequestRoleKey;
+export type RequestPhaseKey = BorealRequestPhaseKey;
 
 export type RequestActorRef = {
   kind: RequestActorKind;
@@ -71,14 +101,14 @@ export type RequestBrief = {
   summary?: string;
   body?: string;
   constraints?: Record<string, unknown>;
-  outputKinds?: string[];
+  outputKinds?: RequestOutputKind[];
   tags?: string[];
 };
 
 export type RequestSeeking = {
   actorKinds?: RequestActorKind[];
-  supplyKinds?: string[];
-  teamMode?: string;
+  supplyKinds?: RequestSupplyKind[];
+  teamMode?: RequestTeamMode;
   notes?: string;
 };
 
@@ -98,13 +128,7 @@ export type RequestReadiness = {
   readyForMatch: boolean;
 };
 
-export type RequestExecutionMode =
-  | "remote_digital"
-  | "remote_sync"
-  | "onsite_visit"
-  | "field_inspection"
-  | "pickup_dropoff"
-  | "witnessed_handoff";
+export type RequestExecutionMode = BorealRequestExecutionMode;
 
 export type RequestExecutionProfile = {
   executionModes: RequestExecutionMode[];
@@ -123,7 +147,7 @@ export type RequestEmbodiedConstraintSet = {
   timeWindows: string[];
   accessRequirements: string[];
   safetyRequirements: string[];
-  verificationRequirements: string[];
+  verificationRequirements: RequestEvidenceClaim[];
   requiresHumanPresence: boolean;
   requiresLocalAccess: boolean;
   requiresVerifiedEvidence: boolean;
@@ -132,7 +156,7 @@ export type RequestEmbodiedConstraintSet = {
 
 export type RequestVerificationPlan = {
   requiredArtifactKinds: RequestArtifactKind[];
-  requiredEvidenceClaims: string[];
+  requiredEvidenceClaims: RequestEvidenceClaim[];
   mustHaveOwnerAcceptance: boolean;
   mustHaveLocationSignal: boolean;
   mustHaveSignature: boolean;
@@ -150,30 +174,30 @@ export type RequestClarificationNeeded = {
 };
 
 export type RequestRoleSlot = {
-  roleKey: string;
+  roleKey: RequestRoleKey;
   title: string;
   requiredActorKinds: RequestActorKind[];
-  preferredSupplyKinds: string[];
+  preferredSupplyKinds: RequestSupplyKind[];
   required: boolean;
   summary?: string;
 };
 
 export type RequestPhasePlan = {
-  phaseKey: string;
+  phaseKey: RequestPhaseKey;
   title: string;
   summary: string;
-  roleKeys: string[];
-  requiredEvidenceClaims: string[];
+  roleKeys: RequestRoleKey[];
+  requiredEvidenceClaims: RequestEvidenceClaim[];
 };
 
 export type RequestDerived = {
-  routeFamily?: string;
-  executionKind?: string;
-  paymentMode?: string;
-  matchingMode?: string;
+  routeFamily?: RequestRouteFamily;
+  executionKind?: RequestExecutionKind;
+  paymentMode?: RequestPaymentMode;
+  matchingMode?: RequestMatchingMode;
   candidatePool?: string[];
   matchCandidates: RequestMatchCandidate[];
-  leadRole?: string;
+  leadRole?: RequestRoleKey;
   roleSlots: RequestRoleSlot[];
   phases: RequestPhasePlan[];
   noMicrotaskExplosion: boolean;
@@ -538,7 +562,7 @@ export type PublicRequestPoolEntry = {
     summary: string;
     body: string;
     constraints: Record<string, unknown>;
-    outputKinds: string[];
+    outputKinds: RequestOutputKind[];
     tags: string[];
   };
   seeking: RequestSeeking;
@@ -547,10 +571,10 @@ export type PublicRequestPoolEntry = {
   activeRefs: RequestActiveRefs;
   latest: RequestLatest;
   derived: {
-    routeFamily: string | null;
-    executionKind: string | null;
-    paymentMode: string | null;
-    matchingMode: string | null;
+    routeFamily: RequestRouteFamily | null;
+    executionKind: RequestExecutionKind | null;
+    paymentMode: RequestPaymentMode | null;
+    matchingMode: RequestMatchingMode | null;
     missingDetails: string[];
     readiness: RequestReadiness;
     routeSummary: string | null;
@@ -568,13 +592,13 @@ export type EditableRequestDocument = {
     summary: string;
     body: string;
     constraints: Record<string, unknown>;
-    outputKinds: string[];
+    outputKinds: RequestOutputKind[];
     tags: string[];
   };
   seeking: {
     actorKinds: RequestActorKind[];
-    supplyKinds: string[];
-    teamMode: string;
+    supplyKinds: RequestSupplyKind[];
+    teamMode: RequestTeamMode | "";
     notes: string;
   };
   budget: RequestBudget | null;
@@ -614,7 +638,7 @@ type RequestDocumentObject = {
     summary: string;
     body: string;
     constraints: Record<string, unknown>;
-    outputKinds: string[];
+    outputKinds: RequestOutputKind[];
     tags: string[];
   };
   seeking: RequestSeeking;
@@ -624,13 +648,13 @@ type RequestDocumentObject = {
   activeRefs: RequestActiveRefs;
   latest: RequestLatest;
   derived: {
-    routeFamily: string | null;
-    executionKind: string | null;
-    paymentMode: string | null;
-    matchingMode: string | null;
+    routeFamily: RequestRouteFamily | null;
+    executionKind: RequestExecutionKind | null;
+    paymentMode: RequestPaymentMode | null;
+    matchingMode: RequestMatchingMode | null;
     candidatePool: string[];
     matchCandidates: RequestMatchCandidate[];
-    leadRole: string | null;
+    leadRole: RequestRoleKey | null;
     roleSlots: RequestRoleSlot[];
     phases: RequestPhasePlan[];
     noMicrotaskExplosion: boolean;
@@ -662,10 +686,10 @@ export type RequestPatch = {
   budget?: RequestBudget | null;
   deadline?: RequestDeadline | null;
   derived?: {
-    routeFamily?: string | null;
-    executionKind?: string | null;
-    paymentMode?: string | null;
-    matchingMode?: string | null;
+    routeFamily?: RequestRouteFamily | null;
+    executionKind?: RequestExecutionKind | null;
+    paymentMode?: RequestPaymentMode | null;
+    matchingMode?: RequestMatchingMode | null;
     candidatePool?: string[];
     matchCandidates?: RequestMatchCandidate[];
     routeSummary?: string | null;
@@ -719,23 +743,21 @@ const requestBriefSchema = z.object({
   summary: z.string().optional(),
   body: z.string().optional(),
   constraints: z.record(z.unknown()).optional(),
-  outputKinds: z.array(z.string()).optional(),
+  outputKinds: z.array(borealOutputKindSchema).optional(),
   tags: z.array(z.string()).optional(),
 });
 
 const requestSeekingSchema = z.object({
-  actorKinds: z
-    .array(
-      z.enum(["human", "agent", "tool", "organization", "runtime"])
-    )
+  actorKinds: z.array(borealActorKindSchema).optional(),
+  supplyKinds: z.array(borealSupplyKindSchema).optional(),
+  teamMode: z
+    .union([borealRequestTeamModeSchema, z.literal("")])
     .optional(),
-  supplyKinds: z.array(z.string()).optional(),
-  teamMode: z.string().optional(),
   notes: z.string().optional(),
 });
 
 const requestActorRefSchema = z.object({
-  kind: z.enum(["human", "agent", "tool", "organization", "runtime"]),
+  kind: borealActorKindSchema,
   id: z.string().min(1),
   displayName: z.string().optional(),
   handle: z.string().optional(),
@@ -931,19 +953,19 @@ export function applyRequestPatch(
   const nextDerivedRouteFamily =
     patch.derived?.routeFamily === undefined
       ? currentDraft.derived.routeFamily
-      : normalizeText(patch.derived.routeFamily ?? undefined);
+      : normalizeRouteFamily(patch.derived.routeFamily ?? undefined);
   const nextDerivedExecutionKind =
     patch.derived?.executionKind === undefined
       ? currentDraft.derived.executionKind
-      : normalizeText(patch.derived.executionKind ?? undefined);
+      : normalizeExecutionKind(patch.derived.executionKind ?? undefined);
   const nextDerivedPaymentMode =
     patch.derived?.paymentMode === undefined
       ? currentDraft.derived.paymentMode
-      : normalizeText(patch.derived.paymentMode ?? undefined);
+      : normalizePaymentMode(patch.derived.paymentMode ?? undefined);
   const nextDerivedMatchingMode =
     patch.derived?.matchingMode === undefined
       ? currentDraft.derived.matchingMode
-      : normalizeText(patch.derived.matchingMode ?? undefined);
+      : normalizeMatchingMode(patch.derived.matchingMode ?? undefined);
   const nextDerivedRouteSummary =
     patch.derived?.routeSummary === undefined
       ? currentDraft.derived.routeSummary
@@ -1022,10 +1044,10 @@ export function deriveRequestState(
 
   const plannerState = deriveRequestPlannerState(draft);
   missingDetails.push(...plannerState.clarificationNeeded.missingDetails);
-  const routeFamily = normalizeText(draft.derived.routeFamily);
-  const executionKind = normalizeText(draft.derived.executionKind);
-  const paymentMode = normalizeText(draft.derived.paymentMode);
-  const matchingMode = normalizeText(draft.derived.matchingMode);
+  const routeFamily = normalizeRouteFamily(draft.derived.routeFamily);
+  const executionKind = normalizeExecutionKind(draft.derived.executionKind);
+  const paymentMode = normalizePaymentMode(draft.derived.paymentMode);
+  const matchingMode = normalizeMatchingMode(draft.derived.matchingMode);
   const routeSummary = normalizeText(draft.derived.routeSummary);
   const candidatePool = normalizeStringArray(draft.derived.candidatePool);
 
@@ -1191,7 +1213,9 @@ export function normalizeRequestBrief(
     summary: normalizedSummary,
     body,
     constraints: normalizeRecord(brief?.constraints),
-    outputKinds: normalizeStringArray(brief?.outputKinds),
+    outputKinds: normalizeFingerprintArray(brief?.outputKinds, [
+      ...borealOutputKindSchema.options,
+    ]),
     tags: normalizeStringArray(brief?.tags),
   };
 }
@@ -1271,8 +1295,10 @@ function normalizeSeeking(
   }
 
   const actorKinds = normalizeActorKinds(seeking.actorKinds);
-  const supplyKinds = normalizeStringArray(seeking.supplyKinds);
-  const teamMode = normalizeText(seeking.teamMode);
+  const supplyKinds = normalizeFingerprintArray(seeking.supplyKinds, [
+    ...borealSupplyKindSchema.options,
+  ]);
+  const teamMode = normalizeTeamMode(seeking.teamMode);
   const notes = normalizeText(seeking.notes);
 
   return {
@@ -1364,6 +1390,44 @@ function normalizeText(value: string | undefined | null): string {
   return value?.trim() ?? "";
 }
 
+function normalizeTeamMode(
+  value: string | undefined | null
+): RequestTeamMode | undefined {
+  return normalizeFingerprintValue(value, [...borealRequestTeamModeSchema.options]);
+}
+
+function normalizeRouteFamily(
+  value: string | undefined | null
+): RequestRouteFamily | undefined {
+  return normalizeFingerprintValue(value, [
+    ...borealRequestRouteFamilySchema.options,
+  ]);
+}
+
+function normalizeExecutionKind(
+  value: string | undefined | null
+): RequestExecutionKind | undefined {
+  return normalizeFingerprintValue(value, [
+    ...borealRequestExecutionKindSchema.options,
+  ]);
+}
+
+function normalizePaymentMode(
+  value: string | undefined | null
+): RequestPaymentMode | undefined {
+  return normalizeFingerprintValue(value, [
+    ...borealRequestPaymentModeSchema.options,
+  ]);
+}
+
+function normalizeMatchingMode(
+  value: string | undefined | null
+): RequestMatchingMode | undefined {
+  return normalizeFingerprintValue(value, [
+    ...borealRequestMatchingModeSchema.options,
+  ]);
+}
+
 function normalizeRecord(
   value: Record<string, unknown> | undefined
 ): Record<string, unknown> {
@@ -1387,32 +1451,15 @@ function normalizeStringArray(value: string[] | undefined): string[] {
 function normalizeExecutionModes(
   value: string[] | undefined
 ): RequestExecutionMode[] {
-  const allowedModes = new Set<RequestExecutionMode>([
-    "remote_digital",
-    "remote_sync",
-    "onsite_visit",
-    "field_inspection",
-    "pickup_dropoff",
-    "witnessed_handoff",
+  return normalizeFingerprintArray(value, [
+    ...borealRequestExecutionModeSchema.options,
   ]);
-
-  return Array.from(
-    new Set(
-      (value ?? []).filter(
-        (entry): entry is RequestExecutionMode => allowedModes.has(entry as RequestExecutionMode)
-      )
-    )
-  );
 }
 
 function normalizeActorKinds(
   value: RequestActorKind[] | undefined
 ): RequestActorKind[] {
-  if (!value) {
-    return [];
-  }
-
-  return Array.from(new Set(value));
+  return normalizeFingerprintArray(value, [...borealActorKindSchema.options]);
 }
 
 function normalizeActiveRefs(

@@ -46,6 +46,8 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    If one user turn explicitly includes brief text plus budget or deadline, the request-brief mutation layer should preserve both the narrative brief and the structured canonical fields in the same write.
    Title and body are the first readiness-bearing brief fields. `brief.summary` is optional compression and should not be manufactured only to satisfy readiness.
    Matching-facing structure should prefer top-level `seeking` criteria instead of overloading `brief.tags`.
+   Matching-facing fingerprint fields must use canon-locked enum values when they are structured: `brief.outputKinds`, `seeking.actorKinds`, `seeking.supplyKinds`, `seeking.teamMode`, `derived.routeFamily`, `derived.executionKind`, `derived.paymentMode`, `derived.matchingMode`, `derived.leadRole`, `derived.roleSlots[].roleKey`, `derived.phases[].phaseKey`, `derived.embodiedConstraintSet.verificationRequirements`, `derived.verificationPlan.requiredEvidenceClaims`, and `Supply.capability.{supplyKinds, fulfillmentActorKinds, outputKinds, executionChannels}`.
+   Unknown fingerprint values should be rejected or normalized away instead of being stored as freeform canonical state.
    If the ask implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, or other non-substitutable human execution, the decision layer should derive explicit embodied execution and verification requirements instead of flattening the request into digital-only work.
 5. Complexity and route classification
    Decide complexity, route family, and whether clarification is required.
@@ -62,6 +64,7 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
    Those planning outputs may project onto `Request.derived`, but they remain system-owned, rebuildable, and non-editable by the buyer.
 10. Team assembly
    Match optional collaborator slots only after a credible lead route exists, except bounded direct-tool routes.
+   The lead-first matching pipeline and the current fingerprint catalog are documented in [MATCHING_ENGINE.md](MATCHING_ENGINE.md).
 11. Commitment drafting
    Produce the commercial shape Boreal wants the owner to review.
 12. Funding gate

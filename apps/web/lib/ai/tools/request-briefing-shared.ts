@@ -9,6 +9,16 @@ import type {
   RequestPatch,
   RequestVisibility,
 } from "@/lib/request";
+import {
+  borealActorKindSchema,
+  borealOutputKindSchema,
+  borealRequestEvidenceClaimSchema,
+  borealRequestExecutionModeSchema,
+  borealRequestTeamModeSchema,
+  borealSupplyKindSchema,
+  normalizeFingerprintArray,
+  normalizeFingerprintValue,
+} from "@/lib/matching-fingerprints";
 import type { ChatMessage } from "@/lib/types";
 
 const looseStringSchema = z.string();
@@ -39,13 +49,17 @@ export const requestDeadlineInputSchema = z.union([
 ]);
 
 export const requestSeekingInputSchema = z.object({
-  actorKinds: looseMaybeStringListSchema.optional(),
-  supplyKinds: looseMaybeStringListSchema.optional(),
-  teamMode: z.string().optional(),
+  actorKinds: z
+    .union([borealActorKindSchema, z.array(borealActorKindSchema)])
+    .optional(),
+  supplyKinds: z
+    .union([borealSupplyKindSchema, z.array(borealSupplyKindSchema)])
+    .optional(),
+  teamMode: borealRequestTeamModeSchema.optional(),
   notes: z.string().optional(),
 });
 
-export const requestExecutionModeInputSchema = z.string();
+export const requestExecutionModeInputSchema = borealRequestExecutionModeSchema;
 
 export const requestEmbodiedConstraintInputSchema = z.object({
   executionModes: z
@@ -62,7 +76,12 @@ export const requestEmbodiedConstraintInputSchema = z.object({
   timeWindows: looseMaybeStringListSchema.optional(),
   accessRequirements: looseMaybeStringListSchema.optional(),
   safetyRequirements: looseMaybeStringListSchema.optional(),
-  verificationRequirements: looseMaybeStringListSchema.optional(),
+  verificationRequirements: z
+    .union([
+      borealRequestEvidenceClaimSchema,
+      z.array(borealRequestEvidenceClaimSchema),
+    ])
+    .optional(),
 });
 
 type ApplyRequestPatchArgs = {
@@ -225,8 +244,9 @@ export function mergeRequestConstraintInputs({
       embodiedConstraints.verificationRequirements
     );
     if (verificationRequirements.length > 0) {
-      nextConstraints.verificationRequirements = normalizeConstraintStringList(
-        verificationRequirements
+      nextConstraints.verificationRequirements = normalizeFingerprintArray(
+        verificationRequirements,
+        [...borealRequestEvidenceClaimSchema.options]
       );
     }
   }
@@ -244,10 +264,13 @@ function sanitizeRequestSeekingInput(
   const actorKinds = normalizeRequestedActorKinds(
     normalizeMaybeStringList(seeking.actorKinds)
   );
-  const supplyKinds = normalizeStringList(
-    normalizeMaybeStringList(seeking.supplyKinds)
+  const supplyKinds = normalizeFingerprintArray(
+    normalizeMaybeStringList(seeking.supplyKinds),
+    [...borealSupplyKindSchema.options]
   );
-  const teamMode = normalizeLooseText(seeking.teamMode);
+  const teamMode = normalizeFingerprintValue(seeking.teamMode, [
+    ...borealRequestTeamModeSchema.options,
+  ]);
   const notes = normalizeLooseText(seeking.notes);
 
   if (

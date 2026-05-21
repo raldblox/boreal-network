@@ -194,6 +194,8 @@ Every mutation call should return:
 - `create_request_brief` and `update_request_brief` may carry explicit same-turn canonical facts such as budget or deadline so one intake turn does not drop structured demand fields.
 - `create_request_brief` and `update_request_brief` should prefer title plus body first and must not fabricate `brief.summary` only to satisfy a shape.
 - Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.
+- Request-briefing, route-summary, and supply-management mutations that touch structured matching fields must use the canon-locked fingerprint enums documented in `docs/MATCHING_ENGINE.md`.
+- Unknown `outputKinds`, `supplyKinds`, `executionChannels`, route-family values, matching-mode values, role keys, or evidence-claim values must be rejected or normalized away before they reach the durable `Request` or `Supply`.
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
 - The editable request-input projection must stay limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
 - Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.

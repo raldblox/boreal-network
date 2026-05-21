@@ -126,6 +126,11 @@ Recommended subfields:
 - `policy.shouldCreateFulfillment`
 - `policy.shouldCreateFulfillmentSteps`
 
+Contract rule:
+
+- enum-backed fingerprint fields such as `outputKinds`, `supplyKinds`, `executionChannels`, `routeFamily`, `executionKind`, `paymentMode`, `matchingMode`, `leadRole`, `roleSlots[].roleKey`, `phases[].phaseKey`, and evidence-claim lists must stay inside the canon catalog
+- an unknown fingerprint value is a contract failure, not a soft warning
+
 ## Benchmark Pack
 
 The deterministic benchmark pack now lives under:

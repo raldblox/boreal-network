@@ -19,6 +19,12 @@ import {
   artifactMediaKindInputSchema,
   artifactObjectRefContainerInputSchema,
 } from "@/lib/request-artifact-schemas";
+import {
+  borealActorKindSchema,
+  borealExecutionChannelSchema,
+  borealOutputKindSchema,
+  borealSupplyKindSchema,
+} from "@/lib/matching-fingerprints";
 
 export type BorealWorkerExecutionMode =
   | "sync_api"
@@ -95,14 +101,10 @@ const borealWorkerSupplyProfileSchema = z
 
 const borealWorkerSupplyCapabilitySchema = z
   .object({
-    supplyKinds: z.array(z.string().min(1)).min(1),
-    fulfillmentActorKinds: z
-      .array(
-        z.enum(["human", "agent", "tool", "organization", "runtime"])
-      )
-      .min(1),
-    outputKinds: z.array(z.string().min(1)).min(1),
-    executionChannels: z.array(z.string().min(1)).default([]),
+    supplyKinds: z.array(borealSupplyKindSchema).min(1),
+    fulfillmentActorKinds: z.array(borealActorKindSchema).min(1),
+    outputKinds: z.array(borealOutputKindSchema).min(1),
+    executionChannels: z.array(borealExecutionChannelSchema).default([]),
   })
   .strict();
 

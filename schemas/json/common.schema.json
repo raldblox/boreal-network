@@ -30,6 +30,189 @@
         "runtime"
       ]
     },
+    "supplyKind": {
+      "type": "string",
+      "enum": [
+        "agent_worker",
+        "ai_automation",
+        "automation_builder",
+        "desktop_runtime",
+        "digital_product",
+        "documentation_support",
+        "field_inspection",
+        "field_verification",
+        "generalist",
+        "hardware_ops",
+        "human_service",
+        "local_runner",
+        "migration_lead",
+        "operations_build",
+        "operations_support",
+        "operator",
+        "pickup_dropoff",
+        "provider_capability",
+        "qa_documentation",
+        "reporting_support",
+        "runtime_executor",
+        "team_service",
+        "video_generation"
+      ]
+    },
+    "outputKind": {
+      "type": "string",
+      "enum": [
+        "automation_build",
+        "delivery",
+        "delivery_confirmation",
+        "draft",
+        "file",
+        "handoff_doc",
+        "handoff_receipt",
+        "inspection_report",
+        "issue_log",
+        "media",
+        "migration_plan",
+        "operator_training",
+        "photo_evidence",
+        "serial_inventory",
+        "signature",
+        "verification_note",
+        "video",
+        "workflow_build",
+        "workflow_map"
+      ]
+    },
+    "executionChannel": {
+      "type": "string",
+      "enum": [
+        "api",
+        "async_thread",
+        "instant_download",
+        "operator_review",
+        "request_room",
+        "resolver_runtime"
+      ]
+    },
+    "requestExecutionMode": {
+      "type": "string",
+      "enum": [
+        "remote_digital",
+        "remote_sync",
+        "onsite_visit",
+        "field_inspection",
+        "pickup_dropoff",
+        "witnessed_handoff"
+      ]
+    },
+    "requestTeamMode": {
+      "type": "string",
+      "enum": [
+        "solo_or_team"
+      ]
+    },
+    "requestRouteFamily": {
+      "type": "string",
+      "enum": [
+        "worker_market",
+        "direct_specialist",
+        "direct_tool",
+        "no_good_fit"
+      ]
+    },
+    "requestExecutionKind": {
+      "type": "string",
+      "enum": [
+        "instant_delivery",
+        "hybrid_tool_room",
+        "provider_api",
+        "local_runtime",
+        "hybrid_human_agent",
+        "human_request_room",
+        "agent_request_room",
+        "runtime_request_room",
+        "specialist_request_room"
+      ]
+    },
+    "requestPaymentMode": {
+      "type": "string",
+      "enum": [
+        "fixed_funded_request",
+        "fixed_request",
+        "range_quote",
+        "quote_request",
+        "open_pricing"
+      ]
+    },
+    "requestMatchingMode": {
+      "type": "string",
+      "enum": [
+        "lead_first_then_collaborators",
+        "preferred_supply_direct",
+        "preferred_supply_tool"
+      ]
+    },
+    "requestEvidenceClaim": {
+      "type": "string",
+      "enum": [
+        "delivery_confirmation",
+        "handoff_signature",
+        "photo_proof",
+        "serial_number_capture",
+        "timestamped_photos",
+        "verification_note",
+        "written_report"
+      ]
+    },
+    "requestRoleKey": {
+      "type": "string",
+      "enum": [
+        "agent_lead",
+        "agent_operator",
+        "ai_automation",
+        "automation_builder",
+        "courier_runner",
+        "delivery_lead",
+        "digital_product",
+        "documentation_support",
+        "field_inspector",
+        "field_technician",
+        "generalist",
+        "hardware_ops",
+        "human_lead",
+        "migration_lead",
+        "onsite_operator",
+        "operations_build",
+        "operations_support",
+        "operator",
+        "organization_lead",
+        "qa_documentation",
+        "reporting_support",
+        "runtime_lead",
+        "runtime_operator",
+        "service_lead",
+        "specialist_lead",
+        "support_role",
+        "team_service",
+        "tool_lead",
+        "tool_operator",
+        "video_generation",
+        "witness_operator"
+      ]
+    },
+    "requestPhaseKey": {
+      "type": "string",
+      "enum": [
+        "clarify_constraints",
+        "execute_delivery",
+        "field_execution",
+        "handoff_execution",
+        "handoff_review",
+        "onsite_execution",
+        "proof_delivery",
+        "scope_route",
+        "witness_execution"
+      ]
+    },
     "actorRef": {
       "type": "object",
       "additionalProperties": false,

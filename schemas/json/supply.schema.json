@@ -89,8 +89,7 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "common.schema.json#/$defs/supplyKind"
           }
         },
         "fulfillmentActorKinds": {
@@ -106,15 +105,13 @@
           "minItems": 1,
           "uniqueItems": true,
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "common.schema.json#/$defs/outputKind"
           }
         },
         "executionChannels": {
           "type": "array",
           "items": {
-            "type": "string",
-            "minLength": 1
+            "$ref": "common.schema.json#/$defs/executionChannel"
           },
           "uniqueItems": true
         }

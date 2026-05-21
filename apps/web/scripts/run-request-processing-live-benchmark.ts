@@ -7,6 +7,14 @@ import { z } from "zod";
 import { chatModels } from "../lib/ai/models";
 import { getLanguageModel } from "../lib/ai/providers";
 import {
+  borealActorKindSchema,
+  borealOutputKindSchema,
+  borealRequestPhaseKeySchema,
+  borealRequestRoleKeySchema,
+  borealRequestRouteFamilySchema,
+  borealSupplyKindSchema,
+} from "../lib/matching-fingerprints";
+import {
   ROOT,
   buildFixtureMap,
   computePolicyActionAcceptable,
@@ -54,19 +62,19 @@ const requestProcessingOutputSchema = z
         summary: z.string(),
         seeking: z
           .object({
-            actorKinds: stringArray.optional(),
-            supplyKinds: stringArray.optional()
+            actorKinds: z.array(borealActorKindSchema).optional(),
+            supplyKinds: z.array(borealSupplyKindSchema).optional()
           })
           .passthrough()
           .optional(),
-        outputKinds: stringArray,
+        outputKinds: z.array(borealOutputKindSchema),
         missingDetails: stringArray.optional(),
         constraints: passthroughObject.optional()
       })
       .passthrough(),
     routing: z
       .object({
-        routeFamily: z.string(),
+        routeFamily: borealRequestRouteFamilySchema,
         complexityLevel: z.enum(["low", "medium", "high"]),
         needsPlan: z.boolean(),
         humanRequired: z.boolean().optional(),
@@ -75,14 +83,14 @@ const requestProcessingOutputSchema = z
       .passthrough(),
     planning: z
       .object({
-        leadRole: z.string(),
+        leadRole: borealRequestRoleKeySchema,
         executionProfile: passthroughObject.optional(),
         verificationPlan: passthroughObject.optional(),
         planCollapseRisk: passthroughObject.optional(),
         phases: z.array(
           z
             .object({
-              phaseKey: z.string().optional(),
+              phaseKey: borealRequestPhaseKeySchema.optional(),
               title: z.string()
             })
             .passthrough()
@@ -90,8 +98,8 @@ const requestProcessingOutputSchema = z
         roleSlots: z.array(
           z
             .object({
-              roleKey: z.string(),
-              requiredActorKinds: stringArray,
+              roleKey: borealRequestRoleKeySchema,
+              requiredActorKinds: z.array(borealActorKindSchema),
               required: z.boolean()
             })
             .passthrough()

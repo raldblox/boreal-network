@@ -1,13 +1,18 @@
-import { z } from "zod";
+import {
+  borealActorKindSchema,
+  borealExecutionChannelSchema,
+  borealOutputKindSchema,
+  borealSupplyKindSchema,
+  normalizeFingerprintArray,
+  type BorealActorKind,
+  type BorealExecutionChannel,
+  type BorealOutputKind,
+  type BorealSupplyKind,
+} from "./matching-fingerprints";
 
 export type SupplyVisibility = "private" | "unlisted" | "public";
 export type SupplyStatus = "draft" | "published" | "paused" | "retired";
-export type SupplyActorKind =
-  | "human"
-  | "agent"
-  | "tool"
-  | "organization"
-  | "runtime";
+export type SupplyActorKind = BorealActorKind;
 export type SupplySourceKind = "manual" | "runtime" | "provider" | "catalog";
 export type SupplyPreset =
   | "human_service"
@@ -25,10 +30,10 @@ export type SupplyProfile = {
 };
 
 export type SupplyCapability = {
-  supplyKinds: string[];
+  supplyKinds: BorealSupplyKind[];
   fulfillmentActorKinds: SupplyActorKind[];
-  outputKinds: string[];
-  executionChannels: string[];
+  outputKinds: BorealOutputKind[];
+  executionChannels: BorealExecutionChannel[];
 };
 
 export type SupplyAvailability = {
@@ -241,14 +246,6 @@ const supplyPresetDefaults: Record<
     },
   },
 };
-
-const supplyActorKindSchema = z.enum([
-  "human",
-  "agent",
-  "tool",
-  "organization",
-  "runtime",
-]);
 
 export function createInitialSupplyDraft({
   id,
@@ -463,10 +460,16 @@ function normalizeCapability(
   value: Partial<SupplyCapability> | SupplyCapability
 ): SupplyCapability {
   return {
-    supplyKinds: normalizeStringArray(value.supplyKinds),
+    supplyKinds: normalizeFingerprintArray(value.supplyKinds, [
+      ...borealSupplyKindSchema.options,
+    ]),
     fulfillmentActorKinds: normalizeActorKinds(value.fulfillmentActorKinds),
-    outputKinds: normalizeStringArray(value.outputKinds),
-    executionChannels: normalizeStringArray(value.executionChannels),
+    outputKinds: normalizeFingerprintArray(value.outputKinds, [
+      ...borealOutputKindSchema.options,
+    ]),
+    executionChannels: normalizeFingerprintArray(value.executionChannels, [
+      ...borealExecutionChannelSchema.options,
+    ]),
   };
 }
 
@@ -553,15 +556,7 @@ function normalizeStringArray(value: string[] | undefined): string[] {
 function normalizeActorKinds(
   value: SupplyActorKind[] | undefined
 ): SupplyActorKind[] {
-  if (!value) {
-    return [];
-  }
-
-  const normalized = value.filter((entry) =>
-    supplyActorKindSchema.safeParse(entry).success
-  );
-
-  return Array.from(new Set(normalized));
+  return normalizeFingerprintArray(value, [...borealActorKindSchema.options]);
 }
 
 function normalizeNumber(value: number | undefined): number | undefined {

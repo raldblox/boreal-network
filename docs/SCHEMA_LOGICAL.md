@@ -191,6 +191,22 @@ Structured matching intent belongs in:
 - `seeking.teamMode`
 - `seeking.notes`
 
+Current enum-locked request and supply fingerprints include:
+
+- actor kinds
+- supply kinds
+- output kinds
+- execution channels
+- execution modes
+- team mode
+- route family
+- execution kind
+- payment mode
+- matching mode
+- evidence claims
+- role keys
+- phase keys
+
 Owner-scoped private routing control belongs in:
 
 - `routing.preferredSupplyId`
