@@ -28,6 +28,12 @@ Support auth aggregates for resolver runtimes:
 - `ResolverAuthorization`
 - `ResolverToken`
 
+Support auth aggregates for regular web accounts:
+
+- `AccountPasskeyCredential`
+- `AccountAuthChallenge`
+- optional later `AccountRecoveryCode`
+
 ## Logical Relationships
 
 ### `Actor` -> `Supply`
@@ -287,6 +293,22 @@ Stores durable output or proof with a stable container reference.
 
 It should not force the request root to inline large delivery bodies.
 It may also point to one execution lane through `fulfillmentId` and one sub-lane through `stepId`.
+
+## Account Auth Support Objects
+
+These are support auth objects, not Boreal commerce roots:
+
+- `AccountPasskeyCredential`
+- `AccountAuthChallenge`
+- optional later `AccountRecoveryCode`
+
+They exist so one regular Boreal account can:
+
+- authenticate with `username or email + password`
+- enroll one or more `WebAuthn` passkeys or security keys
+- complete one-time MFA or enrollment ceremonies without overloading the account root
+
+`WebAuthn` and `TOTP` should stay separate factor types when both exist.
 
 ## Resolver Auth Support Objects
 

@@ -33,3 +33,5 @@ Accepted decisions:
 - [0013-embodied-fulfillment-planner-honesty-first.md](0013-embodied-fulfillment-planner-honesty-first.md)
 - [0014-request-draft-input-and-readonly-planner-projection.md](0014-request-draft-input-and-readonly-planner-projection.md)
 - [0015-boreal-workers-web-execution-layer-and-video-generation-first.md](0015-boreal-workers-web-execution-layer-and-video-generation-first.md)
+- [0016-open-request-room-as-monitored-workroom.md](0016-open-request-room-as-monitored-workroom.md)
+- [0017-regular-account-auth-and-webauthn-mfa.md](0017-regular-account-auth-and-webauthn-mfa.md)

@@ -91,11 +91,13 @@ If needed, `Upstash` or another Redis-compatible service may be attached later f
 The imported Vercel Chatbot baseline uses `Auth.js`, but its starter UX is not "full social login by default".
 The initial scaffold starts with template-auth behavior and can later be extended with:
 
-- email plus password
+- username or email plus password
 - social providers
 - passkey or stronger auth variants
 
 Provider choice is a later product decision.
+
+The first accepted stronger regular-account path is now recorded in `0017-regular-account-auth-and-webauthn-mfa.md`.
 
 ## Follow-Up
 

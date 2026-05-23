@@ -210,6 +210,38 @@ Should expose:
 - settlement status
 - payout status
 
+## Account Auth Surface
+
+Regular Boreal web accounts should use:
+
+- `username or email`
+- `password`
+- optional required `WebAuthn` second factor once enrolled
+
+Guest auth remains a separate limited lane.
+
+The account-auth lane must not be conflated with:
+
+- resolver auth
+- runtime or device identity
+- wallet or payout identity
+
+The first stronger account-auth slice should expose contracts for:
+
+- register regular account
+- login with `username or email + password`
+- start WebAuthn enrollment
+- verify WebAuthn enrollment
+- start WebAuthn assertion for MFA
+- verify WebAuthn assertion for MFA
+
+If later fallback factors are added:
+
+- authenticator-app `TOTP` must be modeled as a separate factor type
+- recovery codes must be modeled separately from passkeys
+
+Do not label `Google Authenticator` as a passkey flow.
+
 ## Internal Tool Contracts
 
 Planner, matcher, policy, and mutation tool boundaries are part of Boreal's canonical machine-facing behavior.

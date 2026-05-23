@@ -23,6 +23,9 @@ Important identity rule:
 - account auth lives here through `Auth.js`
 - Boreal wallet identity still remains a separate product-layer concern
 - imported starter auth currently uses `credentials` plus `guest` flows, not social login by default
+- accepted regular-account direction is `username or email + password`
+- accepted stronger-factor direction is `WebAuthn` MFA for regular accounts
+- resolver approval remains separate from account auth
 
 ## Scope
 
