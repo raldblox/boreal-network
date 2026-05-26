@@ -34,6 +34,16 @@ Support auth aggregates for regular web accounts:
 - `AccountAuthChallenge`
 - optional later `AccountRecoveryCode`
 
+Support workflow aggregates for workflow-backed supply profiles:
+
+- `WorkflowPack`
+- `WorkflowPackVersion`
+
+Support buyer-funding aggregates for first-party credit:
+
+- `BuyerCreditAccount`
+- `BuyerCreditLedgerEntry`
+
 ## Logical Relationships
 
 ### `Actor` -> `Supply`
@@ -319,6 +329,59 @@ These are support auth objects, not canonical commerce roots:
 - `ResolverToken`
 
 They exist so a non-browser runtime can be approved against one Boreal account and then call resolver APIs through scoped bearer auth without collapsing runtime identity into account identity.
+
+## Workflow-backed Supply Support Objects
+
+These are support implementation objects, not Boreal commerce roots:
+
+- `WorkflowPack`
+- `WorkflowPackVersion`
+
+They exist so Boreal can standardize reusable workflow-backed supplies without overloading the canonical `Supply` root or turning raw workflow definitions into buyer-facing truth.
+
+Recommended responsibility split:
+
+- `Supply` keeps buyer-facing capability, pricing, visibility, and publish state
+- `WorkflowPack` keeps stable reusable pack identity
+- `WorkflowPackVersion` keeps one versioned block graph, adapter profile, credential requirements, proof requirements, and source references
+
+Relationship rule:
+
+- one `WorkflowPack` may back one or many supply rows
+- one supply row may point to zero or one active workflow-pack version through typed metadata or implementation-local support links until first-class linkage is modeled
+
+Source rule:
+
+- raw imported workflow JSON or provider pipeline payloads should stay in workflow support objects or stable artifact references
+- they should not replace the buyer-authored request brief
+- they should not be treated as proof of completed work by themselves
+
+## Buyer Credit Support Objects
+
+These are support funding objects, not Boreal commerce roots:
+
+- `BuyerCreditAccount`
+- `BuyerCreditLedgerEntry`
+
+They exist so Boreal can offer first-party prepaid credit without weakening request-attached transaction truth.
+
+Responsibility split:
+
+- `BuyerCreditAccount` keeps derived buyer balance and policy envelope
+- `BuyerCreditLedgerEntry` keeps append-only top-up, grant, debit, refund-restore, adjustment, or reversal history
+- `Transaction` remains the canonical request-attached payment truth for funded work
+
+Relationship rule:
+
+- buyer top-up may exist with no request attached
+- spending credit on one request should create both one credit-ledger debit and one request-attached `Transaction`
+- refunding a credit-funded request should restore credit through ledger while keeping request transaction history auditable
+
+Boundary rule:
+
+- buyer credit is first-party only
+- it must not be treated as a multi-seller marketplace wallet
+- it must not replace payout accounting for external suppliers
 
 ## Derived Views
 
