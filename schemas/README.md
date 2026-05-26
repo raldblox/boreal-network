@@ -47,6 +47,7 @@ Recommended naming:
 - `json/transaction.schema.json`
 - `json/request-event.schema.json`
 - `json/artifact.schema.json`
+- `openapi/payment-and-credit.openapi.yaml`
 - `events/request-room.asyncapi.yaml`
 
 Pending next machine-readable areas:

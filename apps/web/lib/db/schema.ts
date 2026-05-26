@@ -2,8 +2,10 @@ import type { InferSelectModel } from "drizzle-orm";
 import {
   boolean,
   foreignKey,
+  index,
   integer,
   json,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -33,6 +35,15 @@ import type {
   RequestVisibility,
 } from "@/lib/request";
 import type {
+  BuyerCreditAccountStatus,
+  BuyerCreditLedgerEntryKind,
+  BuyerCreditLedgerEntryStatus,
+  BuyerCreditLedgerMetadata,
+  RequestTransactionMetadata,
+  TransactionKind,
+  TransactionStatus,
+} from "@/lib/payment";
+import type {
   SupplyAvailability,
   SupplyBindings,
   SupplyCapability,
@@ -48,6 +59,21 @@ import type {
   ResolverScope,
   ResolverTokenKind,
 } from "@/lib/resolver";
+import type {
+  WorkflowAdapterKind,
+  WorkflowAdapterRunStatus,
+  WorkflowCredentialRequirement,
+  WorkflowGraph,
+  WorkflowHumanCheckpoint,
+  WorkflowPackInputContract,
+  WorkflowPackOutputContract,
+  WorkflowPackProvenance,
+  WorkflowPackReadiness,
+  WorkflowPackStatus,
+  WorkflowProofRequirement,
+  WorkflowSourceRef,
+  WorkflowUnsupportedFeature,
+} from "@/lib/workflow-pack";
 
 export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -354,6 +380,210 @@ export const fulfillment = pgTable("Fulfillment", {
 
 export type FulfillmentRecord = InferSelectModel<typeof fulfillment>;
 
+export const requestTransaction = pgTable(
+  "Transaction",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    key: text("key").notNull(),
+    requestId: uuid("requestId")
+      .notNull()
+      .references(() => request.id, { onDelete: "cascade" }),
+    commitmentId: uuid("commitmentId").references(() => commitment.id, {
+      onDelete: "set null",
+    }),
+    fulfillmentId: uuid("fulfillmentId").references(() => fulfillment.id, {
+      onDelete: "set null",
+    }),
+    kind: varchar("kind", {
+      enum: [
+        "payment_requirement",
+        "authorization",
+        "verification",
+        "settlement",
+        "payout",
+        "refund",
+        "dispute",
+      ],
+    })
+      .$type<TransactionKind>()
+      .notNull(),
+    status: varchar("status", {
+      enum: [
+        "pending",
+        "authorized",
+        "verified",
+        "settled",
+        "payout_pending",
+        "paid_out",
+        "refunded",
+        "disputed",
+        "failed",
+      ],
+    })
+      .$type<TransactionStatus>()
+      .notNull()
+      .default("pending"),
+    currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+    amount: numeric("amount", { precision: 14, scale: 2 })
+      .$type<string>()
+      .notNull(),
+    payer: json("payer").$type<RequestActorRef>().notNull(),
+    payee: json("payee").$type<RequestActorRef>().notNull(),
+    reference: text("reference"),
+    metadata: json("metadata").$type<RequestTransactionMetadata | null>(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+    authorizedAt: timestamp("authorizedAt"),
+    verifiedAt: timestamp("verifiedAt"),
+    settledAt: timestamp("settledAt"),
+    payoutPendingAt: timestamp("payoutPendingAt"),
+    paidOutAt: timestamp("paidOutAt"),
+    refundedAt: timestamp("refundedAt"),
+    disputedAt: timestamp("disputedAt"),
+    failedAt: timestamp("failedAt"),
+  },
+  (table) => ({
+    requestUpdatedAtIdx: index("Transaction_requestId_updatedAt_idx").on(
+      table.requestId,
+      table.updatedAt
+    ),
+    requestStatusIdx: index("Transaction_requestId_status_idx").on(
+      table.requestId,
+      table.status
+    ),
+  })
+);
+
+export type TransactionRecord = InferSelectModel<typeof requestTransaction>;
+
+export const buyerCreditAccount = pgTable(
+  "BuyerCreditAccount",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    ownerId: uuid("ownerId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+    status: varchar("status", {
+      enum: ["active", "paused", "closed"],
+    })
+      .$type<BuyerCreditAccountStatus>()
+      .notNull()
+      .default("active"),
+    availableBalance: numeric("availableBalance", { precision: 14, scale: 2 })
+      .$type<string>()
+      .notNull()
+      .default("0"),
+    pendingBalance: numeric("pendingBalance", { precision: 14, scale: 2 })
+      .$type<string>()
+      .notNull()
+      .default("0"),
+    lifetimePurchased: numeric("lifetimePurchased", {
+      precision: 14,
+      scale: 2,
+    })
+      .$type<string>()
+      .notNull()
+      .default("0"),
+    lifetimeGranted: numeric("lifetimeGranted", { precision: 14, scale: 2 })
+      .$type<string>()
+      .notNull()
+      .default("0"),
+    lifetimeSpent: numeric("lifetimeSpent", { precision: 14, scale: 2 })
+      .$type<string>()
+      .notNull()
+      .default("0"),
+    lifetimeRefunded: numeric("lifetimeRefunded", { precision: 14, scale: 2 })
+      .$type<string>()
+      .notNull()
+      .default("0"),
+    metadata: json("metadata").$type<Record<string, unknown> | null>(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (table) => ({
+    ownerCurrencyUnique: uniqueIndex(
+      "BuyerCreditAccount_ownerId_currency_unique"
+    ).on(table.ownerId, table.currency),
+    ownerUpdatedAtIdx: index("BuyerCreditAccount_ownerId_updatedAt_idx").on(
+      table.ownerId,
+      table.updatedAt
+    ),
+  })
+);
+
+export type BuyerCreditAccountRecord = InferSelectModel<
+  typeof buyerCreditAccount
+>;
+
+export const buyerCreditLedgerEntry = pgTable(
+  "BuyerCreditLedgerEntry",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    buyerCreditAccountId: uuid("buyerCreditAccountId")
+      .notNull()
+      .references(() => buyerCreditAccount.id, { onDelete: "cascade" }),
+    kind: varchar("kind", {
+      enum: [
+        "topup",
+        "grant",
+        "debit",
+        "refund_restore",
+        "adjustment",
+        "reversal",
+      ],
+    })
+      .$type<BuyerCreditLedgerEntryKind>()
+      .notNull(),
+    status: varchar("status", {
+      enum: ["pending", "verified", "settled", "failed", "reversed"],
+    })
+      .$type<BuyerCreditLedgerEntryStatus>()
+      .notNull()
+      .default("pending"),
+    amount: numeric("amount", { precision: 14, scale: 2 })
+      .$type<string>()
+      .notNull(),
+    currency: varchar("currency", { length: 3 }).notNull().default("USD"),
+    balanceAfter: numeric("balanceAfter", { precision: 14, scale: 2 })
+      .$type<string>()
+      .notNull(),
+    requestId: uuid("requestId").references(() => request.id, {
+      onDelete: "set null",
+    }),
+    transactionId: uuid("transactionId").references(() => requestTransaction.id, {
+      onDelete: "set null",
+    }),
+    idempotencyKey: text("idempotencyKey"),
+    reference: text("reference"),
+    metadata: json("metadata").$type<BuyerCreditLedgerMetadata | null>(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+    verifiedAt: timestamp("verifiedAt"),
+    settledAt: timestamp("settledAt"),
+    failedAt: timestamp("failedAt"),
+    reversedAt: timestamp("reversedAt"),
+  },
+  (table) => ({
+    accountCreatedAtIdx: index(
+      "BuyerCreditLedgerEntry_account_createdAt_idx"
+    ).on(table.buyerCreditAccountId, table.createdAt),
+    requestIdIdx: index("BuyerCreditLedgerEntry_requestId_idx").on(
+      table.requestId
+    ),
+    transactionIdIdx: index("BuyerCreditLedgerEntry_transactionId_idx").on(
+      table.transactionId
+    ),
+    accountIdempotencyUnique: uniqueIndex(
+      "BuyerCreditLedgerEntry_account_idempotency_unique"
+    ).on(table.buyerCreditAccountId, table.idempotencyKey),
+  })
+);
+
+export type BuyerCreditLedgerEntryRecord = InferSelectModel<
+  typeof buyerCreditLedgerEntry
+>;
+
 export const requestEvent = pgTable(
   "RequestEvent",
   {
@@ -490,6 +720,148 @@ export const resolverToken = pgTable(
 );
 
 export type ResolverTokenRecord = InferSelectModel<typeof resolverToken>;
+
+export const workflowPack = pgTable(
+  "WorkflowPack",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    key: text("key").notNull(),
+    ownerActorId: uuid("ownerActorId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    status: varchar("status", {
+      enum: ["draft", "active", "retired"],
+    })
+      .$type<WorkflowPackStatus>()
+      .notNull()
+      .default("draft"),
+    currentVersionId: uuid("currentVersionId"),
+    provenance: json("provenance").$type<WorkflowPackProvenance>().notNull(),
+    metadata: json("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+    retiredAt: timestamp("retiredAt"),
+  },
+  (table) => ({
+    ownerActorKeyUnique: uniqueIndex("WorkflowPack_ownerActorId_key_unique").on(
+      table.ownerActorId,
+      table.key
+    ),
+  })
+);
+
+export type WorkflowPackRecord = InferSelectModel<typeof workflowPack>;
+
+export const workflowPackVersion = pgTable(
+  "WorkflowPackVersion",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    key: text("key").notNull(),
+    workflowPackId: uuid("workflowPackId")
+      .notNull()
+      .references(() => workflowPack.id, { onDelete: "cascade" }),
+    version: integer("version").notNull(),
+    adapterKind: varchar("adapterKind", {
+      enum: [
+        "n8n",
+        "boreal_worker",
+        "desktop_runtime",
+        "provider_direct",
+        "manual_playbook",
+      ],
+    })
+      .$type<WorkflowAdapterKind>()
+      .notNull(),
+    graph: json("graph").$type<WorkflowGraph>().notNull(),
+    inputContract: json("inputContract")
+      .$type<WorkflowPackInputContract>()
+      .notNull(),
+    outputContract: json("outputContract")
+      .$type<WorkflowPackOutputContract>()
+      .notNull(),
+    credentialRequirements: json("credentialRequirements")
+      .$type<WorkflowCredentialRequirement[]>()
+      .notNull(),
+    humanCheckpoints: json("humanCheckpoints")
+      .$type<WorkflowHumanCheckpoint[]>()
+      .notNull(),
+    proofRequirements: json("proofRequirements")
+      .$type<WorkflowProofRequirement[]>()
+      .notNull(),
+    sourceRefs: json("sourceRefs").$type<WorkflowSourceRef[]>().notNull(),
+    readiness: json("readiness").$type<WorkflowPackReadiness>().notNull(),
+    unsupportedFeatures: json("unsupportedFeatures")
+      .$type<WorkflowUnsupportedFeature[]>()
+      .notNull(),
+    metadata: json("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+    retiredAt: timestamp("retiredAt"),
+  },
+  (table) => ({
+    workflowPackVersionUnique: uniqueIndex(
+      "WorkflowPackVersion_workflowPackId_version_unique"
+    ).on(table.workflowPackId, table.version),
+  })
+);
+
+export type WorkflowPackVersionRecord = InferSelectModel<
+  typeof workflowPackVersion
+>;
+
+export const workflowAdapterRun = pgTable(
+  "WorkflowAdapterRun",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    workflowPackVersionId: uuid("workflowPackVersionId")
+      .notNull()
+      .references(() => workflowPackVersion.id, { onDelete: "cascade" }),
+    requestId: uuid("requestId")
+      .notNull()
+      .references(() => request.id, { onDelete: "cascade" }),
+    fulfillmentId: uuid("fulfillmentId")
+      .notNull()
+      .references(() => fulfillment.id, { onDelete: "cascade" }),
+    status: varchar("status", {
+      enum: ["pending", "running", "blocked", "succeeded", "failed", "cancelled"],
+    })
+      .$type<WorkflowAdapterRunStatus>()
+      .notNull()
+      .default("pending"),
+    adapterKind: varchar("adapterKind", {
+      enum: [
+        "n8n",
+        "boreal_worker",
+        "desktop_runtime",
+        "provider_direct",
+        "manual_playbook",
+      ],
+    })
+      .$type<WorkflowAdapterKind>()
+      .notNull(),
+    remoteRunRef: text("remoteRunRef"),
+    attempt: integer("attempt").notNull().default(1),
+    summary: text("summary").notNull(),
+    errorSummary: text("errorSummary"),
+    metadata: json("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+    startedAt: timestamp("startedAt"),
+    endedAt: timestamp("endedAt"),
+    lastHeartbeatAt: timestamp("lastHeartbeatAt"),
+  },
+  (table) => ({
+    fulfillmentAttemptUnique: uniqueIndex(
+      "WorkflowAdapterRun_fulfillmentId_attempt_unique"
+    ).on(table.fulfillmentId, table.attempt),
+  })
+);
+
+export type WorkflowAdapterRunRecord = InferSelectModel<
+  typeof workflowAdapterRun
+>;
 
 export const message = pgTable("Message_v2", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),

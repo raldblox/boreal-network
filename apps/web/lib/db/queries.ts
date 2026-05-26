@@ -52,6 +52,15 @@ import {
   toPublicRequestPoolEntry,
 } from "@/lib/request";
 import type {
+  BuyerCreditAccountStatus,
+  BuyerCreditLedgerEntryKind,
+  BuyerCreditLedgerEntryStatus,
+  BuyerCreditLedgerMetadata,
+  RequestTransactionMetadata,
+  TransactionKind,
+  TransactionStatus,
+} from "@/lib/payment";
+import type {
   BorealSupplyDraft,
   SupplyAvailability,
   SupplyBindings,
@@ -68,11 +77,35 @@ import type {
   ResolverScope,
   ResolverTokenKind,
 } from "@/lib/resolver";
+import type {
+  WorkflowAdapterKind,
+  WorkflowAdapterRun,
+  WorkflowAdapterRunStatus,
+  WorkflowCredentialRequirement,
+  WorkflowGraph,
+  WorkflowHumanCheckpoint,
+  WorkflowPack,
+  WorkflowPackInputContract,
+  WorkflowPackOutputContract,
+  WorkflowPackProvenance,
+  WorkflowPackReadiness,
+  WorkflowPackStatus,
+  WorkflowPackVersion,
+  WorkflowProofRequirement,
+  WorkflowSourceRef,
+  WorkflowUnsupportedFeature,
+} from "@/lib/workflow-pack";
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
 import {
+  accountPasskeyCredential,
+  type AccountPasskeyCredentialRecord,
   artifactRecord,
   type ArtifactRecord,
+  buyerCreditAccount,
+  type BuyerCreditAccountRecord,
+  buyerCreditLedgerEntry,
+  type BuyerCreditLedgerEntryRecord,
   type Chat,
   chat,
   commitment,
@@ -86,8 +119,10 @@ import {
   requestEvent,
   type RequestEventRecord,
   type RequestRecord,
+  requestTransaction,
   supply,
   type SupplyRecord,
+  type TransactionRecord,
   resolverAuthorization,
   type ResolverAuthorizationRecord,
   resolverClient,
@@ -100,6 +135,12 @@ import {
   type User,
   user,
   vote,
+  workflowAdapterRun,
+  type WorkflowAdapterRunRecord,
+  workflowPack,
+  type WorkflowPackRecord,
+  workflowPackVersion,
+  type WorkflowPackVersionRecord,
 } from "./schema";
 import { generateHashedPassword } from "./utils";
 
@@ -327,6 +368,56 @@ export async function createGuestUser() {
     "bad_request:database",
     "Failed to create guest user: repeated guest identity collision"
   );
+}
+
+export async function getAccountPasskeyCredentialsByUserId({
+  userId,
+}: {
+  userId: string;
+}): Promise<AccountPasskeyCredentialRecord[]> {
+  try {
+    return await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(accountPasskeyCredential)
+        .where(eq(accountPasskeyCredential.userId, userId))
+        .orderBy(desc(accountPasskeyCredential.createdAt))
+    );
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get passkey credentials: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function deleteAccountPasskeyCredentialById({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    const [deletedCredential] = await withDatabaseRetry(() =>
+      db
+        .delete(accountPasskeyCredential)
+        .where(
+          and(
+            eq(accountPasskeyCredential.id, id),
+            eq(accountPasskeyCredential.userId, userId)
+          )
+        )
+        .returning({ id: accountPasskeyCredential.id })
+    );
+
+    return deletedCredential ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to delete passkey credential: ${getDatabaseErrorDetail(error)}`
+    );
+  }
 }
 
 export async function saveChat({
@@ -1278,6 +1369,415 @@ export async function updateFulfillmentById({
   }
 }
 
+export async function saveRequestTransaction({
+  id,
+  key,
+  requestId,
+  commitmentId,
+  fulfillmentId,
+  kind,
+  status,
+  currency,
+  amount,
+  payer,
+  payee,
+  reference,
+  metadata,
+  authorizedAt,
+  verifiedAt,
+  settledAt,
+  payoutPendingAt,
+  paidOutAt,
+  refundedAt,
+  disputedAt,
+  failedAt,
+}: {
+  id: string;
+  key: string;
+  requestId: string;
+  commitmentId?: string | null;
+  fulfillmentId?: string | null;
+  kind: TransactionKind;
+  status: TransactionStatus;
+  currency: string;
+  amount: string;
+  payer: RequestActorRef;
+  payee: RequestActorRef;
+  reference?: string | null;
+  metadata?: RequestTransactionMetadata | null;
+  authorizedAt?: Date | null;
+  verifiedAt?: Date | null;
+  settledAt?: Date | null;
+  payoutPendingAt?: Date | null;
+  paidOutAt?: Date | null;
+  refundedAt?: Date | null;
+  disputedAt?: Date | null;
+  failedAt?: Date | null;
+}): Promise<TransactionRecord> {
+  try {
+    const [createdTransaction] = await withDatabaseRetry(() =>
+      db
+        .insert(requestTransaction)
+        .values({
+          id,
+          key,
+          requestId,
+          commitmentId: commitmentId ?? null,
+          fulfillmentId: fulfillmentId ?? null,
+          kind,
+          status,
+          currency,
+          amount,
+          payer,
+          payee,
+          reference: reference ?? null,
+          metadata: metadata ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          authorizedAt,
+          verifiedAt,
+          settledAt,
+          payoutPendingAt,
+          paidOutAt,
+          refundedAt,
+          disputedAt,
+          failedAt,
+        })
+        .returning()
+    );
+
+    return createdTransaction;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to save transaction: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function getRequestTransactionsByRequestId({
+  requestId,
+}: {
+  requestId: string;
+}): Promise<TransactionRecord[]> {
+  try {
+    return await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(requestTransaction)
+        .where(eq(requestTransaction.requestId, requestId))
+        .orderBy(desc(requestTransaction.updatedAt))
+    );
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get request transactions: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function getRequestTransactionById({
+  id,
+}: {
+  id: string;
+}): Promise<TransactionRecord | null> {
+  try {
+    const [transaction] = await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(requestTransaction)
+        .where(eq(requestTransaction.id, id))
+        .limit(1)
+    );
+
+    return transaction ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get request transaction: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function getBuyerCreditAccountByOwnerId({
+  ownerId,
+  currency = "USD",
+}: {
+  ownerId: string;
+  currency?: string;
+}): Promise<BuyerCreditAccountRecord | null> {
+  try {
+    const [account] = await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(buyerCreditAccount)
+        .where(
+          and(
+            eq(buyerCreditAccount.ownerId, ownerId),
+            eq(buyerCreditAccount.currency, currency)
+          )
+        )
+        .limit(1)
+    );
+
+    return account ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get buyer credit account: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function ensureBuyerCreditAccount({
+  ownerId,
+  currency = "USD",
+  status = "active",
+  metadata,
+}: {
+  ownerId: string;
+  currency?: string;
+  status?: BuyerCreditAccountStatus;
+  metadata?: Record<string, unknown> | null;
+}): Promise<BuyerCreditAccountRecord> {
+  const existingAccount = await getBuyerCreditAccountByOwnerId({
+    ownerId,
+    currency,
+  });
+
+  if (existingAccount) {
+    return existingAccount;
+  }
+
+  try {
+    const [createdAccount] = await withDatabaseRetry(() =>
+      db
+        .insert(buyerCreditAccount)
+        .values({
+          ownerId,
+          currency,
+          status,
+          availableBalance: "0",
+          pendingBalance: "0",
+          lifetimePurchased: "0",
+          lifetimeGranted: "0",
+          lifetimeSpent: "0",
+          lifetimeRefunded: "0",
+          metadata: metadata ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .returning()
+    );
+
+    return createdAccount;
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      const account = await getBuyerCreditAccountByOwnerId({
+        ownerId,
+        currency,
+      });
+
+      if (account) {
+        return account;
+      }
+    }
+
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to create buyer credit account: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function createBuyerCreditLedgerEntry({
+  id,
+  buyerCreditAccountId,
+  kind,
+  status,
+  amount,
+  currency,
+  balanceAfter,
+  requestId,
+  transactionId,
+  idempotencyKey,
+  reference,
+  metadata,
+  verifiedAt,
+  settledAt,
+  failedAt,
+  reversedAt,
+}: {
+  id: string;
+  buyerCreditAccountId: string;
+  kind: BuyerCreditLedgerEntryKind;
+  status: BuyerCreditLedgerEntryStatus;
+  amount: string;
+  currency: string;
+  balanceAfter: string;
+  requestId?: string | null;
+  transactionId?: string | null;
+  idempotencyKey?: string | null;
+  reference?: string | null;
+  metadata?: BuyerCreditLedgerMetadata | null;
+  verifiedAt?: Date | null;
+  settledAt?: Date | null;
+  failedAt?: Date | null;
+  reversedAt?: Date | null;
+}): Promise<BuyerCreditLedgerEntryRecord> {
+  try {
+    const [createdEntry] = await withDatabaseRetry(() =>
+      db
+        .insert(buyerCreditLedgerEntry)
+        .values({
+          id,
+          buyerCreditAccountId,
+          kind,
+          status,
+          amount,
+          currency,
+          balanceAfter,
+          requestId: requestId ?? null,
+          transactionId: transactionId ?? null,
+          idempotencyKey: idempotencyKey ?? null,
+          reference: reference ?? null,
+          metadata: metadata ?? null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          verifiedAt,
+          settledAt,
+          failedAt,
+          reversedAt,
+        })
+        .returning()
+    );
+
+    return createdEntry;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to create buyer credit ledger entry: ${getDatabaseErrorDetail(
+        error
+      )}`
+    );
+  }
+}
+
+export async function getBuyerCreditLedgerEntryByIdempotencyKey({
+  buyerCreditAccountId,
+  idempotencyKey,
+}: {
+  buyerCreditAccountId: string;
+  idempotencyKey: string;
+}): Promise<BuyerCreditLedgerEntryRecord | null> {
+  try {
+    const [entry] = await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(buyerCreditLedgerEntry)
+        .where(
+          and(
+            eq(
+              buyerCreditLedgerEntry.buyerCreditAccountId,
+              buyerCreditAccountId
+            ),
+            eq(buyerCreditLedgerEntry.idempotencyKey, idempotencyKey)
+          )
+        )
+        .limit(1)
+    );
+
+    return entry ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get buyer credit ledger entry: ${getDatabaseErrorDetail(
+        error
+      )}`
+    );
+  }
+}
+
+export async function updateBuyerCreditAccountById({
+  id,
+  availableBalance,
+  pendingBalance,
+  lifetimePurchased,
+  lifetimeGranted,
+  lifetimeSpent,
+  lifetimeRefunded,
+  status,
+  metadata,
+}: {
+  id: string;
+  availableBalance?: string;
+  pendingBalance?: string;
+  lifetimePurchased?: string;
+  lifetimeGranted?: string;
+  lifetimeSpent?: string;
+  lifetimeRefunded?: string;
+  status?: BuyerCreditAccountStatus;
+  metadata?: Record<string, unknown> | null;
+}): Promise<BuyerCreditAccountRecord | null> {
+  try {
+    const [updatedAccount] = await withDatabaseRetry(() =>
+      db
+        .update(buyerCreditAccount)
+        .set({
+          ...(availableBalance !== undefined ? { availableBalance } : {}),
+          ...(pendingBalance !== undefined ? { pendingBalance } : {}),
+          ...(lifetimePurchased !== undefined ? { lifetimePurchased } : {}),
+          ...(lifetimeGranted !== undefined ? { lifetimeGranted } : {}),
+          ...(lifetimeSpent !== undefined ? { lifetimeSpent } : {}),
+          ...(lifetimeRefunded !== undefined ? { lifetimeRefunded } : {}),
+          ...(status !== undefined ? { status } : {}),
+          ...(metadata !== undefined ? { metadata } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(buyerCreditAccount.id, id))
+        .returning()
+    );
+
+    return updatedAccount ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to update buyer credit account: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function getBuyerCreditLedgerEntriesByAccountId({
+  buyerCreditAccountId,
+  limit = 50,
+}: {
+  buyerCreditAccountId: string;
+  limit?: number;
+}): Promise<BuyerCreditLedgerEntryRecord[]> {
+  try {
+    return await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(buyerCreditLedgerEntry)
+        .where(
+          eq(
+            buyerCreditLedgerEntry.buyerCreditAccountId,
+            buyerCreditAccountId
+          )
+        )
+        .orderBy(desc(buyerCreditLedgerEntry.createdAt))
+        .limit(limit)
+    );
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get buyer credit ledger entries: ${getDatabaseErrorDetail(
+        error
+      )}`
+    );
+  }
+}
+
 export async function getRequestsByUserId({
   id,
   limit,
@@ -1918,6 +2418,519 @@ export function toSupplyDraft(record: SupplyRecord): BorealSupplyDraft {
     updatedAt: record.updatedAt.toISOString(),
     ...(record.publishedAt ? { publishedAt: record.publishedAt.toISOString() } : {}),
     ...(record.retiredAt ? { retiredAt: record.retiredAt.toISOString() } : {}),
+  };
+}
+
+export async function getWorkflowPackById({
+  id,
+}: {
+  id: string;
+}): Promise<WorkflowPackRecord | null> {
+  try {
+    const [selectedWorkflowPack] = await db
+      .select()
+      .from(workflowPack)
+      .where(eq(workflowPack.id, id))
+      .limit(1);
+
+    return selectedWorkflowPack ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get workflow pack by id"
+    );
+  }
+}
+
+export async function getWorkflowPackVersionById({
+  id,
+}: {
+  id: string;
+}): Promise<WorkflowPackVersionRecord | null> {
+  try {
+    const [selectedWorkflowPackVersion] = await db
+      .select()
+      .from(workflowPackVersion)
+      .where(eq(workflowPackVersion.id, id))
+      .limit(1);
+
+    return selectedWorkflowPackVersion ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get workflow pack version by id"
+    );
+  }
+}
+
+export async function getWorkflowPackVersionsByWorkflowPackId({
+  workflowPackId,
+}: {
+  workflowPackId: string;
+}): Promise<WorkflowPackVersionRecord[]> {
+  try {
+    return await db
+      .select()
+      .from(workflowPackVersion)
+      .where(eq(workflowPackVersion.workflowPackId, workflowPackId))
+      .orderBy(desc(workflowPackVersion.version), desc(workflowPackVersion.updatedAt));
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get workflow pack versions"
+    );
+  }
+}
+
+export async function saveWorkflowPack({
+  id,
+  key,
+  ownerActorId,
+  title,
+  summary,
+  status,
+  currentVersionId,
+  provenance,
+  metadata,
+  retiredAt,
+}: {
+  id: string;
+  key: string;
+  ownerActorId: string;
+  title: string;
+  summary: string;
+  status: WorkflowPackStatus;
+  currentVersionId?: string;
+  provenance: WorkflowPackProvenance;
+  metadata?: Record<string, unknown>;
+  retiredAt?: Date | null;
+}) {
+  try {
+    const [createdWorkflowPack] = await db
+      .insert(workflowPack)
+      .values({
+        id,
+        key,
+        ownerActorId,
+        title,
+        summary,
+        status,
+        ...(currentVersionId ? { currentVersionId } : {}),
+        provenance,
+        ...(metadata ? { metadata } : {}),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        retiredAt,
+      })
+      .returning();
+
+    return createdWorkflowPack;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save workflow pack"
+    );
+  }
+}
+
+export async function updateWorkflowPackById({
+  id,
+  key,
+  title,
+  summary,
+  status,
+  currentVersionId,
+  provenance,
+  metadata,
+  retiredAt,
+}: {
+  id: string;
+  key: string;
+  title: string;
+  summary: string;
+  status: WorkflowPackStatus;
+  currentVersionId?: string | null;
+  provenance: WorkflowPackProvenance;
+  metadata?: Record<string, unknown>;
+  retiredAt?: Date | null;
+}) {
+  try {
+    const [updatedWorkflowPack] = await db
+      .update(workflowPack)
+      .set({
+        key,
+        title,
+        summary,
+        status,
+        ...(currentVersionId !== undefined ? { currentVersionId } : {}),
+        provenance,
+        ...(metadata !== undefined ? { metadata } : {}),
+        ...(retiredAt !== undefined ? { retiredAt } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(workflowPack.id, id))
+      .returning();
+
+    return updatedWorkflowPack ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update workflow pack"
+    );
+  }
+}
+
+export function toWorkflowPack(record: WorkflowPackRecord): WorkflowPack {
+  return {
+    id: record.id,
+    key: record.key,
+    ownerActorId: record.ownerActorId,
+    title: record.title,
+    summary: record.summary,
+    status: record.status,
+    ...(record.currentVersionId ? { currentVersionId: record.currentVersionId } : {}),
+    provenance: record.provenance,
+    ...(record.metadata ? { metadata: record.metadata } : {}),
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    ...(record.retiredAt ? { retiredAt: record.retiredAt.toISOString() } : {}),
+  };
+}
+
+export async function saveWorkflowPackVersion({
+  id,
+  key,
+  workflowPackId,
+  version,
+  adapterKind,
+  graph,
+  inputContract,
+  outputContract,
+  credentialRequirements,
+  humanCheckpoints,
+  proofRequirements,
+  sourceRefs,
+  readiness,
+  unsupportedFeatures,
+  metadata,
+  retiredAt,
+}: {
+  id: string;
+  key: string;
+  workflowPackId: string;
+  version: number;
+  adapterKind: WorkflowAdapterKind;
+  graph: WorkflowGraph;
+  inputContract: WorkflowPackInputContract;
+  outputContract: WorkflowPackOutputContract;
+  credentialRequirements: WorkflowCredentialRequirement[];
+  humanCheckpoints: WorkflowHumanCheckpoint[];
+  proofRequirements: WorkflowProofRequirement[];
+  sourceRefs: WorkflowSourceRef[];
+  readiness: WorkflowPackReadiness;
+  unsupportedFeatures: WorkflowUnsupportedFeature[];
+  metadata?: Record<string, unknown>;
+  retiredAt?: Date | null;
+}) {
+  try {
+    const [createdWorkflowPackVersion] = await db
+      .insert(workflowPackVersion)
+      .values({
+        id,
+        key,
+        workflowPackId,
+        version,
+        adapterKind,
+        graph,
+        inputContract,
+        outputContract,
+        credentialRequirements,
+        humanCheckpoints,
+        proofRequirements,
+        sourceRefs,
+        readiness,
+        unsupportedFeatures,
+        ...(metadata ? { metadata } : {}),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        retiredAt,
+      })
+      .returning();
+
+    return createdWorkflowPackVersion;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save workflow pack version"
+    );
+  }
+}
+
+export async function updateWorkflowPackVersionById({
+  id,
+  key,
+  version,
+  adapterKind,
+  graph,
+  inputContract,
+  outputContract,
+  credentialRequirements,
+  humanCheckpoints,
+  proofRequirements,
+  sourceRefs,
+  readiness,
+  unsupportedFeatures,
+  metadata,
+  retiredAt,
+}: {
+  id: string;
+  key: string;
+  version: number;
+  adapterKind: WorkflowAdapterKind;
+  graph: WorkflowGraph;
+  inputContract: WorkflowPackInputContract;
+  outputContract: WorkflowPackOutputContract;
+  credentialRequirements: WorkflowCredentialRequirement[];
+  humanCheckpoints: WorkflowHumanCheckpoint[];
+  proofRequirements: WorkflowProofRequirement[];
+  sourceRefs: WorkflowSourceRef[];
+  readiness: WorkflowPackReadiness;
+  unsupportedFeatures: WorkflowUnsupportedFeature[];
+  metadata?: Record<string, unknown>;
+  retiredAt?: Date | null;
+}) {
+  try {
+    const [updatedWorkflowPackVersion] = await db
+      .update(workflowPackVersion)
+      .set({
+        key,
+        version,
+        adapterKind,
+        graph,
+        inputContract,
+        outputContract,
+        credentialRequirements,
+        humanCheckpoints,
+        proofRequirements,
+        sourceRefs,
+        readiness,
+        unsupportedFeatures,
+        ...(metadata !== undefined ? { metadata } : {}),
+        ...(retiredAt !== undefined ? { retiredAt } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(workflowPackVersion.id, id))
+      .returning();
+
+    return updatedWorkflowPackVersion ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update workflow pack version"
+    );
+  }
+}
+
+export function toWorkflowPackVersion(
+  record: WorkflowPackVersionRecord
+): WorkflowPackVersion {
+  return {
+    id: record.id,
+    key: record.key,
+    workflowPackId: record.workflowPackId,
+    version: record.version,
+    adapterKind: record.adapterKind,
+    graph: record.graph,
+    inputContract: record.inputContract,
+    outputContract: record.outputContract,
+    credentialRequirements: record.credentialRequirements,
+    humanCheckpoints: record.humanCheckpoints,
+    proofRequirements: record.proofRequirements,
+    sourceRefs: record.sourceRefs,
+    readiness: record.readiness,
+    unsupportedFeatures: record.unsupportedFeatures,
+    ...(record.metadata ? { metadata: record.metadata } : {}),
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    ...(record.retiredAt ? { retiredAt: record.retiredAt.toISOString() } : {}),
+  };
+}
+
+export async function getWorkflowAdapterRunById({
+  id,
+}: {
+  id: string;
+}): Promise<WorkflowAdapterRunRecord | null> {
+  try {
+    const [selectedWorkflowAdapterRun] = await db
+      .select()
+      .from(workflowAdapterRun)
+      .where(eq(workflowAdapterRun.id, id))
+      .limit(1);
+
+    return selectedWorkflowAdapterRun ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get workflow adapter run by id"
+    );
+  }
+}
+
+export async function getWorkflowAdapterRunsByFulfillmentId({
+  fulfillmentId,
+}: {
+  fulfillmentId: string;
+}): Promise<WorkflowAdapterRunRecord[]> {
+  try {
+    return await db
+      .select()
+      .from(workflowAdapterRun)
+      .where(eq(workflowAdapterRun.fulfillmentId, fulfillmentId))
+      .orderBy(asc(workflowAdapterRun.attempt), desc(workflowAdapterRun.updatedAt));
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get workflow adapter runs"
+    );
+  }
+}
+
+export async function saveWorkflowAdapterRun({
+  id,
+  workflowPackVersionId,
+  requestId,
+  fulfillmentId,
+  status,
+  adapterKind,
+  remoteRunRef,
+  attempt,
+  summary,
+  errorSummary,
+  metadata,
+  startedAt,
+  endedAt,
+  lastHeartbeatAt,
+}: {
+  id: string;
+  workflowPackVersionId: string;
+  requestId: string;
+  fulfillmentId: string;
+  status: WorkflowAdapterRunStatus;
+  adapterKind: WorkflowAdapterKind;
+  remoteRunRef?: string;
+  attempt: number;
+  summary: string;
+  errorSummary?: string;
+  metadata?: Record<string, unknown>;
+  startedAt?: Date | null;
+  endedAt?: Date | null;
+  lastHeartbeatAt?: Date | null;
+}) {
+  try {
+    const [createdWorkflowAdapterRun] = await db
+      .insert(workflowAdapterRun)
+      .values({
+        id,
+        workflowPackVersionId,
+        requestId,
+        fulfillmentId,
+        status,
+        adapterKind,
+        ...(remoteRunRef ? { remoteRunRef } : {}),
+        attempt,
+        summary,
+        ...(errorSummary ? { errorSummary } : {}),
+        ...(metadata ? { metadata } : {}),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        startedAt,
+        endedAt,
+        lastHeartbeatAt,
+      })
+      .returning();
+
+    return createdWorkflowAdapterRun;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to save workflow adapter run"
+    );
+  }
+}
+
+export async function updateWorkflowAdapterRunById({
+  id,
+  status,
+  remoteRunRef,
+  attempt,
+  summary,
+  errorSummary,
+  metadata,
+  startedAt,
+  endedAt,
+  lastHeartbeatAt,
+}: {
+  id: string;
+  status: WorkflowAdapterRunStatus;
+  remoteRunRef?: string | null;
+  attempt: number;
+  summary: string;
+  errorSummary?: string | null;
+  metadata?: Record<string, unknown>;
+  startedAt?: Date | null;
+  endedAt?: Date | null;
+  lastHeartbeatAt?: Date | null;
+}) {
+  try {
+    const [updatedWorkflowAdapterRun] = await db
+      .update(workflowAdapterRun)
+      .set({
+        status,
+        ...(remoteRunRef !== undefined ? { remoteRunRef } : {}),
+        attempt,
+        summary,
+        ...(errorSummary !== undefined ? { errorSummary } : {}),
+        ...(metadata !== undefined ? { metadata } : {}),
+        ...(startedAt !== undefined ? { startedAt } : {}),
+        ...(endedAt !== undefined ? { endedAt } : {}),
+        ...(lastHeartbeatAt !== undefined ? { lastHeartbeatAt } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(workflowAdapterRun.id, id))
+      .returning();
+
+    return updatedWorkflowAdapterRun ?? null;
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to update workflow adapter run"
+    );
+  }
+}
+
+export function toWorkflowAdapterRun(
+  record: WorkflowAdapterRunRecord
+): WorkflowAdapterRun {
+  return {
+    id: record.id,
+    workflowPackVersionId: record.workflowPackVersionId,
+    requestId: record.requestId,
+    fulfillmentId: record.fulfillmentId,
+    status: record.status,
+    adapterKind: record.adapterKind,
+    ...(record.remoteRunRef ? { remoteRunRef: record.remoteRunRef } : {}),
+    attempt: record.attempt,
+    summary: record.summary,
+    ...(record.errorSummary ? { errorSummary: record.errorSummary } : {}),
+    ...(record.metadata ? { metadata: record.metadata } : {}),
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+    ...(record.startedAt ? { startedAt: record.startedAt.toISOString() } : {}),
+    ...(record.endedAt ? { endedAt: record.endedAt.toISOString() } : {}),
+    ...(record.lastHeartbeatAt
+      ? { lastHeartbeatAt: record.lastHeartbeatAt.toISOString() }
+      : {}),
   };
 }
 

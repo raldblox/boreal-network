@@ -210,6 +210,27 @@ Should expose:
 - settlement status
 - payout status
 
+The first first-party payment and credit slice exposes:
+
+- `GET /api/buyer-credits/account`
+- `GET /api/buyer-credits/ledger`
+- `POST /api/buyer-credits/topups`
+- `POST /api/buyer-credits/apply`
+- `GET /api/requests/{id}/transactions`
+- `POST /api/requests/{id}/transactions`
+
+Rules:
+
+- buyer-credit endpoints are authenticated account-session routes in the first slice
+- top-up creates buyer-credit support ledger truth but does not create request `Transaction` truth
+- direct request funding creates request-attached `Transaction` truth
+- buyer-credit application creates both one credit ledger debit and one request-attached `Transaction`
+- mutating payment routes accept `Idempotency-Key`
+
+Machine-readable contract:
+
+- `schemas/openapi/payment-and-credit.openapi.yaml`
+
 ## Account Auth Surface
 
 Regular Boreal web accounts should use:

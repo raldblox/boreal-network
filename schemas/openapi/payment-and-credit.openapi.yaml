@@ -1,0 +1,418 @@
+openapi: 3.1.0
+info:
+  title: Boreal Web Payment And Buyer Credit Surface
+  version: 1.0.0
+  description: >
+    First account-scoped buyer credit and request transaction surface for
+    first-party supply. Buyer credit remains a support ledger. Request funding
+    remains attached to Transaction.
+paths:
+  /api/buyer-credits/account:
+    get:
+      summary: Read or create the authenticated account's first-party buyer credit account.
+      responses:
+        "200":
+          description: Buyer credit account projection.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - account
+                properties:
+                  account:
+                    $ref: "#/components/schemas/BuyerCreditAccount"
+  /api/buyer-credits/ledger:
+    get:
+      summary: Read the authenticated account's buyer credit ledger entries.
+      parameters:
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: Buyer credit account and ledger entries.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - account
+                  - ledger
+                properties:
+                  account:
+                    $ref: "#/components/schemas/BuyerCreditAccount"
+                  ledger:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+  /api/buyer-credits/topups:
+    post:
+      summary: Create a pending first-party buyer credit top-up.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - amount
+                - fundingSource
+              properties:
+                amount:
+                  $ref: "#/components/schemas/MoneyAmount"
+                fundingSource:
+                  type: string
+                  enum:
+                    - card_direct
+                    - paypal_direct
+                    - usdc_direct
+                    - usdt_direct
+                reference:
+                  type:
+                    - string
+                    - "null"
+                  maxLength: 200
+                metadata:
+                  $ref: "#/components/schemas/Metadata"
+                idempotencyKey:
+                  type:
+                    - string
+                    - "null"
+                  format: uuid
+      responses:
+        "200":
+          description: Pending ledger entry and updated credit account projection.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - account
+                  - ledgerEntry
+                properties:
+                  account:
+                    $ref: "#/components/schemas/BuyerCreditAccount"
+                  ledgerEntry:
+                    $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+  /api/buyer-credits/apply:
+    post:
+      summary: Apply buyer credit to one owned Request.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - requestId
+                - amount
+              properties:
+                requestId:
+                  type: string
+                  format: uuid
+                amount:
+                  $ref: "#/components/schemas/MoneyAmount"
+                idempotencyKey:
+                  type:
+                    - string
+                    - "null"
+                  format: uuid
+      responses:
+        "200":
+          description: Updated request, request transaction, credit account, and ledger debit.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                  - transaction
+                  - account
+                  - ledgerEntry
+                properties:
+                  request:
+                    type: object
+                  transaction:
+                    $ref: "#/components/schemas/RequestTransaction"
+                  account:
+                    $ref: "#/components/schemas/BuyerCreditAccount"
+                  ledgerEntry:
+                    $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+  /api/requests/{id}/transactions:
+    get:
+      summary: List request-attached transactions for one owned Request.
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+      responses:
+        "200":
+          description: Request transaction list.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - transactions
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/RequestTransaction"
+    post:
+      summary: Record direct request funding from a processor or stablecoin source.
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - amount
+                - fundingSource
+              properties:
+                amount:
+                  $ref: "#/components/schemas/MoneyAmount"
+                currency:
+                  type: string
+                  pattern: "^[A-Z]{3}$"
+                  default: USD
+                fundingSource:
+                  type: string
+                  enum:
+                    - card_direct
+                    - paypal_direct
+                    - usdc_direct
+                    - usdt_direct
+                kind:
+                  $ref: "#/components/schemas/TransactionKind"
+                status:
+                  $ref: "#/components/schemas/TransactionStatus"
+                reference:
+                  type:
+                    - string
+                    - "null"
+                  maxLength: 200
+                metadata:
+                  $ref: "#/components/schemas/Metadata"
+                idempotencyKey:
+                  type:
+                    - string
+                    - "null"
+                  format: uuid
+      responses:
+        "200":
+          description: Updated request and request transaction.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                  - transaction
+                properties:
+                  request:
+                    type: object
+                  transaction:
+                    $ref: "#/components/schemas/RequestTransaction"
+components:
+  parameters:
+    RequestId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: false
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    MoneyAmount:
+      oneOf:
+        - type: string
+          pattern: "^\\d+(?:\\.\\d{1,2})?$"
+        - type: number
+          exclusiveMinimum: 0
+    Metadata:
+      type:
+        - object
+        - "null"
+      additionalProperties: true
+    TransactionKind:
+      type: string
+      enum:
+        - payment_requirement
+        - authorization
+        - verification
+        - settlement
+        - payout
+        - refund
+        - dispute
+    TransactionStatus:
+      type: string
+      enum:
+        - pending
+        - authorized
+        - verified
+        - settled
+        - payout_pending
+        - paid_out
+        - refunded
+        - disputed
+        - failed
+    RequestTransaction:
+      type: object
+      additionalProperties: true
+      required:
+        - id
+        - key
+        - requestId
+        - kind
+        - status
+        - currency
+        - amount
+        - payer
+        - payee
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        key:
+          type: string
+        requestId:
+          type: string
+          format: uuid
+        commitmentId:
+          type:
+            - string
+            - "null"
+          format: uuid
+        fulfillmentId:
+          type:
+            - string
+            - "null"
+          format: uuid
+        kind:
+          $ref: "#/components/schemas/TransactionKind"
+        status:
+          $ref: "#/components/schemas/TransactionStatus"
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        amount:
+          type: string
+        payer:
+          type: object
+        payee:
+          type: object
+        reference:
+          type:
+            - string
+            - "null"
+        metadata:
+          $ref: "#/components/schemas/Metadata"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    BuyerCreditAccount:
+      type: object
+      additionalProperties: true
+      required:
+        - id
+        - ownerId
+        - currency
+        - status
+        - availableBalance
+        - pendingBalance
+      properties:
+        id:
+          type: string
+          format: uuid
+        ownerId:
+          type: string
+          format: uuid
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        status:
+          type: string
+          enum:
+            - active
+            - paused
+            - closed
+        availableBalance:
+          type: string
+        pendingBalance:
+          type: string
+    BuyerCreditLedgerEntry:
+      type: object
+      additionalProperties: true
+      required:
+        - id
+        - buyerCreditAccountId
+        - kind
+        - status
+        - amount
+        - currency
+        - balanceAfter
+      properties:
+        id:
+          type: string
+          format: uuid
+        buyerCreditAccountId:
+          type: string
+          format: uuid
+        kind:
+          type: string
+          enum:
+            - topup
+            - grant
+            - debit
+            - refund_restore
+            - adjustment
+            - reversal
+        status:
+          type: string
+          enum:
+            - pending
+            - verified
+            - settled
+            - failed
+            - reversed
+        amount:
+          type: string
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        balanceAfter:
+          type: string

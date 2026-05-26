@@ -56,6 +56,10 @@ Verify:
 - only authorized actors can mutate a request
 - participant roles are enforced
 - payment and payout visibility respect ownership and role boundaries
+- regular login should accept either username or email when both map to the same account
+- username normalization and uniqueness should prevent ambiguous or duplicate regular-account handles
+- password success alone should not complete login when the account has enrolled required `WebAuthn` MFA
+- `WebAuthn` MFA challenges should expire, single-use correctly, and reject replay
 - resolver bearer scopes are enforced independently from browser sessions
 - raw runtime identity cannot be treated as Boreal request ownership without Boreal-issued resolver approval
 - peer or localhost realtime session auth cannot be treated as Boreal actor auth by itself
@@ -67,6 +71,8 @@ Verify:
 
 - duplicate create actions do not fork business truth
 - duplicate payment verification does not double-settle
+- duplicate buyer-credit top-up or apply-credit requests with the same idempotency key do not double-change credit balance
+- duplicate request transaction requests with the same idempotency key do not create duplicate request-attached transactions
 - duplicate event replay does not double-apply side effects
 
 ### Replay and projection tests
@@ -89,6 +95,7 @@ Verify:
 - app, package, skill, and standards workspaces do not redefine canonical root object names
 - generic workspace names such as `network-node`, `node2`, or `misc` are blocked unless explicitly approved in canon docs
 - root manifests and workspace manifests agree on active JS or TS workspaces
+- account-auth decisions stay aligned with accepted web auth canon instead of drifting back to email-only or runtime-collapsed assumptions
 
 ### Request-processing contract tests
 
@@ -188,6 +195,7 @@ Verify:
 - planner outputs must preserve embodied, local-runtime, and verification-heavy work as first-class planning realities
 - plan-collapse detection should trigger clarification or block-and-escalate when required embodied work is being omitted
 - public request-pool projections should not expose the full planner-internal projection by default
+- the request plan panel should expose typed matching fingerprints plus `matchCandidates`, `leadRanking`, `roleMatches`, and `assignmentProposal` as read-only derived projections rather than editable buyer-authored fields
 
 ### Supply-management contract tests
 
@@ -207,6 +215,14 @@ Verify:
 - runtime or resolver binding metadata remains optional
 - runtime or resolver binding metadata does not replace the durable supply owner actor
 - starter-supply enable with immediate publish should keep the starter in private or unlisted lanes and make it selectable for request routing
+- workflow-backed supply may point to typed workflow-pack support metadata or support links without replacing the durable supply root
+- imported workflow definitions or template bodies must not be rewritten into fake buyer-authored request brief fields
+- missing credentials, undefined proof requirements, or unsupported adapter features should block workflow-backed pack readiness or fulfillment start
+- workflow adapter success alone must not imply delivered or accepted completion without artifact and closure truth
+- first-party buyer-credit top-up should update support-ledger truth without creating fake request funding truth
+- spending buyer credit on one request should create both one credit-ledger debit and one request-attached transaction record
+- buyer credit must not be spendable on out-of-scope external supply in the first-party-only credit profile
+- stablecoin or processor verification replay must not create duplicate settled ledger entries or duplicate settled request transactions
 
 ### Planner evals
 
@@ -226,6 +242,7 @@ Verify:
 - collaborator slots map to sensible supplies
 - generic weak-fit supplies do not outrank strong specialists
 - deterministic benchmark aggregates can distinguish lead-first routing quality from tool-biased or decomposition-biased baselines
+- the fixture-backed `web-live` matcher runner should rebuild actual outputs from runnable `requestPatch` plus full `candidateSupplies` snapshots instead of depending on hand-written actual JSON only
 
 ### Policy evals
 
