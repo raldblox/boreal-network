@@ -8,6 +8,7 @@ import {
   getAccountPasskeyCredentialsByUserId,
   getUserById,
 } from "@/lib/db/queries";
+import { PasskeyEnrollment } from "./passkey-enrollment";
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -121,9 +122,7 @@ export default async function AccountSecurityPage() {
               WebAuthn passkeys will become the required second factor after
               enrollment. Device passkeys and security keys share this lane.
             </p>
-            <Button disabled variant="outline">
-              Add passkey soon
-            </Button>
+            <PasskeyEnrollment />
           </div>
 
           <div className="space-y-3">

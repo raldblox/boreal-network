@@ -1,6 +1,17 @@
+import {
+  generateRegistrationOptions,
+  type AuthenticatorTransportFuture,
+} from "@simplewebauthn/server";
 import { auth } from "@/app/(auth)/auth";
-import { getAccountPasskeyCredentialsByUserId } from "@/lib/db/queries";
+import {
+  getAccountPasskeyCredentialsByUserId,
+  getUserById,
+} from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
+import {
+  getWebAuthnRequestContext,
+  saveAccountAuthChallenge,
+} from "@/lib/account-webauthn";
 
 type AccountPasskey = Awaited<
   ReturnType<typeof getAccountPasskeyCredentialsByUserId>
@@ -36,19 +47,56 @@ export async function GET() {
   );
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await auth();
 
   if (!session?.user || session.user.type !== "regular") {
     return new ChatbotError("unauthorized:auth").toResponse();
   }
 
+  const account = await getUserById({ id: session.user.id });
+  if (!account) {
+    return new ChatbotError("unauthorized:auth").toResponse();
+  }
+
+  const credentials = await getAccountPasskeyCredentialsByUserId({
+    userId: session.user.id,
+  });
+  const webAuthnContext = getWebAuthnRequestContext(request.headers);
+  const options = await generateRegistrationOptions({
+    rpName: webAuthnContext.rpName,
+    rpID: webAuthnContext.rpID,
+    userID: new TextEncoder().encode(account.id),
+    userName: account.username ?? account.email,
+    userDisplayName: account.username ?? account.email,
+    attestationType: "none",
+    excludeCredentials: credentials.map((credential) => ({
+      id: credential.credentialId,
+      transports:
+        (credential.transports as AuthenticatorTransportFuture[] | null) ??
+        undefined,
+    })),
+    authenticatorSelection: {
+      residentKey: "preferred",
+      userVerification: "required",
+    },
+  });
+  const challenge = await saveAccountAuthChallenge({
+    userId: session.user.id,
+    kind: "webauthn_registration",
+    challenge: options.challenge,
+    metadata: {
+      origin: webAuthnContext.origin,
+      rpID: webAuthnContext.rpID,
+    },
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+  });
+
   return Response.json(
     {
-      code: "not_implemented:auth",
-      message:
-        "WebAuthn enrollment is waiting on the verified WebAuthn package install.",
+      challengeId: challenge.id,
+      options,
     },
-    { status: 501 }
+    { status: 200 }
   );
 }
