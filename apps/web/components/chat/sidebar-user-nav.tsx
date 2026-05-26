@@ -29,12 +29,16 @@ function emailToHue(email: string): number {
   return Math.abs(hash) % 360;
 }
 
-export function SidebarUserNav({ user }: { user: User }) {
+export function SidebarUserNav({ user }: { user?: User }) {
   const router = useRouter();
   const { data, status } = useSession();
   const { setTheme, resolvedTheme } = useTheme();
 
-  const isGuest = guestRegex.test(data?.user?.email ?? "");
+  const sessionUser = data?.user ?? user;
+  const isGuest = guestRegex.test(sessionUser?.email ?? "");
+  const isPublicVisitor = !sessionUser;
+  const displayEmail = sessionUser?.email ?? "Guest or sign in";
+  const avatarHue = emailToHue(sessionUser?.email ?? "guest");
 
   return (
     <SidebarMenu>
@@ -61,14 +65,14 @@ export function SidebarUserNav({ user }: { user: User }) {
                 <div
                   className="size-5 shrink-0 rounded-full ring-1 ring-sidebar-border/50"
                   style={{
-                    background: `linear-gradient(135deg, oklch(0.35 0.08 ${emailToHue(user.email ?? "")}), oklch(0.25 0.05 ${emailToHue(user.email ?? "") + 40}))`,
+                    background: `linear-gradient(135deg, oklch(0.35 0.08 ${avatarHue}), oklch(0.25 0.05 ${avatarHue + 40}))`,
                   }}
                 />
                 <span
                   className="truncate text-[13px] group-data-[collapsible=icon]:hidden"
                   data-testid="user-email"
                 >
-                  {isGuest ? "Guest access" : user?.email}
+                  {isPublicVisitor ? "Guest or sign in" : isGuest ? "Guest access" : displayEmail}
                 </span>
                 <ChevronUp className="ml-auto size-3.5 text-sidebar-foreground/50 group-data-[collapsible=icon]:hidden" />
               </SidebarMenuButton>
@@ -88,7 +92,39 @@ export function SidebarUserNav({ user }: { user: User }) {
             >
               {`Switch to ${resolvedTheme === "light" ? "dark" : "light"} mode`}
             </DropdownMenuItem>
+            {isPublicVisitor ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild data-testid="user-nav-item-guest">
+                  <button
+                    className="w-full cursor-pointer text-[13px]"
+                    onClick={() => {
+                      router.push("/?mode=chat");
+                    }}
+                    type="button"
+                  >
+                    Continue as guest
+                  </button>
+                </DropdownMenuItem>
+              </>
+            ) : null}
             <DropdownMenuSeparator />
+            {!isPublicVisitor && !isGuest ? (
+              <>
+                <DropdownMenuItem asChild data-testid="user-nav-item-security">
+                  <button
+                    className="w-full cursor-pointer text-[13px]"
+                    onClick={() => {
+                      router.push("/account/security");
+                    }}
+                    type="button"
+                  >
+                    Account security
+                  </button>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
             <DropdownMenuItem asChild data-testid="user-nav-item-auth">
               <button
                 className="w-full cursor-pointer text-[13px]"
@@ -103,7 +139,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                     return;
                   }
 
-                  if (isGuest) {
+                  if (isPublicVisitor || isGuest) {
                     router.push("/login");
                   } else {
                     signOut({
@@ -113,7 +149,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                 }}
                 type="button"
               >
-                {isGuest ? "Sign in to Boreal" : "Sign out"}
+                {isPublicVisitor || isGuest ? "Sign in to Boreal" : "Sign out"}
               </button>
             </DropdownMenuItem>
           </DropdownMenuContent>
