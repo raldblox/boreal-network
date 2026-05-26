@@ -1,0 +1,541 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-23T09:00:00Z",
+  "sourceRunId": "sample-problem-intel-2026-05-23",
+  "window": {
+    "label": "sample_snapshot",
+    "from": "2026-05-16T00:00:00Z",
+    "to": "2026-05-23T09:00:00Z"
+  },
+  "summary": {
+    "problemCount": 4,
+    "clusterCount": 4,
+    "reviewedProblemCount": 4,
+    "notes": [
+      "Sample fallback snapshot used before the first local automation run.",
+      "Scores reflect a wedge-oriented heuristic, not a market-wide benchmark."
+    ]
+  },
+  "clusters": [
+    {
+      "clusterId": "cluster_automation_completion",
+      "label": "Automation completion and rescue",
+      "rationale": "Repeated signals where AI tooling exists but nobody owns the final working state, proof, and handoff.",
+      "sharedTags": [
+        "completion_over_generation",
+        "human_review_required",
+        "tool_chain_fragility",
+        "request_rooted"
+      ],
+      "problemIds": [
+        "prob_automation_completion_sprint"
+      ]
+    },
+    {
+      "clusterId": "cluster_security_review_ops",
+      "label": "Security review completion",
+      "rationale": "Buyers need real questionnaire completion and proof packaging, not generic AI answers.",
+      "sharedTags": [
+        "proof_required",
+        "buyer_needs_accountable_owner",
+        "verification_sensitive"
+      ],
+      "problemIds": [
+        "prob_security_questionnaire_completion"
+      ]
+    },
+    {
+      "clusterId": "cluster_revenue_response_ops",
+      "label": "Proposal and RFP response pressure",
+      "rationale": "Revenue opportunities stall because teams cannot turn messy source material into a usable final response fast enough.",
+      "sharedTags": [
+        "fuzzy_intake",
+        "deadline_pressure",
+        "mixed_supply"
+      ],
+      "problemIds": [
+        "prob_rfp_proposal_completion"
+      ]
+    },
+    {
+      "clusterId": "cluster_vibecoded_rescue",
+      "label": "Vibe-coded MVP rescue",
+      "rationale": "Founders ship fast AI-generated prototypes and later need a real production rescue with ownership and handoff.",
+      "sharedTags": [
+        "completion_over_generation",
+        "buyer_needs_accountable_owner",
+        "mixed_supply"
+      ],
+      "problemIds": [
+        "prob_vibecoded_mvp_rescue"
+      ]
+    }
+  ],
+  "problems": [
+    {
+      "problemId": "prob_automation_completion_sprint",
+      "clusterId": "cluster_automation_completion",
+      "canonicalTitle": "Automation completion sprint for SMB ops teams",
+      "problemStatement": "Small teams already pay for AI and workflow tools but still need one accountable lane to finish broken automations, clean the data path, and hand over something operators can trust.",
+      "audience": "SMB founders, revops leads, and support operators",
+      "mentionCount": 17,
+      "firstSeenAt": "2026-05-17T12:00:00Z",
+      "lastSeenAt": "2026-05-23T08:30:00Z",
+      "evidence": [
+        {
+          "sourceLabel": "Founder community thread",
+          "excerpt": "We have half-working Zapier and HubSpot flows, but nobody owns the final cleanup and handoff.",
+          "observedAt": "2026-05-23T08:00:00Z"
+        },
+        {
+          "sourceLabel": "Operator forum",
+          "excerpt": "The AI part is easy. The hard part is making the workflow reliable enough for the team to actually use.",
+          "observedAt": "2026-05-22T18:15:00Z"
+        }
+      ],
+      "controlledTags": {
+        "buyerTags": [
+          "founder",
+          "operator",
+          "revops_lead"
+        ],
+        "companyStageTags": [
+          "seed",
+          "smb"
+        ],
+        "verticalTags": [
+          "b2b_saas"
+        ],
+        "workflowTags": [
+          "support_ops",
+          "lead_routing",
+          "automation_rescue"
+        ],
+        "toolTags": [
+          "hubspot",
+          "zapier",
+          "gmail",
+          "slack"
+        ],
+        "painTags": [
+          "broken_automation",
+          "manual_rework",
+          "handoff_failure"
+        ],
+        "symptomTags": [
+          "copy_paste_work",
+          "duplicate_records",
+          "missed_followups"
+        ],
+        "triggerTags": [
+          "ai_adoption",
+          "tool_sprawl"
+        ],
+        "constraintTags": [
+          "small_team",
+          "messy_data",
+          "no_revops_owner"
+        ],
+        "proofTags": [
+          "working_build",
+          "operator_handoff",
+          "qa_checklist"
+        ],
+        "urgencyTags": [
+          "active_fire",
+          "same_week"
+        ],
+        "spendTags": [
+          "already_paying_for_tools",
+          "budget_1k_5k"
+        ],
+        "sourceTags": [
+          "community_forum",
+          "founder_slack"
+        ],
+        "geoTags": [
+          "global_remote"
+        ],
+        "patternTags": [
+          "completion_over_generation",
+          "tool_chain_fragility",
+          "human_review_required"
+        ],
+        "executionTags": [
+          "human_lead_plus_ai_build",
+          "documentation_support_lane"
+        ],
+        "borealFitTags": [
+          "request_rooted",
+          "mixed_supply",
+          "repeatable_request_class"
+        ]
+      },
+      "openTags": [
+        "ops debt",
+        "ai workflow cleanup",
+        "crm triage mess"
+      ],
+      "tagAliases": [
+        "automation rescue",
+        "workflow cleanup"
+      ],
+      "scores": {
+        "frequencyScore": 0.91,
+        "urgencyScore": 0.85,
+        "painSeverityScore": 0.82,
+        "willingnessToPayScore": 0.78,
+        "automationFitScore": 0.93,
+        "borealFitScore": 0.95
+      },
+      "plannerOutput": {
+        "routeHypothesis": "curated_human_plus_ai_service",
+        "offerShape": "automation_completion_sprint",
+        "planSummary": "Lead with a scoped request intake, map the broken workflow, rebuild the operational path, and end with a proof-bearing handoff pack.",
+        "deliverables": [
+          "workflow map",
+          "working automation build",
+          "operator handoff doc",
+          "QA checklist"
+        ],
+        "experiments": [
+          "manually source five public examples and rewrite them into Boreal-style request briefs",
+          "test whether operators care more about proof of reliability or speed of setup"
+        ]
+      },
+      "judgeOutput": {
+        "verdict": "promising",
+        "reasoning": "Strong wedge fit because the pain is urgent, repeated, and closer to completion work than to casual software browsing.",
+        "gaps": [
+          "Need clearer price anchors by company size",
+          "Need stronger evidence from non-founder operators"
+        ],
+        "confidenceScore": 0.88
+      }
+    },
+    {
+      "problemId": "prob_security_questionnaire_completion",
+      "clusterId": "cluster_security_review_ops",
+      "canonicalTitle": "Security questionnaire completion for lean SaaS teams",
+      "problemStatement": "Lean vendors lose time and deals because security reviews need real interpretation, evidence gathering, and accountable final packaging.",
+      "audience": "Technical founders, ops leaders, and pre-sales teams",
+      "mentionCount": 11,
+      "firstSeenAt": "2026-05-18T10:00:00Z",
+      "lastSeenAt": "2026-05-23T07:20:00Z",
+      "evidence": [
+        {
+          "sourceLabel": "Founder network discussion",
+          "excerpt": "The questionnaire is not the problem. Pulling together the real answers and proof docs is what eats the week.",
+          "observedAt": "2026-05-23T07:00:00Z"
+        }
+      ],
+      "controlledTags": {
+        "buyerTags": [
+          "founder",
+          "technical_lead"
+        ],
+        "companyStageTags": [
+          "seed",
+          "series_a"
+        ],
+        "verticalTags": [
+          "b2b_saas"
+        ],
+        "workflowTags": [
+          "security_review",
+          "compliance_ops"
+        ],
+        "painTags": [
+          "compliance_burden",
+          "slow_turnaround"
+        ],
+        "constraintTags": [
+          "small_team",
+          "tight_deadline"
+        ],
+        "proofTags": [
+          "delivered_document",
+          "audit_trail",
+          "signed_approval"
+        ],
+        "urgencyTags": [
+          "customer_blocking",
+          "same_week"
+        ],
+        "spendTags": [
+          "revenue_blocked",
+          "budget_1k_5k"
+        ],
+        "sourceTags": [
+          "founder_slack",
+          "community_forum"
+        ],
+        "patternTags": [
+          "proof_required",
+          "buyer_needs_accountable_owner"
+        ],
+        "executionTags": [
+          "human_only_service",
+          "qa_and_evidence_lane"
+        ],
+        "borealFitTags": [
+          "request_rooted",
+          "verification_sensitive",
+          "curated_supply_friendly"
+        ]
+      },
+      "openTags": [
+        "vendor security review",
+        "trust center scramble"
+      ],
+      "tagAliases": [
+        "security questionnaire",
+        "security review"
+      ],
+      "scores": {
+        "frequencyScore": 0.73,
+        "urgencyScore": 0.9,
+        "painSeverityScore": 0.84,
+        "willingnessToPayScore": 0.86,
+        "automationFitScore": 0.46,
+        "borealFitScore": 0.9
+      },
+      "plannerOutput": {
+        "routeHypothesis": "human_led_completion_service",
+        "offerShape": "security_response_sprint",
+        "planSummary": "Center the lane on accountable questionnaire completion, evidence collection, answer normalization, and owner review before submission.",
+        "deliverables": [
+          "completed questionnaire",
+          "evidence checklist",
+          "owner review memo"
+        ],
+        "experiments": [
+          "package one fixed-price fast lane for standard questionnaires",
+          "test if buyers prefer turnaround guarantees over lower price"
+        ]
+      },
+      "judgeOutput": {
+        "verdict": "promising",
+        "reasoning": "Commercial pressure is strong and proof requirements fit Boreal's completion-over-generation positioning.",
+        "gaps": [
+          "Need better segmentation between simple forms and deep security diligence"
+        ],
+        "confidenceScore": 0.84
+      }
+    },
+    {
+      "problemId": "prob_rfp_proposal_completion",
+      "clusterId": "cluster_revenue_response_ops",
+      "canonicalTitle": "RFP and proposal completion under deadline pressure",
+      "problemStatement": "Teams have source material, old decks, and rough answers, but still need a tight turnaround lane that can turn it into a coherent final response package.",
+      "audience": "Agency leads, founders, and GTM operators",
+      "mentionCount": 9,
+      "firstSeenAt": "2026-05-19T09:00:00Z",
+      "lastSeenAt": "2026-05-23T06:10:00Z",
+      "evidence": [
+        {
+          "sourceLabel": "Agency operator thread",
+          "excerpt": "We keep losing time to last-minute proposal wrangling because everything exists, just not in one final answer.",
+          "observedAt": "2026-05-23T06:00:00Z"
+        }
+      ],
+      "controlledTags": {
+        "buyerTags": [
+          "founder",
+          "growth_lead",
+          "operator"
+        ],
+        "companyStageTags": [
+          "agency",
+          "smb"
+        ],
+        "workflowTags": [
+          "proposal_ops",
+          "rfp_response"
+        ],
+        "painTags": [
+          "slow_turnaround",
+          "scope_confusion"
+        ],
+        "constraintTags": [
+          "tight_deadline",
+          "unclear_process"
+        ],
+        "proofTags": [
+          "delivered_document",
+          "signed_approval"
+        ],
+        "urgencyTags": [
+          "active_fire",
+          "quarter_deadline"
+        ],
+        "spendTags": [
+          "revenue_blocked",
+          "budget_1k_5k"
+        ],
+        "sourceTags": [
+          "community_forum"
+        ],
+        "patternTags": [
+          "fuzzy_intake",
+          "buyer_needs_accountable_owner"
+        ],
+        "executionTags": [
+          "human_lead_plus_ai_build",
+          "documentation_support_lane"
+        ],
+        "borealFitTags": [
+          "request_rooted",
+          "mixed_supply",
+          "repeatable_request_class"
+        ]
+      },
+      "openTags": [
+        "proposal scramble",
+        "response packaging"
+      ],
+      "tagAliases": [
+        "RFP response",
+        "proposal completion"
+      ],
+      "scores": {
+        "frequencyScore": 0.68,
+        "urgencyScore": 0.83,
+        "painSeverityScore": 0.74,
+        "willingnessToPayScore": 0.8,
+        "automationFitScore": 0.58,
+        "borealFitScore": 0.81
+      },
+      "plannerOutput": {
+        "routeHypothesis": "human_led_response_packaging",
+        "offerShape": "proposal_completion_sprint",
+        "planSummary": "Ingest messy source material, identify missing proof, generate a structured draft, then run a final packaging and owner review pass.",
+        "deliverables": [
+          "response draft",
+          "evidence gaps list",
+          "final submission package"
+        ],
+        "experiments": [
+          "compare fixed-price rush lane against higher-touch custom lane"
+        ]
+      },
+      "judgeOutput": {
+        "verdict": "needs_revision",
+        "reasoning": "Strong urgency and spend signal, but the lane may split into distinct sub-problems by buyer type and document complexity.",
+        "gaps": [
+          "Segment agency proposals from enterprise procurement RFPs"
+        ],
+        "confidenceScore": 0.71
+      }
+    },
+    {
+      "problemId": "prob_vibecoded_mvp_rescue",
+      "clusterId": "cluster_vibecoded_rescue",
+      "canonicalTitle": "Vibe-coded MVP rescue to production handoff",
+      "problemStatement": "Founders can produce a flashy prototype fast, but later need a lane that can stabilize the system, explain what is real, and hand it over responsibly.",
+      "audience": "Technical founders and small product teams",
+      "mentionCount": 8,
+      "firstSeenAt": "2026-05-20T11:00:00Z",
+      "lastSeenAt": "2026-05-23T05:20:00Z",
+      "evidence": [
+        {
+          "sourceLabel": "Builder discussion",
+          "excerpt": "The demo works until someone asks who can maintain it and what is actually safe to ship.",
+          "observedAt": "2026-05-23T05:00:00Z"
+        }
+      ],
+      "controlledTags": {
+        "buyerTags": [
+          "founder",
+          "product_lead",
+          "technical_lead"
+        ],
+        "companyStageTags": [
+          "solo",
+          "seed"
+        ],
+        "verticalTags": [
+          "b2b_saas"
+        ],
+        "workflowTags": [
+          "mvp_rescue",
+          "production_handoff"
+        ],
+        "painTags": [
+          "handoff_failure",
+          "scope_confusion"
+        ],
+        "constraintTags": [
+          "small_team",
+          "unclear_process"
+        ],
+        "proofTags": [
+          "working_build",
+          "operator_handoff",
+          "qa_checklist"
+        ],
+        "urgencyTags": [
+          "same_week"
+        ],
+        "spendTags": [
+          "budget_5k_20k"
+        ],
+        "sourceTags": [
+          "x",
+          "community_forum"
+        ],
+        "patternTags": [
+          "completion_over_generation",
+          "buyer_needs_accountable_owner"
+        ],
+        "executionTags": [
+          "human_lead_plus_ai_build",
+          "qa_and_evidence_lane"
+        ],
+        "borealFitTags": [
+          "request_rooted",
+          "mixed_supply",
+          "handoff_sensitive"
+        ]
+      },
+      "openTags": [
+        "prototype rescue",
+        "post-demo reality"
+      ],
+      "tagAliases": [
+        "vibe coding",
+        "MVP rescue"
+      ],
+      "scores": {
+        "frequencyScore": 0.61,
+        "urgencyScore": 0.72,
+        "painSeverityScore": 0.79,
+        "willingnessToPayScore": 0.77,
+        "automationFitScore": 0.66,
+        "borealFitScore": 0.87
+      },
+      "plannerOutput": {
+        "routeHypothesis": "human_led_stabilization_lane",
+        "offerShape": "mvp_rescue_sprint",
+        "planSummary": "Audit what exists, separate demo logic from production path, rebuild the riskiest parts, and package the handoff truthfully.",
+        "deliverables": [
+          "stabilization plan",
+          "rebuilt critical path",
+          "handoff notes",
+          "risk register"
+        ],
+        "experiments": [
+          "compare buyer response to audit-first lane versus fixed rescue sprint"
+        ]
+      },
+      "judgeOutput": {
+        "verdict": "promising",
+        "reasoning": "The problem maps well to Boreal's local-runtime and human-verification story, especially where demos outrun maintainable execution truth.",
+        "gaps": [
+          "Need clearer split between prototype rescue and full custom build"
+        ],
+        "confidenceScore": 0.79
+      }
+    }
+  ]
+}

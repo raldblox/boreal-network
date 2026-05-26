@@ -19,3 +19,5 @@ apps/desktop/.cache/
 
 .vercel
 docs/decks/tmp/
+apps/web/tmp/
+tmp/
