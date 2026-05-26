@@ -82,14 +82,18 @@ This decision does not change the accepted identity split:
 - resolver auth binds one runtime to one Boreal account with scoped runtime permissions
 - runtime or device identity is not Boreal account identity by itself
 
-### 6. Support password-first now, passkey-first later
+### 6. Support password-first and enrolled passkey-first login
 
 The accepted rollout order is:
 
 1. `username or email + password`
 2. `WebAuthn` MFA enrollment and challenge
-3. optional later `passkey-first` or passwordless sign-in
+3. optional `passkey-first` sign-in for accounts with enrolled discoverable credentials
 4. optional later `TOTP` and recovery-code fallback
+
+Passkey-first login should not remove password fallback until recovery is strong enough.
+
+Email remains required while recovery codes or another account recovery path are not yet available. Email may become optional only after a non-email recovery path exists.
 
 ## Consequences
 
@@ -97,6 +101,7 @@ The accepted rollout order is:
 
 - Boreal gets a familiar account path without collapsing into email-only identity
 - passkeys become the preferred stronger factor without forcing passwordless login on day one
+- enrolled accounts can use a familiar passwordless passkey button while password remains the fallback
 - `YubiKey` and device passkeys can share one `WebAuthn` factor lane
 - future authenticator-app support can be added without polluting the passkey model
 - resolver auth remains cleanly separate from account auth
@@ -105,7 +110,7 @@ The accepted rollout order is:
 
 - treating desktop or resolver approval as a replacement for Boreal account auth
 - treating `Google Authenticator` like a passkey
-- jumping straight to passkey-only auth for all users
+- jumping straight to passkey-only auth for all users without password and recovery fallback
 - silently keeping email-only login as the durable account model
 
 ## Implementation Notes

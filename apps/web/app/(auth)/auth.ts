@@ -2,11 +2,15 @@ import { compare } from "bcrypt-ts";
 import NextAuth, { type DefaultSession } from "next-auth";
 import type { DefaultJWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
-import { issueAccountAuthSessionChallenge } from "@/lib/account-webauthn";
+import {
+  issueAccountAuthSessionChallenge,
+  issueAccountAuthSessionChallengeById,
+} from "@/lib/account-webauthn";
 import { DUMMY_PASSWORD } from "@/lib/constants";
 import {
   createGuestUser,
   getAccountPasskeyCredentialsByUserId,
+  getUserById,
   getUserByIdentifier,
 } from "@/lib/db/queries";
 import { authConfig } from "./auth.config";
@@ -96,6 +100,40 @@ export const {
           if (!issuedChallenge) {
             return null;
           }
+        }
+
+        return { ...user, type: "regular" };
+      },
+    }),
+    Credentials({
+      id: "passkey",
+      credentials: {
+        webauthnChallengeId: {
+          label: "Verified passkey challenge",
+          type: "text",
+        },
+      },
+      async authorize(credentials) {
+        const webauthnChallengeId = String(
+          credentials.webauthnChallengeId ?? ""
+        );
+
+        if (!webauthnChallengeId) {
+          return null;
+        }
+
+        const issuedChallenge = await issueAccountAuthSessionChallengeById({
+          id: webauthnChallengeId,
+        });
+
+        if (!issuedChallenge?.userId) {
+          return null;
+        }
+
+        const user = await getUserById({ id: issuedChallenge.userId });
+
+        if (!user) {
+          return null;
         }
 
         return { ...user, type: "regular" };

@@ -316,7 +316,10 @@ They exist so one regular Boreal account can:
 
 - authenticate with `username or email + password`
 - enroll one or more `WebAuthn` passkeys or security keys
+- use an enrolled discoverable passkey for passkey-first login without entering username or password
 - complete one-time MFA or enrollment ceremonies without overloading the account root
+
+Email remains required on the current regular account root until `AccountRecoveryCode` or another recovery path exists.
 
 `WebAuthn` and `TOTP` should stay separate factor types when both exist.
 

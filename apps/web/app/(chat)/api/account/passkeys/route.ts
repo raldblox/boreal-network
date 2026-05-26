@@ -77,7 +77,8 @@ export async function POST(request: Request) {
         undefined,
     })),
     authenticatorSelection: {
-      residentKey: "preferred",
+      requireResidentKey: true,
+      residentKey: "required",
       userVerification: "required",
     },
   });

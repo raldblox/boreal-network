@@ -119,8 +119,9 @@ export default async function AccountSecurityPage() {
               <h2 className="text-lg font-semibold">Passkeys</h2>
             </div>
             <p className="text-sm leading-7 text-muted-foreground">
-              WebAuthn passkeys will become the required second factor after
-              enrollment. Device passkeys and security keys share this lane.
+              WebAuthn passkeys can sign you in directly after enrollment, and
+              they remain the required second factor for password fallback.
+              Device passkeys and security keys share this lane.
             </p>
             <PasskeyEnrollment />
           </div>

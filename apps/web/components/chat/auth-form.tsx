@@ -63,6 +63,10 @@ export function AuthForm({
               required
               type="email"
             />
+            <p className="text-xs leading-5 text-muted-foreground">
+              Email is still required for account recovery until recovery codes
+              are added.
+            </p>
           </div>
         </>
       ) : (

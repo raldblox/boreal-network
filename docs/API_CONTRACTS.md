@@ -238,6 +238,7 @@ Regular Boreal web accounts should use:
 - `username or email`
 - `password`
 - optional required `WebAuthn` second factor once enrolled
+- optional passkey-first login after a discoverable `WebAuthn` credential is enrolled
 
 Guest auth remains a separate limited lane.
 
@@ -255,11 +256,15 @@ The first stronger account-auth slice should expose contracts for:
 - verify WebAuthn enrollment
 - start WebAuthn assertion for MFA
 - verify WebAuthn assertion for MFA
+- start WebAuthn assertion for passkey-first login without a username field
+- verify WebAuthn assertion for passkey-first login and issue an account session from the returned credential
 
 If later fallback factors are added:
 
 - authenticator-app `TOTP` must be modeled as a separate factor type
 - recovery codes must be modeled separately from passkeys
+
+Email remains required for regular account registration until recovery codes or another non-email recovery path exists. Making email optional before recovery exists is out of scope.
 
 Do not label `Google Authenticator` as a passkey flow.
 

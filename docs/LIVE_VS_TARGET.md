@@ -115,7 +115,7 @@ These are intended next layers, not fully modeled proof yet:
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
 - peer-facing ephemeral realtime lanes beyond the local desktop-main hub
 - peer-capable runtime identity bound through resolver approval without replacing Boreal actor identity
-- regular Boreal web accounts with `username or email + password` and `WebAuthn` MFA, while keeping guest mode and resolver auth as separate identity lanes
+- regular Boreal web accounts with `username or email + password`, `WebAuthn` MFA, and optional passkey-first login after enrollment, while keeping guest mode and resolver auth as separate identity lanes
 - isolated worker mode for public or external untrusted request execution
 - additional runnable workspaces such as `apps/mobile/`, `apps/extension/`, `apps/peer-*`, and `apps/gateway-*`
 - shared libraries under `packages/`

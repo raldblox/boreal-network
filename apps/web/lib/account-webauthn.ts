@@ -154,7 +154,7 @@ export async function saveAccountAuthChallenge({
   metadata,
   expiresAt,
 }: {
-  userId: string;
+  userId?: string | null;
   kind: AccountAuthChallengeKind;
   challenge: string;
   metadata?: ChallengeMetadata;
@@ -164,7 +164,7 @@ export async function saveAccountAuthChallenge({
     const [createdChallenge] = await db
       .insert(accountAuthChallenge)
       .values({
-        userId,
+        userId: userId ?? null,
         kind,
         challenge,
         metadata: metadata ?? null,
@@ -177,6 +177,36 @@ export async function saveAccountAuthChallenge({
     throw new ChatbotError(
       "bad_request:database",
       `Failed to save passkey challenge: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function getActiveAccountAuthChallengeById({
+  id,
+  kind,
+}: {
+  id: string;
+  kind: AccountAuthChallengeKind;
+}) {
+  try {
+    const [challenge] = await db
+      .select()
+      .from(accountAuthChallenge)
+      .where(
+        and(
+          eq(accountAuthChallenge.id, id),
+          eq(accountAuthChallenge.kind, kind),
+          isNull(accountAuthChallenge.consumedAt),
+          gt(accountAuthChallenge.expiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    return challenge ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to load passkey challenge: ${getDatabaseErrorDetail(error)}`
     );
   }
 }
@@ -299,6 +329,55 @@ export async function issueAccountAuthSessionChallenge({
   }
 }
 
+export async function issueAccountAuthSessionChallengeById({
+  id,
+}: {
+  id: string;
+}) {
+  try {
+    const [challenge] = await db
+      .select()
+      .from(accountAuthChallenge)
+      .where(
+        and(
+          eq(accountAuthChallenge.id, id),
+          eq(accountAuthChallenge.kind, "webauthn_authentication"),
+          gt(accountAuthChallenge.expiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    if (!(challenge?.consumedAt && challenge.userId)) {
+      return null;
+    }
+
+    const metadata = parseChallengeMetadata(challenge.metadata);
+    if (metadata.sessionIssuedAt) {
+      return null;
+    }
+
+    const [updatedChallenge] = await db
+      .update(accountAuthChallenge)
+      .set({
+        metadata: {
+          ...metadata,
+          sessionIssuedAt: new Date().toISOString(),
+        },
+      })
+      .where(eq(accountAuthChallenge.id, id))
+      .returning();
+
+    return updatedChallenge ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to issue passkey session challenge: ${getDatabaseErrorDetail(
+        error
+      )}`
+    );
+  }
+}
+
 export async function getAccountPasskeyCredentialByCredentialId({
   userId,
   credentialId,
@@ -323,6 +402,55 @@ export async function getAccountPasskeyCredentialByCredentialId({
     throw new ChatbotError(
       "bad_request:database",
       `Failed to load passkey credential: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function getAccountPasskeyCredentialByCredentialIdGlobal({
+  credentialId,
+}: {
+  credentialId: string;
+}) {
+  try {
+    const [credential] = await db
+      .select()
+      .from(accountPasskeyCredential)
+      .where(eq(accountPasskeyCredential.credentialId, credentialId))
+      .limit(1);
+
+    return credential ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to load passkey credential: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function consumeAnonymousAccountAuthChallengeForUser({
+  id,
+  userId,
+}: {
+  id: string;
+  userId: string;
+}) {
+  try {
+    const [challenge] = await db
+      .update(accountAuthChallenge)
+      .set({
+        userId,
+        consumedAt: new Date(),
+      })
+      .where(
+        and(eq(accountAuthChallenge.id, id), isNull(accountAuthChallenge.userId))
+      )
+      .returning();
+
+    return challenge ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to consume passkey challenge: ${getDatabaseErrorDetail(error)}`
     );
   }
 }

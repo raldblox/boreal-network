@@ -60,6 +60,8 @@ Verify:
 - username normalization and uniqueness should prevent ambiguous or duplicate regular-account handles
 - password success alone should not complete login when the account has enrolled required `WebAuthn` MFA
 - `WebAuthn` MFA challenges should expire, single-use correctly, and reject replay
+- passkey-first login should issue a session from an enrolled discoverable credential without username or password input
+- passkey-first login should reject expired challenges, unknown credential ids, and replayed challenge ids
 - resolver bearer scopes are enforced independently from browser sessions
 - raw runtime identity cannot be treated as Boreal request ownership without Boreal-issued resolver approval
 - peer or localhost realtime session auth cannot be treated as Boreal actor auth by itself

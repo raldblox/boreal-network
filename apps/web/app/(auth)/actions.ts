@@ -12,8 +12,11 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { USERNAME_PATTERN } from "@/lib/account-auth";
 import {
+  consumeAnonymousAccountAuthChallengeForUser,
   consumeAccountAuthChallenge,
+  getAccountPasskeyCredentialByCredentialIdGlobal,
   getAccountPasskeyCredentialByCredentialId,
+  getActiveAccountAuthChallengeById,
   getActiveAccountAuthChallenge,
   getChallengeWebAuthnContext,
   getWebAuthnRequestContext,
@@ -58,6 +61,13 @@ const verifyLoginPasskeySchema = z.object({
   ),
 });
 
+const verifyPasskeyOnlyLoginSchema = z.object({
+  challengeId: z.string().uuid(),
+  response: z.custom<AuthenticationResponseJSON>(
+    (value) => typeof value === "object" && value !== null
+  ),
+});
+
 const registerFormSchema = z.object({
   username: usernameSchema,
   email: z.string().email(),
@@ -73,6 +83,12 @@ export type LoginActionState = {
     | "invalid_data"
     | "webauthn_required";
   identifier?: string;
+  challengeId?: string;
+  options?: PublicKeyCredentialRequestOptionsJSON;
+};
+
+export type PasskeyOnlyLoginActionState = {
+  status: "idle" | "in_progress" | "ready" | "failed";
   challengeId?: string;
   options?: PublicKeyCredentialRequestOptionsJSON;
 };
@@ -247,6 +263,111 @@ export const verifyLoginPasskey = async ({
     await signIn("credentials", {
       identifier: validatedData.identifier,
       password: validatedData.password,
+      webauthnChallengeId: validatedData.challengeId,
+      redirect: false,
+    });
+
+    return { status: "success" };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { status: "invalid_data" };
+    }
+
+    return { status: "failed" };
+  }
+};
+
+export const startPasskeyOnlyLogin =
+  async (): Promise<PasskeyOnlyLoginActionState> => {
+    try {
+      const webAuthnContext = getWebAuthnRequestContext(await headers());
+      const options = await generateAuthenticationOptions({
+        rpID: webAuthnContext.rpID,
+        userVerification: "required",
+      });
+      const challenge = await saveAccountAuthChallenge({
+        userId: null,
+        kind: "webauthn_authentication",
+        challenge: options.challenge,
+        metadata: {
+          origin: webAuthnContext.origin,
+          rpID: webAuthnContext.rpID,
+        },
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      });
+
+      return {
+        status: "ready",
+        challengeId: challenge.id,
+        options,
+      };
+    } catch (_error) {
+      return { status: "failed" };
+    }
+  };
+
+export const verifyPasskeyOnlyLogin = async ({
+  challengeId,
+  response,
+}: {
+  challengeId: string;
+  response: AuthenticationResponseJSON;
+}): Promise<LoginActionState> => {
+  try {
+    const validatedData = verifyPasskeyOnlyLoginSchema.parse({
+      challengeId,
+      response,
+    });
+    const challenge = await getActiveAccountAuthChallengeById({
+      id: validatedData.challengeId,
+      kind: "webauthn_authentication",
+    });
+
+    if (!challenge || challenge.userId) {
+      return { status: "failed" };
+    }
+
+    const credential = await getAccountPasskeyCredentialByCredentialIdGlobal({
+      credentialId: validatedData.response.id,
+    });
+
+    if (!credential) {
+      return { status: "failed" };
+    }
+
+    const webAuthnContext = getChallengeWebAuthnContext(challenge);
+    const verification = await verifyAuthenticationResponse({
+      response: validatedData.response,
+      expectedChallenge: challenge.challenge,
+      expectedOrigin: webAuthnContext.origin,
+      expectedRPID: webAuthnContext.rpID,
+      credential: toSimpleWebAuthnCredential(credential),
+      requireUserVerification: true,
+    });
+
+    if (!verification.verified) {
+      return { status: "failed" };
+    }
+
+    await updateAccountPasskeyCredentialAfterAuthentication({
+      id: credential.id,
+      userId: credential.userId,
+      counter: verification.authenticationInfo.newCounter,
+      deviceType: mapCredentialDeviceType(
+        verification.authenticationInfo.credentialDeviceType
+      ),
+      backedUp: verification.authenticationInfo.credentialBackedUp,
+    });
+    const consumedChallenge = await consumeAnonymousAccountAuthChallengeForUser({
+      id: challenge.id,
+      userId: credential.userId,
+    });
+
+    if (!consumedChallenge) {
+      return { status: "failed" };
+    }
+
+    await signIn("passkey", {
       webauthnChallengeId: validatedData.challengeId,
       redirect: false,
     });
