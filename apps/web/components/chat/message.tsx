@@ -1,6 +1,5 @@
 "use client";
 import type { UseChatHelpers } from "@ai-sdk/react";
-import { SparklesIcon as SparklesIconLucide } from "lucide-react";
 import type { Vote } from "@/lib/db/schema";
 import type { RequestStatus } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
@@ -403,18 +402,12 @@ const actions = !isReadonly && (
 
 function DraftRequestPendingNote() {
   return (
-    <div className="w-full max-w-[42rem] rounded-[20px] border border-border/60 bg-background/92 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.03)]">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex size-7 items-center justify-center rounded-full bg-muted text-muted-foreground">
-          <SparklesIconLucide size={14} />
-        </div>
-        <div className="text-sm font-medium text-foreground">
-          Boreal is structuring the request
-        </div>
+    <div className="min-w-0 py-0.5">
+      <div className="text-[13px] font-medium leading-6 text-foreground">
+        Structuring the request
       </div>
-      <div className="mt-2 text-sm leading-6 text-muted-foreground">
-        Capturing the ask, the required roles, and the execution flow inside the
-        request.
+      <div className="mt-0.5 max-w-[44rem] text-[13px] leading-6 text-muted-foreground">
+        Capturing the ask, ownership, and execution lane inside the request.
       </div>
     </div>
   );

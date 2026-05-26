@@ -21,3 +21,4 @@ apps/desktop/.cache/
 docs/decks/tmp/
 apps/web/tmp/
 tmp/
+output/

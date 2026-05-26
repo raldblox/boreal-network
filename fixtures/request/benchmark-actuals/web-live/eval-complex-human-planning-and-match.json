@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-complex-human-planning-and-match",
+  "fingerprints": {
+    "actorKinds": [
+      "human",
+      "agent"
+    ],
+    "supplyKinds": [
+      "migration_lead",
+      "automation_builder",
+      "documentation_support"
+    ],
+    "outputKinds": [
+      "migration_plan",
+      "workflow_build",
+      "handoff_doc",
+      "operator_training"
+    ],
+    "executionModes": [
+      "remote_digital",
+      "remote_sync"
+    ],
+    "evidenceClaims": [],
+    "routeFamily": "worker_market",
+    "executionKind": "hybrid_human_agent",
+    "paymentMode": "range_quote",
+    "matchingMode": "lead_first_then_collaborators",
+    "leadRole": "migration_lead",
+    "phaseKeys": [
+      "scope_route",
+      "execute_delivery",
+      "handoff_review"
+    ]
+  },
+  "extraction": {
+    "title": "Own and execute support plus sales ops migration",
+    "summary": "HubSpot migration with workflow build, operator training, and a documented migration plan for the team.",
+    "body": "Own the support and sales ops migration from Notion and Airtable into HubSpot. Build the workflows, document the operating guide, train the operators, and keep the setup understandable for the internal team after launch.",
+    "seeking": {
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "migration_lead",
+        "automation_builder",
+        "documentation_support"
+      ],
+      "teamMode": "solo_or_team"
+    },
+    "outputKinds": [
+      "migration_plan",
+      "workflow_build",
+      "handoff_doc",
+      "operator_training"
+    ],
+    "missingDetails": [],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "budgetMin": 6000,
+      "budgetMax": 9000,
+      "deliveryWindowWeeks": 3,
+      "executionModes": [
+        "remote_digital",
+        "remote_sync"
+      ],
+      "humanReviewRequired": true,
+      "allowAiSupport": true,
+      "disallowBlackBoxAutomation": true
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "high",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "migration_lead",
+    "executionProfile": {
+      "executionModes": [
+        "remote_digital",
+        "remote_sync"
+      ],
+      "requiresHumanPresence": false,
+      "requiresLocalAccess": false,
+      "requiresVerifiedEvidence": false,
+      "requiresScheduling": true,
+      "requiresGeography": false,
+      "riskTier": "low"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": [],
+      "requiredEvidenceClaims": [],
+      "mustHaveOwnerAcceptance": false,
+      "mustHaveLocationSignal": false,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "low",
+      "reasons": []
+    },
+    "clarificationNeeded": {
+      "required": false,
+      "missingDetails": [],
+      "reasons": []
+    },
+    "phases": [
+      {
+        "phaseKey": "scope_route",
+        "title": "Lock scope and the lead execution lane",
+        "summary": "Confirm the lead owner, route boundary, and how supporting roles attach to the request.",
+        "roleKeys": [
+          "migration_lead"
+        ],
+        "requiredEvidenceClaims": []
+      },
+      {
+        "phaseKey": "execute_delivery",
+        "title": "Produce the core deliverables",
+        "summary": "Keep execution inside one request thread and avoid exploding the work into a brittle task tree too early.",
+        "roleKeys": [
+          "migration_lead",
+          "automation_builder"
+        ],
+        "requiredEvidenceClaims": []
+      },
+      {
+        "phaseKey": "handoff_review",
+        "title": "Publish handoff package and owner review",
+        "summary": "Bundle the outputs, context, and approval-facing material before final closure.",
+        "roleKeys": [
+          "documentation_support"
+        ],
+        "requiredEvidenceClaims": []
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "migration_lead",
+        "title": "Migration Lead",
+        "preferredSupplyKinds": [
+          "migration_lead"
+        ],
+        "required": true,
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
+        "summary": "Support deliverables such as Migration Plan, Workflow Build, Handoff Doc."
+      },
+      {
+        "roleKey": "automation_builder",
+        "title": "Automation Builder",
+        "preferredSupplyKinds": [
+          "automation_builder"
+        ],
+        "required": true,
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
+        "summary": "Support deliverables such as Migration Plan, Workflow Build, Handoff Doc."
+      },
+      {
+        "roleKey": "documentation_support",
+        "title": "Documentation Support",
+        "preferredSupplyKinds": [
+          "documentation_support"
+        ],
+        "required": false,
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
+        "summary": "Support deliverables such as Migration Plan, Workflow Build, Handoff Doc."
+      }
+    ],
+    "noMicrotaskExplosion": true,
+    "outcomeClaims": [
+      {
+        "claimKey": "own_and_execute_support_plus_sales_ops_migration",
+        "summary": "Own the support and sales ops migration from Notion and Airtable into HubSpot.",
+        "source": "brief",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "migration_plan",
+        "summary": "Produce migration plan.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "workflow_build",
+        "summary": "Produce workflow build.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "handoff_doc",
+        "summary": "Produce handoff doc.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "operator_training",
+        "summary": "Produce operator training.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      }
+    ]
+  },
+  "matching": {
+    "candidatePool": [
+      "sup_human_ops_migration_lead",
+      "sup_ai_automation_studio",
+      "sup_copy_only_documentation_team",
+      "sup_generic_chat_agent"
+    ],
+    "matchCandidates": [
+      {
+        "supplyId": "sup_ai_automation_studio",
+        "source": "retrieved",
+        "overallScore": 111,
+        "leadScore": 46,
+        "roleScores": [
+          {
+            "roleKey": "migration_lead",
+            "score": 46,
+            "confidence": "moderate"
+          },
+          {
+            "roleKey": "automation_builder",
+            "score": 111,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "documentation_support",
+            "score": 71,
+            "confidence": "moderate"
+          }
+        ],
+        "summary": "AI Automation Studio best fits automation builder and documentation support."
+      },
+      {
+        "supplyId": "sup_human_ops_migration_lead",
+        "source": "retrieved",
+        "overallScore": 109,
+        "leadScore": 109,
+        "roleScores": [
+          {
+            "roleKey": "migration_lead",
+            "score": 109,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "automation_builder",
+            "score": 44,
+            "confidence": "low"
+          },
+          {
+            "roleKey": "documentation_support",
+            "score": 69,
+            "confidence": "moderate"
+          }
+        ],
+        "summary": "Revenue and Support Ops Migration Lead best fits migration lead and documentation support."
+      },
+      {
+        "supplyId": "sup_copy_only_documentation_team",
+        "source": "retrieved",
+        "overallScore": 93,
+        "leadScore": 28,
+        "roleScores": [
+          {
+            "roleKey": "migration_lead",
+            "score": 28,
+            "confidence": "low"
+          },
+          {
+            "roleKey": "automation_builder",
+            "score": 28,
+            "confidence": "low"
+          },
+          {
+            "roleKey": "documentation_support",
+            "score": 93,
+            "confidence": "high"
+          }
+        ],
+        "summary": "Documentation Team best fits documentation support and migration lead."
+      },
+      {
+        "supplyId": "sup_generic_chat_agent",
+        "source": "retrieved",
+        "overallScore": 45,
+        "leadScore": 20,
+        "roleScores": [
+          {
+            "roleKey": "migration_lead",
+            "score": 20,
+            "confidence": "low"
+          },
+          {
+            "roleKey": "automation_builder",
+            "score": 20,
+            "confidence": "low"
+          },
+          {
+            "roleKey": "documentation_support",
+            "score": 45,
+            "confidence": "moderate"
+          }
+        ],
+        "summary": "Generic Chat Agent best fits documentation support and migration lead."
+      }
+    ],
+    "leadRanking": [
+      "sup_ai_automation_studio",
+      "sup_human_ops_migration_lead",
+      "sup_copy_only_documentation_team",
+      "sup_generic_chat_agent"
+    ],
+    "leadRankingDetails": [
+      {
+        "roleKey": "migration_lead",
+        "supplyId": "sup_ai_automation_studio",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "moderate",
+        "summary": "AI Automation Studio best fits automation builder and documentation support."
+      },
+      {
+        "roleKey": "migration_lead",
+        "supplyId": "sup_human_ops_migration_lead",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Revenue and Support Ops Migration Lead best fits migration lead and documentation support."
+      },
+      {
+        "roleKey": "migration_lead",
+        "supplyId": "sup_copy_only_documentation_team",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "low",
+        "summary": "Documentation Team best fits documentation support and migration lead."
+      },
+      {
+        "roleKey": "migration_lead",
+        "supplyId": "sup_generic_chat_agent",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "low",
+        "summary": "Generic Chat Agent best fits documentation support and migration lead."
+      }
+    ],
+    "roleMatches": {
+      "migration_lead": "sup_human_ops_migration_lead",
+      "automation_builder": "sup_ai_automation_studio",
+      "documentation_support": "sup_copy_only_documentation_team"
+    },
+    "roleMatchDetails": [
+      {
+        "roleKey": "migration_lead",
+        "required": true,
+        "supplyId": "sup_human_ops_migration_lead",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Revenue and Support Ops Migration Lead best fits migration lead and documentation support."
+      },
+      {
+        "roleKey": "automation_builder",
+        "required": true,
+        "supplyId": "sup_ai_automation_studio",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "AI Automation Studio best fits automation builder and documentation support."
+      },
+      {
+        "roleKey": "documentation_support",
+        "required": false,
+        "supplyId": "sup_copy_only_documentation_team",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Documentation Team best fits documentation support and migration lead."
+      }
+    ],
+    "assignmentProposal": {
+      "state": "candidate_pool",
+      "summary": "Candidate lanes exist for this request, but Boreal still needs a real selected lead before execution is attached.",
+      "lead": {
+        "roleKey": "migration_lead",
+        "required": true,
+        "supplyId": "sup_human_ops_migration_lead",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Revenue and Support Ops Migration Lead best fits migration lead and documentation support."
+      },
+      "support": [
+        {
+          "roleKey": "automation_builder",
+          "required": true,
+          "supplyId": "sup_ai_automation_studio",
+          "source": "candidate_pool",
+          "status": "candidate",
+          "confidence": "high",
+          "summary": "AI Automation Studio best fits automation builder and documentation support."
+        },
+        {
+          "roleKey": "documentation_support",
+          "required": false,
+          "supplyId": "sup_copy_only_documentation_team",
+          "source": "candidate_pool",
+          "status": "candidate",
+          "confidence": "high",
+          "summary": "Documentation Team best fits documentation support and migration lead."
+        }
+      ]
+    },
+    "replanReasons": [
+      "candidate lanes exist, but no real selected lead is attached yet"
+    ]
+  },
+  "policy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

@@ -11,46 +11,279 @@
     },
     "rawAsk": "I need someone local in Makati to visit our retail kiosk tomorrow before 5pm, confirm the new signage is actually installed, take timestamped photos, and send a short written report with any issues. Budget is around 300 to 500 USD."
   },
+  "requestPatch": {
+    "visibility": "private",
+    "brief": {
+      "title": "Inspect Makati retail kiosk and verify signage installation",
+      "summary": "Local kiosk inspection in Makati with timestamped photos and a short written report.",
+      "body": "Visit the Makati retail kiosk before 5pm tomorrow, confirm the new signage is actually installed, capture timestamped photos, and file a short written report with any issues.",
+      "constraints": {
+        "budgetCurrency": "USD",
+        "budgetMin": 300,
+        "budgetMax": 500,
+        "executionModes": [
+          "onsite_visit",
+          "field_inspection"
+        ],
+        "serviceLocation": "Makati",
+        "timeWindows": [
+          "tomorrow before 5pm"
+        ],
+        "accessRequirements": [
+          "Retail kiosk access via the store manager"
+        ],
+        "requiresHumanPresence": true,
+        "requiresVerifiedEvidence": true,
+        "verificationRequirements": [
+          "timestamped_photos",
+          "written_report"
+        ]
+      },
+      "outputKinds": [
+        "inspection_report",
+        "photo_evidence",
+        "issue_log"
+      ],
+      "tags": [
+        "onsite_inspection",
+        "signage_verification",
+        "makati"
+      ]
+    },
+    "seeking": {
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "field_inspection",
+        "operations_support",
+        "qa_documentation"
+      ],
+      "teamMode": "solo_or_team",
+      "notes": "Human inspection lead first. Documentation support can help package the report after the site visit."
+    },
+    "budget": {
+      "mode": "range",
+      "currency": "USD",
+      "minAmount": 300,
+      "maxAmount": 500
+    },
+    "deadline": {
+      "notes": "tomorrow before 5pm"
+    },
+    "derived": {
+      "routeFamily": "worker_market",
+      "executionKind": "hybrid_human_agent",
+      "paymentMode": "range_quote",
+      "matchingMode": "lead_first_then_collaborators",
+      "routeSummary": "Onsite inspection request. Match a local human inspection lead first, then optional documentation support for report packaging."
+    }
+  },
   "candidateSupplies": [
     {
-      "supplyId": "sup_local_field_ops_inspector",
-      "title": "Local Field Operations Inspector",
-      "actorKinds": ["human"],
-      "supplyKinds": ["field_inspection", "operations_support"],
-      "summary": "Performs onsite inspections, captures evidence, and files structured field reports."
+      "id": "sup_local_field_ops_inspector",
+      "key": "local-field-operations-inspector",
+      "ownerId": "fixture_supply_owner_011",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Local Field Operations Inspector",
+        "headline": "Onsite inspection and evidence capture",
+        "summary": "Performs onsite inspections, captures evidence, and files structured field reports.",
+        "description": "Local field inspection lane for site checks, timestamped evidence capture, and issue reporting.",
+        "tags": [
+          "field_inspection",
+          "onsite_visit",
+          "makati"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "field_inspection",
+          "operations_support"
+        ],
+        "fulfillmentActorKinds": [
+          "human"
+        ],
+        "outputKinds": [
+          "inspection_report",
+          "photo_evidence",
+          "issue_log",
+          "delivery"
+        ],
+        "executionChannels": [
+          "request_room",
+          "operator_review"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 3,
+        "currentLoad": 1,
+        "responseTimeHours": 4
+      },
+      "pricing": {
+        "mode": "range",
+        "currency": "USD",
+        "minAmount": 300,
+        "maxAmount": 500
+      },
+      "source": {
+        "kind": "manual"
+      },
+      "bindings": {},
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_remote_qa_documentation_agent",
-      "title": "Remote QA Documentation Agent",
-      "actorKinds": ["agent", "human"],
-      "supplyKinds": ["qa_documentation", "reporting_support"],
-      "summary": "Produces reports and structured summaries from provided evidence."
+      "id": "sup_remote_qa_documentation_agent",
+      "key": "remote-qa-documentation-agent",
+      "ownerId": "fixture_supply_owner_012",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Remote QA Documentation Agent",
+        "headline": "Report packaging and QA summaries",
+        "summary": "Produces reports and structured summaries from provided evidence.",
+        "description": "Remote documentation lane for turning field evidence into clean written reports and follow-up summaries.",
+        "tags": [
+          "qa_documentation",
+          "reporting_support"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "qa_documentation",
+          "reporting_support"
+        ],
+        "fulfillmentActorKinds": [
+          "agent",
+          "human"
+        ],
+        "outputKinds": [
+          "inspection_report",
+          "draft",
+          "delivery"
+        ],
+        "executionChannels": [
+          "request_room",
+          "async_thread"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 8,
+        "currentLoad": 2,
+        "responseTimeHours": 2
+      },
+      "pricing": {
+        "mode": "quote",
+        "currency": "USD"
+      },
+      "source": {
+        "kind": "manual"
+      },
+      "bindings": {},
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_generic_chat_agent",
-      "title": "Generic Chat Agent",
-      "actorKinds": ["agent"],
-      "supplyKinds": ["generalist"],
-      "summary": "General text assistance with no local execution capability."
+      "id": "sup_generic_chat_agent",
+      "key": "generic-chat-agent",
+      "ownerId": "fixture_supply_owner_013",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Generic Chat Agent",
+        "headline": "General text assistance",
+        "summary": "General text assistance with no local execution capability.",
+        "description": "Generic provider-backed drafting lane without local inspection capability.",
+        "tags": [
+          "generalist"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "generalist"
+        ],
+        "fulfillmentActorKinds": [
+          "agent"
+        ],
+        "outputKinds": [
+          "draft",
+          "delivery"
+        ],
+        "executionChannels": [
+          "async_thread"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 50,
+        "currentLoad": 10,
+        "responseTimeHours": 1
+      },
+      "pricing": {
+        "mode": "open"
+      },
+      "source": {
+        "kind": "provider"
+      },
+      "bindings": {
+        "providerRef": "generic-chat-agent"
+      },
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     }
   ],
   "expectedExtraction": {
     "title": "Inspect Makati retail kiosk and verify signage installation",
-    "summaryMustContain": ["Makati", "timestamped photos", "written report"],
+    "summaryMustContain": [
+      "Makati",
+      "timestamped photos",
+      "written report"
+    ],
     "seeking": {
-      "actorKinds": ["human", "agent"],
-      "supplyKinds": ["field_inspection", "operations_support", "qa_documentation"]
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "field_inspection",
+        "operations_support",
+        "qa_documentation"
+      ]
     },
-    "outputKinds": ["inspection_report", "photo_evidence", "issue_log"],
+    "outputKinds": [
+      "inspection_report",
+      "photo_evidence",
+      "issue_log"
+    ],
     "constraints": {
       "budgetCurrency": "USD",
       "budgetMin": 300,
       "budgetMax": 500,
+      "executionModes": [
+        "onsite_visit",
+        "field_inspection"
+      ],
       "serviceLocation": "Makati",
-      "timeWindows": ["tomorrow before 5pm"],
+      "timeWindows": [
+        "tomorrow before 5pm"
+      ],
+      "accessRequirements": [
+        "Retail kiosk access via the store manager"
+      ],
       "requiresHumanPresence": true,
       "requiresVerifiedEvidence": true,
-      "verificationRequirements": ["timestamped_photos", "written_report"]
+      "verificationRequirements": [
+        "timestamped_photos",
+        "written_report"
+      ]
     }
   },
   "expectedRouting": {
@@ -63,7 +296,10 @@
   "expectedPlanning": {
     "leadRole": "field_inspector",
     "executionProfile": {
-      "executionModes": ["onsite_visit", "field_inspection"],
+      "executionModes": [
+        "onsite_visit",
+        "field_inspection"
+      ],
       "requiresHumanPresence": true,
       "requiresLocalAccess": true,
       "requiresVerifiedEvidence": true,
@@ -72,8 +308,14 @@
       "riskTier": "moderate"
     },
     "verificationPlan": {
-      "requiredArtifactKinds": ["evidence", "delivery"],
-      "requiredEvidenceClaims": ["timestamped_photos", "written_report"],
+      "requiredArtifactKinds": [
+        "evidence",
+        "delivery"
+      ],
+      "requiredEvidenceClaims": [
+        "timestamped_photos",
+        "written_report"
+      ],
       "mustHaveOwnerAcceptance": true,
       "mustHaveLocationSignal": true,
       "mustHaveSignature": false
@@ -90,12 +332,17 @@
     "roleSlots": [
       {
         "roleKey": "field_inspector",
-        "requiredActorKinds": ["human"],
+        "requiredActorKinds": [
+          "human"
+        ],
         "required": true
       },
       {
         "roleKey": "qa_documentation",
-        "requiredActorKinds": ["human", "agent"],
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
         "required": false
       }
     ],
@@ -103,8 +350,13 @@
   },
   "expectedMatching": {
     "topLeadSupplyId": "sup_local_field_ops_inspector",
-    "top3MustInclude": ["sup_local_field_ops_inspector", "sup_remote_qa_documentation_agent"],
-    "mustRankBelowTop2": ["sup_generic_chat_agent"],
+    "top3MustInclude": [
+      "sup_local_field_ops_inspector",
+      "sup_remote_qa_documentation_agent"
+    ],
+    "mustRankBelowTop2": [
+      "sup_generic_chat_agent"
+    ],
     "roleMatches": {
       "field_inspector": "sup_local_field_ops_inspector",
       "qa_documentation": "sup_remote_qa_documentation_agent"

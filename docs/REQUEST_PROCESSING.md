@@ -88,6 +88,17 @@ The open request room should behave like a monitored workroom, not a planner-fir
 It should optimize for current status, next action, ownership, blockers, proof, and resolution instead of exposing every planner-derived field with equal visual weight.
 It renders request truth and current work state from the `Request` and adjacent durable objects, not planner-debug state.
 
+When a request flow view exists inside that room, it should stay a focused secondary process projection over the same durable truth.
+Its accepted reading is:
+
+- `Request`
+- `Plan`
+- `Worker`
+- `Delivery`
+
+That flow view should emphasize executable path and delivery truth over lifecycle-tracker noise or planner-debug metadata.
+It should prefer a simplified flat card language rather than decorative or overly dense card treatments.
+
 Realtime execution feedback may use an ephemeral transport lane for:
 
 - typing

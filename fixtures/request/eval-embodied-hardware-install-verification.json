@@ -11,45 +11,275 @@
     },
     "rawAsk": "Need someone to visit our Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note. Budget is 250 USD."
   },
+  "requestPatch": {
+    "visibility": "private",
+    "brief": {
+      "title": "Verify barcode scanner installation at Quezon City warehouse",
+      "summary": "Quezon City scanner-install verification with serial numbers, photo proof, and a short verification note.",
+      "body": "Visit the Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note.",
+      "constraints": {
+        "budgetCurrency": "USD",
+        "fixedAmount": 250,
+        "executionModes": [
+          "onsite_visit",
+          "field_inspection"
+        ],
+        "serviceLocation": "Quezon City warehouse",
+        "timeWindows": [
+          "tomorrow morning"
+        ],
+        "accessRequirements": [
+          "Warehouse floor access and the station list"
+        ],
+        "requiresHumanPresence": true,
+        "requiresVerifiedEvidence": true,
+        "verificationRequirements": [
+          "photo_proof",
+          "serial_number_capture",
+          "verification_note"
+        ]
+      },
+      "outputKinds": [
+        "verification_note",
+        "photo_evidence",
+        "serial_inventory"
+      ],
+      "tags": [
+        "hardware_verification",
+        "barcode_scanners",
+        "quezon_city"
+      ]
+    },
+    "seeking": {
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "field_verification",
+        "hardware_ops",
+        "qa_documentation"
+      ],
+      "teamMode": "solo_or_team",
+      "notes": "Human field verification lead first. Optional QA documentation support can package the note after evidence capture."
+    },
+    "budget": {
+      "mode": "fixed",
+      "currency": "USD",
+      "fixedAmount": 250
+    },
+    "deadline": {
+      "notes": "tomorrow morning"
+    },
+    "derived": {
+      "routeFamily": "worker_market",
+      "executionKind": "hybrid_human_agent",
+      "paymentMode": "fixed_request",
+      "matchingMode": "lead_first_then_collaborators",
+      "routeSummary": "Onsite hardware verification request. Match a human field technician first, then optional QA documentation support after evidence capture."
+    }
+  },
   "candidateSupplies": [
     {
-      "supplyId": "sup_local_field_technician",
-      "title": "Local Field Technician",
-      "actorKinds": ["human"],
-      "supplyKinds": ["field_verification", "hardware_ops"],
-      "summary": "Visits sites, verifies hardware state, captures serials, and files evidence."
+      "id": "sup_local_field_technician",
+      "key": "local-field-technician",
+      "ownerId": "fixture_supply_owner_021",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Local Field Technician",
+        "headline": "Onsite hardware verification lane",
+        "summary": "Visits sites, verifies hardware state, captures serials, and files evidence.",
+        "description": "Local technician lane for hardware verification, serial capture, and evidence-backed status confirmation.",
+        "tags": [
+          "field_verification",
+          "hardware_ops",
+          "quezon_city"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "field_verification",
+          "hardware_ops"
+        ],
+        "fulfillmentActorKinds": [
+          "human"
+        ],
+        "outputKinds": [
+          "verification_note",
+          "photo_evidence",
+          "serial_inventory",
+          "delivery"
+        ],
+        "executionChannels": [
+          "request_room",
+          "operator_review"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 4,
+        "currentLoad": 1,
+        "responseTimeHours": 3
+      },
+      "pricing": {
+        "mode": "fixed",
+        "currency": "USD",
+        "fixedAmount": 250
+      },
+      "source": {
+        "kind": "manual"
+      },
+      "bindings": {},
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_remote_documentation_agent",
-      "title": "Remote Documentation Agent",
-      "actorKinds": ["agent"],
-      "supplyKinds": ["qa_documentation"],
-      "summary": "Produces verification notes from evidence supplied by others."
+      "id": "sup_remote_documentation_agent",
+      "key": "remote-documentation-agent",
+      "ownerId": "fixture_supply_owner_022",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Remote Documentation Agent",
+        "headline": "Evidence-to-note documentation support",
+        "summary": "Produces verification notes from evidence supplied by others.",
+        "description": "Remote QA lane for turning field evidence into concise verification notes and follow-up writeups.",
+        "tags": [
+          "qa_documentation",
+          "verification_note"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "qa_documentation"
+        ],
+        "fulfillmentActorKinds": [
+          "agent"
+        ],
+        "outputKinds": [
+          "verification_note",
+          "draft",
+          "delivery"
+        ],
+        "executionChannels": [
+          "request_room",
+          "async_thread"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 10,
+        "currentLoad": 3,
+        "responseTimeHours": 2
+      },
+      "pricing": {
+        "mode": "quote",
+        "currency": "USD"
+      },
+      "source": {
+        "kind": "manual"
+      },
+      "bindings": {},
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_generic_chat_agent",
-      "title": "Generic Chat Agent",
-      "actorKinds": ["agent"],
-      "supplyKinds": ["generalist"],
-      "summary": "General text assistance with no local hardware verification capability."
+      "id": "sup_generic_chat_agent",
+      "key": "generic-chat-agent",
+      "ownerId": "fixture_supply_owner_023",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Generic Chat Agent",
+        "headline": "General text assistance",
+        "summary": "General text assistance with no local hardware verification capability.",
+        "description": "Provider-backed generic drafting lane without local verification ability.",
+        "tags": [
+          "generalist"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "generalist"
+        ],
+        "fulfillmentActorKinds": [
+          "agent"
+        ],
+        "outputKinds": [
+          "draft",
+          "delivery"
+        ],
+        "executionChannels": [
+          "async_thread"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 50,
+        "currentLoad": 15,
+        "responseTimeHours": 1
+      },
+      "pricing": {
+        "mode": "open"
+      },
+      "source": {
+        "kind": "provider"
+      },
+      "bindings": {
+        "providerRef": "generic-chat-agent"
+      },
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     }
   ],
   "expectedExtraction": {
     "title": "Verify barcode scanner installation at Quezon City warehouse",
-    "summaryMustContain": ["Quezon City", "serial numbers", "photo proof"],
+    "summaryMustContain": [
+      "Quezon City",
+      "serial numbers",
+      "photo proof"
+    ],
     "seeking": {
-      "actorKinds": ["human", "agent"],
-      "supplyKinds": ["field_verification", "hardware_ops", "qa_documentation"]
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "field_verification",
+        "hardware_ops",
+        "qa_documentation"
+      ]
     },
-    "outputKinds": ["verification_note", "photo_evidence", "serial_inventory"],
+    "outputKinds": [
+      "verification_note",
+      "photo_evidence",
+      "serial_inventory"
+    ],
     "constraints": {
       "budgetCurrency": "USD",
       "fixedAmount": 250,
+      "executionModes": [
+        "onsite_visit",
+        "field_inspection"
+      ],
       "serviceLocation": "Quezon City warehouse",
-      "timeWindows": ["tomorrow morning"],
+      "timeWindows": [
+        "tomorrow morning"
+      ],
+      "accessRequirements": [
+        "Warehouse floor access and the station list"
+      ],
       "requiresHumanPresence": true,
       "requiresVerifiedEvidence": true,
-      "verificationRequirements": ["photo_proof", "serial_number_capture", "verification_note"]
+      "verificationRequirements": [
+        "photo_proof",
+        "serial_number_capture",
+        "verification_note"
+      ]
     }
   },
   "expectedRouting": {
@@ -62,7 +292,10 @@
   "expectedPlanning": {
     "leadRole": "field_technician",
     "executionProfile": {
-      "executionModes": ["onsite_visit", "field_inspection"],
+      "executionModes": [
+        "onsite_visit",
+        "field_inspection"
+      ],
       "requiresHumanPresence": true,
       "requiresLocalAccess": true,
       "requiresVerifiedEvidence": true,
@@ -71,8 +304,15 @@
       "riskTier": "moderate"
     },
     "verificationPlan": {
-      "requiredArtifactKinds": ["evidence", "delivery"],
-      "requiredEvidenceClaims": ["photo_proof", "serial_number_capture", "verification_note"],
+      "requiredArtifactKinds": [
+        "evidence",
+        "delivery"
+      ],
+      "requiredEvidenceClaims": [
+        "photo_proof",
+        "serial_number_capture",
+        "verification_note"
+      ],
       "mustHaveOwnerAcceptance": true,
       "mustHaveLocationSignal": true,
       "mustHaveSignature": false
@@ -89,12 +329,16 @@
     "roleSlots": [
       {
         "roleKey": "field_technician",
-        "requiredActorKinds": ["human"],
+        "requiredActorKinds": [
+          "human"
+        ],
         "required": true
       },
       {
         "roleKey": "qa_documentation",
-        "requiredActorKinds": ["agent"],
+        "requiredActorKinds": [
+          "agent"
+        ],
         "required": false
       }
     ],
@@ -102,8 +346,13 @@
   },
   "expectedMatching": {
     "topLeadSupplyId": "sup_local_field_technician",
-    "top3MustInclude": ["sup_local_field_technician", "sup_remote_documentation_agent"],
-    "mustRankBelowTop2": ["sup_generic_chat_agent"],
+    "top3MustInclude": [
+      "sup_local_field_technician",
+      "sup_remote_documentation_agent"
+    ],
+    "mustRankBelowTop2": [
+      "sup_generic_chat_agent"
+    ],
     "roleMatches": {
       "field_technician": "sup_local_field_technician",
       "qa_documentation": "sup_remote_documentation_agent"

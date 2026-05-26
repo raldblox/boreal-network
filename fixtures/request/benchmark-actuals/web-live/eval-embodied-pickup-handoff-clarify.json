@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-pickup-handoff-clarify",
+  "fingerprints": {
+    "actorKinds": [
+      "human"
+    ],
+    "supplyKinds": [
+      "pickup_dropoff",
+      "local_runner"
+    ],
+    "outputKinds": [
+      "handoff_receipt",
+      "signature",
+      "delivery_confirmation"
+    ],
+    "executionModes": [
+      "pickup_dropoff",
+      "witnessed_handoff"
+    ],
+    "evidenceClaims": [
+      "handoff_signature",
+      "delivery_confirmation"
+    ],
+    "routeFamily": "worker_market",
+    "executionKind": "human_request_room",
+    "paymentMode": "quote_request",
+    "matchingMode": "lead_first_then_collaborators",
+    "leadRole": "courier_runner",
+    "phaseKeys": [
+      "clarify_constraints",
+      "handoff_execution",
+      "proof_delivery"
+    ]
+  },
+  "extraction": {
+    "title": "Pick up signed contract and complete witnessed supplier handoff",
+    "summary": "Same-day pick up and supplier handoff with proof required before closure.",
+    "body": "Pick up the signed contract, hand it to the supplier today, and return proof that the handoff actually happened.",
+    "seeking": {
+      "actorKinds": [
+        "human"
+      ],
+      "supplyKinds": [
+        "pickup_dropoff",
+        "local_runner"
+      ],
+      "teamMode": "solo_or_team"
+    },
+    "outputKinds": [
+      "handoff_receipt",
+      "signature",
+      "delivery_confirmation"
+    ],
+    "missingDetails": [
+      "service_location",
+      "access_requirements"
+    ],
+    "constraints": {
+      "executionModes": [
+        "pickup_dropoff",
+        "witnessed_handoff"
+      ],
+      "timeWindows": [
+        "today"
+      ],
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "requiresWitness": true,
+      "verificationRequirements": [
+        "handoff_signature",
+        "delivery_confirmation"
+      ]
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "low",
+    "needsPlan": false,
+    "humanRequired": true,
+    "needsClarification": true
+  },
+  "planning": {
+    "leadRole": "courier_runner",
+    "executionProfile": {
+      "executionModes": [
+        "pickup_dropoff",
+        "witnessed_handoff"
+      ],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "high"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": [
+        "evidence",
+        "signature"
+      ],
+      "requiredEvidenceClaims": [
+        "handoff_signature",
+        "delivery_confirmation"
+      ],
+      "mustHaveOwnerAcceptance": false,
+      "mustHaveLocationSignal": false,
+      "mustHaveSignature": true
+    },
+    "planCollapseRisk": {
+      "riskLevel": "high",
+      "reasons": [
+        "request includes embodied or access-constrained work",
+        "Boreal still needs the service location before assigning embodied work.",
+        "Boreal still needs the access requirements before assigning embodied work.",
+        "request requires verification beyond generated text",
+        "request depends on witness- or signature-grade proof",
+        "request includes handoff-style execution that cannot collapse into a generic summary"
+      ]
+    },
+    "clarificationNeeded": {
+      "required": true,
+      "missingDetails": [
+        "service_location",
+        "access_requirements"
+      ],
+      "reasons": [
+        "Boreal still needs the service location before assigning embodied work.",
+        "Boreal still needs the access requirements before assigning embodied work."
+      ]
+    },
+    "phases": [
+      {
+        "phaseKey": "clarify_constraints",
+        "title": "Clarify execution, access, and proof constraints",
+        "summary": "Lock the missing facts that materially affect route selection, execution safety, or closure truth.",
+        "roleKeys": [
+          "courier_runner"
+        ],
+        "requiredEvidenceClaims": []
+      },
+      {
+        "phaseKey": "handoff_execution",
+        "title": "Complete the pickup, dropoff, or handoff",
+        "summary": "Execute the physical or local-access work inside the request lane before treating anything as complete.",
+        "roleKeys": [
+          "courier_runner"
+        ],
+        "requiredEvidenceClaims": []
+      },
+      {
+        "phaseKey": "proof_delivery",
+        "title": "Capture proof and publish the delivery package",
+        "summary": "Attach evidence and the final delivery inside the same request thread so review and closure stay truthful.",
+        "roleKeys": [
+          "qa_documentation"
+        ],
+        "requiredEvidenceClaims": [
+          "handoff_signature",
+          "delivery_confirmation"
+        ]
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "courier_runner",
+        "title": "Courier Runner",
+        "preferredSupplyKinds": [
+          "pickup_dropoff"
+        ],
+        "required": true,
+        "requiredActorKinds": [
+          "human"
+        ],
+        "summary": "Own the lead execution lane without flattening onsite or proof-heavy work into a digital-only result."
+      },
+      {
+        "roleKey": "qa_documentation",
+        "title": "Qa Documentation",
+        "preferredSupplyKinds": [],
+        "required": false,
+        "requiredActorKinds": [
+          "human"
+        ],
+        "summary": "Support evidence packaging, written reporting, or owner-facing delivery notes."
+      }
+    ],
+    "noMicrotaskExplosion": true,
+    "outcomeClaims": [
+      {
+        "claimKey": "pick_up_signed_contract_and_complete_witnessed_supplier_handoff",
+        "summary": "Pick up the signed contract, hand it to the supplier today, and return proof that the handoff actually happened.",
+        "source": "brief",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      },
+      {
+        "claimKey": "handoff_receipt",
+        "summary": "Produce handoff receipt.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "signature",
+        "summary": "Produce signature.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "delivery_confirmation",
+        "summary": "Produce delivery confirmation.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "handoff_execution",
+        "summary": "Complete the pickup, dropoff, or handoff.",
+        "source": "execution",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      },
+      {
+        "claimKey": "handoff_signature",
+        "summary": "Preserve proof for handoff signature.",
+        "source": "verification",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      }
+    ]
+  },
+  "matching": {
+    "candidatePool": [
+      "sup_local_courier_runner"
+    ],
+    "matchCandidates": [
+      {
+        "supplyId": "sup_local_courier_runner",
+        "source": "retrieved",
+        "overallScore": 164,
+        "leadScore": 164,
+        "roleScores": [
+          {
+            "roleKey": "courier_runner",
+            "score": 164,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "qa_documentation",
+            "score": 124,
+            "confidence": "high"
+          }
+        ],
+        "summary": "Local Courier Runner best fits courier runner and qa documentation."
+      }
+    ],
+    "leadRanking": [
+      "sup_local_courier_runner"
+    ],
+    "leadRankingDetails": [
+      {
+        "roleKey": "courier_runner",
+        "supplyId": "sup_local_courier_runner",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Courier Runner best fits courier runner and qa documentation."
+      }
+    ],
+    "roleMatches": {
+      "courier_runner": "sup_local_courier_runner",
+      "qa_documentation": "sup_local_courier_runner"
+    },
+    "roleMatchDetails": [
+      {
+        "roleKey": "courier_runner",
+        "required": true,
+        "supplyId": "sup_local_courier_runner",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Courier Runner best fits courier runner and qa documentation."
+      },
+      {
+        "roleKey": "qa_documentation",
+        "required": false,
+        "supplyId": "sup_local_courier_runner",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "low",
+        "summary": "Optional support lane has a candidate, but nothing is attached yet."
+      }
+    ],
+    "assignmentProposal": {
+      "state": "candidate_pool",
+      "summary": "Candidate lanes exist for this request, but Boreal still needs a real selected lead before execution is attached.",
+      "lead": {
+        "roleKey": "courier_runner",
+        "required": true,
+        "supplyId": "sup_local_courier_runner",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Courier Runner best fits courier runner and qa documentation."
+      },
+      "support": [
+        {
+          "roleKey": "qa_documentation",
+          "required": false,
+          "supplyId": "sup_local_courier_runner",
+          "source": "candidate_pool",
+          "status": "candidate",
+          "confidence": "low",
+          "summary": "Optional support lane has a candidate, but nothing is attached yet."
+        }
+      ]
+    },
+    "replanReasons": [
+      "Boreal still needs the service location before assigning embodied work.",
+      "Boreal still needs the access requirements before assigning embodied work.",
+      "candidate lanes exist, but no real selected lead is attached yet"
+    ]
+  },
+  "policy": {
+    "nextAction": "clarify_request",
+    "requiresOwnerApproval": false,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

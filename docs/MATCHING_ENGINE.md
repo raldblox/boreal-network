@@ -143,3 +143,27 @@ These matching dimensions are still only partially structured or still missing a
 4. Add dedicated trust and proof-capability fingerprints.
 5. Add normalized geography and scheduling fingerprints.
 6. Add a real `no_good_fit` path when no credible lead route survives retrieval and filtering.
+
+## Fixture-Backed Evaluation
+
+The repo now has one fixture-backed live matcher runner:
+
+- `apps/web/scripts/run-request-processing-matcher-benchmark.ts`
+
+That runner consumes:
+
+- one runnable `requestPatch` per eval fixture
+- full `candidateSupplies` snapshots shaped like real `Supply` drafts
+- the shared contract scoring in `tests/contracts/request-processing-eval-lib.mjs`
+
+This keeps Boreal's matching eval lane grounded in the actual planner and matcher code instead of only hand-written sample actuals.
+
+## Current Gap Profile
+
+The current `web-live` benchmark is now good enough to expose real matching misses:
+
+- the complex migration scenario can still misrank the lead lane even when the correct lead remains inside top-3
+- embodied scenarios still under-spec some proof-package artifacts compared with the stricter fixture expectations
+- optional documentation support can still over-attach or map to the wrong candidate even when the lead lane is correct
+
+Those are matching and planning quality gaps, not fixture-shape gaps.

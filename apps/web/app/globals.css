@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@boreal/ui/styles.css";
 @import "katex/dist/katex.min.css";
+@import "@xyflow/react/dist/style.css";
 
 @source "../node_modules/streamdown/dist/index.js";

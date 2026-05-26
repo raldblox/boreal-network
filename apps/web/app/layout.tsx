@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Libre_Caslon_Text } from "next/font/google";
+import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -65,7 +66,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <script
+        <Script
+          id="theme-color-script"
+          strategy="beforeInteractive"
           // biome-ignore lint/security/noDangerouslySetInnerHtml: "Required"
           dangerouslySetInnerHTML={{
             __html: THEME_COLOR_SCRIPT,

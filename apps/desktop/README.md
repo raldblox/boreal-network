@@ -2,6 +2,10 @@
 
 This workspace is the Windows-first Electron desktop shell inside the Boreal monorepo.
 
+Boreal Desktop is for work AI cannot responsibly finish alone.
+It exists to keep local runtime, human intervention, and verification inside the workflow.
+It does not treat one-shot output as the same thing as completion.
+
 ## Purpose
 
 - local operator surface

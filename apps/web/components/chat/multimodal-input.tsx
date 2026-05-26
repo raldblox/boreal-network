@@ -1341,15 +1341,15 @@ function getPinnedWorkerPromptPlaceholder(
   const hasVideoGenerationWorker = supplyKinds.includes("video_generation");
 
   if (activeRequest?.status === "draft" && hasVideoGenerationWorker) {
-    return "Write the video prompt for the pinned worker...";
+    return "Write the request for the pinned video supply...";
   }
 
   if (activeRequest && hasVideoGenerationWorker) {
-    return "Refine the video prompt, ask for another render, or post a delivery note...";
+    return "Refine the video request, ask for another render, or post a delivery note...";
   }
 
   if (isRequestMode && !activeRequest) {
-    return "Write the first request message...";
+    return "Describe the work and what done looks like...";
   }
 
   return null;

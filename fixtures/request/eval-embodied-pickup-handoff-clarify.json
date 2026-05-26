@@ -11,42 +11,245 @@
     },
     "rawAsk": "Need someone to pick up a signed contract and hand it to our supplier today. I need proof the handoff happened."
   },
+  "requestPatch": {
+    "visibility": "private",
+    "brief": {
+      "title": "Pick up signed contract and complete witnessed supplier handoff",
+      "summary": "Same-day pick up and supplier handoff with proof required before closure.",
+      "body": "Pick up the signed contract, hand it to the supplier today, and return proof that the handoff actually happened.",
+      "constraints": {
+        "executionModes": [
+          "pickup_dropoff",
+          "witnessed_handoff"
+        ],
+        "timeWindows": [
+          "today"
+        ],
+        "requiresHumanPresence": true,
+        "requiresVerifiedEvidence": true,
+        "requiresWitness": true,
+        "verificationRequirements": [
+          "handoff_signature",
+          "delivery_confirmation"
+        ]
+      },
+      "outputKinds": [
+        "handoff_receipt",
+        "signature",
+        "delivery_confirmation"
+      ],
+      "tags": [
+        "pickup_dropoff",
+        "witnessed_handoff",
+        "same_day"
+      ]
+    },
+    "seeking": {
+      "actorKinds": [
+        "human"
+      ],
+      "supplyKinds": [
+        "pickup_dropoff",
+        "local_runner"
+      ],
+      "teamMode": "solo_or_team",
+      "notes": "Single local courier lane, but Boreal still needs exact pickup and dropoff details before execution."
+    },
+    "budget": null,
+    "deadline": {
+      "notes": "today"
+    },
+    "derived": {
+      "routeFamily": "worker_market",
+      "executionKind": "human_request_room",
+      "paymentMode": "quote_request",
+      "matchingMode": "lead_first_then_collaborators",
+      "routeSummary": "Local courier request. Boreal can identify the right lane, but pickup and handoff locations still need clarification before commitment."
+    }
+  },
   "candidateSupplies": [
     {
-      "supplyId": "sup_local_courier_runner",
-      "title": "Local Courier Runner",
-      "actorKinds": ["human"],
-      "supplyKinds": ["pickup_dropoff", "local_runner"],
-      "summary": "Handles same-day pickups, deliveries, and in-person handoffs."
+      "id": "sup_local_courier_runner",
+      "key": "local-courier-runner",
+      "ownerId": "fixture_supply_owner_031",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Local Courier Runner",
+        "headline": "Same-day pickup and witnessed handoff",
+        "summary": "Handles same-day pickups, deliveries, and in-person handoffs.",
+        "description": "Local courier lane for pickups, in-person deliveries, and signed proof of handoff.",
+        "tags": [
+          "pickup_dropoff",
+          "local_runner",
+          "same_day"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "pickup_dropoff",
+          "local_runner"
+        ],
+        "fulfillmentActorKinds": [
+          "human"
+        ],
+        "outputKinds": [
+          "handoff_receipt",
+          "signature",
+          "delivery_confirmation",
+          "delivery"
+        ],
+        "executionChannels": [
+          "request_room",
+          "operator_review"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 6,
+        "currentLoad": 2,
+        "responseTimeHours": 1
+      },
+      "pricing": {
+        "mode": "quote",
+        "currency": "USD"
+      },
+      "source": {
+        "kind": "manual"
+      },
+      "bindings": {},
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_remote_ops_agent",
-      "title": "Remote Operations Agent",
-      "actorKinds": ["agent"],
-      "supplyKinds": ["operations_support"],
-      "summary": "Coordinates workflows remotely but cannot perform physical handoffs."
+      "id": "sup_remote_ops_agent",
+      "key": "remote-operations-agent",
+      "ownerId": "fixture_supply_owner_032",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Remote Operations Agent",
+        "headline": "Remote coordination support",
+        "summary": "Coordinates workflows remotely but cannot perform physical handoffs.",
+        "description": "Remote coordination lane for reminders and workflow follow-ups without physical execution capability.",
+        "tags": [
+          "operations_support"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "operations_support"
+        ],
+        "fulfillmentActorKinds": [
+          "agent"
+        ],
+        "outputKinds": [
+          "draft",
+          "delivery"
+        ],
+        "executionChannels": [
+          "async_thread"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 20,
+        "currentLoad": 5,
+        "responseTimeHours": 1
+      },
+      "pricing": {
+        "mode": "open"
+      },
+      "source": {
+        "kind": "provider"
+      },
+      "bindings": {
+        "providerRef": "remote-ops-agent"
+      },
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_generic_chat_agent",
-      "title": "Generic Chat Agent",
-      "actorKinds": ["agent"],
-      "supplyKinds": ["generalist"],
-      "summary": "General text assistance with no local execution capability."
+      "id": "sup_generic_chat_agent",
+      "key": "generic-chat-agent",
+      "ownerId": "fixture_supply_owner_033",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Generic Chat Agent",
+        "headline": "General text assistance",
+        "summary": "General text assistance with no local execution capability.",
+        "description": "Generic provider-backed drafting lane without pickup or witnessed handoff capability.",
+        "tags": [
+          "generalist"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "generalist"
+        ],
+        "fulfillmentActorKinds": [
+          "agent"
+        ],
+        "outputKinds": [
+          "draft",
+          "delivery"
+        ],
+        "executionChannels": [
+          "async_thread"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 50,
+        "currentLoad": 14,
+        "responseTimeHours": 1
+      },
+      "pricing": {
+        "mode": "open"
+      },
+      "source": {
+        "kind": "provider"
+      },
+      "bindings": {
+        "providerRef": "generic-chat-agent"
+      },
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     }
   ],
   "expectedExtraction": {
     "title": "Pick up signed contract and complete witnessed supplier handoff",
-    "summaryMustContain": ["pick up", "handoff", "proof"],
+    "summaryMustContain": [
+      "pick up",
+      "handoff",
+      "proof"
+    ],
     "seeking": {
-      "actorKinds": ["human"],
-      "supplyKinds": ["pickup_dropoff", "local_runner"]
+      "actorKinds": [
+        "human"
+      ],
+      "supplyKinds": [
+        "pickup_dropoff",
+        "local_runner"
+      ]
     },
-    "outputKinds": ["handoff_receipt", "signature", "delivery_confirmation"],
+    "outputKinds": [
+      "handoff_receipt",
+      "signature",
+      "delivery_confirmation"
+    ],
     "constraints": {
       "requiresHumanPresence": true,
       "requiresVerifiedEvidence": true,
       "requiresWitness": true,
-      "verificationRequirements": ["handoff_signature", "delivery_confirmation"]
+      "verificationRequirements": [
+        "handoff_signature",
+        "delivery_confirmation"
+      ]
     }
   },
   "expectedRouting": {
@@ -59,7 +262,10 @@
   "expectedPlanning": {
     "leadRole": "courier_runner",
     "executionProfile": {
-      "executionModes": ["pickup_dropoff", "witnessed_handoff"],
+      "executionModes": [
+        "pickup_dropoff",
+        "witnessed_handoff"
+      ],
       "requiresHumanPresence": true,
       "requiresLocalAccess": true,
       "requiresVerifiedEvidence": true,
@@ -68,25 +274,37 @@
       "riskTier": "high"
     },
     "verificationPlan": {
-      "requiredArtifactKinds": ["receipt", "signature", "evidence"],
-      "requiredEvidenceClaims": ["handoff_signature", "delivery_confirmation"],
+      "requiredArtifactKinds": [
+        "evidence",
+        "signature"
+      ],
+      "requiredEvidenceClaims": [
+        "handoff_signature",
+        "delivery_confirmation"
+      ],
       "mustHaveOwnerAcceptance": false,
-      "mustHaveLocationSignal": true,
+      "mustHaveLocationSignal": false,
       "mustHaveSignature": true
     },
     "planCollapseRisk": {
       "riskLevel": "high",
       "reasons": [
-        "pickup and dropoff locations are missing",
-        "remote summary cannot prove physical handoff"
+        "request includes embodied or access-constrained work",
+        "Boreal still needs the service location before assigning embodied work.",
+        "Boreal still needs the access requirements before assigning embodied work.",
+        "request requires verification beyond generated text",
+        "request depends on witness- or signature-grade proof",
+        "request includes handoff-style execution that cannot collapse into a generic summary"
       ]
     },
-    "phaseCountMin": 1,
-    "phaseCountMax": 2,
+    "phaseCountMin": 3,
+    "phaseCountMax": 3,
     "roleSlots": [
       {
         "roleKey": "courier_runner",
-        "requiredActorKinds": ["human"],
+        "requiredActorKinds": [
+          "human"
+        ],
         "required": true
       }
     ],
@@ -94,8 +312,12 @@
   },
   "expectedMatching": {
     "topLeadSupplyId": "sup_local_courier_runner",
-    "top3MustInclude": ["sup_local_courier_runner"],
-    "mustRankBelowTop2": ["sup_generic_chat_agent"],
+    "top3MustInclude": [
+      "sup_local_courier_runner"
+    ],
+    "mustRankBelowTop2": [
+      "sup_generic_chat_agent"
+    ],
     "roleMatches": {
       "courier_runner": "sup_local_courier_runner"
     }

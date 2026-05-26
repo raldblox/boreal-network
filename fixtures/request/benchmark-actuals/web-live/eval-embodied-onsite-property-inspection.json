@@ -1,0 +1,391 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-onsite-property-inspection",
+  "fingerprints": {
+    "actorKinds": [
+      "human",
+      "agent"
+    ],
+    "supplyKinds": [
+      "field_inspection",
+      "operations_support",
+      "qa_documentation"
+    ],
+    "outputKinds": [
+      "inspection_report",
+      "photo_evidence",
+      "issue_log"
+    ],
+    "executionModes": [
+      "onsite_visit",
+      "field_inspection"
+    ],
+    "evidenceClaims": [
+      "timestamped_photos",
+      "written_report"
+    ],
+    "routeFamily": "worker_market",
+    "executionKind": "hybrid_human_agent",
+    "paymentMode": "range_quote",
+    "matchingMode": "lead_first_then_collaborators",
+    "leadRole": "field_inspector",
+    "phaseKeys": [
+      "field_execution",
+      "proof_delivery"
+    ]
+  },
+  "extraction": {
+    "title": "Inspect Makati retail kiosk and verify signage installation",
+    "summary": "Local kiosk inspection in Makati with timestamped photos and a short written report.",
+    "body": "Visit the Makati retail kiosk before 5pm tomorrow, confirm the new signage is actually installed, capture timestamped photos, and file a short written report with any issues.",
+    "seeking": {
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "field_inspection",
+        "operations_support",
+        "qa_documentation"
+      ],
+      "teamMode": "solo_or_team"
+    },
+    "outputKinds": [
+      "inspection_report",
+      "photo_evidence",
+      "issue_log"
+    ],
+    "missingDetails": [],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "budgetMin": 300,
+      "budgetMax": 500,
+      "executionModes": [
+        "onsite_visit",
+        "field_inspection"
+      ],
+      "serviceLocation": "Makati",
+      "timeWindows": [
+        "tomorrow before 5pm"
+      ],
+      "accessRequirements": [
+        "Retail kiosk access via the store manager"
+      ],
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "verificationRequirements": [
+        "timestamped_photos",
+        "written_report"
+      ]
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "medium",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "field_inspector",
+    "executionProfile": {
+      "executionModes": [
+        "onsite_visit",
+        "field_inspection"
+      ],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "moderate"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": [
+        "evidence"
+      ],
+      "requiredEvidenceClaims": [
+        "timestamped_photos",
+        "written_report"
+      ],
+      "mustHaveOwnerAcceptance": true,
+      "mustHaveLocationSignal": true,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "moderate",
+      "reasons": [
+        "request includes embodied or access-constrained work",
+        "request requires verification beyond generated text"
+      ]
+    },
+    "clarificationNeeded": {
+      "required": false,
+      "missingDetails": [],
+      "reasons": []
+    },
+    "phases": [
+      {
+        "phaseKey": "field_execution",
+        "title": "Complete the onsite inspection",
+        "summary": "Execute the physical or local-access work inside the request lane before treating anything as complete.",
+        "roleKeys": [
+          "field_inspector"
+        ],
+        "requiredEvidenceClaims": []
+      },
+      {
+        "phaseKey": "proof_delivery",
+        "title": "Capture proof and publish the delivery package",
+        "summary": "Attach evidence and the final delivery inside the same request thread so review and closure stay truthful.",
+        "roleKeys": [
+          "qa_documentation"
+        ],
+        "requiredEvidenceClaims": [
+          "timestamped_photos",
+          "written_report"
+        ]
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "field_inspector",
+        "title": "Field Inspector",
+        "preferredSupplyKinds": [
+          "field_inspection"
+        ],
+        "required": true,
+        "requiredActorKinds": [
+          "human"
+        ],
+        "summary": "Own the lead execution lane without flattening onsite or proof-heavy work into a digital-only result."
+      },
+      {
+        "roleKey": "operations_support",
+        "title": "Operations Support",
+        "preferredSupplyKinds": [
+          "operations_support"
+        ],
+        "required": false,
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
+        "summary": "Support deliverables such as Inspection Report, Photo Evidence, Issue Log."
+      },
+      {
+        "roleKey": "qa_documentation",
+        "title": "Qa Documentation",
+        "preferredSupplyKinds": [
+          "qa_documentation"
+        ],
+        "required": false,
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
+        "summary": "Keep evidence, reporting, and owner-facing delivery attached to the request."
+      }
+    ],
+    "noMicrotaskExplosion": true,
+    "outcomeClaims": [
+      {
+        "claimKey": "inspect_makati_retail_kiosk_and_verify_signage_installation",
+        "summary": "Visit the Makati retail kiosk before 5pm tomorrow, confirm the new signage is actually installed, capture timestamped photos, and file a short written report with any issues.",
+        "source": "brief",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      },
+      {
+        "claimKey": "inspection_report",
+        "summary": "Produce inspection report.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "photo_evidence",
+        "summary": "Produce photo evidence.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "issue_log",
+        "summary": "Produce issue log.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "field_execution",
+        "summary": "Complete the onsite inspection.",
+        "source": "execution",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      },
+      {
+        "claimKey": "timestamped_photos",
+        "summary": "Preserve proof for timestamped photos.",
+        "source": "verification",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      }
+    ]
+  },
+  "matching": {
+    "candidatePool": [
+      "sup_local_field_ops_inspector",
+      "sup_remote_qa_documentation_agent"
+    ],
+    "matchCandidates": [
+      {
+        "supplyId": "sup_local_field_ops_inspector",
+        "source": "retrieved",
+        "overallScore": 164,
+        "leadScore": 164,
+        "roleScores": [
+          {
+            "roleKey": "field_inspector",
+            "score": 164,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "operations_support",
+            "score": 164,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "qa_documentation",
+            "score": 124,
+            "confidence": "high"
+          }
+        ],
+        "summary": "Local Field Operations Inspector best fits field inspector and operations support."
+      },
+      {
+        "supplyId": "sup_remote_qa_documentation_agent",
+        "source": "retrieved",
+        "overallScore": 158,
+        "leadScore": 83,
+        "roleScores": [
+          {
+            "roleKey": "field_inspector",
+            "score": 83,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "operations_support",
+            "score": 118,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "qa_documentation",
+            "score": 158,
+            "confidence": "high"
+          }
+        ],
+        "summary": "Remote QA Documentation Agent best fits qa documentation and operations support."
+      }
+    ],
+    "leadRanking": [
+      "sup_local_field_ops_inspector",
+      "sup_remote_qa_documentation_agent"
+    ],
+    "leadRankingDetails": [
+      {
+        "roleKey": "field_inspector",
+        "supplyId": "sup_local_field_ops_inspector",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Field Operations Inspector best fits field inspector and operations support."
+      },
+      {
+        "roleKey": "field_inspector",
+        "supplyId": "sup_remote_qa_documentation_agent",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Remote QA Documentation Agent best fits qa documentation and operations support."
+      }
+    ],
+    "roleMatches": {
+      "field_inspector": "sup_local_field_ops_inspector",
+      "operations_support": "sup_remote_qa_documentation_agent",
+      "qa_documentation": "sup_local_field_ops_inspector"
+    },
+    "roleMatchDetails": [
+      {
+        "roleKey": "field_inspector",
+        "required": true,
+        "supplyId": "sup_local_field_ops_inspector",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Field Operations Inspector best fits field inspector and operations support."
+      },
+      {
+        "roleKey": "operations_support",
+        "required": false,
+        "supplyId": "sup_remote_qa_documentation_agent",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Remote QA Documentation Agent best fits qa documentation and operations support."
+      },
+      {
+        "roleKey": "qa_documentation",
+        "required": false,
+        "supplyId": "sup_local_field_ops_inspector",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "low",
+        "summary": "Optional support lane has a candidate, but nothing is attached yet."
+      }
+    ],
+    "assignmentProposal": {
+      "state": "candidate_pool",
+      "summary": "Candidate lanes exist for this request, but Boreal still needs a real selected lead before execution is attached.",
+      "lead": {
+        "roleKey": "field_inspector",
+        "required": true,
+        "supplyId": "sup_local_field_ops_inspector",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Field Operations Inspector best fits field inspector and operations support."
+      },
+      "support": [
+        {
+          "roleKey": "operations_support",
+          "required": false,
+          "supplyId": "sup_remote_qa_documentation_agent",
+          "source": "candidate_pool",
+          "status": "candidate",
+          "confidence": "high",
+          "summary": "Remote QA Documentation Agent best fits qa documentation and operations support."
+        },
+        {
+          "roleKey": "qa_documentation",
+          "required": false,
+          "supplyId": "sup_local_field_ops_inspector",
+          "source": "candidate_pool",
+          "status": "candidate",
+          "confidence": "low",
+          "summary": "Optional support lane has a candidate, but nothing is attached yet."
+        }
+      ]
+    },
+    "replanReasons": [
+      "candidate lanes exist, but no real selected lead is attached yet"
+    ]
+  },
+  "policy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boreal Pitch Deck</title>
+  <style>
+    :root {
+      --paper: #f6f3ec;
+      --paper-2: #fbf9f4;
+      --ink: #12263a;
+      --ink-soft: #42566a;
+      --muted: #778495;
+      --line: #ddd4c6;
+      --line-strong: #c8d6ea;
+      --navy: #102033;
+      --navy-2: #162a40;
+      --blue: #5d7dff;
+      --blue-soft: #eaf0ff;
+      --gold: #c98a28;
+      --gold-soft: #faf0db;
+      --green: #247a50;
+      --green-soft: #e8f4ec;
+      --danger: #b35d43;
+      --danger-soft: #f6e6df;
+      --shadow: 0 22px 48px rgba(18, 38, 58, 0.09);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --hero: clamp(46px, 5.6vw, 64px);
+      --h1: clamp(32px, 4.2vw, 44px);
+      --h2: clamp(20px, 2.2vw, 28px);
+      --h3: 18px;
+      --body: 16px;
+      --small: 13px;
+      --tiny: 11px;
+      --sans: "Aptos Display", "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", sans-serif;
+      --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", monospace;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top left, rgba(93, 125, 255, 0.10), transparent 24%),
+        radial-gradient(circle at top right, rgba(201, 138, 40, 0.10), transparent 22%),
+        #ece6dc;
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+
+    .deck {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 42px 46px 44px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      opacity: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(251, 249, 244, 0.99), rgba(246, 243, 236, 0.995));
+      overflow: hidden;
+      transition: opacity 320ms var(--ease);
+    }
+
+    .slide.dark {
+      background:
+        radial-gradient(circle at top right, rgba(93, 125, 255, 0.12), transparent 24%),
+        linear-gradient(180deg, #0d1a29, #122235);
+      color: #f5f8fc;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .slide.active .animate {
+      animation: rise 420ms var(--ease) both;
+    }
+
+    .slide.active .animate:nth-child(1) { animation-delay: 0ms; }
+    .slide.active .animate:nth-child(2) { animation-delay: 50ms; }
+    .slide.active .animate:nth-child(3) { animation-delay: 100ms; }
+    .slide.active .animate:nth-child(4) { animation-delay: 150ms; }
+    .slide.active .animate:nth-child(5) { animation-delay: 200ms; }
+    .slide.active .animate:nth-child(6) { animation-delay: 250ms; }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .slide.dark .eyebrow,
+    .slide.dark .body,
+    .slide.dark .small,
+    .slide.dark .tiny,
+    .slide.dark .muted-copy {
+      color: rgba(235, 241, 248, 0.78);
+    }
+
+    .hero {
+      font-size: var(--hero);
+      line-height: 0.94;
+      letter-spacing: -2px;
+      font-weight: 760;
+      max-width: 760px;
+    }
+
+    .h1 {
+      font-size: var(--h1);
+      line-height: 0.98;
+      letter-spacing: -1.6px;
+      font-weight: 750;
+      max-width: 980px;
+    }
+
+    .h2 {
+      font-size: var(--h2);
+      line-height: 1.08;
+      letter-spacing: -0.7px;
+      font-weight: 720;
+    }
+
+    .h3 {
+      font-size: var(--h3);
+      line-height: 1.22;
+      font-weight: 720;
+    }
+
+    .body {
+      font-size: var(--body);
+      line-height: 1.45;
+      color: var(--ink-soft);
+    }
+
+    .small {
+      font-size: var(--small);
+      line-height: 1.46;
+      color: var(--ink-soft);
+    }
+
+    .tiny {
+      font-size: var(--tiny);
+      line-height: 1.5;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+    }
+
+    .accent { color: var(--blue); }
+    .warm { color: var(--gold); }
+    .mono { font-family: var(--mono); }
+    .muted-copy { color: var(--muted); }
+    .max-560 { max-width: 560px; }
+    .max-620 { max-width: 620px; }
+    .max-760 { max-width: 760px; }
+
+    .rule {
+      width: 100px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--blue), rgba(93, 125, 255, 0));
+    }
+
+    .rule-wide {
+      width: 240px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--blue), rgba(201, 138, 40, 0.55), rgba(201, 138, 40, 0));
+    }
+
+    .grid-2,
+    .grid-3,
+    .grid-4 {
+      display: grid;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .panel.soft-blue {
+      background: linear-gradient(180deg, #f7faff, #edf3ff);
+      border-color: #c7d6ee;
+    }
+
+    .panel.soft-gold {
+      background: linear-gradient(180deg, #fffaf0, #fbf1dc);
+      border-color: #ead3a4;
+    }
+
+    .panel.soft-green {
+      background: linear-gradient(180deg, #f5fbf7, #e8f4ec);
+      border-color: #c6e1d1;
+    }
+
+    .panel.soft-red {
+      background: linear-gradient(180deg, #faf1ed, #f6e5df);
+      border-color: #e3c1b4;
+    }
+
+    .slide.dark .panel {
+      background: rgba(19, 36, 54, 0.86);
+      border-color: rgba(255, 255, 255, 0.10);
+      box-shadow: none;
+      color: #f5f8fc;
+    }
+
+    .slide.dark .panel.soft-blue {
+      background: rgba(23, 45, 70, 0.94);
+      border-color: rgba(141, 184, 255, 0.38);
+    }
+
+    .slide.dark .panel.soft-gold {
+      background: rgba(49, 36, 18, 0.92);
+      border-color: rgba(201, 138, 40, 0.34);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      color: var(--ink);
+    }
+
+    .pill.blue {
+      border-color: #c7d6ee;
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .pill.gold {
+      border-color: #ead3a4;
+      background: var(--gold-soft);
+      color: #8a5a09;
+    }
+
+    .pill.green {
+      border-color: #c6e1d1;
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .list {
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .list li {
+      position: relative;
+      padding-left: 18px;
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--blue);
+    }
+
+    .footer {
+      margin-top: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      line-height: 1;
+      color: var(--muted);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+    }
+
+    .cover-layout {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 24px;
+      align-items: start;
+      min-height: 0;
+      flex: 1;
+    }
+
+    .spine-panel {
+      position: relative;
+      border-radius: var(--radius-xl);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background:
+        radial-gradient(circle at top left, rgba(141, 184, 255, 0.16), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(201, 138, 40, 0.14), transparent 28%),
+        rgba(11, 22, 34, 0.92);
+      overflow: hidden;
+      height: 470px;
+    }
+
+    .spine-ring {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 190px;
+      height: 190px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      border: 1px dashed rgba(141, 184, 255, 0.18);
+      box-shadow:
+        0 0 0 26px rgba(93, 125, 255, 0.03),
+        0 0 90px rgba(93, 125, 255, 0.08);
+    }
+
+    .spine-line {
+      display: none;
+    }
+
+    .spine-node {
+      position: absolute;
+      width: 178px;
+      min-height: 98px;
+      padding: 14px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      background: rgba(10, 18, 28, 0.90);
+      color: #f5f8fc;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+      z-index: 2;
+    }
+
+    .spine-node.request {
+      left: 50%;
+      top: 50%;
+      width: 220px;
+      min-height: 132px;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      background: linear-gradient(180deg, #1b3453, #15304c);
+      border-color: rgba(141, 184, 255, 0.34);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      z-index: 3;
+    }
+
+    .spine-node.ask {
+      top: 36px;
+      left: 34px;
+      transform: none;
+    }
+
+    .spine-node.commitment {
+      top: 36px;
+      right: 34px;
+      transform: none;
+    }
+
+    .spine-node.fulfillment {
+      bottom: 36px;
+      left: 34px;
+      transform: none;
+    }
+
+    .spine-node.proof {
+      bottom: 36px;
+      right: 34px;
+      transform: none;
+    }
+
+    .problem-layout {
+      display: grid;
+      grid-template-columns: 0.92fr 0.16fr 0.92fr;
+      gap: 18px;
+      align-items: stretch;
+      flex: 1;
+    }
+
+    .chat-shell,
+    .fragment-shell {
+      min-height: 0;
+    }
+
+    .chat-log {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .bubble {
+      border-radius: 18px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.85);
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    .bubble.user {
+      margin-left: 56px;
+      background: var(--green-soft);
+      border-color: #c6e1d1;
+    }
+
+    .bubble.agent {
+      margin-right: 56px;
+      background: rgba(241, 245, 250, 0.94);
+    }
+
+    .break-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .break-line {
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(93, 125, 255, 0.95), rgba(201, 138, 40, 0.85));
+    }
+
+    .break-mark {
+      font-size: 44px;
+      line-height: 1;
+      color: var(--gold);
+      font-family: var(--mono);
+    }
+
+    .fragment-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .fragment {
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.84);
+      padding: 16px 12px;
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.2;
+    }
+
+    .collapse-layout {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: stretch;
+      flex: 1;
+    }
+
+    .lane-row,
+    .ghost-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .step-chip {
+      flex: 1 1 110px;
+      min-width: 110px;
+      border-radius: 999px;
+      padding: 14px 12px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.86);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.2;
+      font-family: var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .step-chip.blue {
+      border-color: #c7d6ee;
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .step-chip.red {
+      border-color: #e3c1b4;
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .step-chip.ghost {
+      border-style: dashed;
+      background: rgba(255, 255, 255, 0.34);
+      color: var(--muted);
+    }
+
+    .status-band {
+      margin-top: 16px;
+      border-radius: 18px;
+      padding: 14px 16px;
+      background: linear-gradient(90deg, #12263a, #18314c);
+      color: #f5f8fc;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .status-pill {
+      border-radius: 999px;
+      padding: 7px 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      white-space: nowrap;
+    }
+
+    .default-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .default-root {
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--line);
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .default-break {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      font-size: 14px;
+      line-height: 1.35;
+      color: var(--ink-soft);
+    }
+
+    .product-layout {
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      gap: 18px;
+      align-items: stretch;
+      flex: 1;
+    }
+
+    .request-core {
+      min-height: 0;
+    }
+
+    .request-box {
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      background: linear-gradient(180deg, #163250, #122d48);
+      color: #f5f8fc;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 28px 52px rgba(18, 38, 58, 0.18);
+    }
+
+    .request-box .hero-word {
+      font-size: 42px;
+      line-height: 0.95;
+      letter-spacing: -1.6px;
+      font-weight: 760;
+    }
+
+    .product-mini-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .product-mini {
+      border-radius: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: var(--shadow);
+      min-height: 112px;
+    }
+
+    .lead-rail {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .lead-step {
+      border-radius: 999px;
+      padding: 14px 12px;
+      text-align: center;
+      font-size: 12px;
+      line-height: 1.2;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-family: var(--mono);
+      background: rgba(18, 38, 58, 0.92);
+      color: #f5f8fc;
+    }
+
+    .lead-step.highlight {
+      background: var(--blue-soft);
+      color: var(--blue);
+      border: 1px solid #c7d6ee;
+    }
+
+    .wedge-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1fr 0.9fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .signal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .signal-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-family: var(--mono);
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .thesis-band {
+      border-radius: 20px;
+      padding: 16px 18px;
+      background: linear-gradient(90deg, rgba(93, 125, 255, 0.14), rgba(201, 138, 40, 0.12));
+      border: 1px solid #d8d4cb;
+    }
+
+    .proof-layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      align-items: stretch;
+      flex: 1;
+    }
+
+    .proof-track {
+      display: grid;
+      gap: 14px;
+      align-content: center;
+    }
+
+    .track-node {
+      border-radius: 20px;
+      padding: 18px 18px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .track-marker {
+      width: 80px;
+      height: 80px;
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #13263a, #17304a);
+      color: #f5f8fc;
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .track-arrow {
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 20px;
+      color: var(--muted);
+      line-height: 1;
+    }
+
+    .proof-side {
+      display: grid;
+      gap: 14px;
+      align-content: stretch;
+    }
+
+    .proof-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .proof-item {
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--line);
+      font-size: 14px;
+      line-height: 1.3;
+    }
+
+    .founder-layout {
+      display: grid;
+      grid-template-columns: 0.96fr 1.04fr;
+      gap: 18px;
+      align-items: stretch;
+      flex: 1;
+    }
+
+    .profile-band {
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      background: linear-gradient(180deg, #163250, #122d48);
+      color: #f5f8fc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 28px 52px rgba(18, 38, 58, 0.18);
+    }
+
+    .profile-name {
+      font-size: 34px;
+      line-height: 0.98;
+      letter-spacing: -1.2px;
+      font-weight: 760;
+    }
+
+    .cred-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .cred {
+      border-radius: 16px;
+      padding: 14px 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.10);
+      min-height: 84px;
+    }
+
+    .ask-layout {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: 18px;
+      align-items: stretch;
+      flex: 1;
+    }
+
+    .closing-card {
+      border-radius: var(--radius-xl);
+      padding: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(141, 184, 255, 0.10), transparent 24%),
+        rgba(14, 27, 41, 0.86);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .closing-line {
+      font-size: clamp(28px, 3.4vw, 42px);
+      line-height: 1;
+      letter-spacing: -1.5px;
+      font-weight: 760;
+      max-width: 640px;
+      color: #f5f8fc;
+    }
+
+    .nav {
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(18, 38, 58, 0.10);
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: var(--shadow);
+      opacity: 0.16;
+      transition: opacity 180ms ease;
+    }
+
+    .deck:hover .nav {
+      opacity: 1;
+    }
+
+    .nav button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: var(--navy);
+      color: #f5f8fc;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .nav-count {
+      min-width: 74px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--ink-soft);
+    }
+
+    @media screen and (max-width: 1100px) {
+      .slide {
+        padding: 32px 30px 36px;
+      }
+
+      .cover-layout,
+      .problem-layout,
+      .collapse-layout,
+      .product-layout,
+      .wedge-grid,
+      .signal-grid,
+      .proof-layout,
+      .founder-layout,
+      .ask-layout,
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-3,
+      .grid-2,
+      .cred-grid,
+      .lead-rail,
+      .fragment-grid,
+      .product-mini-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .problem-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .break-column {
+        flex-direction: row;
+      }
+
+      .spine-node {
+        position: static;
+        width: auto;
+        transform: none !important;
+        margin: 12px;
+      }
+
+      .spine-line {
+        display: none;
+      }
+    }
+
+    @page {
+      size: 13.333in 7.5in;
+      margin: 0;
+    }
+
+    @media print {
+      :root {
+        --hero: 56px;
+        --h1: 38px;
+        --h2: 24px;
+        --h3: 17px;
+        --body: 15px;
+        --small: 12px;
+        --tiny: 10px;
+      }
+
+      html,
+      body {
+        width: auto;
+        height: auto;
+        overflow: visible;
+        background: #ece6dc;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .deck {
+        width: auto;
+        height: auto;
+        overflow: visible;
+      }
+
+      .slide {
+        position: relative;
+        width: 13.333in;
+        height: 7.5in;
+        min-height: 7.5in;
+        max-height: 7.5in;
+        padding: 34px 38px 36px;
+        opacity: 1 !important;
+        pointer-events: auto;
+        overflow: hidden;
+        page-break-after: always;
+        break-after: page;
+      }
+
+      .slide:last-of-type {
+        page-break-after: auto;
+        break-after: auto;
+      }
+
+      .nav {
+        display: none !important;
+      }
+
+      .animate,
+      .slide.active .animate {
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+    <section class="slide dark active">
+      <div class="eyebrow animate">Boreal / Request-native work commerce</div>
+      <div class="cover-layout">
+        <div class="stack">
+          <div class="hero animate">External work breaks after the first message.</div>
+          <div class="rule-wide animate"></div>
+          <p class="body animate max-560">Boreal turns a <span class="mono">Request</span> into one managed thread from ask to payout.</p>
+          <p class="small animate max-620">The control layer between external work demand and mixed human + AI fulfillment.</p>
+          <div class="pill-row animate">
+            <div class="pill blue">Demand</div>
+            <div class="pill blue">Commitment</div>
+            <div class="pill gold">Fulfillment</div>
+            <div class="pill green">Proof</div>
+            <div class="pill gold">Payout</div>
+          </div>
+        </div>
+        <div class="spine-panel animate">
+          <div class="spine-ring"></div>
+          <div class="spine-node ask">
+            <div class="tiny">Ask</div>
+            <div class="h3" style="margin-top: 8px;">Demand becomes one request.</div>
+          </div>
+          <div class="spine-node request">
+            <div class="tiny">Durable root</div>
+            <div class="hero-word" style="margin-top: 8px;">Request</div>
+            <div class="small" style="margin-top: 10px; color: rgba(235, 241, 248, 0.78);">One thread for demand, execution, proof, and money.</div>
+          </div>
+          <div class="spine-node commitment">
+            <div class="tiny">Commitment</div>
+            <div class="h3" style="margin-top: 8px;">Terms lock before work runs.</div>
+          </div>
+          <div class="spine-node fulfillment">
+            <div class="tiny">Fulfillment</div>
+            <div class="h3" style="margin-top: 8px;">Human and AI supply execute.</div>
+          </div>
+          <div class="spine-node proof">
+            <div class="tiny">Artifact + Transaction</div>
+            <div class="h3" style="margin-top: 8px;">Delivery and payout close.</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        <span>boreal.work</span>
+        <span>10-slide pitch deck</span>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">01 / Problem</div>
+      <div class="h1 animate">Chat can capture the ask. It cannot own the job.</div>
+      <div class="rule animate"></div>
+      <div class="problem-layout animate">
+        <div class="panel chat-shell">
+          <div class="tiny">What starts the work</div>
+          <div class="chat-log">
+            <div class="bubble user">Can you handle this request?</div>
+            <div class="bubble agent">Yes. Here is the plan.</div>
+            <div class="bubble user">Good. Now get it done.</div>
+            <div class="bubble agent">Working on it.</div>
+          </div>
+        </div>
+        <div class="break-column">
+          <div class="break-line"></div>
+          <div class="break-mark">//</div>
+          <div class="tiny">thread breaks</div>
+          <div class="break-line"></div>
+        </div>
+        <div class="panel fragment-shell">
+          <div class="tiny">What leaves the thread</div>
+          <div class="fragment-grid">
+            <div class="fragment">Scope</div>
+            <div class="fragment">Approval</div>
+            <div class="fragment">Files</div>
+            <div class="fragment">Proof</div>
+            <div class="fragment">Payment</div>
+            <div class="fragment">Review</div>
+          </div>
+        </div>
+      </div>
+      <p class="body animate max-760">The ask begins in one place. The real work fragments across separate tools, people, and hidden state.</p>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">02 / Failure Mode</div>
+      <div class="h1 animate">AI plans delete the work they cannot do.</div>
+      <div class="rule animate"></div>
+      <div class="collapse-layout animate">
+        <div class="panel soft-blue">
+          <div class="tiny">True job</div>
+          <div class="h3" style="margin-top: 10px;">What completion actually needs</div>
+          <div class="lane-row">
+            <div class="step-chip blue">Scope</div>
+            <div class="step-chip blue">Approve</div>
+            <div class="step-chip blue">Execute</div>
+            <div class="step-chip blue">Verify</div>
+            <div class="step-chip blue">Pay</div>
+          </div>
+          <div class="ghost-row">
+            <div class="step-chip ghost">Human step</div>
+            <div class="step-chip ghost">Review step</div>
+            <div class="step-chip ghost">Proof step</div>
+          </div>
+        </div>
+        <div class="panel soft-red">
+          <div class="tiny">Tool-biased plan</div>
+          <div class="h3" style="margin-top: 10px;">What an AI keeps when it only sees callable surfaces</div>
+          <div class="lane-row">
+            <div class="step-chip red">Prompt</div>
+            <div class="step-chip red">Run tools</div>
+            <div class="step-chip red">Summary</div>
+          </div>
+          <div class="ghost-row">
+            <div class="step-chip ghost">Approval removed</div>
+            <div class="step-chip ghost">Human work removed</div>
+            <div class="step-chip ghost">Proof removed</div>
+          </div>
+        </div>
+      </div>
+      <div class="status-band animate">
+        <div class="h3">Looks complete. Is not complete.</div>
+        <div class="status-pill">generative-plan collapse</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">03 / Weak Defaults</div>
+      <div class="h1 animate">Current defaults all stop too early.</div>
+      <div class="rule animate"></div>
+      <div class="grid-4 animate">
+        <div class="panel default-card">
+          <div class="tiny">Chat-first</div>
+          <div class="default-root">Conversation thread</div>
+          <div class="small">Great at intake. Weak at durable execution.</div>
+          <div class="default-break"><span class="warm">Breaks at:</span> approval, proof, payment.</div>
+        </div>
+        <div class="panel default-card">
+          <div class="tiny">Listing-first</div>
+          <div class="default-root">Supply listing</div>
+          <div class="small">Assumes the buyer already knows the job.</div>
+          <div class="default-break"><span class="warm">Breaks at:</span> ambiguous demand and scoping.</div>
+        </div>
+        <div class="panel default-card">
+          <div class="tiny">Tool-first</div>
+          <div class="default-root">Callable step</div>
+          <div class="small">Optimizes around what the model can personally run.</div>
+          <div class="default-break"><span class="warm">Breaks at:</span> human work, proof, accountability.</div>
+        </div>
+        <div class="panel soft-blue default-card">
+          <div class="tiny">Request-rooted</div>
+          <div class="default-root">Durable request thread</div>
+          <div class="small">One object persists through the whole job.</div>
+          <div class="default-break"><span class="accent">Wins by:</span> carrying commitment, fulfillment, proof, and payout.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">04 / Product</div>
+      <div class="h1 animate">Boreal keeps the whole job on one <span class="mono accent">Request</span>.</div>
+      <div class="rule animate"></div>
+      <div class="product-layout animate">
+        <div class="request-core">
+          <div class="request-box">
+            <div>
+              <div class="tiny">Durable root</div>
+              <div class="hero-word" style="margin-top: 8px;">Request</div>
+              <div class="body" style="margin-top: 12px; color: rgba(235, 241, 248, 0.80);">
+                The same thread survives intake, routing, commitment, fulfillment, proof, and payout.
+              </div>
+            </div>
+            <div class="pill-row">
+              <div class="pill blue">Demand</div>
+              <div class="pill gold">Supply</div>
+              <div class="pill green">History</div>
+            </div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="product-mini-grid">
+            <div class="product-mini">
+              <div class="tiny">Commitment</div>
+              <div class="h3" style="margin-top: 10px;">Commercial terms stay explicit.</div>
+            </div>
+            <div class="product-mini">
+              <div class="tiny">Fulfillment</div>
+              <div class="h3" style="margin-top: 10px;">Human and AI supply execute on-thread.</div>
+            </div>
+            <div class="product-mini">
+              <div class="tiny">Artifact</div>
+              <div class="h3" style="margin-top: 10px;">Proof and delivery stay attached.</div>
+            </div>
+            <div class="product-mini">
+              <div class="tiny">Transaction</div>
+              <div class="h3" style="margin-top: 10px;">Payment and payout close the loop.</div>
+            </div>
+          </div>
+          <div class="panel soft-gold">
+            <div class="tiny">Planner rule</div>
+            <div class="lead-rail">
+              <div class="lead-step highlight">Lead route first</div>
+              <div class="lead-step">Plan second</div>
+              <div class="lead-step">Decompose only when needed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">05 / First Wedge</div>
+      <div class="h1 animate">Start with high-value digital external work.</div>
+      <div class="rule animate"></div>
+      <div class="wedge-grid animate">
+        <div class="panel soft-blue">
+          <div class="tiny">Buyer</div>
+          <div class="h3" style="margin-top: 10px;">Startup and SMB operators buying work from outside supply.</div>
+          <ul class="list">
+            <li>Founders</li>
+            <li>Ops and product leads</li>
+            <li>Growth and technical operators</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <div class="tiny">Request classes</div>
+          <div class="pill-row" style="margin-top: 12px;">
+            <div class="pill blue">AI implementation</div>
+            <div class="pill blue">Automation</div>
+            <div class="pill gold">Research</div>
+            <div class="pill gold">MVP work</div>
+            <div class="pill green">Spec work</div>
+            <div class="pill green">Operator work</div>
+          </div>
+          <p class="body" style="margin-top: 16px;">The wedge works where intake is fuzzy, delivery is digital, and proof still matters.</p>
+        </div>
+        <div class="panel soft-green">
+          <div class="tiny">Why this wedge</div>
+          <ul class="list">
+            <li>Urgent demand</li>
+            <li>Repeatable need</li>
+            <li>High-value work</li>
+            <li>Needs accountability</li>
+          </ul>
+        </div>
+      </div>
+      <div class="thesis-band animate">
+        <div class="small">Not local services. Not microtasks. Not an internal employee copilot.</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">06 / Why Now</div>
+      <div class="h1 animate">AI created demand. No one owns fulfillment continuity.</div>
+      <div class="rule animate"></div>
+      <div class="signal-grid animate">
+        <div class="panel">
+          <div class="signal-icon">01</div>
+          <div class="h3" style="margin-top: 14px;">Chat is now the front door for work.</div>
+          <p class="small" style="margin-top: 10px;">Buyers already start requests in AI-native interfaces.</p>
+        </div>
+        <div class="panel">
+          <div class="signal-icon">02</div>
+          <div class="h3" style="margin-top: 14px;">Marketplaces are moving up-stack.</div>
+          <p class="small" style="margin-top: 10px;">Matching is no longer enough. Workflow and trust layers are getting pulled into the product.</p>
+        </div>
+        <div class="panel">
+          <div class="signal-icon">03</div>
+          <div class="h3" style="margin-top: 14px;">Buyers want verified done, not generated confidence.</div>
+          <p class="small" style="margin-top: 10px;">The open control layer is execution, proof, and payout continuity.</p>
+        </div>
+      </div>
+      <div class="thesis-band animate">
+        <div class="h3">Boreal is that control layer for external work.</div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">07 / Proof Today</div>
+      <div class="h1 animate">The system shape is real. Commercial proof is next.</div>
+      <div class="rule animate"></div>
+      <div class="proof-layout animate">
+        <div class="proof-track">
+          <div class="track-node">
+            <div class="track-marker">Web</div>
+            <div>
+              <div class="h3">Web surface</div>
+              <div class="small" style="margin-top: 8px;">Request intake, request room, and visible execution lanes.</div>
+            </div>
+          </div>
+          <div class="track-arrow">||</div>
+          <div class="track-node">
+            <div class="track-marker">Root</div>
+            <div>
+              <div class="h3">Canonical request model</div>
+              <div class="small" style="margin-top: 8px;">Request, Commitment, Fulfillment, Artifact, and Transaction on one thread.</div>
+            </div>
+          </div>
+          <div class="track-arrow">||</div>
+          <div class="track-node">
+            <div class="track-marker">Desktop</div>
+            <div>
+              <div class="h3">Desktop runtime path</div>
+              <div class="small" style="margin-top: 8px;">Local execution and proof capture without becoming a second system of record.</div>
+            </div>
+          </div>
+        </div>
+        <div class="proof-side">
+          <div class="panel soft-blue">
+            <div class="tiny">Live now</div>
+            <div class="proof-list">
+              <div class="proof-item">Canonical object model and lifecycle</div>
+              <div class="proof-item">Web request surface and execution thread</div>
+              <div class="proof-item">Desktop runtime direction in product form</div>
+            </div>
+          </div>
+          <div class="panel soft-gold">
+            <div class="tiny">Need to prove next</div>
+            <div class="proof-list">
+              <div class="proof-item">Funded requests</div>
+              <div class="proof-item">Repeat buyers</div>
+              <div class="proof-item">Supply density in the wedge</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="eyebrow animate">08 / Founder</div>
+      <div class="h1 animate">Built by a founder who can ship the whole stack.</div>
+      <div class="rule animate"></div>
+      <div class="founder-layout animate">
+        <div class="profile-band">
+          <div>
+            <div class="tiny">Founder</div>
+            <div class="profile-name" style="margin-top: 8px;">Herald Bayoca</div>
+            <div class="body" style="margin-top: 14px; color: rgba(235, 241, 248, 0.80);">
+              Product engineer with 5+ years across product, AI, automation, and commerce systems.
+            </div>
+          </div>
+          <div class="cred-grid">
+            <div class="cred">
+              <div class="tiny">Founder</div>
+              <div class="small" style="margin-top: 8px; color: rgba(235, 241, 248, 0.82);">Raised SAFE funding at OnChainSupply.</div>
+            </div>
+            <div class="cred">
+              <div class="tiny">Enterprise</div>
+              <div class="small" style="margin-top: 8px; color: rgba(235, 241, 248, 0.82);">IBM consulting across AI and secure workflows.</div>
+            </div>
+            <div class="cred">
+              <div class="tiny">Builder</div>
+              <div class="small" style="margin-top: 8px; color: rgba(235, 241, 248, 0.82);">Building Boreal end to end across web and runtime layers.</div>
+            </div>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="panel soft-blue">
+            <div class="tiny">Earned insight</div>
+            <div class="h2" style="margin-top: 10px;">External work needs an execution, proof, and payout layer.</div>
+            <p class="small" style="margin-top: 10px;">Not another chat wrapper. Not another listing marketplace.</p>
+          </div>
+          <div class="panel">
+            <div class="tiny">Why this founder fits</div>
+            <ul class="list">
+              <li>Zero-to-one product and systems design</li>
+              <li>Commercial and founder operating experience</li>
+              <li>Hands-on technical depth across workflow layers</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide dark">
+      <div class="eyebrow animate">09 / What We Need</div>
+      <div class="h1 animate">Turn product proof into funded demand.</div>
+      <div class="rule animate"></div>
+      <div class="ask-layout animate">
+        <div class="panel soft-blue">
+          <div class="tiny">What helps most</div>
+          <ul class="list" style="margin-top: 14px;">
+            <li>Design partners</li>
+            <li>Early buyer introductions</li>
+            <li>Wedge and demand feedback</li>
+            <li>Entity and fundraising guidance</li>
+          </ul>
+        </div>
+        <div class="closing-card">
+          <div>
+            <div class="tiny">Closing read</div>
+            <div class="closing-line" style="margin-top: 14px;">Boreal is building the durable thread for external work from ask to payout.</div>
+          </div>
+          <div class="stack" style="gap: 10px;">
+            <div class="small" style="color: rgba(235, 241, 248, 0.78);">The control layer between external work demand and mixed human + AI fulfillment.</div>
+            <div class="pill-row">
+              <div class="pill blue">Request-native</div>
+              <div class="pill gold">Mixed fulfillment</div>
+              <div class="pill green">Proof + payout</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer" style="color: rgba(235, 241, 248, 0.72);">
+        <span>boreal.work</span>
+        <span>Herald Bayoca</span>
+      </div>
+    </section>
+
+    <div class="nav">
+      <button onclick="prev()">Prev</button>
+      <div class="nav-count"><span id="current">1</span> / <span id="total">10</span></div>
+      <button onclick="next()">Next</button>
+    </div>
+  </div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll(".slide"));
+    const total = slides.length;
+    const totalEl = document.getElementById("total");
+    const currentEl = document.getElementById("current");
+    let index = 0;
+
+    totalEl.textContent = String(total);
+
+    function show(nextIndex) {
+      index = (nextIndex + total) % total;
+      slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+      currentEl.textContent = String(index + 1);
+    }
+
+    function next() {
+      show(index + 1);
+    }
+
+    function prev() {
+      show(index - 1);
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+        event.preventDefault();
+        next();
+      } else if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        prev();
+      } else if (event.key === "Home") {
+        show(0);
+      } else if (event.key === "End") {
+        show(total - 1);
+      }
+    });
+
+    document.getElementById("deck").addEventListener("click", (event) => {
+      if (event.target.closest(".nav")) return;
+      next();
+    });
+
+    show(0);
+  </script>
+</body>
+</html>

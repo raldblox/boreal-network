@@ -51,11 +51,23 @@ Current launch copy can be more direct:
 
 Boreal is for work that AI cannot fully finish on its own.
 
+Desktop-safe wording:
+
+Boreal Desktop keeps local runtime, human intervention, and verification inside the workflow for work AI cannot responsibly finish alone.
+
 ## Technical Reading
 
 Technical-safe wording:
 
 Boreal uses `Request` as the durable root object so demand, commitment, funding, fulfillment, proof, and payout stay on one canonical thread across humans, agents, tools, and runtimes.
+
+## Desktop Reading
+
+Use this when the context is local-first execution, private operator work, or desktop runtime positioning:
+
+- AI becomes less useful when a system deletes the human steps, local runtime conditions, or verification that serious work still needs.
+- Boreal Desktop exists to keep those steps inside the workflow instead of flattening them into one-shot output.
+- Boreal is not just automation. It is completion for work AI-only systems cannot responsibly finish alone.
 
 ## Positioning Guardrails
 
@@ -66,6 +78,7 @@ Say:
 - mixed human and AI supply
 - demand to payout continuity
 - outcome execution
+- local runtime, human intervention, and verification inside the workflow
 
 Do not lead with:
 
@@ -88,6 +101,7 @@ This positioning keeps Boreal distinct from:
 - agencies that depend on manual delivery
 
 Boreal begins with demand and carries that demand through fulfillment.
+Boreal Desktop carries that same demand into a local operator runtime without treating deleted human steps as success.
 
 ## Launch Motion
 

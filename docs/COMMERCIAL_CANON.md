@@ -45,6 +45,8 @@ The customer is buying:
 - a single thread that preserves context, accountability, and proof
 - access to mixed supply across humans and AI-native execution
 
+For Boreal Desktop specifically, the buyer is also buying a local operator surface that keeps runtime, human intervention, and verification inside the workflow for work AI cannot responsibly finish alone.
+
 ## Commercial Reading Of The Network
 
 The word `network` matters because Boreal depends on:
@@ -100,6 +102,11 @@ Supply intake should stay curated around workflows where:
 - AI alone is not enough
 - human judgment, verification, or handoff still matter
 - proof of completion is part of the job
+
+That same reading should carry into Boreal Desktop:
+
+- AI becomes less useful when a system deletes the human steps or local runtime conditions serious work still needs
+- desktop product language should treat one-shot output as incomplete when verification or intervention still matters
 
 ## Why This Category Is Real
 

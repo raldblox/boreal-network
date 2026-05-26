@@ -16,6 +16,8 @@ Use it as the shortest trusted source for pitch decks, idea roasts, investor app
 - Boreal turns a work request into one managed fulfillment thread.
 - The same `Request` carries demand, routing, commitment, funding, fulfillment, proof, and payout.
 - Supply can come from humans, agents, tools, providers, or runtimes.
+- Boreal is for work AI cannot responsibly finish alone.
+- Boreal Desktop keeps local runtime, human intervention, and verification inside the workflow.
 
 ## Problem
 
@@ -23,11 +25,13 @@ Use it as the shortest trusted source for pitch decks, idea roasts, investor app
 - static catalogs are weak when scoping is fuzzy
 - chat alone loses accountability after intake
 - isolated AI tools do not solve commitment, proof, payment, and payout
+- AI becomes less useful when systems delete the human steps, local runtime conditions, or verification that serious work still requires
 
 ## Product Claim
 
 - Boreal is the fulfillment thread for AI-native external work
 - it keeps matching, execution, proof, and payment on one durable object
+- it is not just automation; it is completion for work AI-only systems leave unfinished
 
 ## Current Launch Motion
 

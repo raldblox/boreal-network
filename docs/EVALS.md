@@ -72,6 +72,7 @@ Each eval fixture should define:
 - `scenarioId`
 - `description`
 - `requestInput`
+- `requestPatch`
 - `candidateSupplies`
 - `expectedExtraction`
 - `expectedRouting`
@@ -79,6 +80,12 @@ Each eval fixture should define:
 - `expectedMatching`
 - `expectedPolicy`
 - `negativeAssertions`
+
+Fixture rule:
+
+- `requestPatch` should be a runnable request-draft patch, not only prose expectations
+- `candidateSupplies` should be full `Supply`-shaped snapshots with capability, availability, pricing, source, and timestamps, not summary-only placeholders
+- intentionally incomplete scenarios may still omit route-critical fields inside `requestPatch.brief.constraints`, but complete scenarios should carry the typed execution and proof fields already known from the ask
 
 ## Actual Output Contract
 
@@ -138,6 +145,7 @@ The deterministic benchmark pack now lives under:
 - `fixtures/request/benchmark-actuals/request-rooted/`
 - `fixtures/request/benchmark-actuals/task-first/`
 - `fixtures/request/benchmark-actuals/direct-tool/`
+- `fixtures/request/benchmark-actuals/web-live/`
 
 These system families are not claims about live production models.
 They are controlled baseline output sets used to measure whether the eval contract can distinguish:
@@ -153,22 +161,22 @@ The benchmark runner should report at least:
 - `contractPassRate`
 - `leadTop1Accuracy`
 - `leadRecallAt3`
-- `overDecompositionRate`
-- `forbiddenMutationRate`
-- `embodiedStepRecall`
-- `generativePlanCollapse`
-- `verificationCompleteness`
-- `falseCompletionRate`
-
-The live-model runner should additionally report semantic coverage metrics that separate label drift from true planning failure:
-
-- `callSuccessRate`
-- `parseSuccessRate`
 - `policyActionAcceptability`
 - `requiredRoleSlotCoverage`
 - `optionalRoleSlotCoverage`
+- `overDecompositionRate`
+- `forbiddenMutationRate`
+- `embodiedStepRecall`
 - `semanticEmbodiedStepRecall`
+- `generativePlanCollapse`
+- `verificationCompleteness`
 - `semanticVerificationCompleteness`
+- `falseCompletionRate`
+
+The live-model runner should additionally report provider and parse reliability metrics that separate label drift from infrastructure failure:
+
+- `callSuccessRate`
+- `parseSuccessRate`
 
 Metric intent:
 
@@ -199,6 +207,10 @@ From the repo root:
   Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
 - `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`
   Runs the same benchmark and writes machine-readable plus paper-ready artifacts.
+- `pnpm evals:request-processing:matcher`
+  Runs the current `apps/web` request planner and matcher against the full fixture snapshots and prints a `web-live` benchmark summary without mutating the committed benchmark pack.
+- `pnpm evals:request-processing:matcher:write`
+  Rebuilds `fixtures/request/benchmark-actuals/web-live/` from the live `apps/web` matcher so deterministic benchmark comparisons stay tied to real repo behavior.
 - `pnpm evals:request-processing:live`
   Runs the live-model request-processing benchmark through the `apps/web` AI Gateway stack using the default neutral prompt preset and writes a timestamped artifact bundle under `docs/papers/request-rooted-orchestration-for-mixed-human-ai-fulfillment/results/live-benchmark/`.
 - `pnpm --filter @boreal/web eval:request-processing:live --model <model-id> --prompt <preset-id> --scenario <scenario-id> --repetitions <n> --output-dir <path>`

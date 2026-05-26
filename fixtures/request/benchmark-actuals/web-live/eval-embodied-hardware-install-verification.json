@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "eval-embodied-hardware-install-verification",
+  "fingerprints": {
+    "actorKinds": [
+      "human",
+      "agent"
+    ],
+    "supplyKinds": [
+      "field_verification",
+      "hardware_ops",
+      "qa_documentation"
+    ],
+    "outputKinds": [
+      "verification_note",
+      "photo_evidence",
+      "serial_inventory"
+    ],
+    "executionModes": [
+      "onsite_visit",
+      "field_inspection"
+    ],
+    "evidenceClaims": [
+      "photo_proof",
+      "serial_number_capture",
+      "verification_note"
+    ],
+    "routeFamily": "worker_market",
+    "executionKind": "hybrid_human_agent",
+    "paymentMode": "fixed_request",
+    "matchingMode": "lead_first_then_collaborators",
+    "leadRole": "field_technician",
+    "phaseKeys": [
+      "field_execution",
+      "proof_delivery"
+    ]
+  },
+  "extraction": {
+    "title": "Verify barcode scanner installation at Quezon City warehouse",
+    "summary": "Quezon City scanner-install verification with serial numbers, photo proof, and a short verification note.",
+    "body": "Visit the Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note.",
+    "seeking": {
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "field_verification",
+        "hardware_ops",
+        "qa_documentation"
+      ],
+      "teamMode": "solo_or_team"
+    },
+    "outputKinds": [
+      "verification_note",
+      "photo_evidence",
+      "serial_inventory"
+    ],
+    "missingDetails": [],
+    "constraints": {
+      "budgetCurrency": "USD",
+      "fixedAmount": 250,
+      "executionModes": [
+        "onsite_visit",
+        "field_inspection"
+      ],
+      "serviceLocation": "Quezon City warehouse",
+      "timeWindows": [
+        "tomorrow morning"
+      ],
+      "accessRequirements": [
+        "Warehouse floor access and the station list"
+      ],
+      "requiresHumanPresence": true,
+      "requiresVerifiedEvidence": true,
+      "verificationRequirements": [
+        "photo_proof",
+        "serial_number_capture",
+        "verification_note"
+      ]
+    }
+  },
+  "routing": {
+    "routeFamily": "worker_market",
+    "complexityLevel": "medium",
+    "needsPlan": true,
+    "humanRequired": true,
+    "needsClarification": false
+  },
+  "planning": {
+    "leadRole": "field_technician",
+    "executionProfile": {
+      "executionModes": [
+        "onsite_visit",
+        "field_inspection"
+      ],
+      "requiresHumanPresence": true,
+      "requiresLocalAccess": true,
+      "requiresVerifiedEvidence": true,
+      "requiresScheduling": true,
+      "requiresGeography": true,
+      "riskTier": "moderate"
+    },
+    "verificationPlan": {
+      "requiredArtifactKinds": [
+        "evidence"
+      ],
+      "requiredEvidenceClaims": [
+        "photo_proof",
+        "serial_number_capture",
+        "verification_note"
+      ],
+      "mustHaveOwnerAcceptance": true,
+      "mustHaveLocationSignal": true,
+      "mustHaveSignature": false
+    },
+    "planCollapseRisk": {
+      "riskLevel": "moderate",
+      "reasons": [
+        "request includes embodied or access-constrained work",
+        "request requires verification beyond generated text"
+      ]
+    },
+    "clarificationNeeded": {
+      "required": false,
+      "missingDetails": [],
+      "reasons": []
+    },
+    "phases": [
+      {
+        "phaseKey": "field_execution",
+        "title": "Complete the onsite inspection",
+        "summary": "Execute the physical or local-access work inside the request lane before treating anything as complete.",
+        "roleKeys": [
+          "field_technician"
+        ],
+        "requiredEvidenceClaims": []
+      },
+      {
+        "phaseKey": "proof_delivery",
+        "title": "Capture proof and publish the delivery package",
+        "summary": "Attach evidence and the final delivery inside the same request thread so review and closure stay truthful.",
+        "roleKeys": [
+          "qa_documentation"
+        ],
+        "requiredEvidenceClaims": [
+          "photo_proof",
+          "serial_number_capture",
+          "verification_note"
+        ]
+      }
+    ],
+    "roleSlots": [
+      {
+        "roleKey": "field_technician",
+        "title": "Field Technician",
+        "preferredSupplyKinds": [
+          "field_verification"
+        ],
+        "required": true,
+        "requiredActorKinds": [
+          "human"
+        ],
+        "summary": "Own the lead execution lane without flattening onsite or proof-heavy work into a digital-only result."
+      },
+      {
+        "roleKey": "hardware_ops",
+        "title": "Hardware Ops",
+        "preferredSupplyKinds": [
+          "hardware_ops"
+        ],
+        "required": false,
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
+        "summary": "Support deliverables such as Verification Note, Photo Evidence, Serial Inventory."
+      },
+      {
+        "roleKey": "qa_documentation",
+        "title": "Qa Documentation",
+        "preferredSupplyKinds": [
+          "qa_documentation"
+        ],
+        "required": false,
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
+        "summary": "Keep evidence, reporting, and owner-facing delivery attached to the request."
+      }
+    ],
+    "noMicrotaskExplosion": true,
+    "outcomeClaims": [
+      {
+        "claimKey": "verify_barcode_scanner_installation_at_quezon_city_warehouse",
+        "summary": "Visit the Quezon City warehouse tomorrow morning, verify the new barcode scanners were installed at four stations, record the serial numbers, and send photo proof plus a short verification note.",
+        "source": "brief",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      },
+      {
+        "claimKey": "verification_note",
+        "summary": "Produce verification note.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "photo_evidence",
+        "summary": "Produce photo evidence.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "serial_inventory",
+        "summary": "Produce serial inventory.",
+        "source": "output_kind",
+        "nonSubstitutable": false,
+        "proofRequired": false
+      },
+      {
+        "claimKey": "field_execution",
+        "summary": "Complete the onsite inspection.",
+        "source": "execution",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      },
+      {
+        "claimKey": "photo_proof",
+        "summary": "Preserve proof for photo proof.",
+        "source": "verification",
+        "nonSubstitutable": true,
+        "proofRequired": true
+      }
+    ]
+  },
+  "matching": {
+    "candidatePool": [
+      "sup_local_field_technician",
+      "sup_remote_documentation_agent"
+    ],
+    "matchCandidates": [
+      {
+        "supplyId": "sup_local_field_technician",
+        "source": "retrieved",
+        "overallScore": 168,
+        "leadScore": 168,
+        "roleScores": [
+          {
+            "roleKey": "field_technician",
+            "score": 168,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "hardware_ops",
+            "score": 168,
+            "confidence": "high"
+          },
+          {
+            "roleKey": "qa_documentation",
+            "score": 128,
+            "confidence": "high"
+          }
+        ],
+        "summary": "Local Field Technician best fits field technician and hardware ops."
+      },
+      {
+        "supplyId": "sup_remote_documentation_agent",
+        "source": "retrieved",
+        "overallScore": 18,
+        "leadScore": 0,
+        "roleScores": [
+          {
+            "roleKey": "qa_documentation",
+            "score": 18,
+            "confidence": "low"
+          }
+        ],
+        "summary": "Remote Documentation Agent best fits qa documentation."
+      }
+    ],
+    "leadRanking": [
+      "sup_local_field_technician"
+    ],
+    "leadRankingDetails": [
+      {
+        "roleKey": "field_technician",
+        "supplyId": "sup_local_field_technician",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Field Technician best fits field technician and hardware ops."
+      }
+    ],
+    "roleMatches": {
+      "field_technician": "sup_local_field_technician",
+      "hardware_ops": "sup_local_field_technician",
+      "qa_documentation": "sup_remote_documentation_agent"
+    },
+    "roleMatchDetails": [
+      {
+        "roleKey": "field_technician",
+        "required": true,
+        "supplyId": "sup_local_field_technician",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Field Technician best fits field technician and hardware ops."
+      },
+      {
+        "roleKey": "hardware_ops",
+        "required": false,
+        "supplyId": "sup_local_field_technician",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "low",
+        "summary": "Optional support lane has a candidate, but nothing is attached yet."
+      },
+      {
+        "roleKey": "qa_documentation",
+        "required": false,
+        "supplyId": "sup_remote_documentation_agent",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "low",
+        "summary": "Remote Documentation Agent best fits qa documentation."
+      }
+    ],
+    "assignmentProposal": {
+      "state": "candidate_pool",
+      "summary": "Candidate lanes exist for this request, but Boreal still needs a real selected lead before execution is attached.",
+      "lead": {
+        "roleKey": "field_technician",
+        "required": true,
+        "supplyId": "sup_local_field_technician",
+        "source": "candidate_pool",
+        "status": "candidate",
+        "confidence": "high",
+        "summary": "Local Field Technician best fits field technician and hardware ops."
+      },
+      "support": [
+        {
+          "roleKey": "hardware_ops",
+          "required": false,
+          "supplyId": "sup_local_field_technician",
+          "source": "candidate_pool",
+          "status": "candidate",
+          "confidence": "low",
+          "summary": "Optional support lane has a candidate, but nothing is attached yet."
+        },
+        {
+          "roleKey": "qa_documentation",
+          "required": false,
+          "supplyId": "sup_remote_documentation_agent",
+          "source": "candidate_pool",
+          "status": "candidate",
+          "confidence": "low",
+          "summary": "Remote Documentation Agent best fits qa documentation."
+        }
+      ]
+    },
+    "replanReasons": [
+      "candidate lanes exist, but no real selected lead is attached yet"
+    ]
+  },
+  "policy": {
+    "nextAction": "draft_commitment",
+    "requiresOwnerApproval": true,
+    "shouldOpenRequest": true,
+    "shouldCreateFulfillment": false,
+    "shouldCreateFulfillmentSteps": false
+  }
+}

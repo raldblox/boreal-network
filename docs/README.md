@@ -2,6 +2,8 @@
 
 This repository follows a docs-first operating model at the root of the canonical Boreal monorepo.
 
+Start with [INDEX.md](INDEX.md) if you need a front door and reading path before diving into individual docs.
+
 The documents are organized by purpose, not by chronology.
 
 ## Canon
@@ -29,6 +31,23 @@ These files define what Boreal Network is as a business and what story roast, pi
 - [BUSINESS_MODEL.md](BUSINESS_MODEL.md)
 - [PITCH_FACTS.md](PITCH_FACTS.md)
 - [LIVE_VS_TARGET.md](LIVE_VS_TARGET.md)
+
+## Strategy And Market Shaping
+
+These files help shape packaging, prioritization, positioning execution, and market validation while staying downstream of canon:
+
+- [INDEX.md](INDEX.md)
+- [strategy/README.md](strategy/README.md)
+- [strategy/ICP_MATRIX.md](strategy/ICP_MATRIX.md)
+- [strategy/WHY_NOW_AND_WHY_THIS_MARKET.md](strategy/WHY_NOW_AND_WHY_THIS_MARKET.md)
+- [strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md](strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md)
+- [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
+
+## Product And UX Notes
+
+These files capture product-surface expectations that should stay aligned with canon and positioning:
+
+- [REQUEST_UX_NOTES.md](REQUEST_UX_NOTES.md)
 
 ## Governance And Coordination
 

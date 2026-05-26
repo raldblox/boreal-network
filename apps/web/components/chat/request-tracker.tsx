@@ -6,7 +6,14 @@ import {
   LoaderCircleIcon,
   XIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefObject,
+} from "react";
 import useSWR from "swr";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +29,7 @@ import {
   tryOpenDesktopRuntimeApp,
   type DesktopRuntimeDiscoveryPayload,
 } from "@/lib/desktop-runtime-bridge";
+import { buildTrackedRequestFlowGraph } from "@/lib/request-flow";
 import type {
   BorealRequestDraft,
   RequestActivityEntry,
@@ -31,6 +39,7 @@ import type {
 } from "@/lib/request";
 import type { BorealSupplyDraft } from "@/lib/supply";
 import { cn, fetcher } from "@/lib/utils";
+import { RequestFlowCanvas } from "./request-flow-canvas";
 import {
   RequestActivityMessage,
   RequestActivityTimeline,
@@ -45,8 +54,11 @@ type RequestTrackerProps = {
   isResolvingDeliveredRequest: boolean;
   onRetryBlockedFulfillment?: () => Promise<void>;
   onResolveDeliveredRequest?: () => Promise<void>;
+  onSelectView: (view: WorkroomViewId) => void;
   onUpdatePreferredSupply?: (preferredSupplyId: string | null) => Promise<void>;
   requestViewerUserId: string | null;
+  scrollContainerRef?: RefObject<HTMLDivElement | null>;
+  selectedView: WorkroomViewId;
 };
 
 type TrackerStageId =
@@ -63,7 +75,12 @@ type TrackerStageVisualState =
   | "failed"
   | "cancelled";
 
-type WorkroomViewId = "monitor" | "activity" | "truth" | "delivery";
+export type WorkroomViewId =
+  | "monitor"
+  | "activity"
+  | "truth"
+  | "delivery"
+  | "flow";
 
 export function RequestTracker({
   request,
@@ -73,8 +90,11 @@ export function RequestTracker({
   isResolvingDeliveredRequest,
   onRetryBlockedFulfillment,
   onResolveDeliveredRequest,
+  onSelectView,
   onUpdatePreferredSupply,
   requestViewerUserId,
+  scrollContainerRef,
+  selectedView,
 }: RequestTrackerProps) {
   const hasFulfillmentFailure = activities.some(
     (activity) => activity.eventType === "fulfillment.failed"
@@ -90,15 +110,17 @@ export function RequestTracker({
     request.visibility === "private" &&
     request.status !== "draft" &&
     typeof onUpdatePreferredSupply === "function";
-  const [selectedView, setSelectedView] = useState<WorkroomViewId>("monitor");
   const [focusedStageId, setFocusedStageId] =
     useState<TrackerStageId>(currentStageId);
   const [followMode, setFollowMode] = useState<"auto" | "manual">("auto");
   const [isSavingPreferredSupply, setIsSavingPreferredSupply] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const localContainerRef = useRef<HTMLDivElement>(null);
+  const previousSelectedViewRef = useRef<WorkroomViewId>(selectedView);
+  const scrollHostRef = scrollContainerRef ?? localContainerRef;
+  const usesExternalScrollHost = Boolean(scrollContainerRef);
   const scrollToTop = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const container = containerRef.current;
+    const container = scrollHostRef.current;
     if (!container) {
       return;
     }
@@ -107,9 +129,9 @@ export function RequestTracker({
       top: 0,
       behavior,
     });
-  }, []);
+  }, [scrollHostRef]);
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const container = containerRef.current;
+    const container = scrollHostRef.current;
     if (!container) {
       return;
     }
@@ -118,31 +140,30 @@ export function RequestTracker({
       top: container.scrollHeight,
       behavior,
     });
-  }, []);
+  }, [scrollHostRef]);
 
   const resumeLiveStage = useCallback(() => {
-    setSelectedView("monitor");
+    onSelectView("monitor");
     setFollowMode("auto");
     setFocusedStageId(currentStageId);
     requestAnimationFrame(() => {
       scrollToTop("smooth");
     });
-  }, [currentStageId, scrollToTop]);
+  }, [currentStageId, onSelectView, scrollToTop]);
 
   const handleStageFocus = useCallback(
     (stageId: TrackerStageId) => {
-      setSelectedView("monitor");
+      onSelectView("monitor");
       setFocusedStageId(stageId);
       setFollowMode(stageId === currentStageId ? "auto" : "manual");
       requestAnimationFrame(() => {
         scrollToTop("smooth");
       });
     },
-    [currentStageId, scrollToTop]
+    [currentStageId, onSelectView, scrollToTop]
   );
 
   useEffect(() => {
-    setSelectedView("monitor");
     setFollowMode("auto");
     setFocusedStageId(currentStageId);
     requestAnimationFrame(() => {
@@ -151,7 +172,23 @@ export function RequestTracker({
   }, [currentStageId, hasFulfillmentFailure, request.id, request.status, scrollToTop]);
 
   useEffect(() => {
-    const container = containerRef.current;
+    if (previousSelectedViewRef.current === selectedView) {
+      return;
+    }
+
+    previousSelectedViewRef.current = selectedView;
+
+    if (selectedView !== "monitor") {
+      setFollowMode("manual");
+    }
+
+    requestAnimationFrame(() => {
+      scrollToTop("smooth");
+    });
+  }, [scrollToTop, selectedView]);
+
+  useEffect(() => {
+    const container = scrollHostRef.current;
     if (!container) {
       return;
     }
@@ -173,7 +210,7 @@ export function RequestTracker({
       container.removeEventListener("scroll", updateBottomState);
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [scrollHostRef]);
 
   useEffect(() => {
     if (followMode !== "auto") {
@@ -259,6 +296,11 @@ export function RequestTracker({
     }
   );
   const desktopRuntimeState = getDesktopRuntimeState(desktopRuntimeDiscovery);
+  const desktopDefaultSupply = desktopRuntimeState.autoResolveSupplyId
+    ? publishedOwnedSupplies.find(
+        (supply) => supply.id === desktopRuntimeState.autoResolveSupplyId
+      ) ?? null
+    : null;
   const preferredSupplySelectionValue =
     request.routing.preferredSupplyId ?? REQUEST_ROUTE_INHERIT_DEFAULT;
 
@@ -320,6 +362,27 @@ export function RequestTracker({
     : desktopRuntimeState.requestLaneReady
       ? "Desktop runtime is connected and ready for a private execution lane."
       : "No live lead or support lane is attached to this request yet.";
+  const requestFlowGraph = useMemo(
+    () =>
+      buildTrackedRequestFlowGraph({
+        request,
+        activities: orderedActivities,
+        fulfillment: activeFulfillment,
+        activeRouteSupply,
+        preferredSupply,
+        desktopRuntimeState,
+        desktopDefaultSupply,
+      }),
+    [
+      activeFulfillment,
+      activeRouteSupply,
+      desktopDefaultSupply,
+      desktopRuntimeState,
+      orderedActivities,
+      preferredSupply,
+      request,
+    ]
+  );
   const handlePreferredSupplyChange = async (value: string) => {
     if (!onUpdatePreferredSupply) {
       return;
@@ -628,42 +691,14 @@ export function RequestTracker({
 
   return (
     <div className="relative flex-1 bg-background">
-      <div className="absolute inset-0 overflow-y-auto" ref={containerRef}>
-        <div className="flex min-h-full flex-col gap-3 px-3 py-3.5 md:px-4 md:py-4">
-          <div className="flex flex-wrap gap-2">
-            {([
-              { id: "monitor", label: "Monitor" },
-              { id: "activity", label: "Activity" },
-              { id: "truth", label: "Request truth" },
-              { id: "delivery", label: "Delivery" },
-            ] as const).map((view) => (
-              <button
-                className={cn(
-                  "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
-                  selectedView === view.id
-                    ? "border-foreground/14 bg-foreground text-background"
-                    : "border-border/60 bg-background/88 text-muted-foreground hover:text-foreground"
-                )}
-                key={view.id}
-                onClick={() => {
-                  setSelectedView(view.id);
-                  if (view.id !== "monitor") {
-                    setFollowMode("manual");
-                  }
-                  requestAnimationFrame(() => {
-                    scrollToTop("smooth");
-                  });
-                }}
-                type="button"
-              >
-                {view.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mx-auto w-full max-w-6xl">
+      <div
+        className={usesExternalScrollHost ? undefined : "absolute inset-0 overflow-y-auto"}
+        ref={usesExternalScrollHost ? undefined : localContainerRef}
+      >
+        <div className="flex min-h-full flex-col gap-4 px-4 pb-5 pt-2 md:px-6 md:pb-6 md:pt-3">
+          <div className="mx-auto w-full max-w-[84rem]">
             {selectedView === "monitor" ? (
-              <section className="rounded-[22px] border border-border/60 bg-background/94 p-3 shadow-[0_12px_34px_rgba(15,23,42,0.03)] md:p-4">
+              <section className="mt-5 rounded-[22px] border border-border/60 bg-background/94 p-3 shadow-[0_12px_34px_rgba(15,23,42,0.03)] md:p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   {stages.map((stage) => {
                     const stageState = getTrackerStageVisualState({
@@ -745,8 +780,7 @@ export function RequestTracker({
               </section>
             ) : null}
 
-            <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
-            <div className="space-y-3">
+            <div className="mt-5 space-y-4">
               {selectedView === "monitor" ? (
                 <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
                   <div className="border-b border-border/60 px-4 py-4 md:px-5">
@@ -779,7 +813,7 @@ export function RequestTracker({
                         <button
                           className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
                           onClick={() => {
-                            setSelectedView("activity");
+                            onSelectView("activity");
                             setFollowMode("manual");
                             requestAnimationFrame(() => {
                               scrollToTop("smooth");
@@ -993,77 +1027,29 @@ export function RequestTracker({
                   </div>
                 </section>
               ) : null}
-            </div>
 
-            <aside className="space-y-3 xl:sticky xl:top-3 xl:self-start">
-              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                  What happens next
-                </div>
-                <div className="mt-2 text-[14px] leading-6 text-foreground">
-                  {nextActionSummary.value}
-                </div>
-                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  {nextActionSummary.detail}
-                </div>
-              </div>
-
-              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                  Lead lane
-                </div>
-                <div className="mt-2 text-[14px] leading-6 text-foreground">
-                  {workerSummaryValue}
-                </div>
-                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  {routeSummaryValue}
-                </div>
-              </div>
-
-              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                  Execution realities
-                </div>
-                <div className="mt-2 text-[14px] leading-6 text-foreground">
-                  {formatExecutionValue(request)}
-                </div>
-                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  {formatExecutionDetailDisplay(request)}
-                </div>
-              </div>
-
-              <div className="rounded-[22px] border border-border/60 bg-background/94 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                  Proof required
-                </div>
-                <div className="mt-2 text-[14px] leading-6 text-foreground">
-                  {formatVerificationValue(request)}
-                </div>
-                <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                  {formatVerificationDetailDisplay(request)}
-                </div>
-              </div>
-
-              {request.derived.clarificationNeeded.required ? (
-                <div className="rounded-[22px] border border-amber-300/35 bg-amber-50/70 px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.03)] dark:bg-amber-500/10">
-                  <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
-                    Still needs clarification
+              {selectedView === "flow" ? (
+                <section className="rounded-[24px] border border-border/60 bg-background/94 p-3 shadow-[0_12px_34px_rgba(15,23,42,0.03)] md:p-4">
+                  <div className="mb-3">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                      Process flow
+                    </div>
+                    <div className="mt-2 text-[15px] leading-6 text-foreground">
+                      Request-anchored path from plan to worker to delivery.
+                    </div>
                   </div>
-                  <div className="mt-2 text-[14px] leading-6 text-foreground">
-                    {formatClarificationValue(request)}
-                  </div>
-                  <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                    {formatClarificationDetailDisplay(request)}
-                  </div>
-                </div>
+                  <RequestFlowCanvas
+                    graph={requestFlowGraph}
+                    heightClassName="h-[36rem]"
+                  />
+                </section>
               ) : null}
-            </aside>
-          </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {showBackToLiveControl ? (
+      {!usesExternalScrollHost && showBackToLiveControl ? (
         <button
           className="absolute bottom-4 left-1/2 z-10 inline-flex h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-border/60 bg-background/92 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 hover:scale-[1.02]"
           onClick={resumeLiveStage}
@@ -1072,7 +1058,7 @@ export function RequestTracker({
           <span className="size-2 rounded-full bg-sky-400" />
           Back to live step
         </button>
-      ) : selectedView === "activity" ? (
+      ) : !usesExternalScrollHost && selectedView === "activity" ? (
         <button
           aria-label="Scroll to bottom"
           className={`absolute bottom-4 left-1/2 z-10 flex h-8 -translate-x-1/2 items-center rounded-full border border-border/60 bg-background/92 px-3.5 text-[10px] shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 ${

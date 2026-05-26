@@ -4,6 +4,10 @@ Boreal Network is the canonical monorepo for Boreal.
 
 The root stays canon-first and docs-first.  Governed implementation workspaces now live in the same repository under `apps/`, `packages/`, `skills/`, and `standards/`.
 
+At the product layer, Boreal is for work that AI cannot responsibly finish alone.
+It treats systems that delete the human steps, local runtime, or verification layer as incomplete, even when the output looks polished.
+Boreal Desktop exists to keep local runtime, human intervention, and verification inside the workflow instead of pretending one-shot generation is the same as completion.
+
 Its job is to define:
 
 - the network thesis
@@ -27,6 +31,8 @@ Implementation workspaces inside this repo, and any external companion repos, mu
 They must not invent conflicting root objects, status names, event names, or API semantics without updating the canon here first.
 
 ## Read Order
+
+For navigation and file discovery, start with [docs/INDEX.md](docs/INDEX.md).
 
 Read these files in order before making any meaningful change:
 

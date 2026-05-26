@@ -28,7 +28,12 @@ const CANONICAL_EMBODIED_SYNONYMS = {
 };
 
 const CANONICAL_VERIFICATION_SYNONYMS = {
+  delivery_confirmation: ["delivery confirmation", "confirm delivery", "handoff proof", "proof of delivery"],
+  handoff_signature: ["handoff signature", "signed handoff", "signature proof", "signed receipt"],
+  photo_proof: ["photo proof", "proof photo", "photo evidence", "evidence photos"],
+  serial_number_capture: ["serial number capture", "serial numbers", "record serials", "capture serials"],
   timestamped_photos: ["timestamped photo", "timestamped photos", "photo evidence", "photos showing", "capture timestamped"],
+  verification_note: ["verification note", "short verification note", "verification summary"],
   written_report: ["written report", "short written report", "inspection report", "submit report", "file report"]
 };
 
@@ -87,6 +92,22 @@ function uniqueStrings(values) {
   return Array.from(
     new Set((Array.isArray(values) ? values : []).filter((value) => typeof value === "string" && value.length > 0))
   );
+}
+
+function getCandidateSupplyId(candidateSupply) {
+  if (!candidateSupply || typeof candidateSupply !== "object") {
+    return "";
+  }
+
+  if (typeof candidateSupply.id === "string" && candidateSupply.id.length > 0) {
+    return candidateSupply.id;
+  }
+
+  if (typeof candidateSupply.supplyId === "string" && candidateSupply.supplyId.length > 0) {
+    return candidateSupply.supplyId;
+  }
+
+  return "";
 }
 
 function pushStringFragments(target, value) {
@@ -180,6 +201,7 @@ export function validateFixture(fixture, filePath) {
     "scenarioId",
     "description",
     "requestInput",
+    "requestPatch",
     "candidateSupplies",
     "expectedExtraction",
     "expectedRouting",
@@ -195,6 +217,23 @@ export function validateFixture(fixture, filePath) {
 
   if (!Array.isArray(fixture.candidateSupplies) || fixture.candidateSupplies.length === 0) {
     errors.push(`${label}: candidateSupplies must be a non-empty array`);
+  }
+
+  if (!fixture.requestPatch || typeof fixture.requestPatch !== "object") {
+    errors.push(`${label}: requestPatch must be an object`);
+  } else {
+    const requestPatch = fixture.requestPatch;
+    if (!requestPatch.brief || typeof requestPatch.brief !== "object") {
+      errors.push(`${label}: requestPatch.brief must be present`);
+    } else {
+      if (typeof requestPatch.brief.body !== "string" || requestPatch.brief.body.trim().length === 0) {
+        errors.push(`${label}: requestPatch.brief.body must be a non-empty string`);
+      }
+
+      if (!Array.isArray(requestPatch.brief.outputKinds)) {
+        errors.push(`${label}: requestPatch.brief.outputKinds must be an array`);
+      }
+    }
   }
 
   if (!Array.isArray(fixture.negativeAssertions)) {
@@ -213,9 +252,42 @@ export function validateFixture(fixture, filePath) {
     errors.push(`${label}: expectedRouting.complexityLevel must be low, medium, or high`);
   }
 
-  const candidateSupplyIds = new Set((fixture.candidateSupplies || []).map((item) => item.supplyId));
+  const candidateSupplyIds = new Set((fixture.candidateSupplies || []).map((item) => getCandidateSupplyId(item)));
   if (leadSupplyId && !candidateSupplyIds.has(leadSupplyId)) {
     errors.push(`${label}: topLeadSupplyId must exist inside candidateSupplies`);
+  }
+
+  for (const candidateSupply of fixture.candidateSupplies || []) {
+    const candidateSupplyId = getCandidateSupplyId(candidateSupply);
+    if (!candidateSupplyId) {
+      errors.push(`${label}: candidateSupplies entries must include id or supplyId`);
+      continue;
+    }
+
+    if (candidateSupply.profile && typeof candidateSupply.profile !== "object") {
+      errors.push(`${label}: candidateSupplies.${candidateSupplyId}.profile must be an object`);
+    }
+
+    if (candidateSupply.profile && typeof candidateSupply.profile.displayName !== "string") {
+      errors.push(`${label}: candidateSupplies.${candidateSupplyId}.profile.displayName is required`);
+    }
+
+    if (candidateSupply.capability && typeof candidateSupply.capability !== "object") {
+      errors.push(`${label}: candidateSupplies.${candidateSupplyId}.capability must be an object`);
+    }
+
+    if (candidateSupply.capability && !Array.isArray(candidateSupply.capability.supplyKinds)) {
+      errors.push(`${label}: candidateSupplies.${candidateSupplyId}.capability.supplyKinds must be an array`);
+    }
+
+    if (
+      candidateSupply.capability &&
+      !Array.isArray(candidateSupply.capability.fulfillmentActorKinds)
+    ) {
+      errors.push(
+        `${label}: candidateSupplies.${candidateSupplyId}.capability.fulfillmentActorKinds must be an array`
+      );
+    }
   }
 
   return errors;
@@ -640,7 +712,15 @@ export function computeScenarioMetrics(fixture, actual, actualPath) {
   const expectedPhaseMax = fixture?.expectedPlanning?.phaseCountMax;
   const expectedTopLead = fixture?.expectedMatching?.topLeadSupplyId;
   const embodiedStepRecall = computeEmbodiedStepRecall(fixture, actual);
+  const semanticEmbodiedStepRecall = computeSemanticEmbodiedStepRecall(fixture, actual);
   const verificationCompleteness = computeVerificationCompleteness(fixture, actual);
+  const semanticVerificationCompleteness = computeSemanticVerificationCompleteness(fixture, actual);
+  const requiredRoleSlotCoverage = computeRoleSlotCoverage(fixture, actual, {
+    requiredOnly: true
+  });
+  const optionalRoleSlotCoverage = computeRoleSlotCoverage(fixture, actual, {
+    requiredOnly: false
+  });
   const shouldCloseLike =
     actual?.policy?.shouldCreateFulfillment === true ||
     actual?.policy?.shouldCreateFulfillmentSteps === true ||
@@ -667,9 +747,14 @@ export function computeScenarioMetrics(fixture, actual, actualPath) {
       (fixture?.expectedPolicy?.shouldCreateFulfillment !== true && actual?.policy?.shouldCreateFulfillment === true) ||
       (fixture?.expectedPolicy?.shouldCreateFulfillmentSteps !== true &&
         actual?.policy?.shouldCreateFulfillmentSteps === true),
+    policyActionAcceptable: computePolicyActionAcceptable(fixture, actual),
+    requiredRoleSlotCoverage,
+    optionalRoleSlotCoverage,
     embodiedStepRecall,
+    semanticEmbodiedStepRecall,
     generativePlanCollapse: typeof embodiedStepRecall === "number" ? 1 - embodiedStepRecall : null,
     verificationCompleteness,
+    semanticVerificationCompleteness,
     falseCompletion
   };
 }
@@ -727,9 +812,14 @@ export function runBenchmark({ benchmarkDir = BENCHMARK_DIR } = {}) {
           leadRecallAt3: null,
           overDecomposition: null,
           forbiddenMutation: null,
+          policyActionAcceptable: null,
+          requiredRoleSlotCoverage: null,
+          optionalRoleSlotCoverage: null,
           embodiedStepRecall: null,
+          semanticEmbodiedStepRecall: null,
           generativePlanCollapse: null,
           verificationCompleteness: null,
+          semanticVerificationCompleteness: null,
           falseCompletion: null
         };
       }
@@ -750,9 +840,24 @@ export function runBenchmark({ benchmarkDir = BENCHMARK_DIR } = {}) {
         leadRecallAt3: rateFromBooleans(scenarioResults.map((result) => result.leadRecallAt3)),
         overDecompositionRate: rateFromBooleans(scenarioResults.map((result) => result.overDecomposition)),
         forbiddenMutationRate: rateFromBooleans(scenarioResults.map((result) => result.forbiddenMutation)),
+        policyActionAcceptability: rateFromBooleans(
+          scenarioResults.map((result) => result.policyActionAcceptable)
+        ),
+        requiredRoleSlotCoverage: average(
+          scenarioResults.map((result) => result.requiredRoleSlotCoverage)
+        ),
+        optionalRoleSlotCoverage: average(
+          scenarioResults.map((result) => result.optionalRoleSlotCoverage)
+        ),
         embodiedStepRecall: average(scenarioResults.map((result) => result.embodiedStepRecall)),
+        semanticEmbodiedStepRecall: average(
+          scenarioResults.map((result) => result.semanticEmbodiedStepRecall)
+        ),
         generativePlanCollapse: average(scenarioResults.map((result) => result.generativePlanCollapse)),
         verificationCompleteness: average(scenarioResults.map((result) => result.verificationCompleteness)),
+        semanticVerificationCompleteness: average(
+          scenarioResults.map((result) => result.semanticVerificationCompleteness)
+        ),
         falseCompletionRate: rateFromBooleans(scenarioResults.map((result) => result.falseCompletion))
       },
       scenarios: scenarioResults
@@ -798,13 +903,13 @@ export function renderBenchmarkMarkdown(summary) {
   lines.push(`Scenarios: ${summary.fixtureCount}`);
   lines.push(`Systems: ${summary.systems.length}`);
   lines.push("");
-  lines.push("| System | Pass Rate | Lead Top-1 | Recall@3 | Over-Decomp | Forbidden Mutation | Embodied Recall | Verification | False Completion |");
-  lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
+  lines.push("| System | Pass Rate | Lead Top-1 | Recall@3 | Policy Accept | Required Roles | Optional Roles | Over-Decomp | Forbidden Mutation | Embodied | Semantic Embodied | Verification | Semantic Verification | False Completion |");
+  lines.push("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |");
 
   for (const system of summary.systems) {
     const metrics = system.metrics;
     lines.push(
-      `| ${titleizeSystemId(system.systemId)} | ${formatPercent(metrics.contractPassRate)} | ${formatPercent(metrics.leadTop1Accuracy)} | ${formatPercent(metrics.leadRecallAt3)} | ${formatPercent(metrics.overDecompositionRate)} | ${formatPercent(metrics.forbiddenMutationRate)} | ${formatPercent(metrics.embodiedStepRecall)} | ${formatPercent(metrics.verificationCompleteness)} | ${formatPercent(metrics.falseCompletionRate)} |`
+      `| ${titleizeSystemId(system.systemId)} | ${formatPercent(metrics.contractPassRate)} | ${formatPercent(metrics.leadTop1Accuracy)} | ${formatPercent(metrics.leadRecallAt3)} | ${formatPercent(metrics.policyActionAcceptability)} | ${formatPercent(metrics.requiredRoleSlotCoverage)} | ${formatPercent(metrics.optionalRoleSlotCoverage)} | ${formatPercent(metrics.overDecompositionRate)} | ${formatPercent(metrics.forbiddenMutationRate)} | ${formatPercent(metrics.embodiedStepRecall)} | ${formatPercent(metrics.semanticEmbodiedStepRecall)} | ${formatPercent(metrics.verificationCompleteness)} | ${formatPercent(metrics.semanticVerificationCompleteness)} | ${formatPercent(metrics.falseCompletionRate)} |`
     );
   }
 
@@ -821,7 +926,7 @@ export function renderBenchmarkMarkdown(summary) {
           ? `; errors: ${scenario.comparisonErrors.join(" | ")}`
           : "";
       lines.push(
-        `- ${scenario.scenarioId}: pass=${scenario.contractPass}; leadTop1=${scenario.leadTop1Correct}; embodiedRecall=${scenario.embodiedStepRecall ?? "n/a"}; verification=${scenario.verificationCompleteness ?? "n/a"}; falseCompletion=${scenario.falseCompletion}${errorNote}`
+        `- ${scenario.scenarioId}: pass=${scenario.contractPass}; leadTop1=${scenario.leadTop1Correct}; policyAccept=${scenario.policyActionAcceptable ?? "n/a"}; requiredRoles=${scenario.requiredRoleSlotCoverage ?? "n/a"}; optionalRoles=${scenario.optionalRoleSlotCoverage ?? "n/a"}; embodiedRecall=${scenario.embodiedStepRecall ?? "n/a"}; semanticEmbodied=${scenario.semanticEmbodiedStepRecall ?? "n/a"}; verification=${scenario.verificationCompleteness ?? "n/a"}; semanticVerification=${scenario.semanticVerificationCompleteness ?? "n/a"}; falseCompletion=${scenario.falseCompletion}${errorNote}`
       );
     }
     lines.push("");
@@ -846,19 +951,19 @@ export function renderBenchmarkTex(summary) {
   const rows = systems
     .map((system) => {
       const metrics = system.metrics;
-      return `${titleizeSystemId(system.systemId)} & ${formatPercentForTex(metrics.contractPassRate)} & ${formatPercentForTex(metrics.leadTop1Accuracy)} & ${formatPercentForTex(metrics.leadRecallAt3)} & ${formatPercentForTex(metrics.overDecompositionRate)} & ${formatPercentForTex(metrics.forbiddenMutationRate)} & ${formatPercentForTex(metrics.embodiedStepRecall)} & ${formatPercentForTex(metrics.generativePlanCollapse)} & ${formatPercentForTex(metrics.verificationCompleteness)} & ${formatPercentForTex(metrics.falseCompletionRate)} \\\\`;
+      return `${titleizeSystemId(system.systemId)} & ${formatPercentForTex(metrics.contractPassRate)} & ${formatPercentForTex(metrics.leadTop1Accuracy)} & ${formatPercentForTex(metrics.leadRecallAt3)} & ${formatPercentForTex(metrics.policyActionAcceptability)} & ${formatPercentForTex(metrics.requiredRoleSlotCoverage)} & ${formatPercentForTex(metrics.embodiedStepRecall)} & ${formatPercentForTex(metrics.semanticEmbodiedStepRecall)} & ${formatPercentForTex(metrics.verificationCompleteness)} & ${formatPercentForTex(metrics.semanticVerificationCompleteness)} & ${formatPercentForTex(metrics.falseCompletionRate)} \\\\`;
     })
     .join("\n");
 
   return `% Generated by tests/contracts/run-request-processing-benchmark.mjs
 \\begin{table*}[t]
 \\centering
-\\caption{Deterministic request-processing benchmark across ${summary.fixtureCount} scenarios. Higher is better for pass rate, lead accuracy, embodied recall, and verification completeness. Lower is better for over-decomposition, forbidden mutation, generative plan collapse, and false completion.}
+\\caption{Deterministic request-processing benchmark across ${summary.fixtureCount} scenarios. Higher is better for pass rate, lead accuracy, policy safety, role coverage, embodied recall, and verification completeness. Lower is better for false completion.}
 \\label{tab:deterministic-benchmark}
 \\resizebox{\\textwidth}{!}{%
-\\begin{tabular}{lccccccccc}
+\\begin{tabular}{lcccccccccc}
 \\toprule
-System & Pass Rate & Lead Top-1 & Recall@3 & Over-Decomp & Forbidden Mutation & Embodied Recall & Collapse & Verification & False Completion \\\\
+System & Pass Rate & Lead Top-1 & Recall@3 & Policy Accept & Required Roles & Exact Embodied & Semantic Embodied & Verification & Semantic Verification & False Completion \\\\
 \\midrule
 ${rows}
 \\bottomrule

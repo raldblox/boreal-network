@@ -1,4 +1,4 @@
-﻿{
+{
   "fixtureType": "planner_matcher_eval",
   "schemaVersion": 1,
   "scenarioId": "eval-complex-human-planning-and-match",
@@ -11,44 +11,306 @@
     },
     "rawAsk": "I need someone to own a support and sales ops migration for our startup. We run support in Notion and Airtable today, and we want HubSpot set up properly with automations, handoff docs, and operator training. Budget is around 6k to 9k. We need this done in about three weeks. AI support is fine, but I do not want a black-box setup that nobody on my team can run later."
   },
+  "requestPatch": {
+    "visibility": "private",
+    "brief": {
+      "title": "Own and execute support plus sales ops migration",
+      "summary": "HubSpot migration with workflow build, operator training, and a documented migration plan for the team.",
+      "body": "Own the support and sales ops migration from Notion and Airtable into HubSpot. Build the workflows, document the operating guide, train the operators, and keep the setup understandable for the internal team after launch.",
+      "constraints": {
+        "budgetCurrency": "USD",
+        "budgetMin": 6000,
+        "budgetMax": 9000,
+        "deliveryWindowWeeks": 3,
+        "executionModes": [
+          "remote_digital",
+          "remote_sync"
+        ],
+        "humanReviewRequired": true,
+        "allowAiSupport": true,
+        "disallowBlackBoxAutomation": true
+      },
+      "outputKinds": [
+        "migration_plan",
+        "workflow_build",
+        "handoff_doc",
+        "operator_training"
+      ],
+      "tags": [
+        "hubspot",
+        "ops_migration",
+        "operator_training"
+      ]
+    },
+    "seeking": {
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "migration_lead",
+        "automation_builder",
+        "documentation_support"
+      ],
+      "teamMode": "solo_or_team",
+      "notes": "Human lead first. AI support is allowed, but the rollout must stay understandable for the internal team."
+    },
+    "budget": {
+      "mode": "range",
+      "currency": "USD",
+      "minAmount": 6000,
+      "maxAmount": 9000
+    },
+    "deadline": {
+      "notes": "about three weeks"
+    },
+    "derived": {
+      "routeFamily": "worker_market",
+      "executionKind": "hybrid_human_agent",
+      "paymentMode": "range_quote",
+      "matchingMode": "lead_first_then_collaborators",
+      "routeSummary": "Complex migration request. Match a human migration lead first, then add automation and documentation support inside the same request."
+    }
+  },
   "candidateSupplies": [
     {
-      "supplyId": "sup_human_ops_migration_lead",
-      "title": "Revenue and Support Ops Migration Lead",
-      "actorKinds": ["human"],
-      "supplyKinds": ["operator", "migration_lead"],
-      "summary": "Owns CRM and support migrations, training, and operational rollout."
+      "id": "sup_human_ops_migration_lead",
+      "key": "revenue-and-support-ops-migration-lead",
+      "ownerId": "fixture_supply_owner_001",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Revenue and Support Ops Migration Lead",
+        "headline": "Human-led CRM and support migration owner",
+        "summary": "Owns CRM and support migrations, training, and operational rollout.",
+        "description": "Human migration lead who audits current tooling, owns the rollout sequence, and trains operators after go-live.",
+        "tags": [
+          "migration_lead",
+          "hubspot",
+          "support_ops"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "migration_lead",
+          "operator"
+        ],
+        "fulfillmentActorKinds": [
+          "human"
+        ],
+        "outputKinds": [
+          "migration_plan",
+          "workflow_build",
+          "handoff_doc",
+          "operator_training"
+        ],
+        "executionChannels": [
+          "request_room",
+          "operator_review"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 2,
+        "currentLoad": 1,
+        "responseTimeHours": 6
+      },
+      "pricing": {
+        "mode": "range",
+        "currency": "USD",
+        "minAmount": 6000,
+        "maxAmount": 9000
+      },
+      "source": {
+        "kind": "manual"
+      },
+      "bindings": {},
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_ai_automation_studio",
-      "title": "AI Automation Studio",
-      "actorKinds": ["agent", "human"],
-      "supplyKinds": ["automation_builder"],
-      "summary": "Builds automations, integrations, and internal tooling support."
+      "id": "sup_ai_automation_studio",
+      "key": "ai-automation-studio",
+      "ownerId": "fixture_supply_owner_002",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "AI Automation Studio",
+        "headline": "Automation and integration build lane",
+        "summary": "Builds automations, integrations, and internal tooling support.",
+        "description": "Hybrid AI automation lane for workflow build, integration logic, and internal tooling support.",
+        "tags": [
+          "automation_builder",
+          "workflow_build",
+          "ai_support"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "automation_builder",
+          "ai_automation"
+        ],
+        "fulfillmentActorKinds": [
+          "agent",
+          "human"
+        ],
+        "outputKinds": [
+          "workflow_build",
+          "handoff_doc",
+          "automation_build"
+        ],
+        "executionChannels": [
+          "request_room",
+          "api"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 5,
+        "currentLoad": 2,
+        "responseTimeHours": 3
+      },
+      "pricing": {
+        "mode": "quote",
+        "currency": "USD"
+      },
+      "source": {
+        "kind": "manual"
+      },
+      "bindings": {},
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_copy_only_documentation_team",
-      "title": "Documentation Team",
-      "actorKinds": ["human"],
-      "supplyKinds": ["documentation_support"],
-      "summary": "Produces handoff documentation and enablement assets."
+      "id": "sup_copy_only_documentation_team",
+      "key": "documentation-team",
+      "ownerId": "fixture_supply_owner_003",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Documentation Team",
+        "headline": "Handoff and enablement support",
+        "summary": "Produces handoff documentation and enablement assets.",
+        "description": "Documentation lane for handoff packs, SOPs, and training enablement assets after build work lands.",
+        "tags": [
+          "documentation_support",
+          "handoff_doc",
+          "enablement"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "documentation_support",
+          "reporting_support"
+        ],
+        "fulfillmentActorKinds": [
+          "human"
+        ],
+        "outputKinds": [
+          "handoff_doc",
+          "draft",
+          "delivery"
+        ],
+        "executionChannels": [
+          "request_room",
+          "async_thread"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 4,
+        "currentLoad": 1,
+        "responseTimeHours": 8
+      },
+      "pricing": {
+        "mode": "quote",
+        "currency": "USD"
+      },
+      "source": {
+        "kind": "manual"
+      },
+      "bindings": {},
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     },
     {
-      "supplyId": "sup_generic_chat_agent",
-      "title": "Generic Chat Agent",
-      "actorKinds": ["agent"],
-      "supplyKinds": ["generalist"],
-      "summary": "Generic text assistance with no clear migration ownership."
+      "id": "sup_generic_chat_agent",
+      "key": "generic-chat-agent",
+      "ownerId": "fixture_supply_owner_004",
+      "status": "published",
+      "visibility": "public",
+      "profile": {
+        "displayName": "Generic Chat Agent",
+        "headline": "General text assistance",
+        "summary": "Generic text assistance with no clear migration ownership.",
+        "description": "Provider-backed generic chat lane for loose drafting and conversational support.",
+        "tags": [
+          "generalist",
+          "drafting"
+        ]
+      },
+      "capability": {
+        "supplyKinds": [
+          "generalist"
+        ],
+        "fulfillmentActorKinds": [
+          "agent"
+        ],
+        "outputKinds": [
+          "draft",
+          "delivery"
+        ],
+        "executionChannels": [
+          "async_thread"
+        ]
+      },
+      "availability": {
+        "acceptingRequests": true,
+        "maxConcurrentRequests": 50,
+        "currentLoad": 12,
+        "responseTimeHours": 1
+      },
+      "pricing": {
+        "mode": "open"
+      },
+      "source": {
+        "kind": "provider"
+      },
+      "bindings": {
+        "providerRef": "generic-chat-agent"
+      },
+      "createdAt": "2026-05-22T00:00:00.000Z",
+      "updatedAt": "2026-05-22T00:00:00.000Z",
+      "publishedAt": "2026-05-22T00:00:00.000Z"
     }
   ],
   "expectedExtraction": {
     "title": "Own and execute support plus sales ops migration",
-    "summaryMustContain": ["HubSpot", "migration", "operator training"],
+    "summaryMustContain": [
+      "HubSpot",
+      "migration",
+      "operator training"
+    ],
     "seeking": {
-      "actorKinds": ["human", "agent"],
-      "supplyKinds": ["migration_lead", "automation_builder", "documentation_support"]
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "migration_lead",
+        "automation_builder",
+        "documentation_support"
+      ]
     },
-    "outputKinds": ["migration_plan", "workflow_build", "handoff_doc", "operator_training"],
+    "outputKinds": [
+      "migration_plan",
+      "workflow_build",
+      "handoff_doc",
+      "operator_training"
+    ],
     "constraints": {
       "budgetCurrency": "USD",
       "budgetMin": 6000,
@@ -73,17 +335,24 @@
     "roleSlots": [
       {
         "roleKey": "migration_lead",
-        "requiredActorKinds": ["human"],
+        "requiredActorKinds": [
+          "human"
+        ],
         "required": true
       },
       {
         "roleKey": "automation_builder",
-        "requiredActorKinds": ["human", "agent"],
+        "requiredActorKinds": [
+          "human",
+          "agent"
+        ],
         "required": true
       },
       {
         "roleKey": "documentation_support",
-        "requiredActorKinds": ["human"],
+        "requiredActorKinds": [
+          "human"
+        ],
         "required": false
       }
     ],
@@ -91,8 +360,13 @@
   },
   "expectedMatching": {
     "topLeadSupplyId": "sup_human_ops_migration_lead",
-    "top3MustInclude": ["sup_human_ops_migration_lead", "sup_ai_automation_studio"],
-    "mustRankBelowTop2": ["sup_generic_chat_agent"],
+    "top3MustInclude": [
+      "sup_human_ops_migration_lead",
+      "sup_ai_automation_studio"
+    ],
+    "mustRankBelowTop2": [
+      "sup_generic_chat_agent"
+    ],
     "roleMatches": {
       "migration_lead": "sup_human_ops_migration_lead",
       "automation_builder": "sup_ai_automation_studio",

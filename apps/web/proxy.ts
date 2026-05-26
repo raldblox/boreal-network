@@ -4,9 +4,22 @@ import { guestRegex, isDevelopmentEnvironment } from "./lib/constants";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const mode = request.nextUrl.searchParams.get("mode");
+  const isPublicHomeView = pathname === "/" && !mode;
+  const isPublicDesktopView =
+    pathname === "/download/boreal-desktop" || pathname === "/download/desktop";
+  const isPublicAuthView = pathname === "/login" || pathname === "/register";
 
   if (pathname.startsWith("/ping")) {
     return new Response("pong", { status: 200 });
+  }
+
+  if (pathname.startsWith("/matching-lab")) {
+    return NextResponse.next();
+  }
+
+  if (pathname.startsWith("/api/matching-lab")) {
+    return NextResponse.next();
   }
 
   if (pathname.startsWith("/api/requests")) {
@@ -41,6 +54,10 @@ export async function proxy(request: NextRequest) {
 
   const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
+  if (!token && (isPublicHomeView || isPublicDesktopView || isPublicAuthView)) {
+    return NextResponse.next();
+  }
+
   if (!token) {
     const redirectTarget = new URL(request.url);
     const redirectUrl = encodeURIComponent(
@@ -54,7 +71,7 @@ export async function proxy(request: NextRequest) {
 
   const isGuest = guestRegex.test(token?.email ?? "");
 
-  if (token && !isGuest && ["/login", "/register"].includes(pathname)) {
+  if (token && !isGuest && isPublicAuthView) {
     return NextResponse.redirect(new URL(`${base}/`, request.url));
   }
 

@@ -24,6 +24,7 @@ type RequestBriefingPanelProps = {
   isRequestMode: boolean;
   isLoading: boolean;
   isStartingRequest: boolean;
+  openedRequestControls?: React.ReactNode;
   onSaveDraft: () => Promise<void>;
   requestPromptOptimizerEnabled: boolean;
   onSetRequestPromptOptimizerEnabled: (enabled: boolean) => void;
@@ -35,6 +36,7 @@ export function RequestBriefingPanel({
   isRequestMode,
   isLoading,
   isStartingRequest,
+  openedRequestControls,
   onSaveDraft,
   requestPromptOptimizerEnabled,
   onSetRequestPromptOptimizerEnabled,
@@ -90,15 +92,15 @@ export function RequestBriefingPanel({
       <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 space-y-1">
-            <div className="text-sm font-medium">Start request</div>
+            <div className="text-sm font-medium">Shape request</div>
             <div className="text-[13px] leading-6 text-muted-foreground">
               {isStartingRequest
                 ? selectedSupply
                   ? `Starting the request and pinning ${getSelectedSupplyLabel(selectedSupply)} now.`
                   : "Starting the request and opening the brief now."
                 : selectedSupply
-                  ? `${getSelectedSupplyLabel(selectedSupply)} is pinned for this private request. Your next message should only describe the work or instructions you want done.`
-                  : "Your first message opens the request thread. Use assist when a rough ask needs help turning into a clear brief."}
+                  ? `${getSelectedSupplyLabel(selectedSupply)} is pinned for this private request. Describe the work and what done looks like. Boreal still checks safety, proof, and approval.`
+                  : "Your first message opens the request thread. Describe the work and what done looks like. Use assist when a rough ask needs help shaping the request."}
             </div>
             {isStartingRequest ? (
               <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
@@ -130,25 +132,30 @@ export function RequestBriefingPanel({
     ].filter((fact): fact is string => Boolean(fact));
 
     return (
-      <div className="bg-background/92 px-3 pb-0 pt-4 backdrop-blur-xl md:px-4 md:pt-5">
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-[24px] border border-border/60 bg-background/94 px-5 py-4 shadow-[0_10px_28px_rgba(15,23,42,0.035)] md:px-6 md:py-5">
-          <div className="min-w-0 space-y-2">
-              <div className="text-[22px] font-medium leading-[1.05] tracking-tight md:text-[30px]">
+      <div className="sticky top-0 z-30 bg-background/92 px-4 pb-0 pt-4 backdrop-blur-xl md:px-6 md:pt-5">
+        <div className="mx-auto max-w-[96rem] border-b border-border/60 pb-5 md:pb-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0 max-w-[58rem] space-y-2">
+              <div className="text-[34px] leading-none tracking-[-0.03em] [font-family:var(--font-display)] md:text-[48px]">
                 {title}
               </div>
-              <div className="max-w-4xl text-[13px] leading-6 text-muted-foreground md:text-[14px]">
+              <div className="text-[13px] leading-6 text-muted-foreground md:text-[14px]">
                 {planningNote ||
                   "Boreal keeps the route, delivery, and final resolution attached to this request."}
               </div>
-              {requestFacts.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/78">
-                  {requestFacts.map((fact) => (
-                    <span key={fact}>{fact}</span>
-                  ))}
-                </div>
-              ) : null}
+            </div>
+
+            {requestFacts.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/78 lg:max-w-[22rem] lg:justify-end lg:text-right">
+                {requestFacts.map((fact) => (
+                  <span key={fact}>{fact}</span>
+                ))}
+              </div>
+            ) : null}
           </div>
+          {openedRequestControls ? (
+            <div className="mt-5">{openedRequestControls}</div>
+          ) : null}
         </div>
       </div>
     );
@@ -270,22 +277,25 @@ function PinnedSupplyBanner({ supply }: { supply: BorealSupplyDraft }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/[0.18] px-3.5 py-3">
       <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-        Pinned worker
+        Pinned supply
       </div>
       <div className="mt-1.5 text-sm font-medium text-foreground">
         {getSelectedSupplyLabel(supply)}
       </div>
       <div className="mt-1 text-[13px] leading-6 text-muted-foreground">
         {supply.profile.summary?.trim() ||
-          "This supply stays pinned on the request while you write the brief."}
+          "This supply stays pinned on the request while you shape the brief."}
+      </div>
+      <div className="mt-1 text-[12px] leading-5.5 text-muted-foreground">
+        Pinned supply narrows the route. It does not skip safety, proof, or approval.
       </div>
       {workerStarter ? (
         <div className="mt-2 rounded-xl border border-border/60 bg-background/70 px-3 py-2.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-            Prompt this worker
+            Shape this pinned lane
           </div>
           <div className="mt-1 text-[13px] leading-6 text-foreground">
-            Your next message becomes the core prompt for this worker.
+            Your next message becomes the core request prompt for this pinned supply.
           </div>
           <div className="mt-1 text-[12px] leading-5.5 text-muted-foreground">
             Example: {workerStarter.tryPrompt}

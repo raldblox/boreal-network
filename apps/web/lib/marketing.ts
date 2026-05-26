@@ -1,26 +1,49 @@
 export const borealHomepageCopy = {
-  eyebrow: "For serious complete work",
-  title: "Boreal is for work that AI cannot fully finish on its own.",
+  eyebrow: "For work that needs real completion",
+  title: "Turn a work request into a finished outcome.",
   body:
-    "When a request still needs planning, human judgment, verification, handoff, or real execution, Boreal keeps the whole job on one thread instead of pretending the work ended at the draft.",
+    "Boreal helps teams route, execute, review, and prove work that AI cannot finish on its own.",
   support:
-    "Opening with buyer-funded request pilots and a curated supply whitelist built around real AI + human workflows.",
+    "Starting with paid request pilots and a curated supply whitelist while we prove the first workflows.",
 } as const;
 
-export const borealMissionPoints = [
+export const borealHowItWorksPoints = [
   {
     body:
-      "Most AI products optimize for one-shot output, so the plan looks complete only because the system quietly removed the parts the model cannot do.",
-    label: "One-shot bias",
+      "Start with the brief, the goal, and any constraints. Boreal opens one tracked request instead of scattering the work across chats, forms, and docs.",
+    label: "Open the request",
   },
   {
     body:
-      "That is exactly where serious work breaks: verification disappears, handoffs disappear, and the human steps that make the outcome real disappear.",
-    label: "Missing human steps",
+      "Boreal narrows the right mix of humans, agents, tools, or runtimes before the work starts.",
+    label: "Route the right lane",
   },
   {
     body:
-      "Boreal exists to keep those steps visible, coordinated, and accountable instead of hiding them behind a polished draft.",
+      "Updates, blockers, and delivery stay attached to the same request while the work is moving.",
+    label: "Run the work",
+  },
+  {
+    body:
+      "Proof, review, and closeout stay on the same flow so the work is not treated as done too early.",
+    label: "Review what was done",
+  },
+] as const;
+
+export const borealWhyBorealPoints = [
+  {
+    body:
+      "A polished answer can still miss the handoff, the check, or the real-world step that makes the result usable.",
+    label: "The draft is not the finish",
+  },
+  {
+    body:
+      "Some work still needs judgment, communication, approval, onsite action, or verification before it is truly done.",
+    label: "Human steps still matter",
+  },
+  {
+    body:
+      "Boreal exists to keep the work, the people, and the proof on one visible path to completion.",
     label: "Why Boreal exists",
   },
 ] as const;
@@ -28,35 +51,35 @@ export const borealMissionPoints = [
 export const borealVisionPoints = [
   {
     body:
-      "AI should take on more of the planning, synthesis, routing, and execution work that slows teams down today.",
-    label: "Use AI where it is strongest",
+      "Let AI plan, synthesize, route, and handle routine execution where it is actually strong.",
+    label: "Use AI for the heavy lift",
   },
   {
     body:
-      "Humans should still stay in the flow when judgment, verification, communication, trust, or delivery in the real world still matters.",
-    label: "Keep humans where they matter",
+      "Bring people back into the flow when judgment, trust, communication, or verification still matters.",
+      label: "Keep humans where they matter",
   },
   {
     body:
-      "The goal is full completion: one request carrying the plan, the people, the proof, and the payout until the job is actually done.",
-    label: "Build for complete work",
+      "Use a local runtime when privacy, local tools, or owner-controlled execution matter to the outcome.",
+    label: "Keep local runtime in the loop",
   },
 ] as const;
 
-export const borealWhitelistTracks = [
+export const borealAccessTracks = [
   {
     body:
-      "Post a funded request when the job is too important to leave at a draft and too messy for disconnected tools. Boreal helps keep the route, proof, and outcome together.",
-    cta: "Post a paid request",
+      "Bring work that is too messy for disconnected tools and too important to leave at a draft. Start with a paid pilot.",
+    cta: "Post request",
     href: "/?mode=request",
-    label: "Buyer pilots",
+    label: "Post a work request",
   },
   {
     body:
       "Join the whitelist if you can show a real workflow where AI alone breaks and where human judgment, verification, or handoff still changes the outcome.",
-    cta: "Join supply whitelist",
+    cta: "Join whitelist",
     href: "/supplies/new?entry=whitelist",
-    label: "Supply whitelist",
+    label: "Join the supply whitelist",
   },
 ] as const;
 

@@ -9,9 +9,15 @@ Use fixtures here to prove that the canon can be read end to end without guessin
 - `request/golden-external-ai-automation-thread.json`
 - `request/eval-complex-human-planning-and-match.json`
 
+Request-processing eval fixtures now also carry:
+
+- one runnable `requestPatch`
+- full `candidateSupplies` snapshots shaped like real `Supply` drafts
+
 ## Current Sample Actual Outputs
 
 - `request/eval-complex-human-planning-and-match.actual.sample.json`
+- `request/benchmark-actuals/web-live/*.json`
 
 These fixtures are the current cross-object anchors for:
 

@@ -4,10 +4,11 @@ import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
+  borealAccessTracks,
   borealHomepageCopy,
-  borealMissionPoints,
+  borealHowItWorksPoints,
   borealVisionPoints,
-  borealWhitelistTracks,
+  borealWhyBorealPoints,
 } from "@/lib/marketing";
 import {
   SidebarSurfaceTopNav,
@@ -29,7 +30,7 @@ import {
 } from "./surface-layout";
 
 export function HomePage() {
-  const [missionBias, missionMissing, missionWhy] = borealMissionPoints;
+  const [whyDraft, whyHuman, whyExists] = borealWhyBorealPoints;
 
   return (
     <div className={surfacePageClassName}>
@@ -60,14 +61,14 @@ export function HomePage() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="h-11 rounded-full px-5 text-[12px] font-medium">
-                  <Link href="/?mode=request">Request a pilot</Link>
+                  <Link href="/?mode=request">Post request</Link>
                 </Button>
                 <Button
                   asChild
                   className="h-11 rounded-full px-5 text-[12px] font-medium"
                   variant="outline"
                 >
-                  <Link href="/supplies/new?entry=whitelist">Join the whitelist</Link>
+                  <Link href="/supplies/new?entry=whitelist">Join whitelist</Link>
                 </Button>
               </div>
 
@@ -76,14 +77,32 @@ export function HomePage() {
               </p>
             </section>
 
-            <section className={surfaceSectionClassName}>
-              <p className={surfaceEyebrowClassName}>Mission</p>
+            <section className={surfaceSectionClassName} id="how-it-works">
+              <p className={surfaceEyebrowClassName}>How it works</p>
               <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Serious work breaks when the system deletes the human steps.
+                Keep the work, the people, and the proof in one flow.
+              </h2>
+
+              <div className="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+                {borealHowItWorksPoints.map((point) => (
+                  <div className="border-t border-border/60 pt-5" key={point.label}>
+                    <p className={surfaceEyebrowClassName}>{point.label}</p>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      {point.body}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className={surfaceSectionClassName} id="why-boreal">
+              <p className={surfaceEyebrowClassName}>Why Boreal</p>
+              <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
+                Most AI tools stop at output. Real work does not.
               </h2>
 
               <div className="mt-8 grid gap-8 md:grid-cols-2">
-                {[missionBias, missionMissing].map((point) => (
+                {[whyDraft, whyHuman].map((point) => (
                   <div className="border-t border-border/60 pt-5" key={point.label}>
                     <p className={surfaceEyebrowClassName}>{point.label}</p>
                     <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
@@ -94,17 +113,17 @@ export function HomePage() {
               </div>
 
               <div className={cn(surfaceCardClassName, "mt-8")}>
-                <p className={surfaceEyebrowClassName}>{missionWhy.label}</p>
+                <p className={surfaceEyebrowClassName}>{whyExists.label}</p>
                 <p className="mt-3 max-w-4xl text-[15px] leading-8 text-foreground">
-                  {missionWhy.body}
+                  {whyExists.body}
                 </p>
               </div>
             </section>
 
-            <section className={surfaceSectionClassName}>
+            <section className={surfaceSectionClassName} id="vision">
               <p className={surfaceEyebrowClassName}>Vision</p>
               <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                We want AI to unlock complete work, not just better drafts.
+                We want AI to help finish work, not just draft it.
               </h2>
 
               <div className="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
@@ -119,14 +138,14 @@ export function HomePage() {
               </div>
             </section>
 
-            <section className={surfaceSectionClassName}>
-              <p className={surfaceEyebrowClassName}>Whitelist</p>
+            <section className={surfaceSectionClassName} id="access">
+              <p className={surfaceEyebrowClassName}>Access</p>
               <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Opening in two tracks while we prove the real workflows.
+                Starting with two clear ways in.
               </h2>
 
               <div className="mt-8 grid gap-5 lg:grid-cols-2">
-                {borealWhitelistTracks.map((track) => (
+                {borealAccessTracks.map((track) => (
                   <div className={surfaceCardClassName} key={track.label}>
                     <h3 className={surfaceCardTitleClassName}>{track.label}</h3>
                     <p className="mt-4 max-w-md text-sm leading-7 text-muted-foreground">

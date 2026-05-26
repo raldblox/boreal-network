@@ -3,8 +3,8 @@
 import { ArrowRightIcon, FilePenLineIcon, PackageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
+  borealAccessTracks,
   borealHomepageCopy,
-  borealWhitelistTracks,
 } from "@/lib/marketing";
 import { Button } from "@/components/ui/button";
 import { SparklesIcon } from "./icons";
@@ -52,7 +52,7 @@ export function Preview() {
         </div>
 
         <div className="mt-8 grid w-full max-w-2xl gap-3 md:grid-cols-2">
-          {borealWhitelistTracks.map((track, index) => {
+          {borealAccessTracks.map((track, index) => {
             const Icon = index === 0 ? FilePenLineIcon : PackageIcon;
 
             return (
@@ -80,7 +80,7 @@ export function Preview() {
             onClick={() => handleRoute("/?mode=request")}
             type="button"
           >
-            Post a paid request
+            Post request
             <ArrowRightIcon className="size-4" />
           </Button>
           <Button
@@ -89,7 +89,7 @@ export function Preview() {
             type="button"
             variant="outline"
           >
-            Join supply whitelist
+            Join whitelist
           </Button>
         </div>
       </div>
