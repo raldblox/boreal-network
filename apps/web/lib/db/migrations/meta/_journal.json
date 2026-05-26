@@ -71,6 +71,13 @@
       "when": 1710777600000,
       "tag": "0009_request_supply_routing",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1710864000000,
+      "tag": "0010_account_auth_username_webauthn",
+      "breakpoints": true
     }
   ]
 }

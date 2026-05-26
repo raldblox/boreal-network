@@ -52,6 +52,8 @@ import type {
 export const user = pgTable("User", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   email: varchar("email", { length: 64 }).notNull(),
+  username: varchar("username", { length: 32 }),
+  usernameNormalized: varchar("usernameNormalized", { length: 32 }),
   password: varchar("password", { length: 64 }),
   name: text("name"),
   emailVerified: boolean("emailVerified").notNull().default(false),
@@ -59,9 +61,70 @@ export const user = pgTable("User", {
   isAnonymous: boolean("isAnonymous").notNull().default(false),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+}, (table) => ({
+  usernameNormalizedUnique: uniqueIndex("User_usernameNormalized_unique").on(
+    table.usernameNormalized
+  ),
+}));
 
 export type User = InferSelectModel<typeof user>;
+
+export type AccountPasskeyDeviceType = "single_device" | "multi_device";
+export type AccountAuthChallengeKind =
+  | "webauthn_registration"
+  | "webauthn_authentication";
+
+export const accountPasskeyCredential = pgTable(
+  "AccountPasskeyCredential",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    credentialId: text("credentialId").notNull(),
+    publicKey: text("publicKey").notNull(),
+    counter: integer("counter").notNull().default(0),
+    deviceType: varchar("deviceType", {
+      enum: ["single_device", "multi_device"],
+    })
+      .$type<AccountPasskeyDeviceType>()
+      .notNull(),
+    backedUp: boolean("backedUp").notNull().default(false),
+    transports: json("transports").$type<string[] | null>(),
+    nickname: text("nickname"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+    lastUsedAt: timestamp("lastUsedAt"),
+  },
+  (table) => ({
+    credentialIdUnique: uniqueIndex(
+      "AccountPasskeyCredential_credentialId_unique"
+    ).on(table.credentialId),
+  })
+);
+
+export type AccountPasskeyCredentialRecord = InferSelectModel<
+  typeof accountPasskeyCredential
+>;
+
+export const accountAuthChallenge = pgTable("AccountAuthChallenge", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  userId: uuid("userId").references(() => user.id, { onDelete: "cascade" }),
+  kind: varchar("kind", {
+    enum: ["webauthn_registration", "webauthn_authentication"],
+  })
+    .$type<AccountAuthChallengeKind>()
+    .notNull(),
+  challenge: text("challenge").notNull(),
+  metadata: json("metadata").$type<Record<string, unknown> | null>(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  consumedAt: timestamp("consumedAt"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+
+export type AccountAuthChallengeRecord = InferSelectModel<
+  typeof accountAuthChallenge
+>;
 
 export const chat = pgTable("Chat", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),

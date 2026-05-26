@@ -21,6 +21,7 @@ function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
   const rawCallbackUrl = searchParams.get("callbackUrl")?.trim() || "/";
   const callbackUrl =
@@ -56,6 +57,7 @@ function RegisterPageContent() {
   }, [callbackUrl, state.status]);
 
   const handleSubmit = (formData: FormData) => {
+    setUsername(formData.get("username") as string);
     setEmail(formData.get("email") as string);
     formAction(formData);
   };
@@ -66,9 +68,14 @@ function RegisterPageContent() {
         Create a Boreal account
       </h1>
       <p className="text-sm leading-7 text-muted-foreground">
-        Start a paid request or join the curated supply whitelist.
+        Create a username-first Boreal account for requests, supply, and stronger security.
       </p>
-      <AuthForm action={handleSubmit} defaultEmail={email}>
+      <AuthForm
+        action={handleSubmit}
+        defaultEmail={email}
+        defaultUsername={username}
+        mode="register"
+      >
         <input name="callbackUrl" type="hidden" value={callbackUrl} />
         <SubmitButton isSuccessful={isSuccessful}>
           Create account

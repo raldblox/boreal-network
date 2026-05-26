@@ -1,12 +1,33 @@
 "use server";
 
 import { z } from "zod";
+import { USERNAME_PATTERN } from "@/lib/account-auth";
 
-import { createUser, getUser } from "@/lib/db/queries";
+import {
+  createUser,
+  getUser,
+  getUserByUsername,
+} from "@/lib/db/queries";
 
 import { signIn } from "./auth";
 
-const authFormSchema = z.object({
+const usernameSchema = z
+  .string()
+  .trim()
+  .min(3)
+  .max(24)
+  .regex(
+    USERNAME_PATTERN,
+    "Username must use letters, numbers, dots, underscores, or hyphens."
+  );
+
+const loginFormSchema = z.object({
+  identifier: z.string().trim().min(3),
+  password: z.string().min(6),
+});
+
+const registerFormSchema = z.object({
+  username: usernameSchema,
   email: z.string().email(),
   password: z.string().min(6),
 });
@@ -20,13 +41,13 @@ export const login = async (
   formData: FormData
 ): Promise<LoginActionState> => {
   try {
-    const validatedData = authFormSchema.parse({
-      email: formData.get("email"),
+    const validatedData = loginFormSchema.parse({
+      identifier: formData.get("identifier"),
       password: formData.get("password"),
     });
 
     await signIn("credentials", {
-      email: validatedData.email,
+      identifier: validatedData.identifier,
       password: validatedData.password,
       redirect: false,
     });
@@ -56,19 +77,25 @@ export const register = async (
   formData: FormData
 ): Promise<RegisterActionState> => {
   try {
-    const validatedData = authFormSchema.parse({
+    const validatedData = registerFormSchema.parse({
+      username: formData.get("username"),
       email: formData.get("email"),
       password: formData.get("password"),
     });
 
     const [user] = await getUser(validatedData.email);
+    const [usernameUser] = await getUserByUsername(validatedData.username);
 
-    if (user) {
+    if (user || usernameUser) {
       return { status: "user_exists" } as RegisterActionState;
     }
-    await createUser(validatedData.email, validatedData.password);
-    await signIn("credentials", {
+    await createUser({
       email: validatedData.email,
+      password: validatedData.password,
+      username: validatedData.username,
+    });
+    await signIn("credentials", {
+      identifier: validatedData.username,
       password: validatedData.password,
       redirect: false,
     });

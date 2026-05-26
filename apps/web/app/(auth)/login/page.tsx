@@ -21,7 +21,7 @@ export default function Page() {
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
   const rawCallbackUrl = searchParams.get("callbackUrl")?.trim() || "/";
   const callbackUrl =
@@ -54,7 +54,7 @@ function LoginPageContent() {
   }, [callbackUrl, state.status]);
 
   const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get("email") as string);
+    setIdentifier(formData.get("identifier") as string);
     formAction(formData);
   };
 
@@ -64,9 +64,13 @@ function LoginPageContent() {
         Sign in to Boreal
       </h1>
       <p className="text-sm leading-7 text-muted-foreground">
-        Pick up your requests, supply lanes, and delivered work.
+        Sign in with your username or email to pick up requests and delivered work.
       </p>
-      <AuthForm action={handleSubmit} defaultEmail={email}>
+      <AuthForm
+        action={handleSubmit}
+        defaultIdentifier={identifier}
+        mode="login"
+      >
         <input name="callbackUrl" type="hidden" value={callbackUrl} />
         <SubmitButton isSuccessful={isSuccessful}>Sign in</SubmitButton>
         <p className="text-center text-[13px] text-muted-foreground">

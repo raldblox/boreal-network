@@ -19,6 +19,11 @@ import postgres from "postgres";
 import type { ArtifactKind } from "@/components/chat/artifact";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import {
+  isEmailIdentifier,
+  normalizeEmail,
+  normalizeUsername,
+} from "@/lib/account-auth";
+import {
   type CommitmentKind,
   type CommitmentStatus,
   type CommitmentTerms,
@@ -98,45 +103,230 @@ import {
 } from "./schema";
 import { generateHashedPassword } from "./utils";
 
-const client = postgres(process.env.POSTGRES_URL ?? "");
-const db = drizzle(client);
+const globalForDatabase = globalThis as typeof globalThis & {
+  __borealWebPostgresClient?: ReturnType<typeof postgres>;
+  __borealWebDrizzle?: ReturnType<typeof drizzle>;
+};
+
+function createDatabaseClient() {
+  return postgres(process.env.POSTGRES_URL ?? "", {
+    prepare: false,
+    max: process.env.NODE_ENV === "production" ? 5 : 1,
+    idle_timeout: 20,
+    connect_timeout: 15,
+  });
+}
+
+const client =
+  globalForDatabase.__borealWebPostgresClient ?? createDatabaseClient();
+const db = globalForDatabase.__borealWebDrizzle ?? drizzle(client);
+
+if (process.env.NODE_ENV !== "production") {
+  globalForDatabase.__borealWebPostgresClient = client;
+  globalForDatabase.__borealWebDrizzle = db;
+}
+
+function getDatabaseErrorDetail(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const detail = "detail" in error ? error.detail : undefined;
+    const message = "message" in error ? error.message : undefined;
+
+    if (typeof detail === "string" && detail.trim().length > 0) {
+      return detail.trim();
+    }
+
+    if (typeof message === "string" && message.trim().length > 0) {
+      return message.trim();
+    }
+  }
+
+  return "Unknown database error";
+}
+
+function isUniqueViolation(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  );
+}
+
+function isTransientDatabaseConnectionError(error: unknown) {
+  const detail = getDatabaseErrorDetail(error).toUpperCase();
+
+  return [
+    "CONNECT_TIMEOUT",
+    "CONNECTION TERMINATED",
+    "CONNECTION CLOSED",
+    "ECONNRESET",
+    "ECONNREFUSED",
+    "ETIMEDOUT",
+    "EHOSTUNREACH",
+    "ENETUNREACH",
+    "EAI_AGAIN",
+    "TOO MANY CONNECTIONS",
+  ].some((token) => detail.includes(token));
+}
+
+async function sleep(ms: number) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withDatabaseRetry<T>(
+  operation: () => Promise<T>,
+  {
+    attempts = 3,
+    baseDelayMs = 250,
+  }: { attempts?: number; baseDelayMs?: number } = {}
+) {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+
+      if (!isTransientDatabaseConnectionError(error) || attempt === attempts - 1) {
+        throw error;
+      }
+
+      await sleep(baseDelayMs * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
 
 export async function getUser(email: string): Promise<User[]> {
+  const normalizedEmail = normalizeEmail(email);
+
   try {
-    return await db.select().from(user).where(eq(user.email, email));
-  } catch (_error) {
+    return await withDatabaseRetry(() =>
+      db.select().from(user).where(eq(user.email, normalizedEmail))
+    );
+  } catch (error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get user by email"
+      `Failed to get user by email: ${getDatabaseErrorDetail(error)}`
     );
   }
 }
 
-export async function createUser(email: string, password: string) {
+export async function getUserByUsername(username: string): Promise<User[]> {
+  const normalizedUsername = normalizeUsername(username);
+
+  try {
+    return await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(user)
+        .where(eq(user.usernameNormalized, normalizedUsername))
+    );
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get user by username: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function getUserByIdentifier(
+  identifier: string
+): Promise<User[]> {
+  const trimmedIdentifier = identifier.trim();
+
+  if (trimmedIdentifier.length === 0) {
+    return [];
+  }
+
+  const loginLookup = isEmailIdentifier(trimmedIdentifier)
+    ? eq(user.email, normalizeEmail(trimmedIdentifier))
+    : eq(user.usernameNormalized, normalizeUsername(trimmedIdentifier));
+
+  try {
+    return await withDatabaseRetry(() =>
+      db.select().from(user).where(loginLookup)
+    );
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get user by identifier: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function createUser({
+  email,
+  password,
+  username,
+}: {
+  email: string;
+  password: string;
+  username: string;
+}) {
+  const normalizedEmail = normalizeEmail(email);
+  const normalizedUsername = normalizeUsername(username);
   const hashedPassword = generateHashedPassword(password);
 
   try {
-    return await db.insert(user).values({ email, password: hashedPassword });
-  } catch (_error) {
-    throw new ChatbotError("bad_request:database", "Failed to create user");
+    return await withDatabaseRetry(() =>
+      db.insert(user).values({
+        email: normalizedEmail,
+        password: hashedPassword,
+        username: username.trim(),
+        usernameNormalized: normalizedUsername,
+      })
+    );
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to create user: ${getDatabaseErrorDetail(error)}`
+    );
   }
 }
 
 export async function createGuestUser() {
-  const email = `guest-${Date.now()}`;
-  const password = generateHashedPassword(generateUUID());
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const email = `guest-${generateUUID()}@boreal.local`;
+    const password = generateHashedPassword(generateUUID());
 
-  try {
-    return await db.insert(user).values({ email, password }).returning({
-      id: user.id,
-      email: user.email,
-    });
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to create guest user"
-    );
+    try {
+      return await withDatabaseRetry(() =>
+        db
+          .insert(user)
+          .values({
+            email,
+            password,
+            name: "Guest",
+            isAnonymous: true,
+          })
+          .returning({
+            id: user.id,
+            email: user.email,
+          })
+      );
+    } catch (error) {
+      if (isUniqueViolation(error) && attempt < 2) {
+        continue;
+      }
+
+      throw new ChatbotError(
+        "bad_request:database",
+        `Failed to create guest user: ${getDatabaseErrorDetail(error)}`
+      );
+    }
   }
+
+  throw new ChatbotError(
+    "bad_request:database",
+    "Failed to create guest user: repeated guest identity collision"
+  );
 }
 
 export async function saveChat({
