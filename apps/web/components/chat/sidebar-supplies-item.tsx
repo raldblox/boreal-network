@@ -23,13 +23,13 @@ const PureSidebarSupplyItem = ({
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        className="h-auto min-h-10 rounded-xl bg-transparent px-3 py-2 text-[13px] text-sidebar-foreground/58 transition-colors duration-150 hover:bg-sidebar-accent/24 hover:text-sidebar-foreground data-active:bg-sidebar-accent/30 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/30 data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground"
+        className="h-auto min-h-8 rounded-lg bg-transparent px-2 py-1.5 text-[13px] text-sidebar-foreground/55 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-active:bg-sidebar-accent/38 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground"
         isActive={isActive}
       >
         <Link href={`/supplies/${supply.id}`} onClick={() => setOpenMobile(false)}>
-          <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-col gap-0.5">
             <span className="truncate">{supplyTitle}</span>
-            <span className="inline-flex items-center gap-1.5 truncate text-[11px] text-sidebar-foreground/55">
+            <span className="inline-flex items-center gap-1 truncate text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">
               <span
                 className={cn(
                   "size-1.5 shrink-0 rounded-full",
@@ -37,7 +37,7 @@ const PureSidebarSupplyItem = ({
                 )}
               />
               {formatSupplyLabel(supply.status)}
-              <span className="text-sidebar-foreground/28">|</span>
+              <span className="text-sidebar-foreground/28">/</span>
               {formatSupplyLabel(supply.visibility)}
             </span>
           </div>

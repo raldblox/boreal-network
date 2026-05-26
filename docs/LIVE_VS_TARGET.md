@@ -35,8 +35,12 @@ These are safe to state as present canon truth:
 - Risk escalation is mandatory when a change could break canon, contracts, durable history, or workspace boundaries.
 - Match the lead first, plan the work second, and decompose only when needed.
 - Planner, matcher, policy, and mutation boundaries are canonical Boreal processing layers.
+- Boreal is for work that AI cannot responsibly finish alone.
+- Boreal Desktop exists to keep local runtime, human intervention, and verification inside the workflow instead of treating one-shot output as completion.
 - desktop-local ephemeral realtime traffic is separate from durable Boreal request history unless it is explicitly promoted
 - the first ephemeral realtime hub is the Electron main process inside `apps/desktop`
+- workflow-backed execution may back a published `Supply` through support objects or typed metadata without replacing `Supply` or `Request` as canonical roots
+- first-party buyer credit may exist through support objects without replacing request-attached `Transaction` truth for funded work
 
 ## Machine-Modeled Now
 
@@ -67,6 +71,7 @@ Today, the machine-readable baseline proves:
 - one durable `Request` may exist early in `draft` status while the brief is still being formed
 - one `open` plus `public` request can be exposed through a public-safe web pool listing
 - one public-safe request detail view can be fetched directly by request id
+- one public-safe open-request directory surface can keep public demand browsing separate from private workroom history
 - one open request room can expose request activity derived from durable `RequestEvent`, `Commitment`, and `Artifact` records
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
@@ -74,6 +79,8 @@ Today, the machine-readable baseline proves:
 - one `Supply` can be expressed as a durable capability object
 - one owner-scoped `Supply` draft can be created, updated, deleted, and published through the first private or unlisted supply-management lane
 - one `Supply` may carry runtime or resolver binding metadata without collapsing runtime identity into supply ownership
+- one buyer-facing services surface can present first-party service families and preset plans without replacing `Supply` or `Request` as canonical roots
+- one mode-aware web sidebar can keep request history, scratch chats, and supply management as contextual lists instead of rendering all histories together
 - one `Commitment` can carry quoted or accepted commercial terms
 - one `Artifact` can point to a stable document, external reference, or object reference instead of inflating the request root
 - one open request can accept direct HTTP commitment and artifact writes in addition to chat tool-calling
@@ -101,10 +108,14 @@ These are intended next layers, not fully modeled proof yet:
 - broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
 - richer golden fixtures for failure, replay, dispute, collective fulfillment, and private-supply paths
 - deeper web runtime coverage beyond the first request-briefing slice in `apps/web/`
+- first-class workflow-backed support objects and adapter coverage for imported templates and reusable execution packs, initially standardized through `standards/` before broader schema and API coverage lands
+- first-class buyer-credit support objects and narrower payment-source coverage for first-party supply, initially standardized through `standards/` before broader schema and API coverage lands
+- exact service plan links that resolve stable first-party unlisted supply ids and set `routing.preferredSupplyId` before request opening
 - broader supply discovery, responder reads, and public market publish lanes
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
 - peer-facing ephemeral realtime lanes beyond the local desktop-main hub
 - peer-capable runtime identity bound through resolver approval without replacing Boreal actor identity
+- regular Boreal web accounts with `username or email + password` and `WebAuthn` MFA, while keeping guest mode and resolver auth as separate identity lanes
 - isolated worker mode for public or external untrusted request execution
 - additional runnable workspaces such as `apps/mobile/`, `apps/extension/`, `apps/peer-*`, and `apps/gateway-*`
 - shared libraries under `packages/`
@@ -120,6 +131,8 @@ Safe claim patterns:
 
 - `Boreal's canonical root object is Request.`
 - `Boreal is positioned as request-native work commerce.`
+- `Boreal is for work AI cannot responsibly finish alone.`
+- `Boreal Desktop keeps local runtime, human intervention, and verification inside the workflow.`
 - `Boreal Network is the canonical monorepo for Boreal.`
 - `The current machine-readable baseline covers Request, Supply, Commitment, Fulfillment, Transaction, and RequestEvent.`
 - `apps/web is activated as the first Boreal product workspace, with fuller implementation still ahead.`

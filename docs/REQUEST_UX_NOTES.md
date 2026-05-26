@@ -40,6 +40,7 @@ The product should read like:
 - one path to completion
 
 Use [decisions/0016-open-request-room-as-monitored-workroom.md](decisions/0016-open-request-room-as-monitored-workroom.md) as the accepted reading for the opened request room.
+Use [decisions/0018-request-flow-view-as-process-projection.md](decisions/0018-request-flow-view-as-process-projection.md) as the accepted reading for the request flow view.
 
 ## 2. Root Object Reading
 
@@ -193,6 +194,31 @@ Familiar work-software patterns should lead the default interaction model:
 - timeline-style audit when needed
 
 Advanced route maps or node-graph views may exist, but they should remain secondary or advanced views.
+
+When the flow view is used, its reading should stay process-first:
+
+- request
+- plan
+- worker
+- delivery
+
+That view should help the owner understand execution path and outcome state, not planner-debug state.
+
+The flow view should prefer:
+
+- compact cards
+- flat surfaces
+- restrained borders
+- minimal decorative chrome
+- obvious execution reading
+
+The flow view should avoid:
+
+- repeated planner labels
+- repeated status noise
+- heavy side inspectors by default
+- glossy card styling
+- metadata overload on every card
 
 ### Resolution
 
@@ -376,6 +402,34 @@ The opened request room should still follow the same monitored-workroom model.
 What changes is reduced routing noise, not a separate UX grammar.
 
 ## 8. UX Notes For Specific Surfaces
+
+Use [decisions/0021-mode-aware-web-ia-and-service-surfaces.md](decisions/0021-mode-aware-web-ia-and-service-surfaces.md) as the accepted reading for web navigation and surface grouping.
+
+### Mode-aware web IA
+
+The web app should group by work type, not by fixed user persona.
+
+Preferred modes:
+
+- `Home`
+- `Workroom`
+- `Services`
+- `Supply Studio`
+- `Open Requests`
+- `Runtime` or `Account`
+
+The sidebar may show primary navigation, but it should expose only one contextual object list at a time:
+
+- request history in workroom mode
+- scratch chat history in scratch-chat mode
+- supply drafts in supply-studio mode
+- no owner-object history in services, open-request browsing, desktop, or account surfaces
+
+Do not render owned supplies, owned requests, and chat history together as equal sidebar groups.
+
+Buyer-facing surfaces should say `Services` and `Plans`.
+Operator-facing surfaces may say `Supply Studio` and `Supply drafts`.
+The canonical object remains `Supply`.
 
 ### Request input surface
 

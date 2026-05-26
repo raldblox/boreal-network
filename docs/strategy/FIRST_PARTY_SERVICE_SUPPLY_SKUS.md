@@ -217,6 +217,47 @@ That means Boreal should package virality as:
 - repeatable character-led publishing
 - fast-response cultural posting
 
+## Runway Service Family: Founder Avatar Clip Pack
+
+Recommended external brand options:
+
+- `Founder Avatar Clip Pack`
+- `Avatar Reply Pack`
+- `Launch Host Clips`
+
+Canonical family key:
+
+- `founder-avatar-clip-pack`
+
+What the buyer is buying:
+
+- ready-to-post avatar or character clips produced from one offer, audience, tone, and reference direction
+
+Best buyer:
+
+- founder
+- creator-brand owner
+- growth operator
+- product marketer
+
+Canonical mapping:
+
+- primary `Supply.capability.supplyKinds`: `video_generation`, `provider_capability`, `documentation_support`
+- likely `outputKinds`: `draft`, `video`, `media`, `handoff_doc`, `delivery`
+- likely `executionChannels`: `request_room`, `api`, `operator_review`
+
+### Preset Plans
+
+| Plan key | Surface label | Price | Turnaround | What is included | Proof and delivery |
+| --- | --- | ---: | --- | --- | --- |
+| `sales-reply-pack` | Sales Reply Pack | $1,250 | 5 business days | 8 short avatar clips, script variants, Runway generations, captions, one revision pass | captioned videos, clean exports, script handoff, delivery receipt |
+
+### Notes
+
+- This family is the first Runway-backed service page.
+- It should be buyer-facing as a `Service`, but implementation-facing as one workflow-backed `Supply`.
+- The first request-mode flow may prefill visible buyer context, but exact plan links should pin `routing.preferredSupplyId` once stable first-party unlisted supply ids exist.
+
 ## Virality Service Family 1: Trend Seed Reel Pack
 
 Recommended external brand options:

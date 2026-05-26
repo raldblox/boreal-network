@@ -40,19 +40,19 @@ export function SidebarSupplies({ user }: { user: User | undefined }) {
 
   if (isLoading) {
     return (
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-        <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
-          Supplies
+      <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+        <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
+          Supply drafts
         </SidebarGroupLabel>
         <SidebarGroupContent>
-          <div className="flex flex-col gap-1 px-3">
+          <div className="flex flex-col gap-0.5 px-1">
             {[52, 38].map((item) => (
               <div
-                className="flex h-10 items-center gap-2 rounded-xl border border-sidebar-border/35 bg-sidebar-accent/12 px-3"
+                className="flex h-8 items-center gap-2 rounded-lg px-2"
                 key={item}
               >
                 <div
-                  className="h-3 animate-pulse rounded-md bg-sidebar-foreground/[0.08]"
+                  className="h-3 animate-pulse rounded-md bg-sidebar-foreground/[0.06]"
                   style={{ width: `${item}%` }}
                 />
               </div>
@@ -66,12 +66,12 @@ export function SidebarSupplies({ user }: { user: User | undefined }) {
   if (!data || data.supplies.length === 0) {
     return (
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-        <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
-          Supplies
+        <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
+          Supply drafts
         </SidebarGroupLabel>
         <SidebarGroupContent>
-          <div className="mx-3 rounded-2xl border border-sidebar-border/35 bg-sidebar-accent/12 px-3 py-3 text-[12px] leading-6 text-sidebar-foreground/58">
-            Start a supply draft and it will appear here.
+          <div className="flex w-full flex-row items-center justify-center gap-2 px-2 text-[13px] text-sidebar-foreground/60">
+            Supply drafts show up here.
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -80,8 +80,8 @@ export function SidebarSupplies({ user }: { user: User | undefined }) {
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel className="px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/45">
-        Supplies
+      <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
+        Supply drafts
       </SidebarGroupLabel>
       <SidebarGroupContent>
         <SidebarMenu>

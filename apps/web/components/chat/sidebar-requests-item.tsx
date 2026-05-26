@@ -54,7 +54,7 @@ const PureSidebarRequestItem = ({
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        className="h-auto min-h-8 rounded-lg bg-transparent py-1.5 text-[13px] text-sidebar-foreground/55 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-active:bg-transparent data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-transparent data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium"
+        className="h-auto min-h-8 rounded-lg bg-transparent px-2 py-1.5 text-[13px] text-sidebar-foreground/55 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-active:bg-sidebar-accent/38 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium"
         isActive={isActive}
       >
         <Link href={`/chat/${request.chatId}`} onClick={() => setOpenMobile(false)}>

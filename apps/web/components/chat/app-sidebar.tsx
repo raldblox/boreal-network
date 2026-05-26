@@ -3,10 +3,12 @@
 import {
   DownloadIcon,
   FilePenLineIcon,
+  ListChecksIcon,
   MessageSquareIcon,
   PackageIcon,
   PanelLeftIcon,
   PenSquareIcon,
+  StoreIcon,
   TrashIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -60,14 +62,21 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { setOpenMobile, toggleSidebar } = useSidebar();
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const hasUser = Boolean(user);
   const isGuest = guestRegex.test(user?.email ?? "");
+  const isRegularUser = hasUser && !isGuest;
+  const canShowHistory = hasUser;
   const isRootView = pathname === "/";
   const isHomeMode = isRootView && !searchParams.get("mode");
   const isChatMode = isRootView && searchParams.get("mode") === "chat";
   const isSuppliesView =
     pathname === "/supplies" || pathname.startsWith("/supplies/");
+  const isServicesView =
+    pathname === "/services" || pathname.startsWith("/services/");
+  const isOpenRequestsView = pathname === "/open-requests";
   const isNewRequestMode =
     isRootView && searchParams.get("mode") === "request";
+  const isScratchChatMode = isRootView && searchParams.get("mode") === "chat";
   const isWhitelistMode =
     pathname === "/supplies/new" && searchParams.get("entry") === "whitelist";
   const isNewSupplyMode = pathname === "/supplies/new";
@@ -88,6 +97,16 @@ export function AppSidebar({ user }: { user: User | undefined }) {
 
     toast.success("History cleared");
   };
+
+  const sidebarListMode = getSidebarListMode({
+    isScratchChatMode,
+    isSuppliesView,
+    isOpenRequestsView,
+    isServicesView,
+    isDesktopMode,
+    pathname,
+    searchMode: searchParams.get("mode"),
+  });
 
   return (
     <>
@@ -127,6 +146,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup className="pt-1">
+            <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
+              Work
+            </div>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
@@ -143,22 +165,20 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     <span className="font-medium">Home</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {!isGuest ? (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                      isActive={isChatMode}
-                      onClick={() => {
-                        setOpenMobile(false);
-                        router.push("/?mode=chat");
-                      }}
-                      tooltip="New chat"
-                    >
-                      <MessageSquareIcon className="size-4" />
-                      <span className="font-medium">New chat</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ) : null}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                    isActive={isChatMode}
+                    onClick={() => {
+                      setOpenMobile(false);
+                      router.push("/?mode=chat");
+                    }}
+                    tooltip="New chat"
+                  >
+                    <MessageSquareIcon className="size-4" />
+                    <span className="font-medium">Scratch chat</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
@@ -173,7 +193,45 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     <span className="font-medium">Post request</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {user && isGuest ? (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                    isActive={isOpenRequestsView}
+                    onClick={() => {
+                      setOpenMobile(false);
+                      router.push("/open-requests");
+                    }}
+                    tooltip="Open requests"
+                  >
+                    <ListChecksIcon className="size-4" />
+                    <span className="font-medium">Open requests</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarGroup className="pt-1">
+            <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
+              Services
+            </div>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                    isActive={isServicesView}
+                    onClick={() => {
+                      setOpenMobile(false);
+                      router.push("/services");
+                    }}
+                    tooltip="Services"
+                  >
+                    <StoreIcon className="size-4" />
+                    <span className="font-medium">Services</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                {!isRegularUser ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
@@ -189,7 +247,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
-                {user && !isGuest ? (
+                {isRegularUser ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
@@ -201,11 +259,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       tooltip="Supplies"
                     >
                       <PackageIcon className="size-4" />
-                      <span className="font-medium">Supplies</span>
+                      <span className="font-medium">Supply studio</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
-                {user && !isGuest ? (
+                {isRegularUser ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
@@ -221,7 +279,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
-                {user && !isGuest ? (
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarGroup className="pt-1">
+            <div className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
+              Runtime
+            </div>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {isRegularUser ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
@@ -237,12 +305,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
-                {user && !isGuest ? (
+                {isRegularUser ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="rounded-lg text-sidebar-foreground/40 transition-colors duration-150 hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => setShowDeleteAllDialog(true)}
-                      tooltip="Clear saved chats"
+                      tooltip="Clear scratch chats"
                     >
                       <TrashIcon className="size-4" />
                       <span className="text-[13px]">Clear chats</span>
@@ -252,12 +320,19 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-          {!isGuest ? <SidebarSupplies user={user} /> : null}
-          {!isGuest ? <SidebarRequests user={user} /> : null}
-          {!isGuest ? <SidebarHistory user={user} /> : null}
+
+          {isRegularUser && sidebarListMode === "supplies" ? (
+            <SidebarSupplies user={user} />
+          ) : null}
+          {canShowHistory && sidebarListMode === "requests" ? (
+            <SidebarRequests user={user} />
+          ) : null}
+          {canShowHistory && sidebarListMode === "chats" ? (
+            <SidebarHistory user={user} />
+          ) : null}
         </SidebarContent>
         <SidebarFooter className="border-t border-sidebar-border pt-2 pb-3">
-          {user && <SidebarUserNav user={user} />}
+          <SidebarUserNav user={user} />
         </SidebarFooter>
         <SidebarRail />
       </Sidebar>
@@ -284,4 +359,40 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       </AlertDialog>
     </>
   );
+}
+
+function getSidebarListMode({
+  isScratchChatMode,
+  isSuppliesView,
+  isOpenRequestsView,
+  isServicesView,
+  isDesktopMode,
+  pathname,
+  searchMode,
+}: {
+  isScratchChatMode: boolean;
+  isSuppliesView: boolean;
+  isOpenRequestsView: boolean;
+  isServicesView: boolean;
+  isDesktopMode: boolean;
+  pathname: string;
+  searchMode: string | null;
+}): "requests" | "supplies" | "chats" | "none" {
+  if (isSuppliesView) {
+    return "supplies";
+  }
+
+  if (isScratchChatMode) {
+    return "chats";
+  }
+
+  if (searchMode === "request" || pathname.startsWith("/chat/")) {
+    return "requests";
+  }
+
+  if (isServicesView || isOpenRequestsView || isDesktopMode || pathname === "/") {
+    return "none";
+  }
+
+  return "none";
 }

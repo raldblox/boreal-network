@@ -87,6 +87,7 @@ The direct-link lane is:
 Example shape:
 
 - `/services/automation-completion-sprint`
+- `/services/founder-avatar-clip-pack`
 
 Behavior:
 
@@ -99,6 +100,7 @@ Behavior:
 Example shape:
 
 - `/services/automation-completion-sprint/one-workflow-completion`
+- `/services/founder-avatar-clip-pack/sales-reply-pack`
 
 Behavior:
 
@@ -309,6 +311,19 @@ Every service family page should render:
 - proof rail
 - direct CTA
 - optional credit CTA
+
+Service pages should live in a buyer-facing `Services` surface.
+They should not be mixed into the owner supply-management sidebar.
+
+The sidebar rule is:
+
+- `Services` shows buyer-facing service packaging in the main pane
+- `Supply Studio` shows owned supply drafts and published supply
+- `Workroom` shows owned requests
+- `Scratch chat` shows chat history
+- `Open Requests` shows public-safe demand in the main pane
+
+Do not render service links, owned supply drafts, owned request history, and scratch chats together as one undifferentiated navigation list.
 
 Every plan card should render:
 

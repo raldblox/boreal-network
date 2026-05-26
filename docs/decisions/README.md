@@ -35,3 +35,7 @@ Accepted decisions:
 - [0015-boreal-workers-web-execution-layer-and-video-generation-first.md](0015-boreal-workers-web-execution-layer-and-video-generation-first.md)
 - [0016-open-request-room-as-monitored-workroom.md](0016-open-request-room-as-monitored-workroom.md)
 - [0017-regular-account-auth-and-webauthn-mfa.md](0017-regular-account-auth-and-webauthn-mfa.md)
+- [0018-request-flow-view-as-process-projection.md](0018-request-flow-view-as-process-projection.md)
+- [0019-workflow-backed-supply-profile-and-adapter-boundary.md](0019-workflow-backed-supply-profile-and-adapter-boundary.md)
+- [0020-first-party-buyer-credit-and-request-funding-boundary.md](0020-first-party-buyer-credit-and-request-funding-boundary.md)
+- [0021-mode-aware-web-ia-and-service-surfaces.md](0021-mode-aware-web-ia-and-service-surfaces.md)

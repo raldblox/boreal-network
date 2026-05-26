@@ -2,6 +2,8 @@
 
 import type { User } from "next-auth";
 import { usePathname, useSearchParams } from "next/navigation";
+import { OpenRequestsHub } from "@/components/request/open-requests-hub";
+import { ServiceHub } from "@/components/services/service-hub";
 import { SupplyHub } from "../supply/hub";
 import { SupplyShell } from "../supply/shell";
 import { HomePage } from "./homepage";
@@ -18,6 +20,14 @@ export function ModeShell({ user: _user }: { user?: User | null }) {
 
   if (pathname === "/supplies") {
     return <SupplyHub />;
+  }
+
+  if (pathname === "/services" || pathname.startsWith("/services/")) {
+    return <ServiceHub />;
+  }
+
+  if (pathname === "/open-requests") {
+    return <OpenRequestsHub />;
   }
 
   if (pathname.startsWith("/supplies/")) {

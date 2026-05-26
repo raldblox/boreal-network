@@ -27,6 +27,7 @@ import {
   useArtifactSelector,
 } from "@/hooks/use-artifact";
 import type { RequestActivityEntry } from "@/lib/request";
+import { getServicePlan } from "@/lib/service-catalog";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Artifact } from "./artifact";
@@ -36,7 +37,7 @@ import { submitEditedMessage } from "./message-editor";
 import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
 import { RequestBriefingPanel } from "./request-briefing-panel";
-import { RequestTracker } from "./request-tracker";
+import { RequestTracker, type WorkroomViewId } from "./request-tracker";
 import { surfaceShellClassName } from "./surface-layout";
 import { toast } from "./toast";
 
@@ -115,6 +116,8 @@ export function ChatShell() {
   const [isStartingRequest, setIsStartingRequest] = useState(false);
   const [isOpeningDraftRequest, setIsOpeningDraftRequest] = useState(false);
   const [isOpenRequestChatVisible, setIsOpenRequestChatVisible] = useState(false);
+  const [openedRequestView, setOpenedRequestView] =
+    useState<WorkroomViewId>("monitor");
   const [isResolvingDeliveredRequest, setIsResolvingDeliveredRequest] =
     useState(false);
   const [isRetryingBlockedFulfillment, setIsRetryingBlockedFulfillment] =
@@ -123,11 +126,15 @@ export function ChatShell() {
   const { setArtifact } = useArtifact();
   const searchParams = useSearchParams();
   const preferredSupplyIdFromUrl = searchParams.get("preferredSupplyId");
+  const serviceFamilyKeyFromUrl = searchParams.get("serviceFamilyKey");
+  const servicePlanKeyFromUrl = searchParams.get("servicePlanKey");
+  const referenceRequestIdFromUrl = searchParams.get("referenceRequestId");
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
   const autoOpenedRequestRef = useRef<string | null>(null);
   const autoOpenedDeliveryArtifactRef = useRef<string | null>(null);
+  const openRequestScrollRef = useRef<HTMLDivElement>(null);
   const suppressAutoOpenRequestRef = useRef<string | null>(null);
   const supplyBootstrapRef = useRef<string | null>(null);
 
@@ -175,6 +182,12 @@ export function ChatShell() {
       setIsOpenRequestChatVisible(false);
     }
   }, [isOpenedRequest]);
+
+  useEffect(() => {
+    if (isOpenedRequest) {
+      setOpenedRequestView("monitor");
+    }
+  }, [activeRequest?.id, activeRequest?.status, isOpenedRequest]);
 
   useEffect(() => {
     if (!isRequestMode || !activeRequest || activeRequest.status !== "draft") {
@@ -312,6 +325,36 @@ export function ChatShell() {
     preferredSupplyIdFromUrl,
   ]);
 
+  useEffect(() => {
+    if (!isRequestMode || activeRequest || input.trim().length > 0) {
+      return;
+    }
+
+    const servicePlan = getServicePlan({
+      familyKey: serviceFamilyKeyFromUrl,
+      planKey: servicePlanKeyFromUrl,
+    });
+
+    if (servicePlan) {
+      setInput(servicePlan.plan.serviceRequestStarter);
+      return;
+    }
+
+    if (referenceRequestIdFromUrl) {
+      setInput(
+        `I want to create a similar request using public request ${referenceRequestIdFromUrl}. My version is: . Done means: . Budget and timing: .`
+      );
+    }
+  }, [
+    activeRequest,
+    input,
+    isRequestMode,
+    referenceRequestIdFromUrl,
+    serviceFamilyKeyFromUrl,
+    servicePlanKeyFromUrl,
+    setInput,
+  ]);
+
   const handleResolveDeliveredRequest = async () => {
     if (!activeRequest || activeRequest.status !== "delivered") {
       return;
@@ -374,6 +417,32 @@ export function ChatShell() {
     }
   };
 
+  const openedRequestControls = isOpenedRequest ? (
+    <div className="flex flex-wrap items-center gap-2">
+      {[
+        { id: "monitor" as const, label: "Monitor" },
+        { id: "activity" as const, label: "Activity" },
+        { id: "truth" as const, label: "Request truth" },
+        { id: "delivery" as const, label: "Delivery" },
+        { id: "flow" as const, label: "Flow" },
+      ].map((view) => (
+        <button
+          className={cn(
+            "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
+            openedRequestView === view.id
+              ? "border-foreground/14 bg-foreground text-background"
+              : "border-border/60 bg-background/88 text-muted-foreground hover:text-foreground"
+          )}
+          key={view.id}
+          onClick={() => setOpenedRequestView(view.id)}
+          type="button"
+        >
+          {view.label}
+        </button>
+      ))}
+    </div>
+  ) : undefined;
+
   return (
     <>
       <div className="flex h-dvh w-full flex-row overflow-hidden bg-sidebar">
@@ -394,60 +463,84 @@ export function ChatShell() {
           />
 
           <div className={surfaceShellClassName}>
-            <RequestBriefingPanel
-              isLoading={isLoading}
-              isReadonly={isReadonly}
-              isRequestMode={isRequestMode}
-              isStartingRequest={isStartingRequest}
-              onSaveDraft={saveRequestDraft}
-              onSetRequestPromptOptimizerEnabled={
-                setRequestPromptOptimizerEnabled
-              }
-              request={activeRequest}
-              requestPromptOptimizerEnabled={requestPromptOptimizerEnabled}
-            />
-
             {isOpenedRequest && activeRequest ? (
-              <RequestTracker
-                activities={activities}
-                isReadonly={isReadonly}
-                isRetryingBlockedFulfillment={isRetryingBlockedFulfillment}
-                isResolvingDeliveredRequest={isResolvingDeliveredRequest}
-                onRetryBlockedFulfillment={handleRetryBlockedFulfillment}
-                onResolveDeliveredRequest={handleResolveDeliveredRequest}
-                onUpdatePreferredSupply={updateRequestPreferredSupply}
-                request={activeRequest}
-                requestViewerUserId={requestViewerUserId}
-              />
+              <div
+                className="min-h-0 flex-1 overflow-y-auto"
+                ref={openRequestScrollRef}
+              >
+                <RequestBriefingPanel
+                  isLoading={isLoading}
+                  isReadonly={isReadonly}
+                  isRequestMode={isRequestMode}
+                  isStartingRequest={isStartingRequest}
+                  onSaveDraft={saveRequestDraft}
+                  onSetRequestPromptOptimizerEnabled={
+                    setRequestPromptOptimizerEnabled
+                  }
+                  openedRequestControls={openedRequestControls}
+                  request={activeRequest}
+                  requestPromptOptimizerEnabled={requestPromptOptimizerEnabled}
+                />
+
+                <RequestTracker
+                  activities={activities}
+                  isReadonly={isReadonly}
+                  isRetryingBlockedFulfillment={isRetryingBlockedFulfillment}
+                  isResolvingDeliveredRequest={isResolvingDeliveredRequest}
+                  onRetryBlockedFulfillment={handleRetryBlockedFulfillment}
+                  onResolveDeliveredRequest={handleResolveDeliveredRequest}
+                  onSelectView={setOpenedRequestView}
+                  onUpdatePreferredSupply={updateRequestPreferredSupply}
+                  request={activeRequest}
+                  requestViewerUserId={requestViewerUserId}
+                  scrollContainerRef={openRequestScrollRef}
+                  selectedView={openedRequestView}
+                />
+              </div>
             ) : (
-              <Messages
-                addToolApprovalResponse={addToolApprovalResponse}
-                activities={activities}
-                chatId={chatId}
-                requestOwnerUserId={activeRequest?.ownerId ?? requestOwnerUserId}
-                isArtifactVisible={isArtifactVisible}
-                isLoading={isLoading}
-                isReadonly={isReadonly}
-                isRequestMode={isRequestMode}
-                messages={messages}
-                request={activeRequest}
-                requestStatus={activeRequest?.status ?? null}
-                isOpeningDraftPlan={isOpeningDraftRequest}
-                onApproveDraftPlan={handleOpenRequest}
-                onEditMessage={(msg) => {
-                  const text = msg.parts
-                    ?.filter((p) => p.type === "text")
-                    .map((p) => p.text)
-                    .join("");
-                  setInput(text ?? "");
-                  setEditingMessage(msg);
-                }}
-                regenerate={regenerate}
-                selectedModelId={currentModelId}
-                setMessages={setMessages}
-                status={status}
-                votes={votes}
-              />
+              <>
+                <RequestBriefingPanel
+                  isLoading={isLoading}
+                  isReadonly={isReadonly}
+                  isRequestMode={isRequestMode}
+                  isStartingRequest={isStartingRequest}
+                  onSaveDraft={saveRequestDraft}
+                  onSetRequestPromptOptimizerEnabled={
+                    setRequestPromptOptimizerEnabled
+                  }
+                  request={activeRequest}
+                  requestPromptOptimizerEnabled={requestPromptOptimizerEnabled}
+                />
+
+                <Messages
+                  addToolApprovalResponse={addToolApprovalResponse}
+                  activities={activities}
+                  chatId={chatId}
+                  requestOwnerUserId={activeRequest?.ownerId ?? requestOwnerUserId}
+                  isArtifactVisible={isArtifactVisible}
+                  isLoading={isLoading}
+                  isReadonly={isReadonly}
+                  isRequestMode={isRequestMode}
+                  messages={messages}
+                  request={activeRequest}
+                  requestStatus={activeRequest?.status ?? null}
+                  isOpeningDraftPlan={isOpeningDraftRequest}
+                  onApproveDraftPlan={handleOpenRequest}
+                  onEditMessage={(msg) => {
+                    const text = msg.parts
+                      ?.filter((p) => p.type === "text")
+                      .map((p) => p.text)
+                      .join("");
+                    setInput(text ?? "");
+                    setEditingMessage(msg);
+                  }}
+                  regenerate={regenerate}
+                  selectedModelId={currentModelId}
+                  setMessages={setMessages}
+                  status={status}
+                  votes={votes}
+                />
+              </>
             )}
 
             {activeRequest ? (
