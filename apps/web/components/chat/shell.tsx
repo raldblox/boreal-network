@@ -413,8 +413,8 @@ export function ChatShell() {
   const openedRequestViewOptions: Array<{ id: WorkroomViewId; label: string }> =
     [
       { id: "monitor", label: "Monitor" },
-      { id: "activity", label: "Activity" },
-      { id: "artifacts", label: "Artifacts" },
+      { id: "activity", label: "Ledger" },
+      { id: "artifacts", label: "Artifacts / proof" },
     ];
 
   const openedRequestControls = isOpenedRequest ? (
@@ -540,6 +540,7 @@ export function ChatShell() {
             {activeRequest ? (
               <div className="pointer-events-none absolute right-4 bottom-4 z-20 flex flex-col gap-2">
                 <button
+                  aria-label="Open Request object artifact"
                   aria-pressed={isArtifactVisible}
                   className={cn(
                     "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/50 shadow-[var(--shadow-float)] backdrop-blur transition-transform duration-200 hover:scale-[1.02]",
@@ -553,19 +554,20 @@ export function ChatShell() {
                   <BracesIcon className="size-4" />
                 </button>
                 {isOpenedRequest ? (
-                <button
-                  aria-pressed={isOpenRequestChatVisible}
-                  className={cn(
-                    "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/50 shadow-[var(--shadow-float)] backdrop-blur transition-transform duration-200 hover:scale-[1.02]",
-                    isOpenRequestChatVisible
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-card/95 text-foreground"
-                  )}
-                  onClick={() => setIsOpenRequestChatVisible(true)}
-                  type="button"
-                >
-                  <MessageSquareIcon className="size-4" />
-                </button>
+                  <button
+                    aria-label="Open support chat"
+                    aria-pressed={isOpenRequestChatVisible}
+                    className={cn(
+                      "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/50 shadow-[var(--shadow-float)] backdrop-blur transition-transform duration-200 hover:scale-[1.02]",
+                      isOpenRequestChatVisible
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-card/95 text-foreground"
+                    )}
+                    onClick={() => setIsOpenRequestChatVisible(true)}
+                    type="button"
+                  >
+                    <MessageSquareIcon className="size-4" />
+                  </button>
                 ) : null}
               </div>
             ) : null}
@@ -654,10 +656,10 @@ export function ChatShell() {
           >
             <div className="flex h-full min-h-0 flex-col">
               <SheetHeader className="shrink-0 border-b border-border/60 pb-4 pr-16">
-                <SheetTitle>Request chat</SheetTitle>
+                <SheetTitle>Support chat</SheetTitle>
                 <SheetDescription>
-                  Keep conversation and lightweight guidance here. Durable work
-                  updates still belong in the main request thread.
+                  Use chat for clarification and assistance. Durable status,
+                  proof, artifacts, and review stay in the main workroom.
                 </SheetDescription>
                 <button
                   className="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"

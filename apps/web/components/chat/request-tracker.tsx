@@ -702,6 +702,18 @@ export function RequestTracker({
     currentStageId,
     request,
   });
+  const monitorSummaryItems = getWorkroomMonitorSummaryItems({
+    activeFulfillment,
+    activeRouteSupply,
+    artifactCount: artifactActivities.length,
+    canResolveDelivery,
+    canRetryBlockedFulfillment,
+    latestDeliveryArtifact,
+    nextActionSummary,
+    preferredSupply,
+    request,
+    routeSummaryValue,
+  });
   const selectedFlowContextKind = selectedFlowNodeDescriptor
     ? getFlowContextKind(selectedFlowNodeDescriptor)
     : "request";
@@ -771,45 +783,52 @@ export function RequestTracker({
           <div className="mx-auto w-full max-w-[84rem]">
             <div className="mt-5 space-y-4">
               {selectedView === "monitor" ? (
-                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                          Monitor
-                        </div>
-                        <div className="mt-2 text-[15px] leading-6 text-foreground">
-                          {nextActionSummary.value}
-                        </div>
-                        <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                          {nextActionSummary.detail}
-                        </div>
-                      </div>
-                      <button
-                        className="rounded-full border border-border/60 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
-                        onClick={() => {
-                          onSelectView("activity");
-                          setFollowMode("manual");
-                        }}
-                        type="button"
-                      >
-                        Open ledger
-                      </button>
-                    </div>
-                  </div>
+                <>
+                  <WorkroomMonitorSummary items={monitorSummaryItems} />
 
-                  <div className="grid gap-4 p-3 md:p-4 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,25rem)]">
-                    <RequestFlowCanvas
-                      graph={requestFlowGraph}
-                      heightClassName="h-[34rem] xl:h-[38rem]"
-                      onSelectedNodeChange={setSelectedFlowNodeId}
-                      selectedNodeId={selectedFlowNodeDescriptor?.id}
-                    />
-                    <FlowNodeInspector descriptor={selectedFlowNodeDescriptor}>
-                      {selectedFlowContextBody}
-                    </FlowNodeInspector>
-                  </div>
-                </section>
+                  <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                    <div className="border-b border-border/60 px-4 py-4 md:px-5">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                            Workroom monitor
+                          </div>
+                          <div className="mt-2 text-[15px] leading-6 text-foreground">
+                            {nextActionSummary.value}
+                          </div>
+                          <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                            {nextActionSummary.detail}
+                          </div>
+                          <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/62">
+                            Process lens: Request -&gt; Plan -&gt; Worker -&gt; Delivery
+                          </div>
+                        </div>
+                        <button
+                          className="rounded-full border border-border/60 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
+                          onClick={() => {
+                            onSelectView("activity");
+                            setFollowMode("manual");
+                          }}
+                          type="button"
+                        >
+                          Open activity ledger
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 p-3 md:p-4 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,25rem)]">
+                      <RequestFlowCanvas
+                        graph={requestFlowGraph}
+                        heightClassName="h-[34rem] xl:h-[38rem]"
+                        onSelectedNodeChange={setSelectedFlowNodeId}
+                        selectedNodeId={selectedFlowNodeDescriptor?.id}
+                      />
+                      <FlowNodeInspector descriptor={selectedFlowNodeDescriptor}>
+                        {selectedFlowContextBody}
+                      </FlowNodeInspector>
+                    </div>
+                  </section>
+                </>
               ) : null}
 
               {selectedView === "activity" ? (
@@ -920,6 +939,56 @@ function CompactFactPanel({ facts }: { facts: CompactFact[] }) {
   );
 }
 
+type WorkroomMonitorItem = {
+  detail: string;
+  label: string;
+  tone?: "default" | "danger" | "success" | "warning";
+  value: string;
+};
+
+function WorkroomMonitorSummary({ items }: { items: WorkroomMonitorItem[] }) {
+  return (
+    <section
+      aria-label="Request workroom monitor summary"
+      className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"
+    >
+      {items.map((item) => (
+        <div
+          className={cn(
+            "min-w-0 rounded-[20px] border px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.025)]",
+            getMonitorItemClassName(item.tone)
+          )}
+          key={item.label}
+        >
+          <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+            {item.label}
+          </div>
+          <div className="mt-2 line-clamp-2 text-[14px] leading-5.5 text-foreground">
+            {item.value}
+          </div>
+          <div className="mt-1.5 line-clamp-3 text-[12px] leading-5 text-muted-foreground">
+            {item.detail}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function getMonitorItemClassName(tone: WorkroomMonitorItem["tone"] = "default") {
+  switch (tone) {
+    case "success":
+      return "border-emerald-500/22 bg-emerald-500/[0.055]";
+    case "warning":
+      return "border-amber-500/24 bg-amber-500/[0.06]";
+    case "danger":
+      return "border-rose-500/24 bg-rose-500/[0.06]";
+    case "default":
+    default:
+      return "border-border/60 bg-background/94";
+  }
+}
+
 function FlowNodeInspector({
   children,
   descriptor,
@@ -1015,13 +1084,14 @@ function PlanFlowContext({
   return (
     <div className="rounded-[16px] border border-border/60 bg-muted/[0.14] px-3 py-3">
       <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-        Plan context
+        Process lens
       </div>
       <div className="mt-2 text-[13px] leading-5.5 text-foreground">
         {descriptor?.subtitle || "Selected plan step"}
       </div>
       <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-        This is the request step Boreal is using to keep work bounded. It is not a separate request or fake task tree.
+        Flow explains Request -&gt; Plan -&gt; Worker -&gt; Delivery. It is not a
+        separate request or fake task tree.
       </div>
     </div>
   );
@@ -1941,6 +2011,189 @@ function formatCollapseRiskDetailDisplay(request: BorealRequestDraft) {
   }
 
   return request.derived.planCollapseRisk.reasons.join(" | ");
+}
+
+function getWorkroomMonitorSummaryItems({
+  activeFulfillment,
+  activeRouteSupply,
+  artifactCount,
+  canResolveDelivery,
+  canRetryBlockedFulfillment,
+  latestDeliveryArtifact,
+  nextActionSummary,
+  preferredSupply,
+  request,
+  routeSummaryValue,
+}: {
+  activeFulfillment: RequestFulfillment | null;
+  activeRouteSupply: BorealSupplyDraft | null;
+  artifactCount: number;
+  canResolveDelivery: boolean;
+  canRetryBlockedFulfillment: boolean;
+  latestDeliveryArtifact: RequestActivityEntry["artifact"] | null;
+  nextActionSummary: { detail: string; value: string };
+  preferredSupply: BorealSupplyDraft | null;
+  request: BorealRequestDraft;
+  routeSummaryValue: string;
+}): WorkroomMonitorItem[] {
+  const blockerSummary = getWorkroomBlockerSummary({
+    activeFulfillment,
+    canRetryBlockedFulfillment,
+    request,
+  });
+  const activeLaneLabel = activeFulfillment
+    ? describeWorkerSummary(activeFulfillment)
+    : preferredSupply
+      ? `${getOwnedSupplyLabel(preferredSupply)} is pinned for routing.`
+      : routeSummaryValue;
+  const activeLaneDetail = activeRouteSupply
+    ? `Active capability: ${getOwnedSupplyLabel(activeRouteSupply)}.`
+    : formatSeekingSummaryDisplay(request);
+  const fulfillmentDetail = activeFulfillment?.updatedAt
+    ? `Updated ${formatTimestamp(activeFulfillment.updatedAt)}.`
+    : "Runs, worker ownership, and fulfillment steps appear here after execution starts.";
+  const proofValue =
+    latestDeliveryArtifact?.title ||
+    (request.activeRefs.latestArtifactId
+      ? "Artifact linked"
+      : "No proof package yet");
+  const proofDetail = `${artifactCount} artifact${
+    artifactCount === 1 ? "" : "s"
+  } attached. ${formatVerificationDetailDisplay(request)}`;
+  const transactionValue = request.activeRefs.latestTransactionId
+    ? "Transaction linked"
+    : request.budget
+      ? formatBudgetSummary(request.budget)
+      : "No execution spend yet";
+
+  return [
+    {
+      detail: request.derived.readiness.summary,
+      label: "Status",
+      tone: getStatusMonitorTone(request.status),
+      value: formatLabel(request.status),
+    },
+    {
+      detail: nextActionSummary.detail,
+      label: "Next action",
+      tone: canResolveDelivery || canRetryBlockedFulfillment ? "warning" : "default",
+      value: nextActionSummary.value,
+    },
+    {
+      detail: activeLaneDetail,
+      label: "Owner / lane",
+      value: activeLaneLabel,
+    },
+    {
+      detail: blockerSummary.detail,
+      label: "Blockers",
+      tone: blockerSummary.tone,
+      value: blockerSummary.value,
+    },
+    {
+      detail: fulfillmentDetail,
+      label: "Fulfillment",
+      tone: activeFulfillment?.status === "blocked" ? "warning" : "default",
+      value: activeFulfillment
+        ? formatLabel(activeFulfillment.status)
+        : "No active fulfillment",
+    },
+    {
+      detail: proofDetail,
+      label: "Artifacts / proof",
+      tone: latestDeliveryArtifact ? "success" : "default",
+      value: proofValue,
+    },
+    {
+      detail: getReviewMonitorDetail(request),
+      label: "Review",
+      tone: canResolveDelivery ? "warning" : getStatusMonitorTone(request.status),
+      value: getResolutionSummary(request.status),
+    },
+    {
+      detail: request.activeRefs.latestTransactionId
+        ? "The latest Transaction points back to this Request."
+        : "Credits appear only for execution, provider calls, workflow runs, human review, service capacity, or embodied fulfillment.",
+      label: "Credits / transactions",
+      value: transactionValue,
+    },
+  ];
+}
+
+function getStatusMonitorTone(
+  status: RequestStatus
+): WorkroomMonitorItem["tone"] {
+  switch (status) {
+    case "completed":
+      return "success";
+    case "cancelled":
+    case "failed":
+      return "danger";
+    case "delivered":
+    case "waiting_for_owner":
+      return "warning";
+    default:
+      return "default";
+  }
+}
+
+function getWorkroomBlockerSummary({
+  activeFulfillment,
+  canRetryBlockedFulfillment,
+  request,
+}: {
+  activeFulfillment: RequestFulfillment | null;
+  canRetryBlockedFulfillment: boolean;
+  request: BorealRequestDraft;
+}): Pick<WorkroomMonitorItem, "detail" | "tone" | "value"> {
+  if (canRetryBlockedFulfillment || activeFulfillment?.status === "blocked") {
+    return {
+      detail: getBlockedFulfillmentRecoverySummary(activeFulfillment),
+      tone: "warning",
+      value: "Fulfillment is blocked",
+    };
+  }
+
+  if (request.derived.clarificationNeeded.required) {
+    return {
+      detail: formatClarificationDetailDisplay(request),
+      tone: "warning",
+      value: formatClarificationValue(request),
+    };
+  }
+
+  if (
+    request.derived.planCollapseRisk.riskLevel === "high" ||
+    request.derived.planCollapseRisk.riskLevel === "moderate"
+  ) {
+    return {
+      detail: formatCollapseRiskDetailDisplay(request),
+      tone: "warning",
+      value: formatCollapseRiskValue(request),
+    };
+  }
+
+  return {
+    detail: "No clarification, recovery, or plan-collapse blocker is active.",
+    tone: "success",
+    value: "No active blocker",
+  };
+}
+
+function getReviewMonitorDetail(request: BorealRequestDraft) {
+  if (request.status === "delivered") {
+    return "Review the proof package and accept when the result is correct.";
+  }
+
+  if (request.status === "completed") {
+    return "Accepted delivery is locked to this Request.";
+  }
+
+  if (request.status === "failed" || request.status === "cancelled") {
+    return "The final state remains visible for audit and follow-up decisions.";
+  }
+
+  return "Review and acceptance controls appear when a delivery lands.";
 }
 
 function getWorkroomNextActionSummary({
