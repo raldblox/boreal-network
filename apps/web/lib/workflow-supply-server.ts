@@ -33,17 +33,28 @@ export type WorkflowBackedSupplyResolution = {
 };
 
 export async function createCharacterCallStarterSupplyDraft({
+  supplyId = generateUUID(),
   userId,
   workflowPackVersionId,
   publish = false,
 }: {
+  supplyId?: string;
   userId: string;
   workflowPackVersionId: string;
   publish?: boolean;
 }): Promise<BorealSupplyDraft> {
+  const existingSupply = await getSupplyById({ id: supplyId });
+  if (existingSupply) {
+    if (existingSupply.ownerId !== userId) {
+      throw new Error("Forbidden");
+    }
+
+    return toSupplyDraft(existingSupply);
+  }
+
   const now = new Date().toISOString();
   const draft = createInitialSupplyDraft({
-    id: generateUUID(),
+    id: supplyId,
     userId,
     preset: "provider_capability",
     createdAt: now,

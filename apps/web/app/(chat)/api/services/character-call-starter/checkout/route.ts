@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import {
   getBuyerCreditLedgerEntryByIdempotencyKey,
@@ -67,6 +68,20 @@ function getCheckoutIdempotencyKey({
   }
 
   return rawKey;
+}
+
+function derivedCheckoutUuid(baseKey: string, label: string) {
+  const hash = createHash("sha256").update(`${baseKey}:${label}`).digest("hex");
+
+  return [
+    hash.slice(0, 8),
+    hash.slice(8, 12),
+    `4${hash.slice(13, 16)}`,
+    `${((Number.parseInt(hash.slice(16, 18), 16) & 0x3f) | 0x80)
+      .toString(16)
+      .padStart(2, "0")}${hash.slice(18, 20)}`,
+    hash.slice(20, 32),
+  ].join("-");
 }
 
 function buildStarterBriefBody(input: z.infer<typeof checkoutSchema>) {
@@ -232,7 +247,9 @@ export async function POST(request: Request) {
     }
 
     const workflow = await createRunwayCharacterCallStarterWorkflowPack({
+      packId: derivedCheckoutUuid(idempotencyKey, "workflow-pack"),
       userId: actor.userId,
+      versionId: derivedCheckoutUuid(idempotencyKey, "workflow-pack-version"),
       packStatus: "active",
       provenance: {
         kind: "first_party",
@@ -241,6 +258,7 @@ export async function POST(request: Request) {
       },
     });
     const supply = await createCharacterCallStarterSupplyDraft({
+      supplyId: derivedCheckoutUuid(idempotencyKey, "supply"),
       userId: actor.userId,
       workflowPackVersionId: workflow.workflowPackVersion.id,
       publish: true,

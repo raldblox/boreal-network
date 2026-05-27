@@ -1,6 +1,8 @@
 import "server-only";
 
 import {
+  getWorkflowPackById,
+  getWorkflowPackVersionById,
   saveWorkflowPack,
   saveWorkflowPackVersion,
   toWorkflowPack,
@@ -159,49 +161,83 @@ export async function createRunwayFounderAvatarClipPackWorkflowPack({
 
 export async function createRunwayCharacterCallStarterWorkflowPack({
   userId,
+  packId = generateUUID(),
   packStatus = "draft",
   provenance,
+  versionId = generateUUID(),
 }: {
   userId: string;
+  packId?: string;
   packStatus?: WorkflowPackStatus;
   provenance?: WorkflowPackProvenance;
+  versionId?: string;
 }): Promise<RunwayCharacterCallStarterResult> {
   const result = buildRunwayCharacterCallStarter({
-    packId: generateUUID(),
-    versionId: generateUUID(),
+    packId,
+    versionId,
     ownerActorId: userId,
     packStatus,
     provenance,
   });
+  const [existingPack, existingVersion] = await Promise.all([
+    getWorkflowPackById({ id: result.workflowPack.id }),
+    getWorkflowPackVersionById({ id: result.workflowPackVersion.id }),
+  ]);
 
-  const createdPack = await saveWorkflowPack({
-    id: result.workflowPack.id,
-    key: result.workflowPack.key,
-    ownerActorId: result.workflowPack.ownerActorId,
-    title: result.workflowPack.title,
-    summary: result.workflowPack.summary,
-    status: result.workflowPack.status,
-    provenance: result.workflowPack.provenance,
-    metadata: result.workflowPack.metadata,
-  });
+  if (existingPack) {
+    if (existingPack.ownerActorId !== userId) {
+      throw new Error("Forbidden");
+    }
 
-  const createdVersion = await saveWorkflowPackVersion({
-    id: result.workflowPackVersion.id,
-    key: result.workflowPackVersion.key,
-    workflowPackId: result.workflowPackVersion.workflowPackId,
-    version: result.workflowPackVersion.version,
-    adapterKind: result.workflowPackVersion.adapterKind,
-    graph: result.workflowPackVersion.graph,
-    inputContract: result.workflowPackVersion.inputContract,
-    outputContract: result.workflowPackVersion.outputContract,
-    credentialRequirements: result.workflowPackVersion.credentialRequirements,
-    humanCheckpoints: result.workflowPackVersion.humanCheckpoints,
-    proofRequirements: result.workflowPackVersion.proofRequirements,
-    sourceRefs: result.workflowPackVersion.sourceRefs,
-    readiness: result.workflowPackVersion.readiness,
-    unsupportedFeatures: result.workflowPackVersion.unsupportedFeatures,
-    metadata: result.workflowPackVersion.metadata,
-  });
+    if (
+      existingVersion &&
+      existingVersion.workflowPackId === existingPack.id
+    ) {
+      return {
+        ...result,
+        workflowPack: toWorkflowPack(existingPack),
+        workflowPackVersion: toWorkflowPackVersion(existingVersion),
+      };
+    }
+  }
+
+  const createdPack =
+    existingPack ??
+    (await saveWorkflowPack({
+      id: result.workflowPack.id,
+      key: result.workflowPack.key,
+      ownerActorId: result.workflowPack.ownerActorId,
+      title: result.workflowPack.title,
+      summary: result.workflowPack.summary,
+      status: result.workflowPack.status,
+      provenance: result.workflowPack.provenance,
+      metadata: result.workflowPack.metadata,
+    }));
+
+  if (existingVersion && existingVersion.workflowPackId !== createdPack.id) {
+    throw new Error("Workflow pack version belongs to another pack");
+  }
+
+  const createdVersion =
+    existingVersion ??
+    (await saveWorkflowPackVersion({
+      id: result.workflowPackVersion.id,
+      key: result.workflowPackVersion.key,
+      workflowPackId: result.workflowPackVersion.workflowPackId,
+      version: result.workflowPackVersion.version,
+      adapterKind: result.workflowPackVersion.adapterKind,
+      graph: result.workflowPackVersion.graph,
+      inputContract: result.workflowPackVersion.inputContract,
+      outputContract: result.workflowPackVersion.outputContract,
+      credentialRequirements:
+        result.workflowPackVersion.credentialRequirements,
+      humanCheckpoints: result.workflowPackVersion.humanCheckpoints,
+      proofRequirements: result.workflowPackVersion.proofRequirements,
+      sourceRefs: result.workflowPackVersion.sourceRefs,
+      readiness: result.workflowPackVersion.readiness,
+      unsupportedFeatures: result.workflowPackVersion.unsupportedFeatures,
+      metadata: result.workflowPackVersion.metadata,
+    }));
 
   const updatedPack = await updateWorkflowPackById({
     id: createdPack.id,
