@@ -56,6 +56,7 @@ Support buyer-funding aggregates for first-party credit:
 
 - one request can have many participants
 - one participant row connects one actor to one request
+- requester, solver, reviewer, funder, watcher, and audience-like roles are participation roles on the same durable request, not separate root objects
 
 ### `Request` -> `Commitment`
 
@@ -87,6 +88,7 @@ Support buyer-funding aggregates for first-party credit:
 
 - one request can have many transaction records
 - transaction history must remain auditable
+- request-grant funding, solver payout, reviewer compensation, refunds, and later solution-run credit debits remain request-attached transaction truth
 
 ### `Request` -> `RequestEvent`
 
@@ -175,6 +177,7 @@ Visibility rule:
 - `visibility` controls whether an opened request stays owner-private or becomes market-fetchable
 - `open` plus `public` is the first publishable request-pool boundary
 - public fetch views should be projections of `Request`, not a second durable object family
+- a completed public request may later project as a solution surface when accepted artifact and review truth exist
 
 Does not store:
 
@@ -296,6 +299,8 @@ Stores immutable business history:
 - fulfillment activity
 - artifact publication
 - payment progression
+- request-grant activity
+- review and acceptance activity
 
 ### `Artifact`
 
@@ -303,6 +308,8 @@ Stores durable output or proof with a stable container reference.
 
 It should not force the request root to inline large delivery bodies.
 It may also point to one execution lane through `fulfillmentId` and one sub-lane through `stepId`.
+Accepted artifacts may be used as the source for public solution projections.
+The projection should not become a separate durable root.
 
 ## Account Auth Support Objects
 
@@ -378,6 +385,8 @@ Relationship rule:
 
 - buyer top-up may exist with no request attached
 - spending credit on one request should create both one credit-ledger debit and one request-attached `Transaction`
+- inspecting a public solution should not spend credit by itself
+- running a public solution through inference, provider APIs, workflow execution, human review, or service capacity should spend credit through the run request
 - refunding a credit-funded request should restore credit through ledger while keeping request transaction history auditable
 
 Boundary rule:
@@ -385,6 +394,27 @@ Boundary rule:
 - buyer credit is first-party only
 - it must not be treated as a multi-seller marketplace wallet
 - it must not replace payout accounting for external suppliers
+
+## Request Grant Boundary
+
+Request grants are optional request funding, not new aggregate roots.
+
+They should be represented through existing durable objects:
+
+- `RequestParticipant` for funder, solver, reviewer, and watcher relationships
+- `Commitment` terms and metadata for award rules, review gates, and release conditions
+- `Transaction` records for grant funding, settlement, refund, and payout
+- `Artifact` records for accepted outputs and proof
+- `RequestEvent` records for durable activity
+
+Boundary rule:
+
+- do not create a standalone `Grant`, `Bounty`, or `Solution` root in this pass
+- do not treat request grants as tax-deductible donations by default
+- do not model passive funder revenue share without a later canon and compliance decision
+- do not charge credits merely to inspect a public solution
+- do charge credits when a solution run consumes inference or execution capacity
+- if later users need custom work from a public solution, create a new `Request` that references the source artifact
 
 ## Derived Views
 
@@ -395,6 +425,7 @@ Derived views may include:
 - reputation summaries
 - supply search documents
 - payout dashboards
+- public solution surfaces
 
 These views are rebuildable and should not redefine root semantics.
 
@@ -421,3 +452,4 @@ When in doubt:
 - internal execution detail -> prefer `FulfillmentStep`
 - history item -> prefer `RequestEvent`
 - output or proof -> prefer `Artifact`
+- public solution -> prefer a projection over completed `Request` plus accepted `Artifact`

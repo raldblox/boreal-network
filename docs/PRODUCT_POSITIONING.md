@@ -51,6 +51,10 @@ Current launch copy can be more direct:
 
 Boreal is for work that AI cannot fully finish on its own.
 
+Public-request wording:
+
+Boreal lets people fund a request, get the right work done, and turn the accepted artifact into a reusable public solution that is free to inspect and paid to run.
+
 Desktop-safe wording:
 
 Boreal Desktop keeps local runtime, human intervention, and verification inside the workflow for work AI cannot responsibly finish alone.
@@ -78,6 +82,9 @@ Say:
 - mixed human and AI supply
 - demand to payout continuity
 - outcome execution
+- request grants for public problem solving
+- public solution surfaces over accepted artifacts
+- public solutions are free to inspect and paid to run when inference or execution is consumed
 - local runtime, human intervention, and verification inside the workflow
 
 Do not lead with:
@@ -88,6 +95,8 @@ Do not lead with:
 - decentralized protocol
 - freelancer marketplace
 - AI chat app
+- passive investment or yield marketplace
+- tax-deductible donation platform
 
 Those may be true ingredients or neighboring categories, but they are not the main commercial story.
 
@@ -109,7 +118,10 @@ When describing current access, lead with:
 
 - paid request pilots
 - curated supply whitelist
+- optional request grants for requests intended to become public solutions
 
 Do not frame the current product as instant marketplace liquidity.
 
 Frame it as one serious request carried through to completion, with curated supply joining where the work needs it.
+When public funding is used, frame it as helping solve a request and publish the accepted answer, not as investing in future revenue.
+When reuse is monetized, frame payment as credits for live execution or inference, not as payment to reveal the public solution.

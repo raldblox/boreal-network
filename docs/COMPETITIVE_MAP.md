@@ -112,10 +112,36 @@ Weaknesses relative to Boreal's use case:
 - they do not act as the commerce layer
 - they do not natively handle external commitment, payment, proof, and payout
 
+## Category 5: Knowledge Communities And Bounty Boards
+
+Examples as a category:
+
+- public Q&A communities
+- open-source sponsorship surfaces
+- bounty boards
+- grant programs
+
+Strengths:
+
+- visible problem discovery
+- public learning and reuse
+- community contribution
+- sometimes strong expert reputation
+
+Weaknesses relative to Boreal's use case:
+
+- the request is often separate from funding, fulfillment, review, and payout truth
+- accepted answers may not carry enough proof of how work was completed
+- funder, solver, reviewer, and later audience roles are often scattered across different systems
+- free knowledge access and paid reruns are rarely connected to one durable request, artifact, and transaction trail
+
+Boreal should learn from their public-good loop without copying their object model.
+The Boreal unit remains the durable `Request`, not a post, issue, bounty, or solution root.
+
 ## Strategic Summary
 
 Boreal wins only if it stays focused on a narrow but important position:
 
 - the fulfillment thread between external demand and mixed-supply execution
 
-That is where marketplaces, AI platforms, and workflow tools each stop short.
+That is where marketplaces, AI platforms, workflow tools, and knowledge communities each stop short.

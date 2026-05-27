@@ -29,6 +29,7 @@ Boreal exists to keep the entire path in one system:
 - fulfillment
 - proof and delivery
 - settlement and payout
+- optional public solution projection after accepted work
 
 ## What The Customer Is Buying
 
@@ -90,12 +91,14 @@ The near-term launch motion should stay simple:
 
 - buyer-funded request pilots first
 - curated supply whitelist second
+- optional request grants where a public solution is valuable
 
 The first public ask is not broad free browsing.
 
 It is:
 
 - bring one serious request that needs to get done
+- or help fund one serious public request so accepted work becomes reusable
 
 Supply intake should stay curated around workflows where:
 
@@ -107,6 +110,61 @@ That same reading should carry into Boreal Desktop:
 
 - AI becomes less useful when a system deletes the human steps or local runtime conditions serious work still needs
 - desktop product language should treat one-shot output as incomplete when verification or intervention still matters
+
+## Request Grants And Public Solutions
+
+Boreal may support optional request grants.
+
+A request grant is money contributed to help one request get solved.
+
+It is not a passive investment position.
+It is not tax-deductible donation language by default.
+It does not create a new canonical commerce root.
+
+The commercial reading is:
+
+- funders help make a request worth solving
+- solvers receive grant or bounty-like payment after accepted work
+- reviewers may receive fixed review compensation when review is explicitly requested
+- the accepted artifact may become a public solution surface
+- later users may inspect, run, fork, or reference the solution through request-attached transaction and artifact truth
+
+Funder benefits should start with access, attribution, priority, credits, early reveal, or public-good contribution.
+Passive funder cash revenue share is rejected in the first model.
+
+This keeps Boreal closer to funded requests, open-source sponsorship, research grants, and public problem solving than to speculative investment products.
+
+## Open Solution, Paid Execution
+
+The accepted public solution should be free to inspect by default.
+
+Free inspection includes:
+
+- the public plan
+- explanation
+- accepted artifacts
+- proof
+- reusable workflow shape
+- safe request history
+
+Credits should be consumed when a user runs the solution and Boreal spends live capacity.
+
+Credit-consuming run costs may include:
+
+- model inference
+- provider API calls
+- workflow execution
+- media or artifact generation
+- human review
+- service or embodied fulfillment capacity
+
+This preserves a clean commercial split:
+
+- funders help create public knowledge
+- everyone can inspect the accepted solution
+- reusers pay credits when they ask Boreal to execute it again
+- custom reuse becomes a new `Request` that references the source artifact
+- `Transaction` remains the request-attached payment truth for the run
 
 ## Why This Category Is Real
 
@@ -142,6 +200,7 @@ Do not position Boreal as:
 - a commodity gig marketplace
 - a project tracker with no commerce layer
 - an agency disguised as software
+- a passive investment or yield marketplace for request funders
 
 Those readings weaken the core thesis and confuse the revenue model.
 

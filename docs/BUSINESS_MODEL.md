@@ -10,6 +10,9 @@ That means Boreal should earn revenue first from:
 
 - take rate on funded request GMV
 
+Funded request GMV may include direct buyer payments and optional request grants.
+The funder-facing language should remain sponsor, grant, contribution, or fund, not investment or yield.
+
 The first durable economic engine is not software seats alone.
 It is transactions flowing through the request, commitment, fulfillment, and payout system.
 
@@ -21,8 +24,51 @@ After core transaction revenue, Boreal can add:
 - managed or curated fulfillment layers
 - private supply or enterprise network software
 - payout, verification, compliance, or API monetization
+- paid solution-run and fork fees where accepted artifacts can be reused through live execution
 
 These should stack on top of the core commerce engine, not replace it.
+
+## Request Grant Boundary
+
+Request grants are optional funding for one request.
+
+The first model should pay:
+
+- solvers for accepted artifacts or accepted fulfillment
+- reviewers for explicit review work when a review fee exists
+- Boreal through allowed platform, subscription, or transaction fees
+
+The first model should not pay passive funders automatic cash upside from future views, runs, or revenue.
+
+Funder benefits should start with:
+
+- access
+- attribution
+- early reveal
+- credits where policy allows
+- prioritization or voting weight
+
+Do not promise tax deductibility unless the payment flow and receiving entity qualify under the relevant jurisdiction.
+
+## Open Solution, Paid Run
+
+The public solution itself should be free to inspect by default.
+
+Boreal should earn when a user asks the system to run the solution again.
+
+Paid runs may consume credits for:
+
+- inference
+- provider API calls
+- workflow execution
+- media generation
+- storage-heavy artifacts
+- human review
+- service capacity
+
+The run should create or use a `Request` that references the source accepted artifact.
+The credit debit should create request-attached `Transaction` truth for that run.
+The source public solution should remain inspectable without a credit debit.
 
 ## What The Public Market Already Proves
 
@@ -68,8 +114,10 @@ Expected economic progression:
 
 1. self-serve request GMV
 2. higher-value repeat workflows
-3. curated or premium coordination layers
-4. private supply and enterprise software layers
+3. optional request grants for public solutions
+4. paid solution runs where credits buy inference or execution
+5. curated or premium coordination layers
+6. private supply and enterprise software layers
 
 This progression preserves a platform profile instead of sliding into pure services.
 

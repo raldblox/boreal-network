@@ -41,6 +41,10 @@ These are safe to state as present canon truth:
 - the first ephemeral realtime hub is the Electron main process inside `apps/desktop`
 - workflow-backed execution may back a published `Supply` through support objects or typed metadata without replacing `Supply` or `Request` as canonical roots
 - first-party buyer credit may exist through support objects without replacing request-attached `Transaction` truth for funded work
+- optional request grants attach to one durable `Request` through participants, commitments, transactions, artifacts, and events instead of creating a new grant root
+- public solution surfaces are projections over completed requests and accepted artifacts, not canonical root objects
+- public solution inspection is free by default, while live solution runs may consume credits when they use inference, provider APIs, workflow execution, human review, or other service capacity
+- passive funder cash revenue-share, investment, yield, dividend, and tax-deductible donation language are outside the first accepted model
 
 ## Machine-Modeled Now
 
@@ -110,6 +114,9 @@ These are intended next layers, not fully modeled proof yet:
 - deeper web runtime coverage beyond the first request-briefing slice in `apps/web/`
 - first-class workflow-backed support objects and adapter coverage for imported templates and reusable execution packs, initially standardized through `standards/` before broader schema and API coverage lands
 - first-class buyer-credit support objects and narrower payment-source coverage for first-party supply, initially standardized through `standards/` before broader schema and API coverage lands
+- first-class request-grant profile for pooled public-solution funding, grant-pool display, explicit refund policy, solver award release, reviewer compensation, and public artifact projection
+- public solution surfaces that let later users inspect, run, fork, or reference accepted artifacts while preserving the source request as durable truth
+- credit-metered solution runs that debit first-party credits for inference or execution while creating request-attached transaction truth on the run request
 - exact service plan links that resolve stable first-party unlisted supply ids and set `routing.preferredSupplyId` before request opening
 - broader supply discovery, responder reads, and public market publish lanes
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
@@ -137,6 +144,9 @@ Safe claim patterns:
 - `The current machine-readable baseline covers Request, Supply, Commitment, Fulfillment, Transaction, and RequestEvent.`
 - `apps/web is activated as the first Boreal product workspace, with fuller implementation still ahead.`
 - `The repo contains a deterministic request-processing eval baseline for a complex human-led request.`
+- `Canon allows optional request grants, but they are not passive investments or tax-deductible donation claims by default.`
+- `Canon allows public solution surfaces as projections over completed requests and accepted artifacts.`
+- `Canon separates free public solution inspection from paid runs that consume credits for inference or execution.`
 
 Unsafe claim patterns:
 
@@ -145,6 +155,11 @@ Unsafe claim patterns:
 - `Every target workspace in this repo already exists as a runnable product.`
 - `Peer, gateway, and enterprise operator surfaces are already fully implemented.`
 - `Other Boreal workspaces already ship everything described in the target direction.`
+- `Request grants are tax-deductible donations by default.`
+- `Request funders receive passive cash upside from future solution revenue.`
+- `Public solution inspection requires credits by default.`
+- `Every public solution already has metered inference runs in production.`
+- `Public solution surfaces are already fully machine-modeled as a production marketplace.`
 
 ## Agent Rule
 

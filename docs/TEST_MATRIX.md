@@ -26,6 +26,9 @@ Verify:
 - ICP and wedge stay consistent with business model and competitive map
 - pitch facts do not overclaim beyond canon or cited market evidence
 - live-versus-target boundaries match the current machine-modeled layer and do not overstate implementation status
+- request-grant language does not imply passive investment upside, yield, dividend, or tax-deductible donation treatment
+- public solution language points back to completed `Request` plus accepted `Artifact` truth instead of creating a new root
+- public solution copy separates free inspection from credit-consuming inference or execution runs
 
 ### Lifecycle tests
 
@@ -45,7 +48,11 @@ Verify:
 - no fulfillment exists without a request
 - no accepted execution exists without an accepted route or commitment
 - funding-required requests point to valid commercial context
+- optional request grants attach to the same request lifecycle instead of forking a second funding flow
 - delivered work can be traced to artifacts and events
+- public solution projections can be traced to completed requests and accepted artifacts
+- public solution inspection leaves the source request state unchanged
+- public solution runs or forks create a new request or accepted execution lane that references the source artifact
 - file, media, PDF, audio, video, binary, and archive deliveries can be traced through stable artifact references without inflating the request root
 - non-substitutable embodied work cannot be resolved through generated summaries alone when the request requires explicit proof
 
@@ -77,6 +84,8 @@ Verify:
 - duplicate curated service checkout requests with the same idempotency key do not fork the `Request` or double-debit buyer credit
 - duplicate PayPal return capture and verified PayPal webhook delivery for the same buyer-credit top-up do not double-settle available credit
 - duplicate request transaction requests with the same idempotency key do not create duplicate request-attached transactions
+- duplicate request-grant contributions with the same idempotency key do not double-fund the request
+- duplicate solution-run credit requests with the same idempotency key do not double-debit buyer credit or fork duplicate run requests
 - duplicate event replay does not double-apply side effects
 
 ### Payment webhook tests
@@ -175,6 +184,14 @@ Verify:
 - artifact publication should preserve optional `fulfillmentId` and `stepId` lane bindings when provided
 - video media artifacts should render an authorized inline preview from the stable object reference without exposing private storage as buyer-authored brief text
 - generated plans, summaries, or chat text should not satisfy embodied proof obligations by themselves
+- request grants should remain optional funding attached through participant, commitment, transaction, and event truth instead of creating a new root object
+- request-grant prompts should not be rewritten into investment, yield, dividend, passive revenue-share, or tax-deductible donation claims
+- solver grant payouts should require accepted work or explicit accepted review/award conditions
+- public solution surfaces should require accepted artifacts and completed or accepted request truth
+- inspecting a public solution should not consume credits, create transaction truth, or reopen the source request
+- running a public solution should consume credits only when inference, provider API calls, workflow execution, human review, or service capacity is used
+- paid solution runs should write credit debit and transaction truth to the run request, not mutate the completed source request
+- solution forks or private adaptations should create a new `Request` referencing the source artifact instead of mutating the completed source request
 - live-model benchmark scoring should not depend on a second judge LLM when exact contract or metric-based scoring already exists
 - typing, token deltas, progress ticks, heartbeats, presence, transient runtime logs, and raw tool stdout or stderr should not create default durable request history
 - resolver device approval should not issue tokens before explicit Boreal account approval
@@ -271,6 +288,8 @@ Verify:
 - next-action choice is safe and consistent with planner and matcher output
 - approval-gated writes are not triggered early
 - block-and-escalate behavior appears when canon or funding boundaries are violated
+- policy preserves request-grant boundaries when funders, solvers, reviewers, and later audience actors participate in one request
+- policy differentiates inspect, run, and fork actions on public solutions
 - embodied or verification-heavy asks prefer clarification or escalation over false digital completion
 - policy does not imply completion before proof and closure conditions are satisfied
 - public or cross-actor lanes do not inherit owner-private desktop assumptions in planner, matcher, or policy behavior
@@ -294,6 +313,10 @@ Verify:
 
 - totals are deterministic
 - commitment amounts and transaction amounts reconcile
+- request-grant pool totals reconcile across funder contributions, refunds, platform fees, solver payouts, and reviewer fees when those exist
+- solution-run credit debits reconcile with inference, provider, workflow, human-review, or service-capacity usage metadata when those costs are present
+- public solution inspection has zero transaction total by default
+- passive funder payout states remain absent unless a later canon decision explicitly accepts them
 - payout states derive correctly from settlement history
 
 ## Object-to-Test Coverage
@@ -316,6 +339,9 @@ Verify:
 - status transitions
 - summary projection
 - participant visibility
+- grant-funded participant roles
+- public solution projection source integrity
+- public solution run source-artifact reference integrity
 
 ### `Commitment`
 

@@ -41,6 +41,8 @@ These files help shape packaging, prioritization, positioning execution, and mar
 - [strategy/ICP_MATRIX.md](strategy/ICP_MATRIX.md)
 - [strategy/WHY_NOW_AND_WHY_THIS_MARKET.md](strategy/WHY_NOW_AND_WHY_THIS_MARKET.md)
 - [strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md](strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md)
+- [strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md)
+- [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
 - [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
 
 ## Product And UX Notes
@@ -48,6 +50,7 @@ These files help shape packaging, prioritization, positioning execution, and mar
 These files capture product-surface expectations that should stay aligned with canon and positioning:
 
 - [REQUEST_UX_NOTES.md](REQUEST_UX_NOTES.md)
+- [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
 
 ## Governance And Coordination
 

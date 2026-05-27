@@ -64,6 +64,9 @@ Rules:
 - avoid UI-specific event names
 - version the payload, not the semantic meaning, unless the meaning truly changed
 
+Request-grant, review, and public-solution activity should use the existing request, commitment, fulfillment, artifact, and transaction event families unless a later contract decision adds narrower event names.
+Do not introduce investment, yield, dividend, or passive revenue-share event names for funder activity.
+
 ## Event Families
 
 ### Request events
@@ -125,6 +128,8 @@ Artifact payloads may carry:
 - `stepId` when the artifact belongs to one fulfillment step
 - a stable container union such as `document`, `external_ref`, or `object_ref`
 
+Public-solution projection metadata should live on the artifact record or rebuildable projection logic until `schemas/events/` accepts a narrower payload shape.
+
 ### Transaction events
 
 - required
@@ -136,6 +141,10 @@ Artifact payloads may carry:
 - refunded
 - disputed
 - failed
+
+Request grants should appear as transaction payload meaning and request-attached transaction records, not as a separate event family.
+Public solution inspection should not emit durable transaction events by default.
+Credit-consuming solution runs should emit normal transaction and fulfillment events on the run request.
 
 ## Ordering Rules
 
@@ -188,6 +197,10 @@ They must be reconstructible from:
 - the event stream
 - canonical related records
 - deterministic projection logic
+
+Public solution surfaces are projections over completed requests and accepted artifacts.
+They must be rebuildable from the same durable request history.
+Paid run projections should link back to the source accepted artifact without mutating the source request history.
 
 ## Contract Placement
 

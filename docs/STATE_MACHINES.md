@@ -69,6 +69,8 @@ This file defines the canonical lifecycle states for Boreal Network aggregates.
 - `cancelled`: the request was intentionally closed without successful completion.
 - `failed`: the request failed in a terminal way.
 
+Accepted closure may later project as a public solution surface, but the completed `Request` remains the durable source of truth.
+
 ### Allowed transitions
 
 - `draft` -> `open`
@@ -103,6 +105,10 @@ This file defines the canonical lifecycle states for Boreal Network aggregates.
 - A request in `funded` or later must have at least one funding or approval event proving the boundary.
 - A request in `in_progress` or later must have an active fulfillment.
 - A request in `in_progress` or later may omit `activeCommitmentId` only when the fulfillment was authorized through the owner-private direct auto-fulfillment lane.
+- Optional request grants do not create separate request states; they move through the same `funding_required`, `funded`, fulfillment, delivery, and completion gates when they are required for execution.
+- A public solution surface must not project from a request until the relevant artifact and fulfillment or review path has reached accepted closure.
+- Inspecting a public solution should not change the source request state.
+- Running or forking a public solution for a new user should create a new request or accepted execution lane instead of reopening the completed source request.
 - `completed`, `cancelled`, and `failed` are terminal.
 
 ## `Commitment`
@@ -218,4 +224,7 @@ This file defines the canonical lifecycle states for Boreal Network aggregates.
 ### Invariants
 
 - Money totals must never be inferred from chat text alone.
+- Request-grant funding, reviewer compensation, solver payout, refund, and solution-run credit debit states must remain request-attached and auditable.
+- Public solution inspection must not create a transaction state by itself.
+- Passive funders must not receive automatic payout states unless a later canon decision explicitly changes the commercial and compliance boundary.
 - Terminal transaction states must remain auditable and immutable.

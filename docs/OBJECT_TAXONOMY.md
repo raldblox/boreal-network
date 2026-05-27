@@ -70,6 +70,7 @@ It carries:
 `Request` is the main object of the network.
 It may begin as an explicit draft before routing, funding, or fulfillment details are complete.
 When a request is both `open` and `public`, it may be exposed to external supply as a fetchable market request.
+It remains the root even when optional funders, reviewers, solvers, or later audience runs attach to the work.
 
 ### `RequestParticipant`
 
@@ -83,6 +84,10 @@ Typical roles:
 - proposer
 - assignee
 - collaborator
+- solver
+- reviewer
+- funder
+- audience
 - runtime
 
 This keeps participation explicit instead of hidden in ad hoc arrays.
@@ -104,6 +109,8 @@ This unifies direct specialist flows and market proposal flows under one durable
 `Commitment` remains canonical for public, external, funded, or approval-gated work.
 
 Owner-private desktop auto-resolution may skip a visible `Commitment` object and authorize execution directly from the owner-bound `Request`.
+
+Request-grant award, eligibility, release, and review-compensation rules should stay in `Commitment` terms and metadata until a later decision proves a new kind is required.
 
 ### `Fulfillment`
 
@@ -165,6 +172,11 @@ Container rule:
 - file, media, PDF, audio, video, binary, and archive outputs may use external or object-storage references with durable metadata
 - artifacts may attach directly to the request or to one `Fulfillment` or `FulfillmentStep` lane when the output belongs to a specific execution lane
 
+Accepted artifacts may be projected as public solution surfaces.
+`Solution` or `Solution Capsule` is UI language over completed request truth, not a canonical root object.
+Inspecting that public solution should not create payment truth by itself.
+Running it with inference, workflow execution, provider APIs, human review, or service capacity should create request-attached transaction truth on the run request.
+
 ### `Transaction`
 
 Represents money movement or payment state.
@@ -178,6 +190,9 @@ Use `kind` to distinguish:
 - settlement
 - payout
 - refund
+
+Request grants, solution-run credit debits, reviewer fees, and solver payouts are `Transaction` truth attached to a `Request`.
+They must not turn passive funders into automatic cash-profit participants.
 
 ### `RequestEvent`
 
@@ -193,6 +208,7 @@ It is the canonical place for:
 - fulfillment activity
 - artifact publication
 - payment activity
+- request-grant activity
 - review activity
 
 ## Derived or Ephemeral Objects
@@ -205,6 +221,8 @@ These may exist, but they are not canonical roots:
 - `ReputationSnapshot`
 - `Projection`
 - `SearchIndexDocument`
+- `SolutionSurface`
+- `SolutionCapsule`
 
 Derived objects may be deleted and rebuilt.
 Canonical objects may not.

@@ -44,6 +44,7 @@ Not promoted to root canon in this file:
 - cross-seller credits
 - cash-out or withdrawal for buyers
 - credits as a crypto or stored-value product
+- charging credits only to inspect a public solution
 - replacing request-level transaction truth with an account-balance abstraction
 - making the first purchase depend on connecting the buyer's external SaaS accounts
 
@@ -266,6 +267,8 @@ They are support objects in the same sense that auth support objects or resolver
 - credits are non-withdrawable
 - credits may be refundable only under Boreal's first-party service policy
 - credits should not be redeemable against third-party supply until a later canon and payout expansion exists
+- credits should be consumed for live execution such as inference, provider API calls, workflow runs, media generation, human review, or service capacity
+- credits should not be consumed merely because a user inspects a public solution artifact
 
 ## Top-Up Packs
 
@@ -305,6 +308,9 @@ Suggested transaction metadata:
 - `metadata.fundingSource = "buyer_credit"`
 - `metadata.creditLedgerEntryId`
 - `metadata.creditAmountApplied`
+- `metadata.usageKind = "solution_run"` when the credit spend is for a public solution run
+- `metadata.sourceArtifactId` when the run references an accepted public solution artifact
+- `metadata.inferenceCost` or `metadata.providerUsageRef` when known and safe to store
 
 Suggested direct-payment metadata:
 
@@ -314,6 +320,31 @@ Suggested direct-payment metadata:
 
 This keeps the request ledger authoritative for actual work commerce.
 
+## Public Solution Reuse Rule
+
+Public solution inspection is free by default.
+
+Examples of free inspection:
+
+- reading the accepted plan
+- viewing the proof package
+- copying safe public method notes
+- reviewing public artifacts
+
+Paid reuse starts when Boreal runs the solution again.
+
+Examples of paid runs:
+
+- model inference
+- Runway or other provider calls
+- workflow execution
+- generated media or documents
+- human review
+- service capacity
+
+Paid reuse should create a new run `Request` or accepted execution lane that references the source accepted artifact.
+The credit spend belongs to that run request, not to the completed source request.
+
 ## Refund Rules
 
 Refund order should be:
@@ -322,7 +353,7 @@ Refund order should be:
 2. if the request was funded by buyer credit, restore buyer credit through the support ledger
 3. do not let buyer-credit refunds become seller payout obligations
 
-## What Credits Must Not Unlock Yet
+## What Credits Must Not Buy Yet
 
 Credits should not initially support:
 
@@ -401,6 +432,8 @@ Do not let the surface route invent a second hidden commerce model.
 - selected plan context stays in metadata and routing, not fake brief text
 - one buyer can pay directly without understanding Boreal internals
 - one repeat buyer can reuse prepaid first-party credits across first-party service plans
+- one public solution can be inspected without credit usage
+- one paid solution run can debit credits only after a run request or accepted execution lane exists
 - request-level commerce truth remains visible through canonical request, commitment, fulfillment, artifact, and transaction objects
 
 ## Open Questions

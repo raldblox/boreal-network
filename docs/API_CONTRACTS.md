@@ -230,6 +230,8 @@ Rules:
 
 - buyer-credit endpoints are authenticated account-session routes in the first slice
 - top-up creates buyer-credit support ledger truth but does not create request `Transaction` truth
+- public solution inspection should not call buyer-credit apply or create request `Transaction` truth by itself
+- credit-consuming solution runs should create or use one run `Request` that references the source accepted artifact before debiting credits
 - PayPal order creation for account top-up creates one pending buyer-credit ledger entry and redirects the buyer through PayPal approval
 - PayPal return capture and verified PayPal webhooks may settle that same pending ledger entry
 - PayPal settlement must be idempotent because buyer return and webhook delivery can race or replay
@@ -239,6 +241,7 @@ Rules:
 - curated first-party service checkout may compose request creation, preferred `Supply` pinning, request open, and buyer-credit debit in one endpoint when the endpoint returns the same canonical `Request`, `Supply`, `Transaction`, and buyer-credit ledger projections
 - curated first-party service checkout must stay idempotency-keyed and must not introduce a separate order root object for launch-price credit spend
 - payment idempotency replays must resolve to the same request, amount, ledger debit, and request-attached `Transaction`
+- solution-run idempotency replays must resolve to the same run request, same source artifact reference, same credit debit, and same request-attached `Transaction`
 - Character Call Starter checkout should also bootstrap the owner-private `Fulfillment` lane and request artifacts after settlement instead of storing service-progress truth outside the request
 - Character Call Starter session launch returns ephemeral Runway realtime credentials, must resolve the `fulfillmentId` to the same owned request, and must not persist one-time session tokens as durable artifacts
 - mutating payment routes accept `Idempotency-Key`
@@ -246,6 +249,9 @@ Rules:
 Machine-readable contract:
 
 - `schemas/openapi/payment-and-credit.openapi.yaml`
+
+No public solution-run HTTP endpoint is committed in this canon pass.
+When one is added, it must update OpenAPI in the same patch and must return canonical request, supply, fulfillment, artifact, transaction, and buyer-credit ledger references instead of inventing a second run object.
 
 ## Account Auth Surface
 

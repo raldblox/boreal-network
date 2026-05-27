@@ -31,6 +31,8 @@ If a strategy doc implies a change to canon, update canon first or in the same p
 - [ICP_MATRIX.md](ICP_MATRIX.md) - primary, secondary, and excluded user matrix
 - [WHY_NOW_AND_WHY_THIS_MARKET.md](WHY_NOW_AND_WHY_THIS_MARKET.md) - research-backed demand and timing memo
 - [LANDING_PAGE_MESSAGING_FRAMEWORK.md](LANDING_PAGE_MESSAGING_FRAMEWORK.md) - homepage and wedge-page message architecture
+- [FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md) - worker instructions for request-grant and public-solution UI/copy
+- [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md) - full web UX revamp blueprint for request board, workroom, flow UI, services, supply, account, credits, and public solutions
 - [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md) - quality bar across brand, product, supply, trust, and commerce
 - [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md) - first-party service families, preset plans, and launch pricing
 - [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md) - canon-safe direct-link service and buyer-credit spec
@@ -42,9 +44,11 @@ If a strategy doc implies a change to canon, update canon first or in the same p
 3. [ICP_MATRIX.md](ICP_MATRIX.md)
 4. [WHY_NOW_AND_WHY_THIS_MARKET.md](WHY_NOW_AND_WHY_THIS_MARKET.md)
 5. [LANDING_PAGE_MESSAGING_FRAMEWORK.md](LANDING_PAGE_MESSAGING_FRAMEWORK.md)
-6. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
-7. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
-8. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
+6. [FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md)
+7. [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
+8. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
+9. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
+10. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
 
 ## Working Rule
 

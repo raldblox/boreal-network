@@ -18,6 +18,8 @@ Use it as the shortest trusted source for pitch decks, idea roasts, investor app
 - Supply can come from humans, agents, tools, providers, or runtimes.
 - Boreal is for work AI cannot responsibly finish alone.
 - Boreal Desktop keeps local runtime, human intervention, and verification inside the workflow.
+- Optional request grants can help fund a public request, with accepted artifacts projected as reusable solution surfaces.
+- Public solutions are free to inspect by default; running them consumes credits when inference or execution capacity is used.
 
 ## Problem
 
@@ -38,6 +40,7 @@ Use it as the shortest trusted source for pitch decks, idea roasts, investor app
 - paid request pilots first
 - curated supply whitelist second
 - initial supply intake is strongest where AI-only execution still breaks on judgment, verification, or handoff
+- optional request grants only where the accepted output can become a public solution
 
 ## Primary Buyer
 
@@ -67,7 +70,8 @@ Representative classes:
 ## Revenue Model
 
 - primary: take rate on funded request GMV
-- secondary: premium routing, curation, and urgency
+- request grants count as funded request activity when they attach to one request and one accepted award path
+- secondary: premium routing, curation, urgency, and paid solution-run or fork fees
 - later: private supply, enterprise software, payout or verification infrastructure
 
 ## Strategic Position
@@ -83,6 +87,7 @@ Representative classes:
 - continuity through fulfillment instead of stopping at matching
 - mixed human and AI supply from the start
 - payment, proof, and payout modeled as first-class business truth
+- public solutions derive from accepted artifacts instead of standalone posts
 
 ## Evidence Signals
 
@@ -99,6 +104,9 @@ Do not claim that Boreal today is:
 - a general-purpose enterprise agent suite
 - a protocol business first
 - fully proven on every vertical
+- a passive investment or yield product for request funders
+- a tax-deductible donation platform by default
+- a paywall for merely inspecting public solutions
 
 The correct claim is sharper:
 

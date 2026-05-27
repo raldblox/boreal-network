@@ -93,6 +93,21 @@ Headline:
 Subheadline:
 `Boreal is built for startup and SMB teams buying work that needs more than one AI answer and more accountability than a chat thread.`
 
+### Public Solution Variant
+
+Use only when the page is about funded public requests or reusable solutions.
+
+Headline:
+`Free to inspect. Paid to run.`
+
+Subheadline:
+`Boreal helps people fund real requests, publish accepted artifacts as public solutions, and charge credits only when someone reruns the solution with inference, workflow execution, or review.`
+
+CTA options:
+- `Fund a request`
+- `View public solutions`
+- `Run with credits`
+
 ## Above-The-Fold Rules
 
 Must communicate quickly:
@@ -145,6 +160,7 @@ Within that thread:
 - execution stays attached to the original ask
 - artifacts and proof stay visible
 - review, revision, and payout stay on the same track
+- accepted public solutions stay inspectable while live reruns consume credits only when execution capacity is used
 
 ### Plain-language value bullets
 
@@ -312,6 +328,8 @@ Do say:
 - proof and review
 - mixed human and AI execution
 - work AI cannot finish alone
+- public solutions are free to inspect
+- running a solution consumes credits when inference or execution is used
 
 Do not lead with:
 - decentralized network
@@ -320,6 +338,7 @@ Do not lead with:
 - ontology-heavy framing
 - protocol-depth language
 - grand claims about full automation
+- pay to reveal public knowledge
 
 ## Page Success Criteria
 

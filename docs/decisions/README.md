@@ -40,3 +40,4 @@ Accepted decisions:
 - [0020-first-party-buyer-credit-and-request-funding-boundary.md](0020-first-party-buyer-credit-and-request-funding-boundary.md)
 - [0021-mode-aware-web-ia-and-service-surfaces.md](0021-mode-aware-web-ia-and-service-surfaces.md)
 - [0022-production-mvp-architecture-slice.md](0022-production-mvp-architecture-slice.md)
+- [0023-request-grants-and-public-solution-surface.md](0023-request-grants-and-public-solution-surface.md)

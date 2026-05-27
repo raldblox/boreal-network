@@ -41,6 +41,8 @@ Representative request classes:
 - MVP, specification, and prototype work
 - media and content production work
 - specialist operator work that needs review, proof, and payout
+- public problem requests where accepted work can become a reusable solution
+- reusable service plans where inspection is public but reruns consume inference or execution credits
 
 ## Current Launch Motion
 
@@ -48,6 +50,7 @@ The best first motion for this wedge is:
 
 - paid buyer requests first
 - curated supply whitelist second
+- optional request grants where multiple people want the same problem solved
 
 That keeps validation focused on real demand and real fulfillment pressure.
 
@@ -65,6 +68,8 @@ These classes fit Boreal because they share the same properties:
 - mixed human and AI execution
 - non-trivial scoping
 - need for accountability after the first message
+- potential for accepted artifacts to become reusable public solutions
+- natural credit-metered reuse when a solution is run again with inference, provider APIs, workflow execution, or review
 
 ## What Not To Wedge On First
 
@@ -94,8 +99,9 @@ After the first wedge, Boreal can expand into:
 
 1. repeat buyer workflows with curated supply
 2. collective and team-based fulfillment
-3. private supply and enterprise operator lanes
-4. runtime-connected and peer-connected execution surfaces
+3. public solution surfaces funded by optional request grants
+4. private supply and enterprise operator lanes
+5. runtime-connected and peer-connected execution surfaces
 
 Expansion should preserve the same root truth:
 

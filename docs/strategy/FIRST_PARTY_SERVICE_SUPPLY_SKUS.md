@@ -22,6 +22,7 @@ Use this file to define:
 - Plan selection must not be rewritten into fake buyer-authored `brief` text.
 - Payment, proof, and delivery should still land on `Transaction`, `Artifact`, and `Fulfillment`.
 - These service families should launch as `unlisted` first-party supply, not as broad public marketplace inventory.
+- If a completed service later becomes a public solution, inspection can be free while rerunning the plan consumes credits for inference or execution.
 
 ## Packaging Rule
 
@@ -229,6 +230,8 @@ Canonical mapping:
 - Every plan should create or reuse one private buyer-owned `Request`.
 - Every plan should ship one visible proof package through `Artifact`.
 - First-sale service pages should show required upload inputs before asking for account access.
+- Public versions of completed plans may be inspectable for free.
+- Rerunning a public plan should consume credits when it uses inference, provider APIs, workflow execution, human review, or service capacity.
 
 ## Outcome-First Problem Conversion
 

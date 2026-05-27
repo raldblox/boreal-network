@@ -46,6 +46,9 @@ Verify the next action.
 Examples: clarify, show shortlist, draft commitment, or block and escalate.
 For embodied or verification-heavy asks, verify that policy prefers clarification or escalation when place, access, timing, or proof requirements are missing.
 Verify that preselected supply may narrow the route, but does not bypass clarification, proof, funding, approval, or safety gates.
+Verify that requests asking for pooled funding, donations, grants, or bounties are framed as optional request grants unless a narrower commercial policy exists.
+Verify that funder participation does not imply passive investment upside, yield, dividend, or tax-deductible donation treatment.
+Verify that policy distinguishes free public solution inspection from paid solution runs that consume inference, provider APIs, workflow execution, human review, or service capacity.
 Verify that policy does not imply completion before proof and closure conditions are satisfied.
 
 ### 6. Mutation safety evals
@@ -64,6 +67,10 @@ Verify that request closure is blocked when required embodied steps or proof obl
 Verify that retryable first-party worker failures move fulfillment to `blocked`, preserve worker recovery metadata, and resume the same lane instead of forcing a fresh request.
 Verify that queued first-party provider tasks keep their task id on the active fulfillment lane, can be checked again through the same lane, and do not masquerade as completion before a durable artifact lands.
 Verify that public or cross-actor lanes do not inherit owner-private desktop assumptions when planner, matcher, or policy outputs are evaluated.
+Verify that request-grant funding, solver payout, reviewer compensation, and solution-run writes stay attached to a `Request` through `Transaction` records.
+Verify that public solution surfaces are projected only from completed requests with accepted artifacts, not from chat summaries or unreviewed drafts.
+Verify that viewing a public solution does not emit credit-debit or transaction writes.
+Verify that running a public solution creates or uses a referenced run request before debiting credits for inference or execution.
 
 ## Fixture Shape
 

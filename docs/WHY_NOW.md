@@ -59,6 +59,16 @@ Inference:
 
 Higher-value work requires commerce and workflow in the same system.
 
+## Signal 6: Solved Work Should Compound
+
+AI has made it easier to generate plausible answers, but it has not solved the trust problem around whether a hard request was actually completed, reviewed, and worth reusing.
+
+Inference:
+
+Accepted artifacts with proof, review, and payment history can become reusable public solutions.
+That is stronger than a static post because the solution points back to the request, participants, funding, fulfillment, and acceptance trail that produced it.
+When reuse requires inference, provider APIs, workflow execution, or human review, payment can attach to the run while the public solution remains free to inspect.
+
 ## Boreal's Timing
 
 Boreal is well-timed if it focuses on this exact gap:
@@ -66,5 +76,7 @@ Boreal is well-timed if it focuses on this exact gap:
 - demand enters as a request
 - mixed supply fulfills the work
 - commitment, proof, and payment remain attached to the same thread
+- optionally funded public requests can turn accepted artifacts into reusable solution surfaces
+- solution reuse can be monetized through credit-metered runs instead of paywalling public knowledge
 
 That gap is early enough to be open and mature enough to be fundable.

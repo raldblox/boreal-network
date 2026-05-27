@@ -12,6 +12,9 @@ It coordinates humans, agents, tools, and runtimes around one durable object:
 
 A request begins as demand.
 It can then move through routing, commitment, funding, fulfillment, proof, delivery, and payout without leaving the same durable thread.
+If the accepted output becomes reusable, the public solution surface is still a projection over that completed request and its accepted artifacts.
+Inspecting that public solution is different from running it.
+A run that consumes inference or execution capacity creates request-attached payment and fulfillment truth.
 
 The network model is the system shape.
 The commerce reading is the business category.
@@ -50,6 +53,7 @@ The same request should survive:
 - fulfillment
 - delivery
 - review
+- public solution projection when accepted work is reusable
 
 ### 4. Clear split between current truth and full history
 
@@ -81,11 +85,14 @@ The request, commitment, fulfillment, and proof model stays stable across them.
 - published supply
 - request participants and roles
 - quotes, proposals, assignments, and approvals
+- optional request grants and sponsor-style funding
 - execution ownership
+- credit-metered inference or execution runs when public solutions are reused
 - sub-work decomposition
 - outputs and proof
 - payment and payout records
 - append-only history
+- public solution projections over accepted artifacts
 
 ## What It Must Not Confuse
 
@@ -93,6 +100,7 @@ The request, commitment, fulfillment, and proof model stays stable across them.
 - `Supply` with `Actor`
 - `Commitment` with `Transaction`
 - UI copy like `Offer` with canonical schema
+- UI copy like `Solution` with canonical schema
 - extraction concepts like `Intent` with durable business objects
 
 ## Canonical Root Choice

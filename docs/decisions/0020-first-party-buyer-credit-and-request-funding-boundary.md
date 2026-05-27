@@ -52,6 +52,7 @@ They exist so Boreal can offer:
 
 - first-party prepay
 - repeat-buyer convenience
+- paid solution runs that consume inference or workflow execution
 - promotional credit
 - stable top-up accounting
 
@@ -81,6 +82,8 @@ Top-up belongs in:
 - `BuyerCreditLedgerEntry`
 
 When credit is later spent on one request, Boreal must still create or update request-attached `Transaction` truth for that work lane.
+Viewing or inspecting a public solution should not spend credit by itself.
+Running that solution with inference, provider APIs, workflow execution, human review, or service capacity should spend credit through request-attached transaction truth.
 
 ### 5. Payment source diversity is allowed behind one request-funding model
 

@@ -134,6 +134,9 @@ This repo defines the durable network model for:
 - fulfillment
 - artifacts and proof
 - payments and payout records
+- optional request grants
+- public solution projections over accepted artifacts
+- credit-metered solution runs when reuse consumes inference or execution
 - event history
 - governed workspace topology
 - safe parallel implementation boundaries
@@ -144,6 +147,8 @@ It also defines:
 - what Boreal wins first
 - why the business is a network instead of a point tool
 - how Boreal should make money without collapsing into agency economics
+- how optional request grants can fund public solutions without becoming passive investment claims
+- why public solutions can be free to inspect while paid runs consume credits
 - where Boreal product code, peer code, skills, and standards belong inside this monorepo
 
 It does not exist to hold random root-level implementation hacks.

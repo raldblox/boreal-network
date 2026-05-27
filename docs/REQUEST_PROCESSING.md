@@ -68,11 +68,12 @@ Do not explode a raw ask into a task tree before Boreal knows who should own the
 11. Commitment drafting
    Produce the commercial shape Boreal wants the owner to review.
 12. Funding gate
-   If the route requires funding, move through `Commitment` before execution.
+   If the route requires funding, or if optional request grants are being collected before solver award, move through `Commitment` and request-attached `Transaction` records before execution.
 13. Fulfillment creation
    Open one accepted execution lane.
 14. Delivery and resolution
-   Publish `Artifact`, settle `Transaction`, and resolve the `Request`.
+   Publish `Artifact`, complete required review or owner acceptance, settle `Transaction`, and resolve the `Request`.
+   If the accepted output is public, project a solution surface from the completed request and accepted artifact instead of creating a new root object.
 
 ## Open Request Room Rule
 
@@ -204,6 +205,42 @@ When owner-private desktop auto-resolution uses a configured supply:
 
 Do not treat every open-room message as a brief rewrite.
 
+## Request Grant And Solution Rule
+
+Optional request grants may help fund a request before or during solver selection.
+
+They should be modeled as:
+
+- `RequestParticipant` role activity for funders
+- `Commitment` terms or metadata for award and release rules
+- `Transaction` records for grant funding, settlement, refund, and solver payout
+- `RequestEvent` history for durable activity
+
+Request grants are not standalone donation objects, investment contracts, or passive revenue-share positions in the first model.
+Default product language should say `fund`, `sponsor`, `grant`, or `contribute`, not `invest`, `yield`, `dividend`, or `tax-deductible donation`.
+
+Solver payouts may be released after accepted work.
+Reviewer compensation may exist as a fixed review fee, credit, or reputation reward when review work is explicitly requested.
+Passive funders should receive access, attribution, prioritization, credits, or early reveal rights, not automatic cash upside.
+
+An accepted artifact may become a public solution surface.
+That surface is a projection over:
+
+- the completed `Request`
+- accepted `Artifact` records
+- accepted `Fulfillment` or review truth
+- related `Transaction` records
+- replayable `RequestEvent` history
+
+Public solution inspection should be free by default and should not create a credit debit.
+Inspection means viewing the accepted plan, explanation, proof, public artifact, reusable workflow shape, or safe request history.
+
+Running a solution is execution.
+If a run consumes inference, provider APIs, workflow execution, media generation, human review, embodied capacity, or other service resources, it should consume first-party credits or another approved payment source.
+The paid run should create a new `Request` or accepted execution lane that references the source accepted artifact, and its credit debit must land in request-attached `Transaction` truth.
+
+If a later user wants a private adaptation, implementation, or follow-up, create a new `Request` that references the accepted artifact.
+
 ## Visibility Rule
 
 - `draft` requests remain owner-scoped.
@@ -293,6 +330,11 @@ These objects are derived and rebuildable, not durable roots:
 - `brief.tags` may exist as optional labels, but matching prep should prefer `seeking`.
 - `FulfillmentStep` is the default home for generated sub-work.
 - A new `Request` is only justified by a new funding, ownership, routing, or review boundary.
+- Optional request grants do not fork the durable request; they attach to the same request through participants, commitments, transactions, and events.
+- A public `Solution` surface is a projection over accepted request artifacts, not a new canonical root object.
+- Public solution inspection does not consume credits by default.
+- Credit consumption begins when a user runs the solution through inference, provider APIs, workflow execution, human review, or other live execution capacity.
+- Passive funder revenue-share, investment, yield, dividend, and tax-deductible donation language must not appear in default request-processing outputs.
 - open request rooms should prefer adjacent durable objects plus request projection updates over inlining response history on the request root
 - ephemeral realtime signals should stay outside default durable history unless promoted
 - direct resolver APIs and chat mutation tools should map to the same durable request-side writes
