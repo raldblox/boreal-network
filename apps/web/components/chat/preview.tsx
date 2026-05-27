@@ -80,7 +80,7 @@ export function Preview() {
             onClick={() => handleRoute("/?mode=request")}
             type="button"
           >
-            Post request
+            Start request
             <ArrowRightIcon className="size-4" />
           </Button>
           <Button

@@ -7,7 +7,7 @@ import {
   borealAccessTracks,
   borealHomepageCopy,
   borealHowItWorksPoints,
-  borealVisionPoints,
+  borealReusePoints,
   borealWhyBorealPoints,
 } from "@/lib/marketing";
 import {
@@ -30,7 +30,7 @@ import {
 } from "./surface-layout";
 
 export function HomePage() {
-  const [whyDraft, whyHuman, whyExists] = borealWhyBorealPoints;
+  const [whyDraft, whyWorkflow, whyExists] = borealWhyBorealPoints;
 
   return (
     <div className={surfacePageClassName}>
@@ -53,7 +53,7 @@ export function HomePage() {
                 asChild
                 className="h-9 rounded-full px-4 text-[12px] font-medium"
               >
-                <Link href="/?mode=request">Post request</Link>
+                <Link href="/?mode=request">Start request</Link>
               </Button>
             </>
           }
@@ -76,7 +76,7 @@ export function HomePage() {
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Button asChild className="h-11 rounded-full px-5 text-[12px] font-medium">
-                  <Link href="/?mode=request">Post request</Link>
+                  <Link href="/?mode=request">Start request</Link>
                 </Button>
                 <Button
                   asChild
@@ -95,10 +95,10 @@ export function HomePage() {
             <section className={surfaceSectionClassName} id="how-it-works">
               <p className={surfaceEyebrowClassName}>How it works</p>
               <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Keep the work, the people, and the proof in one flow.
+                Open the request, carry the work, keep the result attached.
               </h2>
 
-              <div className="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-5">
                 {borealHowItWorksPoints.map((point) => (
                   <div className="border-t border-border/60 pt-5" key={point.label}>
                     <p className={surfaceEyebrowClassName}>{point.label}</p>
@@ -113,11 +113,11 @@ export function HomePage() {
             <section className={surfaceSectionClassName} id="why-boreal">
               <p className={surfaceEyebrowClassName}>Why Boreal</p>
               <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Most AI tools stop at output. Real work does not.
+                Most tools stop at the draft, the task, or the match.
               </h2>
 
               <div className="mt-8 grid gap-8 md:grid-cols-2">
-                {[whyDraft, whyHuman].map((point) => (
+                {[whyDraft, whyWorkflow].map((point) => (
                   <div className="border-t border-border/60 pt-5" key={point.label}>
                     <p className={surfaceEyebrowClassName}>{point.label}</p>
                     <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
@@ -135,14 +135,19 @@ export function HomePage() {
               </div>
             </section>
 
-            <section className={surfaceSectionClassName} id="vision">
-              <p className={surfaceEyebrowClassName}>Vision</p>
+            <section className={surfaceSectionClassName} id="reuse">
+              <p className={surfaceEyebrowClassName}>Reuse</p>
               <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                We want AI to help finish work, not just draft it.
+                Accepted work should not disappear.
               </h2>
+              <p className={cn(surfaceBodyClassName, "mt-4")}>
+                When the result should stay useful, Boreal can keep the accepted
+                artifact attached to the source request instead of burying it in
+                a private delivery thread.
+              </p>
 
               <div className="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-                {borealVisionPoints.map((point) => (
+                {borealReusePoints.map((point) => (
                   <div className="border-t border-border/60 pt-5" key={point.label}>
                     <p className={surfaceEyebrowClassName}>{point.label}</p>
                     <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -156,8 +161,13 @@ export function HomePage() {
             <section className={surfaceSectionClassName} id="access">
               <p className={surfaceEyebrowClassName}>Access</p>
               <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Starting with two clear ways in.
+                Starting narrow, on purpose.
               </h2>
+              <p className={cn(surfaceBodyClassName, "mt-4")}>
+                Paid requests come first. Curated supply comes next. Public
+                request funding opens selectively where the accepted work should
+                stay reusable.
+              </p>
 
               <div className="mt-8 grid gap-5 lg:grid-cols-2">
                 {borealAccessTracks.map((track) => (
@@ -183,7 +193,7 @@ export function HomePage() {
                 <div className={surfaceCardTitleClassName}>Boreal</div>
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   <Link href="/">Home</Link>
-                  <Link href="/?mode=request">Post request</Link>
+                  <Link href="/?mode=request">Start request</Link>
                   <Link href="/account">Account</Link>
                   <Link href="/supplies/new?entry=whitelist">Supply whitelist</Link>
                   <Link href="/download/boreal-desktop">Desktop</Link>

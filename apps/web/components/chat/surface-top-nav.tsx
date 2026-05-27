@@ -18,7 +18,7 @@ export function buildHomeSectionTopNavLinks() {
     { href: "/#overview", label: "Overview" },
     { href: "/#how-it-works", label: "How it works" },
     { href: "/#why-boreal", label: "Why Boreal" },
-    { href: "/#vision", label: "Vision" },
+    { href: "/#reuse", label: "Reuse" },
     { href: "/#access", label: "Access" },
   ] satisfies SurfaceTopNavLink[];
 }

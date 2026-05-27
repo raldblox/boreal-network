@@ -31,7 +31,7 @@ export default function AuthLayout({
                     Boreal
                   </span>
                   <p className="max-w-sm text-sm leading-7 text-muted-foreground">
-                    One accountable thread for the ask, the work, and the proof.
+                    One visible path for the ask, the work, and the proof.
                   </p>
                 </div>
               </div>

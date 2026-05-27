@@ -1,85 +1,90 @@
 export const borealHomepageCopy = {
-  eyebrow: "For work that needs real completion",
-  title: "Turn a work request into a finished outcome.",
+  eyebrow: "From request to accepted result",
+  title: "One thread from request to accepted result.",
   body:
-    "Boreal helps teams route, execute, review, and prove work that AI cannot finish on its own.",
+    "Open a request, fund it if needed, route the work, review what comes back, and keep the accepted artifact attached to the same flow.",
   support:
-    "Starting with paid request pilots and a curated supply whitelist while we prove the first workflows.",
+    "Starting with paid request pilots, curated supply, and selective public-request funding where accepted work should stay reusable.",
 } as const;
 
 export const borealHowItWorksPoints = [
   {
     body:
-      "Start with the brief, the goal, and any constraints. Boreal opens one tracked request instead of scattering the work across chats, forms, and docs.",
+      "Start with the problem, the goal, and the constraints. Boreal keeps one request open instead of letting the work break into chats, forms, and side threads.",
     label: "Open the request",
   },
   {
     body:
-      "Boreal narrows the right mix of humans, agents, tools, or runtimes before the work starts.",
-    label: "Route the right lane",
+      "When the same problem is worth solving publicly, funding can attach to the request without turning it into a separate grant or bounty object.",
+    label: "Fund it if needed",
   },
   {
     body:
-      "Updates, blockers, and delivery stay attached to the same request while the work is moving.",
-    label: "Run the work",
+      "Boreal narrows the right solver, reviewer, or runtime lane before the work starts so the request does not drift.",
+    label: "Route the work",
   },
   {
     body:
-      "Proof, review, and closeout stay on the same flow so the work is not treated as done too early.",
-    label: "Review what was done",
+      "Artifacts, proof, and acceptance stay attached to the same request before anyone treats the job as done.",
+    label: "Review the result",
+  },
+  {
+    body:
+      "If the accepted work should stay useful, Boreal can keep it visible as a public solution and let later users fork from it into a new request.",
+    label: "Reuse what worked",
   },
 ] as const;
 
 export const borealWhyBorealPoints = [
   {
     body:
-      "A polished answer can still miss the handoff, the check, or the real-world step that makes the result usable.",
-    label: "The draft is not the finish",
+      "A polished answer can still miss the review, proof, or handoff that makes the work usable in the real world.",
+    label: "A draft is not a finished result",
   },
   {
     body:
-      "Some work still needs judgment, communication, approval, onsite action, or verification before it is truly done.",
-    label: "Human steps still matter",
+      "Tracking a request, matching a person, or running a workflow is not enough if the work still loses context before review and closeout.",
+    label: "A task board is not a completion system",
   },
   {
     body:
-      "Boreal exists to keep the work, the people, and the proof on one visible path to completion.",
+      "Boreal keeps the request, the work, the funding, and the accepted result on one visible path instead of scattering the job across posts, chats, tools, and delivery threads.",
     label: "Why Boreal exists",
   },
 ] as const;
 
-export const borealVisionPoints = [
+export const borealReusePoints = [
   {
     body:
-      "Let AI plan, synthesize, route, and handle routine execution where it is actually strong.",
-    label: "Use AI for the heavy lift",
+      "The accepted result should still point back to the original ask, the participants, and the proof that made it valid.",
+    label: "Keep the source request",
   },
   {
     body:
-      "Bring people back into the flow when judgment, trust, communication, or verification still matters.",
-      label: "Keep humans where they matter",
+      "When work is worth reusing, Boreal can project it as a public solution instead of burying it in private delivery threads.",
+    label: "Keep the accepted artifact useful",
   },
   {
     body:
-      "Use a local runtime when privacy, local tools, or owner-controlled execution matter to the outcome.",
-    label: "Keep local runtime in the loop",
+      "A later user can start a new request from the accepted artifact when they need a custom follow-up instead of starting from zero.",
+    label: "Fork from what worked",
   },
 ] as const;
 
 export const borealAccessTracks = [
   {
     body:
-      "Bring work that is too messy for disconnected tools and too important to leave at a draft. Start with a paid pilot.",
-    cta: "Post request",
+      "Bring a serious request that needs more than a one-shot answer. Start with a paid pilot and keep the work, review, and proof on one track.",
+    cta: "Start request",
     href: "/?mode=request",
-    label: "Post a work request",
+    label: "Start a private request",
   },
   {
     body:
-      "Join the whitelist if you can show a real workflow where AI alone breaks and where human judgment, verification, or handoff still changes the outcome.",
+      "Join if you can show a real workflow where review, proof, judgment, or handoff still matter after AI has done its part.",
     cta: "Join whitelist",
     href: "/supplies/new?entry=whitelist",
-    label: "Join the supply whitelist",
+    label: "Join the curated whitelist",
   },
 ] as const;
 
