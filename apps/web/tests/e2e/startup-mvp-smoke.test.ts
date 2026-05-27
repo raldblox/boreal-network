@@ -96,7 +96,7 @@ test.describe("Startup MVP service checkout smoke", () => {
     ).toBeVisible();
     await expect(page.getByText("Credit checkout")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Pay $1 with credits" })
+      page.getByRole("button", { name: "Run service with credits" })
     ).toBeVisible();
 
     await page.getByLabel("Character name").fill("Mira the clocksmith");
@@ -115,16 +115,18 @@ test.describe("Startup MVP service checkout smoke", () => {
       .getByLabel("First message direction")
       .fill("Welcome the visitor and ask what they want to learn.");
 
-    await page.getByRole("button", { name: "Pay $1 with credits" }).click();
+    await page.getByRole("button", { name: "Run service with credits" }).click();
 
-    await expect(page.getByText("Request funded.")).toBeVisible();
+    await expect(
+      page.getByText("Request funded and ready for proof.")
+    ).toBeVisible();
     await expect(
       page.getByText("Transaction: txn_smoke_character_call")
     ).toBeVisible();
     await expect(page.getByText("Credit balance: $0.00")).toBeVisible();
     await expect(page.getByText("Fulfillment: active")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Open request thread" })
+      page.getByRole("button", { name: "Open Request workroom" })
     ).toBeVisible();
 
     expect(checkoutIdempotencyKey).toMatch(

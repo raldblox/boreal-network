@@ -5,6 +5,123 @@ const emptySuppliesResponse = {
   hasMore: false,
 };
 
+const emptyRequestsResponse = {
+  requests: [],
+  hasMore: false,
+};
+
+const publicRequestResponse = {
+  requests: [
+    {
+      id: "req_onboarding_audit",
+      key: "audit-onboarding-flow",
+      status: "open",
+      visibility: "public",
+      brief: {
+        title: "Audit an onboarding flow",
+        summary: "Review signup friction and return a proof-backed brief.",
+        body: "Review signup friction and return a proof-backed brief.",
+        constraints: {},
+        outputKinds: ["brief"],
+        tags: ["ux", "audit"],
+      },
+      seeking: {
+        actorKinds: ["ai_agent"],
+        supplyKinds: ["digital"],
+        teamMode: "single",
+        notes: "",
+      },
+      budget: {
+        mode: "fixed",
+        currency: "USD",
+        fixedAmount: 50,
+      },
+      deadline: null,
+      activeRefs: {
+        acceptedArtifactId: null,
+        activeCommitmentId: null,
+        activeFulfillmentId: null,
+        latestArtifactId: null,
+        latestTransactionId: null,
+      },
+      latest: {
+        eventId: null,
+        eventType: null,
+        message: null,
+        at: null,
+      },
+      derived: {
+        routeFamily: "digital",
+        executionKind: "ai_workflow",
+        paymentMode: "buyer_credit",
+        matchingMode: "open_pool",
+        missingDetails: [],
+        readiness: {
+          readyForOpen: true,
+          readyForMatch: true,
+          state: "ready_to_match",
+          summary: "Ready for plan comparison.",
+        },
+        routeSummary: "Digital review with proof-backed notes.",
+      },
+      createdAt: "2026-05-20T10:00:00.000Z",
+      updatedAt: "2026-05-26T10:00:00.000Z",
+    },
+    {
+      id: "req_avatar_handoff",
+      key: "avatar-launch-handoff",
+      status: "open",
+      visibility: "public",
+      brief: {
+        title: "Create an avatar launch handoff",
+        summary: "Prepare a character-call setup with approved reference image.",
+        body: "Prepare a character-call setup with approved reference image.",
+        constraints: {},
+        outputKinds: ["delivery"],
+        tags: ["avatar", "service"],
+      },
+      seeking: {
+        actorKinds: ["human", "ai_agent"],
+        supplyKinds: ["service"],
+        teamMode: "single",
+        notes: "",
+      },
+      budget: null,
+      deadline: null,
+      activeRefs: {
+        acceptedArtifactId: null,
+        activeCommitmentId: null,
+        activeFulfillmentId: null,
+        latestArtifactId: null,
+        latestTransactionId: null,
+      },
+      latest: {
+        eventId: null,
+        eventType: null,
+        message: null,
+        at: null,
+      },
+      derived: {
+        routeFamily: null,
+        executionKind: null,
+        paymentMode: null,
+        matchingMode: null,
+        missingDetails: ["approved_reference_image"],
+        readiness: {
+          readyForOpen: true,
+          readyForMatch: false,
+          state: "collecting_brief",
+          summary: "Needs an approved reference image before matching.",
+        },
+        routeSummary: null,
+      },
+      createdAt: "2026-05-24T10:00:00.000Z",
+      updatedAt: "2026-05-27T10:00:00.000Z",
+    },
+  ],
+  hasMore: false,
+};
+
 test.describe("Surface async states", () => {
   test("supply hub exposes an accessible loading state", async ({ page }) => {
     let releaseSupplies: () => void = () => {};
@@ -40,7 +157,7 @@ test.describe("Surface async states", () => {
 
     await expect(
       page.getByRole("status", { name: "Active supply lanes" })
-    ).toContainText("No active supplies yet");
+    ).toContainText("No active capability lanes yet");
   });
 
   test("supply hub renders the empty state and starter list", async ({
@@ -57,7 +174,7 @@ test.describe("Surface async states", () => {
 
     await expect(
       page.getByRole("status", { name: "Active supply lanes" })
-    ).toContainText("No active supplies yet");
+    ).toContainText("No active capability lanes yet");
     await expect(
       page.getByRole("list", { name: "Starter supply lanes" })
     ).toBeVisible();
@@ -83,5 +200,113 @@ test.describe("Surface async states", () => {
     await expect(
       page.getByRole("button", { name: "Supply lookup unavailable" }).first()
     ).toBeDisabled();
+  });
+
+  test("request board exposes an accessible loading state", async ({ page }) => {
+    test.setTimeout(30_000);
+    let releaseRequests: () => void = () => {};
+    const requestsLoaded = new Promise<void>((resolve) => {
+      releaseRequests = resolve;
+    });
+
+    await page.route("**/api/requests?scope=public&limit=20", async (route) => {
+      await requestsLoaded;
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(emptyRequestsResponse),
+      });
+    });
+
+    await page.goto("/open-requests");
+
+    await expect(
+      page.getByRole("status", { name: "Request board results" })
+    ).toHaveAttribute("aria-busy", "true");
+
+    releaseRequests();
+
+    await expect(
+      page.getByRole("status", { name: "Request board results" })
+    ).toContainText("No public requests yet");
+  });
+
+  test("request board renders empty and error states", async ({ page }) => {
+    test.setTimeout(30_000);
+    await page.route("**/api/requests?scope=public&limit=20", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(emptyRequestsResponse),
+      });
+    });
+
+    await page.goto("/open-requests");
+
+    await expect(
+      page.getByRole("status", { name: "Request board results" })
+    ).toContainText("No public requests yet");
+
+    await page.unroute("**/api/requests?scope=public&limit=20");
+    await page.route("**/api/requests?scope=public&limit=20", async (route) => {
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "forced request failure" }),
+      });
+    });
+
+    await page.reload();
+
+    await expect(
+      page.getByRole("alert", { name: "Request board results" })
+    ).toContainText("Request board unavailable");
+  });
+
+  test("request board supports search filters sort and reference links", async ({
+    page,
+  }) => {
+    test.setTimeout(30_000);
+    await page.route("**/api/requests?scope=public&limit=20", async (route) => {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(publicRequestResponse),
+      });
+    });
+
+    await page.goto("/open-requests");
+
+    await expect(
+      page.getByRole("heading", {
+        name: "Search public Requests before starting from scratch.",
+      })
+    ).toBeVisible();
+    await expect(page.getByText("Audit an onboarding flow")).toBeVisible();
+    await expect(page.getByText("Create an avatar launch handoff")).toBeVisible();
+
+    await page.getByRole("searchbox", { name: "Search request board" }).fill(
+      "avatar"
+    );
+
+    await expect(page.getByText("Create an avatar launch handoff")).toBeVisible();
+    await expect(page.getByText("Audit an onboarding flow")).toBeHidden();
+
+    await page.getByRole("button", { name: "Needs details" }).click();
+    await expect(page.getByText("Create an avatar launch handoff")).toBeVisible();
+    await expect(page.getByText("Clarify the ask before planning.")).toBeVisible();
+
+    await page.getByRole("searchbox", { name: "Search request board" }).fill("");
+    await page.getByRole("button", { name: "All statuses" }).click();
+    await page
+      .getByRole("combobox", { name: "Sort request board" })
+      .selectOption("title");
+
+    await expect(
+      page.getByText("Audit an onboarding flow").first()
+    ).toBeVisible();
+
+    await expect(page.getByRole("link", { name: /Use as reference/i }).first())
+      .toHaveAttribute(
+        "href",
+        "/?mode=request&referenceRequestId=req_onboarding_audit"
+      );
   });
 });
