@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { User } from "next-auth";
-import { useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { unstable_serialize } from "swr/infinite";
@@ -62,6 +62,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const { setOpenMobile, toggleSidebar } = useSidebar();
   const { mutate } = useSWRConfig();
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [optimisticHref, setOptimisticHref] = useState<string | null>(null);
+  const [, startNavigationTransition] = useTransition();
   const hasUser = Boolean(user);
   const isGuest = guestRegex.test(user?.email ?? "");
   const isRegularUser = hasUser && !isGuest;
@@ -82,10 +84,82 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const isNewSupplyMode = pathname === "/supplies/new";
   const isDesktopMode =
     pathname === "/download/boreal-desktop" || pathname === "/download/desktop";
+  const routeArrived = useCallback(
+    (href: string) => {
+      switch (href) {
+        case "/":
+          return isHomeMode;
+        case "/?mode=chat":
+          return isChatMode;
+        case "/?mode=request":
+          return isNewRequestMode;
+        case "/open-requests":
+          return isOpenRequestsView;
+        case "/services":
+          return isServicesView;
+        case "/supplies/new?entry=whitelist":
+          return isWhitelistMode;
+        case "/supplies":
+          return isSuppliesView && !isNewSupplyMode;
+        case "/supplies/new":
+          return isNewSupplyMode && !isWhitelistMode;
+        case "/download/boreal-desktop":
+          return isDesktopMode;
+        default:
+          return false;
+      }
+    },
+    [
+      isHomeMode,
+      isChatMode,
+      isNewRequestMode,
+      isOpenRequestsView,
+      isServicesView,
+      isWhitelistMode,
+      isSuppliesView,
+      isNewSupplyMode,
+      isDesktopMode,
+    ]
+  );
+  const navigateSidebar = useCallback(
+    (href: string) => {
+      setOpenMobile(false);
+      setOptimisticHref(href);
+      startNavigationTransition(() => {
+        router.push(href);
+      });
+    },
+    [router, setOpenMobile, startNavigationTransition]
+  );
+  const isNavActive = (href: string, fallback: boolean) =>
+    optimisticHref ? optimisticHref === href : fallback;
+  const isNavPending = (href: string) =>
+    optimisticHref === href && !routeArrived(href);
+
+  useEffect(() => {
+    if (optimisticHref && routeArrived(optimisticHref)) {
+      setOptimisticHref(null);
+    }
+  }, [optimisticHref, routeArrived]);
+
+  useEffect(() => {
+    if (!optimisticHref) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setOptimisticHref(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timeout);
+  }, [optimisticHref]);
 
   const handleDeleteAll = () => {
     setShowDeleteAllDialog(false);
-    router.replace("/?mode=chat");
+    setOptimisticHref("/?mode=chat");
+    startNavigationTransition(() => {
+      router.replace("/?mode=chat");
+    });
     mutate(unstable_serialize(getChatHistoryPaginationKey), [], {
       revalidate: false,
     });
@@ -154,57 +228,49 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                    isActive={isHomeMode}
-                    onClick={() => {
-                      setOpenMobile(false);
-                      router.push("/");
-                    }}
+                    isActive={isNavActive("/", isHomeMode)}
+                    onClick={() => navigateSidebar("/")}
                     tooltip="Home"
                   >
                     <PenSquareIcon className="size-4" />
                     <span className="font-medium">Home</span>
+                    <SidebarNavPendingDot visible={isNavPending("/")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                    isActive={isChatMode}
-                    onClick={() => {
-                      setOpenMobile(false);
-                      router.push("/?mode=chat");
-                    }}
+                    isActive={isNavActive("/?mode=chat", isChatMode)}
+                    onClick={() => navigateSidebar("/?mode=chat")}
                     tooltip="New chat"
                   >
                     <MessageSquareIcon className="size-4" />
                     <span className="font-medium">Scratch chat</span>
+                    <SidebarNavPendingDot visible={isNavPending("/?mode=chat")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                    isActive={isNewRequestMode}
-                    onClick={() => {
-                      setOpenMobile(false);
-                      router.push("/?mode=request");
-                    }}
+                    isActive={isNavActive("/?mode=request", isNewRequestMode)}
+                    onClick={() => navigateSidebar("/?mode=request")}
                     tooltip="Post request"
                   >
                     <FilePenLineIcon className="size-4" />
                     <span className="font-medium">Post request</span>
+                    <SidebarNavPendingDot visible={isNavPending("/?mode=request")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                    isActive={isOpenRequestsView}
-                    onClick={() => {
-                      setOpenMobile(false);
-                      router.push("/open-requests");
-                    }}
+                    isActive={isNavActive("/open-requests", isOpenRequestsView)}
+                    onClick={() => navigateSidebar("/open-requests")}
                     tooltip="Open requests"
                   >
                     <ListChecksIcon className="size-4" />
                     <span className="font-medium">Open requests</span>
+                    <SidebarNavPendingDot visible={isNavPending("/open-requests")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -220,30 +286,35 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                    isActive={isServicesView}
-                    onClick={() => {
-                      setOpenMobile(false);
-                      router.push("/services");
-                    }}
+                    isActive={isNavActive("/services", isServicesView)}
+                    onClick={() => navigateSidebar("/services")}
                     tooltip="Services"
                   >
                     <StoreIcon className="size-4" />
                     <span className="font-medium">Services</span>
+                    <SidebarNavPendingDot visible={isNavPending("/services")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {!isRegularUser ? (
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                      isActive={isWhitelistMode}
-                      onClick={() => {
-                        setOpenMobile(false);
-                        router.push("/supplies/new?entry=whitelist");
-                      }}
+                      isActive={isNavActive(
+                        "/supplies/new?entry=whitelist",
+                        isWhitelistMode
+                      )}
+                      onClick={() =>
+                        navigateSidebar("/supplies/new?entry=whitelist")
+                      }
                       tooltip="Supply whitelist"
                     >
                       <PackageIcon className="size-4" />
                       <span className="font-medium">Supply whitelist</span>
+                      <SidebarNavPendingDot
+                        visible={isNavPending(
+                          "/supplies/new?entry=whitelist"
+                        )}
+                      />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
@@ -251,15 +322,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                      isActive={isSuppliesView}
-                      onClick={() => {
-                        setOpenMobile(false);
-                        router.push("/supplies");
-                      }}
+                      isActive={isNavActive("/supplies", isSuppliesView)}
+                      onClick={() => navigateSidebar("/supplies")}
                       tooltip="Supplies"
                     >
                       <PackageIcon className="size-4" />
                       <span className="font-medium">Supply studio</span>
+                      <SidebarNavPendingDot visible={isNavPending("/supplies")} />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
@@ -267,15 +336,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                      isActive={isNewSupplyMode}
-                      onClick={() => {
-                        setOpenMobile(false);
-                        router.push("/supplies/new");
-                      }}
+                      isActive={isNavActive("/supplies/new", isNewSupplyMode)}
+                      onClick={() => navigateSidebar("/supplies/new")}
                       tooltip="New supply"
                     >
                       <PackageIcon className="size-4" />
                       <span className="font-medium">New supply</span>
+                      <SidebarNavPendingDot visible={isNavPending("/supplies/new")} />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
@@ -293,15 +360,18 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                      isActive={isDesktopMode}
-                      onClick={() => {
-                        setOpenMobile(false);
-                        router.push("/download/boreal-desktop");
-                      }}
+                      isActive={isNavActive(
+                        "/download/boreal-desktop",
+                        isDesktopMode
+                      )}
+                      onClick={() => navigateSidebar("/download/boreal-desktop")}
                       tooltip="Boreal Desktop"
                     >
                       <DownloadIcon className="size-4" />
                       <span className="font-medium">Desktop</span>
+                      <SidebarNavPendingDot
+                        visible={isNavPending("/download/boreal-desktop")}
+                      />
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : null}
@@ -390,9 +460,27 @@ function getSidebarListMode({
     return "requests";
   }
 
-  if (isServicesView || isOpenRequestsView || isDesktopMode || pathname === "/") {
+  if (
+    isServicesView ||
+    isOpenRequestsView ||
+    isDesktopMode ||
+    pathname === "/"
+  ) {
     return "none";
   }
 
   return "none";
+}
+
+function SidebarNavPendingDot({ visible }: { visible: boolean }) {
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <span
+      aria-hidden="true"
+      className="ml-auto size-1.5 shrink-0 animate-pulse rounded-full bg-sidebar-foreground/55 group-data-[collapsible=icon]:hidden"
+    />
+  );
 }

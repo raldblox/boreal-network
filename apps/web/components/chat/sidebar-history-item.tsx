@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import type { Chat } from "@/lib/db/schema";
 import {
@@ -41,15 +41,45 @@ const PureChatItem = ({
     chatId: chat.id,
     initialVisibilityType: chat.visibility,
   });
+  const [isNavigating, setIsNavigating] = useState(false);
+  const isVisuallyActive = isActive || isNavigating;
+
+  useEffect(() => {
+    if (isActive && isNavigating) {
+      setIsNavigating(false);
+    }
+  }, [isActive, isNavigating]);
+
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [chat.id]);
+
+  useEffect(() => {
+    if (!isNavigating) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setIsNavigating(false);
+    }, 5000);
+
+    return () => window.clearTimeout(timeout);
+  }, [isNavigating]);
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
         className="h-8 rounded-lg bg-transparent text-[13px] text-sidebar-foreground/55 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-active:bg-sidebar-accent/38 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium"
-        isActive={isActive}
+        isActive={isVisuallyActive}
       >
-        <Link href={`/chat/${chat.id}`} onClick={() => setOpenMobile(false)}>
+        <Link
+          href={`/chat/${chat.id}`}
+          onClick={() => {
+            setIsNavigating(true);
+            setOpenMobile(false);
+          }}
+        >
           <span className="truncate">{chat.title}</span>
         </Link>
       </SidebarMenuButton>
@@ -58,7 +88,7 @@ const PureChatItem = ({
         <DropdownMenuTrigger asChild>
           <SidebarMenuAction
             className="mr-0.5 rounded-md text-sidebar-foreground/50 ring-0 transition-colors duration-150 focus-visible:ring-0 hover:text-sidebar-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            showOnHover={!isActive}
+            showOnHover={!isVisuallyActive}
           >
             <MoreHorizontalIcon />
             <span className="sr-only">More</span>

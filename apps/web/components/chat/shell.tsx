@@ -277,17 +277,6 @@ export function ChatShell() {
     }
   }, [createRequest]);
 
-  const ensureRequestForSend = async () => {
-    if (!isRequestMode || activeRequest) {
-      return;
-    }
-
-    const createdRequest = await handleCreateRequest();
-    if (!createdRequest) {
-      throw new Error("Failed to start a new request.");
-    }
-  };
-
   useEffect(() => {
     if (
       !isRequestMode ||
@@ -598,7 +587,6 @@ export function ChatShell() {
                     isLoading={isLoading}
                     messages={messages}
                     onCreateRequest={handleCreateRequest}
-                    ensureRequestForSend={ensureRequestForSend}
                     onCancelEdit={() => {
                       setEditingMessage(null);
                       setInput("");
@@ -723,7 +711,6 @@ export function ChatShell() {
                     isLoading={isLoading}
                     messages={messages}
                     onCreateRequest={handleCreateRequest}
-                    ensureRequestForSend={ensureRequestForSend}
                     onCancelEdit={() => {
                       setEditingMessage(null);
                       setInput("");

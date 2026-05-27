@@ -157,7 +157,6 @@ function PureMultimodalInput({
   activeRequest,
   isRequestMode,
   onCreateRequest,
-  ensureRequestForSend,
 }: {
   chatId: string;
   input: string;
@@ -181,7 +180,6 @@ function PureMultimodalInput({
   activeRequest: BorealRequestDraft | null;
   isRequestMode: boolean;
   onCreateRequest: () => Promise<BorealRequestDraft | null>;
-  ensureRequestForSend: () => Promise<void>;
 }) {
   const router = useRouter();
   const { setTheme, resolvedTheme } = useTheme();
@@ -316,37 +314,37 @@ function PureMultimodalInput({
     [setInput]
   );
 
-  const submitForm = useCallback(async () => {
-    if (isRequestMode && !activeRequest) {
-      try {
-        await ensureRequestForSend();
-      } catch {
-        setIsSubmitPending(false);
-        return;
-      }
-    }
-
+  const submitForm = useCallback(() => {
     window.history.pushState(
       {},
       "",
       `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}`
     );
 
-    sendMessage({
-      role: "user",
-      parts: [
-        ...attachments.map((attachment) => ({
-          type: "file" as const,
-          url: attachment.url,
-          name: attachment.name,
-          mediaType: attachment.contentType,
-        })),
-        {
-          type: "text",
-          text: input,
-        },
-      ],
-    });
+    try {
+      const sendResult = sendMessage({
+        role: "user",
+        parts: [
+          ...attachments.map((attachment) => ({
+            type: "file" as const,
+            url: attachment.url,
+            name: attachment.name,
+            mediaType: attachment.contentType,
+          })),
+          {
+            type: "text",
+            text: input,
+          },
+        ],
+      });
+
+      void Promise.resolve(sendResult).catch(() => {
+        setIsSubmitPending(false);
+      });
+    } catch {
+      setIsSubmitPending(false);
+      return;
+    }
 
     setAttachments([]);
     setLocalStorageInput("");
@@ -359,10 +357,7 @@ function PureMultimodalInput({
     input,
     setInput,
     attachments,
-    activeRequest,
     sendMessage,
-    ensureRequestForSend,
-    isRequestMode,
     setAttachments,
     setLocalStorageInput,
     width,

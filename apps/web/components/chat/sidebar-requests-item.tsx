@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import type { BorealRequestDraft } from "@/lib/request";
 import { cn } from "@/lib/utils";
 import {
@@ -29,6 +29,30 @@ const PureSidebarRequestItem = ({
 }) => {
   const requestTitle = request.brief.title?.trim() || "Untitled request";
   const requestStatus = request.status.replace(/_/g, " ");
+  const [isNavigating, setIsNavigating] = useState(false);
+  const isVisuallyActive = isActive || isNavigating;
+
+  useEffect(() => {
+    if (isActive && isNavigating) {
+      setIsNavigating(false);
+    }
+  }, [isActive, isNavigating]);
+
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [request.chatId]);
+
+  useEffect(() => {
+    if (!isNavigating) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setIsNavigating(false);
+    }, 5000);
+
+    return () => window.clearTimeout(timeout);
+  }, [isNavigating]);
 
   const copyRequestLink = async () => {
     await navigator.clipboard.writeText(
@@ -55,9 +79,15 @@ const PureSidebarRequestItem = ({
       <SidebarMenuButton
         asChild
         className="h-auto min-h-8 rounded-lg bg-transparent px-2 py-1.5 text-[13px] text-sidebar-foreground/55 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-active:bg-sidebar-accent/38 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium"
-        isActive={isActive}
+        isActive={isVisuallyActive}
       >
-        <Link href={`/chat/${request.chatId}`} onClick={() => setOpenMobile(false)}>
+        <Link
+          href={`/chat/${request.chatId}`}
+          onClick={() => {
+            setIsNavigating(true);
+            setOpenMobile(false);
+          }}
+        >
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="truncate">{requestTitle}</span>
             <span className="inline-flex items-center gap-1 truncate text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">
@@ -77,7 +107,7 @@ const PureSidebarRequestItem = ({
         <DropdownMenuTrigger asChild>
           <SidebarMenuAction
             className="mr-0.5 rounded-md text-sidebar-foreground/50 ring-0 transition-colors duration-150 focus-visible:ring-0 hover:text-sidebar-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            showOnHover={!isActive}
+            showOnHover={!isVisuallyActive}
           >
             <MoreHorizontalIcon />
             <span className="sr-only">More</span>
