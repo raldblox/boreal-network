@@ -238,8 +238,9 @@ Rules:
 - buyer-credit application creates both one credit ledger debit and one request-attached `Transaction`
 - curated first-party service checkout may compose request creation, preferred `Supply` pinning, request open, and buyer-credit debit in one endpoint when the endpoint returns the same canonical `Request`, `Supply`, `Transaction`, and buyer-credit ledger projections
 - curated first-party service checkout must stay idempotency-keyed and must not introduce a separate order root object for launch-price credit spend
+- payment idempotency replays must resolve to the same request, amount, ledger debit, and request-attached `Transaction`
 - Character Call Starter checkout should also bootstrap the owner-private `Fulfillment` lane and request artifacts after settlement instead of storing service-progress truth outside the request
-- Character Call Starter session launch returns ephemeral Runway realtime credentials and must not persist one-time session tokens as durable artifacts
+- Character Call Starter session launch returns ephemeral Runway realtime credentials, must resolve the `fulfillmentId` to the same owned request, and must not persist one-time session tokens as durable artifacts
 - mutating payment routes accept `Idempotency-Key`
 
 Machine-readable contract:

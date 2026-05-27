@@ -58,10 +58,17 @@ function getCheckoutIdempotencyKey({
   request: Request;
   bodyIdempotencyKey?: string | null;
 }) {
-  const rawKey =
-    request.headers.get("Idempotency-Key") ??
-    bodyIdempotencyKey ??
-    generateUUID();
+  const headerIdempotencyKey = request.headers.get("Idempotency-Key");
+
+  if (
+    headerIdempotencyKey &&
+    bodyIdempotencyKey &&
+    headerIdempotencyKey !== bodyIdempotencyKey
+  ) {
+    throw new Error("Idempotency-Key header and body idempotencyKey must match.");
+  }
+
+  const rawKey = headerIdempotencyKey ?? bodyIdempotencyKey ?? generateUUID();
 
   if (!z.string().uuid().safeParse(rawKey).success) {
     throw new Error("Idempotency-Key must be a UUID.");
@@ -131,6 +138,11 @@ function checkoutErrorResponse(error: unknown) {
     [
       "Buyer credit account is not active",
       "Insufficient buyer credit",
+      "Idempotency key already used for another request",
+      "Idempotency key already used for another amount",
+      "Buyer credit application is still settling",
+      "Buyer credit application is missing transaction truth",
+      "Idempotency-Key header and body idempotencyKey must match.",
       "Money amount must be a positive decimal with two cents.",
       "Money amount must be greater than zero.",
       "Preferred supply is only available for private requests",

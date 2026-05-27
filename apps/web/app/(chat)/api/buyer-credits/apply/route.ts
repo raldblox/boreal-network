@@ -69,6 +69,10 @@ export async function POST(request: Request) {
       [
         "Buyer credit account is not active",
         "Insufficient buyer credit",
+        "Idempotency key already used for another request",
+        "Idempotency key already used for another amount",
+        "Buyer credit application is still settling",
+        "Buyer credit application is missing transaction truth",
         "Money amount must be a positive decimal with two cents.",
         "Money amount must be greater than zero.",
       ].includes(error.message)

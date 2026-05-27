@@ -720,6 +720,21 @@ export async function applyBuyerCreditToRequest({
     });
 
     if (existingLedgerEntry) {
+      if (
+        existingLedgerEntry.requestId &&
+        existingLedgerEntry.requestId !== requestId
+      ) {
+        throw new Error("Idempotency key already used for another request");
+      }
+
+      if (existingLedgerEntry.amount !== normalizedAmount) {
+        throw new Error("Idempotency key already used for another amount");
+      }
+
+      if (existingLedgerEntry.status !== "settled") {
+        throw new Error("Buyer credit application is still settling");
+      }
+
       const existingRequest = await getRequestById({ id: requestId });
       const existingTransaction = existingLedgerEntry.transactionId
         ? await getRequestTransactionById({ id: existingLedgerEntry.transactionId })
@@ -733,6 +748,8 @@ export async function applyBuyerCreditToRequest({
           ledgerEntry: existingLedgerEntry,
         };
       }
+
+      throw new Error("Buyer credit application is missing transaction truth");
     }
   }
 

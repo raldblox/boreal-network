@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { getRequestById, toRequestDraft } from "@/lib/db/queries";
+import {
+  getFulfillmentById,
+  getRequestById,
+  toRequestDraft,
+} from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 import { getRequestActorContext } from "@/lib/resolver-session";
 import { createRunwayRealtimeCharacterSession } from "@/lib/runway-characters";
@@ -67,6 +71,37 @@ export async function POST(request: Request) {
     ).toResponse();
   }
 
+  const fulfillmentId =
+    body.fulfillmentId ?? requestDraft.activeRefs.activeFulfillmentId;
+  if (!fulfillmentId) {
+    return new ChatbotError(
+      "bad_request:api",
+      "Character Call Starter fulfillment is required before launching a session."
+    ).toResponse();
+  }
+
+  const fulfillment = await getFulfillmentById({ id: fulfillmentId });
+  if (!fulfillment) {
+    return new ChatbotError(
+      "not_found:database",
+      "Fulfillment not found"
+    ).toResponse();
+  }
+
+  if (fulfillment.requestId !== requestDraft.id) {
+    return new ChatbotError(
+      "bad_request:api",
+      "Fulfillment does not belong to this request."
+    ).toResponse();
+  }
+
+  if (fulfillment.status === "cancelled" || fulfillment.status === "failed") {
+    return new ChatbotError(
+      "bad_request:api",
+      "Fulfillment cannot launch a session from a terminal failure state."
+    ).toResponse();
+  }
+
   try {
     const credentials = await createRunwayRealtimeCharacterSession({
       avatarId: body.avatarId,
@@ -76,8 +111,7 @@ export async function POST(request: Request) {
       {
         ...credentials,
         requestId: requestDraft.id,
-        fulfillmentId:
-          body.fulfillmentId ?? requestDraft.activeRefs.activeFulfillmentId,
+        fulfillmentId: fulfillment.id,
         expiresInSeconds: 300,
       },
       { status: 200 }

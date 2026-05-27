@@ -90,6 +90,7 @@ paths:
                     - string
                     - "null"
                   format: uuid
+                  description: Must match the Idempotency-Key header when both are provided.
       responses:
         "200":
           description: Pending ledger entry and updated credit account projection.
@@ -294,6 +295,7 @@ paths:
                 fulfillmentId:
                   type: string
                   format: uuid
+                  description: Optional explicit fulfillment lane. When provided, it must belong to the owned Character Call Starter request.
                 avatarId:
                   type: string
                   minLength: 1
@@ -335,9 +337,11 @@ paths:
                     type: object
                     additionalProperties: true
         "400":
-          description: Invalid request, unfunded request, missing Runway API secret, or Runway session failure.
+          description: Invalid request, unfunded request, mismatched fulfillment, terminal fulfillment failure, missing Runway API secret, or Runway session failure.
         "401":
           description: Session authentication required.
+        "404":
+          description: Request or fulfillment not found.
   /api/paypal/create-order:
     post:
       summary: Create a PayPal Checkout order for first-party buyer credit top-up.
@@ -527,6 +531,7 @@ components:
       in: header
       name: Idempotency-Key
       required: false
+      description: Optional UUID replay key for mutating payment routes. When the JSON body also carries idempotencyKey, both values must match.
       schema:
         type: string
         format: uuid
