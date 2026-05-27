@@ -634,9 +634,11 @@ export function normalizeProblemIntelReport(
 }
 
 function resolveRepoRoots() {
+  const cwd = path.join(/*turbopackIgnore: true*/ process.cwd());
+
   const candidates = [
-    path.resolve(process.cwd()),
-    path.resolve(process.cwd(), "..", ".."),
+    cwd,
+    path.join(cwd, "..", ".."),
   ];
 
   return Array.from(new Set(candidates));
