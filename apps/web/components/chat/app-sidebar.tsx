@@ -266,10 +266,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
                     isActive={isNavActive("/open-requests", isOpenRequestsView)}
                     onClick={() => navigateSidebar("/open-requests")}
-                    tooltip="Open requests"
+                    tooltip="Request board"
                   >
                     <ListChecksIcon className="size-4" />
-                    <span className="font-medium">Open requests</span>
+                    <span className="font-medium">Request board</span>
                     <SidebarNavPendingDot visible={isNavPending("/open-requests")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>

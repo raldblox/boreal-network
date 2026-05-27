@@ -16,10 +16,9 @@ export type SurfaceTopNavLink = {
 export function buildHomeSectionTopNavLinks() {
   return [
     { href: "/#overview", label: "Overview" },
-    { href: "/#how-it-works", label: "How it works" },
-    { href: "/#why-boreal", label: "Why Boreal" },
-    { href: "/#reuse", label: "Reuse" },
-    { href: "/#access", label: "Access" },
+    { href: "/#request-board", label: "Board" },
+    { href: "/#post-request", label: "Post request" },
+    { href: "/#solutions", label: "Solutions" },
   ] satisfies SurfaceTopNavLink[];
 }
 

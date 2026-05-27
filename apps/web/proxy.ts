@@ -6,6 +6,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const mode = request.nextUrl.searchParams.get("mode");
   const isPublicHomeView = pathname === "/" && !mode;
+  const isPublicRequestBoardView = pathname === "/open-requests";
   const isPublicDesktopView =
     pathname === "/download/boreal-desktop" || pathname === "/download/desktop";
   const isPublicAuthView = pathname === "/login" || pathname === "/register";
@@ -54,7 +55,13 @@ export async function proxy(request: NextRequest) {
 
   const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
-  if (!token && (isPublicHomeView || isPublicDesktopView || isPublicAuthView)) {
+  if (
+    !token &&
+    (isPublicHomeView ||
+      isPublicRequestBoardView ||
+      isPublicDesktopView ||
+      isPublicAuthView)
+  ) {
     return NextResponse.next();
   }
 

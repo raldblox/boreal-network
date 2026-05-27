@@ -1,23 +1,31 @@
 "use client";
 
-import { ArrowRightIcon, UserRoundIcon } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import {
-  borealAccessTracks,
-  borealHomepageCopy,
-  borealHowItWorksPoints,
-  borealReusePoints,
-  borealWhyBorealPoints,
-} from "@/lib/marketing";
+  ArrowRightIcon,
+  BadgeCheckIcon,
+  CreditCardIcon,
+  FilePenLineIcon,
+  PackageIcon,
+  StoreIcon,
+  UserRoundIcon,
+} from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { RequestBoard } from "@/components/request/request-board";
+import { cn } from "@/lib/utils";
 import {
   SidebarSurfaceTopNav,
   buildHomeSectionTopNavLinks,
 } from "./surface-top-nav";
 import {
+  SurfaceCard,
+  SurfaceCardActions,
+  SurfaceCardDescription,
+  SurfaceCardHeader,
+} from "./surface-card";
+import {
   surfaceBodyClassName,
-  surfaceCardClassName,
-  surfaceCardTitleClassName,
   surfaceColumnClassName,
   surfaceEyebrowClassName,
   surfaceHeroTitleClassName,
@@ -29,9 +37,50 @@ import {
   surfaceViewportClassName,
 } from "./surface-layout";
 
-export function HomePage() {
-  const [whyDraft, whyWorkflow, whyExists] = borealWhyBorealPoints;
+const homeEntryCards = [
+  {
+    body: "Shape the ask, done condition, constraints, budget, deadline, proof, and whether human or local runtime work matters.",
+    cta: "Post request",
+    href: "/?mode=request",
+    icon: FilePenLineIcon,
+    label: "Request Preflight",
+    title: "Turn a raw ask into a durable Request.",
+  },
+  {
+    body: "Packaged supply still creates or attaches to a Request, then runs through credits, proof, delivery, and review.",
+    cta: "Browse services",
+    href: "/services",
+    icon: StoreIcon,
+    label: "Services",
+    title: "Run ready-to-buy capability through a Request.",
+  },
+  {
+    body: "Define what can be done, who owns the lane, how it runs, how proof works, and when capacity is available.",
+    cta: "Open supply",
+    href: "/supplies",
+    icon: PackageIcon,
+    label: "Supply Studio",
+    title: "Manage capability lanes that can attach to demand.",
+  },
+  {
+    body: "Keep identity, passkeys, balance, ledger, request spending, and paid execution readiness in one trust center.",
+    cta: "Review credits",
+    href: "/account",
+    icon: CreditCardIcon,
+    label: "Account / Credits",
+    title: "Credits are execution capacity, not reading access.",
+  },
+];
 
+const processSteps = [
+  "Post a Request",
+  "Compare plans",
+  "Run or fund work",
+  "Verify artifacts",
+  "Reuse accepted solutions",
+];
+
+export function HomePage() {
   return (
     <div className={surfacePageClassName}>
       <div className={surfaceColumnClassName}>
@@ -53,161 +102,181 @@ export function HomePage() {
                 asChild
                 className="h-9 rounded-full px-4 text-[12px] font-medium"
               >
-                <Link href="/?mode=request">Start request</Link>
+                <Link href="/?mode=request">Post request</Link>
               </Button>
             </>
           }
-          title="Boreal"
+          title="Home / Board"
         />
 
         <div className={surfaceShellClassName}>
           <div className={surfaceViewportClassName}>
             <div className={surfaceScrollClassName}>
-            <section className="border-b border-border/60 pb-12 md:pb-16" id="overview">
-              <p className={surfaceEyebrowClassName}>{borealHomepageCopy.eyebrow}</p>
-
-              <h1 className={cn(surfaceHeroTitleClassName, "mt-6")}>
-                {borealHomepageCopy.title}
-              </h1>
-
-              <p className={cn(surfaceBodyClassName, "mt-6")}>
-                {borealHomepageCopy.body}
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Button asChild className="h-11 rounded-full px-5 text-[12px] font-medium">
-                  <Link href="/?mode=request">Start request</Link>
-                </Button>
-                <Button
-                  asChild
-                  className="h-11 rounded-full px-5 text-[12px] font-medium"
-                  variant="outline"
-                >
-                  <Link href="/supplies/new?entry=whitelist">Join whitelist</Link>
-                </Button>
-              </div>
-
-              <p className={cn(surfaceBodyClassName, "mt-6 max-w-3xl text-sm")}>
-                {borealHomepageCopy.support}
-              </p>
-            </section>
-
-            <section className={surfaceSectionClassName} id="how-it-works">
-              <p className={surfaceEyebrowClassName}>How it works</p>
-              <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Open the request, carry the work, keep the result attached.
-              </h2>
-
-              <div className="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-5">
-                {borealHowItWorksPoints.map((point) => (
-                  <div className="border-t border-border/60 pt-5" key={point.label}>
-                    <p className={surfaceEyebrowClassName}>{point.label}</p>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                      {point.body}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className={surfaceSectionClassName} id="why-boreal">
-              <p className={surfaceEyebrowClassName}>Why Boreal</p>
-              <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Most tools stop at the draft, the task, or the match.
-              </h2>
-
-              <div className="mt-8 grid gap-8 md:grid-cols-2">
-                {[whyDraft, whyWorkflow].map((point) => (
-                  <div className="border-t border-border/60 pt-5" key={point.label}>
-                    <p className={surfaceEyebrowClassName}>{point.label}</p>
-                    <p className="mt-3 max-w-xl text-sm leading-7 text-muted-foreground">
-                      {point.body}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className={cn(surfaceCardClassName, "mt-8")}>
-                <p className={surfaceEyebrowClassName}>{whyExists.label}</p>
-                <p className="mt-3 max-w-4xl text-[15px] leading-8 text-foreground">
-                  {whyExists.body}
-                </p>
-              </div>
-            </section>
-
-            <section className={surfaceSectionClassName} id="reuse">
-              <p className={surfaceEyebrowClassName}>Reuse</p>
-              <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Accepted work should not disappear.
-              </h2>
-              <p className={cn(surfaceBodyClassName, "mt-4")}>
-                When the result should stay useful, Boreal can keep the accepted
-                artifact attached to the source request instead of burying it in
-                a private delivery thread.
-              </p>
-
-              <div className="mt-8 grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-                {borealReusePoints.map((point) => (
-                  <div className="border-t border-border/60 pt-5" key={point.label}>
-                    <p className={surfaceEyebrowClassName}>{point.label}</p>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                      {point.body}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className={surfaceSectionClassName} id="access">
-              <p className={surfaceEyebrowClassName}>Access</p>
-              <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                Starting narrow, on purpose.
-              </h2>
-              <p className={cn(surfaceBodyClassName, "mt-4")}>
-                Paid requests come first. Curated supply comes next. Public
-                request funding opens selectively where the accepted work should
-                stay reusable.
-              </p>
-
-              <div className="mt-8 grid gap-5 lg:grid-cols-2">
-                {borealAccessTracks.map((track) => (
-                  <div className={surfaceCardClassName} key={track.label}>
-                    <h3 className={surfaceCardTitleClassName}>{track.label}</h3>
-                    <p className="mt-4 max-w-md text-sm leading-7 text-muted-foreground">
-                      {track.body}
-                    </p>
-                    <Link
-                      className="mt-8 inline-flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.22em] text-foreground transition-colors hover:text-foreground/75"
-                      href={track.href}
+              <section
+                className="grid gap-10 border-b border-border/60 pb-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-start"
+                id="overview"
+              >
+                <div className="max-w-4xl">
+                  <p className={surfaceEyebrowClassName}>
+                    Request-native work network
+                  </p>
+                  <h1 className={cn(surfaceHeroTitleClassName, "mt-6")}>
+                    Post a Request, compare plans, run work, verify the result.
+                  </h1>
+                  <p className={cn(surfaceBodyClassName, "mt-6")}>
+                    Boreal keeps demand, planning, execution, artifacts, proof,
+                    review, credits, services, and reusable public outcomes
+                    attached to one accountable Request thread.
+                  </p>
+                  <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                    <Button
+                      asChild
+                      className="h-11 rounded-full px-5 text-[12px] font-medium"
                     >
-                      {track.cta}
+                      <Link href="/?mode=request">Post request</Link>
+                    </Button>
+                    <Button
+                      asChild
+                      className="h-11 rounded-full px-5 text-[12px] font-medium"
+                      variant="outline"
+                    >
+                      <Link href="/open-requests">Browse board</Link>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-[28px] border border-border/60 bg-card/70 p-4">
+                  <p className={surfaceEyebrowClassName}>Request flow</p>
+                  <div className="mt-4 grid gap-2">
+                    {processSteps.map((step, index) => (
+                      <div
+                        className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/50 px-3 py-2 text-sm"
+                        key={step}
+                      >
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-[11px] font-medium text-background">
+                          {index + 1}
+                        </span>
+                        <span className="min-w-0 text-foreground/82">
+                          {step}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              <RequestBoard maxItems={4} variant="home" />
+
+              <section className={surfaceSectionClassName} id="post-request">
+                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p className={surfaceEyebrowClassName}>Post request</p>
+                    <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
+                      One Request should survive intake, execution, delivery,
+                      and review.
+                    </h2>
+                  </div>
+                  <Button asChild className="rounded-full" variant="outline">
+                    <Link href="/?mode=request">
+                      Start Request Preflight
                       <ArrowRightIcon className="size-4" />
                     </Link>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <footer className="mt-12 border-t border-border/60 py-8">
-              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                <div className={surfaceCardTitleClassName}>Boreal</div>
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  <Link href="/">Home</Link>
-                  <Link href="/?mode=request">Start request</Link>
-                  <Link href="/account">Account</Link>
-                  <Link href="/supplies/new?entry=whitelist">Supply whitelist</Link>
-                  <Link href="/download/boreal-desktop">Desktop</Link>
+                  </Button>
                 </div>
-              </div>
-            </footer>
+
+                <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                  {homeEntryCards.map((card) => {
+                    const Icon = card.icon;
+
+                    return (
+                      <SurfaceCard asChild interactive key={card.label}>
+                        <article className="flex h-full flex-col">
+                          <SurfaceCardHeader
+                            action={
+                              <span
+                                aria-hidden="true"
+                                className="flex size-9 items-center justify-center rounded-full border border-border/60 bg-background/60 text-foreground/70"
+                              >
+                                <Icon className="size-4" />
+                              </span>
+                            }
+                            eyebrow={card.label}
+                            title={card.title}
+                            titleAs="h3"
+                          />
+                          <SurfaceCardDescription>
+                            {card.body}
+                          </SurfaceCardDescription>
+                          <SurfaceCardActions className="mt-auto pt-6">
+                            <Button
+                              asChild
+                              className="rounded-full"
+                              size="sm"
+                              variant="outline"
+                            >
+                              <Link href={card.href}>
+                                {card.cta}
+                                <ArrowRightIcon className="size-4" />
+                              </Link>
+                            </Button>
+                          </SurfaceCardActions>
+                        </article>
+                      </SurfaceCard>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <section className={surfaceSectionClassName} id="solutions">
+                <div className="grid gap-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                  <div>
+                    <p className={surfaceEyebrowClassName}>Solutions</p>
+                    <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
+                      Public solutions are accepted Request outcomes, not a
+                      separate root object.
+                    </h2>
+                    <p className={cn(surfaceBodyClassName, "mt-4")}>
+                      Boreal can project completed public Requests after an
+                      accepted Artifact and proof state exist. Inspection stays
+                      free. Credits apply when a rerun consumes execution,
+                      inference, provider calls, human review, or service
+                      capacity.
+                    </p>
+                  </div>
+
+                  <SurfaceCard>
+                    <SurfaceCardHeader
+                      action={
+                        <Badge
+                          className="rounded-full border-border/60 bg-muted/40 text-foreground/72"
+                          variant="secondary"
+                        >
+                          Free to inspect
+                        </Badge>
+                      }
+                      eyebrow="Target-safe preview"
+                      title="Accepted public solutions will appear here after proof exists."
+                      titleAs="h3"
+                    />
+                    <SurfaceCardDescription>
+                      This workspace does not expose a completed-request plus
+                      accepted-artifact projection yet, so the home page shows
+                      the rule instead of inventing inventory.
+                    </SurfaceCardDescription>
+                    <div className="mt-6 flex items-start gap-3 rounded-2xl border border-border/60 bg-background/50 p-4 text-sm text-foreground/78">
+                      <BadgeCheckIcon className="mt-0.5 size-4 shrink-0 text-foreground/60" />
+                      <span>
+                        Solved claims need accepted Artifacts and review state
+                        before they become reusable public outcomes.
+                      </span>
+                    </div>
+                  </SurfaceCard>
+                </div>
+              </section>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function cn(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(" ");
 }
