@@ -9,11 +9,18 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ResourceList } from "@/components/ui/resource-list";
 import type { PublicRequestPoolEntry } from "@/lib/request";
 import { cn, fetcher } from "@/lib/utils";
+import {
+  formatSurfaceToken,
+  SurfaceCard,
+  SurfaceCardActions,
+  SurfaceCardDescription,
+  SurfaceCardHeader,
+  SurfaceCardSkeleton,
+  SurfaceTagList,
+} from "../chat/surface-card";
 import { SidebarSurfaceTopNav } from "../chat/surface-top-nav";
 import {
   surfaceBodyClassName,
-  surfaceCardClassName,
-  surfaceCardTitleClassName,
   surfaceColumnClassName,
   surfaceEyebrowClassName,
   surfaceHeroTitleClassName,
@@ -108,55 +115,42 @@ export function OpenRequestsHub() {
 }
 
 function OpenRequestSkeleton() {
-  return (
-    <div className={surfaceCardClassName}>
-      <div className="h-4 w-40 animate-pulse rounded-full bg-muted" />
-      <div className="mt-5 h-20 animate-pulse rounded-3xl bg-muted/70" />
-    </div>
-  );
+  return <SurfaceCardSkeleton />;
 }
 
 function OpenRequestCard({ request }: { request: PublicRequestPoolEntry }) {
   return (
-    <article className={surfaceCardClassName}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className={surfaceEyebrowClassName}>
-            {request.status.replace(/_/g, " ")}
-          </p>
-          <h2 className={cn(surfaceCardTitleClassName, "mt-3")}>
-            {request.brief.title || "Untitled request"}
-          </h2>
-        </div>
-        <Badge
-          className="rounded-full border-border/60 bg-muted/40 text-foreground/72"
-          variant="secondary"
-        >
-          {request.derived.routeFamily?.replace(/_/g, " ") ?? "routing"}
-        </Badge>
-      </div>
-      <p className="mt-5 text-sm leading-7 text-muted-foreground">
-        {request.brief.summary || request.brief.body || "No summary provided."}
-      </p>
-      <div className="mt-5 flex flex-wrap gap-2">
-        {request.brief.tags.slice(0, 4).map((tag) => (
-          <Badge
-            className="rounded-full border-border/60 bg-muted/40 text-foreground/72"
-            key={tag}
-            variant="secondary"
-          >
-            {tag}
-          </Badge>
-        ))}
-      </div>
-      <div className="mt-7 flex flex-wrap gap-2">
-        <Button asChild className="rounded-full" size="sm" variant="outline">
-          <Link href={`/?mode=request&referenceRequestId=${request.id}`}>
-            Use as reference
-            <ArrowRightIcon className="size-4" />
-          </Link>
-        </Button>
-      </div>
-    </article>
+    <SurfaceCard asChild>
+      <article>
+        <SurfaceCardHeader
+          action={
+            <Badge
+              className="rounded-full border-border/60 bg-muted/40 text-foreground/72"
+              variant="secondary"
+            >
+              {request.derived.routeFamily
+                ? formatSurfaceToken(request.derived.routeFamily)
+                : "routing"}
+            </Badge>
+          }
+          eyebrow={formatSurfaceToken(request.status)}
+          title={request.brief.title || "Untitled request"}
+        />
+        <SurfaceCardDescription className="mt-5">
+          {request.brief.summary ||
+            request.brief.body ||
+            "No summary provided."}
+        </SurfaceCardDescription>
+        <SurfaceTagList limit={4} tags={request.brief.tags} />
+        <SurfaceCardActions className="mt-7">
+          <Button asChild className="rounded-full" size="sm" variant="outline">
+            <Link href={`/?mode=request&referenceRequestId=${request.id}`}>
+              Use as reference
+              <ArrowRightIcon className="size-4" />
+            </Link>
+          </Button>
+        </SurfaceCardActions>
+      </article>
+    </SurfaceCard>
   );
 }
