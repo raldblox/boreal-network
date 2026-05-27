@@ -140,6 +140,7 @@ Verify:
 - live-model request-processing benchmark runs should also separate provider-call success, JSON-parse success, and post-parse planning quality so unavailable models are not misread as planning regressions
 - only `open` plus `public` requests appear in the public request pool
 - draft and private requests do not leak through public request fetch endpoints
+- public solution projections require completed public requests with `activeRefs.acceptedArtifactId`
 - draft request-object JSON accepts edits only while the request status is `draft`
 - non-draft request-object JSON is read-only and shows the full canonical object
 - `save draft` and `open request` normalize the latest draft-input projection before the durable `Request` is written

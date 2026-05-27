@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   getChatById,
   getPublicOpenRequests,
+  getPublicSolutionRequests,
   getRequestByChatId,
   getRequestById,
   getRequestsByUserId,
@@ -63,6 +64,37 @@ export async function GET(request: Request) {
     }
 
     const requests = await getPublicOpenRequests({
+      limit,
+      startingAfter,
+      endingBefore,
+    });
+
+    return Response.json(requests, { status: 200 });
+  }
+
+  if (scope === "public_solutions") {
+    const limit = Math.min(
+      Math.max(Number.parseInt(searchParams.get("limit") || "10", 10), 1),
+      50
+    );
+    const startingAfter = searchParams.get("starting_after");
+    const endingBefore = searchParams.get("ending_before");
+
+    if (chatId) {
+      return new ChatbotError(
+        "bad_request:api",
+        "chatId cannot be combined with scope=public_solutions."
+      ).toResponse();
+    }
+
+    if (startingAfter && endingBefore) {
+      return new ChatbotError(
+        "bad_request:api",
+        "Only one of starting_after or ending_before can be provided."
+      ).toResponse();
+    }
+
+    const requests = await getPublicSolutionRequests({
       limit,
       startingAfter,
       endingBefore,

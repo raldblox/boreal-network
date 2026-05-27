@@ -48,6 +48,7 @@ import {
   type RequestSeeking,
   type RequestStatus,
   type RequestVisibility,
+  hasPublicSolutionProjectionTruth,
   normalizeRequestBrief,
   toPublicRequestPoolEntry,
 } from "@/lib/request";
@@ -2334,6 +2335,88 @@ export async function getPublicOpenRequests({
     throw new ChatbotError(
       "bad_request:database",
       "Failed to get public open requests"
+    );
+  }
+}
+
+export async function getPublicSolutionRequests({
+  limit,
+  startingAfter,
+  endingBefore,
+}: {
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}): Promise<{ requests: PublicRequestPoolEntry[]; hasMore: boolean }> {
+  try {
+    const extendedLimit = limit + 1;
+
+    const query = (whereCondition?: SQL<unknown>) =>
+      db
+        .select()
+        .from(request)
+        .where(
+          and(
+            eq(request.visibility, "public"),
+            eq(request.status, "completed"),
+            ...(whereCondition ? [whereCondition] : [])
+          )
+        )
+        .orderBy(desc(request.updatedAt))
+        .limit(extendedLimit);
+
+    let filteredRequests: RequestRecord[] = [];
+
+    if (startingAfter) {
+      const [selectedRequest] = await db
+        .select()
+        .from(request)
+        .where(eq(request.id, startingAfter))
+        .limit(1);
+
+      if (!selectedRequest) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Request with id ${startingAfter} not found`
+        );
+      }
+
+      filteredRequests = await query(
+        gt(request.updatedAt, selectedRequest.updatedAt)
+      );
+    } else if (endingBefore) {
+      const [selectedRequest] = await db
+        .select()
+        .from(request)
+        .where(eq(request.id, endingBefore))
+        .limit(1);
+
+      if (!selectedRequest) {
+        throw new ChatbotError(
+          "not_found:database",
+          `Request with id ${endingBefore} not found`
+        );
+      }
+
+      filteredRequests = await query(
+        lt(request.updatedAt, selectedRequest.updatedAt)
+      );
+    } else {
+      filteredRequests = await query();
+    }
+
+    const visibleRequests = filteredRequests
+      .map((record) => toPublicRequestPoolEntry(toRequestDraft(record)))
+      .filter(hasPublicSolutionProjectionTruth);
+
+    return {
+      requests: visibleRequests.slice(0, limit),
+      hasMore: visibleRequests.length > limit,
+    };
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get public solution requests"
     );
   }
 }

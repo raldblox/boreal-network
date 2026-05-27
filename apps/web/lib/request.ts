@@ -219,6 +219,7 @@ export type RequestDerived = {
 export type RequestActiveRefs = {
   activeCommitmentId?: string;
   activeFulfillmentId?: string;
+  acceptedArtifactId?: string;
   latestArtifactId?: string;
   latestTransactionId?: string;
 };
@@ -554,6 +555,7 @@ export type BorealRequestDraft = {
 
 export type PublicRequestPoolEntry = {
   id: string;
+  chatId: string;
   key: string;
   status: RequestStatus;
   visibility: "public";
@@ -1123,6 +1125,7 @@ export function toPublicRequestPoolEntry(
 ): PublicRequestPoolEntry {
   return {
     id: draft.id,
+    chatId: draft.chatId,
     key: draft.key,
     status: draft.status,
     visibility: "public",
@@ -1151,6 +1154,19 @@ export function toPublicRequestPoolEntry(
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
   };
+}
+
+export function hasPublicSolutionProjectionTruth(
+  request: Pick<
+    BorealRequestDraft | PublicRequestPoolEntry,
+    "activeRefs" | "status" | "visibility"
+  >
+) {
+  return (
+    request.visibility === "public" &&
+    request.status === "completed" &&
+    Boolean(request.activeRefs.acceptedArtifactId)
+  );
 }
 
 export function renderEditableRequestDocumentJson(
@@ -1471,12 +1487,14 @@ function normalizeActiveRefs(
 
   const activeCommitmentId = normalizeText(value.activeCommitmentId);
   const activeFulfillmentId = normalizeText(value.activeFulfillmentId);
+  const acceptedArtifactId = normalizeText(value.acceptedArtifactId);
   const latestArtifactId = normalizeText(value.latestArtifactId);
   const latestTransactionId = normalizeText(value.latestTransactionId);
 
   return {
     ...(activeCommitmentId ? { activeCommitmentId } : {}),
     ...(activeFulfillmentId ? { activeFulfillmentId } : {}),
+    ...(acceptedArtifactId ? { acceptedArtifactId } : {}),
     ...(latestArtifactId ? { latestArtifactId } : {}),
     ...(latestTransactionId ? { latestTransactionId } : {}),
   };

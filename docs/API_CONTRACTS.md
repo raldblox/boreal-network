@@ -133,6 +133,7 @@ For the first web slice, `Request` create and update must support:
 - first-send draft creation for request-mode intake
 - optional `preferredSupplyId` on create so one private request can be born with a selected worker already pinned
 - public-safe listing of `open` plus `public` requests for network or desktop pooling
+- public-safe solution projection reads over completed public requests with `activeRefs.acceptedArtifactId`; this is a Request projection, not a `Solution` root
 - public-safe detail reads for one request by id
 - explicit `save draft` normalization from the live request-input document surface
 - request-brief field updates

@@ -65,6 +65,7 @@ It carries:
 - derived route, matching, and readiness projections
 - current lifecycle status
 - active commitment and fulfillment references
+- accepted artifact reference when completed public work is eligible for solution projection
 - latest progress summary
 
 `Request` is the main object of the network.

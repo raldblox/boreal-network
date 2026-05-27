@@ -188,6 +188,7 @@ Does not store:
 `activeRefs` is the clean place for current accepted lane or latest durable related object pointers.
 `latest` is the clean place for current room summary without replaying the whole event stream inline.
 `activeRefs.activeCommitmentId` is optional when the owner-private direct auto-fulfillment lane is active.
+`activeRefs.acceptedArtifactId` is the public-solution projection guard: a completed public request should not appear as reusable solved work without this accepted artifact pointer.
 
 ### `Request` Object Spec
 

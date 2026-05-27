@@ -2,7 +2,6 @@
 
 import {
   ArrowRightIcon,
-  BadgeCheckIcon,
   CreditCardIcon,
   FilePenLineIcon,
   PackageIcon,
@@ -10,9 +9,9 @@ import {
   UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RequestBoard } from "@/components/request/request-board";
+import { PublicSolutionPreview } from "@/components/request/public-solution-preview";
 import { cn } from "@/lib/utils";
 import {
   SidebarSurfaceTopNav,
@@ -244,33 +243,7 @@ export function HomePage() {
                     </p>
                   </div>
 
-                  <SurfaceCard>
-                    <SurfaceCardHeader
-                      action={
-                        <Badge
-                          className="rounded-full border-border/60 bg-muted/40 text-foreground/72"
-                          variant="secondary"
-                        >
-                          Free to inspect
-                        </Badge>
-                      }
-                      eyebrow="Target-safe preview"
-                      title="Accepted public solutions will appear here after proof exists."
-                      titleAs="h3"
-                    />
-                    <SurfaceCardDescription>
-                      This workspace does not expose a completed-request plus
-                      accepted-artifact projection yet, so the home page shows
-                      the rule instead of inventing inventory.
-                    </SurfaceCardDescription>
-                    <div className="mt-6 flex items-start gap-3 rounded-2xl border border-border/60 bg-background/50 p-4 text-sm text-foreground/78">
-                      <BadgeCheckIcon className="mt-0.5 size-4 shrink-0 text-foreground/60" />
-                      <span>
-                        Solved claims need accepted Artifacts and review state
-                        before they become reusable public outcomes.
-                      </span>
-                    </div>
-                  </SurfaceCard>
+                  <PublicSolutionPreview />
                 </div>
               </section>
             </div>

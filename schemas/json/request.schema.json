@@ -180,6 +180,9 @@
         "activeFulfillmentId": {
           "$ref": "common.schema.json#/$defs/identifier"
         },
+        "acceptedArtifactId": {
+          "$ref": "common.schema.json#/$defs/identifier"
+        },
         "latestArtifactId": {
           "$ref": "common.schema.json#/$defs/identifier"
         },

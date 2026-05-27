@@ -2054,6 +2054,10 @@ export async function updateFulfillmentForRequestById({
     requestDraft.status,
     updatedFulfillment.status
   );
+  const acceptedArtifactId =
+    updatedFulfillment.status === "accepted"
+      ? nextArtifactIds.at(-1)
+      : undefined;
   const clearActiveFulfillment =
     updatedFulfillment.status === "accepted" ||
     updatedFulfillment.status === "cancelled" ||
@@ -2071,6 +2075,7 @@ export async function updateFulfillmentForRequestById({
         activeFulfillmentId: clearActiveFulfillment
           ? undefined
           : updatedFulfillment.id,
+        ...(acceptedArtifactId ? { acceptedArtifactId } : {}),
       },
       latest: {
         summary,
