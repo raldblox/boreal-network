@@ -90,10 +90,10 @@ type PortablePhase = {
 };
 
 const draftFlowLayout = {
-  request: { x: 44, y: 168 },
-  phaseBase: { x: 410, y: 104 },
-  workerBase: { x: 776, y: 104 },
-  laneGapY: 252,
+  request: { x: 44, y: 132 },
+  plan: { x: 386, y: 132 },
+  worker: { x: 728, y: 132 },
+  delivery: { x: 1070, y: 132 },
 } as const;
 
 const workroomFlowLayout = {
@@ -108,29 +108,23 @@ export function buildDraftRequestFlowGraph(
   request: BorealRequestDraft
 ): RequestFlowGraph {
   const phases = getPortableDraftPhases(request);
-  const inputY =
-    draftFlowLayout.phaseBase.y +
-    Math.max(0, ((Math.max(phases.length - 1, 0) * draftFlowLayout.laneGapY) / 2) - 98);
-
   const nodes: RequestFlowNodeDescriptor[] = [
     {
       id: "request",
       kind: "request",
       state: request.derived.readiness.readyForOpen ? "done" : "current",
       tone: "green",
-      laneLabel: "Request",
+      laneLabel: "Your request",
       title: request.brief.title?.trim() || "Request draft",
-      subtitle: formatLabel(request.status),
-      summary:
-        request.brief.body?.trim() ||
-        request.brief.summary?.trim() ||
-        "No durable brief body captured yet.",
+      subtitle: request.derived.readiness.readyForOpen
+        ? "Ready to open"
+        : "Drafting",
+      summary: getDraftRequestSummary(request),
       chips: compactChips([
-        request.derived.routeFamily ? formatLabel(request.derived.routeFamily) : null,
         request.derived.executionKind
           ? formatLabel(request.derived.executionKind)
           : null,
-        request.derived.matchingMode ? formatLabel(request.derived.matchingMode) : null,
+        request.visibility,
       ]),
       details: [
         { label: "Readiness", value: request.derived.readiness.summary },
@@ -151,138 +145,343 @@ export function buildDraftRequestFlowGraph(
       ],
       position: {
         x: draftFlowLayout.request.x,
-        y: inputY,
+        y: draftFlowLayout.request.y,
       },
-      width: 320,
+      width: 292,
     },
+    buildDraftPlanNode(request, phases),
+    buildDraftWorkerNode(request),
+    buildDraftDeliveryNode(request),
   ];
 
-  const edges: RequestFlowEdgeDescriptor[] = [];
-  const roleSlotByKey = new Map(
-    request.derived.roleSlots.map((roleSlot) => [roleSlot.roleKey, roleSlot] as const)
-  );
-
-  phases.forEach((phase, index) => {
-    const phaseId = `phase:${phase.phaseKey}:${index}`;
-    const roleMatch = getPrimaryPhaseRoleMatch(request, phase.roleKeys);
-    const roleSlot = roleMatch
-      ? roleSlotByKey.get(roleMatch.roleKey)
-      : phase.roleKeys.length > 0
-        ? roleSlotByKey.get(phase.roleKeys[0]!)
-        : undefined;
-
-    nodes.push({
-      id: phaseId,
-      kind: "phase",
-      state: deriveDraftPhaseState(request, phase.phaseKey),
-      tone: "blue",
-      laneLabel: "Plan lane",
-      title: phase.title,
-      subtitle: `Phase ${index + 1}`,
-      summary: phase.summary,
-      chips: compactChips([
-        phase.roleKeys.length > 0
-          ? `${phase.roleKeys.length} ${phase.roleKeys.length === 1 ? "lane" : "lanes"}`
-          : null,
-        phase.requiredEvidenceClaims.length > 0
-          ? `${phase.requiredEvidenceClaims.length} proof`
-          : null,
-      ]),
-      details: [
-        {
-          label: "Role lanes",
-          value:
-            phase.roleKeys.length > 0
-              ? phase.roleKeys.map((roleKey) => {
-                  const slot = roleSlotByKey.get(roleKey);
-                  return slot?.title ?? formatLabel(roleKey);
-                })
-              : "No explicit role lanes yet.",
-        },
-        {
-          label: "Evidence",
-          value:
-            phase.requiredEvidenceClaims.length > 0
-              ? phase.requiredEvidenceClaims.map(formatLabel)
-              : "No proof obligation on this phase.",
-        },
-      ],
-      position: {
-        x: draftFlowLayout.phaseBase.x,
-        y: draftFlowLayout.phaseBase.y + index * draftFlowLayout.laneGapY,
-      },
-      width: 320,
-    });
-
-    edges.push({
-      id: `edge:request-${phaseId}`,
+  const edges: RequestFlowEdgeDescriptor[] = [
+    {
+      id: "edge:request-plan",
       source: "request",
-      target: phaseId,
-    });
-
-    if (!roleMatch && !roleSlot) {
-      return;
-    }
-
-    const workerId = `worker:${phase.phaseKey}:${index}`;
-    nodes.push({
-      id: workerId,
-      kind: "worker",
-      state: roleMatch?.supplyId ? "current" : "pending",
-      tone: roleMatch?.supplyId ? "pink" : "violet",
-      laneLabel: "Matched lane",
-      title:
-        roleMatch?.supplyId && roleMatch.supplyId.trim().length > 0
-          ? roleMatch.supplyId
-          : roleSlot?.title ?? "Open lane",
-      subtitle:
-        roleSlot?.title ??
-        (roleMatch ? formatLabel(roleMatch.roleKey) : "Worker lane"),
-      summary:
-        roleMatch?.summary ||
-        roleSlot?.summary ||
-        "No matched worker lane is attached yet.",
-      chips: compactChips([
-        roleMatch ? formatLabel(roleMatch.confidence) : null,
-        roleMatch?.required ? "required" : "optional",
-      ]),
-      details: [
-        {
-          label: "Status",
-          value: roleMatch ? formatLabel(roleMatch.status) : "Open lane",
-        },
-        {
-          label: "Source",
-          value:
-            roleMatch?.supplyId && roleMatch.supplyId.trim().length > 0
-              ? roleMatch.supplyId
-              : "No supply attached yet.",
-        },
-        {
-          label: "Role",
-          value:
-            roleSlot?.title ??
-            (roleMatch ? formatLabel(roleMatch.roleKey) : "Unspecified role"),
-        },
-      ],
-      position: {
-        x: draftFlowLayout.workerBase.x,
-        y: draftFlowLayout.workerBase.y + index * draftFlowLayout.laneGapY,
-      },
-      width: 308,
-    });
-
-    edges.push({
-      id: `edge:${phaseId}-${workerId}`,
-      source: phaseId,
-      target: workerId,
-    });
-  });
+      target: "plan",
+    },
+    {
+      id: "edge:plan-worker",
+      source: "plan",
+      target: "worker",
+    },
+    {
+      id: "edge:worker-delivery",
+      source: "worker",
+      target: "delivery",
+    },
+  ];
 
   return {
     nodes,
     edges,
     initialSelectedNodeId: "request",
+  };
+}
+
+function getDraftRequestSummary(request: BorealRequestDraft) {
+  const source =
+    request.brief.body?.trim() ||
+    request.brief.summary?.trim() ||
+    request.brief.title?.trim();
+
+  return source
+    ? truncateText(source, 148)
+    : "The request is still missing the core ask.";
+}
+
+function getDraftPlanSummary(request: BorealRequestDraft) {
+  if (request.derived.clarificationNeeded.required) {
+    const missing = formatInlineList(
+      request.derived.clarificationNeeded.missingDetails.map(formatMissingDetail)
+    );
+
+    return missing
+      ? `Add ${missing} so Boreal can route and close this safely.`
+      : "Add the missing route details before opening this request.";
+  }
+
+  const location = request.derived.embodiedConstraintSet.serviceLocation?.trim();
+  const proof = getProofLabels(request);
+
+  if (request.derived.embodiedConstraintSet.requiresEmbodiedHandling) {
+    if (location && proof.length > 0) {
+      return `Boreal mapped the local work in ${location} and the proof needed before completion.`;
+    }
+
+    if (location) {
+      return `Boreal mapped the local work in ${location} and will keep execution inside this request.`;
+    }
+
+    return "Boreal mapped this as real-world work, with execution and review kept in one request.";
+  }
+
+  if (isResearchRequest(request)) {
+    return "Research the topic, organize the findings, and package the result as a clear brief.";
+  }
+
+  if (request.brief.outputKinds && request.brief.outputKinds.length > 0) {
+    return `Produce ${formatInlineList(
+      request.brief.outputKinds.map(formatLabel)
+    )} and keep the delivery attached to this request.`;
+  }
+
+  return "Complete the requested output and keep progress, delivery, and review in one request.";
+}
+
+function getDraftWorkerSummary({
+  hasCandidatePool,
+  hasPreferredSupply,
+  request,
+  selectedMatch,
+}: {
+  hasCandidatePool: boolean;
+  hasPreferredSupply: boolean;
+  request: BorealRequestDraft;
+  selectedMatch: BorealRequestDraft["derived"]["roleMatches"][number] | null;
+}) {
+  if (selectedMatch?.status === "attached") {
+    return "A real execution lane is attached. Completion still depends on delivery and proof.";
+  }
+
+  if (hasPreferredSupply) {
+    return "The pinned supply narrows routing, but approval, proof, funding, and safety still apply.";
+  }
+
+  if (selectedMatch) {
+    return "A likely lane is visible for this flow. It is not assigned or complete until the request is opened and attached.";
+  }
+
+  if (hasCandidatePool) {
+    return "Boreal has possible lanes to consider after opening. No worker is assigned yet.";
+  }
+
+  if (request.derived.readiness.readyForOpen) {
+    return "Approve the plan to open the request, then Boreal can route or attach the right lane.";
+  }
+
+  return "Once the brief is ready, the request can open and find the right lane.";
+}
+
+function getDraftDeliveryTitle(request: BorealRequestDraft) {
+  if (request.derived.verificationPlan.requiredArtifactKinds.length > 0) {
+    return request.derived.embodiedConstraintSet.requiresEmbodiedHandling
+      ? "Proof package"
+      : "Delivery package";
+  }
+
+  if (isResearchRequest(request)) {
+    return "Research brief";
+  }
+
+  if (request.brief.outputKinds && request.brief.outputKinds.length > 0) {
+    const [firstOutputKind] = request.brief.outputKinds;
+    return `${capitalize(formatLabel(firstOutputKind ?? "output"))} delivery`;
+  }
+
+  return "Finished output";
+}
+
+function getDraftDeliverySummary(request: BorealRequestDraft) {
+  const proof = getProofLabels(request);
+
+  if (proof.length > 0) {
+    return `Final delivery should include ${formatInlineList(
+      proof
+    )} before this request closes.`;
+  }
+
+  if (isResearchRequest(request)) {
+    return "A clear research brief with findings, tradeoffs, and recommendations.";
+  }
+
+  if (request.brief.outputKinds && request.brief.outputKinds.length > 0) {
+    return `Boreal will package ${formatInlineList(
+      request.brief.outputKinds.map(formatLabel)
+    )} as the request delivery.`;
+  }
+
+  if (request.derived.outcomeClaims.length > 0) {
+    return truncateText(request.derived.outcomeClaims[0]!.summary, 136);
+  }
+
+  return "A final result or supporting artifact will be attached here before closure.";
+}
+
+function buildDraftPlanNode(
+  request: BorealRequestDraft,
+  phases: PortablePhase[]
+): RequestFlowNodeDescriptor {
+  const needsClarification = request.derived.clarificationNeeded.required;
+  const isEmbodied = request.derived.embodiedConstraintSet.requiresEmbodiedHandling;
+  const phaseCount = phases.filter(
+    (phase) => phase.phaseKey !== "planner_pending"
+  ).length;
+
+  return {
+    id: "plan",
+    kind: "phase",
+    state: needsClarification
+      ? "blocked"
+      : request.derived.readiness.readyForOpen
+        ? "done"
+        : "current",
+    tone: needsClarification ? "amber" : "blue",
+    laneLabel: "Plan",
+    title: needsClarification
+      ? "Needs a few details"
+      : isEmbodied
+        ? "Local work is mapped"
+        : phaseCount > 1
+          ? `${phaseCount} steps to delivery`
+          : "Ready to carry out",
+    subtitle:
+      phaseCount > 0
+        ? `${phaseCount} planned ${phaseCount === 1 ? "step" : "steps"}`
+        : "Plan forming",
+    summary: getDraftPlanSummary(request),
+    chips: compactChips([
+      isEmbodied ? "local work" : null,
+      request.derived.verificationPlan.requiredArtifactKinds.length > 0
+        ? "proof required"
+        : null,
+      request.derived.noMicrotaskExplosion ? "bounded" : null,
+    ]),
+    details: [
+      {
+        label: "Planner fields",
+        value:
+          phases.length > 0
+            ? phases.map((phase) => phase.title)
+            : "No phase plan emitted yet.",
+      },
+      {
+        label: "Missing details",
+        value:
+          request.derived.clarificationNeeded.missingDetails.length > 0
+            ? request.derived.clarificationNeeded.missingDetails.map(formatLabel)
+            : "No critical route gaps.",
+      },
+    ],
+    position: draftFlowLayout.plan,
+    width: 292,
+  };
+}
+
+function buildDraftWorkerNode(request: BorealRequestDraft): RequestFlowNodeDescriptor {
+  const attachedMatch =
+    request.derived.roleMatches.find((match) => match.status === "attached") ??
+    null;
+  const selectedMatch =
+    attachedMatch ??
+    request.derived.roleMatches.find((match) => match.status === "selected") ??
+    request.derived.roleMatches.find((match) => Boolean(match.supplyId)) ??
+    null;
+  const hasPreferredSupply = Boolean(request.routing.preferredSupplyId?.trim());
+  const hasCandidatePool =
+    request.derived.matchCandidates.length > 0 ||
+    request.derived.leadRanking.some((entry) => Boolean(entry.supplyId));
+  const title = attachedMatch
+    ? "Execution lane attached"
+    : selectedMatch
+      ? "Selected lane is ready"
+      : hasPreferredSupply
+        ? "Selected supply narrows the route"
+        : hasCandidatePool
+          ? "Candidate lanes are available"
+          : "Lead lane opens after approval";
+  const state: RequestFlowNodeState = attachedMatch
+    ? "done"
+    : selectedMatch || hasPreferredSupply
+      ? "current"
+      : "pending";
+
+  return {
+    id: "worker",
+    kind: "worker",
+    state,
+    tone: getProcessNodeTone(state, "violet"),
+    laneLabel: "Worker path",
+    title,
+    subtitle: attachedMatch
+      ? "Execution attached"
+      : selectedMatch
+        ? "Selected, not completed"
+        : hasPreferredSupply
+          ? "Pinned, not assigned"
+          : "No assignment yet",
+    summary: getDraftWorkerSummary({
+      hasCandidatePool,
+      hasPreferredSupply,
+      request,
+      selectedMatch,
+    }),
+    chips: compactChips([
+      hasPreferredSupply ? "pinned route" : null,
+      selectedMatch?.confidence ? formatLabel(selectedMatch.confidence) : null,
+      attachedMatch ? "attached" : null,
+    ]),
+    details: [
+      {
+        label: "Assignment state",
+        value: formatLabel(request.derived.assignmentProposal.state),
+      },
+      {
+        label: "Assignment summary",
+        value: request.derived.assignmentProposal.summary,
+      },
+      {
+        label: "Preferred supply",
+        value: request.routing.preferredSupplyId || "No supply selected yet.",
+      },
+    ],
+    position: draftFlowLayout.worker,
+    width: 292,
+  };
+}
+
+function buildDraftDeliveryNode(request: BorealRequestDraft): RequestFlowNodeDescriptor {
+  const proofCount =
+    request.derived.verificationPlan.requiredEvidenceClaims.length +
+    request.derived.verificationPlan.requiredArtifactKinds.length;
+  const outputKinds = request.brief.outputKinds ?? [];
+
+  return {
+    id: "delivery",
+    kind: "delivery",
+    state: "pending",
+    tone: "pink",
+    laneLabel: "Delivery",
+    title: getDraftDeliveryTitle(request),
+    subtitle: proofCount > 0 ? "Output and proof" : "Expected output",
+    summary: getDraftDeliverySummary(request),
+    chips: compactChips([
+      outputKinds.length > 0
+        ? outputKinds.slice(0, 2).map(formatLabel).join(", ")
+        : null,
+      proofCount > 0 ? `${proofCount} proof signals` : null,
+      request.derived.verificationPlan.mustHaveOwnerAcceptance
+        ? "owner review"
+        : null,
+    ]),
+    details: [
+      {
+        label: "Outcome claims",
+        value:
+          request.derived.outcomeClaims.length > 0
+            ? request.derived.outcomeClaims.map((claim) => claim.summary)
+            : "No explicit outcome claims captured yet.",
+      },
+      {
+        label: "Proof required",
+        value:
+          request.derived.verificationPlan.requiredEvidenceClaims.length > 0
+            ? request.derived.verificationPlan.requiredEvidenceClaims.map(formatLabel)
+            : "No proof package required yet.",
+      },
+    ],
+    position: draftFlowLayout.delivery,
+    width: 292,
   };
 }
 
@@ -520,21 +719,6 @@ function getPortableDraftPhases(request: BorealRequestDraft): PortablePhase[] {
         request.derived.verificationPlan.requiredEvidenceClaims,
     },
   ];
-}
-
-function deriveDraftPhaseState(
-  request: BorealRequestDraft,
-  phaseKey: string
-): RequestFlowNodeState {
-  if (phaseKey === "planner_pending") {
-    return request.derived.readiness.readyForOpen ? "done" : "current";
-  }
-
-  if (phaseKey === "clarify_constraints" && request.derived.clarificationNeeded.required) {
-    return "current";
-  }
-
-  return "pending";
 }
 
 function getPrimaryPhaseRoleMatch(
@@ -1095,6 +1279,90 @@ function formatSupplyKinds(supply: BorealSupplyDraft) {
   return supply.capability.supplyKinds.length > 0
     ? supply.capability.supplyKinds.map(formatLabel).join(", ")
     : null;
+}
+
+function getProofLabels(request: BorealRequestDraft) {
+  return compactChips([
+    ...request.derived.verificationPlan.requiredEvidenceClaims.map(formatLabel),
+    request.derived.verificationPlan.mustHaveLocationSignal
+      ? "location signal"
+      : null,
+    request.derived.verificationPlan.mustHaveSignature ? "signature" : null,
+    request.derived.verificationPlan.mustHaveOwnerAcceptance
+      ? "owner acceptance"
+      : null,
+  ]);
+}
+
+function isResearchRequest(request: BorealRequestDraft) {
+  const source = [
+    request.brief.title,
+    request.brief.summary,
+    request.brief.body,
+    ...(request.brief.outputKinds ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return /\bresearch\b|\bdeep dive\b|\banaly[sz]e\b|\bcompare\b|\bmarket scan\b/.test(
+    source
+  );
+}
+
+function formatMissingDetail(detail: string) {
+  switch (detail) {
+    case "execution_modes":
+      return "how the work should run";
+    case "access_requirements":
+      return "access details";
+    case "service_location":
+      return "the exact location";
+    case "time_windows":
+      return "the timing window";
+    case "verification_requirements":
+      return "success proof";
+    default:
+      return formatLabel(detail);
+  }
+}
+
+function formatInlineList(values: string[]) {
+  const compacted = values.filter(Boolean).slice(0, 3);
+
+  if (compacted.length === 0) {
+    return "";
+  }
+
+  if (compacted.length === 1) {
+    return compacted[0]!;
+  }
+
+  if (compacted.length === 2) {
+    return `${compacted[0]} and ${compacted[1]}`;
+  }
+
+  return `${compacted.slice(0, -1).join(", ")}, and ${
+    compacted[compacted.length - 1]
+  }`;
+}
+
+function truncateText(value: string, maxLength: number) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
+}
+
+function capitalize(value: string) {
+  if (!value) {
+    return value;
+  }
+
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
 function compactChips(values: Array<string | null | undefined>) {

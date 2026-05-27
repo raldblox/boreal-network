@@ -51,7 +51,7 @@ const nodeTypes = {
 export function RequestFlowCanvas({
   graph,
   className,
-  heightClassName = "h-[34rem]",
+  heightClassName = "h-[30rem]",
 }: RequestFlowCanvasProps) {
   return (
     <ReactFlowProvider>
@@ -94,7 +94,7 @@ function RequestFlowCanvasInner({
     () =>
       graph.edges.map((edge) => ({
         ...edge,
-        type: "simplebezier",
+        type: "smoothstep",
         animated: false,
         selectable: false,
         focusable: false,
@@ -157,7 +157,7 @@ function RequestFlowCanvasInner({
     <div className={className}>
       <div
         className={cn(
-          "overflow-hidden rounded-[24px] border border-border/60 bg-[#0b0b0f]",
+          "overflow-hidden rounded-[20px] border border-border/60 bg-[#0b0b0f]",
           heightClassName
         )}
       >
@@ -165,7 +165,7 @@ function RequestFlowCanvasInner({
           className="[&_.react-flow__pane]:cursor-grab [&_.react-flow__pane.dragging]:cursor-grabbing"
           colorMode="dark"
           defaultEdgeOptions={{
-            type: "simplebezier",
+            type: "smoothstep",
             style: {
               stroke: "rgba(148, 163, 184, 0.58)",
               strokeWidth: 2.1,
@@ -188,7 +188,7 @@ function RequestFlowCanvasInner({
           selectionOnDrag={false}
         >
           <Background
-            color="rgba(148, 163, 184, 0.22)"
+            color="rgba(148, 163, 184, 0.16)"
             gap={28}
             size={1}
             variant={BackgroundVariant.Dots}
@@ -232,74 +232,73 @@ function RequestFlowCanvasNode({
 
       <div
         className={cn(
-          "relative overflow-hidden rounded-[24px] border bg-[#111217]/94 p-4 text-zinc-100 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.72)] backdrop-blur-xl transition-[transform,border-color,box-shadow] duration-200",
+          "relative h-[14.5rem] overflow-hidden rounded-[18px] border bg-[#111217]/94 p-4 text-zinc-100 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.72)] backdrop-blur-xl transition-[border-color,box-shadow] duration-200",
           selected
             ? "border-white/22 shadow-[0_36px_90px_-40px_rgba(0,0,0,0.86)]"
-            : "border-white/8 hover:-translate-y-0.5 hover:border-white/14"
+            : "border-white/8 hover:border-white/14"
         )}
         style={{
           width: descriptor.width,
         }}
       >
-        <div
-          className={cn(
-            "pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b to-transparent",
-            tone.surface
+        <div className="flex h-full flex-col">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <div
+                  className={cn(
+                    "inline-flex rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
+                    tone.badge
+                  )}
+                >
+                  {descriptor.laneLabel}
+                </div>
+              </div>
+
+              <div className="mt-3 flex min-w-0 items-start gap-3">
+                <div
+                  className={cn(
+                    "flex size-9 shrink-0 items-center justify-center rounded-[13px] border border-white/8",
+                    tone.icon
+                  )}
+                >
+                  {getNodeIcon(descriptor)}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[14px] font-medium leading-5.5 text-zinc-50">
+                    <ClampedText lines={2}>{descriptor.title}</ClampedText>
+                  </div>
+                  <div className="mt-0.5 text-[12px] leading-5 text-zinc-400">
+                    <ClampedText lines={1}>{descriptor.subtitle}</ClampedText>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <NodeStatePill state={descriptor.state} />
+          </div>
+
+          <div className="mt-4 h-px bg-white/6" />
+
+          <div className="flex min-h-0 flex-1 items-center py-3 text-[13px] leading-6 text-zinc-100">
+            <ClampedText lines={4}>{descriptor.summary}</ClampedText>
+          </div>
+
+          {descriptor.chips.length > 0 ? (
+            <div className="flex min-h-7 flex-wrap content-end gap-1.5">
+              {descriptor.chips.map((chip) => (
+                <span
+                  className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400"
+                  key={`${descriptor.id}:${chip}`}
+                >
+                  {chip}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="min-h-7" />
           )}
-        />
-
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div
-              className={cn(
-                "inline-flex rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
-                tone.badge
-              )}
-            >
-              {descriptor.laneLabel}
-            </div>
-
-            <div className="mt-3 flex min-w-0 items-start gap-3">
-              <div
-                className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-[15px] border border-white/8",
-                  tone.icon
-                )}
-              >
-                {getNodeIcon(descriptor)}
-              </div>
-              <div className="min-w-0">
-                <div className="truncate text-[15px] font-medium leading-6 text-zinc-50">
-                  {descriptor.title}
-                </div>
-                <div className="text-[12px] leading-5 text-zinc-400">
-                  {descriptor.subtitle}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <NodeStatePill state={descriptor.state} />
         </div>
-
-        <div className="mt-4 h-px bg-white/6" />
-
-        <div className="mt-4 rounded-[18px] border border-white/7 bg-[#0c0d12]/72 px-4 py-3.5 text-[13px] leading-6 text-zinc-100">
-          <ClampedText lines={3}>{descriptor.summary}</ClampedText>
-        </div>
-
-        {descriptor.chips.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {descriptor.chips.map((chip) => (
-              <span
-                className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400"
-                key={`${descriptor.id}:${chip}`}
-              >
-                {chip}
-              </span>
-            ))}
-          </div>
-        ) : null}
       </div>
     </div>
   );
@@ -376,17 +375,17 @@ function getStateStyles(state: RequestFlowNodeState) {
   switch (state) {
     case "done":
       return {
-        label: "done",
+        label: "ready",
         className: "border-emerald-300/24 bg-emerald-300/[0.12] text-emerald-200",
       };
     case "current":
       return {
-        label: "current",
+        label: "active",
         className: "border-sky-300/24 bg-sky-300/[0.12] text-sky-200",
       };
     case "blocked":
       return {
-        label: "blocked",
+        label: "needs input",
         className: "border-amber-300/24 bg-amber-300/[0.12] text-amber-200",
       };
     case "failed":
@@ -402,7 +401,7 @@ function getStateStyles(state: RequestFlowNodeState) {
     case "pending":
     default:
       return {
-        label: "pending",
+        label: "waiting",
         className: "border-zinc-300/18 bg-white/[0.03] text-zinc-300",
       };
   }

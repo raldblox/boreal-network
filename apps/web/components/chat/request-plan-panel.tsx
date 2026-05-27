@@ -531,10 +531,10 @@ function getPlanNarrative(
   }
 
   if (flowSteps.length > 1) {
-    return `Boreal turned the ask into a bounded ${flowSteps.length}-phase request${plannedRoles.length > 0 ? ` with ${plannedRoles.length} planned role${plannedRoles.length === 1 ? "" : "s"}` : ""}.`;
+    return `Boreal mapped this into ${flowSteps.length} steps that affect execution, proof, or delivery${plannedRoles.length > 0 ? `, with ${plannedRoles.length} planned lane${plannedRoles.length === 1 ? "" : "s"}` : ""}.`;
   }
 
-  return "Boreal turned the ask into a bounded request plan. Edit the brief to change the lead lane, support lanes, phases, or missing details.";
+  return "Boreal understands the ask and is showing the path from request to delivery. Edit the brief if the outcome or constraints are wrong.";
 }
 
 function getUnderstandingItems(request: BorealRequestDraft): PlanFact[] {
@@ -787,7 +787,40 @@ function getPhaseSummary(
     phase.phaseKey === "onsite_execution" &&
     request.derived.embodiedConstraintSet.serviceLocation
   ) {
-    return `Handle the local execution work in ${request.derived.embodiedConstraintSet.serviceLocation} without treating the request as complete too early.`;
+    return `Handle the local execution work in ${request.derived.embodiedConstraintSet.serviceLocation} and keep proof attached before closure.`;
+  }
+
+  if (
+    phase.phaseKey === "onsite_execution" ||
+    phase.phaseKey === "field_execution" ||
+    phase.phaseKey === "handoff_execution" ||
+    phase.phaseKey === "witness_execution"
+  ) {
+    return "Carry out the real-world step and keep the result tied to this request.";
+  }
+
+  if (phase.phaseKey === "scope_route") {
+    return "Confirm the scope and the lane that should carry the work after the request opens.";
+  }
+
+  if (phase.phaseKey === "execute_delivery") {
+    if (isResearchRequest(request)) {
+      return "Research the topic, organize the findings, and return a clear brief.";
+    }
+
+    if ((request.brief.outputKinds ?? []).length > 0) {
+      return "Produce the requested deliverable and keep progress in this request thread.";
+    }
+
+    return "Complete the requested output and keep delivery attached to this request.";
+  }
+
+  if (phase.phaseKey === "proof_delivery" || phase.phaseKey === "handoff_review") {
+    return "Package the output, evidence, and owner-facing notes needed for review.";
+  }
+
+  if (/brittle task tree|microtask|planner/i.test(phase.summary)) {
+    return "Keep the work in one clear request path from execution to delivery.";
   }
 
   return phase.summary;
@@ -1008,6 +1041,22 @@ function extractHeadcount(request: BorealRequestDraft) {
   }
 
   return `${match[1]} ${match[2].toLowerCase()}`;
+}
+
+function isResearchRequest(request: BorealRequestDraft) {
+  const source = [
+    request.brief.title,
+    request.brief.summary,
+    request.brief.body,
+    ...(request.brief.outputKinds ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return /\bresearch\b|\bdeep dive\b|\banaly[sz]e\b|\bcompare\b|\bmarket scan\b/.test(
+    source
+  );
 }
 
 function formatLabel(value: string) {
