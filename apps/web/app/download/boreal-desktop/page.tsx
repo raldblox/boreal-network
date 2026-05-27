@@ -13,9 +13,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  SurfaceCard,
+  SurfaceCardDescription,
+  SurfaceCardHeader,
+} from "@/components/chat/surface-card";
+import {
   surfaceBodyClassName,
-  surfaceCardClassName,
-  surfaceCardTitleClassName,
   surfaceColumnClassName,
   surfaceEyebrowClassName,
   surfaceHeroTitleClassName,
@@ -145,35 +148,35 @@ export default function BorealDesktopDownloadPage() {
             </p>
 
             <div className="grid gap-4 pt-2 sm:grid-cols-3">
-              <div className={surfaceCardClassName}>
+              <SurfaceCard>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   What you can do now
                 </p>
-                <p className="mt-3 text-sm leading-7 text-foreground">
+                <SurfaceCardDescription className="mt-3 text-foreground">
                   Open local Codex chat, pick up tracked requests, browse public
                   requests, and send delivery or status updates back into the
                   request flow.
-                </p>
-              </div>
-              <div className={surfaceCardClassName}>
+                </SurfaceCardDescription>
+              </SurfaceCard>
+              <SurfaceCard>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   What stays local
                 </p>
-                <p className="mt-3 text-sm leading-7 text-foreground">
+                <SurfaceCardDescription className="mt-3 text-foreground">
                   Scratch work, private context, and runtime chatter stay on
                   the machine until you choose to send back something durable.
-                </p>
-              </div>
-              <div className={surfaceCardClassName}>
+                </SurfaceCardDescription>
+              </SurfaceCard>
+              <SurfaceCard>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   What stays on Boreal
                 </p>
-                <p className="mt-3 text-sm leading-7 text-foreground">
+                <SurfaceCardDescription className="mt-3 text-foreground">
                   The request thread, the delivery, and the proof stay in Boreal
                   web so the shared flow does not depend on the full local
                   transcript.
-                </p>
-              </div>
+                </SurfaceCardDescription>
+              </SurfaceCard>
             </div>
           </div>
         </section>
@@ -186,12 +189,12 @@ export default function BorealDesktopDownloadPage() {
 
           <div className="mt-8 grid gap-4 lg:grid-cols-3">
             {reasons.map((reason) => (
-              <div className={surfaceCardClassName} key={reason}>
+              <SurfaceCard key={reason}>
                 <div className="flex items-start gap-3">
                   <BadgeCheck className="mt-0.5 size-4 shrink-0 text-foreground" />
                   <p className="text-sm leading-7 text-foreground">{reason}</p>
                 </div>
-              </div>
+              </SurfaceCard>
             ))}
           </div>
         </section>
@@ -224,17 +227,20 @@ export default function BorealDesktopDownloadPage() {
 
           <div className="mt-8 grid gap-5 lg:grid-cols-2">
             {liveCapabilities.map(({ icon: Icon, title, body }) => (
-              <div className={surfaceCardClassName} key={title}>
-                <div className="flex items-center gap-3">
-                  <div className="flex size-11 items-center justify-center rounded-full border border-border/70">
-                    <Icon className="size-4 text-foreground" />
-                  </div>
-                  <h3 className={surfaceCardTitleClassName}>{title}</h3>
-                </div>
-                <p className="mt-5 text-sm leading-7 text-muted-foreground">
+              <SurfaceCard key={title}>
+                <SurfaceCardHeader
+                  action={
+                    <div className="flex size-11 items-center justify-center rounded-full border border-border/70">
+                      <Icon className="size-4 text-foreground" />
+                    </div>
+                  }
+                  title={title}
+                  titleAs="h3"
+                />
+                <SurfaceCardDescription className="mt-5">
                   {body}
-                </p>
-              </div>
+                </SurfaceCardDescription>
+              </SurfaceCard>
             ))}
           </div>
         </section>
@@ -270,17 +276,16 @@ export default function BorealDesktopDownloadPage() {
                 body: "Publish the delivery, the proof, or the status update that belongs on the shared request and leave the rest local.",
               },
             ].map(({ step, title, body }) => (
-              <div className={surfaceCardClassName} key={step}>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                    {step}
-                  </span>
-                  <h3 className={surfaceCardTitleClassName}>{title}</h3>
-                </div>
-                <p className="mt-4 text-sm leading-7 text-muted-foreground">
+              <SurfaceCard key={step}>
+                <SurfaceCardHeader
+                  eyebrow={step}
+                  title={title}
+                  titleAs="h3"
+                />
+                <SurfaceCardDescription>
                   {body}
-                </p>
-              </div>
+                </SurfaceCardDescription>
+              </SurfaceCard>
             ))}
           </div>
         </section>
@@ -301,19 +306,21 @@ export default function BorealDesktopDownloadPage() {
 
           <div className="space-y-4">
             {nextSteps.map((item) => (
-              <div className={surfaceCardClassName} key={item}>
+              <SurfaceCard key={item}>
                 <div className="flex items-start gap-3">
                   <Radio className="mt-1 size-4 shrink-0 text-foreground" />
                   <p className="text-sm leading-7 text-foreground">{item}</p>
                 </div>
-              </div>
+              </SurfaceCard>
             ))}
           </div>
         </section>
 
         <footer className="mt-12 border-t border-border/60 py-8">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className={surfaceCardTitleClassName}>Boreal Desktop</div>
+            <div className="text-xl font-medium tracking-tight text-foreground">
+              Boreal Desktop
+            </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               <Link href="/">Home</Link>
               <Link href="/?mode=request">Post request</Link>
