@@ -154,6 +154,285 @@ paths:
                     $ref: "#/components/schemas/BuyerCreditAccount"
                   ledgerEntry:
                     $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+  /api/services/character-call-starter/checkout:
+    post:
+      summary: Create and fund the $1 Character Call Starter Request from first-party buyer credit.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - characterName
+                - personalityNotes
+              properties:
+                characterName:
+                  type: string
+                  minLength: 1
+                  maxLength: 80
+                callGoal:
+                  type: string
+                  enum:
+                    - personal_fun
+                    - sales_demo
+                    - practice_room
+                    - education_host
+                  default: personal_fun
+                personalityNotes:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
+                referenceImageDescription:
+                  type: string
+                  maxLength: 1000
+                allowedTopics:
+                  type: string
+                  maxLength: 1000
+                blockedTopics:
+                  type: string
+                  maxLength: 1000
+                firstMessage:
+                  type: string
+                  maxLength: 500
+                idempotencyKey:
+                  type:
+                    - string
+                    - "null"
+                  format: uuid
+      responses:
+        "200":
+          description: Funded request, selected supply, workflow pack projections, request transaction, and buyer-credit ledger debit.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                  - transaction
+                  - account
+                  - ledgerEntry
+                  - chatId
+                  - supply
+                  - workflowPack
+                  - workflowPackVersion
+                  - fulfillmentBootstrap
+                  - checkout
+                properties:
+                  request:
+                    type: object
+                  transaction:
+                    $ref: "#/components/schemas/RequestTransaction"
+                  account:
+                    $ref: "#/components/schemas/BuyerCreditAccount"
+                  ledgerEntry:
+                    $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+                  chatId:
+                    type: string
+                    format: uuid
+                  supply:
+                    type:
+                      - object
+                      - "null"
+                  workflowPack:
+                    type:
+                      - object
+                      - "null"
+                  workflowPackVersion:
+                    type:
+                      - object
+                      - "null"
+                  fulfillmentBootstrap:
+                    type: object
+                    additionalProperties: true
+                  checkout:
+                    type: object
+                    additionalProperties: false
+                    required:
+                      - amount
+                      - currency
+                      - serviceFamilyKey
+                      - servicePlanKey
+                    properties:
+                      amount:
+                        type: string
+                        const: "1.00"
+                      currency:
+                        type: string
+                        const: USD
+                      serviceFamilyKey:
+                        type: string
+                        const: character-call-starter
+                      servicePlanKey:
+                        type: string
+                        const: starter-call
+        "400":
+          description: Invalid checkout body, inactive or insufficient buyer credit, or request readiness failure.
+        "401":
+          description: Session authentication required.
+  /api/services/character-call-starter/session:
+    post:
+      summary: Launch one Runway realtime character session for an owned funded Character Call Starter request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - requestId
+                - avatarId
+              properties:
+                requestId:
+                  type: string
+                  format: uuid
+                fulfillmentId:
+                  type: string
+                  format: uuid
+                avatarId:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+      responses:
+        "200":
+          description: Ephemeral one-time Runway realtime session credentials. Tokens must not be persisted.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                required:
+                  - sessionId
+                  - requestId
+                  - expiresInSeconds
+                  - raw
+                properties:
+                  sessionId:
+                    type: string
+                  requestId:
+                    type: string
+                    format: uuid
+                  fulfillmentId:
+                    type:
+                      - string
+                      - "null"
+                    format: uuid
+                  serverUrl:
+                    type: string
+                  token:
+                    type: string
+                  roomName:
+                    type: string
+                  expiresInSeconds:
+                    type: integer
+                    const: 300
+                  raw:
+                    type: object
+                    additionalProperties: true
+        "400":
+          description: Invalid request, unfunded request, missing Runway API secret, or Runway session failure.
+        "401":
+          description: Session authentication required.
+  /api/paypal/create-order:
+    post:
+      summary: Create a PayPal Checkout order for first-party buyer credit top-up.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - amount
+              properties:
+                amount:
+                  $ref: "#/components/schemas/MoneyAmount"
+                currency:
+                  type: string
+                  pattern: "^[A-Z]{3}$"
+                  default: USD
+                idempotencyKey:
+                  type:
+                    - string
+                    - "null"
+                  format: uuid
+      responses:
+        "200":
+          description: Pending ledger entry plus PayPal order approval link.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - account
+                  - ledgerEntry
+                  - paypalOrderId
+                  - approveUrl
+                properties:
+                  account:
+                    $ref: "#/components/schemas/BuyerCreditAccount"
+                  ledgerEntry:
+                    $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+                  paypalOrderId:
+                    type: string
+                  approveUrl:
+                    type: string
+                    format: uri
+  /api/paypal/capture:
+    get:
+      summary: Capture an approved PayPal order and settle the matching buyer-credit top-up.
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: ledgerEntryId
+          required: false
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "303":
+          description: Redirects the authenticated buyer back to account credit surfaces.
+  /api/paypal/webhook:
+    post:
+      summary: Verify and process PayPal payment webhooks for buyer-credit top-up settlement.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Webhook verified and acknowledged.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - received
+                  - handled
+                properties:
+                  received:
+                    type: boolean
+                  handled:
+                    type: string
+        "400":
+          description: Invalid payload or failed PayPal signature verification.
   /api/requests/{id}/transactions:
     get:
       summary: List request-attached transactions for one owned Request.

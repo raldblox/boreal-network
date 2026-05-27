@@ -101,6 +101,8 @@ export async function POST(
         "Accepted commitment required",
         "Owner-private direct fulfillment only",
         "Owner-private direct fulfillment requires open request",
+        "Owner-private direct fulfillment requires open or funded request",
+        "Owner-private direct fulfillment requires open, funded, or active owner request",
         "Active fulfillment already exists",
         "Funding required before starting fulfillment",
         "Published supply required",

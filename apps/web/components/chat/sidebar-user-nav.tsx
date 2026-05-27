@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, UserRoundIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { User } from "next-auth";
 import { signOut, useSession } from "next-auth/react";
@@ -21,14 +21,6 @@ import { guestRegex } from "@/lib/constants";
 import { LoaderIcon } from "./icons";
 import { toast } from "./toast";
 
-function emailToHue(email: string): number {
-  let hash = 0;
-  for (const char of email) {
-    hash = char.charCodeAt(0) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash) % 360;
-}
-
 export function SidebarUserNav({ user }: { user?: User }) {
   const router = useRouter();
   const { data, status } = useSession();
@@ -38,7 +30,6 @@ export function SidebarUserNav({ user }: { user?: User }) {
   const isGuest = guestRegex.test(sessionUser?.email ?? "");
   const isPublicVisitor = !sessionUser;
   const displayEmail = sessionUser?.email ?? "Guest or sign in";
-  const avatarHue = emailToHue(sessionUser?.email ?? "guest");
 
   return (
     <SidebarMenu>
@@ -62,12 +53,9 @@ export function SidebarUserNav({ user }: { user?: User }) {
                 className="h-8 rounded-lg bg-transparent px-2 text-sidebar-foreground/70 transition-colors duration-150 hover:text-sidebar-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
                 data-testid="user-nav-button"
               >
-                <div
-                  className="size-5 shrink-0 rounded-full ring-1 ring-sidebar-border/50"
-                  style={{
-                    background: `linear-gradient(135deg, oklch(0.35 0.08 ${avatarHue}), oklch(0.25 0.05 ${avatarHue + 40}))`,
-                  }}
-                />
+                <div className="flex size-5 shrink-0 items-center justify-center rounded-full border border-sidebar-border/70 bg-sidebar-accent/45 text-sidebar-foreground/70">
+                  <UserRoundIcon className="size-3" />
+                </div>
                 <span
                   className="truncate text-[13px] group-data-[collapsible=icon]:hidden"
                   data-testid="user-email"
@@ -111,6 +99,17 @@ export function SidebarUserNav({ user }: { user?: User }) {
             <DropdownMenuSeparator />
             {!isPublicVisitor && !isGuest ? (
               <>
+                <DropdownMenuItem asChild data-testid="user-nav-item-account">
+                  <button
+                    className="w-full cursor-pointer text-[13px]"
+                    onClick={() => {
+                      router.push("/account");
+                    }}
+                    type="button"
+                  >
+                    Manage account
+                  </button>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild data-testid="user-nav-item-security">
                   <button
                     className="w-full cursor-pointer text-[13px]"

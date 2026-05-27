@@ -4,6 +4,7 @@ import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import "@runwayml/avatars-react/styles.css";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 

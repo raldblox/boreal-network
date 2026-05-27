@@ -30,6 +30,10 @@ export function ModeShell({ user: _user }: { user?: User | null }) {
     return <OpenRequestsHub />;
   }
 
+  if (pathname === "/account" || pathname.startsWith("/account/")) {
+    return null;
+  }
+
   if (pathname.startsWith("/supplies/")) {
     return <SupplyShell />;
   }

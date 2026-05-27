@@ -1764,8 +1764,16 @@ export async function createFulfillmentForRequestById({
     throw new Error("Funding required before starting fulfillment");
   }
 
-  if (useDirectOwnerPrivateLane && requestDraft.status !== "open") {
-    throw new Error("Owner-private direct fulfillment requires open request");
+  if (
+    useDirectOwnerPrivateLane &&
+    requestDraft.status !== "open" &&
+    requestDraft.status !== "funded" &&
+    requestDraft.status !== "in_progress" &&
+    requestDraft.status !== "waiting_for_owner"
+  ) {
+    throw new Error(
+      "Owner-private direct fulfillment requires open, funded, or active owner request"
+    );
   }
 
   if (existingCommitment) {

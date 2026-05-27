@@ -32,6 +32,113 @@ export type WorkflowBackedSupplyResolution = {
   workflowPackVersion: WorkflowPackVersion;
 };
 
+export async function createCharacterCallStarterSupplyDraft({
+  userId,
+  workflowPackVersionId,
+  publish = false,
+}: {
+  userId: string;
+  workflowPackVersionId: string;
+  publish?: boolean;
+}): Promise<BorealSupplyDraft> {
+  const now = new Date().toISOString();
+  const draft = createInitialSupplyDraft({
+    id: generateUUID(),
+    userId,
+    preset: "provider_capability",
+    createdAt: now,
+  });
+  const preparedDraft = applySupplyPatch(
+    draft,
+    {
+      status: publish ? "published" : "draft",
+      visibility: "unlisted",
+      profile: {
+        displayName: "Character Call Starter",
+        headline:
+          "A live AI character video-call setup from one image and persona brief",
+        summary:
+          "Boreal configures a Runway Character, prepares the persona, reviews one test call, and delivers a server-side session launch handoff.",
+        description:
+          "One bounded service package for buyers who want a working interactive character call, not a tool setup project.",
+        tags: [
+          "workflow_backed",
+          "runway",
+          "character_call",
+          "interactive_avatar",
+        ],
+      },
+      capability: {
+        supplyKinds: [
+          "provider_capability",
+          "video_generation",
+          "documentation_support",
+        ],
+        fulfillmentActorKinds: ["human", "agent", "tool"],
+        outputKinds: ["draft", "media", "handoff_doc", "delivery"],
+        executionChannels: ["request_room", "api", "operator_review"],
+      },
+      availability: {
+        acceptingRequests: true,
+        maxConcurrentRequests: 5,
+        responseTimeHours: 24,
+      },
+      pricing: {
+        mode: "fixed",
+        currency: "USD",
+        fixedAmount: 1,
+        notes:
+          "Starter Call launch price: one character setup, one included test session, persona sheet, session-launch handoff, and delivery notes.",
+      },
+      source: {
+        kind: "provider",
+      },
+      bindings: {
+        providerRef: "runway/characters",
+      },
+      metadata: {
+        serviceFamilyKey: "character-call-starter",
+        servicePlanKey: "starter-call",
+        deliveryProfile: {
+          includedTestSessions: 1,
+          maxSessionMinutes: 5,
+          includesPersonaSheet: true,
+          includesSessionLaunchHandoff: true,
+          providerKey: "runway",
+          model: "gwm1_avatars",
+        },
+      },
+      ...(publish ? { publishedAt: now } : {}),
+    },
+    now
+  );
+  const boundDraft = await withWorkflowPackVersionOnSupplyDraft({
+    draft: preparedDraft,
+    workflowPackVersionId,
+    adapterKind: "provider_direct",
+  });
+
+  const createdSupply = await saveSupplyDraft({
+    id: boundDraft.id,
+    key: boundDraft.key,
+    ownerId: boundDraft.ownerId,
+    status: boundDraft.status,
+    visibility: boundDraft.visibility,
+    profile: boundDraft.profile,
+    capability: boundDraft.capability,
+    availability: boundDraft.availability,
+    pricing: boundDraft.pricing,
+    source: boundDraft.source,
+    bindings: boundDraft.bindings,
+    metadata: boundDraft.metadata,
+    ...(boundDraft.publishedAt
+      ? { publishedAt: new Date(boundDraft.publishedAt) }
+      : {}),
+  });
+
+  return toSupplyDraft(createdSupply);
+}
+
 export async function createFounderAvatarClipPackSupplyDraft({
   userId,
   workflowPackVersionId,

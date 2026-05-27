@@ -28,6 +28,7 @@ import {
   tryOpenDesktopRuntimeApp,
   type DesktopRuntimeDiscoveryPayload,
 } from "@/lib/desktop-runtime-bridge";
+import { CharacterCallLauncher } from "@/components/services/character-call-launcher";
 import {
   buildTrackedRequestFlowGraph,
   type RequestFlowNodeDescriptor,
@@ -71,6 +72,14 @@ export type WorkroomViewId =
   | "monitor"
   | "activity"
   | "artifacts";
+
+const CHARACTER_CALL_LAUNCHABLE_STATUSES = new Set<RequestStatus>([
+  "funded",
+  "in_progress",
+  "waiting_for_owner",
+  "delivered",
+  "completed",
+]);
 
 export function RequestTracker({
   request,
@@ -210,6 +219,13 @@ export function RequestTracker({
   const activeFulfillmentWorkerState = getBorealWorkerTrackerState(
     activeFulfillment
   );
+  const isCharacterCallStarterRequest =
+    request.brief.constraints?.serviceFamilyKey === "character-call-starter" ||
+    (request.brief.tags ?? []).includes("character_call");
+  const canLaunchCharacterCall =
+    isRequestOwner &&
+    isCharacterCallStarterRequest &&
+    CHARACTER_CALL_LAUNCHABLE_STATUSES.has(request.status);
   const preferredSupplyKey =
     canManagePrivateRouting && request.routing.preferredSupplyId
       ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/supplies/${request.routing.preferredSupplyId}`
@@ -544,6 +560,18 @@ export function RequestTracker({
               },
             ]}
           />
+
+          {canLaunchCharacterCall ? (
+            <CharacterCallLauncher
+              className="border-emerald-500/25 bg-emerald-500/5"
+              fulfillmentId={
+                activeFulfillment?.id ??
+                request.activeRefs.activeFulfillmentId ??
+                null
+              }
+              requestId={request.id}
+            />
+          ) : null}
 
           {canCheckActiveWorkerFulfillment ? (
             <div className="rounded-[18px] border border-sky-300/35 bg-sky-50/70 px-3.5 py-3 dark:bg-sky-500/10">

@@ -36,6 +36,7 @@ Not promoted to root canon in this file:
 - let multiple branded service pages map back to the same Boreal backbone
 - let repeat buyers preload credit for confidence and faster checkout
 - preserve request-rooted commercial truth
+- bias direct-link services toward upload-in, artifact-out outcomes before asking for external account access
 
 ## Non-Goals
 
@@ -44,6 +45,7 @@ Not promoted to root canon in this file:
 - cash-out or withdrawal for buyers
 - credits as a crypto or stored-value product
 - replacing request-level transaction truth with an account-balance abstraction
+- making the first purchase depend on connecting the buyer's external SaaS accounts
 
 ## Core Model
 
@@ -57,6 +59,34 @@ It is a surface grouping for:
 - one shared narrative
 - one shared process rail
 - several preset plans
+
+### Outcome-first access rule
+
+Direct service links should launch with the lowest viable buyer-access requirement.
+
+Preferred first-purchase inputs:
+
+- uploaded assets
+- uploaded documents
+- CSV or JSON exports
+- screenshots
+- transcripts
+- public URLs
+- short structured briefs
+
+Avoid requiring these for the first paid version:
+
+- buyer OAuth grants
+- live CRM access
+- production API keys
+- accounting workspace access
+- direct write access to external systems
+
+If an integration is useful, treat it as:
+
+- an optional fulfillment accelerator
+- an upsell after the first result
+- a scoped operator step that must still preserve `Request`, `Artifact`, `Transaction`, and `Fulfillment` truth
 
 ### 2. One preset plan equals one `Supply`
 
@@ -87,6 +117,7 @@ The direct-link lane is:
 Example shape:
 
 - `/services/automation-completion-sprint`
+- `/services/character-call-starter`
 - `/services/founder-avatar-clip-pack`
 
 Behavior:
@@ -100,6 +131,7 @@ Behavior:
 Example shape:
 
 - `/services/automation-completion-sprint/one-workflow-completion`
+- `/services/character-call-starter/starter-call`
 - `/services/founder-avatar-clip-pack/sales-reply-pack`
 
 Behavior:
@@ -107,6 +139,7 @@ Behavior:
 - resolve one exact unlisted supply id
 - preselect one exact plan
 - open the request flow faster
+- for approved launch SKUs such as `character-call-starter/starter-call`, the plan link may expose a direct first-party-credit checkout that still creates one canonical `Request`, selected `Supply`, `Transaction`, and buyer-credit ledger debit
 
 ## Branded Distribution Rule
 
@@ -136,6 +169,7 @@ When a buyer starts from a service link:
 - seed `seeking.supplyKinds` from the selected supply
 - seed `budget` from fixed plan pricing when the plan is fixed-price
 - keep `brief` buyer-authored
+- if the buyer uses direct service checkout, open and fund the same `Request` only after intake body, budget, and selected supply are present
 - keep system-selected plan context in server-owned metadata
 
 Suggested request metadata keys:

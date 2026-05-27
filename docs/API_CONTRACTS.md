@@ -193,6 +193,7 @@ The first resolver-facing web slice now exposes:
 
 Accepted responder lanes may create fulfillment after owner acceptance.
 Owned private resolver lanes may create fulfillment without `commitmentId` when the same Boreal owner is authorizing direct desktop execution.
+Owner-private first-party service lanes may create direct fulfillment from `open`, `funded`, `in_progress`, or `waiting_for_owner` when the same owner is driving a selected first-party supply lane.
 When fulfillment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before opening the lane.
 Owner-private Boreal-managed web workers may also open one direct fulfillment lane after `open_request`, but the provider-facing payload should stay reduced to worker-specific prompt and execution inputs instead of the entire request object.
 Retryable internal worker or storage handoff failures should move that same fulfillment lane to `blocked`, preserve the worker input and provider recovery metadata, and resume through `POST /api/fulfillments/{id}/retry` instead of terminally failing the request immediately.
@@ -217,6 +218,11 @@ The first first-party payment and credit slice exposes:
 - `GET /api/buyer-credits/ledger`
 - `POST /api/buyer-credits/topups`
 - `POST /api/buyer-credits/apply`
+- `POST /api/paypal/create-order`
+- `GET /api/paypal/capture`
+- `POST /api/paypal/webhook`
+- `POST /api/services/character-call-starter/checkout`
+- `POST /api/services/character-call-starter/session`
 - `GET /api/requests/{id}/transactions`
 - `POST /api/requests/{id}/transactions`
 
@@ -224,8 +230,16 @@ Rules:
 
 - buyer-credit endpoints are authenticated account-session routes in the first slice
 - top-up creates buyer-credit support ledger truth but does not create request `Transaction` truth
+- PayPal order creation for account top-up creates one pending buyer-credit ledger entry and redirects the buyer through PayPal approval
+- PayPal return capture and verified PayPal webhooks may settle that same pending ledger entry
+- PayPal settlement must be idempotent because buyer return and webhook delivery can race or replay
+- PayPal webhook verification must use PayPal signature verification before mutating buyer-credit ledger state
 - direct request funding creates request-attached `Transaction` truth
 - buyer-credit application creates both one credit ledger debit and one request-attached `Transaction`
+- curated first-party service checkout may compose request creation, preferred `Supply` pinning, request open, and buyer-credit debit in one endpoint when the endpoint returns the same canonical `Request`, `Supply`, `Transaction`, and buyer-credit ledger projections
+- curated first-party service checkout must stay idempotency-keyed and must not introduce a separate order root object for launch-price credit spend
+- Character Call Starter checkout should also bootstrap the owner-private `Fulfillment` lane and request artifacts after settlement instead of storing service-progress truth outside the request
+- Character Call Starter session launch returns ephemeral Runway realtime credentials and must not persist one-time session tokens as durable artifacts
 - mutating payment routes accept `Idempotency-Key`
 
 Machine-readable contract:

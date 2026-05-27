@@ -102,7 +102,7 @@ export type BuyerCreditLedgerMetadata = {
 
 const centsPattern = /^\d+(?:\.\d{1,2})?$/;
 
-export function normalizeMoneyAmount(amount: string | number) {
+function normalizeMoneyAmountInternal(amount: string | number) {
   const rawAmount =
     typeof amount === "number" ? amount.toFixed(2) : amount.trim();
 
@@ -115,18 +115,24 @@ export function normalizeMoneyAmount(amount: string | number) {
   const normalizedWhole = wholePart.replace(/^0+(?=\d)/, "");
   const amountInCents = BigInt(normalizedWhole) * 100n + BigInt(cents);
 
+  return {
+    amountInCents,
+    normalized: `${normalizedWhole}.${cents}`,
+  };
+}
+
+export function normalizeMoneyAmount(amount: string | number) {
+  const { amountInCents, normalized } = normalizeMoneyAmountInternal(amount);
+
   if (amountInCents <= 0n) {
     throw new Error("Money amount must be greater than zero.");
   }
 
-  return `${normalizedWhole}.${cents}`;
+  return normalized;
 }
 
 export function moneyToCents(amount: string | number) {
-  const normalized = normalizeMoneyAmount(amount);
-  const [wholePart, centsPart = "00"] = normalized.split(".");
-
-  return BigInt(wholePart) * 100n + BigInt(centsPart);
+  return normalizeMoneyAmountInternal(amount).amountInCents;
 }
 
 export function centsToMoney(cents: bigint) {

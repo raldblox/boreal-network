@@ -4,16 +4,29 @@ import {
   appendRequestEvent,
   createBuyerCreditLedgerEntry,
   ensureBuyerCreditAccount,
+  failBuyerCreditTopUpLedgerEntry,
   getBuyerCreditAccountByOwnerId,
+  getBuyerCreditLedgerEntryById,
   getBuyerCreditLedgerEntryByIdempotencyKey,
+  getBuyerCreditLedgerEntryByReference,
   getBuyerCreditLedgerEntriesByAccountId,
   getRequestById,
   getRequestEventByIdempotencyKey,
   getRequestTransactionById,
   saveRequestTransaction,
+  settleBuyerCreditTopUpLedgerEntry,
   toRequestDraft,
   updateBuyerCreditAccountById,
+  updateBuyerCreditLedgerEntryById,
 } from "@/lib/db/queries";
+import {
+  capturePayPalOrder,
+  createPayPalCreditTopUpOrder,
+  extractCaptureDetailsFromPayPalOrder,
+  extractCaptureDetailsFromWebhookEvent,
+  type PayPalCaptureDetails,
+  type PayPalWebhookEvent,
+} from "@/lib/paypal";
 import {
   addMoneyAmounts,
   compareMoneyAmounts,
@@ -34,6 +47,10 @@ const firstPartyPayee: RequestActorRef = {
   id: "boreal",
   displayName: "Boreal",
 };
+
+type BuyerCreditLedgerEntryProjection = NonNullable<
+  Awaited<ReturnType<typeof getBuyerCreditLedgerEntryById>>
+>;
 
 function toHumanActorRef(userId: string): RequestActorRef {
   return {
@@ -102,21 +119,26 @@ export async function getBuyerCreditSummary({
 export async function createPendingBuyerCreditTopUp({
   ownerId,
   amount,
+  currency = "USD",
   fundingSource,
   reference,
+  ledgerEntryId,
   idempotencyKey,
   metadata,
 }: {
   ownerId: string;
   amount: string;
+  currency?: string;
   fundingSource: Exclude<PaymentFundingSource, "buyer_credit">;
   reference?: string | null;
+  ledgerEntryId?: string | null;
   idempotencyKey?: string | null;
   metadata?: BuyerCreditLedgerMetadata | null;
 }) {
   const normalizedAmount = normalizeMoneyAmount(amount);
   const account = await ensureBuyerCreditAccount({
     ownerId,
+    currency,
     metadata: { profile: "first_party_credit_v1" },
   });
 
@@ -153,7 +175,7 @@ export async function createPendingBuyerCreditTopUp({
   }
 
   const ledgerEntry = await createBuyerCreditLedgerEntry({
-    id: generateUUID(),
+    id: ledgerEntryId ?? generateUUID(),
     buyerCreditAccountId: account.id,
     kind: "topup",
     status: "pending",
@@ -173,6 +195,350 @@ export async function createPendingBuyerCreditTopUp({
     account: updatedAccount,
     ledgerEntry,
   };
+}
+
+function ledgerMetadataValue(
+  ledgerEntry: BuyerCreditLedgerEntryProjection,
+  key: string
+) {
+  const metadata = ledgerEntry.metadata;
+
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return undefined;
+  }
+
+  const value = metadata[key];
+
+  return typeof value === "string" ? value : undefined;
+}
+
+function assertPayPalCaptureMatchesLedger({
+  ledgerEntry,
+  capture,
+}: {
+  ledgerEntry: BuyerCreditLedgerEntryProjection;
+  capture: PayPalCaptureDetails;
+}) {
+  const capturedAmount = capture.amount
+    ? normalizeMoneyAmount(capture.amount)
+    : undefined;
+
+  if (capturedAmount && capturedAmount !== ledgerEntry.amount) {
+    throw new Error("PayPal capture amount does not match top-up amount");
+  }
+
+  if (capture.currency && capture.currency !== ledgerEntry.currency) {
+    throw new Error("PayPal capture currency does not match top-up currency");
+  }
+}
+
+async function findPayPalLedgerEntry(capture: PayPalCaptureDetails) {
+  if (capture.ledgerEntryId) {
+    const ledgerEntry = await getBuyerCreditLedgerEntryById({
+      id: capture.ledgerEntryId,
+    });
+
+    if (ledgerEntry) {
+      return ledgerEntry;
+    }
+  }
+
+  if (capture.paypalOrderId) {
+    return getBuyerCreditLedgerEntryByReference({
+      reference: capture.paypalOrderId,
+    });
+  }
+
+  return null;
+}
+
+async function attachPayPalOrderToLedgerEntry({
+  account,
+  ledgerEntry,
+  idempotencyKey,
+}: {
+  account: Awaited<ReturnType<typeof ensureBuyerCreditAccount>>;
+  ledgerEntry: BuyerCreditLedgerEntryProjection;
+  idempotencyKey?: string | null;
+}) {
+  const existingApproveUrl = ledgerMetadataValue(
+    ledgerEntry,
+    "paypalApproveUrl"
+  );
+  const existingPayPalOrderId =
+    ledgerEntry.reference ?? ledgerMetadataValue(ledgerEntry, "paypalOrderId");
+
+  if (existingApproveUrl && existingPayPalOrderId) {
+    return {
+      account,
+      approveUrl: existingApproveUrl,
+      ledgerEntry,
+      paypalOrderId: existingPayPalOrderId,
+    };
+  }
+
+  const { order, approveUrl } = await createPayPalCreditTopUpOrder({
+    ledgerEntryId: ledgerEntry.id,
+    amount: ledgerEntry.amount,
+    currency: ledgerEntry.currency,
+    idempotencyKey: idempotencyKey ?? ledgerEntry.id,
+  });
+  const updatedLedgerEntry = await updateBuyerCreditLedgerEntryById({
+    id: ledgerEntry.id,
+    reference: order.id,
+    metadata: {
+      fundingSource: "paypal_direct",
+      processor: "paypal",
+      processorReference: order.id,
+      paypalOrderId: order.id,
+      paypalOrderStatus: order.status,
+      paypalApproveUrl: approveUrl,
+    },
+  });
+
+  if (!updatedLedgerEntry) {
+    throw new Error("PayPal top-up ledger entry could not be updated");
+  }
+
+  return {
+    account,
+    approveUrl,
+    ledgerEntry: updatedLedgerEntry,
+    paypalOrderId: order.id,
+  };
+}
+
+export async function createPayPalBuyerCreditTopUpOrder({
+  ownerId,
+  amount,
+  currency = "USD",
+  idempotencyKey,
+}: {
+  ownerId: string;
+  amount: string;
+  currency?: string;
+  idempotencyKey?: string | null;
+}) {
+  const normalizedAmount = normalizeMoneyAmount(amount);
+  const account = await ensureBuyerCreditAccount({
+    ownerId,
+    currency,
+    metadata: { profile: "first_party_credit_v1" },
+  });
+
+  if (account.status !== "active") {
+    throw new Error("Buyer credit account is not active");
+  }
+
+  if (idempotencyKey) {
+    const existingLedgerEntry = await getBuyerCreditLedgerEntryByIdempotencyKey({
+      buyerCreditAccountId: account.id,
+      idempotencyKey,
+    });
+
+    if (existingLedgerEntry) {
+      if (existingLedgerEntry.status === "failed") {
+        throw new Error("Existing PayPal top-up failed. Reload and try again.");
+      }
+
+      return attachPayPalOrderToLedgerEntry({
+        account,
+        ledgerEntry: existingLedgerEntry,
+        idempotencyKey,
+      });
+    }
+  }
+
+  const ledgerEntryId = generateUUID();
+  const result = await createPendingBuyerCreditTopUp({
+    ownerId,
+    amount: normalizedAmount,
+    currency: account.currency,
+    fundingSource: "paypal_direct",
+    reference: null,
+    ledgerEntryId,
+    idempotencyKey,
+    metadata: {
+      fundingSource: "paypal_direct",
+      processor: "paypal",
+      paypalOrderStatus: "creating",
+    },
+  });
+
+  try {
+    return await attachPayPalOrderToLedgerEntry({
+      account: result.account,
+      ledgerEntry: result.ledgerEntry,
+      idempotencyKey: idempotencyKey ?? ledgerEntryId,
+    });
+  } catch (error) {
+    await failBuyerCreditTopUpLedgerEntry({
+      id: result.ledgerEntry.id,
+      metadata: {
+        fundingSource: "paypal_direct",
+        processor: "paypal",
+        paypalOrderStatus: "create_failed",
+        paypalOrderError:
+          error instanceof Error ? error.message.slice(0, 500) : "unknown",
+      },
+    });
+
+    throw error;
+  }
+}
+
+export async function capturePayPalBuyerCreditTopUp({
+  ownerId,
+  ledgerEntryId,
+  paypalOrderId,
+}: {
+  ownerId: string;
+  ledgerEntryId?: string | null;
+  paypalOrderId: string;
+}) {
+  const account = await getBuyerCreditAccountByOwnerId({
+    ownerId,
+  });
+
+  if (!account) {
+    throw new Error("Buyer credit account not found");
+  }
+
+  const ledgerEntry = ledgerEntryId
+    ? await getBuyerCreditLedgerEntryById({ id: ledgerEntryId })
+    : await getBuyerCreditLedgerEntryByReference({ reference: paypalOrderId });
+
+  if (!ledgerEntry) {
+    throw new Error("Buyer credit ledger entry not found");
+  }
+
+  if (ledgerEntry.buyerCreditAccountId !== account.id) {
+    throw new Error("Forbidden");
+  }
+
+  const expectedPayPalOrderId =
+    ledgerEntry.reference ?? ledgerMetadataValue(ledgerEntry, "paypalOrderId");
+
+  if (expectedPayPalOrderId && expectedPayPalOrderId !== paypalOrderId) {
+    throw new Error("PayPal order does not match buyer-credit ledger entry");
+  }
+
+  if (ledgerEntry.status === "settled") {
+    return {
+      account,
+      ledgerEntry,
+      paypalOrderId,
+      paypalCaptureId: ledgerMetadataValue(ledgerEntry, "paypalCaptureId"),
+    };
+  }
+
+  const capturedOrder = await capturePayPalOrder({
+    paypalOrderId,
+    idempotencyKey: ledgerEntry.id,
+  });
+  const capture = extractCaptureDetailsFromPayPalOrder(capturedOrder);
+
+  assertPayPalCaptureMatchesLedger({ ledgerEntry, capture });
+
+  if (capture.status !== "COMPLETED" && capturedOrder.status !== "COMPLETED") {
+    throw new Error("PayPal order was not completed");
+  }
+
+  const settled = await settleBuyerCreditTopUpLedgerEntry({
+    id: ledgerEntry.id,
+    reference: paypalOrderId,
+    metadata: {
+      fundingSource: "paypal_direct",
+      processor: "paypal",
+      processorReference: capture.paypalCaptureId ?? paypalOrderId,
+      paypalOrderId,
+      paypalOrderStatus: capturedOrder.status,
+      paypalCaptureId: capture.paypalCaptureId,
+      paypalCaptureStatus: capture.status,
+      verifiedAmount: capture.amount ?? ledgerEntry.amount,
+    },
+  });
+
+  return {
+    ...settled,
+    paypalOrderId,
+    paypalCaptureId: capture.paypalCaptureId,
+  };
+}
+
+export async function handlePayPalBuyerCreditWebhookEvent(
+  event: PayPalWebhookEvent
+) {
+  const eventType = event.event_type ?? "unknown";
+
+  if (eventType === "PAYMENT.CAPTURE.COMPLETED") {
+    const capture = extractCaptureDetailsFromWebhookEvent(event);
+    const ledgerEntry = await findPayPalLedgerEntry(capture);
+
+    if (!ledgerEntry) {
+      return { handled: "ignored:unmatched_capture" };
+    }
+
+    assertPayPalCaptureMatchesLedger({ ledgerEntry, capture });
+
+    const settled = await settleBuyerCreditTopUpLedgerEntry({
+      id: ledgerEntry.id,
+      reference: capture.paypalOrderId ?? ledgerEntry.reference,
+      metadata: {
+        fundingSource: "paypal_direct",
+        processor: "paypal",
+        processorReference: capture.paypalCaptureId ?? capture.paypalOrderId,
+        paypalOrderId: capture.paypalOrderId,
+        paypalCaptureId: capture.paypalCaptureId,
+        paypalCaptureStatus: capture.status,
+        paypalWebhookEventId: event.id,
+        paypalWebhookEventType: eventType,
+        verifiedAmount: capture.amount ?? ledgerEntry.amount,
+      },
+    });
+
+    return {
+      handled: "settled",
+      ledgerEntry: settled.ledgerEntry,
+      account: settled.account,
+    };
+  }
+
+  if (
+    eventType === "PAYMENT.CAPTURE.DENIED" ||
+    eventType === "PAYMENT.CAPTURE.DECLINED" ||
+    eventType === "PAYMENT.CAPTURE.FAILED"
+  ) {
+    const capture = extractCaptureDetailsFromWebhookEvent(event);
+    const ledgerEntry = await findPayPalLedgerEntry(capture);
+
+    if (!ledgerEntry) {
+      return { handled: "ignored:unmatched_capture" };
+    }
+
+    const failed = await failBuyerCreditTopUpLedgerEntry({
+      id: ledgerEntry.id,
+      reference: capture.paypalOrderId ?? ledgerEntry.reference,
+      metadata: {
+        fundingSource: "paypal_direct",
+        processor: "paypal",
+        processorReference: capture.paypalCaptureId ?? capture.paypalOrderId,
+        paypalOrderId: capture.paypalOrderId,
+        paypalCaptureId: capture.paypalCaptureId,
+        paypalCaptureStatus: capture.status,
+        paypalWebhookEventId: event.id,
+        paypalWebhookEventType: eventType,
+      },
+    });
+
+    return {
+      handled: "failed",
+      ledgerEntry: failed.ledgerEntry,
+      account: failed.account,
+    };
+  }
+
+  return { handled: "ignored:event_type" };
 }
 
 export async function recordDirectRequestTransaction({

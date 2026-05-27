@@ -74,8 +74,20 @@ Verify:
 - duplicate create actions do not fork business truth
 - duplicate payment verification does not double-settle
 - duplicate buyer-credit top-up or apply-credit requests with the same idempotency key do not double-change credit balance
+- duplicate curated service checkout requests with the same idempotency key do not fork the `Request` or double-debit buyer credit
+- duplicate PayPal return capture and verified PayPal webhook delivery for the same buyer-credit top-up do not double-settle available credit
 - duplicate request transaction requests with the same idempotency key do not create duplicate request-attached transactions
 - duplicate event replay does not double-apply side effects
+
+### Payment webhook tests
+
+Verify:
+
+- PayPal create-order creates one pending buyer-credit ledger entry and stores the PayPal order reference without creating a request `Transaction`
+- PayPal return capture settles only a matching authenticated owner's pending buyer-credit ledger entry
+- PayPal webhook handling rejects missing or failed PayPal signature verification before any ledger mutation
+- PayPal `PAYMENT.CAPTURE.COMPLETED` webhook settlement moves pending credit to available credit exactly once
+- PayPal capture amount and currency must match the pending buyer-credit ledger entry before settlement
 
 ### Replay and projection tests
 
@@ -145,6 +157,7 @@ Verify:
 - direct fulfillment create may omit commitment only for owned private requests driven by the same owner through the desktop auto-resolution lane
 - direct fulfillment create with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows
 - owner-private direct fulfillment create may attach one valid `routing.preferredSupplyId` when no explicit `supplyId` was passed
+- owner-private first-party service fulfillment may be created from an `open`, `funded`, `in_progress`, or `waiting_for_owner` request without creating a second root object
 - accepted responder lanes should be able to create fulfillment after owner acceptance
 - direct fulfillment updates should reject invalid state transitions
 - funding-required requests should not start fulfillment directly in `active`
@@ -225,6 +238,9 @@ Verify:
 - workflow adapter success alone must not imply delivered or accepted completion without artifact and closure truth
 - first-party buyer-credit top-up should update support-ledger truth without creating fake request funding truth
 - spending buyer credit on one request should create both one credit-ledger debit and one request-attached transaction record
+- Character Call Starter checkout should create one private `Request`, publish or reuse one workflow-backed first-party `Supply`, pin it as `routing.preferredSupplyId`, open the request, and settle one `$1` buyer-credit debit
+- Character Call Starter checkout should bootstrap one active fulfillment lane, publish persona sheet, launch handoff, and credit receipt artifacts, then block on approved reference asset or existing Runway avatar id
+- Character Call Starter Runway session launch should require an owned funded request and return only ephemeral one-time realtime credentials without persisting tokens to artifacts or events
 - buyer credit must not be spendable on out-of-scope external supply in the first-party-only credit profile
 - stablecoin or processor verification replay must not create duplicate settled ledger entries or duplicate settled request transactions
 

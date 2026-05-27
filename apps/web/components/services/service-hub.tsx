@@ -3,8 +3,12 @@
 import { ArrowRightIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { type ChangeEvent, type FormEvent, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   borealServiceFamilies,
   getServiceFamilyBySlug,
@@ -12,6 +16,7 @@ import {
   type BorealServicePlan,
 } from "@/lib/service-catalog";
 import { cn } from "@/lib/utils";
+import { CharacterCallLauncher } from "./character-call-launcher";
 import { SidebarSurfaceTopNav } from "../chat/surface-top-nav";
 import {
   surfaceBodyClassName,
@@ -27,6 +32,7 @@ import {
   surfaceShellClassName,
   surfaceViewportClassName,
 } from "../chat/surface-layout";
+import { toast } from "../chat/toast";
 
 export function ServiceHub() {
   const pathname = usePathname();
@@ -178,6 +184,9 @@ function ServicePlanCard({
   plan: BorealServicePlan;
 }) {
   const router = useRouter();
+  const isStarterCheckout =
+    family.familyKey === "character-call-starter" &&
+    plan.planKey === "starter-call";
 
   const startUrl = `/?${new URLSearchParams({
     mode: "request",
@@ -207,14 +216,307 @@ function ServicePlanCard({
           </li>
         ))}
       </ul>
+      {isStarterCheckout ? (
+        <CharacterCallStarterCheckout />
+      ) : (
+        <Button
+          className="mt-7 rounded-full"
+          onClick={() => router.push(startUrl)}
+        >
+          Start request
+          <ArrowRightIcon className="size-4" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+type CharacterCallStarterForm = {
+  characterName: string;
+  callGoal: "personal_fun" | "sales_demo" | "practice_room" | "education_host";
+  personalityNotes: string;
+  referenceImageDescription: string;
+  allowedTopics: string;
+  blockedTopics: string;
+  firstMessage: string;
+};
+
+type CharacterCallStarterCheckoutResult = {
+  chatId: string;
+  request: {
+    id: string;
+    status: string;
+  };
+  transaction: {
+    id: string;
+    amount: string;
+    currency: string;
+    status: string;
+  };
+  ledgerEntry: {
+    id: string;
+    balanceAfter: string;
+  };
+  account: {
+    availableBalance: string;
+  };
+  fulfillmentBootstrap?: {
+    fulfillment?: {
+      id: string;
+      status: string;
+    };
+    artifacts?: {
+      personaSheet?: {
+        artifactId: string;
+      };
+      launchHandoff?: {
+        artifactId: string;
+      };
+      creditReceipt?: {
+        artifactId: string;
+      };
+    };
+    error?: string;
+  };
+};
+
+const starterCallGoalOptions: Array<{
+  value: CharacterCallStarterForm["callGoal"];
+  label: string;
+}> = [
+  { value: "personal_fun", label: "Personal character" },
+  { value: "sales_demo", label: "Sales demo" },
+  { value: "practice_room", label: "Practice room" },
+  { value: "education_host", label: "Education host" },
+];
+
+function CharacterCallStarterCheckout() {
+  const router = useRouter();
+  const [form, setForm] = useState<CharacterCallStarterForm>({
+    characterName: "",
+    callGoal: "personal_fun",
+    personalityNotes: "",
+    referenceImageDescription: "",
+    allowedTopics: "",
+    blockedTopics: "",
+    firstMessage: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkoutResult, setCheckoutResult] =
+    useState<CharacterCallStarterCheckoutResult | null>(null);
+
+  const updateField =
+    (field: keyof CharacterCallStarterForm) =>
+    (
+      event:
+        | ChangeEvent<HTMLInputElement>
+        | ChangeEvent<HTMLTextAreaElement>
+        | ChangeEvent<HTMLSelectElement>
+    ) => {
+      setForm((current) => ({
+        ...current,
+        [field]: event.target.value,
+      }));
+    };
+
+  const submitCheckout = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!form.characterName.trim() || !form.personalityNotes.trim()) {
+      toast({
+        type: "error",
+        description: "Character name and personality notes are required.",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const idempotencyKey = crypto.randomUUID();
+      const response = await fetch(
+        "/api/services/character-call-starter/checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify({
+            ...form,
+            idempotencyKey,
+          }),
+        }
+      );
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          result?.cause || result?.message || "Checkout did not complete."
+        );
+      }
+
+      setCheckoutResult(result as CharacterCallStarterCheckoutResult);
+      toast({
+        type: "success",
+        description: "Paid $1 from credits and opened the request.",
+      });
+    } catch (error) {
+      toast({
+        type: "error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Checkout did not complete.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form className="mt-7 space-y-4" onSubmit={submitCheckout}>
+      <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700">
+          Launch checkout
+        </p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Pay $1 from Boreal credits. This creates and funds the request in one
+          ledger-backed flow.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="starter-character-name">Character name</Label>
+        <Input
+          id="starter-character-name"
+          onChange={updateField("characterName")}
+          placeholder="Mira the clocksmith"
+          value={form.characterName}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="starter-call-goal">Call goal</Label>
+        <select
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          id="starter-call-goal"
+          onChange={updateField("callGoal")}
+          value={form.callGoal}
+        >
+          {starterCallGoalOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="starter-personality">Personality notes</Label>
+        <Textarea
+          id="starter-personality"
+          onChange={updateField("personalityNotes")}
+          placeholder="Warm, curious, talks like a collector, avoids medical or financial advice."
+          rows={4}
+          value={form.personalityNotes}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="starter-reference">Reference image note</Label>
+        <Textarea
+          id="starter-reference"
+          onChange={updateField("referenceImageDescription")}
+          placeholder="Describe the approved image you will upload after checkout."
+          rows={3}
+          value={form.referenceImageDescription}
+        />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="starter-allowed">Allowed topics</Label>
+          <Textarea
+            id="starter-allowed"
+            onChange={updateField("allowedTopics")}
+            placeholder="Watches, design, lore, product FAQ..."
+            rows={3}
+            value={form.allowedTopics}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="starter-blocked">Blocked topics</Label>
+          <Textarea
+            id="starter-blocked"
+            onChange={updateField("blockedTopics")}
+            placeholder="Therapy, diagnosis, celebrity imitation..."
+            rows={3}
+            value={form.blockedTopics}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="starter-first-message">First message direction</Label>
+        <Input
+          id="starter-first-message"
+          onChange={updateField("firstMessage")}
+          placeholder="Welcome people and ask what they want to explore."
+          value={form.firstMessage}
+        />
+      </div>
+
       <Button
-        className="mt-7 rounded-full"
-        onClick={() => router.push(startUrl)}
+        className="w-full rounded-full"
+        disabled={isSubmitting}
+        type="submit"
       >
-        Start request
+        {isSubmitting ? "Paying from credits..." : "Pay $1 with credits"}
         <ArrowRightIcon className="size-4" />
       </Button>
-    </div>
+
+      {checkoutResult ? (
+        <div className="rounded-3xl border border-border/70 bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
+          <p className="font-medium text-foreground">Request funded.</p>
+          <p>Transaction: {checkoutResult.transaction.id}</p>
+          <p>Ledger debit: {checkoutResult.ledgerEntry.id}</p>
+          <p>Credit balance: ${checkoutResult.account.availableBalance}</p>
+          {checkoutResult.fulfillmentBootstrap?.fulfillment ? (
+            <p>
+              Fulfillment:{" "}
+              {checkoutResult.fulfillmentBootstrap.fulfillment.status}
+            </p>
+          ) : null}
+          {checkoutResult.fulfillmentBootstrap?.error ? (
+            <p>
+              Fulfillment bootstrap:{" "}
+              {checkoutResult.fulfillmentBootstrap.error}
+            </p>
+          ) : null}
+          <p className="mt-3">
+            Next: open the request thread and upload the approved reference
+            image or add an existing Runway avatar id.
+          </p>
+          <CharacterCallLauncher
+            className="mt-4"
+            fulfillmentId={
+              checkoutResult.fulfillmentBootstrap?.fulfillment?.id ?? null
+            }
+            requestId={checkoutResult.request.id}
+          />
+          <Button
+            className="mt-4 rounded-full"
+            onClick={() => router.push(`/chat/${checkoutResult.chatId}`)}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            Open request thread
+          </Button>
+        </div>
+      ) : null}
+    </form>
   );
 }
 

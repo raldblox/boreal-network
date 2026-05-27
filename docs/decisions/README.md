@@ -39,3 +39,4 @@ Accepted decisions:
 - [0019-workflow-backed-supply-profile-and-adapter-boundary.md](0019-workflow-backed-supply-profile-and-adapter-boundary.md)
 - [0020-first-party-buyer-credit-and-request-funding-boundary.md](0020-first-party-buyer-credit-and-request-funding-boundary.md)
 - [0021-mode-aware-web-ia-and-service-surfaces.md](0021-mode-aware-web-ia-and-service-surfaces.md)
+- [0022-production-mvp-architecture-slice.md](0022-production-mvp-architecture-slice.md)

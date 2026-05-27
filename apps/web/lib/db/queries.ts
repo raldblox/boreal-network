@@ -1698,6 +1698,396 @@ export async function getBuyerCreditLedgerEntryByIdempotencyKey({
   }
 }
 
+function mergeBuyerCreditLedgerMetadata(
+  current: BuyerCreditLedgerMetadata | null,
+  next?: BuyerCreditLedgerMetadata | Record<string, unknown> | null
+): BuyerCreditLedgerMetadata | null {
+  const currentRecord =
+    current && typeof current === "object" && !Array.isArray(current)
+      ? current
+      : {};
+  const nextRecord =
+    next && typeof next === "object" && !Array.isArray(next) ? next : {};
+
+  return {
+    ...currentRecord,
+    ...nextRecord,
+  };
+}
+
+export async function getBuyerCreditLedgerEntryById({
+  id,
+}: {
+  id: string;
+}): Promise<BuyerCreditLedgerEntryRecord | null> {
+  try {
+    const [entry] = await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(buyerCreditLedgerEntry)
+        .where(eq(buyerCreditLedgerEntry.id, id))
+        .limit(1)
+    );
+
+    return entry ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get buyer credit ledger entry: ${getDatabaseErrorDetail(
+        error
+      )}`
+    );
+  }
+}
+
+export async function getBuyerCreditLedgerEntryByReference({
+  reference,
+}: {
+  reference: string;
+}): Promise<BuyerCreditLedgerEntryRecord | null> {
+  try {
+    const [entry] = await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(buyerCreditLedgerEntry)
+        .where(eq(buyerCreditLedgerEntry.reference, reference))
+        .limit(1)
+    );
+
+    return entry ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to get buyer credit ledger entry: ${getDatabaseErrorDetail(
+        error
+      )}`
+    );
+  }
+}
+
+export async function updateBuyerCreditLedgerEntryById({
+  id,
+  status,
+  balanceAfter,
+  reference,
+  metadata,
+  verifiedAt,
+  settledAt,
+  failedAt,
+  reversedAt,
+}: {
+  id: string;
+  status?: BuyerCreditLedgerEntryStatus;
+  balanceAfter?: string;
+  reference?: string | null;
+  metadata?: BuyerCreditLedgerMetadata | null;
+  verifiedAt?: Date | null;
+  settledAt?: Date | null;
+  failedAt?: Date | null;
+  reversedAt?: Date | null;
+}): Promise<BuyerCreditLedgerEntryRecord | null> {
+  try {
+    const existingEntry = await getBuyerCreditLedgerEntryById({ id });
+
+    if (!existingEntry) {
+      return null;
+    }
+
+    const [updatedEntry] = await withDatabaseRetry(() =>
+      db
+        .update(buyerCreditLedgerEntry)
+        .set({
+          ...(status !== undefined ? { status } : {}),
+          ...(balanceAfter !== undefined ? { balanceAfter } : {}),
+          ...(reference !== undefined ? { reference } : {}),
+          ...(metadata !== undefined
+            ? {
+                metadata: mergeBuyerCreditLedgerMetadata(
+                  existingEntry.metadata,
+                  metadata
+                ),
+              }
+            : {}),
+          ...(verifiedAt !== undefined ? { verifiedAt } : {}),
+          ...(settledAt !== undefined ? { settledAt } : {}),
+          ...(failedAt !== undefined ? { failedAt } : {}),
+          ...(reversedAt !== undefined ? { reversedAt } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(buyerCreditLedgerEntry.id, id))
+        .returning()
+    );
+
+    return updatedEntry ?? null;
+  } catch (error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to update buyer credit ledger entry: ${getDatabaseErrorDetail(
+        error
+      )}`
+    );
+  }
+}
+
+export async function settleBuyerCreditTopUpLedgerEntry({
+  id,
+  reference,
+  metadata,
+}: {
+  id: string;
+  reference?: string | null;
+  metadata?: BuyerCreditLedgerMetadata | null;
+}): Promise<{
+  account: BuyerCreditAccountRecord;
+  ledgerEntry: BuyerCreditLedgerEntryRecord;
+}> {
+  try {
+    return await withDatabaseRetry(() =>
+      db.transaction(async (tx) => {
+        const [selectedEntry] = await tx
+          .select()
+          .from(buyerCreditLedgerEntry)
+          .where(eq(buyerCreditLedgerEntry.id, id))
+          .limit(1);
+
+        if (!selectedEntry) {
+          throw new ChatbotError(
+            "not_found:database",
+            "Buyer credit ledger entry not found"
+          );
+        }
+
+        const [selectedAccount] = await tx
+          .select()
+          .from(buyerCreditAccount)
+          .where(
+            eq(buyerCreditAccount.id, selectedEntry.buyerCreditAccountId)
+          )
+          .limit(1);
+
+        if (!selectedAccount) {
+          throw new ChatbotError(
+            "not_found:database",
+            "Buyer credit account not found"
+          );
+        }
+
+        if (selectedEntry.status === "settled") {
+          return {
+            account: selectedAccount,
+            ledgerEntry: selectedEntry,
+          };
+        }
+
+        if (selectedEntry.kind !== "topup" || selectedEntry.status !== "pending") {
+          throw new ChatbotError(
+            "bad_request:database",
+            "Buyer credit ledger entry is not a pending top-up"
+          );
+        }
+
+        const now = new Date();
+        const [claimedEntry] = await tx
+          .update(buyerCreditLedgerEntry)
+          .set({
+            status: "verified",
+            reference: reference ?? selectedEntry.reference,
+            metadata: mergeBuyerCreditLedgerMetadata(
+              selectedEntry.metadata,
+              metadata
+            ),
+            verifiedAt: now,
+            updatedAt: now,
+          })
+          .where(
+            and(
+              eq(buyerCreditLedgerEntry.id, id),
+              eq(buyerCreditLedgerEntry.status, "pending")
+            )
+          )
+          .returning();
+
+        if (!claimedEntry) {
+          const [latestEntry] = await tx
+            .select()
+            .from(buyerCreditLedgerEntry)
+            .where(eq(buyerCreditLedgerEntry.id, id))
+            .limit(1);
+
+          if (latestEntry?.status === "settled") {
+            const [latestAccount] = await tx
+              .select()
+              .from(buyerCreditAccount)
+              .where(
+                eq(buyerCreditAccount.id, latestEntry.buyerCreditAccountId)
+              )
+              .limit(1);
+
+            if (latestAccount) {
+              return {
+                account: latestAccount,
+                ledgerEntry: latestEntry,
+              };
+            }
+          }
+
+          throw new ChatbotError(
+            "bad_request:database",
+            "Buyer credit ledger entry settlement is already in progress"
+          );
+        }
+
+        const [updatedAccount] = await tx
+          .update(buyerCreditAccount)
+          .set({
+            availableBalance: sql<string>`${buyerCreditAccount.availableBalance} + ${claimedEntry.amount}::numeric`,
+            pendingBalance: sql<string>`GREATEST(${buyerCreditAccount.pendingBalance} - ${claimedEntry.amount}::numeric, 0)`,
+            lifetimePurchased: sql<string>`${buyerCreditAccount.lifetimePurchased} + ${claimedEntry.amount}::numeric`,
+            updatedAt: now,
+          })
+          .where(eq(buyerCreditAccount.id, claimedEntry.buyerCreditAccountId))
+          .returning();
+
+        if (!updatedAccount) {
+          throw new ChatbotError(
+            "not_found:database",
+            "Buyer credit account not found"
+          );
+        }
+
+        const [settledEntry] = await tx
+          .update(buyerCreditLedgerEntry)
+          .set({
+            status: "settled",
+            balanceAfter: updatedAccount.availableBalance,
+            metadata: mergeBuyerCreditLedgerMetadata(claimedEntry.metadata, {
+              ...(metadata ?? {}),
+              balanceAfter: updatedAccount.availableBalance,
+            }),
+            settledAt: now,
+            updatedAt: now,
+          })
+          .where(eq(buyerCreditLedgerEntry.id, id))
+          .returning();
+
+        return {
+          account: updatedAccount,
+          ledgerEntry: settledEntry ?? claimedEntry,
+        };
+      })
+    );
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
+
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to settle buyer credit top-up: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
+export async function failBuyerCreditTopUpLedgerEntry({
+  id,
+  reference,
+  metadata,
+}: {
+  id: string;
+  reference?: string | null;
+  metadata?: BuyerCreditLedgerMetadata | null;
+}): Promise<{
+  account: BuyerCreditAccountRecord;
+  ledgerEntry: BuyerCreditLedgerEntryRecord;
+}> {
+  try {
+    return await withDatabaseRetry(() =>
+      db.transaction(async (tx) => {
+        const [selectedEntry] = await tx
+          .select()
+          .from(buyerCreditLedgerEntry)
+          .where(eq(buyerCreditLedgerEntry.id, id))
+          .limit(1);
+
+        if (!selectedEntry) {
+          throw new ChatbotError(
+            "not_found:database",
+            "Buyer credit ledger entry not found"
+          );
+        }
+
+        const [selectedAccount] = await tx
+          .select()
+          .from(buyerCreditAccount)
+          .where(
+            eq(buyerCreditAccount.id, selectedEntry.buyerCreditAccountId)
+          )
+          .limit(1);
+
+        if (!selectedAccount) {
+          throw new ChatbotError(
+            "not_found:database",
+            "Buyer credit account not found"
+          );
+        }
+
+        if (selectedEntry.status !== "pending") {
+          return {
+            account: selectedAccount,
+            ledgerEntry: selectedEntry,
+          };
+        }
+
+        const now = new Date();
+        const [updatedAccount] = await tx
+          .update(buyerCreditAccount)
+          .set({
+            pendingBalance: sql<string>`GREATEST(${buyerCreditAccount.pendingBalance} - ${selectedEntry.amount}::numeric, 0)`,
+            updatedAt: now,
+          })
+          .where(eq(buyerCreditAccount.id, selectedEntry.buyerCreditAccountId))
+          .returning();
+
+        if (!updatedAccount) {
+          throw new ChatbotError(
+            "not_found:database",
+            "Buyer credit account not found"
+          );
+        }
+
+        const [failedEntry] = await tx
+          .update(buyerCreditLedgerEntry)
+          .set({
+            status: "failed",
+            reference: reference ?? selectedEntry.reference,
+            metadata: mergeBuyerCreditLedgerMetadata(
+              selectedEntry.metadata,
+              metadata
+            ),
+            failedAt: now,
+            updatedAt: now,
+          })
+          .where(eq(buyerCreditLedgerEntry.id, id))
+          .returning();
+
+        return {
+          account: updatedAccount,
+          ledgerEntry: failedEntry ?? selectedEntry,
+        };
+      })
+    );
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
+
+    throw new ChatbotError(
+      "bad_request:database",
+      `Failed to fail buyer credit top-up: ${getDatabaseErrorDetail(error)}`
+    );
+  }
+}
+
 export async function updateBuyerCreditAccountById({
   id,
   availableBalance,

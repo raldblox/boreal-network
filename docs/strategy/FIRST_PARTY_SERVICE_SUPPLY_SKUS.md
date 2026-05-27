@@ -35,6 +35,44 @@ Because one `Supply` row has one pricing shape, the clean packaging rule is:
 
 That keeps pricing truthful and machine-readable.
 
+## Outcome-First Supply Filter
+
+Initial first-party supply should bias toward instant or near-instant buyer value.
+
+Prefer services where:
+
+- the buyer uploads assets, files, screenshots, CSV, JSON, transcript text, or a short brief
+- Boreal returns a finished artifact, proof pack, video pack, decision pack, reviewed queue, or handoff bundle
+- no buyer account login, OAuth grant, production credential, or direct system write access is required for the first paid version
+- external integrations are optional upgrade paths, not launch blockers
+- delivery is visible through `Artifact`, not hidden inside another SaaS
+
+Avoid leading with services where the first purchase depends on:
+
+- connecting the buyer's CRM, accounting, email, Slack, or automation workspace
+- writing directly into buyer-owned production systems
+- long implementation discovery before any result is visible
+- selling a workflow setup instead of a clear outcome
+
+Acceptable launch inputs:
+
+- brand assets
+- reference images or videos
+- source documents
+- questionnaires
+- exported CSV or JSON
+- meeting transcripts
+- repo zip files
+- screenshots
+- public URLs
+
+Outcome-first framing:
+
+- sell the result, not the workflow
+- sell the proof package, not tool access
+- sell finished media, reviewed lists, answer packs, fix packs, or decision packs
+- keep integrations as phase-two fulfillment options after trust is established
+
 ## Service Family 1: Automation Completion Sprint
 
 Recommended external brand options:
@@ -59,10 +97,10 @@ Best buyer:
 
 Best request classes:
 
-- broken CRM workflow
-- lead routing cleanup
-- AI automation rescue
-- Airtable, Zapier, n8n, Make, Slack, or API handoff repair
+- exported CRM or lead-routing failure review
+- automation proof pack from screenshots, logs, CSV, or JSON
+- AI automation rescue where the buyer can upload the workflow or config
+- Airtable, Zapier, n8n, Make, Slack, or API handoff repair only when account access is optional
 
 Canonical mapping:
 
@@ -83,6 +121,7 @@ Canonical mapping:
 - `automation-triage` is fixed-scope and should still open a real `Request`.
 - `one-workflow-completion` is the strongest direct-use plan for paid pilots.
 - `multi-workflow-rescue` should stay first-party only until repeat execution quality is proven.
+- The first version should not require live workspace access. Prefer uploaded workflow JSON, screenshots, exports, logs, or screen recordings.
 
 ## Service Family 2: MVP Rescue Sprint
 
@@ -189,6 +228,24 @@ Canonical mapping:
 - All launch plans may also be payable with first-party Boreal credits once that lane exists.
 - Every plan should create or reuse one private buyer-owned `Request`.
 - Every plan should ship one visible proof package through `Artifact`.
+- First-sale service pages should show required upload inputs before asking for account access.
+
+## Outcome-First Problem Conversion
+
+The current problem-intel ranking should be filtered through low-access fulfillment.
+
+Recommended conversion:
+
+| Problem signal | Outcome-first supply shape | Allowed buyer input | First delivery |
+| --- | --- | --- | --- |
+| Lead follow-up handoff leaks | `lead-recovery-proof-pack` | CRM export, lead CSV, screenshots, email snippets | reviewed recovery queue, reply drafts, proof report |
+| Security questionnaire drag | `security-review-proof-pack` | questionnaire file, existing docs, public trust page | answer pack, evidence map, submission-ready document |
+| Vibe-coded app breakage | `ai-app-rescue-snapshot` | repo zip, error logs, screenshots, deploy URL | bug map, fix patch, risk handoff |
+| Meeting notes do not become CRM truth | `meeting-to-crm-upload-pack` | transcript, notes, CRM field export | reviewed CRM update sheet, follow-up tasks |
+| Automation drift | `workflow-proof-pack` | workflow JSON, logs, screenshots, sample data | failure map, proof checks, handoff pack |
+
+Do not sell these as live integrations first.
+Sell the artifact or result pack first, then upsell account-connected execution only when needed.
 
 ## Virality-Native Expansion Lane
 
@@ -216,6 +273,54 @@ That means Boreal should package virality as:
 - niche authority building
 - repeatable character-led publishing
 - fast-response cultural posting
+
+## Runway Realtime Character Call Family
+
+Recommended external brand options:
+
+- `Character Call Starter`
+- `Persona Call Room`
+- `Live Character Link`
+
+Canonical family key:
+
+- `character-call-starter`
+
+What the buyer is buying:
+
+- a working interactive character video-call experience, configured from one approved image and persona brief
+
+Best buyer:
+
+- creator
+- fandom or niche page owner
+- founder with a visual product demo
+- course seller or coach
+- job seeker or student practicing scenarios
+- sales team testing roleplay
+
+Canonical mapping:
+
+- primary `Supply.capability.supplyKinds`: `provider_capability`, `video_generation`, `documentation_support`
+- likely `outputKinds`: `draft`, `media`, `handoff_doc`, `delivery`
+- likely `executionChannels`: `request_room`, `api`, `operator_review`
+
+### Preset Plans
+
+| Plan key | Surface label | Price | Turnaround | What is included | Proof and delivery |
+| --- | --- | ---: | --- | --- | --- |
+| `starter-call` | Character Call Starter | $1 launch price | 24 hours | one character setup, persona sheet, one included test session, session-launch handoff | persona sheet, test notes, launch link handoff, delivery receipt |
+| `sales-avatar-test` | AI Sales Avatar Test | $490 | 3 business days | product-aware sales avatar, offer FAQ pack, two reviewed test calls, lead-note template | avatar setup notes, FAQ handoff, test-call summary, lead capture notes |
+| `practice-room-avatar` | Practice Room Avatar | $220 | 48 hours | one scenario roleplay avatar, coaching prompt, one reviewed test call, feedback summary template | call handoff, roleplay script, feedback summary, delivery receipt |
+
+### Notes
+
+- This is the strongest Runway-specific supply because it sells live interaction, not passive media.
+- Do not claim OpenAI runs inside Runway unless that is confirmed at implementation time.
+- Safer architecture: Boreal and OpenAI prepare the persona, documents, guardrails, and summaries around the Runway Character session.
+- Runway real-time sessions are short-lived and session credentials are one-time use, so the buyer-facing promise should be a Boreal-hosted launch handoff, not a reusable raw provider credential.
+- No celebrity imitation, non-consensual likeness, minors, therapy treatment, or regulated advice claims.
+- The `$1` launch checkout should create the funded `Request`, bootstrap one `Fulfillment`, attach persona sheet, launch handoff, and credit receipt artifacts, then wait for the approved reference image or existing Runway avatar id before launching a realtime session.
 
 ## Runway Service Family: Founder Avatar Clip Pack
 
@@ -450,12 +555,17 @@ Suggested process rail:
 
 Launch in this order:
 
-1. `one-workflow-completion`
-2. `launch-blocker-sweep`
-3. `rapid-decision-brief`
-4. `trend-signal-12`
-5. `character-seed-pack`
-6. the higher-ticket plans only after proof and intake quality are stable
+1. `starter-call`
+   - Ship as a `$1` first-party-credit checkout to prove the full ledger-to-Request path before raising the public price.
+2. `sales-avatar-test`
+3. `practice-room-avatar`
+4. `sales-reply-pack`
+5. `trend-starter-6`
+6. `character-seed-pack`
+7. `security-review-proof-pack`
+8. `lead-recovery-proof-pack`
+9. `ai-app-rescue-snapshot`
+10. integration-heavy workflow completion only after upload-based proof and intake quality are stable
 
 ## Pricing Rule
 

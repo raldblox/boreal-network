@@ -464,7 +464,8 @@ function getSidebarListMode({
     isServicesView ||
     isOpenRequestsView ||
     isDesktopMode ||
-    pathname === "/"
+    pathname === "/" ||
+    pathname.startsWith("/account")
   ) {
     return "none";
   }

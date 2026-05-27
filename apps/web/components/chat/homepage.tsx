@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, UserRoundIcon } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,9 +38,24 @@ export function HomePage() {
         <SidebarSurfaceTopNav
           links={buildHomeSectionTopNavLinks()}
           rightSlot={
-            <Button asChild className="h-9 rounded-full px-4 text-[12px] font-medium">
-              <Link href="/?mode=request">Post request</Link>
-            </Button>
+            <>
+              <Button
+                asChild
+                className="hidden h-9 rounded-full px-4 text-[12px] font-medium sm:inline-flex"
+                variant="outline"
+              >
+                <Link href="/account">
+                  <UserRoundIcon className="size-4" />
+                  Account
+                </Link>
+              </Button>
+              <Button
+                asChild
+                className="h-9 rounded-full px-4 text-[12px] font-medium"
+              >
+                <Link href="/?mode=request">Post request</Link>
+              </Button>
+            </>
           }
           title="Boreal"
         />
@@ -169,6 +184,7 @@ export function HomePage() {
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                   <Link href="/">Home</Link>
                   <Link href="/?mode=request">Post request</Link>
+                  <Link href="/account">Account</Link>
                   <Link href="/supplies/new?entry=whitelist">Supply whitelist</Link>
                   <Link href="/download/boreal-desktop">Desktop</Link>
                 </div>

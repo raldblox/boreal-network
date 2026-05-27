@@ -13,7 +13,9 @@ import {
   type N8nWorkflowImportResult,
 } from "@/lib/workflow-n8n";
 import {
+  buildRunwayCharacterCallStarter,
   buildRunwayFounderAvatarClipPack,
+  type RunwayCharacterCallStarterResult,
   type RunwayFounderAvatarClipPackResult,
 } from "@/lib/workflow-runway";
 import type { WorkflowPackStatus, WorkflowPackProvenance } from "@/lib/workflow-pack";
@@ -101,6 +103,70 @@ export async function createRunwayFounderAvatarClipPackWorkflowPack({
   provenance?: WorkflowPackProvenance;
 }): Promise<RunwayFounderAvatarClipPackResult> {
   const result = buildRunwayFounderAvatarClipPack({
+    packId: generateUUID(),
+    versionId: generateUUID(),
+    ownerActorId: userId,
+    packStatus,
+    provenance,
+  });
+
+  const createdPack = await saveWorkflowPack({
+    id: result.workflowPack.id,
+    key: result.workflowPack.key,
+    ownerActorId: result.workflowPack.ownerActorId,
+    title: result.workflowPack.title,
+    summary: result.workflowPack.summary,
+    status: result.workflowPack.status,
+    provenance: result.workflowPack.provenance,
+    metadata: result.workflowPack.metadata,
+  });
+
+  const createdVersion = await saveWorkflowPackVersion({
+    id: result.workflowPackVersion.id,
+    key: result.workflowPackVersion.key,
+    workflowPackId: result.workflowPackVersion.workflowPackId,
+    version: result.workflowPackVersion.version,
+    adapterKind: result.workflowPackVersion.adapterKind,
+    graph: result.workflowPackVersion.graph,
+    inputContract: result.workflowPackVersion.inputContract,
+    outputContract: result.workflowPackVersion.outputContract,
+    credentialRequirements: result.workflowPackVersion.credentialRequirements,
+    humanCheckpoints: result.workflowPackVersion.humanCheckpoints,
+    proofRequirements: result.workflowPackVersion.proofRequirements,
+    sourceRefs: result.workflowPackVersion.sourceRefs,
+    readiness: result.workflowPackVersion.readiness,
+    unsupportedFeatures: result.workflowPackVersion.unsupportedFeatures,
+    metadata: result.workflowPackVersion.metadata,
+  });
+
+  const updatedPack = await updateWorkflowPackById({
+    id: createdPack.id,
+    key: createdPack.key,
+    title: createdPack.title,
+    summary: createdPack.summary,
+    status: createdPack.status,
+    currentVersionId: createdVersion.id,
+    provenance: createdPack.provenance,
+    metadata: createdPack.metadata ?? undefined,
+  });
+
+  return {
+    ...result,
+    workflowPack: toWorkflowPack(updatedPack ?? createdPack),
+    workflowPackVersion: toWorkflowPackVersion(createdVersion),
+  };
+}
+
+export async function createRunwayCharacterCallStarterWorkflowPack({
+  userId,
+  packStatus = "draft",
+  provenance,
+}: {
+  userId: string;
+  packStatus?: WorkflowPackStatus;
+  provenance?: WorkflowPackProvenance;
+}): Promise<RunwayCharacterCallStarterResult> {
+  const result = buildRunwayCharacterCallStarter({
     packId: generateUUID(),
     versionId: generateUUID(),
     ownerActorId: userId,
