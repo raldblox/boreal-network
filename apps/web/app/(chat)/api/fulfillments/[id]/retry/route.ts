@@ -57,7 +57,9 @@ export async function POST(
     if (
       error instanceof Error &&
       (error.message === "Forbidden" ||
-        error.message === "Only request owner can retry blocked fulfillment")
+        error.message === "Only request owner can retry blocked fulfillment" ||
+        error.message ===
+          "Only request owner can retry or check worker fulfillment")
     ) {
       return new ChatbotError("forbidden:chat").toResponse();
     }
@@ -73,7 +75,10 @@ export async function POST(
     if (
       error instanceof Error &&
       (error.message === "Only blocked fulfillment can be retried" ||
+        error.message ===
+          "Only active or blocked Boreal worker fulfillment can be checked or retried" ||
         error.message === "Blocked fulfillment is not managed by a Boreal worker" ||
+        error.message === "Fulfillment is not managed by a Boreal worker" ||
         error.message === "Boreal worker is unavailable" ||
         error.message.startsWith("Invalid fulfillment transition:") ||
         error.message.startsWith("Cannot mark fulfillment ") ||
@@ -84,7 +89,7 @@ export async function POST(
 
     return new ChatbotError(
       "bad_request:database",
-      "Failed to retry blocked fulfillment"
+      "Failed to check worker fulfillment"
     ).toResponse();
   }
 }

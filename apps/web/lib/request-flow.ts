@@ -42,6 +42,7 @@ export type RequestFlowNodeDescriptor = {
   state: RequestFlowNodeState;
   tone: RequestFlowNodeTone;
   laneLabel: string;
+  stateLabel?: string;
   title: string;
   subtitle: string;
   summary: string;
@@ -65,7 +66,14 @@ export type RequestFlowGraph = {
 
 type RequestFlowProcessNode = Pick<
   RequestFlowNodeDescriptor,
-  "state" | "tone" | "title" | "subtitle" | "summary" | "chips" | "details"
+  | "state"
+  | "stateLabel"
+  | "tone"
+  | "title"
+  | "subtitle"
+  | "summary"
+  | "chips"
+  | "details"
 >;
 
 export type RequestFlowDesktopRuntimeState = {
@@ -113,6 +121,7 @@ export function buildDraftRequestFlowGraph(
       id: "request",
       kind: "request",
       state: request.derived.readiness.readyForOpen ? "done" : "current",
+      stateLabel: request.derived.readiness.readyForOpen ? "ready" : "drafting",
       tone: "green",
       laneLabel: "Your request",
       title: request.brief.title?.trim() || "Request draft",
@@ -327,6 +336,11 @@ function buildDraftPlanNode(
         ? "done"
         : "current",
     tone: needsClarification ? "amber" : "blue",
+    stateLabel: needsClarification
+      ? "needs input"
+      : request.derived.readiness.readyForOpen
+        ? "ready"
+        : undefined,
     laneLabel: "Plan",
     title: needsClarification
       ? "Needs a few details"
@@ -450,7 +464,7 @@ function buildDraftDeliveryNode(request: BorealRequestDraft): RequestFlowNodeDes
     id: "delivery",
     kind: "delivery",
     state: "pending",
-    tone: "pink",
+    tone: "violet",
     laneLabel: "Delivery",
     title: getDraftDeliveryTitle(request),
     subtitle: proofCount > 0 ? "Output and proof" : "Expected output",
@@ -531,6 +545,12 @@ export function buildTrackedRequestFlowGraph({
       id: "request",
       kind: "request",
       state: deriveRequestLifecycleState(request.status),
+      stateLabel:
+        request.status === "completed"
+          ? "completed"
+          : request.status === "delivered"
+            ? "delivered"
+            : undefined,
       tone: "green",
       laneLabel: "Request",
       title: request.brief.title?.trim() || "Tracked request",
@@ -590,10 +610,15 @@ export function buildTrackedRequestFlowGraph({
       kind: "phase",
       state: phaseState,
       tone: getProcessNodeTone(phaseState, "blue"),
+      stateLabel: phaseState === "done" ? "done" : undefined,
       laneLabel: "Plan",
       title: phase.title,
       subtitle: `Phase ${index + 1}`,
-      summary: phase.summary,
+      summary: getTrackedPhaseSummary({
+        fulfillmentStatus: fulfillment?.status ?? null,
+        phase,
+        requestStatus: request.status,
+      }),
       chips: compactChips([
         phase.roleKeys.length > 0
           ? `${phase.roleKeys.length} ${phase.roleKeys.length === 1 ? "lane" : "lanes"}`
@@ -652,6 +677,7 @@ export function buildTrackedRequestFlowGraph({
     id: "worker",
     kind: "worker",
     state: workerNode.state,
+    stateLabel: workerNode.stateLabel,
     tone: workerNode.tone,
     laneLabel: "Worker",
     title: workerNode.title,
@@ -669,6 +695,7 @@ export function buildTrackedRequestFlowGraph({
     id: "delivery",
     kind: "delivery",
     state: deliveryNode.state,
+    stateLabel: deliveryNode.stateLabel,
     tone: deliveryNode.tone,
     laneLabel: "Delivery",
     title: deliveryNode.title,
@@ -744,12 +771,12 @@ function deriveRequestLifecycleState(
 ): RequestFlowNodeState {
   switch (status) {
     case "completed":
+    case "delivered":
       return "done";
     case "cancelled":
       return "cancelled";
     case "failed":
       return "failed";
-    case "delivered":
     case "waiting_for_owner":
     case "in_progress":
       return "current";
@@ -830,6 +857,12 @@ function buildTrackedWorkerNode({
 
     return {
       state,
+      stateLabel:
+        fulfillment.status === "delivered"
+          ? "delivered"
+          : request.status === "completed"
+            ? "completed"
+            : undefined,
       tone: getProcessNodeTone(state, "violet"),
       title,
       subtitle:
@@ -1086,6 +1119,12 @@ function buildTrackedDeliveryNode({
 
   return {
     state,
+    stateLabel:
+      request.status === "completed"
+        ? "accepted"
+        : state === "done" && latestArtifact
+          ? "delivered"
+          : undefined,
     tone: getProcessNodeTone(state, "violet"),
     title,
     subtitle:
@@ -1094,11 +1133,11 @@ function buildTrackedDeliveryNode({
         : request.status === "delivered" || request.status === "waiting_for_owner"
           ? "Owner review"
           : "Proof and output",
-    summary:
-      latestArtifact?.summary?.trim() ||
-      fulfillment?.summary?.trim() ||
-      request.latest.summary?.trim() ||
-      "No delivery or proof package is attached yet.",
+    summary: getTrackedDeliverySummary({
+      artifact: latestArtifact,
+      fulfillment,
+      request,
+    }),
     chips: compactChips([
       latestArtifact?.kind ? formatLabel(latestArtifact.kind) : null,
       artifactCount > 0 ? `${artifactCount} artifacts` : null,
@@ -1135,9 +1174,8 @@ function mapTrackedFulfillmentStatus(
 ): RequestFlowNodeState {
   switch (fulfillmentStatus) {
     case "accepted":
-      return "done";
     case "delivered":
-      return requestStatus === "completed" ? "done" : "current";
+      return "done";
     case "active":
     case "ready":
     case "planned":
@@ -1184,10 +1222,98 @@ function deriveTrackedDeliveryState({
     fulfillmentStatus === "delivered" ||
     Boolean(artifact)
   ) {
-    return "current";
+    return "done";
   }
 
   return "pending";
+}
+
+function getTrackedPhaseSummary({
+  fulfillmentStatus,
+  phase,
+  requestStatus,
+}: {
+  fulfillmentStatus: RequestFulfillment["status"] | null;
+  phase: PortablePhase;
+  requestStatus: RequestStatus;
+}) {
+  const rawSummary = phase.summary.trim();
+  const delivered =
+    requestStatus === "completed" ||
+    requestStatus === "delivered" ||
+    fulfillmentStatus === "delivered" ||
+    fulfillmentStatus === "accepted";
+
+  if (delivered) {
+    return "This step has produced or supported the delivery package now attached to the request.";
+  }
+
+  if (isPlannerInternalFlowSummary(rawSummary)) {
+    return "Carry the work in this request, then attach the finished output for owner review.";
+  }
+
+  return rawSummary || "Move this step forward until the output or proof lands.";
+}
+
+function getTrackedDeliverySummary({
+  artifact,
+  fulfillment,
+  request,
+}: {
+  artifact: RequestActivityEntry["artifact"] | null;
+  fulfillment: RequestFulfillment | null;
+  request: BorealRequestDraft;
+}) {
+  if (artifact) {
+    if (isVideoActivityArtifact(artifact)) {
+      return "The video file is attached and ready to preview in the Delivery tab before owner acceptance.";
+    }
+
+    return `${artifact.title} is attached as the delivery package for this request.`;
+  }
+
+  if (fulfillment?.status === "active") {
+    return "The worker lane is still producing the output. Delivery appears here once the artifact lands.";
+  }
+
+  if (fulfillment?.status === "delivered" || request.status === "delivered") {
+    return "A delivery package is ready for owner review.";
+  }
+
+  return (
+    fulfillment?.summary?.trim() ||
+    request.latest.summary?.trim() ||
+    "No delivery or proof package is attached yet."
+  );
+}
+
+function isPlannerInternalFlowSummary(value: string) {
+  const normalized = value.toLowerCase();
+
+  return (
+    normalized.includes("microtask") ||
+    normalized.includes("brittle task tree") ||
+    normalized.includes("keep execution inside one request thread")
+  );
+}
+
+function isVideoActivityArtifact(
+  artifact: NonNullable<RequestActivityEntry["artifact"]>
+) {
+  const container = artifact.container;
+
+  if (container.kind === "document") {
+    return false;
+  }
+
+  return (
+    (artifact.kind === "media" &&
+      "mediaKind" in container &&
+      container.mediaKind === "video") ||
+    ("mimeType" in container &&
+      typeof container.mimeType === "string" &&
+      container.mimeType.toLowerCase().startsWith("video/"))
+  );
 }
 
 function getCurrentTrackedStep(
@@ -1228,7 +1354,7 @@ function getProcessNodeTone(
     case "done":
       return "green";
     case "current":
-      return "pink";
+      return "blue";
     case "pending":
     default:
       return pendingTone;

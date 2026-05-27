@@ -5,6 +5,7 @@ import {
   ExternalLinkIcon,
   FileTextIcon,
   HardDriveDownloadIcon,
+  PlayCircleIcon,
 } from "lucide-react";
 import { useMemo } from "react";
 import { MessageContent, MessageResponse } from "@/components/ai-elements/message";
@@ -177,43 +178,92 @@ function NonDocumentArtifactButton({
   const container = artifact.container;
 
   if (container.kind !== "document") {
+    const mediaPreviewUrl = getMediaPreviewUrl(activity);
+    const isVideoPreview = isVideoArtifact(activity);
+
     return (
-      <div className="flex flex-col gap-2 rounded-[18px] border border-border/70 bg-muted/[0.22] px-3 py-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2 text-foreground">
-          <HardDriveDownloadIcon className="size-4" />
-          <span className="font-medium">{artifact.title}</span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-full border border-border/70 px-2 py-0.5">
-            {artifact.kind}
-          </span>
-          {container.mediaKind ? (
-            <span className="rounded-full border border-border/70 px-2 py-0.5">
-              {container.mediaKind}
-            </span>
-          ) : null}
-          {container.mimeType ? (
-            <span className="rounded-full border border-border/70 px-2 py-0.5">
-              {container.mimeType}
-            </span>
-          ) : null}
-        </div>
-        {container.kind === "external_ref" ? (
-          <a
-            className="inline-flex w-fit items-center gap-1 text-primary hover:underline"
-            href={container.uri}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <ExternalLinkIcon className="size-3.5" />
-            Open external artifact
-          </a>
-        ) : (
-          <div className="space-y-1">
-            <div>Provider: {container.storageProvider}</div>
-            <div className="break-all">Key: {container.objectKey}</div>
+      <div className="overflow-hidden rounded-[18px] border border-border/70 bg-muted/[0.22] text-xs text-muted-foreground">
+        {isVideoPreview && mediaPreviewUrl ? (
+          <div className="border-b border-border/60 bg-black">
+            <video
+              className="aspect-video w-full bg-black object-contain"
+              controls
+              preload="metadata"
+              src={mediaPreviewUrl}
+            >
+              <track
+                kind="captions"
+                label="No captions"
+                src="data:text/vtt,WEBVTT"
+                srcLang="en"
+              />
+            </video>
           </div>
-        )}
+        ) : null}
+
+        <div className="flex flex-col gap-2 px-3 py-3">
+          <div className="flex items-center gap-2 text-foreground">
+            {isVideoPreview ? (
+              <PlayCircleIcon className="size-4 text-emerald-300" />
+            ) : (
+              <HardDriveDownloadIcon className="size-4" />
+            )}
+            <span className="font-medium">{artifact.title}</span>
+          </div>
+          {isVideoPreview ? (
+            <div className="text-[11px] leading-5 text-muted-foreground">
+              Video delivery is attached to this request. Preview it here before
+              accepting the work.
+            </div>
+          ) : null}
+        </div>
+
+        <div className="space-y-2 border-t border-border/60 px-3 py-3">
+          <div className="flex flex-wrap gap-2">
+            <span className="rounded-full border border-border/70 px-2 py-0.5">
+              {artifact.kind}
+            </span>
+            {container.mediaKind ? (
+              <span className="rounded-full border border-border/70 px-2 py-0.5">
+                {container.mediaKind}
+              </span>
+            ) : null}
+            {container.mimeType ? (
+              <span className="rounded-full border border-border/70 px-2 py-0.5">
+                {container.mimeType}
+              </span>
+            ) : null}
+          </div>
+
+          {container.kind === "external_ref" ? (
+            <a
+              className="inline-flex w-fit items-center gap-1 text-primary hover:underline"
+              href={container.uri}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <ExternalLinkIcon className="size-3.5" />
+              Open external artifact
+            </a>
+          ) : (
+            <div className="space-y-1">
+              <div>Provider: {container.storageProvider}</div>
+              {mediaPreviewUrl ? (
+                <a
+                  className="inline-flex w-fit items-center gap-1 text-primary hover:underline"
+                  href={mediaPreviewUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <ExternalLinkIcon className="size-3.5" />
+                  Open media file
+                </a>
+              ) : (
+                <div className="break-all">Key: {container.objectKey}</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -252,6 +302,45 @@ function NonDocumentArtifactButton({
       Open {artifact.kind}
     </Button>
   );
+}
+
+function isVideoArtifact(activity: RequestActivityEntry) {
+  const artifact = activity.artifact;
+  const container = artifact?.container;
+
+  if (!artifact || !container || container.kind === "document") {
+    return false;
+  }
+
+  return (
+    (artifact.kind === "media" &&
+      "mediaKind" in container &&
+      container.mediaKind === "video") ||
+    ("mimeType" in container &&
+      typeof container.mimeType === "string" &&
+      container.mimeType.toLowerCase().startsWith("video/"))
+  );
+}
+
+function getMediaPreviewUrl(activity: RequestActivityEntry) {
+  const artifact = activity.artifact;
+  const container = artifact?.container;
+
+  if (!artifact || !container || container.kind === "document") {
+    return null;
+  }
+
+  if (container.kind === "external_ref") {
+    return container.uri;
+  }
+
+  if (container.storageProvider !== "vercel_blob") {
+    return null;
+  }
+
+  return `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests/${
+    activity.requestId
+  }/artifacts/${artifact.id}/media`;
 }
 
 function getPrimaryActivityText(activity: RequestActivityEntry) {

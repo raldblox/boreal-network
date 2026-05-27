@@ -1114,11 +1114,14 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
 
   const retryBlockedFulfillment = useCallback(async () => {
     if (!activeRequest?.activeRefs.activeFulfillmentId) {
-      throw new Error("No blocked fulfillment is available to retry.");
+      throw new Error("No worker fulfillment is available to check.");
     }
+    const activeFulfillmentKey = `${
+      process.env.NEXT_PUBLIC_BASE_PATH ?? ""
+    }/api/fulfillments/${activeRequest.activeRefs.activeFulfillmentId}`;
 
     await fetchWithErrorHandlers(
-      `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/fulfillments/${activeRequest.activeRefs.activeFulfillmentId}/retry`,
+      `${activeFulfillmentKey}/retry`,
       {
         method: "POST",
         headers: {
@@ -1133,6 +1136,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     if (requestActivityKey) {
       await mutate(requestActivityKey);
     }
+    await mutate(activeFulfillmentKey);
     await mutate(chatDataKey);
     await mutate(unstable_serialize(getRequestHistoryPaginationKey));
   }, [

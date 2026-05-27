@@ -214,6 +214,7 @@ Every mutation call should return:
 - Direct resolver APIs may omit commitment creation only for owner-private direct auto-fulfillment.
 - Owner-private direct auto-fulfillment should prefer explicit request routing over the desktop default supply and should block pickup when a configured supply is unavailable instead of silently falling back.
 - Retryable first-party worker failures should park the same fulfillment lane as `blocked`, preserve worker recovery metadata, and resume on explicit retry instead of silently spawning a second request or second fulfillment lane.
+- Queued provider execution should persist its provider task id on the same `active` fulfillment lane before waiting for output; polling a still-running provider task should not be mislabeled as completion or as a terminal failure.
 - Direct resolver APIs should accept Boreal-issued scoped bearer tokens rather than assuming browser session cookies or raw runtime credentials.
 - Desktop request-bound execution should pass the selected `Request` and optional `Fulfillment` lane into the local runtime as context, while keeping the local transcript out of default durable Boreal history.
 - Desktop request-bound execution must treat public or external tracked request lanes as untrusted: block `danger-full-access`, keep network off, clear extra writable roots, and prefer a dedicated request workspace under `.boreal-work`.

@@ -62,6 +62,7 @@ Verify that tracked desktop execution uses selected `Request` and `Fulfillment` 
 Verify that richer artifact containers for file, media, PDF, audio, video, binary, and archive outputs keep stable metadata and lane bindings.
 Verify that request closure is blocked when required embodied steps or proof obligations are missing.
 Verify that retryable first-party worker failures move fulfillment to `blocked`, preserve worker recovery metadata, and resume the same lane instead of forcing a fresh request.
+Verify that queued first-party provider tasks keep their task id on the active fulfillment lane, can be checked again through the same lane, and do not masquerade as completion before a durable artifact lands.
 Verify that public or cross-actor lanes do not inherit owner-private desktop assumptions when planner, matcher, or policy outputs are evaluated.
 
 ## Fixture Shape

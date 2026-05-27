@@ -141,6 +141,9 @@ When that first-party worker run hits a retryable internal handoff failure, Bore
 - preserve worker input plus provider recovery metadata on the fulfillment
 - resume through explicit retry on the same lane before opening any fresh request or fresh fulfillment
 
+When that first-party worker has only queued provider execution, Boreal should save the provider task id on the active fulfillment immediately.
+Checking that task again should keep the same lane `active` while the provider is still rendering, and only move to `blocked` when Boreal has a real retryable handoff failure such as mirror or artifact publication failure.
+
 Public or cross-actor execution should still prefer:
 
 - `Request` -> `Commitment` -> `Fulfillment` -> `Artifact`

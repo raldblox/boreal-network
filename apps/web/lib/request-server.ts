@@ -612,14 +612,20 @@ async function handleBorealWorkerExecutionError({
       : `${worker.displayName} failed to complete this request.`;
 
   if (isBorealWorkerRecoverableError(error)) {
+    const isProviderPoll =
+      error.recoveryStage === "provider_poll" &&
+      (error.providerStatus === "running" || error.providerStatus === "queued");
+
     return updateFulfillmentForRequestById({
       fulfillmentId,
       actorUserId,
-      status: "blocked",
-      summary: `${worker.displayName} paused and can retry from the same lane: ${errorMessage}`,
+      status: isProviderPoll ? "active" : "blocked",
+      summary: isProviderPoll
+        ? `${worker.displayName} is still rendering with the provider.`
+        : `${worker.displayName} paused and can retry from the same lane: ${errorMessage}`,
       metadata: buildBorealWorkerFulfillmentMetadata({
         currentMetadata,
-        errorMessage,
+        errorMessage: isProviderPoll ? undefined : errorMessage,
         recoveryStage: error.recoveryStage,
         retryable: true,
         workerDisplayName: worker.displayName,
@@ -770,18 +776,23 @@ export async function retryBlockedBorealWorkerFulfillmentById({
 
   const requestDraft = toRequestDraft(existingRequest);
   if (requestDraft.ownerId !== actorUserId) {
-    throw new Error("Only request owner can retry blocked fulfillment");
+    throw new Error("Only request owner can retry or check worker fulfillment");
   }
 
-  if (existingFulfillment.status !== "blocked") {
-    throw new Error("Only blocked fulfillment can be retried");
+  if (
+    existingFulfillment.status !== "blocked" &&
+    existingFulfillment.status !== "active"
+  ) {
+    throw new Error(
+      "Only active or blocked Boreal worker fulfillment can be checked or retried"
+    );
   }
 
   const workerState = parseBorealWorkerFulfillmentMetadata(
     existingFulfillment.metadata
   );
   if (!workerState) {
-    throw new Error("Blocked fulfillment is not managed by a Boreal worker");
+    throw new Error("Fulfillment is not managed by a Boreal worker");
   }
 
   const worker = getBorealWorker(workerState.workerKey);
@@ -822,7 +833,8 @@ export async function retryBlockedBorealWorkerFulfillmentById({
     workerPrompt,
     workerProvider: worker.provider,
     workerResult: {
-      providerStatus: "retrying",
+      providerStatus:
+        existingFulfillment.status === "blocked" ? "retrying" : "running",
       ...(workerState.providerTaskId
         ? { providerTaskId: workerState.providerTaskId }
         : {}),
@@ -837,7 +849,10 @@ export async function retryBlockedBorealWorkerFulfillmentById({
     fulfillmentId,
     actorUserId,
     status: "active",
-    summary: `${worker.displayName} resumed this delivery lane.`,
+    summary:
+      existingFulfillment.status === "blocked"
+        ? `${worker.displayName} resumed this delivery lane.`
+        : `${worker.displayName} is checking provider delivery progress.`,
     metadata: resumedMetadata,
     source,
   });

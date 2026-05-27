@@ -426,7 +426,9 @@ export const videoGenerationWorker: BorealWorkerDefinition<
 
     if (!sourceVideoUrl && providerTaskId) {
       try {
-        const completedTask = await waitForRunwayTaskOutput(providerTaskId);
+        const completedTask = await waitForRunwayTaskOutput(providerTaskId, {
+          timeoutMs: 15_000,
+        });
         sourceVideoUrl = completedTask.output[0];
       } catch (error) {
         if (
@@ -495,14 +497,14 @@ export const videoGenerationWorker: BorealWorkerDefinition<
             promptText: parsedInput.brief,
             ratio: toRunwayImageToVideoRatio(parsedInput),
             duration: durationSeconds,
-          })
+          }, { waitForOutput: false })
         : await executeRunwayVideoTask({
             mode: "text_to_video",
             model: "gen4.5",
             promptText: parsedInput.brief,
             ratio: toRunwayTextToVideoRatio(parsedInput),
             duration: durationSeconds,
-          });
+          }, { waitForOutput: false });
 
     if (!runwayResult.completedTask) {
       return parseBorealWorkerResult(this, {

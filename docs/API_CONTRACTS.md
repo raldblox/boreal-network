@@ -196,6 +196,7 @@ Owned private resolver lanes may create fulfillment without `commitmentId` when 
 When fulfillment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before opening the lane.
 Owner-private Boreal-managed web workers may also open one direct fulfillment lane after `open_request`, but the provider-facing payload should stay reduced to worker-specific prompt and execution inputs instead of the entire request object.
 Retryable internal worker or storage handoff failures should move that same fulfillment lane to `blocked`, preserve the worker input and provider recovery metadata, and resume through `POST /api/fulfillments/{id}/retry` instead of terminally failing the request immediately.
+Queued provider work is not itself a failure: the same retry endpoint may check an `active` first-party worker fulfillment that already has a saved provider task id, keeping the lane `active` until a stored artifact is ready or a real recoverable handoff failure occurs.
 
 Desktop chat execution may also bind one local thread to a selected `Request` and optional `Fulfillment` lane.
 That binding is local execution context only.
@@ -290,6 +291,8 @@ Artifact publication should support:
 - external references for durable links to file, media, PDF, audio, video, binary, or archive outputs
 - object-storage references for app-managed or provider-managed blob keys
 - optional `fulfillmentId` and `stepId` when one artifact belongs to a selected execution lane
+
+Object-storage media artifacts may be previewed through a request-scoped media read route only after request-read authorization succeeds; the preview route must not expose private blob keys as public URLs.
 
 ## Resolver Auth Surface
 

@@ -52,7 +52,7 @@ type RequestTrackerProps = {
   isReadonly: boolean;
   isRetryingBlockedFulfillment: boolean;
   isResolvingDeliveredRequest: boolean;
-  onRetryBlockedFulfillment?: () => Promise<void>;
+  onRetryBlockedFulfillment?: (options?: { quiet?: boolean }) => Promise<void>;
   onResolveDeliveredRequest?: () => Promise<void>;
   onSelectView: (view: WorkroomViewId) => void;
   onUpdatePreferredSupply?: (preferredSupplyId: string | null) => Promise<void>;
@@ -117,6 +117,7 @@ export function RequestTracker({
   const [isAtBottom, setIsAtBottom] = useState(true);
   const localContainerRef = useRef<HTMLDivElement>(null);
   const previousSelectedViewRef = useRef<WorkroomViewId>(selectedView);
+  const lastAutoWorkerCheckRef = useRef<string | null>(null);
   const scrollHostRef = scrollContainerRef ?? localContainerRef;
   const usesExternalScrollHost = Boolean(scrollContainerRef);
   const scrollToTop = useCallback((behavior: ScrollBehavior = "smooth") => {
@@ -342,6 +343,16 @@ export function RequestTracker({
     activeFulfillment?.status === "blocked" &&
     activeFulfillmentWorkerState?.retryable === true &&
     typeof onRetryBlockedFulfillment === "function";
+  const canCheckActiveWorkerFulfillment =
+    requestViewerUserId === request.ownerId &&
+    activeFulfillment?.status === "active" &&
+    Boolean(activeFulfillmentWorkerState?.providerTaskId) &&
+    isProviderRenderInProgress(activeFulfillmentWorkerState?.providerStatus) &&
+    typeof onRetryBlockedFulfillment === "function";
+  const activeWorkerCheckKey =
+    canCheckActiveWorkerFulfillment && activeFulfillment
+      ? `${activeFulfillment.id}:${activeFulfillment.updatedAt}:${activeFulfillmentWorkerState?.providerStatus ?? "running"}`
+      : null;
   const showsLegacyFailedWorkerNote =
     request.status === "failed" && hasFulfillmentFailure;
   const showReturnToLiveStage =
@@ -562,6 +573,32 @@ export function RequestTracker({
             ]}
           />
 
+          {canCheckActiveWorkerFulfillment ? (
+            <div className="rounded-[18px] border border-sky-300/35 bg-sky-50/70 px-3.5 py-3 dark:bg-sky-500/10">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">
+                Render in progress
+              </div>
+              <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
+                The provider render is still running. Boreal will keep checking this same fulfillment lane while the room is open.
+              </div>
+              <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                You can leave and return; the provider task id is already saved on the request.
+              </div>
+              <Button
+                className="mt-3"
+                disabled={isRetryingBlockedFulfillment}
+                onClick={() => void onRetryBlockedFulfillment?.()}
+                size="sm"
+                variant="outline"
+              >
+                {isRetryingBlockedFulfillment ? (
+                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
+                ) : null}
+                {isRetryingBlockedFulfillment ? "Checking..." : "Check now"}
+              </Button>
+            </div>
+          ) : null}
+
           {canRetryBlockedFulfillment ? (
             <div className="rounded-[18px] border border-amber-300/35 bg-amber-50/70 px-3.5 py-3 dark:bg-amber-500/10">
               <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
@@ -688,6 +725,33 @@ export function RequestTracker({
     currentStageId,
     request,
   });
+
+  useEffect(() => {
+    if (
+      !activeWorkerCheckKey ||
+      isRetryingBlockedFulfillment ||
+      !onRetryBlockedFulfillment
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      if (lastAutoWorkerCheckRef.current === activeWorkerCheckKey) {
+        return;
+      }
+
+      lastAutoWorkerCheckRef.current = activeWorkerCheckKey;
+      void onRetryBlockedFulfillment({ quiet: true });
+    }, 12_000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    activeWorkerCheckKey,
+    isRetryingBlockedFulfillment,
+    onRetryBlockedFulfillment,
+  ]);
 
   return (
     <div className="relative flex-1 bg-background">
@@ -1792,6 +1856,7 @@ function getBorealWorkerTrackerState(
 ): {
   errorMessage?: string;
   providerStatus?: string;
+  providerTaskId?: string;
   recoveryStage?: string;
   retryable?: boolean;
   workerKey?: string;
@@ -1811,6 +1876,10 @@ function getBorealWorkerTrackerState(
       typeof workerState.providerStatus === "string"
         ? workerState.providerStatus
         : undefined,
+    providerTaskId:
+      typeof workerState.providerTaskId === "string"
+        ? workerState.providerTaskId
+        : undefined,
     recoveryStage:
       typeof workerState.recoveryStage === "string"
         ? workerState.recoveryStage
@@ -1822,6 +1891,15 @@ function getBorealWorkerTrackerState(
     workerKey:
       typeof workerState.workerKey === "string" ? workerState.workerKey : undefined,
   };
+}
+
+function isProviderRenderInProgress(status: string | undefined) {
+  return (
+    status === "starting" ||
+    status === "queued" ||
+    status === "running" ||
+    status === "retrying"
+  );
 }
 
 function getBlockedFulfillmentRecoverySummary(

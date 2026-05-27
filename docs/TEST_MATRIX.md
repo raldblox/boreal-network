@@ -155,10 +155,12 @@ Verify:
 - opening one owner-private request with a pinned Boreal-managed worker may auto-create one fulfillment lane and should preserve worker prompt plus provider status in fulfillment metadata
 - retryable first-party worker failures should move that same fulfillment lane to `blocked`, keep worker recovery metadata, and avoid terminally failing the request immediately
 - `POST /api/fulfillments/{id}/retry` should resume the same blocked fulfillment lane and reuse stored output when the worker already finished provider execution
+- `POST /api/fulfillments/{id}/retry` may also check the same active first-party worker lane when a queued provider task id is already saved, without spawning a second fulfillment
 - public request projections should not expose `routing.preferredSupplyId`
 - execution-grade artifacts should require an accepted commitment or active fulfillment role instead of arbitrary public responder access
 - artifact publication should accept both document-backed content and richer external or object reference containers
 - artifact publication should preserve optional `fulfillmentId` and `stepId` lane bindings when provided
+- video media artifacts should render an authorized inline preview from the stable object reference without exposing private storage as buyer-authored brief text
 - generated plans, summaries, or chat text should not satisfy embodied proof obligations by themselves
 - live-model benchmark scoring should not depend on a second judge LLM when exact contract or metric-based scoring already exists
 - typing, token deltas, progress ticks, heartbeats, presence, transient runtime logs, and raw tool stdout or stderr should not create default durable request history

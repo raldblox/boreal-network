@@ -275,7 +275,10 @@ function RequestFlowCanvasNode({
               </div>
             </div>
 
-            <NodeStatePill state={descriptor.state} />
+            <NodeStatePill
+              label={descriptor.stateLabel}
+              state={descriptor.state}
+            />
           </div>
 
           <div className="mt-4 h-px bg-white/6" />
@@ -325,7 +328,13 @@ function ClampedText({
   );
 }
 
-function NodeStatePill({ state }: { state: RequestFlowNodeState }) {
+function NodeStatePill({
+  label: labelOverride,
+  state,
+}: {
+  label?: string;
+  state: RequestFlowNodeState;
+}) {
   const {
     label,
     className,
@@ -338,7 +347,7 @@ function NodeStatePill({ state }: { state: RequestFlowNodeState }) {
         className
       )}
     >
-      {label}
+      {labelOverride ?? label}
     </div>
   );
 }
@@ -375,7 +384,7 @@ function getStateStyles(state: RequestFlowNodeState) {
   switch (state) {
     case "done":
       return {
-        label: "ready",
+        label: "done",
         className: "border-emerald-300/24 bg-emerald-300/[0.12] text-emerald-200",
       };
     case "current":

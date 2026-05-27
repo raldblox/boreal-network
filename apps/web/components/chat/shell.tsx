@@ -381,8 +381,8 @@ export function ChatShell() {
     }
   };
 
-  const handleRetryBlockedFulfillment = async () => {
-    if (!activeRequest || activeRequest.status !== "waiting_for_owner") {
+  const handleRetryBlockedFulfillment = useCallback(async (options?: { quiet?: boolean }) => {
+    if (!activeRequest?.activeRefs.activeFulfillmentId) {
       return;
     }
 
@@ -390,22 +390,26 @@ export function ChatShell() {
 
     try {
       await retryBlockedFulfillment();
-      toast({
-        type: "success",
-        description: "Delivery lane resumed.",
-      });
+      if (!options?.quiet) {
+        toast({
+          type: "success",
+          description: "Delivery lane checked.",
+        });
+      }
     } catch (error) {
-      toast({
-        type: "error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to retry delivery.",
-      });
+      if (!options?.quiet) {
+        toast({
+          type: "error",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to check delivery.",
+        });
+      }
     } finally {
       setIsRetryingBlockedFulfillment(false);
     }
-  };
+  }, [activeRequest?.activeRefs.activeFulfillmentId, retryBlockedFulfillment]);
 
   const handleOpenRequest = async () => {
     setIsOpeningDraftRequest(true);
