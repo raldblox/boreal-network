@@ -421,15 +421,16 @@ export function ChatShell() {
     }
   };
 
+  const openedRequestViewOptions: Array<{ id: WorkroomViewId; label: string }> =
+    [
+      { id: "monitor", label: "Monitor" },
+      { id: "activity", label: "Activity" },
+      { id: "artifacts", label: "Artifacts" },
+    ];
+
   const openedRequestControls = isOpenedRequest ? (
     <div className="flex flex-wrap items-center gap-2">
-      {[
-        { id: "monitor" as const, label: "Monitor" },
-        { id: "activity" as const, label: "Activity" },
-        { id: "truth" as const, label: "Request truth" },
-        { id: "delivery" as const, label: "Delivery" },
-        { id: "flow" as const, label: "Flow" },
-      ].map((view) => (
+      {openedRequestViewOptions.map((view) => (
         <button
           className={cn(
             "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
