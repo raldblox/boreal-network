@@ -12,6 +12,11 @@ import useSWR, { useSWRConfig } from "swr";
 import { toast } from "@/components/chat/toast";
 import { SUPPLY_HISTORY_KEY } from "@/components/chat/sidebar-supplies";
 import {
+  SurfaceCard,
+  SurfaceCardDescription,
+  SurfaceCardHeader,
+} from "@/components/chat/surface-card";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -46,8 +51,6 @@ import {
 } from "@/lib/matching-fingerprints";
 import {
   surfaceBodyClassName,
-  surfaceCardClassName,
-  surfaceCardTitleClassName,
   surfaceColumnClassName,
   surfaceHeroTitleClassName,
   surfacePageClassName,
@@ -342,14 +345,12 @@ export function SupplyShell() {
           </div>
 
           {isWhitelistEntry ? (
-            <div className={surfaceCardClassName}>
+            <SurfaceCard>
               <div className="max-w-3xl">
-                <div className={surfaceCardTitleClassName}>
-                  What to tell us
-                </div>
-                <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                <SurfaceCardHeader title="What to tell us" titleAs="div" />
+                <SurfaceCardDescription className="mt-2">
                   This whitelist is for real workflows where the winning plan still needs human judgment, verification, handoff, or delivery.
-                </p>
+                </SurfaceCardDescription>
               </div>
               <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {borealWhitelistPrompts.map((prompt) => (
@@ -361,30 +362,31 @@ export function SupplyShell() {
                   </div>
                 ))}
               </div>
-            </div>
+            </SurfaceCard>
           ) : null}
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {presetCards.map((preset) => (
-              <button
-                className="group rounded-[28px] border border-border/60 bg-transparent p-6 text-left transition-colors duration-200 hover:border-foreground/15"
-                disabled={isSubmitting}
-                key={preset.preset}
-                onClick={() => void createSupplyFromPreset(preset.preset)}
-                type="button"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className={surfaceCardTitleClassName}>
-                    {preset.label}
-                  </div>
-                  <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/60 transition-colors group-hover:text-muted-foreground">
-                    {isSubmitting ? "Starting" : "Choose"}
-                  </span>
-                </div>
-                <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                  {preset.description}
-                </p>
-              </button>
+              <SurfaceCard asChild interactive key={preset.preset}>
+                <button
+                  disabled={isSubmitting}
+                  onClick={() => void createSupplyFromPreset(preset.preset)}
+                  type="button"
+                >
+                  <SurfaceCardHeader
+                    action={
+                      <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/60 transition-colors group-hover/card:text-muted-foreground">
+                        {isSubmitting ? "Starting" : "Choose"}
+                      </span>
+                    }
+                    title={preset.label}
+                    titleAs="div"
+                  />
+                  <SurfaceCardDescription>
+                    {preset.description}
+                  </SurfaceCardDescription>
+                </button>
+              </SurfaceCard>
             ))}
           </div>
               </div>
@@ -1080,59 +1082,59 @@ export function SupplyShell() {
           </div>
 
           <aside className="space-y-5 xl:sticky xl:top-8 xl:self-start">
-            <section className={surfaceCardClassName}>
-              <div className="text-base font-medium tracking-tight">
-                Capability summary
-              </div>
-              <div className="mt-4 space-y-4 text-sm">
-                <MetaRow
-                  label="Kind"
-                  value={
-                    draft.capability.supplyKinds[0]
-                      ? formatLabel(draft.capability.supplyKinds[0])
-                      : "Unset"
-                  }
-                />
-                <MetaRow
-                  label="Channel"
-                  value={
-                    draft.capability.executionChannels[0]
-                      ? formatLabel(draft.capability.executionChannels[0])
-                      : "Unset"
-                  }
-                />
-                <MetaRow
-                  label="Pricing"
-                  value={formatPricingSummary(draft.pricing)}
-                />
-                <MetaRow
-                  label="Requests"
-                  value={
-                    draft.availability.acceptingRequests ? "Accepting" : "Paused"
-                  }
-                />
-                <MetaRow
-                  label="Delete"
-                  value={
-                    canDelete
-                      ? "Draft or retired only"
-                      : "Retire before delete"
-                  }
-                />
-              </div>
-            </section>
+            <SurfaceCard asChild>
+              <section>
+                <SurfaceCardHeader title="Capability summary" titleAs="div" />
+                <div className="mt-4 space-y-4 text-sm">
+                  <MetaRow
+                    label="Kind"
+                    value={
+                      draft.capability.supplyKinds[0]
+                        ? formatLabel(draft.capability.supplyKinds[0])
+                        : "Unset"
+                    }
+                  />
+                  <MetaRow
+                    label="Channel"
+                    value={
+                      draft.capability.executionChannels[0]
+                        ? formatLabel(draft.capability.executionChannels[0])
+                        : "Unset"
+                    }
+                  />
+                  <MetaRow
+                    label="Pricing"
+                    value={formatPricingSummary(draft.pricing)}
+                  />
+                  <MetaRow
+                    label="Requests"
+                    value={
+                      draft.availability.acceptingRequests
+                        ? "Accepting"
+                        : "Paused"
+                    }
+                  />
+                  <MetaRow
+                    label="Delete"
+                    value={
+                      canDelete ? "Draft or retired only" : "Retire before delete"
+                    }
+                  />
+                </div>
+              </section>
+            </SurfaceCard>
 
-            <section className={surfaceCardClassName}>
-              <div className="text-base font-medium tracking-tight">
-                Object preview
-              </div>
-              <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                Live machine-readable view of the current capability.
-              </p>
-              <pre className="mt-4 max-h-[28rem] overflow-auto rounded-[22px] border border-border/60 p-4 text-[11px] leading-6 text-foreground">
-                {renderSupplyJson(draft)}
-              </pre>
-            </section>
+            <SurfaceCard asChild>
+              <section>
+                <SurfaceCardHeader title="Object preview" titleAs="div" />
+                <SurfaceCardDescription className="mt-2">
+                  Live machine-readable view of the current capability.
+                </SurfaceCardDescription>
+                <pre className="mt-4 max-h-[28rem] overflow-auto rounded-[22px] border border-border/60 p-4 text-[11px] leading-6 text-foreground">
+                  {renderSupplyJson(draft)}
+                </pre>
+              </section>
+            </SurfaceCard>
           </aside>
               </div>
             </div>
