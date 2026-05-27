@@ -7,7 +7,9 @@ test.describe("Authentication Pages", () => {
       page.getByPlaceholder("your-name or you@team.com")
     ).toBeVisible();
     await expect(page.getByLabel("Password")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { exact: true, name: "Sign in" })
+    ).toBeVisible();
     await expect(page.getByText("New to Boreal?")).toBeVisible();
   });
 
@@ -25,12 +27,12 @@ test.describe("Authentication Pages", () => {
   test("can navigate from login to register", async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("link", { name: "Create an account" }).click();
-    await expect(page).toHaveURL("/register");
+    await expect(page).toHaveURL("/register?callbackUrl=%2F");
   });
 
   test("can navigate from register to login", async ({ page }) => {
     await page.goto("/register");
     await page.getByRole("link", { name: "Sign in" }).click();
-    await expect(page).toHaveURL("/login");
+    await expect(page).toHaveURL("/login?callbackUrl=%2F");
   });
 });

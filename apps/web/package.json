@@ -21,7 +21,7 @@
     "seed:character-call-demo": "tsx scripts/seed-character-call-demo.ts",
     "eval:request-processing:matcher": "tsx scripts/run-request-processing-matcher-benchmark.ts",
     "eval:request-processing:live": "tsx scripts/run-request-processing-live-benchmark.ts",
-    "test": "pnpm exec playwright test"
+    "test": "node tests/run-playwright.mjs"
   },
   "dependencies": {
     "@ai-sdk/provider": "^3.0.3",

@@ -5,6 +5,9 @@ import { guestRegex, isDevelopmentEnvironment } from "./lib/constants";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const mode = request.nextUrl.searchParams.get("mode");
+  const isE2eAuthBypass =
+    process.env.BOREAL_E2E_AUTH_BYPASS === "1" &&
+    request.headers.get("x-boreal-e2e-auth") === "1";
   const isPublicHomeView = pathname === "/" && !mode;
   const isPublicRequestBoardView = pathname === "/open-requests";
   const isPublicDesktopView =
@@ -44,6 +47,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
+  if (isE2eAuthBypass) {
     return NextResponse.next();
   }
 

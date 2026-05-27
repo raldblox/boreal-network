@@ -10,14 +10,15 @@ config({
   path: ".env.local",
 });
 
-/* Use process.env.PORT by default and fallback to port 3000 */
-const PORT = process.env.PORT || 3000;
+/* Use process.env.PORT by default and fallback to an e2e-only port. */
+const PORT = process.env.PORT || 3100;
+const shouldStartWebServer = process.env.BOREAL_E2E_EXTERNAL_SERVER !== "1";
 
 /**
  * Set webServer.url and use.baseURL with the location
  * of the WebServer respecting the correct set port
  */
-const baseURL = `http://localhost:${PORT}`;
+const baseURL = `http://127.0.0.1:${PORT}`;
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -38,6 +39,9 @@ export default defineConfig({
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
     baseURL,
+    extraHTTPHeaders: {
+      "x-boreal-e2e-auth": "1",
+    },
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: "retain-on-failure",
@@ -90,11 +94,18 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: "pnpm dev",
-    url: `${baseURL}/ping`,
-    timeout: 120 * 1000,
-    reuseExistingServer: !process.env.CI,
-  },
+  ...(shouldStartWebServer
+    ? {
+        /* Run your local dev server before starting the tests */
+        webServer: {
+          command: "node tests/playwright-next-server.mjs",
+          env: {
+            BOREAL_E2E_AUTH_BYPASS: "1",
+          },
+          url: `${baseURL}/ping`,
+          timeout: 120 * 1000,
+          reuseExistingServer: !process.env.CI,
+        },
+      }
+    : {}),
 });
