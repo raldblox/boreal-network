@@ -6,8 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ResourceList } from "@/components/ui/resource-list";
 import { Textarea } from "@/components/ui/textarea";
 import {
   borealServiceFamilies,
@@ -19,9 +21,14 @@ import { cn } from "@/lib/utils";
 import { CharacterCallLauncher } from "./character-call-launcher";
 import { SidebarSurfaceTopNav } from "../chat/surface-top-nav";
 import {
+  SurfaceCard,
+  SurfaceCardActions,
+  SurfaceCardDescription,
+  SurfaceCardHeader,
+  SurfaceTagList,
+} from "../chat/surface-card";
+import {
   surfaceBodyClassName,
-  surfaceCardClassName,
-  surfaceCardTitleClassName,
   surfaceColumnClassName,
   surfaceEyebrowClassName,
   surfaceHeroTitleClassName,
@@ -82,46 +89,46 @@ function ServiceDirectory() {
         </p>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        {borealServiceFamilies.map((family) => (
-          <Link
-            className={cn(
-              surfaceCardClassName,
-              "group flex flex-col transition-colors hover:border-foreground/20"
-            )}
-            href={`/services/${family.slug}`}
-            key={family.familyKey}
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className={surfaceEyebrowClassName}>{family.eyebrow}</p>
-                <h2 className={cn(surfaceCardTitleClassName, "mt-3")}>
-                  {family.title}
-                </h2>
-              </div>
-              <ArrowRightIcon className="mt-1 size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-            </div>
-            <p className="mt-5 text-sm leading-7 text-muted-foreground">
-              {family.summary}
-            </p>
-            <div className="mt-6 flex flex-wrap gap-2">
-              {family.tags.slice(0, 3).map((tag) => (
-                <Badge
-                  className="rounded-full border-border/60 bg-muted/40 text-foreground/72"
-                  key={tag}
-                  variant="secondary"
-                >
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-            <div className="mt-auto pt-8 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              From {family.plans[0]?.price ?? "quote"}
-            </div>
-          </Link>
-        ))}
-      </section>
+      <ResourceList
+        aria-label="Ready-to-buy service families"
+        columns="three"
+        emptyState={
+          <EmptyState
+            align="start"
+            className="rounded-[28px] border-border/60 bg-transparent shadow-none"
+            description="No service families are registered in this workspace."
+            title="No services available"
+          />
+        }
+        getKey={(family) => family.familyKey}
+        items={borealServiceFamilies}
+        layout="grid"
+        renderItem={(family) => <ServiceFamilyCard family={family} />}
+      />
     </>
+  );
+}
+
+function ServiceFamilyCard({ family }: { family: BorealServiceFamily }) {
+  return (
+    <SurfaceCard asChild interactive>
+      <Link href={`/services/${family.slug}`}>
+        <SurfaceCardHeader
+          action={
+            <ArrowRightIcon className="mt-1 size-4 text-muted-foreground transition-transform group-hover/card:translate-x-0.5" />
+          }
+          eyebrow={family.eyebrow}
+          title={family.title}
+        />
+        <SurfaceCardDescription className="mt-5">
+          {family.summary}
+        </SurfaceCardDescription>
+        <SurfaceTagList limit={3} tags={family.tags} />
+        <div className="mt-auto pt-8 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          From {family.plans[0]?.price ?? "quote"}
+        </div>
+      </Link>
+    </SurfaceCard>
   );
 }
 
@@ -162,11 +169,22 @@ function ServiceFamilyDetail({ family }: { family: BorealServiceFamily }) {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        {family.plans.map((plan) => (
-          <ServicePlanCard family={family} key={plan.planKey} plan={plan} />
-        ))}
-      </section>
+      <ResourceList
+        aria-label={`${family.title} preset plans`}
+        columns="three"
+        emptyState={
+          <EmptyState
+            align="start"
+            className="rounded-[28px] border-border/60 bg-transparent shadow-none"
+            description="This service family does not have a preset plan yet."
+            title="No preset plans"
+          />
+        }
+        getKey={(plan) => plan.planKey}
+        items={family.plans}
+        layout="grid"
+        renderItem={(plan) => <ServicePlanCard family={family} plan={plan} />}
+      />
 
       <section className={cn(surfaceSectionClassName, "grid gap-5 lg:grid-cols-2")}>
         <InfoList eyebrow="Process" items={family.process} title="How it runs" />
@@ -195,19 +213,20 @@ function ServicePlanCard({
   }).toString()}`;
 
   return (
-    <div className={surfaceCardClassName}>
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className={surfaceCardTitleClassName}>{plan.label}</h3>
-          <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            {plan.turnaround}
-          </p>
-        </div>
-        <div className="text-right text-xl tracking-[-0.02em]">{plan.price}</div>
-      </div>
-      <p className="mt-5 text-sm leading-7 text-muted-foreground">
+    <SurfaceCard>
+      <SurfaceCardHeader
+        action={
+          <div className="text-right text-xl tracking-[-0.02em]">
+            {plan.price}
+          </div>
+        }
+        meta={plan.turnaround}
+        title={plan.label}
+        titleAs="h3"
+      />
+      <SurfaceCardDescription className="mt-5">
         {plan.summary}
-      </p>
+      </SurfaceCardDescription>
       <ul className="mt-5 space-y-2 text-sm text-foreground/82">
         {plan.included.map((item) => (
           <li className="flex gap-2" key={item}>
@@ -219,15 +238,14 @@ function ServicePlanCard({
       {isStarterCheckout ? (
         <CharacterCallStarterCheckout />
       ) : (
-        <Button
-          className="mt-7 rounded-full"
-          onClick={() => router.push(startUrl)}
-        >
-          Start request
-          <ArrowRightIcon className="size-4" />
-        </Button>
+        <SurfaceCardActions className="mt-7">
+          <Button className="rounded-full" onClick={() => router.push(startUrl)}>
+            Start request
+            <ArrowRightIcon className="size-4" />
+          </Button>
+        </SurfaceCardActions>
       )}
-    </div>
+    </SurfaceCard>
   );
 }
 
@@ -657,9 +675,11 @@ function InfoList({
   title: string;
 }) {
   return (
-    <div className={surfaceCardClassName}>
+    <SurfaceCard>
       <p className={surfaceEyebrowClassName}>{eyebrow}</p>
-      <h2 className={cn(surfaceCardTitleClassName, "mt-3")}>{title}</h2>
+      <h2 className="mt-3 text-[1.45rem] font-normal leading-[1.1] tracking-[-0.014em] [font-family:var(--font-display)]">
+        {title}
+      </h2>
       <ol className="mt-6 space-y-4">
         {items.map((item, index) => (
           <li className="flex gap-3 text-sm leading-7 text-muted-foreground" key={item}>
@@ -670,6 +690,6 @@ function InfoList({
           </li>
         ))}
       </ol>
-    </div>
+    </SurfaceCard>
   );
 }

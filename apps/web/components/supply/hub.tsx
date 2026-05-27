@@ -12,20 +12,27 @@ import { toast } from "@/components/chat/toast";
 import { SUPPLY_HISTORY_KEY } from "@/components/chat/sidebar-supplies";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ResourceList } from "@/components/ui/resource-list";
 import {
   borealWorkerStarterCatalog,
   getBorealWorkerKeyFromSupply,
   type BorealWorkerStarterKey,
 } from "@/lib/boreal-workers/starter-catalog";
+import { SidebarSurfaceTopNav } from "@/components/chat/surface-top-nav";
 import {
-  SidebarSurfaceTopNav,
-} from "@/components/chat/surface-top-nav";
+  formatSurfaceToken,
+  SurfaceCard,
+  SurfaceCardActions,
+  SurfaceCardDescription,
+  SurfaceCardHeader,
+  SurfaceCardSkeleton,
+  SurfaceSectionHeader,
+  SurfaceTagList,
+} from "@/components/chat/surface-card";
 import {
   surfaceBodyClassName,
-  surfaceCardClassName,
-  surfaceCardTitleClassName,
   surfaceColumnClassName,
-  surfaceEyebrowClassName,
   surfaceHeroTitleClassName,
   surfacePageClassName,
   surfaceScrollClassName,
@@ -131,7 +138,11 @@ export function SupplyHub() {
       <div className={surfaceColumnClassName}>
         <SidebarSurfaceTopNav
           rightSlot={
-            <Button onClick={() => router.push("/supplies/new")} size="sm" variant="outline">
+            <Button
+              onClick={() => router.push("/supplies/new")}
+              size="sm"
+              variant="outline"
+            >
               New supply
             </Button>
           }
@@ -141,131 +152,128 @@ export function SupplyHub() {
         <div className={surfaceShellClassName}>
           <div className={surfaceViewportClassName}>
             <div className={cn(surfaceScrollClassName, "gap-10")}>
-        <section className="max-w-3xl space-y-4">
-          <div className="inline-flex rounded-full border border-border/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
-            Supply studio
-          </div>
-          <h1 className={surfaceHeroTitleClassName}>
-            Enable supply lanes, then route work through them.
-          </h1>
-          <p className={surfaceBodyClassName}>
-            Keep Boreal-owned supplies visible in one place, turn starter lanes
-            on without leaving the web app, and start a private request with
-            the right supply already pinned.
-          </p>
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <Button
-              className="rounded-full"
-              onClick={() => router.push("/supplies/new")}
-              size="sm"
-              variant="outline"
-            >
-              <PackagePlusIcon className="size-4" />
-              New supply
-            </Button>
-            <Button
-              className="rounded-full"
-              onClick={() => router.push("/")}
-              size="sm"
-            >
-              Back to chat
-            </Button>
-          </div>
-        </section>
-
-        <section className={cn(surfaceSectionClassName, "space-y-4")}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className={surfaceEyebrowClassName}>Active lanes</p>
-              <h2 className="mt-2 text-xl font-medium tracking-tight text-foreground">
-                Ready to route
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Published private or unlisted supplies that can take the next request.
-              </p>
-            </div>
-            <Badge
-              className="rounded-full border-border/60 bg-transparent text-foreground/75"
-              variant="secondary"
-            >
-              {publishedSupplies.length} active
-            </Badge>
-          </div>
-
-          {isLoading ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {[0, 1].map((item) => (
-                <div
-                  className={surfaceCardClassName}
-                  key={item}
-                >
-                  <div className="h-4 w-36 animate-pulse rounded-full bg-muted" />
-                  <div className="mt-4 h-16 animate-pulse rounded-3xl bg-muted/70" />
+              <section className="max-w-3xl space-y-4">
+                <div className="inline-flex rounded-full border border-border/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
+                  Supply studio
                 </div>
-              ))}
-            </div>
-          ) : error ? (
-            <div className="rounded-[28px] border border-amber-500/25 bg-amber-500/8 px-5 py-4 text-sm leading-7 text-amber-950 dark:text-amber-100">
-              Boreal could not load your supplies right now.
-            </div>
-          ) : publishedSupplies.length === 0 ? (
-            <div className={surfaceCardClassName}>
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-foreground">
-                  No active supplies yet
-                </div>
-                <p className="text-sm leading-7 text-muted-foreground">
-                  Turn on one starter supply below, or create your own draft,
-                  publish it as private or unlisted, then use it as the
-                  pinned worker for the next request.
+                <h1 className={surfaceHeroTitleClassName}>
+                  Enable supply lanes, then route work through them.
+                </h1>
+                <p className={surfaceBodyClassName}>
+                  Keep Boreal-owned supplies visible in one place, turn starter
+                  lanes on without leaving the web app, and start a private
+                  request with the right supply already pinned.
                 </p>
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {publishedSupplies.map((supply) => (
-                <PublishedSupplyCard key={supply.id} supply={supply} />
-              ))}
-            </div>
-          )}
-        </section>
+                <div className="flex flex-wrap items-center gap-2 pt-2">
+                  <Button
+                    className="rounded-full"
+                    onClick={() => router.push("/supplies/new")}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <PackagePlusIcon className="size-4" />
+                    New supply
+                  </Button>
+                  <Button
+                    className="rounded-full"
+                    onClick={() => router.push("/")}
+                    size="sm"
+                  >
+                    Back to chat
+                  </Button>
+                </div>
+              </section>
 
-        <section className={cn(surfaceSectionClassName, "space-y-4")}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className={surfaceEyebrowClassName}>Starter lanes</p>
-              <h2 className="mt-2 text-xl font-medium tracking-tight text-foreground">
-                Starter supplies
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                Boreal-managed first-party lanes you can enable and try immediately.
-              </p>
-            </div>
-            <Badge
-              className="rounded-full border-border/60 bg-transparent text-foreground/75"
-              variant="secondary"
-            >
-              {borealWorkerStarterCatalog.length} starter
-            </Badge>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {borealWorkerStarterCatalog.map((starter) => {
-              const existingSupply =
-                starterSuppliesByWorkerKey.get(starter.workerKey) ?? null;
-
-              return (
-                <StarterSupplyCard
-                  creatingStarterKey={creatingStarterKey}
-                  existingSupply={existingSupply}
-                  key={starter.workerKey}
-                  onCreateStarterAndTry={createStarterAndTry}
-                  starter={starter}
+              <section className={cn(surfaceSectionClassName, "space-y-4")}>
+                <SurfaceSectionHeader
+                  badge={
+                    <Badge
+                      className="rounded-full border-border/60 bg-transparent text-foreground/75"
+                      variant="secondary"
+                    >
+                      {publishedSupplies.length} active
+                    </Badge>
+                  }
+                  description="Published private or unlisted supplies that can take the next request."
+                  eyebrow="Active lanes"
+                  title="Ready to route"
                 />
-              );
-            })}
-          </div>
-        </section>
+
+                <ResourceList
+                  aria-label="Active supply lanes"
+                  columns="two"
+                  emptyState={
+                    <EmptyState
+                      align="start"
+                      className="rounded-[28px] border-border/60 bg-transparent shadow-none"
+                      description="Turn on one starter supply below, or create your own draft, publish it as private or unlisted, then use it as the pinned worker for the next request."
+                      title="No active supplies yet"
+                    />
+                  }
+                  error={error}
+                  errorState={
+                    <EmptyState
+                      align="start"
+                      className="rounded-[28px] border-amber-500/25 bg-amber-500/8 shadow-none"
+                      description="Boreal could not load your supplies right now."
+                      title="Supply lanes unavailable"
+                      tone="warning"
+                    />
+                  }
+                  getKey={(supply) => supply.id}
+                  isLoading={isLoading}
+                  items={publishedSupplies}
+                  layout="grid"
+                  loadingItemCount={2}
+                  renderItem={(supply) => <PublishedSupplyCard supply={supply} />}
+                  renderLoadingItem={() => <SurfaceCardSkeleton />}
+                />
+              </section>
+
+              <section className={cn(surfaceSectionClassName, "space-y-4")}>
+                <SurfaceSectionHeader
+                  badge={
+                    <Badge
+                      className="rounded-full border-border/60 bg-transparent text-foreground/75"
+                      variant="secondary"
+                    >
+                      {borealWorkerStarterCatalog.length} starter
+                    </Badge>
+                  }
+                  description="Boreal-managed first-party lanes you can enable and try immediately."
+                  eyebrow="Starter lanes"
+                  title="Starter supplies"
+                />
+
+                <ResourceList
+                  aria-label="Starter supply lanes"
+                  columns="three"
+                  emptyState={
+                    <EmptyState
+                      align="start"
+                      className="rounded-[28px] border-border/60 bg-transparent shadow-none"
+                      description="No first-party starter lanes are registered in this workspace."
+                      title="No starter supplies"
+                    />
+                  }
+                  getKey={(starter) => starter.workerKey}
+                  items={borealWorkerStarterCatalog}
+                  layout="grid"
+                  renderItem={(starter) => (
+                    <StarterSupplyCard
+                      creatingStarterKey={creatingStarterKey}
+                      existingSupply={
+                        starterSuppliesByWorkerKey.get(starter.workerKey) ??
+                        null
+                      }
+                      isSupplyLookupPending={isLoading}
+                      onCreateStarterAndTry={createStarterAndTry}
+                      starter={starter}
+                      supplyLookupError={error}
+                    />
+                  )}
+                />
+              </section>
             </div>
           </div>
         </div>
@@ -284,50 +292,40 @@ function PublishedSupplyCard({ supply }: { supply: BorealSupplyDraft }) {
     : null;
 
   return (
-    <div className={surfaceCardClassName}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <div className={surfaceCardTitleClassName}>
-            {supplyTitle}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/72">
+    <SurfaceCard>
+      <SurfaceCardHeader
+        action={<SupplyStatusPill status={supply.status} />}
+        meta={
+          <>
             <span>{formatTokenList(supply.capability.supplyKinds)}</span>
             <span className="text-muted-foreground/35">/</span>
-            <span>{formatSupplyBadgeLabel(supply.visibility)}</span>
+            <span>{formatSurfaceToken(supply.visibility)}</span>
             {starter ? (
               <>
                 <span className="text-muted-foreground/35">/</span>
                 <span>{starter.providerLabel}</span>
               </>
             ) : null}
-          </div>
-        </div>
+          </>
+        }
+        title={supplyTitle}
+        titleAs="div"
+      />
 
-        <SupplyStatusPill status={supply.status} />
-      </div>
-
-      <p className="mt-4 text-sm leading-7 text-muted-foreground">
+      <SurfaceCardDescription>
         {supply.profile.summary?.trim() || "No summary yet."}
-      </p>
+      </SurfaceCardDescription>
 
-      <div className="mt-5 flex flex-wrap gap-2">
-        {supply.capability.outputKinds.slice(0, 3).map((kind) => (
-          <Badge
-            className="rounded-full border-border/60 bg-muted/40 text-foreground/72"
-            key={kind}
-            variant="secondary"
-          >
-            {formatSupplyBadgeLabel(kind)}
-          </Badge>
-        ))}
-      </div>
+      <SurfaceTagList
+        getLabel={formatSurfaceToken}
+        limit={3}
+        tags={supply.capability.outputKinds}
+      />
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <SurfaceCardActions>
         <Button
           className="rounded-full"
-          onClick={() =>
-            router.push(buildUseSupplyUrl(supply.id))
-          }
+          onClick={() => router.push(buildUseSupplyUrl(supply.id))}
           size="sm"
         >
           Start request
@@ -341,8 +339,8 @@ function PublishedSupplyCard({ supply }: { supply: BorealSupplyDraft }) {
         >
           Open supply
         </Button>
-      </div>
-    </div>
+      </SurfaceCardActions>
+    </SurfaceCard>
   );
 }
 
@@ -351,61 +349,51 @@ function StarterSupplyCard({
   existingSupply,
   creatingStarterKey,
   onCreateStarterAndTry,
+  isSupplyLookupPending,
+  supplyLookupError,
 }: {
   starter: (typeof borealWorkerStarterCatalog)[number];
   existingSupply: BorealSupplyDraft | null;
   creatingStarterKey: BorealWorkerStarterKey | null;
+  isSupplyLookupPending: boolean;
   onCreateStarterAndTry: (workerKey: BorealWorkerStarterKey) => Promise<void>;
+  supplyLookupError: unknown;
 }) {
   const router = useRouter();
   const isBusy = creatingStarterKey === starter.workerKey;
   const canTryNow = existingSupply?.status === "published";
+  const cannotTrustLookup = Boolean(supplyLookupError);
 
   return (
-    <div className={surfaceCardClassName}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <div className={surfaceCardTitleClassName}>
-            {starter.title}
-          </div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/72">
-            {starter.providerLabel}
-          </div>
-        </div>
-        <Badge
-          className={cn(
-            "rounded-full border text-[11px]",
-            existingSupply
-              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
-              : "border-border/60 bg-muted/40 text-foreground/72"
-          )}
-          variant="secondary"
-        >
-          {existingSupply ? formatSupplyBadgeLabel(existingSupply.status) : "Starter"}
-        </Badge>
-      </div>
-
-      <p className="mt-4 text-sm leading-7 text-muted-foreground">
-        {starter.summary}
-      </p>
-
-      <div className="mt-5 flex flex-wrap gap-2">
-        {starter.inputModes.map((mode) => (
+    <SurfaceCard>
+      <SurfaceCardHeader
+        action={
           <Badge
-            className="rounded-full border-border/60 bg-muted/40 text-foreground/72"
-            key={mode}
+            className={cn(
+              "rounded-full border text-[11px]",
+              existingSupply
+                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
+                : "border-border/60 bg-muted/40 text-foreground/72"
+            )}
             variant="secondary"
           >
-            {mode}
+            {existingSupply ? formatSurfaceToken(existingSupply.status) : "Starter"}
           </Badge>
-        ))}
-      </div>
+        }
+        meta={starter.providerLabel}
+        title={starter.title}
+        titleAs="div"
+      />
 
-      <p className="mt-5 text-sm leading-7 text-muted-foreground">
+      <SurfaceCardDescription>{starter.summary}</SurfaceCardDescription>
+
+      <SurfaceTagList tags={starter.inputModes} />
+
+      <SurfaceCardDescription className="mt-5">
         {starter.description}
-      </p>
+      </SurfaceCardDescription>
 
-      <div className="mt-6 flex flex-wrap gap-2">
+      <SurfaceCardActions>
         {canTryNow ? (
           <>
             <Button
@@ -434,6 +422,14 @@ function StarterSupplyCard({
           >
             Finish setup
           </Button>
+        ) : isSupplyLookupPending ? (
+          <Button className="rounded-full" disabled size="sm">
+            Checking supply...
+          </Button>
+        ) : cannotTrustLookup ? (
+          <Button className="rounded-full" disabled size="sm" variant="outline">
+            Supply lookup unavailable
+          </Button>
         ) : (
           <Button
             className="rounded-full"
@@ -445,8 +441,8 @@ function StarterSupplyCard({
             {isBusy ? "Enabling..." : "Enable and start"}
           </Button>
         )}
-      </div>
-    </div>
+      </SurfaceCardActions>
+    </SurfaceCard>
   );
 }
 
@@ -463,7 +459,7 @@ function SupplyStatusPill({ status }: { status: BorealSupplyDraft["status"] }) {
       )}
       variant="secondary"
     >
-      {formatSupplyBadgeLabel(status)}
+      {formatSurfaceToken(status)}
     </Badge>
   );
 }
@@ -471,12 +467,8 @@ function SupplyStatusPill({ status }: { status: BorealSupplyDraft["status"] }) {
 function formatTokenList(values: string[]) {
   return values
     .slice(0, 2)
-    .map((value) => formatSupplyBadgeLabel(value))
+    .map((value) => formatSurfaceToken(value))
     .join(", ");
-}
-
-function formatSupplyBadgeLabel(value: string) {
-  return value.replace(/_/g, " ");
 }
 
 function buildUseSupplyUrl(supplyId: string) {
