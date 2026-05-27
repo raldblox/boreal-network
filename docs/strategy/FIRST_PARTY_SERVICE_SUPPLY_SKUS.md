@@ -310,8 +310,8 @@ Canonical mapping:
 | Plan key | Surface label | Price | Turnaround | What is included | Proof and delivery |
 | --- | --- | ---: | --- | --- | --- |
 | `starter-call` | Character Call Starter | $1 launch price | 24 hours | one character setup, persona sheet, one included test session, session-launch handoff | persona sheet, test notes, launch link handoff, delivery receipt |
-| `sales-avatar-test` | AI Sales Avatar Test | $490 | 3 business days | product-aware sales avatar, offer FAQ pack, two reviewed test calls, lead-note template | avatar setup notes, FAQ handoff, test-call summary, lead capture notes |
-| `practice-room-avatar` | Practice Room Avatar | $220 | 48 hours | one scenario roleplay avatar, coaching prompt, one reviewed test call, feedback summary template | call handoff, roleplay script, feedback summary, delivery receipt |
+| `sales-avatar-test` | AI Sales Avatar Test | $1 launch price | 3 business days | product-aware sales avatar, offer FAQ pack, two reviewed test calls, lead-note template | avatar setup notes, FAQ handoff, test-call summary, lead capture notes |
+| `practice-room-avatar` | Practice Room Avatar | $1 launch price | 48 hours | one scenario roleplay avatar, coaching prompt, one reviewed test call, feedback summary template | call handoff, roleplay script, feedback summary, delivery receipt |
 
 ### Notes
 
@@ -355,7 +355,7 @@ Canonical mapping:
 
 | Plan key | Surface label | Price | Turnaround | What is included | Proof and delivery |
 | --- | --- | ---: | --- | --- | --- |
-| `sales-reply-pack` | Sales Reply Pack | $1,250 | 5 business days | 8 short avatar clips, script variants, Runway generations, captions, one revision pass | captioned videos, clean exports, script handoff, delivery receipt |
+| `sales-reply-pack` | Sales Reply Pack | $1 launch price | 5 business days | 8 short avatar clips, script variants, Runway generations, captions, one revision pass | captioned videos, clean exports, script handoff, delivery receipt |
 
 ### Notes
 
@@ -397,7 +397,7 @@ Canonical mapping:
 | Plan key | Surface label | Price | Turnaround | What is included | Proof and delivery |
 | --- | --- | ---: | --- | --- | --- |
 | `trend-starter-6` | Trend Starter 6 | $179 | 72 hours | 6 short-form clips, hook variants, captions, cover-copy suggestions | 6 video drafts, caption sheet, posting notes |
-| `trend-signal-12` | Trend Signal 12 | $420 | 5 business days | 12 clips, 3 hook families, caption pack, posting sequence | 12 ready-to-post videos, caption pack, trend rationale |
+| `trend-signal-12` | Trend Signal 12 | $1 launch price | 5 business days | 12 clips, 3 hook families, caption pack, posting sequence | 12 ready-to-post videos, caption pack, trend rationale |
 | `trend-sprint-20` | Trend Sprint 20 | $780 | 7 business days | 20 clips, reaction or explainer mix, thumbnail text, posting map | delivery folder, posting map, proof sheet |
 
 ### Good vertical skins
@@ -446,8 +446,8 @@ Canonical mapping:
 
 | Plan key | Surface label | Price | Turnaround | What is included | Proof and delivery |
 | --- | --- | ---: | --- | --- | --- |
-| `character-seed-pack` | Character Seed Pack | $320 | 4 business days | one character look, one voice direction, 3 sample clips | character sheet, 3 videos, usage notes |
-| `character-host-10` | Character Host 10 | $890 | 7 business days | one tuned host persona, 10 clips, script pack, caption pack | 10 ready clips, character bible, posting sheet |
+| `character-seed-pack` | Character Seed Pack | $1 launch price | 4 business days | one character look, one voice direction, 3 sample clips | character sheet, 3 videos, usage notes |
+| `character-host-10` | Character Host 10 | $1 launch price | 7 business days | one tuned host persona, 10 clips, script pack, caption pack | 10 ready clips, character bible, posting sheet |
 | `character-campaign-20` | Character Campaign 20 | $1,650 | 10 business days | one repeatable host system, 20 clips, response variants, editing style pack | 20 clips, style guide, handoff bundle |
 
 ### Good vertical skins
@@ -570,6 +570,11 @@ Launch in this order:
 ## Pricing Rule
 
 Do not use ultra-cheap teaser pricing.
+
+Temporary launch-checkout exception:
+
+- the currently exposed web services may use `$1` fixed launch pricing while Boreal proves the buyer-credit, request funding, fulfillment bootstrap, and delivery loop
+- restore strategic pricing before broader paid promotion once the ledger-to-Request path is stable
 
 These services should signal:
 

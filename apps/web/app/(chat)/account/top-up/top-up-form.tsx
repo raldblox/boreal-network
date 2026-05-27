@@ -19,14 +19,14 @@ type TopUpFundingSource =
   | "usdc_direct"
   | "usdt_direct";
 
-const defaultTopUpAmount = "100.00";
+const defaultTopUpAmount = "1.00";
 
 const topUpPacks = [
-  { label: "$25", value: "25.00", note: "Test run" },
-  { label: "$50", value: "50.00", note: "Small service" },
-  { label: "$100", value: defaultTopUpAmount, note: "Starter" },
+  { label: "$1", value: defaultTopUpAmount, note: "Service test" },
+  { label: "$5", value: "5.00", note: "Few tries" },
+  { label: "$25", value: "25.00", note: "Small service" },
+  { label: "$50", value: "50.00", note: "Campaign" },
   { label: "$250", value: "250.00", note: "Campaign" },
-  { label: "$500", value: "500.00", note: "Studio" },
 ];
 
 const fundingSources = [

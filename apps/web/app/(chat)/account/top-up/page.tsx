@@ -18,7 +18,7 @@ import {
 import { generateUUID } from "@/lib/utils";
 import { AccountTopUpForm } from "./top-up-form";
 
-const defaultTopUpAmount = "100.00";
+const defaultTopUpAmount = "1.00";
 const topUpFundingSources = [
   "paypal_direct",
   "card_direct",
@@ -48,6 +48,8 @@ function getTopUpErrorMessage(error?: string) {
       return "Choose a valid payment rail.";
     case "invalid-amount":
       return "Enter a positive amount with at most two decimal places.";
+    case "insufficient-credit":
+      return "Add at least $1 in credits before buying this service.";
     case "paypal-config":
       return "PayPal is missing server configuration. Check sandbox app credentials and app URL.";
     case "paypal-oauth":

@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowRightIcon } from "lucide-react";
+import { ArrowRightIcon, LoaderCircleIcon, WalletCardsIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -280,6 +280,31 @@ type CharacterCallStarterCheckoutResult = {
   };
 };
 
+type BuyerCreditSummaryResponse = {
+  account?: {
+    availableBalance?: string | null;
+    currency?: string | null;
+  };
+};
+
+const requiredStarterCreditCents = 100;
+
+function moneyStringToCents(value: string | null | undefined) {
+  const normalized = String(value ?? "0")
+    .trim()
+    .replace(/,/g, "");
+
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) {
+    return 0;
+  }
+
+  const [wholePart, centsPart = ""] = normalized.split(".");
+  const whole = wholePart.replace(/^0+(?=\d)/, "") || "0";
+  const cents = centsPart.padEnd(2, "0").slice(0, 2);
+
+  return Number(BigInt(whole) * 100n + BigInt(cents));
+}
+
 const starterCallGoalOptions: Array<{
   value: CharacterCallStarterForm["callGoal"];
   label: string;
@@ -302,8 +327,46 @@ function CharacterCallStarterCheckout() {
     firstMessage: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingCredit, setIsLoadingCredit] = useState(true);
+  const [creditError, setCreditError] = useState<string | null>(null);
+  const [availableCredit, setAvailableCredit] = useState<string | null>(null);
   const [checkoutResult, setCheckoutResult] =
     useState<CharacterCallStarterCheckoutResult | null>(null);
+  const availableCreditCents = moneyStringToCents(availableCredit);
+  const hasEnoughCredit = availableCreditCents >= requiredStarterCreditCents;
+
+  useEffect(() => {
+    const loadCreditSummary = async () => {
+      setIsLoadingCredit(true);
+      setCreditError(null);
+
+      try {
+        const response = await fetch("/api/buyer-credits/account", {
+          cache: "no-store",
+        });
+        const result = (await response
+          .json()
+          .catch(() => null)) as BuyerCreditSummaryResponse | null;
+
+        if (!response.ok) {
+          throw new Error("Credit balance could not be loaded.");
+        }
+
+        setAvailableCredit(result?.account?.availableBalance ?? "0.00");
+      } catch (error) {
+        setCreditError(
+          error instanceof Error
+            ? error.message
+            : "Credit balance could not be loaded."
+        );
+        setAvailableCredit(null);
+      } finally {
+        setIsLoadingCredit(false);
+      }
+    };
+
+    void loadCreditSummary();
+  }, []);
 
   const updateField =
     (field: keyof CharacterCallStarterForm) =>
@@ -327,6 +390,11 @@ function CharacterCallStarterCheckout() {
         type: "error",
         description: "Character name and personality notes are required.",
       });
+      return;
+    }
+
+    if (!hasEnoughCredit) {
+      router.push("/account/top-up?error=insufficient-credit");
       return;
     }
 
@@ -357,17 +425,25 @@ function CharacterCallStarterCheckout() {
       }
 
       setCheckoutResult(result as CharacterCallStarterCheckoutResult);
+      setAvailableCredit(
+        (result as CharacterCallStarterCheckoutResult).account.availableBalance
+      );
       toast({
         type: "success",
         description: "Paid $1 from credits and opened the request.",
       });
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Checkout did not complete.";
+
+      if (message.toLowerCase().includes("insufficient buyer credit")) {
+        router.push("/account/top-up?error=insufficient-credit");
+        return;
+      }
+
       toast({
         type: "error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Checkout did not complete.",
+        description: message,
       });
     } finally {
       setIsSubmitting(false);
@@ -376,14 +452,55 @@ function CharacterCallStarterCheckout() {
 
   return (
     <form className="mt-7 space-y-4" onSubmit={submitCheckout}>
-      <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-700">
-          Launch checkout
-        </p>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Pay $1 from Boreal credits. This creates and funds the request in one
-          ledger-backed flow.
-        </p>
+      <div className="rounded-3xl border border-border/70 bg-card p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Credit checkout
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Pay $1 from Boreal credits. This creates and funds the request in
+              one ledger-backed flow.
+            </p>
+          </div>
+          <div className="min-w-24 rounded-2xl border border-border/70 bg-background px-3 py-2 text-right">
+            <div className="flex items-center justify-end gap-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              {isLoadingCredit ? (
+                <LoaderCircleIcon className="size-3 animate-spin" />
+              ) : (
+                <WalletCardsIcon className="size-3" />
+              )}
+              Credits
+            </div>
+            <div className="mt-1 text-lg font-semibold">
+              {isLoadingCredit ? "..." : `$${availableCredit ?? "0.00"}`}
+            </div>
+          </div>
+        </div>
+
+        {creditError ? (
+          <p className="mt-3 text-xs leading-5 text-destructive">
+            {creditError}
+          </p>
+        ) : null}
+
+        {!isLoadingCredit && !hasEnoughCredit ? (
+          <div className="mt-4 rounded-2xl border border-border/70 bg-background p-3 text-sm text-muted-foreground">
+            You need at least $1 in available credits before this service can be
+            bought.
+            <Button
+              className="mt-3 w-full rounded-full"
+              onClick={() =>
+                router.push("/account/top-up?error=insufficient-credit")
+              }
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Top up credits
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -469,11 +586,21 @@ function CharacterCallStarterCheckout() {
 
       <Button
         className="w-full rounded-full"
-        disabled={isSubmitting}
+        disabled={isSubmitting || isLoadingCredit}
         type="submit"
       >
-        {isSubmitting ? "Paying from credits..." : "Pay $1 with credits"}
-        <ArrowRightIcon className="size-4" />
+        {isSubmitting ? (
+          <LoaderCircleIcon className="size-4 animate-spin" />
+        ) : (
+          <ArrowRightIcon className="size-4" />
+        )}
+        {isLoadingCredit
+          ? "Checking credits..."
+          : hasEnoughCredit
+            ? isSubmitting
+              ? "Paying from credits..."
+              : "Pay $1 with credits"
+            : "Top up credits first"}
       </Button>
 
       {checkoutResult ? (

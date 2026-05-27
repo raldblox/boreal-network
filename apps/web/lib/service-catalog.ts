@@ -67,7 +67,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       {
         planKey: "sales-avatar-test",
         label: "AI Sales Avatar Test",
-        price: "$490",
+        price: "$1",
         turnaround: "3 business days",
         summary:
           "A product-aware live avatar test that explains one offer, answers FAQ-style questions, and returns lead-note structure.",
@@ -83,7 +83,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       {
         planKey: "practice-room-avatar",
         label: "Practice Room Avatar",
-        price: "$220",
+        price: "$1",
         turnaround: "48 hours",
         summary:
           "A live roleplay avatar for one practice scenario, with scenario prompt and feedback summary template.",
@@ -125,7 +125,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       {
         planKey: "sales-reply-pack",
         label: "Sales Reply Pack",
-        price: "$1,250",
+        price: "$1",
         turnaround: "5 business days",
         summary:
           "Eight short avatar clips with scripts, captions, Runway generations, review, and one revision pass.",
@@ -168,7 +168,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       {
         planKey: "character-seed-pack",
         label: "Character Seed Pack",
-        price: "$320",
+        price: "$1",
         turnaround: "4 business days",
         summary:
           "One host look, one voice direction, three sample clips, and usage notes.",
@@ -184,7 +184,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       {
         planKey: "character-host-10",
         label: "Character Host 10",
-        price: "$890",
+        price: "$1",
         turnaround: "7 business days",
         summary:
           "One tuned host persona, ten clips, script pack, caption pack, and character bible.",
@@ -227,7 +227,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       {
         planKey: "trend-signal-12",
         label: "Trend Signal 12",
-        price: "$420",
+        price: "$1",
         turnaround: "5 business days",
         summary:
           "Twelve clips, three hook families, caption pack, posting sequence, and trend rationale.",

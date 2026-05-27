@@ -5,6 +5,8 @@ import Link from "next/link";
 import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ResourceList } from "@/components/ui/resource-list";
 import type { PublicRequestPoolEntry } from "@/lib/request";
 import { cn, fetcher } from "@/lib/utils";
 import { SidebarSurfaceTopNav } from "../chat/surface-top-nav";
@@ -64,41 +66,52 @@ export function OpenRequestsHub() {
               </section>
 
               <section className={surfaceSectionClassName}>
-                {isLoading ? (
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    {[0, 1, 2, 3].map((item) => (
-                      <div className={surfaceCardClassName} key={item}>
-                        <div className="h-4 w-40 animate-pulse rounded-full bg-muted" />
-                        <div className="mt-5 h-20 animate-pulse rounded-3xl bg-muted/70" />
-                      </div>
-                    ))}
-                  </div>
-                ) : error ? (
-                  <div className="rounded-[28px] border border-amber-500/25 bg-amber-500/8 px-5 py-4 text-sm leading-7 text-amber-950 dark:text-amber-100">
-                    Boreal could not load open requests right now.
-                  </div>
-                ) : requests.length === 0 ? (
-                  <div className={surfaceCardClassName}>
-                    <h2 className={surfaceCardTitleClassName}>
-                      No public requests yet
-                    </h2>
-                    <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                      Public request discovery is ready, but no open public
-                      entries are available in this workspace.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    {requests.map((request) => (
-                      <OpenRequestCard key={request.id} request={request} />
-                    ))}
-                  </div>
-                )}
+                <ResourceList
+                  aria-label="Open public requests"
+                  columns="two"
+                  emptyState={
+                    <EmptyState
+                      align="start"
+                      className="rounded-[28px] border-border/60 bg-transparent shadow-none"
+                      description="Public request discovery is ready, but no open public entries are available in this workspace."
+                      title="No public requests yet"
+                    />
+                  }
+                  error={error}
+                  errorState={
+                    <EmptyState
+                      align="start"
+                      className="rounded-[28px] border-amber-500/25 bg-amber-500/8 shadow-none"
+                      description="Boreal could not load open requests right now."
+                      title="Request pool unavailable"
+                      tone="warning"
+                    />
+                  }
+                  getKey={(request) => request.id}
+                  isLoading={isLoading}
+                  items={requests}
+                  layout="grid"
+                  listClassName="md:grid-cols-1 lg:grid-cols-2"
+                  loadingItemCount={4}
+                  renderItem={(request) => (
+                    <OpenRequestCard request={request} />
+                  )}
+                  renderLoadingItem={() => <OpenRequestSkeleton />}
+                />
               </section>
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function OpenRequestSkeleton() {
+  return (
+    <div className={surfaceCardClassName}>
+      <div className="h-4 w-40 animate-pulse rounded-full bg-muted" />
+      <div className="mt-5 h-20 animate-pulse rounded-3xl bg-muted/70" />
     </div>
   );
 }
