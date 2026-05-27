@@ -2,17 +2,16 @@
 
 import {
   ArrowRightIcon,
-  CreditCardIcon,
   FilePenLineIcon,
   PackageIcon,
   StoreIcon,
-  UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { RequestBoard } from "@/components/request/request-board";
 import { PublicSolutionPreview } from "@/components/request/public-solution-preview";
 import { cn } from "@/lib/utils";
+import { CreditBalanceLink } from "./credit-balance-link";
 import {
   SidebarSurfaceTopNav,
   buildHomeSectionTopNavLinks,
@@ -38,20 +37,20 @@ import {
 
 const homeEntryCards = [
   {
-    body: "Shape the ask, done condition, constraints, budget, deadline, proof, and whether human or local runtime work matters.",
-    cta: "Post request",
+    body: "Describe the outcome, constraints, budget, deadline, proof, and where human or local work still matters.",
+    cta: "Start request",
     href: "/?mode=request",
     icon: FilePenLineIcon,
-    label: "Request Preflight",
-    title: "Turn a raw ask into a durable Request.",
+    label: "Start with the ask",
+    title: "Turn a rough ask into work someone can complete.",
   },
   {
-    body: "Packaged supply still creates or attaches to a Request, then runs through credits, proof, delivery, and review.",
+    body: "Choose a scoped service and keep the brief, payment, files, review, and delivery in one Request thread.",
     cta: "Browse services",
     href: "/services",
     icon: StoreIcon,
     label: "Services",
-    title: "Run ready-to-buy capability through a Request.",
+    title: "Buy a service without losing the work context.",
   },
   {
     body: "Define what can be done, who owns the lane, how it runs, how proof works, and when capacity is available.",
@@ -61,20 +60,12 @@ const homeEntryCards = [
     label: "Supply Studio",
     title: "Manage capability lanes that can attach to demand.",
   },
-  {
-    body: "Keep identity, passkeys, balance, ledger, request spending, and paid execution readiness in one trust center.",
-    cta: "Review credits",
-    href: "/account",
-    icon: CreditCardIcon,
-    label: "Account / Credits",
-    title: "Credits are execution capacity, not reading access.",
-  },
 ];
 
 const processSteps = [
   "Post a Request",
   "Compare plans",
-  "Run or fund work",
+  "Run the work",
   "Verify artifacts",
   "Reuse accepted solutions",
 ];
@@ -87,25 +78,15 @@ export function HomePage() {
           links={buildHomeSectionTopNavLinks()}
           rightSlot={
             <>
-              <Button
-                asChild
-                className="hidden h-9 rounded-full px-4 text-[12px] font-medium sm:inline-flex"
-                variant="outline"
-              >
-                <Link href="/account">
-                  <UserRoundIcon className="size-4" />
-                  Account
-                </Link>
-              </Button>
+              <CreditBalanceLink className="hidden sm:inline-flex" />
               <Button
                 asChild
                 className="h-9 rounded-full px-4 text-[12px] font-medium"
               >
-                <Link href="/?mode=request">Post request</Link>
+                <Link href="/?mode=request">Start request</Link>
               </Button>
             </>
           }
-          title="Home / Board"
         />
 
         <div className={surfaceShellClassName}>
@@ -117,22 +98,21 @@ export function HomePage() {
               >
                 <div className="max-w-4xl">
                   <p className={surfaceEyebrowClassName}>
-                    Request-native work network
+                    Work requests that reach delivery
                   </p>
                   <h1 className={cn(surfaceHeroTitleClassName, "mt-6")}>
-                    Post a Request, compare plans, run work, verify the result.
+                    Start with the work you need done. Keep every step visible.
                   </h1>
                   <p className={cn(surfaceBodyClassName, "mt-6")}>
-                    Boreal keeps demand, planning, execution, artifacts, proof,
-                    review, credits, services, and reusable public outcomes
-                    attached to one accountable Request thread.
+                    Boreal keeps the ask, plan, service, payment, files,
+                    review, and final delivery in one trackable Request thread.
                   </p>
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                     <Button
                       asChild
                       className="h-11 rounded-full px-5 text-[12px] font-medium"
                     >
-                      <Link href="/?mode=request">Post request</Link>
+                      <Link href="/?mode=request">Start request</Link>
                     </Button>
                     <Button
                       asChild
@@ -145,7 +125,7 @@ export function HomePage() {
                 </div>
 
                 <div className="rounded-[28px] border border-border/60 bg-card/70 p-4">
-                  <p className={surfaceEyebrowClassName}>Request flow</p>
+                  <p className={surfaceEyebrowClassName}>Work flow</p>
                   <div className="mt-4 grid gap-2">
                     {processSteps.map((step, index) => (
                       <div
@@ -169,15 +149,15 @@ export function HomePage() {
               <section className={surfaceSectionClassName} id="post-request">
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                   <div>
-                    <p className={surfaceEyebrowClassName}>Post request</p>
+                    <p className={surfaceEyebrowClassName}>Start request</p>
                     <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                      One Request should survive intake, execution, delivery,
-                      and review.
+                      One Request should survive the brief, execution,
+                      delivery, and review.
                     </h2>
                   </div>
                   <Button asChild className="rounded-full" variant="outline">
                     <Link href="/?mode=request">
-                      Start Request Preflight
+                      Start a request
                       <ArrowRightIcon className="size-4" />
                     </Link>
                   </Button>

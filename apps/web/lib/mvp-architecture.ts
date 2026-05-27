@@ -368,7 +368,7 @@ export const mvpArchitecture = {
         "Public first viewport and access paths for request posting, services, supply whitelist, account, and desktop.",
     },
     {
-      surface: "Post request",
+      surface: "Start request",
       route: "/?mode=request",
       responsibility:
         "Explicit request-mode intake that creates one draft only after the first request turn or explicit create action.",

@@ -58,7 +58,7 @@ export default function ArchitecturePage() {
             className="rounded-md border border-border/70 px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-muted"
             href="/?mode=request"
           >
-            Post request
+            Start request
           </Link>
         </div>
       </header>
@@ -159,7 +159,7 @@ export default function ArchitecturePage() {
           id="database"
           icon={sectionIcons.database}
           title="Database Schema"
-          description="The MVP schema keeps current truth in root objects and full history in adjacent records and events."
+          description="The MVP schema keeps the current request state small while storing messages, files, payments, and events in their own records."
         >
           <div className="grid gap-4">
             {mvpArchitecture.databaseTables.map((table) => (

@@ -254,10 +254,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
                     isActive={isNavActive("/?mode=request", isNewRequestMode)}
                     onClick={() => navigateSidebar("/?mode=request")}
-                    tooltip="Post request"
+                    tooltip="Start request"
                   >
                     <FilePenLineIcon className="size-4" />
-                    <span className="font-medium">Post request</span>
+                    <span className="font-medium">Start request</span>
                     <SidebarNavPendingDot visible={isNavPending("/?mode=request")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -266,10 +266,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
                     isActive={isNavActive("/open-requests", isOpenRequestsView)}
                     onClick={() => navigateSidebar("/open-requests")}
-                    tooltip="Request board"
+                    tooltip="Open requests"
                   >
                     <ListChecksIcon className="size-4" />
-                    <span className="font-medium">Request board</span>
+                    <span className="font-medium">Open requests</span>
                     <SidebarNavPendingDot visible={isNavPending("/open-requests")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -324,7 +324,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
                       isActive={isNavActive("/supplies", isSuppliesView)}
                       onClick={() => navigateSidebar("/supplies")}
-                      tooltip="Supplies"
+                      tooltip="Supply studio"
                     >
                       <PackageIcon className="size-4" />
                       <span className="font-medium">Supply studio</span>

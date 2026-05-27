@@ -276,7 +276,7 @@ test.describe("Surface async states", () => {
 
     await expect(
       page.getByRole("heading", {
-        name: "Search public Requests before starting from scratch.",
+        name: "See what people are trying to get done.",
       })
     ).toBeVisible();
     await expect(page.getByText("Audit an onboarding flow")).toBeVisible();
@@ -303,8 +303,9 @@ test.describe("Surface async states", () => {
       page.getByText("Audit an onboarding flow").first()
     ).toBeVisible();
 
-    await expect(page.getByRole("link", { name: /Use as reference/i }).first())
-      .toHaveAttribute(
+    await expect(
+      page.getByRole("link", { name: "Use as starting point" }).first()
+    ).toHaveAttribute(
         "href",
         "/?mode=request&referenceRequestId=req_onboarding_audit"
       );

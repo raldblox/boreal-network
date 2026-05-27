@@ -540,7 +540,7 @@ export function ChatShell() {
             {activeRequest ? (
               <div className="pointer-events-none absolute right-4 bottom-4 z-20 flex flex-col gap-2">
                 <button
-                  aria-label="Open Request object artifact"
+                  aria-label="Open request object"
                   aria-pressed={isArtifactVisible}
                   className={cn(
                     "pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/50 shadow-[var(--shadow-float)] backdrop-blur transition-transform duration-200 hover:scale-[1.02]",

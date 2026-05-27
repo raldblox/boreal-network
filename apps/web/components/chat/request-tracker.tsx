@@ -534,7 +534,7 @@ export function RequestTracker({
       id: "work_delivery" as const,
       title: "Execution and delivery",
       summary:
-        "Track the active work lane, current progress, and delivered proof.",
+        "Track the active fulfillment lane, current progress, and delivered proof.",
       body: (
         <div className="space-y-4">
           <CompactFactPanel

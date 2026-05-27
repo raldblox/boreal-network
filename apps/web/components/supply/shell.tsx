@@ -319,7 +319,7 @@ export function SupplyShell() {
           <SidebarSurfaceTopNav
             rightSlot={
               <Button asChild size="sm" variant="outline">
-                <Link href="/?mode=request">Post request</Link>
+                <Link href="/?mode=request">Start request</Link>
               </Button>
             }
             title={isWhitelistEntry ? "Supply whitelist" : "New supply"}

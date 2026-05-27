@@ -101,7 +101,7 @@ export function CharacterCallLauncher({
             </div>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Launch a one-time 5-minute realtime avatar session. Credentials
-              are created server-side and are not stored in Boreal artifacts.
+              are created server-side and are not stored in Boreal.
             </p>
           </div>
         </div>

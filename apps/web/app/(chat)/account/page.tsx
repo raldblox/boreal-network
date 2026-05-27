@@ -94,9 +94,9 @@ export default async function AccountCreditsPage({
                 Trust and execution readiness
               </h1>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-                Identity, passkeys, balance, ledger, request spending, and paid
-                execution readiness live here. Credits are execution capacity,
-                never a charge to read public Requests or public solutions.
+                Manage your balance, payment history, passkeys, and paid work
+                from one account page. Credits are for running work, never for
+                reading public requests or public solutions.
               </p>
             </div>
             <div className="flex flex-col gap-3 md:items-end">
@@ -145,8 +145,8 @@ export default async function AccountCreditsPage({
               {formatMoney(account.availableBalance, account.currency)}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Ready for services, workflow runs, provider calls, human review,
-              or embodied fulfillment.
+              Ready for services, provider calls, workflow runs, or human
+              review.
             </p>
           </div>
           <div className="rounded-lg border border-border/70 p-5">
@@ -158,7 +158,7 @@ export default async function AccountCreditsPage({
               {formatMoney(account.pendingBalance, account.currency)}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Waiting on processor or chain verification.
+              Waiting for payment verification.
             </p>
           </div>
           <div className="rounded-lg border border-border/70 p-5">
@@ -195,9 +195,8 @@ export default async function AccountCreditsPage({
               <h2 className="text-lg font-semibold">Account actions</h2>
             </div>
             <p className="text-sm leading-7 text-muted-foreground">
-              Manage credits from one account surface. Top-ups become execution
-              capacity after verification, then Request spending appears in the
-              ledger below.
+              Add credits, check payment status, and see where credits were
+              spent.
             </p>
 
             <div className="grid gap-3">
@@ -209,8 +208,8 @@ export default async function AccountCreditsPage({
                     </div>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
                       Add credits using PayPal, card, USDC, or USDT. New top-ups
-                      stay pending until verification and are used only for
-                      execution, service capacity, provider calls, or review.
+                      stay pending until verification and are used only when
+                      Boreal runs work.
                     </p>
                   </div>
                   <Button asChild>
@@ -248,7 +247,7 @@ export default async function AccountCreditsPage({
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <HistoryIcon className="size-4 text-muted-foreground" />
-                <h2 className="text-lg font-semibold">Ledger</h2>
+                <h2 className="text-lg font-semibold">Payment history</h2>
               </div>
               <div className="text-sm text-muted-foreground">
                 {ledger.length} entries
@@ -257,7 +256,7 @@ export default async function AccountCreditsPage({
 
             {ledger.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border/80 p-6 text-sm text-muted-foreground">
-                No credit movements or Request spending yet.
+                No credit movements or request spending yet.
               </div>
             ) : (
               <div className="divide-y divide-border/60 rounded-lg border border-border/70">
@@ -280,7 +279,7 @@ export default async function AccountCreditsPage({
                       <div className="text-muted-foreground">
                         {entry.metadata?.fundingSource
                           ? formatLabel(String(entry.metadata.fundingSource))
-                          : "Manual ledger entry"}
+                          : "Manual account entry"}
                         {entry.reference ? ` - ${entry.reference}` : ""}
                       </div>
                       <div className="text-xs text-muted-foreground">

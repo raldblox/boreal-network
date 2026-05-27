@@ -68,7 +68,8 @@ function RegisterPageContent() {
         Create a Boreal account
       </h1>
       <p className="text-sm leading-7 text-muted-foreground">
-        Create a username-first Boreal account for requests, supply, and stronger security.
+        Create a username-first Boreal account for requests, supply, and
+        stronger security.
       </p>
       <AuthForm
         action={handleSubmit}

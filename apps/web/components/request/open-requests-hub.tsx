@@ -23,25 +23,24 @@ export function OpenRequestsHub() {
         <SidebarSurfaceTopNav
           rightSlot={
             <Button asChild className="rounded-full" size="sm">
-              <Link href="/?mode=request">Post request</Link>
+              <Link href="/?mode=request">Start request</Link>
             </Button>
           }
-          title="Request Board"
+          title="Open requests"
         />
 
         <div className={surfaceShellClassName}>
           <div className={surfaceViewportClassName}>
             <div className={cn(surfaceScrollClassName, "gap-10")}>
               <section className="max-w-4xl space-y-5">
-                <p className={surfaceEyebrowClassName}>Public demand pool</p>
+                <p className={surfaceEyebrowClassName}>Open requests</p>
                 <h1 className={surfaceHeroTitleClassName}>
-                  Search public Requests before starting from scratch.
+                  See what people are trying to get done.
                 </h1>
                 <p className={surfaceBodyClassName}>
-                  The board keeps demand, readiness, route hints, proof
-                  expectations, and next actions centered on the Request.
-                  Public context is free to inspect; credits matter when work
-                  executes.
+                  Browse public requests, expected proof, current status, and
+                  useful starting points. Reading is free; credits apply when
+                  Boreal has to run work.
                 </p>
               </section>
 

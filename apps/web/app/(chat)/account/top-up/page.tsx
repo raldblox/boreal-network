@@ -45,7 +45,7 @@ function formatMoney(value: string | null | undefined, currency = "USD") {
 function getTopUpErrorMessage(error?: string) {
   switch (error) {
     case "invalid-source":
-      return "Choose a valid payment rail.";
+      return "Choose a valid payment method.";
     case "invalid-amount":
       return "Enter a positive amount with at most two decimal places.";
     case "insufficient-credit":
@@ -57,13 +57,13 @@ function getTopUpErrorMessage(error?: string) {
     case "paypal-order":
       return "PayPal could not create the checkout order. Check the sandbox app and return URL.";
     case "paypal-ledger":
-      return "PayPal checkout started, but Boreal could not record the credit ledger entry.";
+      return "PayPal checkout started, but Boreal could not record the credit movement.";
     case "paypal-order-failed":
       return "PayPal checkout could not be started. Check server logs for the exact PayPal response.";
     case "topup-failed":
-      return "Manual top-up could not be recorded. Check the amount, rail, and reference.";
+      return "Manual top-up could not be recorded. Check the amount, method, and reference.";
     default:
-      return "Top-up could not be created. Check the amount, rail, and reference.";
+      return "Top-up could not be created. Check the amount, method, and reference.";
   }
 }
 
@@ -291,8 +291,8 @@ export default async function AccountTopUpPage({
             <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground">
               Start with PayPal now, or record card, USDC, or USDT references.
               Top-ups stay pending until Boreal verifies payment, then they
-              become usable execution capacity for services, workflow runs,
-              provider calls, human review, or embodied fulfillment.
+              can be used for services, provider calls, workflow runs, or human
+              review.
             </p>
           </div>
 

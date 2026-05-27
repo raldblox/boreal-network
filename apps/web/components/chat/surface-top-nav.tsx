@@ -17,7 +17,7 @@ export function buildHomeSectionTopNavLinks() {
   return [
     { href: "/#overview", label: "Overview" },
     { href: "/#request-board", label: "Board" },
-    { href: "/#post-request", label: "Post request" },
+    { href: "/#post-request", label: "Start request" },
     { href: "/#solutions", label: "Solutions" },
   ] satisfies SurfaceTopNavLink[];
 }
@@ -27,7 +27,7 @@ export function buildSurfaceTopNavLinks(activeKey?: "home" | "request" | "whitel
     { href: "/", label: "Home", active: activeKey === "home" },
     {
       href: "/?mode=request",
-      label: "Post request",
+      label: "Start request",
       active: activeKey === "request",
     },
     {

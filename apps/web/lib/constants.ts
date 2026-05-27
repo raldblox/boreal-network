@@ -13,8 +13,8 @@ export const guestRegex = /^guest-[0-9a-f-]+@boreal\.local$/i;
 export const DUMMY_PASSWORD = generateDummyPassword();
 
 export const suggestions = [
-  "Turn this rough ask into a paid request",
-  "Help me shape a request thread that stays accountable",
+  "Turn this rough ask into a work request",
+  "Help me shape a request that stays trackable",
   "What human steps does this workflow still need?",
   "Help me map proof and delivery",
 ];

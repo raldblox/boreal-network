@@ -38,7 +38,7 @@ const fundingSources = [
   {
     value: "card_direct",
     label: "Card",
-    detail: "Use when a card processor reference is available.",
+    detail: "Use when a card payment reference is available.",
   },
   {
     value: "usdc_direct",
@@ -150,7 +150,7 @@ export function AccountTopUpForm({
               Simple top-up
             </div>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-              Choose amount and rail
+              Choose amount and method
             </h2>
           </div>
           <div className="text-sm text-muted-foreground">{accountLabel}</div>
@@ -215,7 +215,7 @@ export function AccountTopUpForm({
 
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              Payment rail
+              Payment method
             </div>
             <div className="mt-3 grid gap-2 md:grid-cols-2">
               {fundingSources.map((source) => {
@@ -257,7 +257,7 @@ export function AccountTopUpForm({
               className="mt-3 h-12 w-full rounded-2xl border border-border bg-background px-4 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-foreground"
               id="reference"
               name="reference"
-              placeholder="Processor reference or chain tx hash for manual rails"
+              placeholder="Payment reference or chain tx hash for manual methods"
             />
           </div>
 
@@ -269,9 +269,9 @@ export function AccountTopUpForm({
       <div className="grid gap-3 md:grid-cols-3">
         <div className="rounded-2xl border border-border/70 bg-card/60 p-4">
           <ReceiptTextIcon className="size-4 text-muted-foreground" />
-          <div className="mt-3 text-sm font-medium">Ledger safe</div>
+          <div className="mt-3 text-sm font-medium">Recorded</div>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Every top-up becomes a credit ledger entry.
+            Every top-up is written to account history.
           </p>
         </div>
         <div className="rounded-2xl border border-border/70 bg-card/60 p-4">
@@ -295,7 +295,7 @@ export function AccountTopUpForm({
           className="text-muted-foreground transition-colors hover:text-foreground"
           href="/account"
         >
-          View balance and ledger
+          View balance and history
         </Link>
         <Link
           className="text-muted-foreground transition-colors hover:text-foreground"

@@ -71,8 +71,8 @@ export default async function AccountSecurityPage() {
                 Sign-in and passkeys
               </h1>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-                Manage the regular Boreal account used for requests, supply,
-                and desktop resolver approval.
+                Manage the regular Boreal account used for requests, provider
+                services, and desktop approval.
               </p>
             </div>
             <div className="text-left text-sm text-muted-foreground md:text-right">

@@ -182,9 +182,8 @@ const activity: RequestActivityEntry[] = [
       title: "Avatar launch handoff proof",
       summary: "Verification note, timestamps, and owner review checklist.",
       container: {
-        documentId: "doc_art_workroom_delivery",
-        documentKind: "text",
-        kind: "document",
+        kind: "external_ref",
+        uri: "https://example.com/avatar-launch-handoff-proof",
       },
       metadata: {
         captureTime: deliveredAt,
@@ -248,10 +247,10 @@ test.describe("Request workroom", () => {
     ).toContainText("Owner / lane");
     await expect(
       page.getByLabel("Request workroom monitor summary")
-    ).toContainText("Delivery / proof");
+    ).toContainText("Artifacts / proof");
     await expect(
       page.getByLabel("Request workroom monitor summary")
-    ).toContainText("Payments");
+    ).toContainText("Credits / transactions");
     await expect(
       page.getByText("Process lens: Request -> Plan -> Worker -> Delivery")
     ).toBeVisible();
@@ -262,14 +261,14 @@ test.describe("Request workroom", () => {
       page.getByLabel("Request workroom monitor summary")
     ).toContainText("Review");
 
-    await page.getByRole("button", { name: "Open activity log" }).click();
+    await page.getByRole("button", { name: "Open activity ledger" }).click();
     await expect(page.getByText("Activity").first()).toBeVisible();
     await expect(
       page.getByText("Delivery package is ready for owner review.").first()
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Files / proof" }).click();
-    await expect(page.getByText("Files and deliveries")).toBeVisible();
+    await page.getByRole("button", { name: "Artifacts / proof" }).click();
+    await expect(page.getByText("Artifacts", { exact: true })).toBeVisible();
     await expect(
       page.getByText("Accepted handoff proof package attached.")
     ).toBeVisible();
@@ -278,7 +277,7 @@ test.describe("Request workroom", () => {
     await expect(page.getByText("Support chat")).toBeVisible();
     await expect(
       page.getByText(
-        "Use chat for clarification and assistance. Durable status, proof, files, and review stay in the main workroom."
+        "Use chat for clarification and assistance. Durable status, proof, artifacts, and review stay in the main workroom."
       )
     ).toBeVisible();
   });

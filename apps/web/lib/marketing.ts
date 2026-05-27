@@ -1,10 +1,10 @@
 export const borealHomepageCopy = {
-  eyebrow: "From request to accepted result",
-  title: "One thread from request to accepted result.",
+  eyebrow: "From request to delivery",
+  title: "Start with the work you need done.",
   body:
-    "Open a request, fund it if needed, route the work, review what comes back, and keep the accepted artifact attached to the same flow.",
+    "Boreal keeps the ask, plan, service, payment, files, review, and final delivery in one trackable Request thread.",
   support:
-    "Starting with paid request pilots, curated supply, and selective public-request funding where accepted work should stay reusable.",
+    "Starting with paid request pilots, curated supply, and public requests where accepted work should stay reusable.",
 } as const;
 
 export const borealHowItWorksPoints = [
@@ -20,12 +20,12 @@ export const borealHowItWorksPoints = [
   },
   {
     body:
-      "Boreal narrows the right solver, reviewer, or runtime lane before the work starts so the request does not drift.",
+      "Boreal narrows the right service, reviewer, or runtime before the work starts so the request does not drift.",
     label: "Route the work",
   },
   {
     body:
-      "Artifacts, proof, and acceptance stay attached to the same request before anyone treats the job as done.",
+      "Delivery, proof, and acceptance stay attached to the same request before anyone treats the job as done.",
     label: "Review the result",
   },
   {
@@ -48,7 +48,7 @@ export const borealWhyBorealPoints = [
   },
   {
     body:
-      "Boreal keeps the request, the work, the funding, and the accepted result on one visible path instead of scattering the job across posts, chats, tools, and delivery threads.",
+      "Boreal keeps the request, the work, the payment, and the final delivery on one visible path instead of scattering the job across posts, chats, tools, and delivery threads.",
     label: "Why Boreal exists",
   },
 ] as const;
@@ -56,13 +56,13 @@ export const borealWhyBorealPoints = [
 export const borealReusePoints = [
   {
     body:
-      "The accepted result should still point back to the original ask, the participants, and the proof that made it valid.",
+      "The final delivery should still point back to the original ask, the participants, and the proof that made it valid.",
     label: "Keep the source request",
   },
   {
     body:
       "When work is worth reusing, Boreal can project it as a public solution instead of burying it in private delivery threads.",
-    label: "Keep the accepted artifact useful",
+    label: "Keep accepted work useful",
   },
   {
     body:
@@ -82,9 +82,9 @@ export const borealAccessTracks = [
   {
     body:
       "Join if you can show a real workflow where review, proof, judgment, or handoff still matter after AI has done its part.",
-    cta: "Join whitelist",
+    cta: "Join provider whitelist",
     href: "/supplies/new?entry=whitelist",
-    label: "Join the curated whitelist",
+    label: "Join the provider whitelist",
   },
 ] as const;
 

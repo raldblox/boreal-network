@@ -94,9 +94,9 @@ test.describe("Startup MVP service checkout smoke", () => {
     await expect(
       page.getByRole("heading", { name: "Character Call Starter" }).first()
     ).toBeVisible();
-    await expect(page.getByText("Credit checkout")).toBeVisible();
+    await expect(page.getByText("Payment")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Run service with credits" })
+      page.getByRole("button", { name: "Pay and start request" })
     ).toBeVisible();
 
     await page.getByLabel("Character name").fill("Mira the clocksmith");
@@ -115,7 +115,7 @@ test.describe("Startup MVP service checkout smoke", () => {
       .getByLabel("First message direction")
       .fill("Welcome the visitor and ask what they want to learn.");
 
-    await page.getByRole("button", { name: "Run service with credits" }).click();
+    await page.getByRole("button", { name: "Pay and start request" }).click();
 
     await expect(
       page.getByText("Request funded and ready for proof.")

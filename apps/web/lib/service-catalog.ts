@@ -29,14 +29,14 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
     title: "Character Call Starter",
     eyebrow: "Runway Characters service",
     summary:
-      "A live AI character video-call setup from one approved image, persona brief, and call goal.",
+      "Set up a live AI character call from one approved image, a persona brief, and a clear call goal.",
     buyer:
       "Creators, fandom pages, avatar-curious users, founders, sellers, students, and teams who want a live character people can talk to.",
     providerLabel: "Runway Characters + OpenAI + Boreal review",
     tags: ["live avatar", "video call", "character", "interactive"],
     process: [
       "Upload one approved reference image, character name, persona notes, and call goal.",
-      "Boreal shapes the persona sheet, boundaries, and first-message script.",
+      "Boreal turns the brief into a persona sheet, safety boundaries, and first-message script.",
       "Operator review checks consent, no impersonation, blocked topics, and safe claims.",
       "Runway Character setup and session-launch handoff are prepared server-side.",
       "Boreal runs a test call, records notes, and delivers the launch handoff inside one request thread.",
@@ -54,7 +54,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
         price: "$1",
         turnaround: "24 hours",
         summary:
-          "Launch-price checkout for one live character-call setup with persona sheet, one included test session, session-launch handoff, and delivery notes.",
+          "One live character-call setup with a persona sheet, included test session, launch handoff, and delivery notes.",
         included: [
           "1 character setup direction",
           "1 included 5-minute test call",
@@ -104,7 +104,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
     title: "Founder Avatar Clip Pack",
     eyebrow: "Runway-backed service",
     summary:
-      "Ready-to-post avatar and character clips for launches, sales replies, onboarding, and founder-led promotion.",
+      "Ready-to-post avatar or character clips for launches, sales replies, onboarding, and founder-led promotion.",
     buyer: "Founders, creator-brands, operators, and growth leads who need finished clips instead of another generation tool.",
     providerLabel: "Runway + Boreal review",
     tags: ["avatar video", "short-form", "character", "launch"],
@@ -146,7 +146,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
     title: "Character Host Trend Pack",
     eyebrow: "Viral content service",
     summary:
-      "Create a repeatable host or character that can deliver niche commentary, explainers, and trend response clips.",
+      "Create a recurring host or character for niche commentary, explainers, and trend-response clips.",
     buyer:
       "Anonymous niche pages, creator founders, ecommerce brands, and operators who need a recognizable recurring host.",
     providerLabel: "Runway + OpenAI + operator review",
@@ -205,7 +205,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
     title: "Trend Seed Reel Pack",
     eyebrow: "Short-form growth service",
     summary:
-      "A ready-to-post set of niche short-form clips built around hooks, captions, trend rationale, and posting sequence.",
+      "A ready-to-post set of short-form clips built around hooks, captions, trend rationale, and posting sequence.",
     buyer:
       "Creator-founders, niche media pages, collector brands, and growth operators testing a new content lane.",
     providerLabel: "OpenAI + Runway-ready production",
@@ -215,7 +215,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       "Boreal turns the angle into hook families and scripts.",
       "Clips are generated or edited against the chosen content format.",
       "Operator review packages captions, covers, and posting notes.",
-      "Delivery lands as a request artifact bundle.",
+      "Delivery lands as a file and proof bundle.",
     ],
     proof: [
       "video drafts",

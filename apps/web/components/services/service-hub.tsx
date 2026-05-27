@@ -19,6 +19,7 @@ import {
 } from "@/lib/service-catalog";
 import { cn } from "@/lib/utils";
 import { CharacterCallLauncher } from "./character-call-launcher";
+import { CreditBalanceLink } from "../chat/credit-balance-link";
 import { SidebarSurfaceTopNav } from "../chat/surface-top-nav";
 import {
   SurfaceCard,
@@ -51,9 +52,12 @@ export function ServiceHub() {
       <div className={surfaceColumnClassName}>
         <SidebarSurfaceTopNav
           rightSlot={
-            <Button asChild className="rounded-full" size="sm">
-              <Link href="/?mode=request">Post request</Link>
-            </Button>
+            <>
+              <CreditBalanceLink className="hidden sm:inline-flex" />
+              <Button asChild className="rounded-full" size="sm">
+                <Link href="/?mode=request">Start request</Link>
+              </Button>
+            </>
           }
           title="Services"
         />
@@ -241,7 +245,7 @@ function ServicePlanCard({
       ) : (
         <SurfaceCardActions className="mt-7">
           <Button className="rounded-full" onClick={() => router.push(startUrl)}>
-            Create Request
+            Start request
             <ArrowRightIcon className="size-4" />
           </Button>
         </SurfaceCardActions>
@@ -475,7 +479,7 @@ function CharacterCallStarterCheckout() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Credit checkout
+              Payment
             </p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Pay $1 from Boreal credits. This creates and funds the Request,
@@ -506,8 +510,7 @@ function CharacterCallStarterCheckout() {
 
         {!isLoadingCredit && !hasEnoughCredit ? (
           <div className="mt-4 rounded-2xl border border-border/70 bg-background p-3 text-sm text-muted-foreground">
-            You need at least $1 in available credits before this service can be
-            executed.
+            Your available credits are below the $1 needed for this service.
             <Button
               className="mt-3 w-full rounded-full"
               onClick={() =>
@@ -618,8 +621,8 @@ function CharacterCallStarterCheckout() {
           ? "Checking credits..."
           : hasEnoughCredit
             ? isSubmitting
-              ? "Paying from credits..."
-              : "Run service with credits"
+              ? "Starting request..."
+              : "Pay and start request"
             : "Top up credits first"}
       </Button>
 

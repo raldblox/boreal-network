@@ -139,7 +139,7 @@ export function RequestBoard({
       : "No matching requests";
   const emptyDescription =
     requests.length === 0
-      ? "Public request discovery is ready, but this workspace has no public entries to browse."
+      ? "There are no public requests to browse yet."
       : "Try another search term or status filter. Reading public request context stays free.";
 
   return (
@@ -149,12 +149,11 @@ export function RequestBoard({
           <div className="max-w-3xl">
             <p className={surfaceEyebrowClassName}>Request board</p>
             <h2 className={cn(surfaceSectionTitleClassName, "mt-3")}>
-              Browse demand, then start from the Request that already exists.
+              Browse open requests before starting from scratch.
             </h2>
             <p className={cn(surfaceBodyClassName, "mt-3 text-sm")}>
-              Search public Requests by ask, route, proof, status, or tags.
-              Execution credits apply only when work is run, reviewed, or
-              fulfilled.
+              Search by ask, status, expected proof, or tags. Reading is free;
+              credits apply only when Boreal has to run work.
             </p>
           </div>
           {variant === "home" ? (
@@ -272,7 +271,7 @@ export function RequestBoard({
 
       {hasFilters && visibleRequests.length > 0 ? (
         <p className="text-xs text-muted-foreground" role="status">
-          Showing {visibleRequests.length} of {requests.length} public Requests.
+          Showing {visibleRequests.length} of {requests.length} public requests.
         </p>
       ) : null}
     </section>
@@ -346,7 +345,7 @@ function RequestBoardCard({
         <SurfaceCardActions className="mt-auto pt-6">
           <Button asChild className="rounded-full" size="sm" variant="outline">
             <Link href={`/?mode=request&referenceRequestId=${request.id}`}>
-              Use as reference
+              Use as starting point
               <ArrowRightIcon className="size-4" />
             </Link>
           </Button>
@@ -480,16 +479,16 @@ function getProofSummary(request: PublicRequestPoolEntry) {
   }
 
   if (request.brief.outputKinds.length > 0) {
-    return `Expected artifact: ${request.brief.outputKinds
+    return `Expected delivery: ${request.brief.outputKinds
       .map(formatSurfaceToken)
       .join(", ")}`;
   }
 
   if (request.derived.missingDetails.length > 0) {
-    return "Proof path pending until missing details are resolved.";
+    return "Proof is unclear until the missing details are resolved.";
   }
 
-  return "Proof path not specified yet.";
+  return "Proof not specified yet.";
 }
 
 function getNextActionLabel(request: PublicRequestPoolEntry) {
@@ -498,23 +497,23 @@ function getNextActionLabel(request: PublicRequestPoolEntry) {
   }
 
   if (request.derived.readiness.readyForMatch) {
-    return "Compare plans or capability lanes.";
+    return "Compare services or providers.";
   }
 
   if (request.derived.readiness.readyForOpen) {
-    return "Open the Request and refine routing.";
+    return "Open it and refine routing.";
   }
 
-  return "Use as reference for a new Request.";
+  return "Use this as a starting point.";
 }
 
 function getBudgetLabel(request: PublicRequestPoolEntry) {
   if (!request.budget || request.budget.mode === "none") {
-    return "reading is free";
+    return "free to read";
   }
 
   if (request.budget.mode === "fixed" && request.budget.fixedAmount) {
-    return `${formatCurrency(request.budget.fixedAmount, request.budget.currency)} execution`;
+    return `${formatCurrency(request.budget.fixedAmount, request.budget.currency)} budget`;
   }
 
   if (request.budget.mode === "range") {
@@ -526,14 +525,14 @@ function getBudgetLabel(request: PublicRequestPoolEntry) {
 
 function getDeliveryLabel(request: PublicRequestPoolEntry) {
   if (request.activeRefs.latestArtifactId) {
-    return "artifact linked";
+    return "delivery linked";
   }
 
   if (request.activeRefs.activeFulfillmentId) {
-    return "fulfillment active";
+    return "work active";
   }
 
-  return "artifact pending";
+  return "delivery pending";
 }
 
 function formatCurrency(amount: number, currency = "USD") {
