@@ -29,14 +29,15 @@ Before editing anything substantial, read:
 7. `docs/EVENT_MODEL.md`
 8. `docs/API_CONTRACTS.md`
 9. `docs/REQUEST_PROCESSING.md`
-10. `docs/TOOL_CALLING_CONTRACTS.md`
-11. `docs/SCHEMA_LOGICAL.md`
-12. `docs/REPO_STRUCTURE.md`
-13. `docs/WORKSTREAMS.md`
-14. `docs/OWNERSHIP.md`
-15. `docs/GOVERNANCE.md`
-16. `docs/TEST_MATRIX.md`
-17. `docs/EVALS.md`
+10. `docs/REQUEST_PLAN_MODEL.md`
+11. `docs/TOOL_CALLING_CONTRACTS.md`
+12. `docs/SCHEMA_LOGICAL.md`
+13. `docs/REPO_STRUCTURE.md`
+14. `docs/WORKSTREAMS.md`
+15. `docs/OWNERSHIP.md`
+16. `docs/GOVERNANCE.md`
+17. `docs/TEST_MATRIX.md`
+18. `docs/EVALS.md`
 
 If the task affects positioning, pitch, go-to-market, wedge, revenue model, or competitive framing, also read:
 

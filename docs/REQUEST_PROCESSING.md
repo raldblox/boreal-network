@@ -14,6 +14,39 @@ Do not silently turn ordinary chat into a durable request.
 
 Do not explode a raw ask into a task tree before Boreal knows who should own the work.
 
+For the deeper plan-model guide and implementation audit, read [REQUEST_PLAN_MODEL.md](REQUEST_PLAN_MODEL.md).
+
+## Boreal Plan Essence
+
+Most AI agents create plans to guide generation.
+Boreal creates plans to make requests fulfillable, auditable, and provable.
+
+In this repo, `Plan` is product and process language over request-owned derived state.
+It is not a canonical root object.
+It is not assignment truth.
+It is not proof.
+It is not completion.
+
+The accepted product reading is:
+
+- `Request`
+- `Plan`
+- `Worker`
+- `Delivery`
+
+That reading maps back to canonical truth:
+
+- planning projections stay under `Request.derived`
+- selected or candidate capability lanes come from `Supply`
+- commercial and approval truth belongs in `Commitment`
+- execution truth belongs in `Fulfillment`
+- generated sub-work belongs in `FulfillmentStep`
+- outputs and proof belong in `Artifact`
+- money and credits belong in `Transaction`
+- durable activity belongs in `RequestEvent`
+
+If a future feature needs public plan comparison, ranked submissions, or solver proposals, the safer default is `Artifact(kind: "plan")`, `Commitment`, `RequestParticipant`, and `RequestEvent` attached to the same `Request`, not a new root object.
+
 ## Processing Layers
 
 1. Conversation layer

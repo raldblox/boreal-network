@@ -7,6 +7,9 @@ It does not redefine `Request`, `Supply`, `Commitment`, `Fulfillment`, `Artifact
 
 Use it when frontend, UI/UX, product, or hero-copy workers need to make Boreal easier to understand and act on.
 
+Read [../REQUEST_PLAN_MODEL.md](../REQUEST_PLAN_MODEL.md) before implementing plan-heavy surfaces.
+It defines `Plan` as a request-owned process lens and audits what the current code already supports.
+
 ## Objective
 
 Make Boreal immediately legible as a request-native work network.

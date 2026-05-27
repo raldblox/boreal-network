@@ -11,6 +11,7 @@ It exists to make product design, agent design, planner prompts, and UI implemen
 Use this note alongside:
 
 - [REQUEST_PROCESSING.md](REQUEST_PROCESSING.md)
+- [REQUEST_PLAN_MODEL.md](REQUEST_PLAN_MODEL.md)
 - [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md)
 - [API_CONTRACTS.md](API_CONTRACTS.md)
 - [PRODUCT_POSITIONING.md](PRODUCT_POSITIONING.md)

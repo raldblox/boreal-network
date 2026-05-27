@@ -17,8 +17,9 @@ These files define what Boreal Network is:
 5. [EVENT_MODEL.md](EVENT_MODEL.md)
 6. [API_CONTRACTS.md](API_CONTRACTS.md)
 7. [REQUEST_PROCESSING.md](REQUEST_PROCESSING.md)
-8. [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md)
-9. [SCHEMA_LOGICAL.md](SCHEMA_LOGICAL.md)
+8. [REQUEST_PLAN_MODEL.md](REQUEST_PLAN_MODEL.md)
+9. [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md)
+10. [SCHEMA_LOGICAL.md](SCHEMA_LOGICAL.md)
 
 ## Commercial Canon
 
@@ -50,6 +51,7 @@ These files help shape packaging, prioritization, positioning execution, and mar
 These files capture product-surface expectations that should stay aligned with canon and positioning:
 
 - [REQUEST_UX_NOTES.md](REQUEST_UX_NOTES.md)
+- [REQUEST_PLAN_MODEL.md](REQUEST_PLAN_MODEL.md)
 - [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
 
 ## Governance And Coordination
@@ -120,11 +122,12 @@ Read the canon in this order:
 12. event model
 13. API contracts
 14. request processing
-15. tool calling contracts
-16. logical schema
-17. repo structure
-18. workstreams
-19. ownership
-20. governance
-21. tests
-22. evals
+15. request plan model
+16. tool calling contracts
+17. logical schema
+18. repo structure
+19. workstreams
+20. ownership
+21. governance
+22. tests
+23. evals

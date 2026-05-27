@@ -15,17 +15,20 @@ When documents disagree, the precedence order is:
 7. `docs/STATE_MACHINES.md`
 8. `docs/EVENT_MODEL.md`
 9. `docs/API_CONTRACTS.md`
-10. `docs/SCHEMA_LOGICAL.md`
-11. `docs/COMPETITIVE_MAP.md`
-12. `docs/BUSINESS_MODEL.md`
-13. `docs/PITCH_FACTS.md`
-14. `docs/LIVE_VS_TARGET.md`
-15. `docs/REPO_STRUCTURE.md`
-16. `docs/WORKSTREAMS.md`
-17. `docs/OWNERSHIP.md`
-18. machine-readable schemas in `schemas/`
-19. implementation code in governed workspaces inside this monorepo
-20. implementation code in any external companion repos
+10. `docs/REQUEST_PROCESSING.md`
+11. `docs/REQUEST_PLAN_MODEL.md`
+12. `docs/TOOL_CALLING_CONTRACTS.md`
+13. `docs/SCHEMA_LOGICAL.md`
+14. `docs/COMPETITIVE_MAP.md`
+15. `docs/BUSINESS_MODEL.md`
+16. `docs/PITCH_FACTS.md`
+17. `docs/LIVE_VS_TARGET.md`
+18. `docs/REPO_STRUCTURE.md`
+19. `docs/WORKSTREAMS.md`
+20. `docs/OWNERSHIP.md`
+21. machine-readable schemas in `schemas/`
+22. implementation code in governed workspaces inside this monorepo
+23. implementation code in any external companion repos
 
 Implementation code must not override root canon.
 
