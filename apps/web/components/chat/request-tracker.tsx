@@ -1,7 +1,6 @@
 "use client";
 import {
   ArrowDownIcon,
-  LoaderCircleIcon,
   PackageIcon,
   PaperclipIcon,
 } from "lucide-react";
@@ -42,6 +41,7 @@ import type {
 } from "@/lib/request";
 import type { BorealSupplyDraft } from "@/lib/supply";
 import { cn, fetcher } from "@/lib/utils";
+import { LoadingButton } from "./loading-button";
 import { RequestFlowCanvas } from "./request-flow-canvas";
 import { RequestActivityMessage } from "./request-activity-timeline";
 import { toast } from "./toast";
@@ -100,13 +100,12 @@ export function RequestTracker({
     request.visibility === "private" &&
     request.status !== "draft" &&
     typeof onUpdatePreferredSupply === "function";
-  const [focusedStageId, setFocusedStageId] =
-    useState<TrackerStageId>(currentStageId);
   const [followMode, setFollowMode] = useState<"auto" | "manual">("auto");
   const [isSavingPreferredSupply, setIsSavingPreferredSupply] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
-  const [selectedFlowNode, setSelectedFlowNode] =
-    useState<RequestFlowNodeDescriptor | null>(null);
+  const [selectedFlowNodeId, setSelectedFlowNodeId] = useState<string | null>(
+    null
+  );
   const [selectedArtifactEventId, setSelectedArtifactEventId] =
     useState<string | null>(null);
   const localContainerRef = useRef<HTMLDivElement>(null);
@@ -140,15 +139,13 @@ export function RequestTracker({
   const resumeLiveStage = useCallback(() => {
     onSelectView("monitor");
     setFollowMode("auto");
-    setFocusedStageId(currentStageId);
     requestAnimationFrame(() => {
       scrollToTop("smooth");
     });
-  }, [currentStageId, onSelectView, scrollToTop]);
+  }, [onSelectView, scrollToTop]);
 
   useEffect(() => {
     setFollowMode("auto");
-    setFocusedStageId(currentStageId);
     requestAnimationFrame(() => {
       scrollToTop("instant");
     });
@@ -194,14 +191,6 @@ export function RequestTracker({
       resizeObserver.disconnect();
     };
   }, [scrollHostRef]);
-
-  useEffect(() => {
-    if (followMode !== "auto") {
-      return;
-    }
-
-    setFocusedStageId(currentStageId);
-  }, [activities.length, currentStageId, followMode, request.updatedAt]);
 
   const activeFulfillmentKey = request.activeRefs.activeFulfillmentId
     ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/fulfillments/${request.activeRefs.activeFulfillmentId}`
@@ -278,7 +267,10 @@ export function RequestTracker({
       refreshInterval: 5000,
     }
   );
-  const desktopRuntimeState = getDesktopRuntimeState(desktopRuntimeDiscovery);
+  const desktopRuntimeState = useMemo(
+    () => getDesktopRuntimeState(desktopRuntimeDiscovery),
+    [desktopRuntimeDiscovery]
+  );
   const desktopDefaultSupply = desktopRuntimeState.autoResolveSupplyId
     ? publishedOwnedSupplies.find(
         (supply) => supply.id === desktopRuntimeState.autoResolveSupplyId
@@ -329,9 +321,7 @@ export function RequestTracker({
   const showsLegacyFailedWorkerNote =
     request.status === "failed" && hasFulfillmentFailure;
   const showReturnToLiveStage =
-    followMode === "manual" ||
-    selectedView !== "monitor" ||
-    focusedStageId !== currentStageId;
+    followMode === "manual" || selectedView !== "monitor";
   const showBackToLiveControl =
     selectedView !== "activity" && showReturnToLiveStage;
 
@@ -368,48 +358,14 @@ export function RequestTracker({
     ]
   );
   const selectedFlowNodeDescriptor =
-    (selectedFlowNode
-      ? requestFlowGraph.nodes.find((node) => node.id === selectedFlowNode.id)
+    (selectedFlowNodeId
+      ? requestFlowGraph.nodes.find((node) => node.id === selectedFlowNodeId)
       : null) ??
     requestFlowGraph.nodes.find(
       (node) => node.id === requestFlowGraph.initialSelectedNodeId
     ) ??
     requestFlowGraph.nodes[0] ??
     null;
-
-  useEffect(() => {
-    if (
-      selectedFlowNode &&
-      requestFlowGraph.nodes.some((node) => node.id === selectedFlowNode.id)
-    ) {
-      return;
-    }
-
-    setSelectedFlowNode(
-      requestFlowGraph.nodes.find(
-        (node) => node.id === requestFlowGraph.initialSelectedNodeId
-      ) ??
-        requestFlowGraph.nodes[0] ??
-        null
-    );
-  }, [
-    requestFlowGraph.initialSelectedNodeId,
-    requestFlowGraph.nodes,
-    selectedFlowNode,
-  ]);
-
-  useEffect(() => {
-    if (
-      selectedArtifactEventId &&
-      deliveryArtifactActivities.some(
-        (activity) => activity.eventId === selectedArtifactEventId
-      )
-    ) {
-      return;
-    }
-
-    setSelectedArtifactEventId(deliveryArtifactActivities[0]?.eventId ?? null);
-  }, [deliveryArtifactActivities, selectedArtifactEventId]);
   const handlePreferredSupplyChange = async (value: string) => {
     if (!onUpdatePreferredSupply) {
       return;
@@ -600,18 +556,16 @@ export function RequestTracker({
               <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
                 You can leave and return; the provider task id is already saved on the request.
               </div>
-              <Button
+              <LoadingButton
                 className="mt-3"
-                disabled={isRetryingBlockedFulfillment}
+                isLoading={isRetryingBlockedFulfillment}
+                loadingText="Checking..."
                 onClick={() => void onRetryBlockedFulfillment?.()}
                 size="sm"
                 variant="outline"
               >
-                {isRetryingBlockedFulfillment ? (
-                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                ) : null}
-                {isRetryingBlockedFulfillment ? "Checking..." : "Check now"}
-              </Button>
+                Check now
+              </LoadingButton>
             </div>
           ) : null}
 
@@ -626,18 +580,16 @@ export function RequestTracker({
               <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
                 Retry the same worker lane without opening a new request.
               </div>
-              <Button
+              <LoadingButton
                 className="mt-3"
-                disabled={isRetryingBlockedFulfillment}
+                isLoading={isRetryingBlockedFulfillment}
+                loadingText="Retrying..."
                 onClick={() => void onRetryBlockedFulfillment?.()}
                 size="sm"
                 variant="outline"
               >
-                {isRetryingBlockedFulfillment ? (
-                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                ) : null}
-                {isRetryingBlockedFulfillment ? "Retrying..." : "Retry delivery"}
-              </Button>
+                Retry delivery
+              </LoadingButton>
             </div>
           ) : null}
 
@@ -697,17 +649,15 @@ export function RequestTracker({
                 <div className="mt-1.5 max-w-[13rem] text-[13px] leading-5.5 text-foreground">
                   Confirm delivery to resolve the request and lock the accepted result.
                 </div>
-                <Button
+                <LoadingButton
                   className="mt-3"
-                  disabled={isResolvingDeliveredRequest}
+                  isLoading={isResolvingDeliveredRequest}
+                  loadingText="Resolving..."
                   onClick={() => void onResolveDeliveredRequest?.()}
                   size="sm"
                 >
-                  {isResolvingDeliveredRequest ? (
-                    <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                  ) : null}
-                  {isResolvingDeliveredRequest ? "Resolving..." : "Confirm delivery"}
-                </Button>
+                  Confirm delivery
+                </LoadingButton>
               </div>
             ) : null}
           </div>
@@ -733,6 +683,8 @@ export function RequestTracker({
     ) ??
     deliveryArtifactActivities[0] ??
     null;
+  const selectedArtifactEventIdForRender =
+    selectedArtifactActivity?.eventId ?? null;
   const selectedFlowContextBody =
     selectedFlowContextKind === "request" ? (
       stages[0]?.body
@@ -822,7 +774,7 @@ export function RequestTracker({
                     <RequestFlowCanvas
                       graph={requestFlowGraph}
                       heightClassName="h-[34rem] xl:h-[38rem]"
-                      onSelectedNodeChange={setSelectedFlowNode}
+                      onSelectedNodeChange={setSelectedFlowNodeId}
                       selectedNodeId={selectedFlowNodeDescriptor?.id}
                     />
                     <FlowNodeInspector descriptor={selectedFlowNodeDescriptor}>
@@ -869,7 +821,7 @@ export function RequestTracker({
                       onSelect={setSelectedArtifactEventId}
                       ownerUserId={request.ownerId}
                       selectedActivity={selectedArtifactActivity}
-                      selectedEventId={selectedArtifactEventId}
+                      selectedEventId={selectedArtifactEventIdForRender}
                     />
                   </div>
                 </section>
@@ -1114,17 +1066,15 @@ function DeliveryFlowContext({
           <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
             Confirm delivery to resolve the request and lock the accepted result.
           </div>
-          <Button
+          <LoadingButton
             className="mt-3"
-            disabled={isResolvingDeliveredRequest}
+            isLoading={isResolvingDeliveredRequest}
+            loadingText="Resolving..."
             onClick={() => void onResolveDeliveredRequest?.()}
             size="sm"
           >
-            {isResolvingDeliveredRequest ? (
-              <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-            ) : null}
-            {isResolvingDeliveredRequest ? "Resolving..." : "Confirm delivery"}
-          </Button>
+            Confirm delivery
+          </LoadingButton>
         </div>
       ) : null}
     </div>
@@ -1602,14 +1552,16 @@ function RouteAndWorkersPanel({
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
+            <LoadingButton
+              isLoading={isLoadingDesktopRuntimeDiscovery}
+              loadingText="Refreshing..."
               onClick={onRefreshDesktopRuntime}
               size="sm"
               type="button"
               variant="outline"
             >
               Refresh status
-            </Button>
+            </LoadingButton>
             <Button onClick={onOpenDesktopRuntime} size="sm" type="button">
               Open Boreal Desktop
             </Button>

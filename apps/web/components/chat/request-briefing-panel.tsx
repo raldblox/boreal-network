@@ -2,7 +2,7 @@
 
 import { LoaderCircleIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useTransition } from "react";
 import useSWR from "swr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import type {
   RequestBudget,
   RequestDeadline,
 } from "@/lib/request";
+import { LoadingButton } from "./loading-button";
 
 type RequestBriefingPanelProps = {
   request: BorealRequestDraft | null;
@@ -41,7 +42,7 @@ export function RequestBriefingPanel({
   requestPromptOptimizerEnabled,
   onSetRequestPromptOptimizerEnabled,
 }: RequestBriefingPanelProps) {
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isSavingDraft, startSaveDraftTransition] = useTransition();
   const searchParams = useSearchParams();
   const selectedSupplyId =
     request?.routing.preferredSupplyId ??
@@ -185,25 +186,18 @@ export function RequestBriefingPanel({
 
           <div className="flex flex-wrap gap-2">
             {optimizerToggle}
-            <Button
-              disabled={isSavingDraft}
+            <LoadingButton
+              isLoading={isSavingDraft}
+              loadingText="Saving..."
               onClick={() => {
-                setIsSavingDraft(true);
-                void onSaveDraft().finally(() => {
-                  setIsSavingDraft(false);
+                startSaveDraftTransition(async () => {
+                  await onSaveDraft();
                 });
               }}
               variant="outline"
             >
-              {isSavingDraft ? (
-                <>
-                  <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save draft"
-              )}
-            </Button>
+              Save draft
+            </LoadingButton>
           </div>
         </div>
 

@@ -38,7 +38,7 @@ type RequestFlowCanvasProps = {
   graph: RequestFlowGraph;
   className?: string;
   heightClassName?: string;
-  onSelectedNodeChange?: (node: RequestFlowNodeDescriptor) => void;
+  onSelectedNodeChange?: (nodeId: string) => void;
   selectedNodeId?: string;
 };
 
@@ -139,24 +139,19 @@ function RequestFlowCanvasInner({
   }, [builtEdges, setEdges]);
 
   useEffect(() => {
-    if (!graph.nodes.some((node) => node.id === selectedNodeId)) {
-      setUncontrolledSelectedNodeId(graph.initialSelectedNodeId);
+    if (
+      selectedNodeIdProp ||
+      graph.nodes.some((node) => node.id === selectedNodeId)
+    ) {
+      return;
     }
-  }, [graph.initialSelectedNodeId, graph.nodes, selectedNodeId]);
 
-  useEffect(() => {
-    const selectedNode =
-      graph.nodes.find((node) => node.id === selectedNodeId) ??
-      graph.nodes.find((node) => node.id === graph.initialSelectedNodeId);
-
-    if (selectedNode) {
-      onSelectedNodeChange?.(selectedNode);
-    }
+    setUncontrolledSelectedNodeId(graph.initialSelectedNodeId);
   }, [
     graph.initialSelectedNodeId,
     graph.nodes,
-    onSelectedNodeChange,
     selectedNodeId,
+    selectedNodeIdProp,
   ]);
 
   useEffect(() => {
@@ -208,10 +203,7 @@ function RequestFlowCanvasInner({
           onInit={setFlowInstance}
           onNodeClick={(_, node) => {
             setUncontrolledSelectedNodeId(node.id);
-            const descriptor = graph.nodes.find((item) => item.id === node.id);
-            if (descriptor) {
-              onSelectedNodeChange?.(descriptor);
-            }
+            onSelectedNodeChange?.(node.id);
           }}
           onNodesChange={onNodesChange}
           panOnDrag

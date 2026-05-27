@@ -1,12 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { LoaderCircleIcon } from "lucide-react";
 import { useLocalStorage } from "usehooks-ts";
-import { Button } from "@/components/ui/button";
 import { RequestFlowCanvas } from "@/components/chat/request-flow-canvas";
 import { buildDraftRequestFlowGraph } from "@/lib/request-flow";
 import type { BorealRequestDraft, RequestPhaseKey } from "@/lib/request";
+import { LoadingButton } from "./loading-button";
 
 type RequestPlanPanelProps = {
   request: BorealRequestDraft;
@@ -406,9 +405,11 @@ export function RequestPlanPanel({
                 : request.derived.readiness.summary}
             </div>
           </div>
-          <Button
+          <LoadingButton
             className="md:shrink-0"
             disabled={!canOpenRequest || isOpeningRequest || !onOpenRequest}
+            isLoading={isOpeningRequest}
+            loadingText="Approving..."
             onClick={() => {
               if (!onOpenRequest) {
                 return;
@@ -418,15 +419,8 @@ export function RequestPlanPanel({
             }}
             type="button"
           >
-            {isOpeningRequest ? (
-              <>
-                <LoaderCircleIcon className="mr-2 size-4 animate-spin" />
-                Approving...
-              </>
-            ) : (
-              "Approve plan and open request"
-            )}
-          </Button>
+            Approve plan and open request
+          </LoadingButton>
         </div>
       ) : null}
     </section>
