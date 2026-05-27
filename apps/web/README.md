@@ -62,6 +62,7 @@ Run from the monorepo root after dependencies are installed:
 - `pnpm web:build`
 - `pnpm web:build:migrated`
 - `pnpm web:db:migrate`
+- `pnpm web:seed:character-call-demo`
 - `pnpm web:test`
 
 Or run directly against the workspace:
@@ -70,6 +71,7 @@ Or run directly against the workspace:
 - `pnpm --filter @boreal/web build`
 - `pnpm --filter @boreal/web build:migrated`
 - `pnpm --filter @boreal/web db:migrate`
+- `pnpm --filter @boreal/web seed:character-call-demo`
 - `pnpm --filter @boreal/web eval:request-processing:live`
 - `pnpm --filter @boreal/web test`
 
@@ -87,6 +89,13 @@ Account setup notes:
 - `Auth.js` is package code, not a separate hosted account
 - Redis is optional and should not block first local scaffold work
 - `BLOB_READ_WRITE_TOKEN` is required once provider outputs are mirrored into durable Boreal storage
+
+Demo seed notes:
+
+- `seed:character-call-demo` creates or reuses one demo user and idempotently grants settled first-party buyer credit
+- set `BOREAL_DEMO_EMAIL`, `BOREAL_DEMO_USERNAME`, `BOREAL_DEMO_PASSWORD`, or `BOREAL_DEMO_CREDIT` to override defaults
+- production runs require `ALLOW_BOREAL_DEMO_SEED=true`
+- after seeding, sign in and open `/services/character-call-starter/starter-call`
 
 ## Canon Boundary
 

@@ -14,6 +14,7 @@
     "web:build": "pnpm --filter @boreal/web build",
     "web:build:migrated": "pnpm --filter @boreal/web build:migrated",
     "web:db:migrate": "pnpm --filter @boreal/web db:migrate",
+    "web:seed:character-call-demo": "pnpm --filter @boreal/web seed:character-call-demo",
     "web:test": "pnpm --filter @boreal/web test",
     "evals:request-processing": "node tests/contracts/run-request-processing-evals.mjs",
     "evals:request-processing:sample": "node tests/contracts/run-request-processing-evals.mjs --actual fixtures/request/eval-complex-human-planning-and-match.actual.sample.json",
