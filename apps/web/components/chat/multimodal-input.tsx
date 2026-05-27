@@ -636,14 +636,14 @@ function PureMultimodalInput({
           placeholder={
             editingMessage
               ? "Edit your message..."
-              : pinnedWorkerPromptPlaceholder
-                ? pinnedWorkerPromptPlaceholder
+                : pinnedWorkerPromptPlaceholder
+                  ? pinnedWorkerPromptPlaceholder
                 : activeRequest?.status === "draft"
-                  ? "Describe the request..."
+                  ? "Add ask, done condition, constraints, budget, deadline, and proof..."
                 : activeRequest
                   ? "Post an update, change request details, or ask what should happen next..."
-                  : isRequestMode
-                    ? "Write the first request message..."
+                : isRequestMode
+                    ? "Start Request Preflight with the work and done condition..."
                     : "Ask anything..."
           }
           ref={textareaRef}
@@ -1336,7 +1336,7 @@ function getPinnedWorkerPromptPlaceholder(
   const hasVideoGenerationWorker = supplyKinds.includes("video_generation");
 
   if (activeRequest?.status === "draft" && hasVideoGenerationWorker) {
-    return "Write the request for the pinned video supply...";
+    return "Preflight the request for the pinned video supply...";
   }
 
   if (activeRequest && hasVideoGenerationWorker) {
@@ -1344,7 +1344,7 @@ function getPinnedWorkerPromptPlaceholder(
   }
 
   if (isRequestMode && !activeRequest) {
-    return "Describe the work and what done looks like...";
+    return "Describe the work, done condition, proof, and constraints...";
   }
 
   return null;

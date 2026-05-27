@@ -21,9 +21,9 @@ export const Greeting = ({
         transition={{ delay: 0.25, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       >
         {isDraftRequest
-          ? "Request draft"
+          ? "Request Preflight"
           : isPendingRequestStart
-            ? "New room"
+            ? "Request Preflight"
             : isOpenedRequest
               ? "Active request"
               : "Boreal"}
@@ -35,9 +35,9 @@ export const Greeting = ({
         transition={{ delay: 0.35, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         {isDraftRequest
-          ? "Draft a request"
+          ? "Shape the request before it opens"
           : isPendingRequestStart
-            ? "Start a request"
+            ? "Start Request Preflight"
           : isOpenedRequest
             ? "Active request room"
             : "What needs to get done?"}
@@ -49,9 +49,9 @@ export const Greeting = ({
         transition={{ delay: 0.5, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         {isDraftRequest
-          ? "Shape the request here. Start with the ask, then add budget, deadline, constraints, and what done looks like."
+          ? "Preflight keeps the buyer-owned ask, done condition, constraints, budget, deadline, proof, and human or local requirements visible before the Request opens."
           : isPendingRequestStart
-            ? "Write the first serious request message here. Boreal will create the durable request only after you send it."
+            ? "Write the first serious request message here. Boreal will create a Preflight draft only after you send it."
             : isOpenedRequest
             ? "Move the request forward here. Post updates, adjust details, ask for recent activity, or decide the next step."
             : "Describe the work, the outcome, or the specialist you need. Boreal keeps the chat connected to the request when real work starts."}

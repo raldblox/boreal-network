@@ -79,8 +79,8 @@ export function RequestBriefingPanel({
       variant={requestPromptOptimizerEnabled ? "default" : "outline"}
     >
       {requestPromptOptimizerEnabled
-        ? "Brief assist on"
-        : "Brief assist off"}
+        ? "Preflight assist on"
+        : "Preflight assist off"}
     </Button>
   );
 
@@ -93,20 +93,20 @@ export function RequestBriefingPanel({
       <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
         <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 space-y-1">
-            <div className="text-sm font-medium">Shape request</div>
+            <div className="text-sm font-medium">Request Preflight</div>
             <div className="text-[13px] leading-6 text-muted-foreground">
               {isStartingRequest
                 ? selectedSupply
-                  ? `Starting the request and pinning ${getSelectedSupplyLabel(selectedSupply)} now.`
-                  : "Starting the request and opening the brief now."
+                  ? `Starting Request Preflight and pinning ${getSelectedSupplyLabel(selectedSupply)} now.`
+                  : "Starting Request Preflight now."
                 : selectedSupply
-                  ? `${getSelectedSupplyLabel(selectedSupply)} is pinned for this private request. Describe the work and what done looks like. Boreal still checks safety, proof, and approval.`
-                  : "Your first message opens the request thread. Describe the work and what done looks like. Use assist when a rough ask needs help shaping the request."}
+                  ? `${getSelectedSupplyLabel(selectedSupply)} is pinned as service or supply context. Add the ask, done condition, constraints, budget, deadline, proof, and whether human or local runtime work matters.`
+                  : "Your first message starts Request Preflight. Add the ask, done condition, constraints, budget, deadline, proof, and any human or local runtime requirements."}
             </div>
             {isStartingRequest ? (
               <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
                 <LoaderCircleIcon className="size-4 animate-spin" />
-                <span>Creating request draft...</span>
+                <span>Creating Request Preflight...</span>
               </div>
             ) : null}
             {selectedSupply ? (
@@ -171,11 +171,16 @@ export function RequestBriefingPanel({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className="rounded-full" variant="secondary">
-                Draft
+                Preflight draft
               </Badge>
               <div className="truncate text-sm font-medium md:text-[15px]">
                 {title}
               </div>
+            </div>
+            <div className="mt-2 text-[13px] leading-6 text-muted-foreground">
+              Buyer-owned inputs stay explicit. Boreal can derive routing and
+              plan structure after the ask, done condition, constraints, budget,
+              deadline, and proof are legible.
             </div>
             {selectedSupply ? (
               <div className="mt-3">
@@ -201,6 +206,7 @@ export function RequestBriefingPanel({
           </div>
         </div>
 
+        <PreflightChecklist request={request} selectedSupply={selectedSupply} />
       </div>
     </div>
   );
@@ -271,7 +277,7 @@ function PinnedSupplyBanner({ supply }: { supply: BorealSupplyDraft }) {
   return (
     <div className="rounded-2xl border border-border/60 bg-muted/[0.18] px-3.5 py-3">
       <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-        Pinned supply
+        Pinned service / supply context
       </div>
       <div className="mt-1.5 text-sm font-medium text-foreground">
         {getSelectedSupplyLabel(supply)}
@@ -281,15 +287,17 @@ function PinnedSupplyBanner({ supply }: { supply: BorealSupplyDraft }) {
           "This supply stays pinned on the request while you shape the brief."}
       </div>
       <div className="mt-1 text-[12px] leading-5.5 text-muted-foreground">
-        Pinned supply narrows the route. It does not skip safety, proof, or approval.
+        Pinned supply narrows the route. It does not skip safety, proof,
+        approval, funding, or owner acceptance.
       </div>
       {workerStarter ? (
         <div className="mt-2 rounded-xl border border-border/60 bg-background/70 px-3 py-2.5">
           <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-            Shape this pinned lane
+            Shape this lane
           </div>
           <div className="mt-1 text-[13px] leading-6 text-foreground">
-            Your next message becomes the core request prompt for this pinned supply.
+            Your next message becomes the buyer-owned ask for this pinned
+            service or supply context.
           </div>
           <div className="mt-1 text-[12px] leading-5.5 text-muted-foreground">
             Example: {workerStarter.tryPrompt}
@@ -298,6 +306,79 @@ function PinnedSupplyBanner({ supply }: { supply: BorealSupplyDraft }) {
       ) : null}
     </div>
   );
+}
+
+function PreflightChecklist({
+  request,
+  selectedSupply,
+}: {
+  request: BorealRequestDraft;
+  selectedSupply: BorealSupplyDraft | null;
+}) {
+  const items = getPreflightChecklistItems(request, selectedSupply);
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-2" aria-label="Request Preflight checklist">
+      {items.map((item) => (
+        <Badge
+          className={cn(
+            "rounded-full border text-[11px]",
+            item.ready
+              ? "border-emerald-500/20 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"
+              : "border-border/70 bg-background text-muted-foreground"
+          )}
+          key={item.label}
+          variant="secondary"
+        >
+          {item.label}: {item.ready ? "set" : "pending"}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
+function getPreflightChecklistItems(
+  request: BorealRequestDraft,
+  selectedSupply: BorealSupplyDraft | null
+) {
+  const hasAsk = Boolean(
+    request.brief.body?.trim() ||
+      request.brief.summary?.trim() ||
+      request.brief.title?.trim()
+  );
+  const hasDoneCondition = Boolean(
+    request.brief.summary?.trim() || request.brief.outputKinds?.length
+  );
+  const hasConstraints =
+    Object.keys(request.brief.constraints ?? {}).length > 0 ||
+    request.derived.embodiedConstraintSet.accessRequirements.length > 0 ||
+    request.derived.embodiedConstraintSet.safetyRequirements.length > 0;
+  const hasBudget = Boolean(request.budget && request.budget.mode !== "none");
+  const hasDeadline = Boolean(
+    request.deadline?.targetAt?.trim() || request.deadline?.notes?.trim()
+  );
+  const hasProof =
+    request.derived.verificationPlan.requiredArtifactKinds.length > 0 ||
+    request.derived.verificationPlan.requiredEvidenceClaims.length > 0 ||
+    (request.brief.outputKinds?.length ?? 0) > 0;
+  const hasHumanOrLocalContext =
+    request.derived.executionProfile.requiresHumanPresence ||
+    request.derived.executionProfile.requiresLocalAccess ||
+    request.derived.embodiedConstraintSet.requiresEmbodiedHandling;
+  const hasServiceSupplyContext = Boolean(
+    selectedSupply || request.routing.preferredSupplyId
+  );
+
+  return [
+    { label: "Ask", ready: hasAsk },
+    { label: "Done", ready: hasDoneCondition },
+    { label: "Constraints", ready: hasConstraints },
+    { label: "Budget", ready: hasBudget },
+    { label: "Deadline", ready: hasDeadline },
+    { label: "Proof", ready: hasProof },
+    { label: "Human/local", ready: hasHumanOrLocalContext },
+    { label: "Service/supply", ready: hasServiceSupplyContext },
+  ];
 }
 
 function getSelectedSupplyLabel(supply: BorealSupplyDraft) {

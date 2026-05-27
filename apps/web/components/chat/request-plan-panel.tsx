@@ -94,7 +94,7 @@ export function RequestPlanPanel({
       <section className="rounded-[22px] border border-border/60 bg-muted/[0.18] p-3.5 md:p-4">
         <div className="space-y-2">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            Boreal plan
+            Preflight plan
           </div>
           <div className="text-[13px] leading-6 text-muted-foreground">
             {scope === "draft"
@@ -122,7 +122,7 @@ export function RequestPlanPanel({
     <section className="rounded-[22px] border border-border/60 bg-muted/[0.18] p-3.5 md:p-4">
       <div className="space-y-2">
         <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-          Boreal plan
+          Preflight plan
         </div>
         <div className="text-[13px] leading-6 text-muted-foreground">
           {planNarrative}
@@ -396,12 +396,12 @@ export function RequestPlanPanel({
           <div className="min-w-0">
             <div className="text-[12px] font-medium text-foreground">
               {canOpenRequest
-                ? "Plan is ready to approve."
-                : "Plan still needs a few details."}
+                ? "Preflight is ready to approve."
+                : "Preflight still needs a few details."}
             </div>
             <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
               {canOpenRequest
-                ? "Approve this plan to open the request and start routing or replies."
+                ? "Approve this preflight to open the Request and start routing or replies."
                 : request.derived.readiness.summary}
             </div>
           </div>
@@ -419,7 +419,7 @@ export function RequestPlanPanel({
             }}
             type="button"
           >
-            Approve plan and open request
+            Approve preflight and open Request
           </LoadingButton>
         </div>
       ) : null}
@@ -518,10 +518,10 @@ function getPlanNarrative(
 
   if (request.derived.embodiedConstraintSet.requiresEmbodiedHandling) {
     if (location) {
-      return `Boreal planned this as real-world work in ${location}. The request keeps the local execution, proof, and review inside one thread.`;
+      return `Preflight mapped this as real-world work in ${location}. The Request keeps the local execution, proof, and review inside one thread.`;
     }
 
-    return "Boreal planned this as real-world work. The request keeps the execution, proof, and review inside one thread.";
+    return "Preflight mapped this as real-world work. The Request keeps execution, proof, and review inside one thread.";
   }
 
   if (flowSteps.length > 1) {

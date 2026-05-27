@@ -36,9 +36,9 @@ function PureChatHeader({
       title={
         requestTitle?.trim() ||
         (requestStatus === "draft"
-          ? "Start request"
+          ? "Request Preflight"
           : isRequestMode
-            ? "Request"
+            ? "Request Preflight"
             : "Chat")
       }
     />

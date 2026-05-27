@@ -28,7 +28,7 @@ export const updateRequestBrief = ({
 }: UpdateRequestBriefProps) =>
   tool({
     description:
-      "Update the live Request object with explicit title, body, optional summary, or same-turn structured briefing details like budget, deadline, execution mode, location, access, or proof requirements. Prefer this for freeform user asks. If the user only gave one raw work description, update body with that explicit wording and leave unknown fields untouched instead of manufacturing extra fields.",
+      "Update the live Request object with explicit title, body, optional summary, or same-turn structured preflight details like budget, deadline, execution mode, location, access, or proof requirements. Prefer this for freeform user asks. If the user only gave one raw work description, update body with that explicit wording and leave unknown fields untouched instead of manufacturing extra fields.",
     inputSchema: z.object({
       title: z.string().max(200).optional(),
       summary: z.string().max(1000).optional(),
