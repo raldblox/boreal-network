@@ -286,12 +286,13 @@ export default async function AccountTopUpPage({
               Top up
             </div>
             <h1 className="mt-4 max-w-xl text-5xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-7xl">
-              Add credits. Use them across Boreal services.
+              Add credits for paid execution.
             </h1>
             <p className="mt-5 max-w-xl text-sm leading-7 text-muted-foreground">
               Start with PayPal now, or record card, USDC, or USDT references.
               Top-ups stay pending until Boreal verifies payment, then they
-              become usable credits.
+              become usable execution capacity for services, workflow runs,
+              provider calls, human review, or embodied fulfillment.
             </p>
           </div>
 

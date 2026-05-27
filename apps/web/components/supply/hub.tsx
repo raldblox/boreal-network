@@ -146,7 +146,7 @@ export function SupplyHub() {
               New supply
             </Button>
           }
-          title="Supply studio"
+          title="Supply Studio"
         />
 
         <div className={surfaceShellClassName}>
@@ -154,15 +154,15 @@ export function SupplyHub() {
             <div className={cn(surfaceScrollClassName, "gap-10")}>
               <section className="max-w-3xl space-y-4">
                 <div className="inline-flex rounded-full border border-border/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/75">
-                  Supply studio
+                  Capability lanes
                 </div>
                 <h1 className={surfaceHeroTitleClassName}>
-                  Enable supply lanes, then route work through them.
+                  Define what can run, then attach it to Requests.
                 </h1>
                 <p className={surfaceBodyClassName}>
-                  Keep Boreal-owned supplies visible in one place, turn starter
-                  lanes on without leaving the web app, and start a private
-                  request with the right supply already pinned.
+                  Supply Studio is where capability lanes describe what can be
+                  done, who owns the lane, how it runs, pricing, proof, and
+                  availability. Requests stay the demand root.
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                   <Button
@@ -176,10 +176,10 @@ export function SupplyHub() {
                   </Button>
                   <Button
                     className="rounded-full"
-                    onClick={() => router.push("/")}
+                    onClick={() => router.push("/?mode=request")}
                     size="sm"
                   >
-                    Back to chat
+                    Post request
                   </Button>
                 </div>
               </section>
@@ -194,9 +194,9 @@ export function SupplyHub() {
                       {publishedSupplies.length} active
                     </Badge>
                   }
-                  description="Published private or unlisted supplies that can take the next request."
+                  description="Published private or unlisted capability lanes that can be pinned to the next Request."
                   eyebrow="Active lanes"
-                  title="Ready to route"
+                  title="Ready to attach"
                 />
 
                 <ResourceList
@@ -206,8 +206,8 @@ export function SupplyHub() {
                     <EmptyState
                       align="start"
                       className="rounded-[28px] border-border/60 bg-transparent shadow-none"
-                      description="Turn on one starter supply below, or create your own draft, publish it as private or unlisted, then use it as the pinned worker for the next request."
-                      title="No active supplies yet"
+                      description="Turn on one starter lane below, or create your own capability draft with pricing, proof, and availability before pinning it to a Request."
+                      title="No active capability lanes yet"
                     />
                   }
                   error={error}
@@ -240,7 +240,7 @@ export function SupplyHub() {
                       {borealWorkerStarterCatalog.length} starter
                     </Badge>
                   }
-                  description="Boreal-managed first-party lanes you can enable and try immediately."
+                  description="Boreal-managed first-party capability lanes you can enable and try through a Request."
                   eyebrow="Starter lanes"
                   title="Starter supplies"
                 />
@@ -328,7 +328,7 @@ function PublishedSupplyCard({ supply }: { supply: BorealSupplyDraft }) {
           onClick={() => router.push(buildUseSupplyUrl(supply.id))}
           size="sm"
         >
-          Start request
+          Pin to Request
           <ArrowRightIcon className="size-4" />
         </Button>
         <Button
@@ -337,7 +337,7 @@ function PublishedSupplyCard({ supply }: { supply: BorealSupplyDraft }) {
           size="sm"
           variant="outline"
         >
-          Open supply
+          Open lane
         </Button>
       </SurfaceCardActions>
     </SurfaceCard>
@@ -401,7 +401,7 @@ function StarterSupplyCard({
               onClick={() => router.push(buildUseSupplyUrl(existingSupply.id))}
               size="sm"
             >
-              Start request
+              Pin to Request
               <ArrowRightIcon className="size-4" />
             </Button>
             <Button
@@ -410,7 +410,7 @@ function StarterSupplyCard({
               size="sm"
               variant="outline"
             >
-              Open supply
+              Open lane
             </Button>
           </>
         ) : existingSupply ? (

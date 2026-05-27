@@ -86,16 +86,17 @@ export default async function AccountCreditsPage({
         <header className="flex flex-col gap-3 border-b border-border/60 pb-8">
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             <WalletCardsIcon className="size-4" />
-            Account credits
+            Account / Credits
           </div>
           <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div className="space-y-2">
               <h1 className="text-4xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-6xl">
-                Boreal balance
+                Trust and execution readiness
               </h1>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-                First-party credits for direct Boreal services. Top-ups wait for
-                payment verification before they become available.
+                Identity, passkeys, balance, ledger, request spending, and paid
+                execution readiness live here. Credits are execution capacity,
+                never a charge to read public Requests or public solutions.
               </p>
             </div>
             <div className="flex flex-col gap-3 md:items-end">
@@ -144,7 +145,8 @@ export default async function AccountCreditsPage({
               {formatMoney(account.availableBalance, account.currency)}
             </div>
             <p className="mt-2 text-sm text-muted-foreground">
-              Ready for first-party services.
+              Ready for services, workflow runs, provider calls, human review,
+              or embodied fulfillment.
             </p>
           </div>
           <div className="rounded-lg border border-border/70 p-5">
@@ -193,8 +195,9 @@ export default async function AccountCreditsPage({
               <h2 className="text-lg font-semibold">Account actions</h2>
             </div>
             <p className="text-sm leading-7 text-muted-foreground">
-              Manage credits from one account surface. Top-ups are recorded on a
-              dedicated page, then appear in the ledger below.
+              Manage credits from one account surface. Top-ups become execution
+              capacity after verification, then Request spending appears in the
+              ledger below.
             </p>
 
             <div className="grid gap-3">
@@ -205,8 +208,9 @@ export default async function AccountCreditsPage({
                       Top up
                     </div>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      Add credits using PayPal, card, USDC, or USDT. New
-                      top-ups stay pending until payment verification.
+                      Add credits using PayPal, card, USDC, or USDT. New top-ups
+                      stay pending until verification and are used only for
+                      execution, service capacity, provider calls, or review.
                     </p>
                   </div>
                   <Button asChild>
@@ -253,7 +257,7 @@ export default async function AccountCreditsPage({
 
             {ledger.length === 0 ? (
               <div className="rounded-lg border border-dashed border-border/80 p-6 text-sm text-muted-foreground">
-                No credit movements yet.
+                No credit movements or Request spending yet.
               </div>
             ) : (
               <div className="divide-y divide-border/60 rounded-lg border border-border/70">

@@ -52,7 +52,7 @@ export function ServiceHub() {
         <SidebarSurfaceTopNav
           rightSlot={
             <Button asChild className="rounded-full" size="sm">
-              <Link href="/?mode=request">Start request</Link>
+              <Link href="/?mode=request">Post request</Link>
             </Button>
           }
           title="Services"
@@ -80,12 +80,13 @@ function ServiceDirectory() {
       <section className="max-w-4xl space-y-5">
         <p className={surfaceEyebrowClassName}>Ready-to-buy services</p>
         <h1 className={surfaceHeroTitleClassName}>
-          Buy the outcome. Boreal keeps the request thread.
+          Choose a service. Boreal opens the Request.
         </h1>
         <p className={surfaceBodyClassName}>
           Services are buyer-facing packages backed by Boreal supply, workflow
-          packs, provider APIs, operator review, and delivery proof. They are
-          not raw SaaS tools or workflow templates.
+          packs, provider APIs, operator review, and delivery proof. Buying a
+          service still creates or attaches to a Request, spends credits only
+          when execution runs, and delivers artifacts back to the workroom.
         </p>
       </section>
 
@@ -156,7 +157,7 @@ function ServiceFamilyDetail({ family }: { family: BorealServiceFamily }) {
         <div>
           <p className={surfaceEyebrowClassName}>Preset plans</p>
           <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-            Pick a bounded delivery lane.
+            Pick a bounded service lane.
           </h2>
         </div>
         <div className="rounded-[28px] border border-border/60 p-6">
@@ -240,7 +241,7 @@ function ServicePlanCard({
       ) : (
         <SurfaceCardActions className="mt-7">
           <Button className="rounded-full" onClick={() => router.push(startUrl)}>
-            Start request
+            Create Request
             <ArrowRightIcon className="size-4" />
           </Button>
         </SurfaceCardActions>
@@ -448,7 +449,7 @@ function CharacterCallStarterCheckout() {
       );
       toast({
         type: "success",
-        description: "Paid $1 from credits and opened the request.",
+        description: "Created a funded Request and attached the service lane.",
       });
     } catch (error) {
       const message =
@@ -477,8 +478,9 @@ function CharacterCallStarterCheckout() {
               Credit checkout
             </p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Pay $1 from Boreal credits. This creates and funds the request in
-              one ledger-backed flow.
+              Pay $1 from Boreal credits. This creates and funds the Request,
+              starts the service lane, and leaves a transaction trail in the
+              workroom.
             </p>
           </div>
           <div className="min-w-24 rounded-2xl border border-border/70 bg-background px-3 py-2 text-right">
@@ -505,7 +507,7 @@ function CharacterCallStarterCheckout() {
         {!isLoadingCredit && !hasEnoughCredit ? (
           <div className="mt-4 rounded-2xl border border-border/70 bg-background p-3 text-sm text-muted-foreground">
             You need at least $1 in available credits before this service can be
-            bought.
+            executed.
             <Button
               className="mt-3 w-full rounded-full"
               onClick={() =>
@@ -617,13 +619,15 @@ function CharacterCallStarterCheckout() {
           : hasEnoughCredit
             ? isSubmitting
               ? "Paying from credits..."
-              : "Pay $1 with credits"
+              : "Run service with credits"
             : "Top up credits first"}
       </Button>
 
       {checkoutResult ? (
         <div className="rounded-3xl border border-border/70 bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
-          <p className="font-medium text-foreground">Request funded.</p>
+          <p className="font-medium text-foreground">
+            Request funded and ready for proof.
+          </p>
           <p>Transaction: {checkoutResult.transaction.id}</p>
           <p>Ledger debit: {checkoutResult.ledgerEntry.id}</p>
           <p>Credit balance: ${checkoutResult.account.availableBalance}</p>
@@ -640,8 +644,8 @@ function CharacterCallStarterCheckout() {
             </p>
           ) : null}
           <p className="mt-3">
-            Next: open the request thread and upload the approved reference
-            image or add an existing Runway avatar id.
+            Next: open the Request workroom and attach the approved reference
+            image or an existing Runway avatar id as delivery context.
           </p>
           <CharacterCallLauncher
             className="mt-4"
@@ -657,7 +661,7 @@ function CharacterCallStarterCheckout() {
             type="button"
             variant="secondary"
           >
-            Open request thread
+            Open Request workroom
           </Button>
         </div>
       ) : null}
