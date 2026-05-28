@@ -266,7 +266,7 @@ function getDraftWorkerSummary({
   }
 
   if (request.derived.readiness.readyForOpen) {
-    return "Approve the plan to open the request, then Boreal can route or attach the right lane.";
+    return "Open the request from this path, then Boreal can route or attach the right lane.";
   }
 
   return "Once the brief is ready, the request can open and find the right lane.";
@@ -341,7 +341,7 @@ function buildDraftPlanNode(
       : request.derived.readiness.readyForOpen
         ? "ready"
         : undefined,
-    laneLabel: "Plan",
+    laneLabel: "Path",
     title: needsClarification
       ? "Needs a few details"
       : isEmbodied
@@ -352,7 +352,7 @@ function buildDraftPlanNode(
     subtitle:
       phaseCount > 0
         ? `${phaseCount} planned ${phaseCount === 1 ? "step" : "steps"}`
-        : "Plan forming",
+        : "Path forming",
     summary: getDraftPlanSummary(request),
     chips: compactChips([
       isEmbodied ? "local work" : null,
@@ -363,7 +363,7 @@ function buildDraftPlanNode(
     ]),
     details: [
       {
-        label: "Planner fields",
+        label: "Path phases",
         value:
           phases.length > 0
             ? phases.map((phase) => phase.title)

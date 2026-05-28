@@ -78,6 +78,33 @@ When output exists, it belongs in `Artifact`.
 When something important happened, it belongs in `RequestEvent`.
 When money or credits move, it belongs in `Transaction`.
 
+## Path Builder UI Language
+
+`Path` is allowed as product and UI language for V1, but it is not a new canonical root object.
+
+In the UI, a path means a request-owned execution proposal:
+
+- the `Boreal baseline path` is generated from the current `Request.derived` planning projection
+- a `supporting path` can come from a human, agent, service or supply, or workflow/template slot
+- selecting a path means "this is the way we intend to run the request," not "the work is complete"
+- running a selected path must hand off to `Commitment`, `Fulfillment`, `FulfillmentStep`, `Artifact`, `Transaction`, and `RequestEvent` as the durable execution truth
+
+This keeps the user-facing mental model simple:
+
+```text
+Request -> Path -> Worker -> Proof -> Review
+```
+
+That is a product reading over the same canon:
+
+- `Request` remains the durable root.
+- `Path` remains UI language over request-owned planning data.
+- `Worker` means selected or candidate `Supply`, plus fulfillment ownership once execution starts.
+- `Proof` means required artifacts, evidence claims, receipts, files, media, signatures, or acceptance.
+- `Review` means owner acceptance, closure, retry, or rejection.
+
+The Path Builder should show multiple possible ways forward without implying a public plan marketplace, community ranking, assignment, or completion before those states actually exist.
+
 ## Current Implementation Audit
 
 Audit date: 2026-05-28.
