@@ -254,10 +254,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
                     isActive={isNavActive("/?mode=request", isNewRequestMode)}
                     onClick={() => navigateSidebar("/?mode=request")}
-                    tooltip="Start request"
+                    tooltip="Post request"
                   >
                     <FilePenLineIcon className="size-4" />
-                    <span className="font-medium">Start request</span>
+                    <span className="font-medium">Post request</span>
                     <SidebarNavPendingDot visible={isNavPending("/?mode=request")} />
                   </SidebarMenuButton>
                 </SidebarMenuItem>

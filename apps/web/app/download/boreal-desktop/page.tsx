@@ -82,7 +82,7 @@ export default function BorealDesktopDownloadPage() {
         <SurfaceTopNav
           rightSlot={
             <Button asChild size="sm">
-              <Link href="/?mode=request">Start request</Link>
+              <Link href="/?mode=request">Post request</Link>
             </Button>
           }
           title="Boreal Desktop"
@@ -323,7 +323,7 @@ export default function BorealDesktopDownloadPage() {
             </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
               <Link href="/">Home</Link>
-              <Link href="/?mode=request">Start request</Link>
+              <Link href="/?mode=request">Post request</Link>
               <Link href="/supplies/new?entry=whitelist">Supply whitelist</Link>
             </div>
           </div>

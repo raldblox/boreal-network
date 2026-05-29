@@ -12,20 +12,23 @@ These files define what Boreal Network is:
 
 1. [NETWORK_THESIS.md](NETWORK_THESIS.md)
 2. [COMMERCIAL_CANON.md](COMMERCIAL_CANON.md)
-3. [OBJECT_TAXONOMY.md](OBJECT_TAXONOMY.md)
-4. [STATE_MACHINES.md](STATE_MACHINES.md)
-5. [EVENT_MODEL.md](EVENT_MODEL.md)
-6. [API_CONTRACTS.md](API_CONTRACTS.md)
-7. [REQUEST_PROCESSING.md](REQUEST_PROCESSING.md)
-8. [REQUEST_PLAN_MODEL.md](REQUEST_PLAN_MODEL.md)
-9. [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md)
-10. [SCHEMA_LOGICAL.md](SCHEMA_LOGICAL.md)
+3. [PRODUCT_POSITIONING.md](PRODUCT_POSITIONING.md)
+4. [BRAND_VOICE.md](BRAND_VOICE.md)
+5. [OBJECT_TAXONOMY.md](OBJECT_TAXONOMY.md)
+6. [STATE_MACHINES.md](STATE_MACHINES.md)
+7. [EVENT_MODEL.md](EVENT_MODEL.md)
+8. [API_CONTRACTS.md](API_CONTRACTS.md)
+9. [REQUEST_PROCESSING.md](REQUEST_PROCESSING.md)
+10. [REQUEST_PLAN_MODEL.md](REQUEST_PLAN_MODEL.md)
+11. [TOOL_CALLING_CONTRACTS.md](TOOL_CALLING_CONTRACTS.md)
+12. [SCHEMA_LOGICAL.md](SCHEMA_LOGICAL.md)
 
 ## Commercial Canon
 
 These files define what Boreal Network is as a business and what story roast, pitch, and fundraising workflows must preserve:
 
 - [PRODUCT_POSITIONING.md](PRODUCT_POSITIONING.md)
+- [BRAND_VOICE.md](BRAND_VOICE.md)
 - [ICP_AND_WEDGE.md](ICP_AND_WEDGE.md)
 - [WHY_NOW.md](WHY_NOW.md)
 - [COMPETITIVE_MAP.md](COMPETITIVE_MAP.md)
@@ -111,23 +114,24 @@ Read the canon in this order:
 1. thesis
 2. commercial canon
 3. product positioning
-4. ICP and wedge
-5. why now
-6. competitive map
-7. business model
-8. pitch facts
-9. live versus target
-10. taxonomy
-11. state machines
-12. event model
-13. API contracts
-14. request processing
-15. request plan model
-16. tool calling contracts
-17. logical schema
-18. repo structure
-19. workstreams
-20. ownership
-21. governance
-22. tests
-23. evals
+4. brand voice
+5. ICP and wedge
+6. why now
+7. competitive map
+8. business model
+9. pitch facts
+10. live versus target
+11. taxonomy
+12. state machines
+13. event model
+14. API contracts
+15. request processing
+16. request plan model
+17. tool calling contracts
+18. logical schema
+19. repo structure
+20. workstreams
+21. ownership
+22. governance
+23. tests
+24. evals

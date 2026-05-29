@@ -643,7 +643,7 @@ function PureMultimodalInput({
                 : activeRequest
                   ? "Post an update, change request details, or ask what should happen next..."
                 : isRequestMode
-                    ? "Start Request Preflight with the work and done condition..."
+                    ? "Post the work, done condition, proof, and constraints..."
                     : "Ask anything..."
           }
           ref={textareaRef}

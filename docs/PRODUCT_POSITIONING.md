@@ -22,6 +22,33 @@ Use this as the primary sentence:
 
 Boreal is request-native work commerce: a durable fulfillment thread for buying, routing, executing, proving, and paying for work across humans and AI.
 
+## Official Public Voice
+
+Use [BRAND_VOICE.md](BRAND_VOICE.md) for homepage copy, product surfaces, demos, social posts, and worker briefs.
+
+The simplest public sentence is:
+
+Boreal turns requests into completed work.
+
+The simplest product explanation is:
+
+Post a request, compare plans, run or fund the work, verify the artifacts, and reuse accepted solutions.
+
+The clearest analogy is:
+
+Boreal is air traffic control for work.
+
+Use the analogy only as explanation:
+
+- a `Request` is the flight
+- a plan is the route
+- workers, agents, tools, providers, and runtimes are the operating crew
+- artifacts are proof of arrival
+- review is landing clearance
+- accepted public solutions are reusable routes
+
+Do not let the analogy introduce new canonical objects.
+
 ## Short Form
 
 Use this when space is tight:

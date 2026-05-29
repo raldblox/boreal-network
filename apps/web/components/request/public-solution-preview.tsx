@@ -51,8 +51,8 @@ export function PublicSolutionPreview() {
           titleAs="h3"
         />
         <SurfaceCardDescription>
-          Boreal is looking for completed public Requests with an accepted
-          Artifact pointer.
+          Boreal is looking for completed public Requests with accepted proof
+          attached.
         </SurfaceCardDescription>
       </SurfaceCard>
     );
@@ -78,8 +78,8 @@ export function PublicSolutionPreview() {
           titleAs="h3"
         />
         <SurfaceCardDescription>
-          Public request reading is still free. Boreal just could not check
-          accepted solution projections right now.
+          Public request reading is still free. Boreal just could not check the
+          accepted solution projection right now.
         </SurfaceCardDescription>
       </SurfaceCard>
     );
@@ -103,14 +103,14 @@ export function PublicSolutionPreview() {
         />
         <SurfaceCardDescription>
           A Request appears here only after it is public, completed, and linked
-          to an accepted Artifact. Boreal will not label unfinished work as
-          reusable.
+          to accepted proof. Boreal will not label unfinished work as reusable.
         </SurfaceCardDescription>
         <div className="mt-6 flex items-start gap-3 rounded-2xl border border-border/60 bg-background/50 p-4 text-sm text-foreground/78">
           <BadgeCheckIcon className="mt-0.5 size-4 shrink-0 text-foreground/60" />
           <span>
-            Reading public solutions stays free. Credits apply only when a
-            rerun uses execution capacity.
+            Inspecting public solutions stays free. Credits apply only when a
+            rerun uses inference, workflow execution, provider APIs, service
+            capacity, or human review.
           </span>
         </div>
       </SurfaceCard>
@@ -144,7 +144,7 @@ export function PublicSolutionPreview() {
             <SurfaceCardDescription>
               {request.brief.summary ||
                 request.brief.body ||
-                "Completed public Request with accepted delivery proof."}
+                "Completed public Request with accepted proof."}
             </SurfaceCardDescription>
             <SurfaceCardActions className="mt-auto flex-wrap pt-6">
               <Button asChild className="rounded-full" size="sm">

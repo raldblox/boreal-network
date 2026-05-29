@@ -37,37 +37,44 @@ import {
 
 const homeEntryCards = [
   {
-    body: "Describe the outcome, constraints, budget, deadline, proof, and where human or local work still matters.",
-    cta: "Start request",
+    body: "Describe the problem, outcome, constraints, proof needs, and where human or local work still matters.",
+    cta: "Post request",
     href: "/?mode=request",
     icon: FilePenLineIcon,
-    label: "Start with the ask",
-    title: "Turn a rough ask into work someone can complete.",
+    label: "Post a request",
+    title: "Put real demand on the board.",
   },
   {
-    body: "Choose a scoped service and keep the brief, payment, files, review, and delivery in one Request thread.",
+    body: "Choose a scoped outcome and keep the request, payment, fulfillment, files, review, and proof on one thread.",
     cta: "Browse services",
     href: "/services",
     icon: StoreIcon,
-    label: "Services",
-    title: "Buy a service without losing the work context.",
+    label: "Run a service",
+    title: "Start from a ready-to-buy outcome.",
   },
   {
-    body: "Define what can be done, who owns the lane, how it runs, how proof works, and when capacity is available.",
+    body: "Publish what you can solve, how it runs, what proof looks like, and when capacity is available.",
     cta: "Open supply",
     href: "/supplies",
     icon: PackageIcon,
     label: "Supply Studio",
-    title: "Manage capability lanes that can attach to demand.",
+    title: "Make capability visible to requests.",
   },
 ];
 
-const processSteps = [
-  "Post a Request",
-  "Compare plans",
-  "Run the work",
-  "Verify artifacts",
-  "Reuse accepted solutions",
+const liveWorkExamples = [
+  {
+    meta: "Looking for plans",
+    title: "Explain this paper for a non-specialist team",
+  },
+  {
+    meta: "Delivered for review",
+    title: "Set up a payment flow and attach proof",
+  },
+  {
+    meta: "Free to inspect",
+    title: "Accepted solution ready to run with credits",
+  },
 ];
 
 export function HomePage() {
@@ -83,7 +90,7 @@ export function HomePage() {
                 asChild
                 className="h-9 rounded-full px-4 text-[12px] font-medium"
               >
-                <Link href="/?mode=request">Start request</Link>
+                <Link href="/?mode=request">Post request</Link>
               </Button>
             </>
           }
@@ -98,46 +105,66 @@ export function HomePage() {
               >
                 <div className="max-w-4xl">
                   <p className={surfaceEyebrowClassName}>
-                    Work requests that reach delivery
+                    Live work board
                   </p>
                   <h1 className={cn(surfaceHeroTitleClassName, "mt-6")}>
-                    Start with the work you need done. Keep every step visible.
+                    Boreal turns requests into completed work.
                   </h1>
                   <p className={cn(surfaceBodyClassName, "mt-6")}>
-                    Boreal keeps the ask, plan, service, payment, files,
-                    review, and final delivery in one trackable Request thread.
+                    Post a request, compare plans, run or fund the work, verify
+                    artifacts, and reuse accepted solutions. Every step stays
+                    attached to one durable Request.
                   </p>
                   <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                     <Button
                       asChild
                       className="h-11 rounded-full px-5 text-[12px] font-medium"
                     >
-                      <Link href="/?mode=request">Start request</Link>
+                      <Link href="/?mode=request">Post a request</Link>
                     </Button>
                     <Button
                       asChild
                       className="h-11 rounded-full px-5 text-[12px] font-medium"
                       variant="outline"
                     >
-                      <Link href="/open-requests">Browse board</Link>
+                      <Link href="/open-requests">Browse active work</Link>
                     </Button>
                   </div>
                 </div>
 
                 <div className="rounded-[28px] border border-border/60 bg-card/70 p-4">
-                  <p className={surfaceEyebrowClassName}>Work flow</p>
+                  <p className={surfaceEyebrowClassName}>
+                    What do you need done?
+                  </p>
+                  <div className="mt-4 rounded-[24px] border border-border/60 bg-background/58 p-4">
+                    <p className="text-sm leading-6 text-foreground/84">
+                      Describe the problem, outcome, deadline, budget, and proof
+                      needed...
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span className="rounded-full bg-muted/55 px-3 py-1 text-[11px] text-muted-foreground">
+                        Create Request
+                      </span>
+                      <span className="rounded-full bg-muted/55 px-3 py-1 text-[11px] text-muted-foreground">
+                        Compare plans
+                      </span>
+                      <span className="rounded-full bg-muted/55 px-3 py-1 text-[11px] text-muted-foreground">
+                        Run with proof
+                      </span>
+                    </div>
+                  </div>
                   <div className="mt-4 grid gap-2">
-                    {processSteps.map((step, index) => (
+                    {liveWorkExamples.map((example) => (
                       <div
-                        className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/50 px-3 py-2 text-sm"
-                        key={step}
+                        className="rounded-2xl border border-border/60 bg-background/50 px-3 py-2"
+                        key={example.title}
                       >
-                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-[11px] font-medium text-background">
-                          {index + 1}
-                        </span>
-                        <span className="min-w-0 text-foreground/82">
-                          {step}
-                        </span>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                          {example.meta}
+                        </p>
+                        <p className="mt-1 text-sm leading-5 text-foreground/82">
+                          {example.title}
+                        </p>
                       </div>
                     ))}
                   </div>
@@ -149,15 +176,15 @@ export function HomePage() {
               <section className={surfaceSectionClassName} id="post-request">
                 <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
                   <div>
-                    <p className={surfaceEyebrowClassName}>Start request</p>
+                    <p className={surfaceEyebrowClassName}>Post request</p>
                     <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                      One Request should survive the brief, execution,
-                      delivery, and review.
+                      One Request should survive planning, execution, proof,
+                      review, and reuse.
                     </h2>
                   </div>
                   <Button asChild className="rounded-full" variant="outline">
                     <Link href="/?mode=request">
-                      Start a request
+                      Post a request
                       <ArrowRightIcon className="size-4" />
                     </Link>
                   </Button>
@@ -211,8 +238,7 @@ export function HomePage() {
                   <div>
                     <p className={surfaceEyebrowClassName}>Solutions</p>
                     <h2 className={cn(surfaceSectionTitleClassName, "mt-4")}>
-                      Public solutions are accepted Request outcomes, not a
-                      separate root object.
+                      Accepted work becomes reusable without hiding the proof.
                     </h2>
                     <p className={cn(surfaceBodyClassName, "mt-4")}>
                       Boreal can project completed public Requests after an

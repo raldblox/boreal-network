@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s | Boreal",
   },
   description:
-    "Boreal is for work that AI cannot fully finish on its own.",
+    "Boreal turns requests into completed work across humans and AI, with plans, proof, review, and reusable solutions attached to one durable Request.",
 };
 
 export const viewport = {

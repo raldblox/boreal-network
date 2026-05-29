@@ -55,7 +55,7 @@ export function ServiceHub() {
             <>
               <CreditBalanceLink className="hidden sm:inline-flex" />
               <Button asChild className="rounded-full" size="sm">
-                <Link href="/?mode=request">Start request</Link>
+                <Link href="/?mode=request">Post request</Link>
               </Button>
             </>
           }
@@ -245,7 +245,7 @@ function ServicePlanCard({
       ) : (
         <SurfaceCardActions className="mt-7">
           <Button className="rounded-full" onClick={() => router.push(startUrl)}>
-            Start request
+            Post request
             <ArrowRightIcon className="size-4" />
           </Button>
         </SurfaceCardActions>
@@ -622,7 +622,7 @@ function CharacterCallStarterCheckout() {
           : hasEnoughCredit
             ? isSubmitting
               ? "Starting request..."
-              : "Pay and start request"
+              : "Pay and post request"
             : "Top up credits first"}
       </Button>
 

@@ -20,6 +20,30 @@ Most work demand starts ambiguous.
 Catalogs alone break when scope is fuzzy.
 Chat alone breaks when accountability, funding, proof, and payout matter.
 
+## Official Public Voice
+
+When explaining Boreal to a broad audience, start from work flow:
+
+Boreal turns requests into completed work.
+
+Plain-language expansion:
+
+Post a request, compare plans, run or fund the work, verify the artifacts, and reuse accepted solutions.
+
+The homepage and product surfaces should feel like a live work board where demand appears, plans compete, workers and agents execute, proof is reviewed, and accepted solutions compound.
+
+Use the analogy `air traffic control for work` when it helps:
+
+- the `Request` is the flight
+- the plan is the route
+- workers, agents, tools, providers, and runtimes are the operating crew
+- artifacts are proof of arrival
+- review is landing clearance
+- accepted public solutions are reusable routes
+
+This is brand language only.
+It does not change canonical objects or contracts.
+
 Boreal exists to keep the entire path in one system:
 
 - demand intake

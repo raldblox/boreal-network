@@ -58,7 +58,7 @@ export default function ArchitecturePage() {
             className="rounded-md border border-border/70 px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-muted"
             href="/?mode=request"
           >
-            Start request
+            Post request
           </Link>
         </div>
       </header>

@@ -42,6 +42,7 @@ Before editing anything substantial, read:
 If the task affects positioning, pitch, go-to-market, wedge, revenue model, or competitive framing, also read:
 
 - `docs/PRODUCT_POSITIONING.md`
+- `docs/BRAND_VOICE.md`
 - `docs/ICP_AND_WEDGE.md`
 - `docs/WHY_NOW.md`
 - `docs/COMPETITIVE_MAP.md`
@@ -106,6 +107,7 @@ Forbidden core synonyms:
 - Do not pitch Boreal as an internal employee copilot suite.
 - Do not pitch Boreal as an agency-first services business.
 - Commercial docs are canon for roast, pitch, and fundraising tasks.  Do not replace them with improvised copy.
+- `docs/BRAND_VOICE.md` is canon for public copy, website copy, demos, and product-surface voice.
 - Use `docs/LIVE_VS_TARGET.md` to separate canon-locked truth, machine-modeled truth, and target direction before making product or fundraising claims.
 
 ## Documentation-First Rule

@@ -59,8 +59,8 @@ const requestStatusFilters: Array<{
 }> = [
   { key: "all", label: "All statuses" },
   { key: "open", label: "Open" },
-  { key: "active", label: "Running" },
-  { key: "review", label: "Review" },
+  { key: "active", label: "Work active" },
+  { key: "review", label: "Needs review" },
   { key: "needs_details", label: "Needs details" },
 ];
 
@@ -149,11 +149,12 @@ export function RequestBoard({
           <div className="max-w-3xl">
             <p className={surfaceEyebrowClassName}>Request board</p>
             <h2 className={cn(surfaceSectionTitleClassName, "mt-3")}>
-              Browse open requests before starting from scratch.
+              Active demand, visible status, clear next action.
             </h2>
             <p className={cn(surfaceBodyClassName, "mt-3 text-sm")}>
-              Search by ask, status, expected proof, or tags. Reading is free;
-              credits apply only when Boreal has to run work.
+              Search by ask, status, expected proof, or tags. Browse for free,
+              then post, plan, fund, review, or run when there is a real next
+              step.
             </p>
           </div>
           {variant === "home" ? (
@@ -493,15 +494,15 @@ function getProofSummary(request: PublicRequestPoolEntry) {
 
 function getNextActionLabel(request: PublicRequestPoolEntry) {
   if (request.derived.missingDetails.length > 0) {
-    return "Clarify the ask before planning.";
+    return "Clarify the ask before plans compete.";
   }
 
   if (request.derived.readiness.readyForMatch) {
-    return "Compare services or providers.";
+    return "Compare plans, services, or providers.";
   }
 
   if (request.derived.readiness.readyForOpen) {
-    return "Open it and refine routing.";
+    return "Open it and route the work.";
   }
 
   return "Use this as a starting point.";

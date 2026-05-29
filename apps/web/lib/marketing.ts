@@ -1,36 +1,36 @@
 export const borealHomepageCopy = {
-  eyebrow: "From request to delivery",
-  title: "Start with the work you need done.",
+  eyebrow: "Live work board",
+  title: "Boreal turns requests into completed work.",
   body:
-    "Boreal keeps the ask, plan, service, payment, files, review, and final delivery in one trackable Request thread.",
+    "Post a request, compare plans, run or fund the work, verify artifacts, and reuse accepted solutions.",
   support:
-    "Starting with paid request pilots, curated supply, and public requests where accepted work should stay reusable.",
+    "Every step stays attached to one durable Request: demand, plans, fulfillment, proof, review, payment, and reuse.",
 } as const;
 
 export const borealHowItWorksPoints = [
   {
     body:
-      "Start with the problem, the goal, and the constraints. Boreal keeps one request open instead of letting the work break into chats, forms, and side threads.",
-    label: "Open the request",
+      "Start with the problem, goal, constraints, deadline, budget, and proof needs. Boreal keeps one request open instead of letting work split across chats and side threads.",
+    label: "Post the request",
   },
   {
     body:
-      "When the same problem is worth solving publicly, funding can attach to the request without turning it into a separate grant or bounty object.",
-    label: "Fund it if needed",
+      "Plans, services, humans, agents, tools, and runtimes can be compared as paths for the same demand instead of becoming disconnected workflows.",
+    label: "Compare paths",
   },
   {
     body:
-      "Boreal narrows the right service, reviewer, or runtime before the work starts so the request does not drift.",
-    label: "Route the work",
+      "Funding or credits can attach when work needs execution, inference, provider APIs, service capacity, or human review.",
+    label: "Run or fund",
   },
   {
     body:
       "Delivery, proof, and acceptance stay attached to the same request before anyone treats the job as done.",
-    label: "Review the result",
+    label: "Verify artifacts",
   },
   {
     body:
-      "If the accepted work should stay useful, Boreal can keep it visible as a public solution and let later users fork from it into a new request.",
+      "If the accepted work should stay useful, Boreal can keep it visible as a public solution that others inspect free or run with credits.",
     label: "Reuse what worked",
   },
 ] as const;
@@ -38,17 +38,17 @@ export const borealHowItWorksPoints = [
 export const borealWhyBorealPoints = [
   {
     body:
-      "A polished answer can still miss the review, proof, or handoff that makes the work usable in the real world.",
+      "A polished answer can still miss the human work, review, proof, or handoff that makes the work usable in the real world.",
     label: "A draft is not a finished result",
   },
   {
     body:
-      "Tracking a request, matching a person, or running a workflow is not enough if the work still loses context before review and closeout.",
-    label: "A task board is not a completion system",
+      "A board, marketplace, or workflow template is not enough if the request still loses context before review and closeout.",
+    label: "A listing is not a work flow",
   },
   {
     body:
-      "Boreal keeps the request, the work, the payment, and the final delivery on one visible path instead of scattering the job across posts, chats, tools, and delivery threads.",
+      "Boreal keeps the request, plan, worker, payment, artifact, review, and final delivery on one visible path.",
     label: "Why Boreal exists",
   },
 ] as const;
@@ -74,10 +74,10 @@ export const borealReusePoints = [
 export const borealAccessTracks = [
   {
     body:
-      "Bring a serious request that needs more than a one-shot answer. Start with a paid pilot and keep the work, review, and proof on one track.",
-    cta: "Start request",
+      "Bring a serious request that needs more than a one-shot answer. Keep planning, execution, review, and proof on one track.",
+    cta: "Post request",
     href: "/?mode=request",
-    label: "Start a private request",
+    label: "Post a request",
   },
   {
     body:

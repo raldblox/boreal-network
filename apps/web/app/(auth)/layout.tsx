@@ -31,7 +31,7 @@ export default function AuthLayout({
                     Boreal
                   </span>
                   <p className="max-w-sm text-sm leading-7 text-muted-foreground">
-                    One visible path for the ask, the work, and the proof.
+                    One visible path from request to completed work.
                   </p>
                 </div>
               </div>
@@ -55,9 +55,9 @@ export default function AuthLayout({
             </p>
             <Link
               className="inline-flex text-sm text-foreground underline-offset-4 hover:underline"
-              href="/supplies/new?entry=whitelist"
+              href="/?mode=request"
             >
-              Join supply whitelist
+              Post a request
             </Link>
           </div>
 

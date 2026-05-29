@@ -21,6 +21,13 @@ Use it as the shortest trusted source for pitch decks, idea roasts, investor app
 - Optional request grants can help fund a public request, with accepted artifacts projected as reusable solution surfaces.
 - Public solutions are free to inspect by default; running them consumes credits when inference or execution capacity is used.
 
+## Plain-Language Voice
+
+- Short public sentence: Boreal turns requests into completed work.
+- Product explanation: post a request, compare plans, run or fund the work, verify artifacts, and reuse accepted solutions.
+- Mental model: air traffic control for work.
+- Homepage feel: a live work board where demand appears, workers and agents act, proof is reviewed, and accepted solutions compound.
+
 ## Problem
 
 - external work demand often starts ambiguous

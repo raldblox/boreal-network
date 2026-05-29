@@ -4,6 +4,7 @@ This brief guides frontend and hero-copy workers after the request-grant and pub
 
 It is downstream of canon.
 It must not redefine `Request`, `Artifact`, `Commitment`, `Transaction`, or `RequestEvent`.
+It inherits [../BRAND_VOICE.md](../BRAND_VOICE.md).
 
 ## Read First
 
@@ -11,10 +12,11 @@ Before changing UI or landing-page copy, read:
 
 1. [../COMMERCIAL_CANON.md](../COMMERCIAL_CANON.md)
 2. [../LIVE_VS_TARGET.md](../LIVE_VS_TARGET.md)
-3. [../REQUEST_PROCESSING.md](../REQUEST_PROCESSING.md)
-4. [../SCHEMA_LOGICAL.md](../SCHEMA_LOGICAL.md)
-5. [../decisions/0023-request-grants-and-public-solution-surface.md](../decisions/0023-request-grants-and-public-solution-surface.md)
-6. [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
+3. [../BRAND_VOICE.md](../BRAND_VOICE.md)
+4. [../REQUEST_PROCESSING.md](../REQUEST_PROCESSING.md)
+5. [../SCHEMA_LOGICAL.md](../SCHEMA_LOGICAL.md)
+6. [../decisions/0023-request-grants-and-public-solution-surface.md](../decisions/0023-request-grants-and-public-solution-surface.md)
+7. [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
 
 ## Core Rule
 
@@ -188,7 +190,30 @@ Anyone can inspect the public solution.
 Credits are spent only when Boreal runs it again.
 ```
 
+The simplest public story is:
+
+```text
+Boreal turns requests into completed work.
+Post a request, compare plans, run or fund the work, verify artifacts, and reuse accepted solutions.
+```
+
+When an analogy helps, use:
+
+```text
+Boreal is air traffic control for work.
+The Request is the flight, the plan is the route, artifacts prove arrival, and review gives landing clearance.
+```
+
+Do not make the analogy a schema or navigation model.
+
 ### Hero Options
+
+Use these when the homepage is a live board or product-shell front door:
+
+- `Boreal turns requests into completed work.`
+- `What do you need done?`
+- `Post the request. Track the work. Prove the result.`
+- `A live work board for humans and AI.`
 
 Use these when the page is about public request grants:
 

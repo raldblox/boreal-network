@@ -13,29 +13,29 @@ export const guestRegex = /^guest-[0-9a-f-]+@boreal\.local$/i;
 export const DUMMY_PASSWORD = generateDummyPassword();
 
 export const suggestions = [
-  "Turn this rough ask into a work request",
-  "Help me shape a request that stays trackable",
+  "Post a request for work I need completed",
+  "Help me shape a request that can be planned and proved",
   "What human steps does this workflow still need?",
-  "Help me map proof and delivery",
+  "Help me define proof before the work runs",
 ];
 
 export const newRequestSuggestions = [
-  "Help me turn this idea into a serious request",
-  "Help me write the first request brief",
-  "What outcome should this request promise?",
-  "What proof should completion include?",
+  "Help me post a request people or agents can solve",
+  "Help me write the ask, done condition, deadline, and proof",
+  "What plans should compete for this request?",
+  "What artifact would prove this is complete?",
 ];
 
 export const requestDraftSuggestions = [
   "Help me tighten the title and brief",
   "Help me add budget, deadline, and proof to this draft",
-  "Help me list constraints, handoffs, and deliverables",
+  "Help me list constraints, handoffs, human work, and deliverables",
   "What is still missing before I open this request?",
 ];
 
 export const openRequestSuggestions = [
   "Help me post an update on this request",
-  "Who else should this request invite next?",
+  "What plan or worker should this request invite next?",
   "What proof is still missing on this request?",
   "What should happen next on this request?",
 ];

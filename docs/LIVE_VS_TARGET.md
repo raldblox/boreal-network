@@ -23,6 +23,8 @@ These are safe to state as present canon truth:
 - Boreal is `chat-native` at the interface layer.
 - Boreal's thesis is `intent-to-fulfillment for work`.
 - `Request` is the durable root object.
+- Boreal's official public voice can say that Boreal turns requests into completed work, as long as implementation-specific claims still follow this file.
+- `Air traffic control for work` is allowed as an explanatory analogy, not as canonical object or protocol language.
 - `Supply` is the canonical opposite-side object.
 - `Commitment`, `Fulfillment`, `FulfillmentStep`, `Artifact`, `Transaction`, and `RequestEvent` are canonical objects in the network model.
 - Boreal Network is Boreal's canonical monorepo.

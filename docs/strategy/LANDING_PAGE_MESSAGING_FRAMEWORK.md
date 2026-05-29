@@ -2,6 +2,8 @@
 
 This file defines how Boreal should message the first wedge on a landing page.
 
+It inherits [../BRAND_VOICE.md](../BRAND_VOICE.md).
+
 It is optimized for:
 
 - startup and SMB buyers
@@ -23,6 +25,16 @@ Not:
 
 `Interesting concept.`
 
+The homepage should teach the behavior of the system before it teaches the full category.
+
+The simplest first impression is:
+
+`Boreal turns requests into completed work.`
+
+Then show the live work flow:
+
+`Post a request. Compare plans. Run or fund the work. Verify artifacts. Reuse accepted solutions.`
+
 ## Messaging Priorities
 
 The page must do these in order:
@@ -33,6 +45,9 @@ The page must do these in order:
 4. show how Boreal is different from chat, marketplaces, and PM tools
 5. show trust primitives
 6. ask for one concrete action
+
+If the page is product-shell-first, the live board can do some of this work visually.
+In that case, the hero copy should stay shorter and the request cards should carry status, age, proof, and next action.
 
 ## Core Message Stack
 
@@ -45,6 +60,10 @@ A serious request begins in chat, docs, email, calls, or prompts, then fragments
 
 Boreal turns one request into one accountable fulfillment thread.
 
+Plain public version:
+
+Boreal turns requests into completed work.
+
 ### Layer 3. Buyer value
 
 Boreal helps buyers carry messy, high-importance work from ask to done without losing context across routing, execution, proof, review, or payout.
@@ -56,6 +75,22 @@ Lower on the page, not always in the hero:
 Boreal is request-native work commerce for mixed human and AI fulfillment.
 
 ## Hero Framework
+
+### Recommended Product-Shell Hero
+
+Headline:
+`Boreal turns requests into completed work.`
+
+Subheadline:
+`Post a request, compare plans, run or fund the work, verify the artifacts, and reuse accepted solutions. Every step stays attached to one durable Request.`
+
+CTA options:
+- `Post a request`
+- `Browse active requests`
+- `Run a solution`
+
+Support line:
+`For work AI cannot responsibly finish alone.`
 
 ### Recommended Hero Version A
 
@@ -116,6 +151,7 @@ Must communicate quickly:
 - who it is for
 - why it is different
 - what the user should do next
+- what requests are active or reusable when a live board is present
 
 Must avoid above the fold:
 
@@ -189,18 +225,40 @@ Within that thread:
 
 Keep this short and concrete.
 
-### Suggested 5-step flow
+### Suggested 6-step flow
 
 1. Submit the request
-2. Clarify the outcome and constraints
-3. Route the right lead or specialist path
-4. Execute with artifacts, review, and proof attached
-5. Close out with acceptance and payout on the same thread
+2. Compare plans or capability lanes
+3. Fund or run the work
+4. Execute with artifacts and proof attached
+5. Review and accept delivery
+6. Reuse accepted solutions when appropriate
 
 ### Rule
 
 Show product truth.
 Avoid pretending there is instant universal liquidity if the real launch motion is curated.
+
+## Homepage Board Module
+
+When the homepage includes a request board, it should make active demand feel concrete.
+
+Each card should answer:
+
+- what is being asked
+- how old it is
+- what state it is in
+- what proof is expected
+- what action can happen next
+
+Good status examples:
+
+- `Looking for plans`
+- `2 workers active`
+- `Delivered for review`
+- `Artifact accepted`
+- `Free to inspect`
+- `Credits required to run`
 
 ## Differentiation Section
 
@@ -298,6 +356,9 @@ Boreal should not sound:
 
 ### Headline options
 
+- Boreal turns requests into completed work.
+- What do you need done?
+- Post the request. Track the work. Prove the result.
 - One thread from request to done.
 - Bring the messy ask. Keep the whole job on one track.
 - For work AI cannot responsibly finish alone.
@@ -306,6 +367,8 @@ Boreal should not sound:
 
 ### Subheadline options
 
+- Post a request, compare plans, run or fund the work, verify artifacts, and reuse accepted solutions.
+- Every request has a status, a next action, and a proof trail.
 - Boreal helps startups and SMBs route, execute, review, and prove high-importance digital work across humans and AI.
 - Boreal carries work from ask to closeout without dropping context between intake, execution, proof, and payout.
 - Boreal is built for serious external work that needs more than one smart answer and more accountability than a chat thread.

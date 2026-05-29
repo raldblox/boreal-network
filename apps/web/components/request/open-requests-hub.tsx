@@ -23,7 +23,7 @@ export function OpenRequestsHub() {
         <SidebarSurfaceTopNav
           rightSlot={
             <Button asChild className="rounded-full" size="sm">
-              <Link href="/?mode=request">Start request</Link>
+              <Link href="/?mode=request">Post request</Link>
             </Button>
           }
           title="Open requests"
@@ -35,12 +35,12 @@ export function OpenRequestsHub() {
               <section className="max-w-4xl space-y-5">
                 <p className={surfaceEyebrowClassName}>Open requests</p>
                 <h1 className={surfaceHeroTitleClassName}>
-                  See what people are trying to get done.
+                  Browse the work people are trying to get done.
                 </h1>
                 <p className={surfaceBodyClassName}>
-                  Browse public requests, expected proof, current status, and
-                  useful starting points. Reading is free; credits apply when
-                  Boreal has to run work.
+                  Every request shows the ask, status, proof needs, and next
+                  action. Reading is free; credits apply only when Boreal has to
+                  run work.
                 </p>
               </section>
 

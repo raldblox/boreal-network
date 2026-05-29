@@ -12,6 +12,7 @@ Its job is to define:
 
 - the network thesis
 - the commercial category and positioning
+- official brand voice and public product language
 - the buyer wedge and market boundary
 - the canonical object taxonomy
 - lifecycle and state rules
@@ -39,27 +40,28 @@ Read these files in order before making any meaningful change:
 1. [docs/NETWORK_THESIS.md](docs/NETWORK_THESIS.md)
 2. [docs/COMMERCIAL_CANON.md](docs/COMMERCIAL_CANON.md)
 3. [docs/PRODUCT_POSITIONING.md](docs/PRODUCT_POSITIONING.md)
-4. [docs/ICP_AND_WEDGE.md](docs/ICP_AND_WEDGE.md)
-5. [docs/WHY_NOW.md](docs/WHY_NOW.md)
-6. [docs/COMPETITIVE_MAP.md](docs/COMPETITIVE_MAP.md)
-7. [docs/BUSINESS_MODEL.md](docs/BUSINESS_MODEL.md)
-8. [docs/PITCH_FACTS.md](docs/PITCH_FACTS.md)
-9. [docs/LIVE_VS_TARGET.md](docs/LIVE_VS_TARGET.md)
-10. [docs/OBJECT_TAXONOMY.md](docs/OBJECT_TAXONOMY.md)
-11. [docs/STATE_MACHINES.md](docs/STATE_MACHINES.md)
-12. [docs/EVENT_MODEL.md](docs/EVENT_MODEL.md)
-13. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
-14. [docs/REQUEST_PROCESSING.md](docs/REQUEST_PROCESSING.md)
-15. [docs/REQUEST_PLAN_MODEL.md](docs/REQUEST_PLAN_MODEL.md)
-16. [docs/TOOL_CALLING_CONTRACTS.md](docs/TOOL_CALLING_CONTRACTS.md)
-17. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
-18. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
-19. [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md)
-20. [docs/OWNERSHIP.md](docs/OWNERSHIP.md)
-21. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
-22. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
-23. [docs/EVALS.md](docs/EVALS.md)
-24. [AGENTS.md](AGENTS.md)
+4. [docs/BRAND_VOICE.md](docs/BRAND_VOICE.md)
+5. [docs/ICP_AND_WEDGE.md](docs/ICP_AND_WEDGE.md)
+6. [docs/WHY_NOW.md](docs/WHY_NOW.md)
+7. [docs/COMPETITIVE_MAP.md](docs/COMPETITIVE_MAP.md)
+8. [docs/BUSINESS_MODEL.md](docs/BUSINESS_MODEL.md)
+9. [docs/PITCH_FACTS.md](docs/PITCH_FACTS.md)
+10. [docs/LIVE_VS_TARGET.md](docs/LIVE_VS_TARGET.md)
+11. [docs/OBJECT_TAXONOMY.md](docs/OBJECT_TAXONOMY.md)
+12. [docs/STATE_MACHINES.md](docs/STATE_MACHINES.md)
+13. [docs/EVENT_MODEL.md](docs/EVENT_MODEL.md)
+14. [docs/API_CONTRACTS.md](docs/API_CONTRACTS.md)
+15. [docs/REQUEST_PROCESSING.md](docs/REQUEST_PROCESSING.md)
+16. [docs/REQUEST_PLAN_MODEL.md](docs/REQUEST_PLAN_MODEL.md)
+17. [docs/TOOL_CALLING_CONTRACTS.md](docs/TOOL_CALLING_CONTRACTS.md)
+18. [docs/SCHEMA_LOGICAL.md](docs/SCHEMA_LOGICAL.md)
+19. [docs/REPO_STRUCTURE.md](docs/REPO_STRUCTURE.md)
+20. [docs/WORKSTREAMS.md](docs/WORKSTREAMS.md)
+21. [docs/OWNERSHIP.md](docs/OWNERSHIP.md)
+22. [docs/GOVERNANCE.md](docs/GOVERNANCE.md)
+23. [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md)
+24. [docs/EVALS.md](docs/EVALS.md)
+25. [AGENTS.md](AGENTS.md)
 
 ## Repository Layout
 

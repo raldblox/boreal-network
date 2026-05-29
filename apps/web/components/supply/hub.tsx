@@ -179,7 +179,7 @@ export function SupplyHub() {
                     onClick={() => router.push("/?mode=request")}
                     size="sm"
                   >
-                    Start request
+                    Post request
                   </Button>
                 </div>
               </section>

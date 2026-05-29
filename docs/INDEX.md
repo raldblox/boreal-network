@@ -28,9 +28,10 @@ Read in this order:
 1. [NETWORK_THESIS.md](NETWORK_THESIS.md)
 2. [COMMERCIAL_CANON.md](COMMERCIAL_CANON.md)
 3. [PRODUCT_POSITIONING.md](PRODUCT_POSITIONING.md)
-4. [ICP_AND_WEDGE.md](ICP_AND_WEDGE.md)
-5. [WHY_NOW.md](WHY_NOW.md)
-6. [LIVE_VS_TARGET.md](LIVE_VS_TARGET.md)
+4. [BRAND_VOICE.md](BRAND_VOICE.md)
+5. [ICP_AND_WEDGE.md](ICP_AND_WEDGE.md)
+6. [WHY_NOW.md](WHY_NOW.md)
+7. [LIVE_VS_TARGET.md](LIVE_VS_TARGET.md)
 
 ### 2. If you need the product and workflow model
 
@@ -53,10 +54,11 @@ Read in this order:
 1. [strategy/README.md](strategy/README.md)
 2. [strategy/ICP_MATRIX.md](strategy/ICP_MATRIX.md)
 3. [strategy/WHY_NOW_AND_WHY_THIS_MARKET.md](strategy/WHY_NOW_AND_WHY_THIS_MARKET.md)
-4. [strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md](strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md)
-5. [strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md)
-6. [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
-7. [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
+4. [BRAND_VOICE.md](BRAND_VOICE.md)
+5. [strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md](strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md)
+6. [strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md)
+7. [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
+8. [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
 
 These files are downstream strategy tools.
 They help shape packaging, product decisions, and proof collection.
@@ -85,6 +87,7 @@ Read in this order:
 ## Folder Map
 
 - `docs/` - human-readable canon, strategy, research, and governance
+- `docs/BRAND_VOICE.md` - official product voice for public copy and website surfaces
 - `docs/strategy/` - product-shaping and go-to-market working docs derived from canon
 - `docs/decisions/` - accepted decisions and architectural records
 - `docs/papers/` - manuscripts, outlines, notes, and benchmark outputs

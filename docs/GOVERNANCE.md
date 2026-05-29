@@ -9,26 +9,27 @@ When documents disagree, the precedence order is:
 1. `docs/NETWORK_THESIS.md`
 2. `docs/COMMERCIAL_CANON.md`
 3. `docs/PRODUCT_POSITIONING.md`
-4. `docs/ICP_AND_WEDGE.md`
-5. `docs/WHY_NOW.md`
-6. `docs/OBJECT_TAXONOMY.md`
-7. `docs/STATE_MACHINES.md`
-8. `docs/EVENT_MODEL.md`
-9. `docs/API_CONTRACTS.md`
-10. `docs/REQUEST_PROCESSING.md`
-11. `docs/REQUEST_PLAN_MODEL.md`
-12. `docs/TOOL_CALLING_CONTRACTS.md`
-13. `docs/SCHEMA_LOGICAL.md`
-14. `docs/COMPETITIVE_MAP.md`
-15. `docs/BUSINESS_MODEL.md`
-16. `docs/PITCH_FACTS.md`
-17. `docs/LIVE_VS_TARGET.md`
-18. `docs/REPO_STRUCTURE.md`
-19. `docs/WORKSTREAMS.md`
-20. `docs/OWNERSHIP.md`
-21. machine-readable schemas in `schemas/`
-22. implementation code in governed workspaces inside this monorepo
-23. implementation code in any external companion repos
+4. `docs/BRAND_VOICE.md`
+5. `docs/ICP_AND_WEDGE.md`
+6. `docs/WHY_NOW.md`
+7. `docs/OBJECT_TAXONOMY.md`
+8. `docs/STATE_MACHINES.md`
+9. `docs/EVENT_MODEL.md`
+10. `docs/API_CONTRACTS.md`
+11. `docs/REQUEST_PROCESSING.md`
+12. `docs/REQUEST_PLAN_MODEL.md`
+13. `docs/TOOL_CALLING_CONTRACTS.md`
+14. `docs/SCHEMA_LOGICAL.md`
+15. `docs/COMPETITIVE_MAP.md`
+16. `docs/BUSINESS_MODEL.md`
+17. `docs/PITCH_FACTS.md`
+18. `docs/LIVE_VS_TARGET.md`
+19. `docs/REPO_STRUCTURE.md`
+20. `docs/WORKSTREAMS.md`
+21. `docs/OWNERSHIP.md`
+22. machine-readable schemas in `schemas/`
+23. implementation code in governed workspaces inside this monorepo
+24. implementation code in any external companion repos
 
 Implementation code must not override root canon.
 
@@ -53,6 +54,7 @@ Required updates:
 - thesis if the category meaning changed
 - commercial canon
 - product positioning
+- brand voice if public language or product-surface explanation changed
 - ICP and wedge
 - why now
 - live-versus-target boundary
