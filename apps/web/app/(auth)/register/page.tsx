@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Suspense, useActionState, useEffect, useState } from "react";
 import { AuthForm } from "@/components/chat/auth-form";
+import { type AuthFeedback, AuthStatus } from "@/components/chat/auth-status";
 import { SubmitButton } from "@/components/chat/submit-button";
 import { toast } from "@/components/chat/toast";
 import { type RegisterActionState, register } from "../actions";
@@ -23,6 +24,11 @@ function RegisterPageContent() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
+  const [feedback, setFeedback] = useState<AuthFeedback>({
+    tone: "info",
+    message:
+      "Create the account with username/password, then add a passkey for faster sign-in.",
+  });
   const rawCallbackUrl = searchParams.get("callbackUrl")?.trim() || "/";
   const callbackUrl =
     rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
@@ -39,16 +45,24 @@ function RegisterPageContent() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: router and updateSession are stable refs
   useEffect(() => {
     if (state.status === "user_exists") {
-      toast({ type: "error", description: "Account already exists!" });
+      const message = "That email or username already has an account.";
+      setFeedback({ tone: "error", message });
+      toast({ type: "error", description: message });
     } else if (state.status === "failed") {
-      toast({ type: "error", description: "Failed to create account!" });
+      const message = "Could not create the account. Try again.";
+      setFeedback({ tone: "error", message });
+      toast({ type: "error", description: message });
     } else if (state.status === "invalid_data") {
+      const message = "Enter a valid username, email, and password.";
+      setFeedback({ tone: "error", message });
       toast({
         type: "error",
-        description: "Failed validating your submission!",
+        description: message,
       });
     } else if (state.status === "success") {
-      toast({ type: "success", description: "Account created!" });
+      const message = "Account created. Opening Boreal.";
+      setFeedback({ tone: "success", message });
+      toast({ type: "success", description: message });
       setIsSuccessful(true);
       updateSession();
       router.replace(callbackUrl);
@@ -59,6 +73,7 @@ function RegisterPageContent() {
   const handleSubmit = (formData: FormData) => {
     setUsername(formData.get("username") as string);
     setEmail(formData.get("email") as string);
+    setFeedback({ tone: "info", message: "Creating your account." });
     formAction(formData);
   };
 
@@ -68,9 +83,10 @@ function RegisterPageContent() {
         Create a Boreal account
       </h1>
       <p className="text-sm leading-7 text-muted-foreground">
-        Create a username-first Boreal account for requests, supply, and
-        stronger security.
+        Create the fallback account path first. Add a passkey after sign-in for
+        the fast path.
       </p>
+      <AuthStatus feedback={feedback} />
       <AuthForm
         action={handleSubmit}
         defaultEmail={email}
@@ -78,7 +94,7 @@ function RegisterPageContent() {
         mode="register"
       >
         <input name="callbackUrl" type="hidden" value={callbackUrl} />
-        <SubmitButton isSuccessful={isSuccessful}>
+        <SubmitButton isSuccessful={isSuccessful} loadingText="Creating account">
           Create account
         </SubmitButton>
         <p className="text-center text-[13px] text-muted-foreground">

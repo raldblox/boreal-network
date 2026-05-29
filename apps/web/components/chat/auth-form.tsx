@@ -1,5 +1,9 @@
-import Form from "next/form";
+"use client";
 
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import Form from "next/form";
+import { useId, useState } from "react";
+import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 
@@ -20,6 +24,10 @@ export function AuthForm({
   defaultUsername?: string;
   mode?: "login" | "register";
 }) {
+  const passwordId = useId();
+  const passwordHelpId = useId();
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <Form action={action} className="flex flex-col gap-5">
       {mode === "register" ? (
@@ -36,7 +44,7 @@ export function AuthForm({
               autoComplete="username"
               autoCorrect="off"
               autoFocus
-              className="h-12 rounded-2xl border-border/60 bg-muted/[0.36] text-sm shadow-none transition-colors focus:border-foreground/20 focus:bg-background"
+              className="h-11 rounded-lg border-border/70 bg-background text-sm shadow-none"
               defaultValue={defaultUsername}
               id="username"
               name="username"
@@ -55,7 +63,7 @@ export function AuthForm({
             </Label>
             <Input
               autoComplete="email"
-              className="h-12 rounded-2xl border-border/60 bg-muted/[0.36] text-sm shadow-none transition-colors focus:border-foreground/20 focus:bg-background"
+              className="h-11 rounded-lg border-border/70 bg-background text-sm shadow-none"
               defaultValue={defaultEmail}
               id="email"
               name="email"
@@ -82,7 +90,7 @@ export function AuthForm({
             autoComplete="username"
             autoCorrect="off"
             autoFocus
-            className="h-12 rounded-2xl border-border/60 bg-muted/[0.36] text-sm shadow-none transition-colors focus:border-foreground/20 focus:bg-background"
+            className="h-11 rounded-lg border-border/70 bg-background text-sm shadow-none"
             defaultValue={defaultIdentifier}
             id="identifier"
             name="identifier"
@@ -96,18 +104,46 @@ export function AuthForm({
       <div className="flex flex-col gap-2.5">
         <Label
           className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/72"
-          htmlFor="password"
+          htmlFor={passwordId}
         >
           Password
         </Label>
-        <Input
-          className="h-12 rounded-2xl border-border/60 bg-muted/[0.36] text-sm shadow-none transition-colors focus:border-foreground/20 focus:bg-background"
-          id="password"
-          name="password"
-          placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
-          required
-          type="password"
-        />
+        <div className="relative">
+          <Input
+            aria-describedby={passwordHelpId}
+            autoComplete={
+              mode === "register" ? "new-password" : "current-password"
+            }
+            className="h-11 rounded-lg border-border/70 bg-background pr-12 text-sm shadow-none"
+            id={passwordId}
+            name="password"
+            placeholder="Enter password"
+            required
+            type={showPassword ? "text" : "password"}
+          />
+          <Button
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-1 top-1 size-9 rounded-md text-muted-foreground hover:text-foreground"
+            onClick={() => setShowPassword((value) => !value)}
+            size="icon"
+            type="button"
+            variant="ghost"
+          >
+            {showPassword ? (
+              <EyeOffIcon aria-hidden="true" className="size-4" />
+            ) : (
+              <EyeIcon aria-hidden="true" className="size-4" />
+            )}
+          </Button>
+        </div>
+        <p
+          className="text-xs leading-5 text-muted-foreground"
+          id={passwordHelpId}
+        >
+          {mode === "register"
+            ? "Use at least 6 characters. Add a passkey after account creation for faster sign-in."
+            : "Use password fallback only when passkey sign-in is not available."}
+        </p>
       </div>
 
       <div className="pt-1">{children}</div>

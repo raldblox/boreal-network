@@ -2,36 +2,40 @@
 
 import { useFormStatus } from "react-dom";
 
-import { LoaderIcon } from "@/components/chat/icons";
+import { LoaderCircleIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Button } from "../ui/button";
 
 export function SubmitButton({
   children,
+  className,
   isSuccessful,
+  loadingText = "Working...",
 }: {
   children: React.ReactNode;
+  className?: string;
   isSuccessful: boolean;
+  loadingText?: string;
 }) {
   const { pending } = useFormStatus();
+  const isLoading = pending || isSuccessful;
 
   return (
     <Button
-      aria-disabled={pending || isSuccessful}
-      className="relative"
-      disabled={pending || isSuccessful}
-      type={pending ? "button" : "submit"}
+      aria-busy={isLoading}
+      aria-disabled={isLoading}
+      className={cn("h-11 w-full rounded-lg", className)}
+      disabled={isLoading}
+      type="submit"
     >
-      {children}
-
-      {(pending || isSuccessful) && (
-        <span className="absolute right-4 animate-spin">
-          <LoaderIcon />
-        </span>
+      {isLoading && (
+        <LoaderCircleIcon aria-hidden="true" className="size-4 animate-spin" />
       )}
+      {isLoading ? loadingText : children}
 
       <output aria-live="polite" className="sr-only">
-        {pending || isSuccessful ? "Loading" : "Submit form"}
+        {isLoading ? loadingText : "Submit form"}
       </output>
     </Button>
   );

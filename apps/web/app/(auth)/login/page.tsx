@@ -1,13 +1,14 @@
 "use client";
 
 import { startAuthentication } from "@simplewebauthn/browser";
-import { KeyRoundIcon, LoaderIcon } from "lucide-react";
+import { KeyRoundIcon, LoaderCircleIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Suspense, useActionState, useEffect, useState } from "react";
 
 import { AuthForm } from "@/components/chat/auth-form";
+import { type AuthFeedback, AuthStatus } from "@/components/chat/auth-status";
 import { SubmitButton } from "@/components/chat/submit-button";
 import { toast } from "@/components/chat/toast";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,11 @@ function LoginPageContent() {
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [isPasskeyPrompting, setIsPasskeyPrompting] = useState(false);
   const [isPasskeyOnlyPrompting, setIsPasskeyOnlyPrompting] = useState(false);
+  const [feedback, setFeedback] = useState<AuthFeedback>({
+    tone: "info",
+    message:
+      "Use passkey first if this account already has one. Password stays below as a fallback.",
+  });
   const rawCallbackUrl = searchParams.get("callbackUrl")?.trim() || "/";
   const callbackUrl =
     rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
@@ -51,13 +57,23 @@ function LoginPageContent() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: router and updateSession are stable refs
   useEffect(() => {
     if (state.status === "failed") {
-      toast({ type: "error", description: "Invalid credentials!" });
+      const message = "That username/email and password did not match.";
+      setFeedback({ tone: "error", message });
+      toast({ type: "error", description: message });
     } else if (state.status === "invalid_data") {
+      const message = "Enter a valid username/email and password.";
+      setFeedback({ tone: "error", message });
       toast({
         type: "error",
-        description: "Failed validating your submission!",
+        description: message,
+      });
+    } else if (state.status === "webauthn_required") {
+      setFeedback({
+        tone: "info",
+        message: "Password accepted. Confirm your passkey to finish sign-in.",
       });
     } else if (state.status === "success") {
+      setFeedback({ tone: "success", message: "Signed in. Opening Boreal." });
       setIsSuccessful(true);
       updateSession();
       router.replace(callbackUrl);
@@ -83,9 +99,9 @@ function LoginPageContent() {
       setIsPasskeyPrompting(true);
 
       try {
-        toast({
-          type: "success",
-          description: "Confirm your passkey to finish signing in.",
+        setFeedback({
+          tone: "info",
+          message: "Waiting for passkey confirmation.",
         });
         const response = await startAuthentication({
           optionsJSON: state.options!,
@@ -102,6 +118,11 @@ function LoginPageContent() {
         }
 
         if (result.status === "success") {
+          setFeedback({
+            tone: "success",
+            message: "Signed in. Opening Boreal.",
+          });
+          toast({ type: "success", description: "Signed in with passkey." });
           setIsSuccessful(true);
           await updateSession();
           router.replace(callbackUrl);
@@ -109,18 +130,19 @@ function LoginPageContent() {
           return;
         }
 
-        toast({
-          type: "error",
-          description: "Passkey verification failed.",
-        });
+        const message = "Passkey verification failed. Try again or use password.";
+        setFeedback({ tone: "error", message });
+        toast({ type: "error", description: message });
       } catch (error) {
         if (!isCancelled) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Passkey verification failed. Try again or use password.";
+          setFeedback({ tone: "error", message });
           toast({
             type: "error",
-            description:
-              error instanceof Error
-                ? error.message
-                : "Passkey verification failed.",
+            description: message,
           });
         }
       } finally {
@@ -147,11 +169,26 @@ function LoginPageContent() {
   const handleSubmit = (formData: FormData) => {
     setIdentifier(formData.get("identifier") as string);
     setPendingPassword(formData.get("password") as string);
+    setFeedback({
+      tone: "info",
+      message: "Checking username/password.",
+    });
     formAction(formData);
   };
 
   async function handlePasskeyOnlyLogin() {
+    if (!("PublicKeyCredential" in window)) {
+      const message = "This browser or device does not support passkeys.";
+      setFeedback({ tone: "error", message });
+      toast({ type: "error", description: message });
+      return;
+    }
+
     setIsPasskeyOnlyPrompting(true);
+    setFeedback({
+      tone: "info",
+      message: "Opening your passkey prompt.",
+    });
 
     try {
       const startResult = await startPasskeyOnlyLogin();
@@ -176,15 +213,19 @@ function LoginPageContent() {
         throw new Error("Passkey sign-in failed.");
       }
 
+      setFeedback({ tone: "success", message: "Signed in. Opening Boreal." });
+      toast({ type: "success", description: "Signed in with passkey." });
       setIsSuccessful(true);
       await updateSession();
       router.replace(callbackUrl);
       router.refresh();
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Passkey sign-in failed.";
+      setFeedback({ tone: "error", message });
       toast({
         type: "error",
-        description:
-          error instanceof Error ? error.message : "Passkey sign-in failed.",
+        description: message,
       });
     } finally {
       setIsPasskeyOnlyPrompting(false);
@@ -197,28 +238,36 @@ function LoginPageContent() {
         Sign in to Boreal
       </h1>
       <p className="text-sm leading-7 text-muted-foreground">
-        Use an enrolled passkey, or fall back to username and password.
+        Fast path first. Use an enrolled passkey, or fall back to
+        username/password.
       </p>
+      <AuthStatus feedback={feedback} />
       <div className="flex flex-col gap-3">
         <Button
-          className="h-12 rounded-2xl"
-          disabled={isPasskeyOnlyPrompting || isSuccessful}
+          aria-busy={isPasskeyOnlyPrompting}
+          className="h-11 w-full rounded-lg"
+          disabled={isPasskeyOnlyPrompting || isPasskeyPrompting || isSuccessful}
           onClick={handlePasskeyOnlyLogin}
           type="button"
-          variant="secondary"
         >
           {isPasskeyOnlyPrompting ? (
-            <LoaderIcon className="size-4 animate-spin" />
+            <LoaderCircleIcon
+              aria-hidden="true"
+              className="size-4 animate-spin"
+            />
           ) : (
-            <KeyRoundIcon className="size-4" />
+            <KeyRoundIcon aria-hidden="true" className="size-4" />
           )}
           {isPasskeyOnlyPrompting
             ? "Waiting for passkey"
-            : "Sign in with passkey"}
+            : "Continue with passkey"}
         </Button>
-        <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/65">
+        <p className="text-xs leading-5 text-muted-foreground">
+          Passkey sign-in works after enrollment from Account Security.
+        </p>
+        <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           <div className="h-px flex-1 bg-border/60" />
-          Password fallback
+          Password
           <div className="h-px flex-1 bg-border/60" />
         </div>
       </div>
@@ -228,7 +277,10 @@ function LoginPageContent() {
         mode="login"
       >
         <input name="callbackUrl" type="hidden" value={callbackUrl} />
-        <SubmitButton isSuccessful={isSuccessful || isPasskeyPrompting}>
+        <SubmitButton
+          isSuccessful={isSuccessful || isPasskeyPrompting}
+          loadingText={isPasskeyPrompting ? "Waiting for passkey" : "Signing in"}
+        >
           {isPasskeyPrompting ? "Waiting for passkey" : "Sign in"}
         </SubmitButton>
         <p className="text-center text-[13px] text-muted-foreground">
