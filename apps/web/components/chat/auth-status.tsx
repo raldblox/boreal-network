@@ -16,7 +16,7 @@ export function AuthStatus({ feedback }: { feedback: AuthFeedback }) {
         feedback.tone === "success" &&
           "border-green-600/25 bg-green-600/10 text-green-700",
         feedback.tone === "info" &&
-          "border-border/70 bg-muted/45 text-muted-foreground"
+          "border-border/70 bg-muted/45 text-muted-foreground",
       )}
       data-testid="auth-status"
       role={feedback.tone === "error" ? "alert" : "status"}

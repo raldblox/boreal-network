@@ -20,6 +20,24 @@ import {
   verifyPasskeyOnlyLogin,
 } from "../actions";
 
+type LoginPasskeyChallenge = LoginActionState & {
+  challengeId: string;
+  identifier: string;
+  options: NonNullable<LoginActionState["options"]>;
+  status: "webauthn_required";
+};
+
+function hasLoginPasskeyChallenge(
+  state: LoginActionState,
+): state is LoginPasskeyChallenge {
+  return (
+    state.status === "webauthn_required" &&
+    Boolean(state.challengeId) &&
+    Boolean(state.identifier) &&
+    Boolean(state.options)
+  );
+}
+
 export default function Page() {
   return (
     <Suspense fallback={null}>
@@ -49,7 +67,7 @@ function LoginPageContent() {
 
   const [state, formAction] = useActionState<LoginActionState, FormData>(
     login,
-    { status: "idle" }
+    { status: "idle" },
   );
 
   const { update: updateSession } = useSession();
@@ -83,17 +101,16 @@ function LoginPageContent() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: router and updateSession are stable refs
   useEffect(() => {
-    if (
-      state.status !== "webauthn_required" ||
-      !state.challengeId ||
-      !state.identifier ||
-      !state.options ||
-      !pendingPassword
-    ) {
+    if (!hasLoginPasskeyChallenge(state) || !pendingPassword) {
       return;
     }
 
     let isCancelled = false;
+    const passkeyChallenge = {
+      challengeId: state.challengeId,
+      identifier: state.identifier,
+      options: state.options,
+    };
 
     async function finishPasskeyLogin() {
       setIsPasskeyPrompting(true);
@@ -104,12 +121,12 @@ function LoginPageContent() {
           message: "Waiting for passkey confirmation.",
         });
         const response = await startAuthentication({
-          optionsJSON: state.options!,
+          optionsJSON: passkeyChallenge.options,
         });
         const result = await verifyLoginPasskey({
-          identifier: state.identifier!,
+          identifier: passkeyChallenge.identifier,
           password: pendingPassword,
-          challengeId: state.challengeId!,
+          challengeId: passkeyChallenge.challengeId,
           response,
         });
 
@@ -130,7 +147,8 @@ function LoginPageContent() {
           return;
         }
 
-        const message = "Passkey verification failed. Try again or use password.";
+        const message =
+          "Passkey verification failed. Try again or use password.";
         setFeedback({ tone: "error", message });
         toast({ type: "error", description: message });
       } catch (error) {
@@ -246,7 +264,9 @@ function LoginPageContent() {
         <Button
           aria-busy={isPasskeyOnlyPrompting}
           className="h-11 w-full rounded-lg"
-          disabled={isPasskeyOnlyPrompting || isPasskeyPrompting || isSuccessful}
+          disabled={
+            isPasskeyOnlyPrompting || isPasskeyPrompting || isSuccessful
+          }
           onClick={handlePasskeyOnlyLogin}
           type="button"
         >
@@ -279,7 +299,9 @@ function LoginPageContent() {
         <input name="callbackUrl" type="hidden" value={callbackUrl} />
         <SubmitButton
           isSuccessful={isSuccessful || isPasskeyPrompting}
-          loadingText={isPasskeyPrompting ? "Waiting for passkey" : "Signing in"}
+          loadingText={
+            isPasskeyPrompting ? "Waiting for passkey" : "Signing in"
+          }
         >
           {isPasskeyPrompting ? "Waiting for passkey" : "Sign in"}
         </SubmitButton>

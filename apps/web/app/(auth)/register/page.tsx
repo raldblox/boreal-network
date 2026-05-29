@@ -37,7 +37,7 @@ function RegisterPageContent() {
 
   const [state, formAction] = useActionState<RegisterActionState, FormData>(
     register,
-    { status: "idle" }
+    { status: "idle" },
   );
 
   const { update: updateSession } = useSession();
@@ -94,7 +94,10 @@ function RegisterPageContent() {
         mode="register"
       >
         <input name="callbackUrl" type="hidden" value={callbackUrl} />
-        <SubmitButton isSuccessful={isSuccessful} loadingText="Creating account">
+        <SubmitButton
+          isSuccessful={isSuccessful}
+          loadingText="Creating account"
+        >
           Create account
         </SubmitButton>
         <p className="text-center text-[13px] text-muted-foreground">

@@ -1,8 +1,7 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
-
 import { LoaderCircleIcon } from "lucide-react";
+import { useFormStatus } from "react-dom";
 import { cn } from "@/lib/utils";
 
 import { Button } from "../ui/button";

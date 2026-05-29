@@ -1,10 +1,8 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
-  "extends": [
-    "ultracite/biome/core",
-    "ultracite/biome/next",
-    "ultracite/biome/react"
-  ],
+  // Ultracite 7.7.0 ships Biome presets generated for Biome 2.4.x.
+  // This workspace is pinned to Biome 2.3.11, so keep the effective rules
+  // local until the package and lockfile can be upgraded together.
   "formatter": {
     "indentStyle": "space",
     "indentWidth": 2
