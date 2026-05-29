@@ -49,22 +49,7 @@ These files help shape packaging, prioritization, positioning execution, and mar
 - [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
 - [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
 - [strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
 - [strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
->>>>>>> theirs
-=======
-- [strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
->>>>>>> theirs
-=======
-- [strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
->>>>>>> theirs
-=======
-- [strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
->>>>>>> theirs
 
 ## Product And UX Notes
 

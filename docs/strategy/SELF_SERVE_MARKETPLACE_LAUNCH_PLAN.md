@@ -47,28 +47,6 @@ This gate corresponds to the previously identified `must-fix before any public p
 
 Checklist:
 
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-- [ ] Make the web production build deterministic.
-  - Current risk: `apps/web/app/layout.tsx` imports Google-hosted fonts through `next/font/google`, so builds can fail when font fetches fail.
-  - Safer target: self-host fonts, provide a local fallback, or otherwise remove build-time dependency on flaky external font fetches.
-- [ ] Define the pilot launch scope in `docs/LIVE_VS_TARGET.md` without weakening target-direction boundaries.
-  - Include what a pilot may claim.
-  - Include what a pilot must not claim.
-- [ ] Keep the external motion to buyer-funded request pilots plus curated supply whitelist.
-  - Do not claim open marketplace liquidity before public supply lanes are ready.
-- [ ] Run request-processing validation against actual outputs, not only fixture shape.
-  - Use actual planner or matcher outputs where available.
-  - Preserve deterministic fixture comparison.
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 - [x] Make the web production build deterministic.
   - Completed: `apps/web/app/layout.tsx` no longer imports Google-hosted fonts through `next/font/google`; shared UI CSS now defines local system fallback font variables.
   - Evidence: `pnpm web:build` passes without fetching Google Fonts.
@@ -78,16 +56,6 @@ Checklist:
   - Completed in claim boundary: public launch language stays at buyer-funded request pilots and curated or whitelisted supply until broader public lanes are proven.
 - [x] Run request-processing validation against actual outputs, not only fixture shape.
   - Completed: `pnpm run evals:request-processing:sample` compares `fixtures/request/eval-complex-human-planning-and-match.actual.sample.json` against its fixture.
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
 - [ ] Confirm the first request-to-fulfillment happy path against one real or seeded pilot scenario.
   - buyer creates or opens a `Request`
   - payment or buyer-credit state is explicit
@@ -101,27 +69,8 @@ Checklist:
 - [ ] Confirm public-safe request listing excludes owner-only fields and planner-internal fields.
 - [ ] Confirm desktop execution remains an execution participant and not a second request ledger.
 - [ ] Document manual operator procedures for pilot support, refunds, blocked fulfillments, provider failures, and artifact review.
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-- [ ] Add a short pilot smoke-test checklist to the relevant app or test docs once the first pilot lane is stable.
-=======
 - [x] Add a short pilot smoke-test checklist to the relevant app or test docs once the first pilot lane is stable.
   - Completed: `docs/strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md` records automated checks, manual pilot path checks, and pilot claim review.
->>>>>>> theirs
-=======
-- [x] Add a short pilot smoke-test checklist to the relevant app or test docs once the first pilot lane is stable.
-  - Completed: `docs/strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md` records automated checks, manual pilot path checks, and pilot claim review.
->>>>>>> theirs
-=======
-- [x] Add a short pilot smoke-test checklist to the relevant app or test docs once the first pilot lane is stable.
-  - Completed: `docs/strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md` records automated checks, manual pilot path checks, and pilot claim review.
->>>>>>> theirs
-=======
-- [x] Add a short pilot smoke-test checklist to the relevant app or test docs once the first pilot lane is stable.
-  - Completed: `docs/strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md` records automated checks, manual pilot path checks, and pilot claim review.
->>>>>>> theirs
 
 Exit criteria:
 
