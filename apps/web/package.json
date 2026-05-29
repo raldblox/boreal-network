@@ -21,7 +21,8 @@
     "seed:character-call-demo": "tsx scripts/seed-character-call-demo.ts",
     "eval:request-processing:matcher": "tsx scripts/run-request-processing-matcher-benchmark.ts",
     "eval:request-processing:live": "tsx scripts/run-request-processing-live-benchmark.ts",
-    "test": "node tests/run-playwright.mjs"
+    "test": "node tests/run-playwright.mjs",
+    "test:request-boundaries": "tsx tests/contracts/request-boundary.test.ts"
   },
   "dependencies": {
     "@ai-sdk/provider": "^3.0.3",
