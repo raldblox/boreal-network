@@ -412,9 +412,9 @@ export function ChatShell() {
 
   const openedRequestViewOptions: Array<{ id: WorkroomViewId; label: string }> =
     [
-      { id: "monitor", label: "Monitor" },
-      { id: "activity", label: "Ledger" },
-      { id: "artifacts", label: "Artifacts / proof" },
+      { id: "monitor", label: "Flow" },
+      { id: "activity", label: "Activity" },
+      { id: "artifacts", label: "Artifacts" },
     ];
 
   const openedRequestControls = isOpenedRequest ? (
@@ -422,11 +422,12 @@ export function ChatShell() {
       {openedRequestViewOptions.map((view) => (
         <button
           className={cn(
-            "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors",
+            "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             openedRequestView === view.id
               ? "border-foreground/14 bg-foreground text-background"
               : "border-border/60 bg-background/88 text-muted-foreground hover:text-foreground"
           )}
+          aria-pressed={openedRequestView === view.id}
           key={view.id}
           onClick={() => setOpenedRequestView(view.id)}
           type="button"

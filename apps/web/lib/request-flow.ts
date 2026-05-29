@@ -568,7 +568,7 @@ export function buildTrackedRequestFlowGraph({
       ]),
       details: [
         {
-          label: "Plan summary",
+          label: "Path summary",
           value: request.derived.routeSummary?.trim() || "No route summary yet.",
         },
         {
@@ -611,7 +611,7 @@ export function buildTrackedRequestFlowGraph({
       state: phaseState,
       tone: getProcessNodeTone(phaseState, "blue"),
       stateLabel: phaseState === "done" ? "done" : undefined,
-      laneLabel: "Plan",
+      laneLabel: "Path",
       title: phase.title,
       subtitle: `Phase ${index + 1}`,
       summary: getTrackedPhaseSummary({
@@ -644,7 +644,7 @@ export function buildTrackedRequestFlowGraph({
           value:
             roleMatch?.summary ||
             workerNode.title ||
-            "No worker route attached to this plan yet.",
+            "No worker route attached to this path yet.",
         },
         {
           label: "Evidence",
@@ -716,11 +716,58 @@ export function buildTrackedRequestFlowGraph({
     target: "delivery",
   });
 
+  const initialSelectedNodeId = getInitialTrackedFlowNodeId({
+    deliveryNodeId: "delivery",
+    nodes,
+    workerNodeId: "worker",
+  });
+
   return {
     nodes,
     edges,
-    initialSelectedNodeId: "request",
+    initialSelectedNodeId,
   };
+}
+
+function getInitialTrackedFlowNodeId({
+  deliveryNodeId,
+  nodes,
+  workerNodeId,
+}: {
+  deliveryNodeId: string;
+  nodes: RequestFlowNodeDescriptor[];
+  workerNodeId: string;
+}) {
+  const deliveryNode = nodes.find((node) => node.id === deliveryNodeId);
+  if (
+    deliveryNode &&
+    (deliveryNode.state === "done" ||
+      deliveryNode.state === "current" ||
+      deliveryNode.state === "blocked")
+  ) {
+    return deliveryNode.id;
+  }
+
+  const workerNode = nodes.find((node) => node.id === workerNodeId);
+  if (
+    workerNode &&
+    (workerNode.state === "done" ||
+      workerNode.state === "current" ||
+      workerNode.state === "blocked")
+  ) {
+    return workerNode.id;
+  }
+
+  const activePhaseNode = nodes.find(
+    (node) =>
+      node.kind === "phase" &&
+      (node.state === "current" || node.state === "blocked")
+  );
+  if (activePhaseNode) {
+    return activePhaseNode.id;
+  }
+
+  return "request";
 }
 
 function getPortableDraftPhases(request: BorealRequestDraft): PortablePhase[] {
@@ -1266,7 +1313,7 @@ function getTrackedDeliverySummary({
 }) {
   if (artifact) {
     if (isVideoActivityArtifact(artifact)) {
-      return "The video file is attached and ready to preview in the Delivery tab before owner acceptance.";
+      return "The video file is attached and ready to preview in Artifacts before owner acceptance.";
     }
 
     return `${artifact.title} is attached as the delivery package for this request.`;

@@ -1,6 +1,9 @@
 "use client";
 import {
   ArrowDownIcon,
+  ExternalLinkIcon,
+  FileTextIcon,
+  FileVideoIcon,
   PackageIcon,
   PaperclipIcon,
 } from "lucide-react";
@@ -783,52 +786,51 @@ export function RequestTracker({
           <div className="mx-auto w-full max-w-[84rem]">
             <div className="mt-5 space-y-4">
               {selectedView === "monitor" ? (
-                <>
-                  <WorkroomMonitorSummary items={monitorSummaryItems} />
-
-                  <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                    <div className="border-b border-border/60 px-4 py-4 md:px-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                            Workroom monitor
-                          </div>
-                          <div className="mt-2 text-[15px] leading-6 text-foreground">
-                            {nextActionSummary.value}
-                          </div>
-                          <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                            {nextActionSummary.detail}
-                          </div>
-                          <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/62">
-                            Process lens: Request -&gt; Plan -&gt; Worker -&gt; Delivery
-                          </div>
+                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                          Path Builder
                         </div>
-                        <button
-                          className="rounded-full border border-border/60 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground"
-                          onClick={() => {
-                            onSelectView("activity");
-                            setFollowMode("manual");
-                          }}
-                          type="button"
-                        >
-                          Open activity ledger
-                        </button>
+                        <div className="mt-2 text-[15px] leading-6 text-foreground">
+                          {nextActionSummary.value}
+                        </div>
+                        <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                          {nextActionSummary.detail}
+                        </div>
+                        <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/62">
+                          Request truth: Request -&gt; Path -&gt; Worker -&gt; Proof -&gt; Review
+                        </div>
                       </div>
+                      <button
+                        className="rounded-full border border-border/60 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        onClick={() => {
+                          onSelectView("activity");
+                          setFollowMode("manual");
+                        }}
+                        type="button"
+                      >
+                        Open activity
+                      </button>
                     </div>
+                    <div className="mt-4">
+                      <WorkroomMonitorSummary items={monitorSummaryItems} />
+                    </div>
+                  </div>
 
-                    <div className="grid gap-4 p-3 md:p-4 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,25rem)]">
-                      <RequestFlowCanvas
-                        graph={requestFlowGraph}
-                        heightClassName="h-[34rem] xl:h-[38rem]"
-                        onSelectedNodeChange={setSelectedFlowNodeId}
-                        selectedNodeId={selectedFlowNodeDescriptor?.id}
-                      />
-                      <FlowNodeInspector descriptor={selectedFlowNodeDescriptor}>
-                        {selectedFlowContextBody}
-                      </FlowNodeInspector>
-                    </div>
-                  </section>
-                </>
+                  <div className="grid gap-4 p-3 md:p-4 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,25rem)]">
+                    <RequestFlowCanvas
+                      graph={requestFlowGraph}
+                      heightClassName="h-[34rem] xl:h-[38rem]"
+                      onSelectedNodeChange={setSelectedFlowNodeId}
+                      selectedNodeId={selectedFlowNodeDescriptor?.id}
+                    />
+                    <FlowNodeInspector descriptor={selectedFlowNodeDescriptor}>
+                      {selectedFlowContextBody}
+                    </FlowNodeInspector>
+                  </div>
+                </section>
               ) : null}
 
               {selectedView === "activity" ? (
@@ -880,12 +882,12 @@ export function RequestTracker({
 
       {!usesExternalScrollHost && showBackToLiveControl ? (
         <button
-          className="absolute bottom-4 left-1/2 z-10 inline-flex h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-border/60 bg-background/92 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 hover:scale-[1.02]"
+          className="absolute bottom-4 left-1/2 z-10 inline-flex h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-border/60 bg-background/92 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={resumeLiveStage}
           type="button"
         >
           <span className="size-2 rounded-full bg-sky-400" />
-          Back to live step
+          Back to live path
         </button>
       ) : !usesExternalScrollHost && selectedView === "activity" ? (
         <button
@@ -1005,7 +1007,7 @@ function FlowNodeInspector({
   }
 
   return (
-    <aside className="overflow-hidden rounded-[20px] border border-border/60 bg-background/92">
+    <aside className="overflow-hidden rounded-[20px] border border-border/60 bg-background/92 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-8rem)] xl:overflow-y-auto">
       <div className="border-b border-border/60 px-4 py-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-border/70 bg-muted/[0.18] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
@@ -1090,8 +1092,8 @@ function PlanFlowContext({
         {descriptor?.subtitle || "Selected plan step"}
       </div>
       <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-        Flow explains Request -&gt; Plan -&gt; Worker -&gt; Delivery. It is not a
-        separate request or fake task tree.
+        Flow explains Request -&gt; Path -&gt; Worker -&gt; Proof -&gt; Review. It is
+        not a separate request or fake task tree.
       </div>
     </div>
   );
@@ -1315,22 +1317,138 @@ function ArtifactFileBrowser({
         </div>
       </div>
 
-      <div className="min-w-0 rounded-[18px] border border-border/60 bg-muted/[0.12] p-3">
+      <div className="min-w-0 space-y-3 rounded-[18px] border border-border/60 bg-muted/[0.12] p-3">
         {selectedActivity ? (
-          <RequestActivityMessage
-            activity={selectedActivity}
-            index={0}
-            isReadonly={isReadonly}
-            ownerUserId={ownerUserId}
-            totalCount={1}
-            variant="stage"
-          />
+          <>
+            <ArtifactPreviewPanel activity={selectedActivity} />
+            <RequestActivityMessage
+              activity={selectedActivity}
+              index={0}
+              isReadonly={isReadonly}
+              ownerUserId={ownerUserId}
+              totalCount={1}
+              variant="stage"
+            />
+          </>
         ) : (
           <div className="flex min-h-40 items-center justify-center rounded-[16px] border border-dashed border-border/60 text-[13px] text-muted-foreground">
             Select a file to preview it.
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ArtifactPreviewPanel({ activity }: { activity: RequestActivityEntry }) {
+  const artifact = activity.artifact;
+
+  if (!artifact) {
+    return null;
+  }
+
+  const previewUrl = getArtifactPreviewUrl(activity);
+  const isVideo = isVideoArtifactPreview(activity);
+  const isImage = isImageArtifactPreview(activity);
+  const fileName = getArtifactFileName(artifact);
+
+  return (
+    <div className="overflow-hidden rounded-[16px] border border-border/60 bg-background/92">
+      {isVideo && previewUrl ? (
+        <div className="border-b border-border/60 bg-black">
+          <video
+            className="aspect-video w-full bg-black object-contain"
+            controls
+            preload="metadata"
+            src={previewUrl}
+          >
+            <track
+              kind="captions"
+              label="No captions"
+              src="data:text/vtt,WEBVTT"
+              srcLang="en"
+            />
+          </video>
+        </div>
+      ) : isImage && previewUrl ? (
+        <div className="border-b border-border/60 bg-black">
+          <img
+            alt={artifact.title}
+            className="max-h-[28rem] w-full object-contain"
+            src={previewUrl}
+          />
+        </div>
+      ) : null}
+
+      <div className="space-y-3 px-3 py-3">
+        <div className="flex items-start gap-2.5">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/[0.18] text-muted-foreground">
+            {isVideo ? (
+              <FileVideoIcon className="size-4" />
+            ) : artifact.container.kind === "document" ? (
+              <FileTextIcon className="size-4" />
+            ) : artifact.kind === "delivery" ? (
+              <PackageIcon className="size-4" />
+            ) : (
+              <PaperclipIcon className="size-4" />
+            )}
+          </span>
+          <div className="min-w-0">
+            <div className="text-[14px] font-medium leading-6 text-foreground">
+              {artifact.title}
+            </div>
+            <div className="text-[12px] leading-5 text-muted-foreground">
+              {artifact.summary?.trim() ||
+                "Attached proof or delivery file for this request."}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-2 text-[12px] leading-5 text-muted-foreground sm:grid-cols-2">
+          <ArtifactMetaPill label="Kind" value={formatLabel(artifact.kind)} />
+          <ArtifactMetaPill label="Type" value={getArtifactFileType(artifact)} />
+          {fileName ? <ArtifactMetaPill label="File" value={fileName} /> : null}
+          {artifact.container.kind === "object_ref" && artifact.container.byteSize ? (
+            <ArtifactMetaPill
+              label="Size"
+              value={formatByteSize(artifact.container.byteSize)}
+            />
+          ) : null}
+        </div>
+
+        {previewUrl ? (
+          <a
+            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-border/70 px-3 text-[12px] font-medium text-foreground transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            href={previewUrl}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <ExternalLinkIcon className="size-3.5" />
+            Open file
+          </a>
+        ) : artifact.container.kind === "object_ref" ? (
+          <div className="break-all rounded-[14px] border border-dashed border-border/60 bg-muted/[0.16] px-3 py-2 text-[12px] leading-5 text-muted-foreground">
+            Stored as {artifact.container.storageProvider}: {artifact.container.objectKey}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function ArtifactMetaPill({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-[12px] border border-border/60 bg-muted/[0.14] px-2.5 py-2">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/72">
+        {label}
+      </div>
+      <div className="mt-0.5 truncate text-foreground">{value}</div>
     </div>
   );
 }
@@ -1369,6 +1487,87 @@ function getArtifactFileType(
       artifact.container.mediaKind ||
       artifact.container.storageProvider
   )}`;
+}
+
+function getArtifactPreviewUrl(activity: RequestActivityEntry) {
+  const artifact = activity.artifact;
+  const container = artifact?.container;
+
+  if (!artifact || !container || container.kind === "document") {
+    return null;
+  }
+
+  if (container.kind === "external_ref") {
+    return container.uri;
+  }
+
+  if (container.storageProvider !== "vercel_blob") {
+    return null;
+  }
+
+  return `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests/${
+    activity.requestId
+  }/artifacts/${artifact.id}/media`;
+}
+
+function isVideoArtifactPreview(activity: RequestActivityEntry) {
+  const artifact = activity.artifact;
+  const container = artifact?.container;
+
+  if (!artifact || !container || container.kind === "document") {
+    return false;
+  }
+
+  return (
+    (artifact.kind === "media" &&
+      "mediaKind" in container &&
+      container.mediaKind === "video") ||
+    ("mimeType" in container &&
+      typeof container.mimeType === "string" &&
+      container.mimeType.toLowerCase().startsWith("video/"))
+  );
+}
+
+function isImageArtifactPreview(activity: RequestActivityEntry) {
+  const artifact = activity.artifact;
+  const container = artifact?.container;
+
+  if (!artifact || !container || container.kind === "document") {
+    return false;
+  }
+
+  return (
+    (artifact.kind === "media" &&
+      "mediaKind" in container &&
+      container.mediaKind === "image") ||
+    ("mimeType" in container &&
+      typeof container.mimeType === "string" &&
+      container.mimeType.toLowerCase().startsWith("image/"))
+  );
+}
+
+function getArtifactFileName(
+  artifact: NonNullable<RequestActivityEntry["artifact"]>
+) {
+  const container = artifact.container;
+
+  if (container.kind === "document") {
+    return null;
+  }
+
+  return container.filename ?? null;
+}
+
+function formatByteSize(byteSize: number) {
+  if (byteSize < 1024) {
+    return `${byteSize} B`;
+  }
+
+  if (byteSize < 1024 * 1024) {
+    return `${(byteSize / 1024).toFixed(1)} KB`;
+  }
+
+  return `${(byteSize / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function getActivityActorName(activity: RequestActivityEntry) {
@@ -2100,7 +2299,7 @@ function getWorkroomMonitorSummaryItems({
     },
     {
       detail: proofDetail,
-      label: "Artifacts / proof",
+      label: "Artifacts",
       tone: latestDeliveryArtifact ? "success" : "default",
       value: proofValue,
     },
