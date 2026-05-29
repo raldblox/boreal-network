@@ -49,6 +49,28 @@ These are safe to state as present canon truth:
 - the first credit-metered public solution run endpoint creates or reuses a private run `Request` that references the source accepted artifact and records buyer-credit debit plus request-attached `Transaction` truth
 - passive funder cash revenue-share, investment, yield, dividend, and tax-deductible donation language are outside the first accepted model
 
+## Public Pilot Boundary
+
+Until the Gate 1 public-pilot checklist in `docs/strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md` is complete, public-facing launch language must stay at the pilot layer.
+
+Safe pilot claims:
+
+- Boreal is preparing or running buyer-funded request pilots for request-native work commerce.
+- Pilot supply is curated or whitelisted rather than open marketplace liquidity.
+- Pilot work should stay in narrow digital-service lanes where request intake, commitment, fulfillment, artifact review, and payment or credit state can be monitored from canonical records.
+- Public request browsing may be described only for public-safe projections that exclude owner-only fields and planner-internal fields.
+- Desktop and peer runtimes may be described as execution participants or transport foundations, not as independent sources of Boreal request truth.
+
+Unsafe pilot claims:
+
+- Boreal is already a broad self-serve public marketplace.
+- Any supply can already publish publicly and transact without curation.
+- Public solution surfaces, request grants, and metered solution runs are fully live marketplace features.
+- Public or cross-actor request execution is fully isolated for untrusted work unless the specific shipped lane proves it.
+- Pilot evidence proves every target vertical, fulfillment class, payment path, dispute path, or public-market path.
+
+Before widening beyond this pilot boundary, update this file only after the relevant behavior is machine-modeled, tested, or live in the governed workspaces.
+
 ## Machine-Modeled Now
 
 These are already backed by machine-readable artifacts or deterministic fixtures in this repo:

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter, Libre_Caslon_Text } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,19 +20,6 @@ export const metadata: Metadata = {
 export const viewport = {
   maximumScale: 1,
 };
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sans",
-});
-
-const libreCaslonText = Libre_Caslon_Text({
-  subsets: ["latin"],
-  display: "swap",
-  weight: ["400", "700"],
-  variable: "--font-display",
-});
 
 const LIGHT_THEME_COLOR = "hsl(0 0% 100%)";
 const DARK_THEME_COLOR = "hsl(240deg 10% 3.92%)";
@@ -61,11 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      className={`${inter.variable} ${libreCaslonText.variable}`}
-      lang="en"
-      suppressHydrationWarning
-    >
+    <html lang="en" suppressHydrationWarning>
       <head>
         <Script
           id="theme-color-script"

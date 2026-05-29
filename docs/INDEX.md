@@ -88,7 +88,7 @@ Read in this order:
 
 - `docs/` - human-readable canon, strategy, research, and governance
 - `docs/BRAND_VOICE.md` - official product voice for public copy and website surfaces
-- `docs/strategy/` - product-shaping and go-to-market working docs derived from canon
+- `docs/strategy/` - product-shaping, launch planning, and go-to-market working docs derived from canon
 - `docs/decisions/` - accepted decisions and architectural records
 - `docs/papers/` - manuscripts, outlines, notes, and benchmark outputs
 - `schemas/` - JSON Schema, OpenAPI, and event contracts
@@ -104,6 +104,7 @@ Read in this order:
 - Start with canon before implementation when meaning could drift.
 - Start with strategy before copywriting when audience or wedge could drift.
 - Start with live-versus-target before making public claims.
+- Use [strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md) as the durable work queue for pilot and self-serve marketplace launch gates.
 - Start with governance before adding new workspaces or redefining repo meaning.
 - Treat `Request` as the durable business root unless canon changes explicitly.
 
