@@ -4,7 +4,16 @@ import { useMemo } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { RequestFlowCanvas } from "@/components/chat/request-flow-canvas";
 import { buildDraftRequestFlowGraph } from "@/lib/request-flow";
-import type { BorealRequestDraft, RequestPhaseKey } from "@/lib/request";
+import {
+  buildRequestPathBuilderViewModel,
+  describeMissingPathDetail,
+  getRequestPathFallbackPhases,
+  getRequestPathPhaseStatusLabel,
+  type RequestBaselinePath,
+  type RequestPathSignal,
+  type RequestSupportingPath,
+} from "@/lib/request-path-builder";
+import type { BorealRequestDraft } from "@/lib/request";
 import { LoadingButton } from "./loading-button";
 
 type RequestPlanPanelProps = {
@@ -64,20 +73,6 @@ type RoleAssignment = {
   supplyId?: string;
 };
 
-type PathSignal = {
-  label: string;
-  value: string;
-  detail: string;
-  tone: "good" | "warn" | "danger" | "neutral";
-};
-
-type SupportingPathSlot = {
-  title: string;
-  source: string;
-  status: string;
-  summary: string;
-};
-
 export function RequestPlanPanel({
   request,
   scope,
@@ -96,10 +91,15 @@ export function RequestPlanPanel({
   const roleAssignments = getRoleAssignments(request);
   const flowSteps = getFlowSteps(request);
   const flowGraph = useMemo(() => buildDraftRequestFlowGraph(request), [request]);
-  const planNarrative = getPlanNarrative(request, flowSteps, plannedRoles);
-  const pathSignals = getPathSignals(request);
-  const supportingPathSlots = getSupportingPathSlots(request, leadCandidates);
+  const pathBuilder = useMemo(
+    () => buildRequestPathBuilderViewModel({ request, scope }),
+    [request, scope]
+  );
+  const planNarrative = pathBuilder.baselinePath.summary;
+  const pathSignals = pathBuilder.signals;
+  const supportingPathSlots = pathBuilder.supportingPaths;
   const hasPlanContent =
+    pathBuilder.hasPathContent ||
     understandingItems.length > 0 ||
     missingItems.length > 0 ||
     plannedRoles.length > 0 ||
@@ -132,7 +132,7 @@ export function RequestPlanPanel({
   }
 
   const canOpenRequest =
-    scope === "draft" && request.derived.readiness.readyForOpen;
+    pathBuilder.canOpenRequest;
 
   return (
     <section className="rounded-[22px] border border-border/60 bg-muted/[0.18] p-3.5 md:p-4">
@@ -182,13 +182,8 @@ export function RequestPlanPanel({
       </div>
 
       <BaselinePathCard
-        canOpenRequest={canOpenRequest}
-        flowSteps={flowSteps}
+        baselinePath={pathBuilder.baselinePath}
         pathSignals={pathSignals}
-        plannedRoles={plannedRoles}
-        planNarrative={planNarrative}
-        request={request}
-        scope={scope}
       />
 
       <PathSignalStrip signals={pathSignals} />
@@ -458,29 +453,15 @@ export function RequestPlanPanel({
 }
 
 function BaselinePathCard({
-  canOpenRequest,
-  flowSteps,
+  baselinePath,
   pathSignals,
-  plannedRoles,
-  planNarrative,
-  request,
-  scope,
 }: {
-  canOpenRequest: boolean;
-  flowSteps: FlowStep[];
-  pathSignals: PathSignal[];
-  plannedRoles: PlannedRole[];
-  planNarrative: string;
-  request: BorealRequestDraft;
-  scope: RequestPlanPanelProps["scope"];
+  baselinePath: RequestBaselinePath;
+  pathSignals: RequestPathSignal[];
 }) {
   const proofSignal = pathSignals.find((signal) => signal.label === "Proof");
   const humanWorkSignal = pathSignals.find((signal) => signal.label === "Human work");
   const riskSignal = pathSignals.find((signal) => signal.label === "Risk");
-  const stateLabel =
-    scope === "open" ? "request-open" : canOpenRequest ? "execution-ready" : "proposal";
-  const stepCount = Math.max(flowSteps.length, 1);
-  const laneCount = Math.max(plannedRoles.length, 1);
 
   return (
     <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
@@ -491,26 +472,26 @@ function BaselinePathCard({
               Boreal baseline
             </div>
             <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-              {stateLabel}
+              {baselinePath.statusLabel}
             </div>
           </div>
           <div className="mt-3 text-[17px] font-medium leading-7 text-foreground">
-            {request.brief.title?.trim() || "Baseline path"}
+            {baselinePath.title}
           </div>
           <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
-            {planNarrative}
+            {baselinePath.summary}
           </div>
         </div>
 
         <div className="grid min-w-[160px] grid-cols-2 gap-2 text-[12px] leading-5 text-muted-foreground md:text-right">
-          <span>{stepCount} {stepCount === 1 ? "step" : "steps"}</span>
-          <span>{laneCount} {laneCount === 1 ? "lane" : "lanes"}</span>
+          <span>{baselinePath.stepCount} {baselinePath.stepCount === 1 ? "step" : "steps"}</span>
+          <span>{baselinePath.laneCount} {baselinePath.laneCount === 1 ? "lane" : "lanes"}</span>
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         {[humanWorkSignal, proofSignal, riskSignal]
-          .filter((signal): signal is PathSignal => Boolean(signal))
+          .filter((signal): signal is RequestPathSignal => Boolean(signal))
           .map((signal) => (
             <span
               className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] leading-5 text-muted-foreground"
@@ -528,7 +509,7 @@ function BaselinePathCard({
   );
 }
 
-function PathSignalStrip({ signals }: { signals: PathSignal[] }) {
+function PathSignalStrip({ signals }: { signals: RequestPathSignal[] }) {
   return (
     <section className="mt-3 grid gap-2 md:grid-cols-5">
       {signals.map((signal) => (
@@ -551,7 +532,7 @@ function PathSignalStrip({ signals }: { signals: PathSignal[] }) {
   );
 }
 
-function SupportingPathTray({ slots }: { slots: SupportingPathSlot[] }) {
+function SupportingPathTray({ slots }: { slots: RequestSupportingPath[] }) {
   return (
     <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -676,250 +657,7 @@ function FlowStepRow({
   );
 }
 
-function getPlanNarrative(
-  request: BorealRequestDraft,
-  flowSteps: FlowStep[],
-  plannedRoles: PlannedRole[]
-) {
-  const location = request.derived.embodiedConstraintSet.serviceLocation?.trim();
-
-  if (request.derived.embodiedConstraintSet.requiresEmbodiedHandling) {
-    if (location) {
-      return `Boreal mapped a baseline path for real-world work in ${location}. The Request keeps local execution, proof, and review inside one thread.`;
-    }
-
-    return "Boreal mapped a baseline path for real-world work. The Request keeps execution, proof, and review inside one thread.";
-  }
-
-  if (flowSteps.length > 1) {
-    return `Boreal mapped this baseline path into ${flowSteps.length} steps that affect execution, proof, or delivery${plannedRoles.length > 0 ? `, with ${plannedRoles.length} capability lane${plannedRoles.length === 1 ? "" : "s"}` : ""}.`;
-  }
-
-  return "Boreal understands the ask and is showing a baseline path from request to delivery. Edit the brief if the outcome or constraints are wrong.";
-}
-
-function getPathSignals(request: BorealRequestDraft): PathSignal[] {
-  return [
-    getFeasibilitySignal(request),
-    getRiskSignal(request),
-    getProofReadinessSignal(request),
-    getHumanWorkSignal(request),
-    getClarificationSignal(request),
-  ];
-}
-
-function getFeasibilitySignal(request: BorealRequestDraft): PathSignal {
-  if (request.derived.readiness.readyForOpen) {
-    return {
-      label: "Feasibility",
-      value: "Good",
-      detail: "Enough structure exists to open the request.",
-      tone: "good",
-    };
-  }
-
-  if (
-    request.derived.missingDetails.includes("title") ||
-    request.derived.missingDetails.includes("body")
-  ) {
-    return {
-      label: "Feasibility",
-      value: "Blocked",
-      detail: "Core request text is still missing.",
-      tone: "danger",
-    };
-  }
-
-  if (request.derived.planCollapseRisk.riskLevel === "high") {
-    return {
-      label: "Feasibility",
-      value: "Weak",
-      detail: "This path may fail without more detail.",
-      tone: "danger",
-    };
-  }
-
-  return {
-    label: "Feasibility",
-    value: "Unclear",
-    detail: "The path needs more inputs before routing.",
-    tone: "warn",
-  };
-}
-
-function getRiskSignal(request: BorealRequestDraft): PathSignal {
-  const riskLevel = request.derived.planCollapseRisk.riskLevel;
-
-  return {
-    label: "Risk",
-    value: formatLabel(riskLevel),
-    detail:
-      request.derived.planCollapseRisk.reasons[0] ??
-      "No high-risk collapse reason is currently attached.",
-    tone:
-      riskLevel === "high"
-        ? "danger"
-        : riskLevel === "moderate"
-          ? "warn"
-          : "good",
-  };
-}
-
-function getProofReadinessSignal(request: BorealRequestDraft): PathSignal {
-  const verificationMissing =
-    request.derived.clarificationNeeded.missingDetails.includes(
-      "verification_requirements"
-    );
-  const proofCount =
-    request.derived.verificationPlan.requiredArtifactKinds.length +
-    request.derived.verificationPlan.requiredEvidenceClaims.length +
-    (request.derived.verificationPlan.mustHaveLocationSignal ? 1 : 0) +
-    (request.derived.verificationPlan.mustHaveOwnerAcceptance ? 1 : 0) +
-    (request.derived.verificationPlan.mustHaveSignature ? 1 : 0);
-
-  if (verificationMissing) {
-    return {
-      label: "Proof",
-      value: "Missing",
-      detail: "Proof is not defined yet.",
-      tone: "danger",
-    };
-  }
-
-  if (proofCount > 0) {
-    return {
-      label: "Proof",
-      value: request.derived.readiness.readyForOpen ? "Ready" : "Partial",
-      detail: `${proofCount} proof ${proofCount === 1 ? "signal" : "signals"} captured.`,
-      tone: request.derived.readiness.readyForOpen ? "good" : "warn",
-    };
-  }
-
-  return {
-    label: "Proof",
-    value: "Partial",
-    detail: "No special proof package is defined yet.",
-    tone: "neutral",
-  };
-}
-
-function getHumanWorkSignal(request: BorealRequestDraft): PathSignal {
-  const executionModes = request.derived.executionProfile.executionModes;
-  const hasRemoteMode = executionModes.some((mode) => /remote|digital/.test(mode));
-  const hasLocalMode =
-    request.derived.embodiedConstraintSet.requiresEmbodiedHandling ||
-    request.derived.executionProfile.requiresHumanPresence ||
-    request.derived.executionProfile.requiresLocalAccess;
-
-  if (hasLocalMode && hasRemoteMode) {
-    return {
-      label: "Human work",
-      value: "Mixed",
-      detail: "This path combines local or manual work with remote coordination.",
-      tone: "warn",
-    };
-  }
-
-  if (hasLocalMode) {
-    return {
-      label: "Human work",
-      value: "Onsite",
-      detail: "This path requires human or local action.",
-      tone: "warn",
-    };
-  }
-
-  if (hasRemoteMode) {
-    return {
-      label: "Human work",
-      value: "Remote",
-      detail: "This path can stay in a remote digital lane.",
-      tone: "good",
-    };
-  }
-
-  return {
-    label: "Human work",
-    value: "None",
-    detail: "No manual or onsite work is currently detected.",
-    tone: "neutral",
-  };
-}
-
-function getClarificationSignal(request: BorealRequestDraft): PathSignal {
-  if (request.derived.clarificationNeeded.required) {
-    return {
-      label: "Clarification",
-      value: "Needed",
-      detail: `${request.derived.clarificationNeeded.missingDetails.length} input ${request.derived.clarificationNeeded.missingDetails.length === 1 ? "is" : "are"} still missing.`,
-      tone: "warn",
-    };
-  }
-
-  if (request.derived.missingDetails.length > 0) {
-    return {
-      label: "Clarification",
-      value: "Optional",
-      detail: "Some details can still improve matching.",
-      tone: "neutral",
-    };
-  }
-
-  return {
-    label: "Clarification",
-    value: "Not needed",
-    detail: "No route-blocking question is currently open.",
-    tone: "good",
-  };
-}
-
-function getSupportingPathSlots(
-  request: BorealRequestDraft,
-  leadCandidates: LeadCandidate[]
-): SupportingPathSlot[] {
-  const serviceSlot = leadCandidates[0]
-    ? {
-        title: "Service or supply path",
-        source: "supply",
-        status: "candidate",
-        summary: leadCandidates[0].summary,
-      }
-    : {
-        title: "Service or supply path",
-        source: "supply",
-        status: request.routing.preferredSupplyId ? "pinned" : "preview",
-        summary: request.routing.preferredSupplyId
-          ? "Pinned supply narrows the route. It still needs approval, proof, funding, and safety gates."
-          : "Attach a service or supply when a grounded route exists.",
-      };
-
-  return [
-    {
-      title: "Human path",
-      source: "human",
-      status: "preview",
-      summary:
-        "Invite a reviewer or operator to propose another way to complete this request.",
-    },
-    {
-      title: "Agent path",
-      source: "agent",
-      status: "preview",
-      summary:
-        "Ask another agent for a supporting path without treating it as assigned work.",
-    },
-    serviceSlot,
-    {
-      title: "Workflow path",
-      source: "template",
-      status: "future",
-      summary:
-        "Reusable workflow paths can attach later without becoming a new root object.",
-    },
-  ];
-}
-
-function getPathSignalToneClassName(tone: PathSignal["tone"]) {
+function getPathSignalToneClassName(tone: RequestPathSignal["tone"]) {
   switch (tone) {
     case "good":
       return "border-emerald-400/25 bg-emerald-400/10";
@@ -987,7 +725,7 @@ function getMissingItems(request: BorealRequestDraft): PlanNeed[] {
   }
 
   return request.derived.clarificationNeeded.missingDetails.map((detail) =>
-    describeMissingDetail(detail)
+    describeMissingPathDetail(detail)
   );
 }
 
@@ -995,7 +733,7 @@ function getFlowSteps(request: BorealRequestDraft): FlowStep[] {
   const phases =
     request.derived.phases.length > 0
       ? request.derived.phases
-      : buildFallbackFlowSteps(request);
+      : getRequestPathFallbackPhases(request);
 
   return phases.map((phase) => ({
     title: getPhaseTitle(request, phase),
@@ -1005,7 +743,7 @@ function getFlowSteps(request: BorealRequestDraft): FlowStep[] {
       phase.requiredEvidenceClaims.length > 0
         ? phase.requiredEvidenceClaims.map((claim) => formatLabel(claim)).join(", ")
         : undefined,
-    statusLabel: getPhaseStatusLabel(phase.phaseKey),
+    statusLabel: getRequestPathPhaseStatusLabel(phase.phaseKey),
     roleSummary: getPhaseRoleSummary(request, phase),
   }));
 }
@@ -1246,7 +984,7 @@ function getPhaseItems(
 ) {
   if (phase.phaseKey === "clarify_constraints") {
     return request.derived.clarificationNeeded.missingDetails.map(
-      (detail) => describeMissingDetail(detail).label
+      (detail) => describeMissingPathDetail(detail).label
     );
   }
 
@@ -1281,120 +1019,6 @@ function getPhaseItems(
   }
 
   return [];
-}
-
-function getPhaseStatusLabel(phaseKey: RequestPhaseKey) {
-  switch (phaseKey) {
-    case "clarify_constraints":
-      return "needed now";
-    case "proof_delivery":
-    case "handoff_review":
-      return "final";
-    default:
-      return "next";
-  }
-}
-
-function buildFallbackFlowSteps(
-  request: BorealRequestDraft
-): BorealRequestDraft["derived"]["phases"] {
-  const fallbackPhases: BorealRequestDraft["derived"]["phases"] = [];
-
-  if (request.derived.clarificationNeeded.required) {
-    fallbackPhases.push({
-      phaseKey: "clarify_constraints",
-      title: "Lock the missing work details",
-      summary:
-        "Boreal still needs a few execution-critical details before the request is ready to route cleanly.",
-      roleKeys:
-        request.derived.leadRole ? [request.derived.leadRole] : [],
-      requiredEvidenceClaims: [],
-    });
-  }
-
-  if (request.derived.embodiedConstraintSet.requiresEmbodiedHandling) {
-    fallbackPhases.push({
-      phaseKey: "onsite_execution",
-      title: "Complete the local verification work",
-      summary:
-        "Handle the real-world visit, verification, and evidence capture inside the same request thread.",
-      roleKeys:
-        request.derived.roleSlots.length > 0
-          ? request.derived.roleSlots
-              .filter((roleSlot) => roleSlot.required)
-              .map((roleSlot) => roleSlot.roleKey)
-          : request.derived.leadRole
-            ? [request.derived.leadRole]
-            : [],
-      requiredEvidenceClaims: [],
-    });
-  }
-
-  if (request.derived.verificationPlan.requiredEvidenceClaims.length > 0) {
-    fallbackPhases.push({
-      phaseKey: "proof_delivery",
-      title: "Publish proof and final delivery",
-      summary:
-        "Attach the proof-bearing delivery package so review and closure stay truthful.",
-      roleKeys:
-        request.derived.roleSlots.length > 0
-          ? request.derived.roleSlots.map((roleSlot) => roleSlot.roleKey)
-          : request.derived.leadRole
-            ? [request.derived.leadRole]
-            : [],
-      requiredEvidenceClaims:
-        request.derived.verificationPlan.requiredEvidenceClaims,
-    });
-  }
-
-  if (fallbackPhases.length === 0 && request.brief.body?.trim()) {
-    fallbackPhases.push({
-      phaseKey: "execute_delivery",
-      title: "Complete the requested work",
-      summary:
-        "Boreal has the ask, but the path has not yet expanded into richer phases.",
-      roleKeys:
-        request.derived.leadRole ? [request.derived.leadRole] : [],
-      requiredEvidenceClaims: [],
-    });
-  }
-
-  return fallbackPhases;
-}
-
-function describeMissingDetail(detail: string): PlanNeed {
-  switch (detail) {
-    case "execution_modes":
-      return {
-        label: "Execution mode",
-        detail: "Say if this should run onsite, remote, or hybrid so Boreal can route it correctly.",
-      };
-    case "access_requirements":
-      return {
-        label: "Access details",
-        detail: "Add venue, organizer access, booking context, or other local access details needed to do the work.",
-      };
-    case "service_location":
-      return {
-        label: "Exact location",
-        detail: "Add the city, venue, or service area where the work needs to happen.",
-      };
-    case "time_windows":
-      return {
-        label: "Time window",
-        detail: "Add the actual schedule window or target timing for the work.",
-      };
-    case "verification_requirements":
-      return {
-        label: "Success proof",
-        detail: "Say what evidence or completion proof should be delivered back to the request.",
-      };
-    default:
-      return {
-        label: formatLabel(detail),
-        detail: "Add this missing request detail before opening the request.",
-      };
-  }
 }
 
 function getProofSummary(request: BorealRequestDraft) {
