@@ -86,6 +86,7 @@ Verify:
 - duplicate request transaction requests with the same idempotency key do not create duplicate request-attached transactions
 - duplicate request-grant contributions with the same idempotency key do not double-fund the request
 - duplicate solution-run credit requests with the same idempotency key do not double-debit buyer credit or fork duplicate run requests
+- duplicate `POST /api/requests/{id}/solution-runs` calls with the same idempotency key return the same run `Request`, source artifact reference, buyer-credit debit, and request `Transaction`
 - duplicate event replay does not double-apply side effects
 
 ### Payment webhook tests
@@ -191,6 +192,7 @@ Verify:
 - public solution surfaces should require accepted artifacts and completed or accepted request truth
 - inspecting a public solution should not consume credits, create transaction truth, or reopen the source request
 - running a public solution should consume credits only when inference, provider API calls, workflow execution, human review, or service capacity is used
+- public solution run creation should require one completed public source `Request`, one matching accepted `Artifact`, an authenticated buyer session, a positive credit amount, and an idempotency key
 - paid solution runs should write credit debit and transaction truth to the run request, not mutate the completed source request
 - solution forks or private adaptations should create a new `Request` referencing the source artifact instead of mutating the completed source request
 - live-model benchmark scoring should not depend on a second judge LLM when exact contract or metric-based scoring already exists

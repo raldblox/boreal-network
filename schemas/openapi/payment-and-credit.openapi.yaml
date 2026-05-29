@@ -155,6 +155,88 @@ paths:
                     $ref: "#/components/schemas/BuyerCreditAccount"
                   ledgerEntry:
                     $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+  /api/requests/{id}/solution-runs:
+    post:
+      summary: Create or reuse one private credit-metered run Request from a completed public solution.
+      description: >
+        The path id is the completed public source Request. The endpoint creates
+        or reuses one private run Request for the authenticated buyer, references
+        the source accepted Artifact, debits first-party buyer credit, and writes
+        request-attached Transaction truth on the run Request. It does not mutate
+        the source Request and does not introduce a SolutionRun root object.
+      parameters:
+        - $ref: "#/components/parameters/RequestId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - amount
+              properties:
+                acceptedArtifactId:
+                  type:
+                    - string
+                    - "null"
+                  format: uuid
+                  description: Optional explicit accepted artifact id. When provided, it must match the source Request active accepted artifact.
+                amount:
+                  $ref: "#/components/schemas/MoneyAmount"
+                customization:
+                  type:
+                    - string
+                    - "null"
+                  maxLength: 2000
+                idempotencyKey:
+                  type:
+                    - string
+                    - "null"
+                  format: uuid
+                  description: Must match the Idempotency-Key header when both are provided.
+      responses:
+        "200":
+          description: Private run Request plus source artifact projection, request transaction, credit account, and ledger debit.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                  - transaction
+                  - account
+                  - ledgerEntry
+                  - chatId
+                  - sourceRequest
+                  - sourceArtifact
+                  - solutionRun
+                properties:
+                  request:
+                    type: object
+                  transaction:
+                    $ref: "#/components/schemas/RequestTransaction"
+                  account:
+                    $ref: "#/components/schemas/BuyerCreditAccount"
+                  ledgerEntry:
+                    $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+                  chatId:
+                    type: string
+                    format: uuid
+                  sourceRequest:
+                    type: object
+                  sourceArtifact:
+                    $ref: "#/components/schemas/SourceArtifactProjection"
+                  solutionRun:
+                    $ref: "#/components/schemas/SolutionRunProjection"
+        "400":
+          description: Invalid body, non-public source solution, artifact mismatch, inactive or insufficient buyer credit, or idempotency conflict.
+        "401":
+          description: Session authentication required.
+        "404":
+          description: Source request or accepted artifact not found.
   /api/services/character-call-starter/checkout:
     post:
       summary: Create and fund the $1 Character Call Starter Request from first-party buyer credit.
@@ -700,3 +782,57 @@ components:
           pattern: "^[A-Z]{3}$"
         balanceAfter:
           type: string
+    SourceArtifactProjection:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - requestId
+        - kind
+        - title
+        - containerKind
+      properties:
+        id:
+          type: string
+          format: uuid
+        requestId:
+          type: string
+          format: uuid
+        kind:
+          type: string
+        title:
+          type: string
+        summary:
+          type:
+            - string
+            - "null"
+        containerKind:
+          type: string
+    SolutionRunProjection:
+      type: object
+      additionalProperties: false
+      required:
+        - profile
+        - amount
+        - currency
+        - runRequestId
+        - sourceArtifactId
+        - sourceRequestId
+      properties:
+        profile:
+          type: string
+          const: public_solution_run_v0
+        amount:
+          type: string
+        currency:
+          type: string
+          const: USD
+        runRequestId:
+          type: string
+          format: uuid
+        sourceArtifactId:
+          type: string
+          format: uuid
+        sourceRequestId:
+          type: string
+          format: uuid

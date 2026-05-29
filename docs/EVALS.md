@@ -71,6 +71,7 @@ Verify that request-grant funding, solver payout, reviewer compensation, and sol
 Verify that public solution surfaces are projected only from completed requests with accepted artifacts, not from chat summaries or unreviewed drafts.
 Verify that viewing a public solution does not emit credit-debit or transaction writes.
 Verify that running a public solution creates or uses a referenced run request before debiting credits for inference or execution.
+Verify that a public solution run writes buyer-credit debit and request `Transaction` truth to the run request rather than mutating the completed source request.
 
 ## Fixture Shape
 
@@ -211,6 +212,8 @@ From the repo root:
   Runs the sample actual output against the first complex planner and matcher fixture.
 - `node tests/contracts/run-request-processing-evals.mjs --actual <path-to-actual-json>`
   Compares your planner or matcher result to the matching fixture by `scenarioId`.
+- `pnpm contracts:solution-runs`
+  Validates the v0 public-solution-run fixture: completed public source request, accepted source artifact, private run request, buyer-credit debit, and request-attached transaction truth.
 - `pnpm evals:request-processing:benchmark`
   Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
 - `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`
