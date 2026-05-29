@@ -120,6 +120,10 @@ Verify:
 - generic workspace names such as `network-node`, `node2`, or `misc` are blocked unless explicitly approved in canon docs
 - root manifests and workspace manifests agree on active JS or TS workspaces
 - account-auth decisions stay aligned with accepted web auth canon instead of drifting back to email-only or runtime-collapsed assumptions
+- docs contain no unresolved merge-conflict markers
+- every strategy and decision file is discoverable from its directory README
+- strategy and decision README files expose lifecycle state registers
+- active pilot, launch, and document-lifecycle docs stay discoverable from `docs/README.md` and `docs/INDEX.md`
 
 ### Request-processing contract tests
 

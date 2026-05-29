@@ -58,7 +58,12 @@ Read in this order:
 5. [strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md](strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md)
 6. [strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md)
 7. [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
-8. [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
+8. [strategy/PATH_BUILDER_V1_UX_PLAN.md](strategy/PATH_BUILDER_V1_UX_PLAN.md)
+9. [strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
+10. [strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
+11. [strategy/FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](strategy/FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
+12. [strategy/UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](strategy/UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
+13. [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
 
 These files are downstream strategy tools.
 They help shape packaging, product decisions, and proof collection.
@@ -71,9 +76,10 @@ Read in this order:
 1. [REPO_STRUCTURE.md](REPO_STRUCTURE.md)
 2. [WORKSTREAMS.md](WORKSTREAMS.md)
 3. [OWNERSHIP.md](OWNERSHIP.md)
-4. [GOVERNANCE.md](GOVERNANCE.md)
-5. [TEST_MATRIX.md](TEST_MATRIX.md)
-6. [EVALS.md](EVALS.md)
+4. [DOC_LIFECYCLE.md](DOC_LIFECYCLE.md)
+5. [GOVERNANCE.md](GOVERNANCE.md)
+6. [TEST_MATRIX.md](TEST_MATRIX.md)
+7. [EVALS.md](EVALS.md)
 
 ### 5. If you need research and paper context
 
@@ -104,6 +110,7 @@ Read in this order:
 - Start with canon before implementation when meaning could drift.
 - Start with strategy before copywriting when audience or wedge could drift.
 - Start with live-versus-target before making public claims.
+- Check [DOC_LIFECYCLE.md](DOC_LIFECYCLE.md) and the directory state registers before treating old strategy or decisions as current.
 - Use [strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md) as the durable work queue for pilot and self-serve marketplace launch gates.
 - Start with governance before adding new workspaces or redefining repo meaning.
 - Treat `Request` as the durable business root unless canon changes explicitly.

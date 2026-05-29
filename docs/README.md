@@ -47,9 +47,12 @@ These files help shape packaging, prioritization, positioning execution, and mar
 - [strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md](strategy/LANDING_PAGE_MESSAGING_FRAMEWORK.md)
 - [strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](strategy/FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md)
 - [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
-- [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
+- [strategy/PATH_BUILDER_V1_UX_PLAN.md](strategy/PATH_BUILDER_V1_UX_PLAN.md)
 - [strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](strategy/SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
 - [strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
+- [strategy/FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](strategy/FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
+- [strategy/UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](strategy/UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
+- [strategy/360_PRODUCT_QUALITY_CHECKLIST.md](strategy/360_PRODUCT_QUALITY_CHECKLIST.md)
 
 ## Product And UX Notes
 
@@ -63,6 +66,7 @@ These files capture product-surface expectations that should stay aligned with c
 
 These files define how the canon stays aligned and how parallel work is kept safe:
 
+- [DOC_LIFECYCLE.md](DOC_LIFECYCLE.md)
 - [GOVERNANCE.md](GOVERNANCE.md)
 - [REPO_STRUCTURE.md](REPO_STRUCTURE.md)
 - [WORKSTREAMS.md](WORKSTREAMS.md)
@@ -78,6 +82,9 @@ That now also applies to the active peer-foundation workspaces under `apps/peer/
 These files record accepted architecture and naming decisions that governed workspaces in this monorepo must inherit:
 
 - [decisions/README.md](decisions/README.md)
+
+Decision logs and strategy docs are stateful.
+Use [DOC_LIFECYCLE.md](DOC_LIFECYCLE.md), [decisions/README.md](decisions/README.md), and [strategy/README.md](strategy/README.md) to check whether an item is active, implemented, partially implemented, reference-only, parked, superseded, retired, or archived before giving it implementation authority.
 
 ## Papers
 
@@ -134,6 +141,7 @@ Read the canon in this order:
 19. repo structure
 20. workstreams
 21. ownership
-22. governance
-23. tests
-24. evals
+22. document lifecycle
+23. governance
+24. tests
+25. evals

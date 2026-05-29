@@ -136,6 +136,11 @@ Decision files should explain:
 - decision
 - consequences
 
+Decision logs and strategy docs must also carry lifecycle state through their directory registers.
+Use `docs/DOC_LIFECYCLE.md` to decide whether a document is current, implemented, partially implemented, parked, superseded, retired, reference-only, or pilot-active.
+Do not delete old accepted decisions just because implementation moved forward; supersede or amend them explicitly.
+Do not leave stale strategy docs in active read paths.
+
 ## Risk Escalation Rule
 
 When a task or proposed change could break semantics, contracts, workspace boundaries, or durable history, the agent must escalate before continuing silently.
@@ -244,6 +249,8 @@ Update:
 
 - Do not leave markdown and machine contracts out of sync.
 - Do not change names in one file only.
+- Do not leave strategy docs or decision logs without current lifecycle state.
+- Do not let old strategy docs stay in active read paths after they are superseded, parked, or archived.
 - Do not keep legacy synonyms alive in new core work unless intentionally documented.
 - Do not land code first and canon later for semantic changes.
 - Do not add top-level folders without registering them in `docs/REPO_STRUCTURE.md`.
