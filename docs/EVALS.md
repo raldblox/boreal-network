@@ -214,6 +214,8 @@ From the repo root:
   Runs the sample actual output against the first complex planner and matcher fixture.
 - `node tests/contracts/run-request-processing-evals.mjs --actual <path-to-actual-json>`
   Compares your planner or matcher result to the matching fixture by `scenarioId`.
+- `pnpm contracts:public-pilot`
+  Validates the seeded public-pilot happy path across one durable `Request`, verified funding, accepted `Commitment`, `Fulfillment`, delivery `Artifact`, request-attached `Transaction`, and replayable `RequestEvent` activity.
 - `pnpm contracts:solution-runs`
   Validates the v0 public-solution-run fixture: completed public source request, accepted source artifact, private run request, buyer-credit debit, and request-attached transaction truth.
 - `pnpm evals:request-processing:benchmark`

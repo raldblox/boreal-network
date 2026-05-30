@@ -1,0 +1,1016 @@
+{
+  "fixtureType": "public_pilot_happy_path",
+  "scenarioId": "public-pilot-happy-path",
+  "description": "A buyer-funded public pilot request moves through one durable Request thread with commitment, payment verification, fulfillment, artifact delivery, payout, and replayable RequestEvent activity.",
+  "actors": [
+    {
+      "kind": "human",
+      "id": "act_public_pilot_buyer",
+      "displayName": "Pilot Buyer",
+      "handle": "pilot-buyer"
+    },
+    {
+      "kind": "organization",
+      "id": "act_public_pilot_supply_org",
+      "displayName": "Launch Ops Studio",
+      "handle": "launch-ops-studio"
+    },
+    {
+      "kind": "human",
+      "id": "act_public_pilot_responder",
+      "displayName": "Rae Torres",
+      "handle": "rae-torres"
+    },
+    {
+      "kind": "tool",
+      "id": "act_boreal_payments",
+      "displayName": "Boreal Payments",
+      "handle": "boreal-payments"
+    }
+  ],
+  "participants": [
+    {
+      "requestId": "req_public_pilot_happy_path",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_buyer",
+        "displayName": "Pilot Buyer",
+        "handle": "pilot-buyer"
+      },
+      "roles": [
+        "owner",
+        "requester"
+      ]
+    },
+    {
+      "requestId": "req_public_pilot_happy_path",
+      "actor": {
+        "kind": "organization",
+        "id": "act_public_pilot_supply_org",
+        "displayName": "Launch Ops Studio",
+        "handle": "launch-ops-studio"
+      },
+      "roles": [
+        "solver"
+      ]
+    },
+    {
+      "requestId": "req_public_pilot_happy_path",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_responder",
+        "displayName": "Rae Torres",
+        "handle": "rae-torres"
+      },
+      "roles": [
+        "assignee"
+      ]
+    }
+  ],
+  "supply": {
+    "schemaVersion": 1,
+    "id": "sup_public_pilot_ops_studio",
+    "key": "public-pilot-ops-studio",
+    "owner": {
+      "kind": "organization",
+      "id": "act_public_pilot_supply_org",
+      "displayName": "Launch Ops Studio",
+      "handle": "launch-ops-studio"
+    },
+    "status": "published",
+    "visibility": "unlisted",
+    "profile": {
+      "displayName": "Launch Ops Studio",
+      "headline": "Curated pilot operator for request-native launch work",
+      "summary": "Ships small public-pilot operations builds with documented proof and owner review.",
+      "tags": [
+        "pilot",
+        "operations",
+        "automation"
+      ]
+    },
+    "capability": {
+      "supplyKinds": [
+        "operations_build",
+        "qa_documentation"
+      ],
+      "fulfillmentActorKinds": [
+        "human",
+        "agent"
+      ],
+      "outputKinds": [
+        "workflow_map",
+        "automation_build",
+        "handoff_doc",
+        "verification_note"
+      ],
+      "executionChannels": [
+        "request_room",
+        "operator_review"
+      ]
+    },
+    "availability": {
+      "acceptingRequests": true,
+      "maxConcurrentRequests": 3,
+      "currentLoad": 1,
+      "responseTimeHours": 4
+    },
+    "pricing": {
+      "mode": "fixed",
+      "currency": "USD",
+      "fixedAmount": 500,
+      "notes": "Pilot-lane fixed price once the buyer accepts the commitment."
+    },
+    "source": {
+      "kind": "manual"
+    },
+    "metadata": {
+      "pilotLane": true,
+      "curatedSupply": true
+    },
+    "createdAt": "2026-05-20T08:00:00Z",
+    "updatedAt": "2026-05-20T08:00:00Z",
+    "publishedAt": "2026-05-20T08:00:00Z"
+  },
+  "request": {
+    "schemaVersion": 1,
+    "id": "req_public_pilot_happy_path",
+    "key": "public-pilot-launch-ops-proof",
+    "status": "completed",
+    "createdBy": {
+      "kind": "human",
+      "id": "act_public_pilot_buyer",
+      "displayName": "Pilot Buyer",
+      "handle": "pilot-buyer"
+    },
+    "owner": {
+      "kind": "human",
+      "id": "act_public_pilot_buyer",
+      "displayName": "Pilot Buyer",
+      "handle": "pilot-buyer"
+    },
+    "visibility": "public",
+    "brief": {
+      "title": "Build a launch support automation",
+      "summary": "Create one documented support-triage workflow with proof of setup and operator handoff.",
+      "body": "We need a small launch support workflow that routes inbound pilot requests, drafts operator notes, and leaves proof that the routing and handoff were configured correctly.",
+      "constraints": {
+        "pilotLane": "public_pilot",
+        "mustUseCommitment": true,
+        "mustVerifyFundingBeforeFulfillment": true,
+        "tools": [
+          "form intake",
+          "shared inbox",
+          "operator checklist"
+        ]
+      },
+      "outputKinds": [
+        "workflow_map",
+        "automation_build",
+        "handoff_doc",
+        "verification_note"
+      ],
+      "tags": [
+        "public_pilot",
+        "operations",
+        "automation"
+      ]
+    },
+    "seeking": {
+      "actorKinds": [
+        "human",
+        "agent"
+      ],
+      "supplyKinds": [
+        "operations_build",
+        "qa_documentation"
+      ],
+      "teamMode": "solo_or_team",
+      "notes": "Use curated pilot supply with reviewable proof before closure."
+    },
+    "routing": {},
+    "budget": {
+      "mode": "fixed",
+      "currency": "USD",
+      "fixedAmount": 500,
+      "notes": "Buyer-funded pilot request."
+    },
+    "activeRefs": {
+      "activeCommitmentId": "cmt_public_pilot_ops_build",
+      "activeFulfillmentId": "ful_public_pilot_ops_build",
+      "acceptedArtifactId": "art_public_pilot_delivery_bundle",
+      "latestArtifactId": "art_public_pilot_delivery_bundle",
+      "latestTransactionId": "txn_public_pilot_payout"
+    },
+    "latest": {
+      "summary": "The buyer accepted the delivered proof package and the same request thread reached completed state.",
+      "lastEventAt": "2026-05-21T13:15:00Z",
+      "lastActor": {
+        "kind": "human",
+        "id": "act_public_pilot_buyer",
+        "displayName": "Pilot Buyer",
+        "handle": "pilot-buyer"
+      }
+    },
+    "derived": {
+      "routeFamily": "worker_market",
+      "executionKind": "hybrid_human_agent",
+      "paymentMode": "fixed_funded_request",
+      "matchingMode": "lead_first_then_collaborators",
+      "candidatePool": [
+        "sup_public_pilot_ops_studio"
+      ],
+      "leadRole": "operations_build",
+      "roleSlots": [
+        {
+          "roleKey": "operations_build",
+          "title": "Operations build lead",
+          "requiredActorKinds": [
+            "human"
+          ],
+          "preferredSupplyKinds": [
+            "operations_build"
+          ],
+          "required": true,
+          "summary": "Owns workflow configuration and handoff."
+        },
+        {
+          "roleKey": "qa_documentation",
+          "title": "Proof and handoff reviewer",
+          "requiredActorKinds": [
+            "human",
+            "agent"
+          ],
+          "preferredSupplyKinds": [
+            "qa_documentation"
+          ],
+          "required": true,
+          "summary": "Checks that the delivered artifact proves setup and operator handoff."
+        }
+      ],
+      "phases": [
+        {
+          "phaseKey": "scope_route",
+          "title": "Confirm pilot scope and route",
+          "summary": "Confirm the buyer-funded request and curated supply route.",
+          "roleKeys": [
+            "operations_build"
+          ],
+          "requiredEvidenceClaims": [
+            "written_report"
+          ]
+        },
+        {
+          "phaseKey": "execute_delivery",
+          "title": "Configure workflow",
+          "summary": "Build the small routing workflow and handoff checklist.",
+          "roleKeys": [
+            "operations_build"
+          ],
+          "requiredEvidenceClaims": [
+            "verification_note"
+          ]
+        },
+        {
+          "phaseKey": "proof_delivery",
+          "title": "Deliver proof package",
+          "summary": "Attach stable proof and handoff artifacts for owner acceptance.",
+          "roleKeys": [
+            "qa_documentation"
+          ],
+          "requiredEvidenceClaims": [
+            "delivery_confirmation",
+            "verification_note"
+          ]
+        }
+      ],
+      "noMicrotaskExplosion": true,
+      "outcomeClaims": [
+        {
+          "claimKey": "launch-support-routing-configured",
+          "summary": "The pilot support routing workflow is configured and documented.",
+          "source": "verification",
+          "nonSubstitutable": false,
+          "proofRequired": true
+        }
+      ],
+      "matchCandidates": [
+        {
+          "supplyId": "sup_public_pilot_ops_studio",
+          "source": "retrieved",
+          "overallScore": 0.93,
+          "leadScore": 0.95,
+          "roleScores": [
+            {
+              "roleKey": "operations_build",
+              "score": 0.95,
+              "confidence": "high"
+            },
+            {
+              "roleKey": "qa_documentation",
+              "score": 0.89,
+              "confidence": "high"
+            }
+          ],
+          "summary": "Curated supply matches the operations build and proof obligations for the pilot lane."
+        }
+      ],
+      "leadRanking": [
+        {
+          "roleKey": "operations_build",
+          "supplyId": "sup_public_pilot_ops_studio",
+          "source": "candidate_pool",
+          "status": "attached",
+          "confidence": "high",
+          "summary": "Launch Ops Studio is attached through the accepted commitment and fulfillment lane."
+        }
+      ],
+      "roleMatches": [
+        {
+          "roleKey": "operations_build",
+          "required": true,
+          "supplyId": "sup_public_pilot_ops_studio",
+          "source": "fulfillment",
+          "status": "attached",
+          "confidence": "high",
+          "summary": "Operations build work is attached to the accepted fulfillment."
+        },
+        {
+          "roleKey": "qa_documentation",
+          "required": true,
+          "supplyId": "sup_public_pilot_ops_studio",
+          "source": "fulfillment",
+          "status": "attached",
+          "confidence": "high",
+          "summary": "Proof review is included in the same fulfillment lane."
+        }
+      ],
+      "assignmentProposal": {
+        "state": "execution_attached",
+        "summary": "One accepted commitment and fulfillment lane are attached to the request.",
+        "lead": {
+          "roleKey": "operations_build",
+          "required": true,
+          "supplyId": "sup_public_pilot_ops_studio",
+          "source": "fulfillment",
+          "status": "attached",
+          "confidence": "high",
+          "summary": "The curated operations supply owns execution."
+        },
+        "support": [
+          {
+            "roleKey": "qa_documentation",
+            "required": true,
+            "supplyId": "sup_public_pilot_ops_studio",
+            "source": "fulfillment",
+            "status": "attached",
+            "confidence": "high",
+            "summary": "Proof review stays in the same fulfillment lane."
+          }
+        ]
+      },
+      "replanReasons": [],
+      "missingDetails": [],
+      "readiness": {
+        "state": "ready_to_match",
+        "summary": "The public pilot request has enough detail for curated supply commitment and fulfillment.",
+        "readyForOpen": true,
+        "readyForMatch": true
+      },
+      "routeSummary": "Route through curated public-pilot supply with fixed funding, accepted commitment, and proof-bearing artifact delivery.",
+      "executionProfile": {
+        "executionModes": [
+          "remote_digital"
+        ],
+        "requiresHumanPresence": false,
+        "requiresLocalAccess": false,
+        "requiresVerifiedEvidence": true,
+        "requiresScheduling": false,
+        "requiresGeography": false,
+        "riskTier": "moderate"
+      },
+      "embodiedConstraintSet": {
+        "requiresEmbodiedHandling": false,
+        "executionModes": [
+          "remote_digital"
+        ],
+        "timeWindows": [],
+        "accessRequirements": [],
+        "safetyRequirements": [],
+        "verificationRequirements": [
+          "written_report",
+          "verification_note"
+        ],
+        "requiresHumanPresence": false,
+        "requiresLocalAccess": false,
+        "requiresVerifiedEvidence": true,
+        "requiresWitness": false
+      },
+      "verificationPlan": {
+        "requiredArtifactKinds": [
+          "delivery",
+          "evidence"
+        ],
+        "requiredEvidenceClaims": [
+          "delivery_confirmation",
+          "verification_note"
+        ],
+        "mustHaveOwnerAcceptance": true,
+        "mustHaveLocationSignal": false,
+        "mustHaveSignature": false
+      },
+      "planCollapseRisk": {
+        "riskLevel": "low",
+        "reasons": []
+      },
+      "clarificationNeeded": {
+        "required": false,
+        "missingDetails": [],
+        "reasons": []
+      }
+    },
+    "parallelFulfillmentAllowed": false,
+    "metadata": {
+      "pilotGate": "gate_1",
+      "publicPilotEvidence": true
+    },
+    "createdAt": "2026-05-21T09:00:00Z",
+    "updatedAt": "2026-05-21T13:15:00Z",
+    "openedAt": "2026-05-21T09:00:00Z",
+    "fundedAt": "2026-05-21T10:16:00Z",
+    "deliveredAt": "2026-05-21T12:35:00Z",
+    "completedAt": "2026-05-21T13:15:00Z"
+  },
+  "commitments": [
+    {
+      "schemaVersion": 1,
+      "id": "cmt_public_pilot_ops_build",
+      "key": "public-pilot-ops-build",
+      "requestId": "req_public_pilot_happy_path",
+      "kind": "proposal",
+      "status": "accepted",
+      "proposedBy": {
+        "kind": "organization",
+        "id": "act_public_pilot_supply_org",
+        "displayName": "Launch Ops Studio",
+        "handle": "launch-ops-studio"
+      },
+      "acceptedBy": {
+        "kind": "human",
+        "id": "act_public_pilot_buyer",
+        "displayName": "Pilot Buyer",
+        "handle": "pilot-buyer"
+      },
+      "supplyId": "sup_public_pilot_ops_studio",
+      "summary": "Fixed-fee pilot proposal for support routing setup, proof bundle, and operator handoff.",
+      "terms": {
+        "fundingRequired": true,
+        "amountMode": "fixed",
+        "currency": "USD",
+        "fixedAmount": 500,
+        "deliverableSummary": "Workflow map, configured routing workflow, verification note, and operator handoff.",
+        "paymentNotes": "Buyer funding must verify before fulfillment starts."
+      },
+      "activeFulfillmentId": "ful_public_pilot_ops_build",
+      "metadata": {
+        "pilotCommitment": true,
+        "requiresVerifiedFundingBeforeStart": true
+      },
+      "createdAt": "2026-05-21T10:00:00Z",
+      "updatedAt": "2026-05-21T10:05:00Z",
+      "acceptedAt": "2026-05-21T10:05:00Z"
+    }
+  ],
+  "fulfillments": [
+    {
+      "schemaVersion": 1,
+      "id": "ful_public_pilot_ops_build",
+      "key": "public-pilot-ops-build-fulfillment",
+      "requestId": "req_public_pilot_happy_path",
+      "commitmentId": "cmt_public_pilot_ops_build",
+      "supplyId": "sup_public_pilot_ops_studio",
+      "status": "accepted",
+      "lead": {
+        "kind": "human",
+        "id": "act_public_pilot_responder",
+        "displayName": "Rae Torres",
+        "handle": "rae-torres"
+      },
+      "contributors": [
+        {
+          "kind": "organization",
+          "id": "act_public_pilot_supply_org",
+          "displayName": "Launch Ops Studio",
+          "handle": "launch-ops-studio"
+        }
+      ],
+      "summary": "Delivered the support routing workflow and proof bundle in one fulfillment lane.",
+      "artifactIds": [
+        "art_public_pilot_delivery_bundle"
+      ],
+      "steps": [
+        {
+          "id": "fst_public_pilot_scope",
+          "kind": "scope",
+          "title": "Confirm routing and proof requirements",
+          "status": "done"
+        },
+        {
+          "id": "fst_public_pilot_build",
+          "kind": "build",
+          "title": "Configure support routing workflow",
+          "status": "done",
+          "dependsOnStepIds": [
+            "fst_public_pilot_scope"
+          ]
+        },
+        {
+          "id": "fst_public_pilot_handoff",
+          "kind": "handoff",
+          "title": "Publish operator handoff and proof bundle",
+          "status": "done",
+          "dependsOnStepIds": [
+            "fst_public_pilot_build"
+          ]
+        }
+      ],
+      "metadata": {
+        "authorizedByCommitment": true,
+        "fundingVerifiedBeforeStart": true,
+        "doNotCreateSecondRequest": true
+      },
+      "createdAt": "2026-05-21T10:20:00Z",
+      "updatedAt": "2026-05-21T13:00:00Z",
+      "plannedAt": "2026-05-21T10:20:00Z",
+      "readyAt": "2026-05-21T10:25:00Z",
+      "startedAt": "2026-05-21T10:30:00Z",
+      "deliveredAt": "2026-05-21T12:35:00Z",
+      "acceptedAt": "2026-05-21T13:00:00Z"
+    }
+  ],
+  "artifacts": [
+    {
+      "schemaVersion": 1,
+      "id": "art_public_pilot_delivery_bundle",
+      "key": "public-pilot-delivery-bundle",
+      "requestId": "req_public_pilot_happy_path",
+      "fulfillmentId": "ful_public_pilot_ops_build",
+      "stepId": "fst_public_pilot_handoff",
+      "kind": "delivery",
+      "title": "Launch support automation proof bundle",
+      "summary": "Workflow map, setup notes, verification note, and operator handoff for the launch support workflow.",
+      "container": {
+        "kind": "document",
+        "documentId": "doc_public_pilot_delivery_bundle",
+        "documentKind": "text",
+        "mimeType": "text/markdown",
+        "filename": "launch-support-automation-proof.md"
+      },
+      "createdBy": {
+        "kind": "human",
+        "id": "act_public_pilot_responder",
+        "displayName": "Rae Torres",
+        "handle": "rae-torres"
+      },
+      "metadata": {
+        "acceptedForPilot": true,
+        "proofClaims": [
+          "delivery_confirmation",
+          "verification_note"
+        ]
+      },
+      "createdAt": "2026-05-21T12:30:00Z",
+      "updatedAt": "2026-05-21T13:00:00Z"
+    }
+  ],
+  "transactions": [
+    {
+      "schemaVersion": 1,
+      "id": "txn_public_pilot_payment_verification",
+      "key": "public-pilot-payment-verification",
+      "requestId": "req_public_pilot_happy_path",
+      "commitmentId": "cmt_public_pilot_ops_build",
+      "kind": "verification",
+      "status": "verified",
+      "currency": "USD",
+      "amount": 500,
+      "payer": {
+        "kind": "human",
+        "id": "act_public_pilot_buyer",
+        "displayName": "Pilot Buyer",
+        "handle": "pilot-buyer"
+      },
+      "payee": {
+        "kind": "tool",
+        "id": "act_boreal_payments",
+        "displayName": "Boreal Payments",
+        "handle": "boreal-payments"
+      },
+      "reference": "pilot-payment-verification-001",
+      "metadata": {
+        "fundingSource": "buyer_payment",
+        "fundingVerifiedBeforeFulfillmentStart": true
+      },
+      "createdAt": "2026-05-21T10:14:00Z",
+      "updatedAt": "2026-05-21T10:15:00Z",
+      "verifiedAt": "2026-05-21T10:15:00Z"
+    },
+    {
+      "schemaVersion": 1,
+      "id": "txn_public_pilot_payout",
+      "key": "public-pilot-payout",
+      "requestId": "req_public_pilot_happy_path",
+      "fulfillmentId": "ful_public_pilot_ops_build",
+      "kind": "payout",
+      "status": "paid_out",
+      "currency": "USD",
+      "amount": 500,
+      "payer": {
+        "kind": "tool",
+        "id": "act_boreal_payments",
+        "displayName": "Boreal Payments",
+        "handle": "boreal-payments"
+      },
+      "payee": {
+        "kind": "organization",
+        "id": "act_public_pilot_supply_org",
+        "displayName": "Launch Ops Studio",
+        "handle": "launch-ops-studio"
+      },
+      "reference": "pilot-payout-001",
+      "metadata": {
+        "releasedAfterArtifactAcceptance": true
+      },
+      "createdAt": "2026-05-21T13:05:00Z",
+      "updatedAt": "2026-05-21T13:10:00Z",
+      "verifiedAt": "2026-05-21T13:05:00Z",
+      "settledAt": "2026-05-21T13:08:00Z",
+      "paidOutAt": "2026-05-21T13:10:00Z"
+    }
+  ],
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_001_request_opened",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "request",
+      "aggregateId": "req_public_pilot_happy_path",
+      "sequence": 1,
+      "eventType": "request.opened",
+      "occurredAt": "2026-05-21T09:00:00Z",
+      "recordedAt": "2026-05-21T09:00:00Z",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_buyer",
+        "displayName": "Pilot Buyer",
+        "handle": "pilot-buyer"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "cmd_public_pilot_open_request",
+      "idempotencyKey": "request.opened:req_public_pilot_happy_path",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "requestId": "req_public_pilot_happy_path",
+        "visibility": "public"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_002_commitment_proposed",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "commitment",
+      "aggregateId": "cmt_public_pilot_ops_build",
+      "sequence": 2,
+      "eventType": "commitment.proposed",
+      "occurredAt": "2026-05-21T10:00:00Z",
+      "recordedAt": "2026-05-21T10:00:00Z",
+      "actor": {
+        "kind": "organization",
+        "id": "act_public_pilot_supply_org",
+        "displayName": "Launch Ops Studio",
+        "handle": "launch-ops-studio"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "cmd_public_pilot_propose_commitment",
+      "idempotencyKey": "commitment.proposed:cmt_public_pilot_ops_build",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "commitmentId": "cmt_public_pilot_ops_build",
+        "supplyId": "sup_public_pilot_ops_studio"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_003_transaction_required",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "transaction",
+      "aggregateId": "txn_public_pilot_payment_verification",
+      "sequence": 3,
+      "eventType": "transaction.required",
+      "occurredAt": "2026-05-21T10:02:00Z",
+      "recordedAt": "2026-05-21T10:02:00Z",
+      "actor": {
+        "kind": "tool",
+        "id": "act_boreal_payments",
+        "displayName": "Boreal Payments",
+        "handle": "boreal-payments"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "cmd_public_pilot_require_payment",
+      "idempotencyKey": "transaction.required:txn_public_pilot_payment_verification",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "transactionId": "txn_public_pilot_payment_verification",
+        "commitmentId": "cmt_public_pilot_ops_build",
+        "amount": 500,
+        "currency": "USD"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_004_commitment_accepted",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "commitment",
+      "aggregateId": "cmt_public_pilot_ops_build",
+      "sequence": 4,
+      "eventType": "commitment.accepted",
+      "occurredAt": "2026-05-21T10:05:00Z",
+      "recordedAt": "2026-05-21T10:05:00Z",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_buyer",
+        "displayName": "Pilot Buyer",
+        "handle": "pilot-buyer"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "cmd_public_pilot_accept_commitment",
+      "idempotencyKey": "commitment.accepted:cmt_public_pilot_ops_build",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "commitmentId": "cmt_public_pilot_ops_build"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_005_transaction_verified",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "transaction",
+      "aggregateId": "txn_public_pilot_payment_verification",
+      "sequence": 5,
+      "eventType": "transaction.verified",
+      "occurredAt": "2026-05-21T10:15:00Z",
+      "recordedAt": "2026-05-21T10:15:00Z",
+      "actor": {
+        "kind": "tool",
+        "id": "act_boreal_payments",
+        "displayName": "Boreal Payments",
+        "handle": "boreal-payments"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "cmd_public_pilot_verify_payment",
+      "idempotencyKey": "transaction.verified:txn_public_pilot_payment_verification",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "transactionId": "txn_public_pilot_payment_verification",
+        "commitmentId": "cmt_public_pilot_ops_build",
+        "amount": 500,
+        "currency": "USD"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_006_request_funded",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "request",
+      "aggregateId": "req_public_pilot_happy_path",
+      "sequence": 6,
+      "eventType": "request.status_changed",
+      "occurredAt": "2026-05-21T10:16:00Z",
+      "recordedAt": "2026-05-21T10:16:00Z",
+      "actor": {
+        "kind": "tool",
+        "id": "act_boreal_payments",
+        "displayName": "Boreal Payments",
+        "handle": "boreal-payments"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "evt_public_pilot_005_transaction_verified",
+      "idempotencyKey": "request.status_changed:req_public_pilot_happy_path:funded",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "from": "funding_required",
+        "to": "funded",
+        "transactionId": "txn_public_pilot_payment_verification"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_007_fulfillment_created",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "fulfillment",
+      "aggregateId": "ful_public_pilot_ops_build",
+      "sequence": 7,
+      "eventType": "fulfillment.created",
+      "occurredAt": "2026-05-21T10:20:00Z",
+      "recordedAt": "2026-05-21T10:20:00Z",
+      "actor": {
+        "kind": "organization",
+        "id": "act_public_pilot_supply_org",
+        "displayName": "Launch Ops Studio",
+        "handle": "launch-ops-studio"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "evt_public_pilot_006_request_funded",
+      "idempotencyKey": "fulfillment.created:ful_public_pilot_ops_build",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "fulfillmentId": "ful_public_pilot_ops_build",
+        "commitmentId": "cmt_public_pilot_ops_build"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_008_fulfillment_started",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "fulfillment",
+      "aggregateId": "ful_public_pilot_ops_build",
+      "sequence": 8,
+      "eventType": "fulfillment.started",
+      "occurredAt": "2026-05-21T10:30:00Z",
+      "recordedAt": "2026-05-21T10:30:00Z",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_responder",
+        "displayName": "Rae Torres",
+        "handle": "rae-torres"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "evt_public_pilot_007_fulfillment_created",
+      "idempotencyKey": "fulfillment.started:ful_public_pilot_ops_build",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "fulfillmentId": "ful_public_pilot_ops_build",
+        "commitmentId": "cmt_public_pilot_ops_build"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_009_artifact_added",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "artifact",
+      "aggregateId": "art_public_pilot_delivery_bundle",
+      "sequence": 9,
+      "eventType": "artifact.added",
+      "occurredAt": "2026-05-21T12:30:00Z",
+      "recordedAt": "2026-05-21T12:30:00Z",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_responder",
+        "displayName": "Rae Torres",
+        "handle": "rae-torres"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "cmd_public_pilot_publish_artifact",
+      "idempotencyKey": "artifact.added:art_public_pilot_delivery_bundle",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "artifactId": "art_public_pilot_delivery_bundle",
+        "fulfillmentId": "ful_public_pilot_ops_build"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_010_fulfillment_delivered",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "fulfillment",
+      "aggregateId": "ful_public_pilot_ops_build",
+      "sequence": 10,
+      "eventType": "fulfillment.delivered",
+      "occurredAt": "2026-05-21T12:35:00Z",
+      "recordedAt": "2026-05-21T12:35:00Z",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_responder",
+        "displayName": "Rae Torres",
+        "handle": "rae-torres"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "evt_public_pilot_009_artifact_added",
+      "idempotencyKey": "fulfillment.delivered:ful_public_pilot_ops_build",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "fulfillmentId": "ful_public_pilot_ops_build",
+        "artifactId": "art_public_pilot_delivery_bundle"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_011_fulfillment_accepted",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "fulfillment",
+      "aggregateId": "ful_public_pilot_ops_build",
+      "sequence": 11,
+      "eventType": "fulfillment.accepted",
+      "occurredAt": "2026-05-21T13:00:00Z",
+      "recordedAt": "2026-05-21T13:00:00Z",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_buyer",
+        "displayName": "Pilot Buyer",
+        "handle": "pilot-buyer"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "evt_public_pilot_010_fulfillment_delivered",
+      "idempotencyKey": "fulfillment.accepted:ful_public_pilot_ops_build",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "fulfillmentId": "ful_public_pilot_ops_build",
+        "artifactId": "art_public_pilot_delivery_bundle"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_012_transaction_paid_out",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "transaction",
+      "aggregateId": "txn_public_pilot_payout",
+      "sequence": 12,
+      "eventType": "transaction.paid_out",
+      "occurredAt": "2026-05-21T13:10:00Z",
+      "recordedAt": "2026-05-21T13:10:00Z",
+      "actor": {
+        "kind": "tool",
+        "id": "act_boreal_payments",
+        "displayName": "Boreal Payments",
+        "handle": "boreal-payments"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "evt_public_pilot_011_fulfillment_accepted",
+      "idempotencyKey": "transaction.paid_out:txn_public_pilot_payout",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "transactionId": "txn_public_pilot_payout",
+        "fulfillmentId": "ful_public_pilot_ops_build",
+        "amount": 500,
+        "currency": "USD"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_public_pilot_013_request_completed",
+      "requestId": "req_public_pilot_happy_path",
+      "aggregateType": "request",
+      "aggregateId": "req_public_pilot_happy_path",
+      "sequence": 13,
+      "eventType": "request.completed",
+      "occurredAt": "2026-05-21T13:15:00Z",
+      "recordedAt": "2026-05-21T13:15:00Z",
+      "actor": {
+        "kind": "human",
+        "id": "act_public_pilot_buyer",
+        "displayName": "Pilot Buyer",
+        "handle": "pilot-buyer"
+      },
+      "correlationId": "corr_public_pilot_happy_path",
+      "causationId": "evt_public_pilot_012_transaction_paid_out",
+      "idempotencyKey": "request.completed:req_public_pilot_happy_path",
+      "source": "fixture.public_pilot",
+      "payload": {
+        "acceptedArtifactId": "art_public_pilot_delivery_bundle",
+        "completionNote": "Buyer accepted the pilot proof package."
+      }
+    }
+  ],
+  "expectedProjection": {
+    "requestId": "req_public_pilot_happy_path",
+    "status": "completed",
+    "activeCommitmentId": "cmt_public_pilot_ops_build",
+    "activeFulfillmentId": "ful_public_pilot_ops_build",
+    "acceptedArtifactId": "art_public_pilot_delivery_bundle",
+    "latestTransactionId": "txn_public_pilot_payout",
+    "timelineEventTypes": [
+      "request.opened",
+      "commitment.proposed",
+      "transaction.required",
+      "commitment.accepted",
+      "transaction.verified",
+      "request.status_changed",
+      "fulfillment.created",
+      "fulfillment.started",
+      "artifact.added",
+      "fulfillment.delivered",
+      "fulfillment.accepted",
+      "transaction.paid_out",
+      "request.completed"
+    ]
+  },
+  "expectedInvariants": [
+    "One durable Request carries intake, commitment, funding, fulfillment, delivery, payout, and completion.",
+    "Public or cross-actor work uses an accepted Commitment before Fulfillment starts.",
+    "Payment verification is recorded before funded work proceeds.",
+    "FulfillmentStep records model sub-work without creating a second Request.",
+    "Delivery proof lands as an Artifact attached to the same Request and Fulfillment.",
+    "Transaction truth stays attached to the Request.",
+    "Request room activity is reconstructible from RequestEvent plus related canonical records."
+  ]
+}

@@ -18,6 +18,7 @@
     "web:test": "pnpm --filter @boreal/web test",
     "docs:audit": "node tests/contracts/run-doc-state-audit.mjs",
     "evals": "pnpm --filter @boreal/web evals",
+    "contracts:public-pilot": "node tests/contracts/run-public-pilot-happy-path-fixture.mjs",
     "contracts:solution-runs": "node tests/contracts/run-solution-run-fixtures.mjs",
     "evals:request-processing": "node tests/contracts/run-request-processing-evals.mjs",
     "evals:request-processing:sample": "node tests/contracts/run-request-processing-evals.mjs --actual fixtures/request/eval-complex-human-planning-and-match.actual.sample.json",
