@@ -54,6 +54,7 @@ import {
 import {
   chatAttachmentAccept,
   getChatAttachmentKind,
+  getChatImageDimensionError,
   maxChatAttachmentCount,
   maxOptimizedImageDimension,
   optimizedImageQuality,
@@ -200,6 +201,15 @@ async function optimizeImageForChat(file: File, contentType: string) {
       element.onerror = () => reject(new Error("Image could not be decoded."));
       element.src = imageUrl;
     });
+    const dimensionError = getChatImageDimensionError({
+      height: image.height,
+      width: image.width,
+    });
+
+    if (dimensionError) {
+      throw new Error(dimensionError);
+    }
+
     const scale = Math.min(
       1,
       maxOptimizedImageDimension / Math.max(image.width, image.height)

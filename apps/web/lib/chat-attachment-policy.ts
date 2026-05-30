@@ -44,6 +44,7 @@ export const maxChatPdfTextExtractionBytes = 8 * 1024 * 1024;
 export const maxChatPdfTextExtractionPages = 20;
 export const maxChatPdfInlineCharacters = 80_000;
 export const maxOptimizedImageDimension = 2048;
+export const maxChatImageSourcePixels = 48_000_000;
 export const optimizedImageQuality = 0.82;
 
 const extensionMimeTypeMap: Record<string, ChatAttachmentMimeType> = {
@@ -150,6 +151,29 @@ export function formatAttachmentBytes(bytes: number) {
   }
 
   return `${value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
+}
+
+export function getChatImageDimensionError({
+  height,
+  width,
+}: {
+  height: number;
+  width: number;
+}) {
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    return "Image dimensions could not be read. Try a different image file.";
+  }
+
+  if (width * height > maxChatImageSourcePixels) {
+    return "Image dimensions are too large for chat. Resize it locally, then attach it again.";
+  }
+
+  return null;
 }
 
 export function validateChatAttachmentFile(file: {

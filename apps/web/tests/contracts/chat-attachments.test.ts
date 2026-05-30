@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { convertToModelMessages } from "ai";
 import { postRequestBodySchema } from "@/app/(chat)/api/chat/schema";
 import {
+  getChatImageDimensionError,
+  maxChatImageSourcePixels,
+} from "@/lib/chat-attachment-policy";
+import {
   getChatAttachmentUrlRejection,
   isChatBlobDeliveryUrl,
   prepareChatMessagesForModel,
@@ -68,6 +72,17 @@ const legacyFilePayload = postRequestBodySchema.parse({
 });
 
 assert.equal(legacyFilePayload.message?.parts[0]?.type, "file");
+assert.equal(
+  getChatImageDimensionError({ height: 4000, width: 4000 }),
+  null
+);
+assert.match(
+  getChatImageDimensionError({
+    height: maxChatImageSourcePixels,
+    width: 2,
+  }) ?? "",
+  /too large/
+);
 
 async function main() {
   const originalFetch = globalThis.fetch;
