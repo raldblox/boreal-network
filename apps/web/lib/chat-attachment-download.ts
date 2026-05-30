@@ -79,6 +79,28 @@ export function isChatBlobDeliveryUrl(url: URL, requestUrl: string) {
   return url.pathname.endsWith("/api/files/blob");
 }
 
+export function getChatAttachmentUrlRejection({
+  requestUrl,
+  url,
+}: {
+  requestUrl: string;
+  url: string;
+}) {
+  let parsedUrl: URL;
+
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return "Attachment URL is invalid. Re-upload the file and try again.";
+  }
+
+  if (!isChatBlobDeliveryUrl(parsedUrl, requestUrl)) {
+    return "Attachments must be uploaded through Boreal before sending.";
+  }
+
+  return null;
+}
+
 export async function readChatBlobDeliveryUrl(url: URL) {
   const filename = url.searchParams.get("filename")?.trim() || "attachment";
   const response = await fetch(url, {

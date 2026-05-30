@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { convertToModelMessages } from "ai";
 import { postRequestBodySchema } from "@/app/(chat)/api/chat/schema";
 import {
+  getChatAttachmentUrlRejection,
   isChatBlobDeliveryUrl,
   prepareChatMessagesForModel,
 } from "@/lib/chat-attachment-download";
@@ -171,6 +172,27 @@ async function main() {
       "https://network.boreal.work/chat/test"
     ),
     false
+  );
+  assert.equal(
+    getChatAttachmentUrlRejection({
+      requestUrl: "https://network.boreal.work/chat/test",
+      url: "https://network.boreal.work/api/files/blob?filename=notes.md",
+    }),
+    null
+  );
+  assert.match(
+    getChatAttachmentUrlRejection({
+      requestUrl: "https://network.boreal.work/chat/test",
+      url: "https://example.com/api/files/blob?filename=notes.md",
+    }) ?? "",
+    /uploaded through Boreal/
+  );
+  assert.match(
+    getChatAttachmentUrlRejection({
+      requestUrl: "https://network.boreal.work/chat/test",
+      url: "not a url",
+    }) ?? "",
+    /URL is invalid/
   );
 
   console.log("Chat attachment contracts passed.");

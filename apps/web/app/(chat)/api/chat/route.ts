@@ -60,6 +60,7 @@ import { checkIpRateLimit } from "@/lib/ratelimit";
 import { canRespondToRequest } from "@/lib/request-server";
 import {
   createChatAttachmentDownload,
+  getChatAttachmentUrlRejection,
   prepareChatMessagesForModel,
 } from "@/lib/chat-attachment-download";
 import type { ChatMessage } from "@/lib/types";
@@ -180,6 +181,35 @@ function hasImageFilePart(messages: ChatMessage[]) {
   );
 }
 
+function getIncomingAttachmentRejection({
+  message,
+  requestUrl,
+}: {
+  message: PostRequestBody["message"];
+  requestUrl: string;
+}) {
+  if (!message) {
+    return null;
+  }
+
+  for (const part of message.parts) {
+    if (part.type !== "file") {
+      continue;
+    }
+
+    const rejection = getChatAttachmentUrlRejection({
+      requestUrl,
+      url: part.url,
+    });
+
+    if (rejection) {
+      return rejection;
+    }
+  }
+
+  return null;
+}
+
 function shouldAllowPreDraftClarification(text: string): boolean {
   return embodiedClarificationPattern.test(text);
 }
@@ -256,6 +286,15 @@ export async function POST(request: Request) {
       selectedChatModel,
       selectedVisibilityType,
     } = requestBody;
+
+    const attachmentRejection = getIncomingAttachmentRejection({
+      message,
+      requestUrl: request.url,
+    });
+
+    if (attachmentRejection) {
+      return new ChatbotError("bad_request:api", attachmentRejection).toResponse();
+    }
 
     const noDbEvalMode = isNoDbPromptfooEvalRequest(request);
     const [, session] = await Promise.all([
