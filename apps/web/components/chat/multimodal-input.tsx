@@ -7,14 +7,12 @@ import {
   ArrowUpIcon,
   ArrowUpRightIcon,
   BrainIcon,
-  ChevronDownIcon,
   EyeIcon,
   FilePenLineIcon,
   LaptopMinimalIcon,
   Link2Icon,
   LoaderCircleIcon,
   MessageSquareIcon,
-  PackageIcon,
   WrenchIcon,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -95,12 +93,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
 import { Spinner } from "../ui/spinner";
 import { PaperclipIcon, StopIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
@@ -1117,7 +1109,7 @@ function PureMultimodalInput({
       )}
 
       <PromptInput
-        className="[&>div]:rounded-[28px] [&>div]:border [&>div]:border-border/60 [&>div]:bg-background/92 [&>div]:shadow-[0_18px_55px_rgba(15,23,42,0.06)] [&>div]:transition-shadow [&>div]:duration-300 [&>div]:focus-within:shadow-[0_22px_70px_rgba(15,23,42,0.1)]"
+        className="[&>div]:rounded-[28px] [&>div]:border [&>div]:border-border/60 [&>div]:bg-background/92 [&>div]:shadow-[0_24px_70px_rgba(0,0,0,0.18)] [&>div]:transition-shadow [&>div]:duration-300 dark:[&>div]:shadow-[0_28px_95px_rgba(0,0,0,0.56)] [&>div]:focus-within:shadow-[0_28px_90px_rgba(0,0,0,0.24)] dark:[&>div]:focus-within:shadow-[0_32px_110px_rgba(0,0,0,0.68)]"
         onSubmit={() => {
           if (input.startsWith("/")) {
             const query = input.slice(1).trim();
@@ -1273,41 +1265,44 @@ function PureMultimodalInput({
             {showNewModeControls ? (
               <NewModeControls isRequestMode={isRequestMode} />
             ) : null}
+          </PromptInputTools>
+
+          <div className="ml-auto flex min-w-0 items-center gap-1">
             <ModelSelectorCompact
               activeRequest={activeRequest}
               onModelChange={onModelChange}
               selectedModelId={selectedModelId}
             />
-          </PromptInputTools>
 
-          {status === "submitted" ? (
-            <StopButton setMessages={setMessages} stop={stop} />
-          ) : (
-            <PromptInputSubmit
-              className={cn(
-                "h-7 w-7 rounded-xl transition-all duration-200",
-                showSubmitPending
-                  ? "bg-foreground text-background"
-                  : input.trim() || attachments.length > 0
-                  ? "bg-foreground text-background hover:opacity-85 active:scale-95"
-                  : "bg-muted text-muted-foreground/25 cursor-not-allowed"
-              )}
-              data-testid="send-button"
-              disabled={
-                showSubmitPending ||
-                (!input.trim() && attachments.length === 0) ||
-                uploadQueue.length > 0
-              }
-              status={status}
-              variant="secondary"
-            >
-              {showSubmitPending ? (
-                <Spinner className="size-4" />
-              ) : (
-                <ArrowUpIcon className="size-4" />
-              )}
-            </PromptInputSubmit>
-          )}
+            {status === "submitted" ? (
+              <StopButton setMessages={setMessages} stop={stop} />
+            ) : (
+              <PromptInputSubmit
+                className={cn(
+                  "h-7 w-7 rounded-xl transition-all duration-200",
+                  showSubmitPending
+                    ? "bg-foreground text-background"
+                    : input.trim() || attachments.length > 0
+                    ? "bg-foreground text-background hover:opacity-85 active:scale-95"
+                    : "bg-muted text-muted-foreground/25 cursor-not-allowed"
+                )}
+                data-testid="send-button"
+                disabled={
+                  showSubmitPending ||
+                  (!input.trim() && attachments.length === 0) ||
+                  uploadQueue.length > 0
+                }
+                status={status}
+                variant="secondary"
+              >
+                {showSubmitPending ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <ArrowUpIcon className="size-4" />
+                )}
+              </PromptInputSubmit>
+            )}
+          </div>
         </PromptInputFooter>
       </PromptInput>
     </div>
@@ -1370,73 +1365,57 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
   return (
     <fieldset
       aria-label="New mode"
-      className="flex items-center gap-1 rounded-xl border border-border/40 bg-muted/30 p-0.5"
+      className="flex items-center gap-0.5 rounded-xl border border-border/45 bg-muted/35 p-0.5"
       data-testid="new-mode-controls"
     >
       <button
         aria-pressed={!isRequestMode}
+        aria-label="New chat"
         className={cn(
-          "inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] transition-colors",
+          "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           !isRequestMode
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
+            ? "w-[4.75rem] gap-1.5 bg-background px-2.5 text-foreground shadow-sm"
+            : "w-8 px-0 text-muted-foreground hover:text-foreground"
         )}
+        data-expanded={!isRequestMode}
         data-testid="new-mode-chat"
         onClick={() => setMode("chat")}
         type="button"
       >
         <MessageSquareIcon className="size-3.5" />
-        Chat
+        <span
+          className={cn(
+            "whitespace-nowrap transition-[max-width,opacity] duration-200",
+            !isRequestMode ? "max-w-12 opacity-100" : "max-w-0 opacity-0"
+          )}
+        >
+          Chat
+        </span>
       </button>
       <button
         aria-pressed={isRequestMode}
+        aria-label="New request"
         className={cn(
-          "inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] transition-colors",
+          "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           isRequestMode
-            ? "bg-background text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
+            ? "w-[5.7rem] gap-1.5 bg-background px-2.5 text-foreground shadow-sm"
+            : "w-8 px-0 text-muted-foreground hover:text-foreground"
         )}
+        data-expanded={isRequestMode}
         data-testid="new-mode-request"
         onClick={() => setMode("request")}
         type="button"
       >
         <FilePenLineIcon className="size-3.5" />
-        Request
-      </button>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            aria-label="More new actions"
-            className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-            data-testid="new-supply-menu"
-            type="button"
-          >
-            <PackageIcon className="size-3.5" />
-            Supply
-            <ChevronDownIcon className="size-3" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          align="start"
-          className="min-w-48 rounded-2xl border-border/60 p-1"
-          sideOffset={8}
+        <span
+          className={cn(
+            "whitespace-nowrap transition-[max-width,opacity] duration-200",
+            isRequestMode ? "max-w-16 opacity-100" : "max-w-0 opacity-0"
+          )}
         >
-          <DropdownMenuItem
-            className="cursor-pointer rounded-xl text-[12px]"
-            onSelect={() => router.push("/supplies/new")}
-          >
-            <PackageIcon className="size-3.5" />
-            New supply
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer rounded-xl text-[12px]"
-            onSelect={() => router.push("/supplies/new?entry=whitelist")}
-          >
-            <PackageIcon className="size-3.5" />
-            Join supply whitelist
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          Request
+        </span>
+      </button>
     </fieldset>
   );
 }

@@ -590,7 +590,7 @@ export function ChatShell() {
                   className={cn(
                     "z-10 mx-auto flex w-full gap-2 px-2 backdrop-blur md:px-4",
                     isInitialComposerCentered
-                      ? "absolute left-1/2 top-1/2 max-w-3xl -translate-x-1/2 translate-y-20 bg-transparent pb-0 pt-0 md:translate-y-24"
+                      ? "absolute left-1/2 top-1/2 max-w-3xl -translate-x-1/2 translate-y-2 bg-transparent pb-0 pt-0 md:translate-y-3"
                       : "sticky bottom-0 max-w-4xl bg-background/94 pb-4 pt-2 md:pb-5",
                   )}
                 >
