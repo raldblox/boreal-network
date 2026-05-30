@@ -1,0 +1,330 @@
+{
+  "fixtureType": "desktop_ledger_boundary",
+  "scenarioId": "desktop-ledger-boundary",
+  "description": "Desktop request-bound execution stays an execution participant. Local transcript and ephemeral runtime signals do not become a second Request ledger, and durable writes go back to Boreal web truth.",
+  "desktopLocalState": {
+    "runtimeActorId": "act_runtime_owner_desktop",
+    "borealActorId": "act_desktop_owner",
+    "localThreadStore": "desktop_local_only",
+    "requestLedger": null,
+    "requestEvents": [],
+    "artifacts": [],
+    "transactions": [],
+    "durableWriteTarget": "boreal_web_api",
+    "transcriptPersistence": {
+      "localOnly": true,
+      "persistedToBorealByDefault": false,
+      "promotionRequiresCanonicalMutation": true
+    },
+    "ephemeralSignals": [
+      {
+        "kind": "typing",
+        "channel": "local_ipc",
+        "durable": false
+      },
+      {
+        "kind": "token_delta",
+        "channel": "localhost_sse",
+        "durable": false
+      },
+      {
+        "kind": "progress_tick",
+        "channel": "peer_stream",
+        "durable": false
+      },
+      {
+        "kind": "raw_tool_stdout",
+        "channel": "local_ipc",
+        "durable": false
+      }
+    ]
+  },
+  "cases": [
+    {
+      "caseId": "owner-private-direct-auto-fulfillment",
+      "description": "The owner approves desktop auto-resolution for one private request. Desktop creates fulfillment and artifact truth through Boreal web APIs without creating a local request ledger.",
+      "desktopExecution": {
+        "selectedRequestId": "req_desktop_owner_private",
+        "selectedFulfillmentId": "ful_desktop_owner_private",
+        "selectedLocalThreadId": "dt_local_owner_private_001",
+        "trustTier": "owner_private",
+        "runtimeMode": "safe",
+        "requestWorkspace": "C:/Users/raldb/boreal-network/.boreal-work/desktop/request-workspaces/req_desktop_owner_private",
+        "durableWriteTarget": "boreal_web_api",
+        "allowedDirectFulfillmentWithoutCommitment": true,
+        "syncFullTranscriptByDefault": false,
+        "localDurableObjects": [],
+        "apiWrites": [
+          "POST /api/requests/req_desktop_owner_private/fulfillments",
+          "POST /api/requests/req_desktop_owner_private/artifacts",
+          "PATCH /api/fulfillments/ful_desktop_owner_private"
+        ]
+      },
+      "webTruth": {
+        "request": {
+          "id": "req_desktop_owner_private",
+          "status": "completed",
+          "visibility": "private",
+          "owner": {
+            "kind": "human",
+            "id": "act_desktop_owner",
+            "displayName": "Desktop Owner"
+          },
+          "routing": {
+            "preferredSupplyId": "sup_owner_private_desktop_runtime"
+          },
+          "activeRefs": {
+            "activeFulfillmentId": "ful_desktop_owner_private",
+            "acceptedArtifactId": "art_desktop_owner_private_delivery"
+          },
+          "metadata": {
+            "desktopAutoResolve": true,
+            "sourceOfTruth": "boreal_web"
+          }
+        },
+        "commitments": [],
+        "fulfillments": [
+          {
+            "id": "ful_desktop_owner_private",
+            "requestId": "req_desktop_owner_private",
+            "status": "accepted",
+            "supplyId": "sup_owner_private_desktop_runtime",
+            "startedAt": "2026-05-22T09:10:00Z",
+            "acceptedAt": "2026-05-22T09:40:00Z",
+            "metadata": {
+              "authorizationKind": "owner_private_direct",
+              "createdByDesktopRuntime": true,
+              "writtenThrough": "boreal_web_api"
+            }
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "art_desktop_owner_private_delivery",
+            "requestId": "req_desktop_owner_private",
+            "fulfillmentId": "ful_desktop_owner_private",
+            "kind": "delivery",
+            "container": {
+              "kind": "document",
+              "documentId": "doc_desktop_owner_private_delivery",
+              "documentKind": "text"
+            },
+            "metadata": {
+              "createdFromDesktopTranscriptSummary": true,
+              "fullTranscriptStoredInline": false
+            }
+          }
+        ],
+        "events": [
+          {
+            "eventId": "evt_desktop_owner_private_001",
+            "requestId": "req_desktop_owner_private",
+            "aggregateType": "fulfillment",
+            "aggregateId": "ful_desktop_owner_private",
+            "sequence": 1,
+            "eventType": "fulfillment.created",
+            "payload": {
+              "fulfillmentId": "ful_desktop_owner_private",
+              "authorizationKind": "owner_private_direct"
+            }
+          },
+          {
+            "eventId": "evt_desktop_owner_private_002",
+            "requestId": "req_desktop_owner_private",
+            "aggregateType": "artifact",
+            "aggregateId": "art_desktop_owner_private_delivery",
+            "sequence": 2,
+            "eventType": "artifact.added",
+            "payload": {
+              "artifactId": "art_desktop_owner_private_delivery",
+              "fulfillmentId": "ful_desktop_owner_private"
+            }
+          },
+          {
+            "eventId": "evt_desktop_owner_private_003",
+            "requestId": "req_desktop_owner_private",
+            "aggregateType": "fulfillment",
+            "aggregateId": "ful_desktop_owner_private",
+            "sequence": 3,
+            "eventType": "fulfillment.accepted",
+            "payload": {
+              "fulfillmentId": "ful_desktop_owner_private"
+            }
+          },
+          {
+            "eventId": "evt_desktop_owner_private_004",
+            "requestId": "req_desktop_owner_private",
+            "aggregateType": "request",
+            "aggregateId": "req_desktop_owner_private",
+            "sequence": 4,
+            "eventType": "request.completed",
+            "payload": {
+              "acceptedArtifactId": "art_desktop_owner_private_delivery"
+            }
+          }
+        ]
+      },
+      "expectedInvariants": [
+        "Commitment may be absent only because the request is owner-private and direct auto-fulfillment is authorized.",
+        "Fulfillment and Artifact records are web truth, not desktop-local ledger rows.",
+        "Local transcript stays local unless a business-relevant outcome is promoted as an Artifact or RequestEvent."
+      ]
+    },
+    {
+      "caseId": "public-tracked-request-commitment-gated",
+      "description": "Desktop tracks a public request as an execution participant. Public work keeps the accepted Commitment gate, blocks Full runtime, and writes durable activity to Boreal web truth.",
+      "desktopExecution": {
+        "selectedRequestId": "req_desktop_public_tracked",
+        "selectedFulfillmentId": "ful_desktop_public_tracked",
+        "selectedLocalThreadId": "dt_local_public_001",
+        "trustTier": "public_external",
+        "runtimeMode": "safe",
+        "fullRuntimeBlocked": true,
+        "networkEnabled": false,
+        "extraWritableRoots": [],
+        "requestWorkspace": "C:/Users/raldb/boreal-network/.boreal-work/desktop/request-workspaces/req_desktop_public_tracked",
+        "durableWriteTarget": "boreal_web_api",
+        "allowedDirectFulfillmentWithoutCommitment": false,
+        "syncFullTranscriptByDefault": false,
+        "localDurableObjects": [],
+        "apiWrites": [
+          "POST /api/requests/req_desktop_public_tracked/artifacts",
+          "PATCH /api/fulfillments/ful_desktop_public_tracked"
+        ]
+      },
+      "webTruth": {
+        "request": {
+          "id": "req_desktop_public_tracked",
+          "status": "delivered",
+          "visibility": "public",
+          "owner": {
+            "kind": "human",
+            "id": "act_public_request_owner",
+            "displayName": "Public Request Owner"
+          },
+          "activeRefs": {
+            "activeCommitmentId": "cmt_desktop_public_tracked",
+            "activeFulfillmentId": "ful_desktop_public_tracked",
+            "latestArtifactId": "art_desktop_public_tracked_delivery"
+          },
+          "metadata": {
+            "desktopTrackedExecution": true,
+            "sourceOfTruth": "boreal_web"
+          }
+        },
+        "commitments": [
+          {
+            "id": "cmt_desktop_public_tracked",
+            "requestId": "req_desktop_public_tracked",
+            "status": "accepted",
+            "acceptedAt": "2026-05-22T10:05:00Z",
+            "supplyId": "sup_public_responder"
+          }
+        ],
+        "fulfillments": [
+          {
+            "id": "ful_desktop_public_tracked",
+            "requestId": "req_desktop_public_tracked",
+            "commitmentId": "cmt_desktop_public_tracked",
+            "status": "delivered",
+            "supplyId": "sup_public_responder",
+            "startedAt": "2026-05-22T10:20:00Z",
+            "deliveredAt": "2026-05-22T11:30:00Z",
+            "metadata": {
+              "createdByDesktopRuntime": false,
+              "desktopThreadBoundAsExecutionContext": true,
+              "writtenThrough": "boreal_web_api"
+            }
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "art_desktop_public_tracked_delivery",
+            "requestId": "req_desktop_public_tracked",
+            "fulfillmentId": "ful_desktop_public_tracked",
+            "kind": "delivery",
+            "container": {
+              "kind": "object_ref",
+              "objectKey": "requests/req_desktop_public_tracked/artifacts/delivery.md",
+              "storageProvider": "vercel_blob",
+              "mediaKind": "other",
+              "mimeType": "text/markdown"
+            },
+            "metadata": {
+              "createdFromDesktopTranscriptSummary": true,
+              "fullTranscriptStoredInline": false
+            }
+          }
+        ],
+        "events": [
+          {
+            "eventId": "evt_desktop_public_001",
+            "requestId": "req_desktop_public_tracked",
+            "aggregateType": "commitment",
+            "aggregateId": "cmt_desktop_public_tracked",
+            "sequence": 1,
+            "eventType": "commitment.accepted",
+            "payload": {
+              "commitmentId": "cmt_desktop_public_tracked"
+            }
+          },
+          {
+            "eventId": "evt_desktop_public_002",
+            "requestId": "req_desktop_public_tracked",
+            "aggregateType": "fulfillment",
+            "aggregateId": "ful_desktop_public_tracked",
+            "sequence": 2,
+            "eventType": "fulfillment.started",
+            "payload": {
+              "fulfillmentId": "ful_desktop_public_tracked",
+              "commitmentId": "cmt_desktop_public_tracked"
+            }
+          },
+          {
+            "eventId": "evt_desktop_public_003",
+            "requestId": "req_desktop_public_tracked",
+            "aggregateType": "artifact",
+            "aggregateId": "art_desktop_public_tracked_delivery",
+            "sequence": 3,
+            "eventType": "artifact.added",
+            "payload": {
+              "artifactId": "art_desktop_public_tracked_delivery",
+              "fulfillmentId": "ful_desktop_public_tracked"
+            }
+          },
+          {
+            "eventId": "evt_desktop_public_004",
+            "requestId": "req_desktop_public_tracked",
+            "aggregateType": "fulfillment",
+            "aggregateId": "ful_desktop_public_tracked",
+            "sequence": 4,
+            "eventType": "fulfillment.delivered",
+            "payload": {
+              "fulfillmentId": "ful_desktop_public_tracked",
+              "artifactId": "art_desktop_public_tracked_delivery"
+            }
+          }
+        ]
+      },
+      "expectedInvariants": [
+        "Public or external tracked request execution requires an accepted Commitment before Fulfillment activity.",
+        "Full runtime is blocked, network is off, and extra writable roots are cleared for public or external tracked work.",
+        "Desktop binds a local thread to the Request and optional Fulfillment lane without creating a local Request ledger."
+      ]
+    }
+  ],
+  "forbiddenDurablePayloadKeys": [
+    "fullTranscript",
+    "rawTranscript",
+    "tokenDeltas",
+    "rawToolStdout",
+    "rawToolStderr",
+    "desktopRequestLedger"
+  ],
+  "expectedInvariants": [
+    "Desktop durable writes target Boreal web APIs.",
+    "Desktop-local transcripts and ephemeral runtime signals are not RequestEvent history by default.",
+    "Owner-private direct fulfillment is the only commitmentless desktop lane.",
+    "Public or cross-actor desktop-tracked work preserves commitment gates and sandbox restrictions."
+  ]
+}

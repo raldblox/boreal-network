@@ -15,6 +15,8 @@ Run these from the monorepo root before a public or semi-public pilot demo:
   - validates all request-processing eval fixture shapes
 - `pnpm contracts:public-pilot`
   - validates one seeded public-pilot happy path across `Request`, funding, `Commitment`, `Fulfillment`, `Artifact`, `Transaction`, and `RequestEvent`
+- `pnpm contracts:desktop-ledger-boundary`
+  - validates desktop request-bound execution writes durable truth through Boreal web records instead of a desktop-local request ledger
 - `pnpm contracts:validate`
   - validates canonical JSON Schema files, deterministic fixture JSON, and active OpenAPI or AsyncAPI contract files
 - `pnpm peer:build`
