@@ -6,7 +6,10 @@ import { auth } from "@/app/(auth)/auth";
 import { buildAbsoluteSignedBlobDeliveryUrl } from "@/lib/blob-delivery";
 import {
   formatAttachmentBytes,
+  getChatAttachmentKind,
+  getChatImageDimensionError,
   maxChatAttachmentBytes,
+  readChatImageDimensionsFromBytes,
   resolveChatAttachmentMimeType,
   validateChatAttachmentFile,
 } from "@/lib/chat-attachment-policy";
@@ -84,6 +87,23 @@ export async function POST(request: Request) {
 
     const safeName = sanitizeUploadFilename(filename);
     const fileBuffer = await uploadedFile.arrayBuffer();
+
+    if (getChatAttachmentKind(contentType) === "image") {
+      const imageDimensions = readChatImageDimensionsFromBytes({
+        contentType,
+        data: new Uint8Array(fileBuffer),
+      });
+      const imageDimensionError = imageDimensions
+        ? getChatImageDimensionError(imageDimensions)
+        : "Image dimensions could not be read. Try a different image file.";
+
+      if (imageDimensionError) {
+        return NextResponse.json(
+          { error: imageDimensionError },
+          { status: imageDimensions ? 413 : 415 }
+        );
+      }
+    }
 
     try {
       const pathname = `chat-attachments/${session.user.id}/${generateUUID()}-${safeName}`;

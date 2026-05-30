@@ -4,6 +4,7 @@ import { postRequestBodySchema } from "@/app/(chat)/api/chat/schema";
 import {
   getChatImageDimensionError,
   maxChatImageSourcePixels,
+  readChatImageDimensionsFromBytes,
 } from "@/lib/chat-attachment-policy";
 import {
   getChatAttachmentUrlRejection,
@@ -53,6 +54,43 @@ function createSimplePdf(text: string) {
   return Buffer.from(body, "latin1");
 }
 
+function createPngHeader({ height, width }: { height: number; width: number }) {
+  const bytes = Buffer.alloc(24);
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
+  bytes.write("IHDR", 12, "ascii");
+  bytes.writeUInt32BE(width, 16);
+  bytes.writeUInt32BE(height, 20);
+  return bytes;
+}
+
+function createJpegHeader({ height, width }: { height: number; width: number }) {
+  const bytes = Buffer.alloc(21);
+  bytes.set([0xff, 0xd8, 0xff, 0xc0], 0);
+  bytes.writeUInt16BE(17, 4);
+  bytes[6] = 8;
+  bytes.writeUInt16BE(height, 7);
+  bytes.writeUInt16BE(width, 9);
+  return bytes;
+}
+
+function createWebpVp8xHeader({
+  height,
+  width,
+}: {
+  height: number;
+  width: number;
+}) {
+  const bytes = Buffer.alloc(30);
+  bytes.write("RIFF", 0, "ascii");
+  bytes.writeUInt32LE(22, 4);
+  bytes.write("WEBP", 8, "ascii");
+  bytes.write("VP8X", 12, "ascii");
+  bytes.writeUInt32LE(10, 16);
+  bytes.writeUIntLE(width - 1, 24, 3);
+  bytes.writeUIntLE(height - 1, 27, 3);
+  return bytes;
+}
+
 const legacyFilePayload = postRequestBodySchema.parse({
   id: requestId,
   message: {
@@ -81,6 +119,39 @@ assert.match(
     height: maxChatImageSourcePixels,
     width: 2,
   }) ?? "",
+  /too large/
+);
+assert.deepEqual(
+  readChatImageDimensionsFromBytes({
+    contentType: "image/png",
+    data: createPngHeader({ height: 456, width: 123 }),
+  }),
+  { height: 456, width: 123 }
+);
+assert.deepEqual(
+  readChatImageDimensionsFromBytes({
+    contentType: "image/jpeg",
+    data: createJpegHeader({ height: 987, width: 654 }),
+  }),
+  { height: 987, width: 654 }
+);
+assert.deepEqual(
+  readChatImageDimensionsFromBytes({
+    contentType: "image/webp",
+    data: createWebpVp8xHeader({ height: 222, width: 111 }),
+  }),
+  { height: 222, width: 111 }
+);
+assert.match(
+  getChatImageDimensionError(
+    readChatImageDimensionsFromBytes({
+      contentType: "image/png",
+      data: createPngHeader({
+        height: maxChatImageSourcePixels,
+        width: 2,
+      }),
+    }) ?? { height: 0, width: 0 }
+  ) ?? "",
   /too large/
 );
 

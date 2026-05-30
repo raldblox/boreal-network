@@ -176,6 +176,170 @@ export function getChatImageDimensionError({
   return null;
 }
 
+function matchesBytes(data: Uint8Array, offset: number, values: number[]) {
+  return values.every((value, index) => data[offset + index] === value);
+}
+
+function readAscii(data: Uint8Array, offset: number, length: number) {
+  let value = "";
+
+  for (let index = 0; index < length; index += 1) {
+    value += String.fromCharCode(data[offset + index] ?? 0);
+  }
+
+  return value;
+}
+
+function readUint24LE(data: Uint8Array, offset: number) {
+  return (
+    (data[offset] ?? 0) |
+    ((data[offset + 1] ?? 0) << 8) |
+    ((data[offset + 2] ?? 0) << 16)
+  );
+}
+
+function readPngDimensions(data: Uint8Array) {
+  if (
+    data.length < 24 ||
+    !matchesBytes(data, 0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) ||
+    readAscii(data, 12, 4) !== "IHDR"
+  ) {
+    return null;
+  }
+
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  return {
+    height: view.getUint32(20, false),
+    width: view.getUint32(16, false),
+  };
+}
+
+function isJpegStartOfFrame(marker: number) {
+  return (
+    (marker >= 0xc0 && marker <= 0xc3) ||
+    (marker >= 0xc5 && marker <= 0xc7) ||
+    (marker >= 0xc9 && marker <= 0xcb) ||
+    (marker >= 0xcd && marker <= 0xcf)
+  );
+}
+
+function readJpegDimensions(data: Uint8Array) {
+  if (data.length < 4 || data[0] !== 0xff || data[1] !== 0xd8) {
+    return null;
+  }
+
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  let offset = 2;
+
+  while (offset + 3 < data.length) {
+    while (data[offset] === 0xff) {
+      offset += 1;
+    }
+
+    const marker = data[offset];
+    offset += 1;
+
+    if (marker === undefined || marker === 0xda || marker === 0xd9) {
+      return null;
+    }
+
+    if (offset + 1 >= data.length) {
+      return null;
+    }
+
+    const segmentLength = view.getUint16(offset, false);
+
+    if (segmentLength < 2 || offset + segmentLength > data.length) {
+      return null;
+    }
+
+    if (isJpegStartOfFrame(marker)) {
+      if (segmentLength < 7) {
+        return null;
+      }
+
+      return {
+        height: view.getUint16(offset + 3, false),
+        width: view.getUint16(offset + 5, false),
+      };
+    }
+
+    offset += segmentLength;
+  }
+
+  return null;
+}
+
+function readWebpDimensions(data: Uint8Array) {
+  if (
+    data.length < 30 ||
+    readAscii(data, 0, 4) !== "RIFF" ||
+    readAscii(data, 8, 4) !== "WEBP"
+  ) {
+    return null;
+  }
+
+  const chunkType = readAscii(data, 12, 4);
+
+  if (chunkType === "VP8X") {
+    return {
+      height: readUint24LE(data, 27) + 1,
+      width: readUint24LE(data, 24) + 1,
+    };
+  }
+
+  if (
+    chunkType === "VP8L" &&
+    data.length >= 25 &&
+    data[20] === 0x2f
+  ) {
+    const bits =
+      (data[21] ?? 0) |
+      ((data[22] ?? 0) << 8) |
+      ((data[23] ?? 0) << 16) |
+      ((data[24] ?? 0) << 24);
+
+    return {
+      height: ((bits >>> 14) & 0x3fff) + 1,
+      width: (bits & 0x3fff) + 1,
+    };
+  }
+
+  if (
+    chunkType === "VP8 " &&
+    data.length >= 30 &&
+    data[23] === 0x9d &&
+    data[24] === 0x01 &&
+    data[25] === 0x2a
+  ) {
+    return {
+      height: (((data[29] ?? 0) << 8) | (data[28] ?? 0)) & 0x3fff,
+      width: (((data[27] ?? 0) << 8) | (data[26] ?? 0)) & 0x3fff,
+    };
+  }
+
+  return null;
+}
+
+export function readChatImageDimensionsFromBytes({
+  contentType,
+  data,
+}: {
+  contentType: string;
+  data: Uint8Array;
+}) {
+  switch (contentType) {
+    case "image/png":
+      return readPngDimensions(data);
+    case "image/jpeg":
+      return readJpegDimensions(data);
+    case "image/webp":
+      return readWebpDimensions(data);
+    default:
+      return null;
+  }
+}
+
 export function validateChatAttachmentFile(file: {
   name?: string | null;
   size: number;
