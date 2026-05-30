@@ -169,6 +169,17 @@ function normalizeFilePartFilenames(messages: ChatMessage[]): ChatMessage[] {
   }));
 }
 
+function hasImageFilePart(messages: ChatMessage[]) {
+  return messages.some((message) =>
+    message.parts.some(
+      (part) =>
+        part.type === "file" &&
+        typeof part.mediaType === "string" &&
+        part.mediaType.toLowerCase().startsWith("image/")
+    )
+  );
+}
+
 function shouldAllowPreDraftClarification(text: string): boolean {
   return embodiedClarificationPattern.test(text);
 }
@@ -437,6 +448,7 @@ export async function POST(request: Request) {
       requestedModelId: chatModel,
       modelMessages,
       hasActiveRequest: isActiveRequestMode,
+      hasImageInput: hasImageFilePart(modelReadyMessages),
       recentActivityCount: recentActivity.length,
       requestMode,
     });

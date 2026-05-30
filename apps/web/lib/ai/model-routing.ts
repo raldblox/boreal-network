@@ -3,6 +3,7 @@ const DEFAULT_CONTEXT_HEAVY_MESSAGE_THRESHOLD = 14;
 const DEFAULT_CONTEXT_HEAVY_ACTIVITY_THRESHOLD = 6;
 
 export const CONTEXT_HEAVY_PRIMARY_MODEL_ID = "openai/gpt-5.4-mini";
+export const VISION_PRIMARY_MODEL_ID = "openai/gpt-5.4-mini";
 
 export const OPENAI_CONTEXT_HEAVY_MODEL_ROTATION = [
   "openai/gpt-5.4-mini",
@@ -12,10 +13,17 @@ export const OPENAI_CONTEXT_HEAVY_MODEL_ROTATION = [
   "openai/gpt-4.1-nano",
 ] as const;
 
+const OPENAI_VISION_MODEL_ROTATION = [
+  "openai/gpt-5.4-mini",
+  "openai/gpt-5-mini",
+  "openai/gpt-4.1-nano",
+] as const;
+
 type SelectChatModelRouteInput = {
   requestedModelId: string;
   modelMessages: readonly unknown[];
   hasActiveRequest: boolean;
+  hasImageInput?: boolean;
   recentActivityCount: number;
   requestMode: boolean | undefined;
 };
@@ -25,10 +33,16 @@ export type ChatModelRoute = {
   effectiveModelId: string;
   fallbackModelIds: string[];
   contextTokenEstimate: number;
-  reason: "requested_rotation_model" | "context_heavy" | "default_with_rotation" | "unchanged";
+  reason:
+    | "requested_rotation_model"
+    | "image_input"
+    | "context_heavy"
+    | "default_with_rotation"
+    | "unchanged";
 };
 
 export function selectChatModelRoute({
+  hasImageInput = false,
   requestedModelId,
   modelMessages,
   hasActiveRequest,
@@ -39,6 +53,31 @@ export function selectChatModelRoute({
   const rotationIndex = OPENAI_CONTEXT_HEAVY_MODEL_ROTATION.indexOf(
     requestedModelId as (typeof OPENAI_CONTEXT_HEAVY_MODEL_ROTATION)[number]
   );
+  const visionRotationIndex = OPENAI_VISION_MODEL_ROTATION.indexOf(
+    requestedModelId as (typeof OPENAI_VISION_MODEL_ROTATION)[number]
+  );
+
+  if (hasImageInput) {
+    if (visionRotationIndex >= 0) {
+      return {
+        requestedModelId,
+        effectiveModelId: requestedModelId,
+        fallbackModelIds: OPENAI_VISION_MODEL_ROTATION.slice(
+          visionRotationIndex + 1
+        ),
+        contextTokenEstimate,
+        reason: "requested_rotation_model",
+      };
+    }
+
+    return {
+      requestedModelId,
+      effectiveModelId: VISION_PRIMARY_MODEL_ID,
+      fallbackModelIds: OPENAI_VISION_MODEL_ROTATION.slice(1),
+      contextTokenEstimate,
+      reason: "image_input",
+    };
+  }
 
   if (rotationIndex >= 0) {
     return {

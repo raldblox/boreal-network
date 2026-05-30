@@ -83,18 +83,39 @@ export const chatModels: ChatModel[] = [
   },
 ];
 
+const capabilityFallbacks: Record<string, ModelCapabilities> = {
+  "openai/gpt-5.4-nano": { tools: true, vision: true, reasoning: false },
+  "openai/gpt-5.4-mini": { tools: true, vision: true, reasoning: false },
+  "openai/gpt-5.1-codex-mini": {
+    tools: true,
+    vision: false,
+    reasoning: true,
+  },
+  "openai/gpt-5-pro": { tools: true, vision: true, reasoning: true },
+  "openai/gpt-5-mini": { tools: true, vision: true, reasoning: false },
+  "openai/o3-mini": { tools: true, vision: false, reasoning: true },
+  "openai/o4-mini": { tools: true, vision: false, reasoning: true },
+  "openai/gpt-4.1-nano": { tools: true, vision: true, reasoning: false },
+};
+
 export async function getCapabilities(): Promise<
   Record<string, ModelCapabilities>
 > {
   const results = await Promise.all(
     chatModels.map(async (model) => {
+      const fallback = capabilityFallbacks[model.id] ?? {
+        tools: false,
+        vision: false,
+        reasoning: false,
+      };
+
       try {
         const res = await fetch(
           `https://ai-gateway.vercel.sh/v1/models/${model.id}/endpoints`,
           { next: { revalidate: 86_400 } }
         );
         if (!res.ok) {
-          return [model.id, { tools: false, vision: false, reasoning: false }];
+          return [model.id, fallback];
         }
 
         const json = await res.json();
@@ -112,13 +133,13 @@ export async function getCapabilities(): Promise<
         return [
           model.id,
           {
-            tools: params.has("tools"),
-            vision: inputModalities.has("image"),
-            reasoning: params.has("reasoning"),
+            tools: params.has("tools") || fallback.tools,
+            vision: inputModalities.has("image") || fallback.vision,
+            reasoning: params.has("reasoning") || fallback.reasoning,
           },
         ];
       } catch {
-        return [model.id, { tools: false, vision: false, reasoning: false }];
+        return [model.id, fallback];
       }
     })
   );

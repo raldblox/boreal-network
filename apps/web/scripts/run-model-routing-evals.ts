@@ -117,6 +117,60 @@ const cases: EvalCase[] = [
     },
   },
   {
+    id: "image-input-promotes-non-vision-model-to-vision-mini",
+    input: {
+      requestedModelId: "openai/o3-mini",
+      modelMessages: [
+        {
+          role: "user",
+          content: [
+            {
+              data: "https://network.boreal.work/api/files/blob?filename=image.jpg",
+              mediaType: "image/jpeg",
+              type: "file",
+            },
+          ],
+        },
+      ],
+      hasActiveRequest: false,
+      hasImageInput: true,
+      recentActivityCount: 0,
+      requestMode: false,
+    },
+    expected: {
+      effectiveModelId: "openai/gpt-5.4-mini",
+      fallbackModelIds: ["openai/gpt-5-mini", "openai/gpt-4.1-nano"],
+      reason: "image_input",
+    },
+  },
+  {
+    id: "image-input-keeps-requested-vision-mini",
+    input: {
+      requestedModelId: "openai/gpt-5-mini",
+      modelMessages: [
+        {
+          role: "user",
+          content: [
+            {
+              data: "https://network.boreal.work/api/files/blob?filename=image.jpg",
+              mediaType: "image/jpeg",
+              type: "file",
+            },
+          ],
+        },
+      ],
+      hasActiveRequest: false,
+      hasImageInput: true,
+      recentActivityCount: 0,
+      requestMode: false,
+    },
+    expected: {
+      effectiveModelId: "openai/gpt-5-mini",
+      fallbackModelIds: ["openai/gpt-4.1-nano"],
+      reason: "requested_rotation_model",
+    },
+  },
+  {
     id: "requested-o3-mini-starts-at-o3",
     input: {
       requestedModelId: "openai/o3-mini",
