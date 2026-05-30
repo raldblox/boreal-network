@@ -3,6 +3,7 @@ import { convertToModelMessages } from "ai";
 import { postRequestBodySchema } from "@/app/(chat)/api/chat/schema";
 import {
   getChatImageDimensionError,
+  maxChatDocxTextExtractionBytes,
   maxChatImageSourcePixels,
   readChatImageDimensionsFromBytes,
 } from "@/lib/chat-attachment-policy";
@@ -54,7 +55,14 @@ function createSimplePdf(text: string) {
   return Buffer.from(body, "latin1");
 }
 
-function createStoredDocxXml(text: string) {
+function createStoredDocxXml(
+  text: string,
+  {
+    uncompressedSizeOverride,
+  }: {
+    uncompressedSizeOverride?: number;
+  } = {}
+) {
   const filename = "word/document.xml";
   const content = Buffer.from(
     [
@@ -82,7 +90,10 @@ function createStoredDocxXml(text: string) {
   localHeader.writeUInt32LE(0, 10);
   localHeader.writeUInt32LE(0, 14);
   localHeader.writeUInt32LE(content.byteLength, 18);
-  localHeader.writeUInt32LE(content.byteLength, 22);
+  localHeader.writeUInt32LE(
+    uncompressedSizeOverride ?? content.byteLength,
+    22
+  );
   localHeader.writeUInt16LE(filenameBytes.byteLength, 26);
   localHeader.writeUInt16LE(0, 28);
 
@@ -97,7 +108,10 @@ function createStoredDocxXml(text: string) {
   centralHeader.writeUInt32LE(0, 12);
   centralHeader.writeUInt32LE(0, 16);
   centralHeader.writeUInt32LE(content.byteLength, 20);
-  centralHeader.writeUInt32LE(content.byteLength, 24);
+  centralHeader.writeUInt32LE(
+    uncompressedSizeOverride ?? content.byteLength,
+    24
+  );
   centralHeader.writeUInt16LE(filenameBytes.byteLength, 28);
   centralHeader.writeUInt16LE(0, 30);
   centralHeader.writeUInt16LE(0, 32);
@@ -328,6 +342,52 @@ async function main() {
   assert.equal(docxPart.type, "text");
   assert.match(docxPart.text ?? "", /Attached DOCX file: brief\.docx/);
   assert.match(docxPart.text ?? "", /Boreal DOCX attachment detail/);
+
+  globalThis.fetch = async () =>
+    new Response(
+      createStoredDocxXml("This should not be inflated.", {
+        uncompressedSizeOverride: maxChatDocxTextExtractionBytes + 1,
+      }),
+      {
+        headers: {
+          "content-type":
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        },
+      }
+    );
+
+  const oversizedDocxMessages = await prepareChatMessagesForModel({
+    requestUrl: "https://network.boreal.work/chat/test",
+    messages: [
+      {
+        role: "user" as const,
+        parts: [
+          {
+            type: "file",
+            mediaType:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename: "oversized.docx",
+            url: "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/oversized.docx&expires=9999999999&signature=test&filename=oversized.docx",
+          },
+        ],
+      },
+    ],
+  }).finally(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const oversizedDocxPart = oversizedDocxMessages[0].parts[0] as {
+    text?: string;
+    type?: string;
+  };
+  assert.equal(oversizedDocxPart.type, "text");
+  assert.match(
+    oversizedDocxPart.text ?? "",
+    /No document text was extracted from this DOCX/
+  );
+  assert.doesNotMatch(
+    oversizedDocxPart.text ?? "",
+    /This should not be inflated/
+  );
 
   globalThis.fetch = async () =>
     new Response(tinyPng, {

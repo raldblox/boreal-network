@@ -297,7 +297,11 @@ function findZipEndOfCentralDirectory(data: Uint8Array) {
   return -1;
 }
 
-function extractZipEntry(data: Uint8Array, targetPath: string) {
+function extractZipEntry(
+  data: Uint8Array,
+  targetPath: string,
+  maxEntryBytes: number
+) {
   const eocdOffset = findZipEndOfCentralDirectory(data);
 
   if (eocdOffset < 0) {
@@ -319,6 +323,7 @@ function extractZipEntry(data: Uint8Array, targetPath: string) {
 
     const compressionMethod = view.getUint16(centralOffset + 10, true);
     const compressedSize = view.getUint32(centralOffset + 20, true);
+    const uncompressedSize = view.getUint32(centralOffset + 24, true);
     const filenameLength = view.getUint16(centralOffset + 28, true);
     const extraLength = view.getUint16(centralOffset + 30, true);
     const commentLength = view.getUint16(centralOffset + 32, true);
@@ -335,6 +340,10 @@ function extractZipEntry(data: Uint8Array, targetPath: string) {
       .replace(/\\/g, "/");
 
     if (filename === targetPath) {
+      if (uncompressedSize > maxEntryBytes) {
+        return null;
+      }
+
       if (
         localHeaderOffset + 30 > data.byteLength ||
         view.getUint32(localHeaderOffset, true) !== 0x0403_4b50
@@ -359,7 +368,13 @@ function extractZipEntry(data: Uint8Array, targetPath: string) {
       }
 
       if (compressionMethod === 8) {
-        return inflateRawSync(compressedData);
+        try {
+          const inflatedData = inflateRawSync(compressedData);
+
+          return inflatedData.byteLength > maxEntryBytes ? null : inflatedData;
+        } catch {
+          return null;
+        }
       }
 
       return null;
@@ -440,7 +455,11 @@ function decodeDocxAttachment({
     ].join("\n");
   }
 
-  const documentXml = extractZipEntry(data, "word/document.xml");
+  const documentXml = extractZipEntry(
+    data,
+    "word/document.xml",
+    maxChatDocxTextExtractionBytes
+  );
 
   if (!documentXml) {
     return [
