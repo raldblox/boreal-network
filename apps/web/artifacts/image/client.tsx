@@ -3,6 +3,71 @@ import { Artifact } from "@/components/chat/create-artifact";
 import { CopyIcon, RedoIcon, UndoIcon } from "@/components/chat/icons";
 import { ImageEditor } from "@/components/chat/image-editor";
 
+function getGeneratedImageSrc(content: string) {
+  const trimmedContent = content.trim();
+
+  if (!trimmedContent) {
+    return null;
+  }
+
+  if (trimmedContent.startsWith("data:image/")) {
+    return trimmedContent;
+  }
+
+  return `data:image/png;base64,${trimmedContent}`;
+}
+
+function loadImageElement(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+
+    image.onload = () => resolve(image);
+    image.onerror = () =>
+      reject(new Error("Generated image could not be decoded."));
+    image.src = src;
+  });
+}
+
+function canvasToPngBlob(canvas: HTMLCanvasElement) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error("Generated image could not be copied."));
+        return;
+      }
+
+      resolve(blob);
+    }, "image/png");
+  });
+}
+
+async function copyImageContentToClipboard(content: string) {
+  const imageSrc = getGeneratedImageSrc(content);
+
+  if (!imageSrc) {
+    throw new Error("Image content is not available.");
+  }
+
+  if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
+    throw new Error("Image clipboard copy is not supported in this browser.");
+  }
+
+  const image = await loadImageElement(imageSrc);
+  const canvas = document.createElement("canvas");
+  canvas.width = image.width;
+  canvas.height = image.height;
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Image canvas is not available.");
+  }
+
+  context.drawImage(image, 0, 0);
+  const blob = await canvasToPngBlob(canvas);
+
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+}
+
 export const imageArtifact = new Artifact({
   kind: "image",
   description: "Useful for image generation",
@@ -49,26 +114,20 @@ export const imageArtifact = new Artifact({
     {
       icon: <CopyIcon size={18} />,
       description: "Copy image to clipboard",
-      onClick: ({ content }) => {
-        const img = new Image();
-        img.src = `data:image/png;base64,${content}`;
-
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext("2d");
-          ctx?.drawImage(img, 0, 0);
-          canvas.toBlob((blob) => {
-            if (blob) {
-              navigator.clipboard.write([
-                new ClipboardItem({ "image/png": blob }),
-              ]);
-            }
-          }, "image/png");
-        };
-
-        toast.success("Copied image to clipboard!");
+      onClick: async ({ content }) => {
+        try {
+          await copyImageContentToClipboard(content);
+          toast.success("Copied image to clipboard!");
+        } catch (error) {
+          toast.error(
+            error instanceof Error && error.message.trim()
+              ? error.message
+              : "Could not copy image to clipboard."
+          );
+        }
+      },
+      isDisabled: ({ content }) => {
+        return !content.trim();
       },
     },
   ],

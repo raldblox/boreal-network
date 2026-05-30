@@ -1,4 +1,5 @@
 import cn from "classnames";
+import { useEffect, useMemo, useState } from "react";
 import { LoaderIcon } from "./icons";
 
 type ImageEditorProps = {
@@ -10,12 +11,33 @@ type ImageEditorProps = {
   isInline: boolean;
 };
 
+function getGeneratedImageSrc(content: string) {
+  const trimmedContent = content.trim();
+
+  if (!trimmedContent) {
+    return null;
+  }
+
+  if (trimmedContent.startsWith("data:image/")) {
+    return trimmedContent;
+  }
+
+  return `data:image/png;base64,${trimmedContent}`;
+}
+
 export function ImageEditor({
   title,
   content,
   status,
   isInline,
 }: ImageEditorProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageSrc = useMemo(() => getGeneratedImageSrc(content), [content]);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageSrc]);
+
   return (
     <div
       className={cn("flex w-full flex-row items-center justify-center", {
@@ -37,6 +59,14 @@ export function ImageEditor({
           Image generation did not return an image. Try again with a simpler
           prompt.
         </div>
+      ) : imageFailed || !imageSrc ? (
+        <div
+          className="max-w-sm text-center text-muted-foreground text-sm"
+          data-testid="image-artifact-error"
+        >
+          Generated image data could not be displayed. Try regenerating it with
+          a simpler prompt.
+        </div>
       ) : (
         <picture>
           <img
@@ -44,7 +74,8 @@ export function ImageEditor({
             className={cn("h-fit w-full max-w-[800px]", {
               "p-0 md:p-20": !isInline,
             })}
-            src={`data:image/png;base64,${content}`}
+            onError={() => setImageFailed(true)}
+            src={imageSrc}
           />
         </picture>
       )}
