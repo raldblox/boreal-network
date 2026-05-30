@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { convertToModelMessages } from "ai";
 import { postRequestBodySchema } from "@/app/(chat)/api/chat/schema";
-import { isChatBlobDeliveryUrl } from "@/lib/chat-attachment-download";
+import {
+  isChatBlobDeliveryUrl,
+  prepareChatMessagesForModel,
+} from "@/lib/chat-attachment-download";
 
 const requestId = "00000000-0000-4000-8000-000000000010";
 const messageId = "00000000-0000-4000-8000-000000000011";
@@ -27,6 +30,42 @@ const legacyFilePayload = postRequestBodySchema.parse({
 assert.equal(legacyFilePayload.message?.parts[0]?.type, "file");
 
 async function main() {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response("# Notes\n\nImportant attachment detail.", {
+      headers: {
+        "content-type": "text/markdown",
+      },
+    });
+
+  const preparedMessages = await prepareChatMessagesForModel({
+    requestUrl: "https://network.boreal.work/chat/test",
+    messages: [
+      {
+        role: "user",
+        parts: [
+          {
+            type: "file",
+            mediaType: "text/markdown",
+            filename: "notes.md",
+            url: "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/notes.md&expires=9999999999&signature=test&filename=notes.md",
+          },
+        ],
+      },
+    ],
+  }).finally(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const [preparedMessage] = preparedMessages;
+  const preparedPart = preparedMessage.parts[0] as {
+    text?: string;
+    type?: string;
+  };
+  assert.equal(preparedPart.type, "text");
+  assert.match(preparedPart.text ?? "", /Important attachment detail/);
+
   const modelMessages = await convertToModelMessages([
     {
       role: "user",

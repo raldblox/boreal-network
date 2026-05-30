@@ -58,7 +58,10 @@ import type { DBMessage } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import { canRespondToRequest } from "@/lib/request-server";
-import { createChatAttachmentDownload } from "@/lib/chat-attachment-download";
+import {
+  createChatAttachmentDownload,
+  prepareChatMessagesForModel,
+} from "@/lib/chat-attachment-download";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
@@ -425,9 +428,11 @@ export async function POST(request: Request) {
             limit: 8,
           })
         : [];
-    const modelMessages = await convertToModelMessages(
-      normalizeFilePartFilenames(uiMessages)
-    );
+    const modelReadyMessages = await prepareChatMessagesForModel({
+      messages: normalizeFilePartFilenames(uiMessages),
+      requestUrl: request.url,
+    });
+    const modelMessages = await convertToModelMessages(modelReadyMessages);
     const modelRoute = selectChatModelRoute({
       requestedModelId: chatModel,
       modelMessages,
