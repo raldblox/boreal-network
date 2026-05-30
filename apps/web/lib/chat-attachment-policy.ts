@@ -51,7 +51,7 @@ export const maxOptimizedImageDimension = 2048;
 export const maxChatImageSourcePixels = 48_000_000;
 export const optimizedImageQuality = 0.82;
 export const chatAttachmentSupportSummary =
-  "Images, PDF, DOCX, Markdown, TXT, CSV, JSON. Images are optimized before upload.";
+  "Images, PDF, DOCX, Markdown, TXT, CSV, JSON. Large images are optimized before upload.";
 
 const extensionMimeTypeMap: Record<string, ChatAttachmentMimeType> = {
   ".csv": "text/csv",
@@ -393,6 +393,34 @@ export function validateChatAttachmentFile(file: {
     return {
       contentType,
       error: `Files must be ${formatAttachmentBytes(maxChatAttachmentBytes)} or smaller.`,
+    };
+  }
+
+  return { contentType, error: null };
+}
+
+export function validateChatAttachmentSelectionFile(file: {
+  name?: string | null;
+  size: number;
+  type?: string | null;
+}) {
+  const contentType = resolveChatAttachmentMimeType({
+    name: file.name,
+    type: file.type,
+  });
+
+  if (!contentType) {
+    return {
+      contentType: null,
+      error:
+        "Unsupported file type. Attach images, PDF, DOCX, Markdown, text, CSV, or JSON files.",
+    };
+  }
+
+  if (file.size > maxChatAttachmentBytes) {
+    return {
+      contentType,
+      error: `${getChatAttachmentKind(contentType) === "image" ? "Images" : "Files"} must be ${formatAttachmentBytes(maxChatAttachmentBytes)} or smaller.`,
     };
   }
 

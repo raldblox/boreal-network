@@ -61,6 +61,7 @@ import {
   resolveChatAttachmentMimeType,
   chatAttachmentSupportSummary,
   validateChatAttachmentFile,
+  validateChatAttachmentSelectionFile,
 } from "@/lib/chat-attachment-policy";
 import {
   buildDesktopBridgeModelsUrl,
@@ -561,7 +562,7 @@ function PureMultimodalInput({
   }, [status]);
 
   const uploadFile = useCallback(async (file: File) => {
-    const clientValidation = validateChatAttachmentFile(file);
+    const clientValidation = validateChatAttachmentSelectionFile(file);
 
     if (clientValidation.error || !clientValidation.contentType) {
       toast.error(clientValidation.error ?? "Unsupported file type.");
@@ -578,6 +579,17 @@ function PureMultimodalInput({
           name: preparedFile.name,
           type: preparedFile.type,
         }) ?? clientValidation.contentType;
+      const uploadValidation = validateChatAttachmentFile({
+        name: preparedFile.name,
+        size: preparedFile.size,
+        type: resolvedContentType,
+      });
+
+      if (uploadValidation.error) {
+        toast.error(uploadValidation.error);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("file", preparedFile);
 
@@ -624,7 +636,7 @@ function PureMultimodalInput({
 
       const validatedFiles = files.map((file) => ({
         file,
-        validation: validateChatAttachmentFile(file),
+        validation: validateChatAttachmentSelectionFile(file),
       }));
       const rejectedFiles = validatedFiles.filter(
         ({ validation }) => validation.error

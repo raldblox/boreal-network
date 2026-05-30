@@ -3,9 +3,13 @@ import { convertToModelMessages } from "ai";
 import { postRequestBodySchema } from "@/app/(chat)/api/chat/schema";
 import {
   getChatImageDimensionError,
+  maxChatAttachmentBytes,
   maxChatDocxTextExtractionBytes,
+  maxChatImageInputBytes,
   maxChatImageSourcePixels,
   readChatImageDimensionsFromBytes,
+  validateChatAttachmentFile,
+  validateChatAttachmentSelectionFile,
 } from "@/lib/chat-attachment-policy";
 import {
   getChatAttachmentUrlRejection,
@@ -234,6 +238,30 @@ assert.match(
     }) ?? { height: 0, width: 0 }
   ) ?? "",
   /too large/
+);
+assert.equal(
+  validateChatAttachmentSelectionFile({
+    name: "large-photo.jpg",
+    size: maxChatImageInputBytes + 1,
+    type: "image/jpeg",
+  }).error,
+  null
+);
+assert.match(
+  validateChatAttachmentFile({
+    name: "large-photo.jpg",
+    size: maxChatImageInputBytes + 1,
+    type: "image/jpeg",
+  }).error ?? "",
+  /Images must be/
+);
+assert.match(
+  validateChatAttachmentSelectionFile({
+    name: "too-large-photo.jpg",
+    size: maxChatAttachmentBytes + 1,
+    type: "image/jpeg",
+  }).error ?? "",
+  /Images must be/
 );
 
 async function main() {

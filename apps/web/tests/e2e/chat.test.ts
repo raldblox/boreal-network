@@ -86,6 +86,87 @@ test.describe("Chat Input Features", () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test("optimizes oversized images before upload", async ({ page }) => {
+    let uploadRequestBytes = 0;
+
+    await page.route("**/api/files/upload", async (route) => {
+      uploadRequestBytes = route.request().postDataBuffer()?.byteLength ?? 0;
+
+      await route.fulfill({
+        body: JSON.stringify({
+          contentType: "image/jpeg",
+          filename: "camera-roll-photo.jpg",
+          pathname: "chat-attachments/e2e/camera-roll-photo.jpg",
+          size: uploadRequestBytes,
+          url: "/api/files/blob?pathname=chat-attachments/e2e/camera-roll-photo.jpg&expires=9999999999&signature=test&filename=camera-roll-photo.jpg",
+        }),
+        contentType: "application/json",
+        status: 200,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+
+    const originalSize = await page.evaluate(async () => {
+      const input = document.querySelector<HTMLInputElement>(
+        "[data-testid='attachment-file-input']"
+      );
+
+      if (!input) {
+        throw new Error("Attachment input not found.");
+      }
+
+      const width = 3100;
+      const height = 3100;
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("Canvas context unavailable.");
+      }
+
+      const imageData = context.createImageData(width, height);
+
+      for (let index = 0; index < imageData.data.length; index += 4) {
+        const pixel = index / 4;
+        imageData.data[index] = (pixel * 17) % 256;
+        imageData.data[index + 1] = (pixel * 37) % 256;
+        imageData.data[index + 2] = (pixel * 67) % 256;
+        imageData.data[index + 3] = 255;
+      }
+
+      context.putImageData(imageData, 0, 0);
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (value) =>
+            value ? resolve(value) : reject(new Error("JPEG encode failed.")),
+          "image/jpeg",
+          0.98
+        );
+      });
+      const file = new File([blob], "camera-roll-photo.jpg", {
+        type: "image/jpeg",
+      });
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+
+      return file.size;
+    });
+
+    expect(originalSize).toBeGreaterThan(10 * 1024 * 1024);
+    expect(originalSize).toBeLessThanOrEqual(20 * 1024 * 1024);
+    await expect(page.getByTestId("input-attachment-loader")).toHaveCount(0);
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(1);
+    await expect(page.getByTestId("input-attachment-size")).toBeVisible();
+    expect(uploadRequestBytes).toBeGreaterThan(0);
+    expect(uploadRequestBytes).toBeLessThan(originalSize);
+    await expect(page.getByTestId("send-button")).toBeEnabled();
+  });
+
   test("shows supported document guidance and uploaded file metadata", async ({
     page,
   }) => {
