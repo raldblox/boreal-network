@@ -334,13 +334,14 @@ const PurePreviewMessage = ({
     return null;
   });
 
-const actions = !isReadonly && (
+  const actions = (!isReadonly || isUser) && (
     <MessageActions
       chatId={chatId}
+      canReusePrompt={isUser}
       isLoading={isLoading}
       key={`action-${message.id}`}
       message={message}
-      onEdit={onEdit ? () => onEdit(message) : undefined}
+      onEdit={!isReadonly && onEdit ? () => onEdit(message) : undefined}
       vote={vote}
     />
   );

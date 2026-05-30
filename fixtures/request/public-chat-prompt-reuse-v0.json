@@ -1,0 +1,178 @@
+{
+  "scenarioId": "public-chat-prompt-reuse-v0",
+  "description": "A public scratch-chat user prompt can be inspected for free and run as one private request-backed, credit-metered reusable prompt execution.",
+  "sourceChat": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "visibility": "public",
+    "userId": "22222222-2222-4222-8222-222222222222",
+    "title": "Generational prompt examples",
+    "unchangedAfterRun": true
+  },
+  "sourceMessage": {
+    "id": "33333333-3333-4333-8333-333333333333",
+    "chatId": "11111111-1111-4111-8111-111111111111",
+    "role": "user",
+    "text": "My date of birth is [20/05/1996]. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period."
+  },
+  "analysis": {
+    "profile": "public_chat_prompt_reuse_v0",
+    "templateText": "My date of birth is {{date_of_birth}}. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period.",
+    "fields": [
+      {
+        "key": "date_of_birth",
+        "label": "Date of birth",
+        "type": "date",
+        "required": true,
+        "token": "[20/05/1996]",
+        "example": "20/05/1996"
+      }
+    ],
+    "warnings": []
+  },
+  "runRequest": {
+    "id": "44444444-4444-4444-8444-444444444444",
+    "chatId": "55555555-5555-4555-8555-555555555555",
+    "status": "delivered",
+    "visibility": "private",
+    "ownerId": "66666666-6666-4666-8666-666666666666",
+    "brief": {
+      "title": "Run: My date of birth is [20/05/1996]. Using global events,...",
+      "summary": "Credit-metered reuse of a public or owned chat prompt as a private request.",
+      "constraints": {
+        "executionModes": [
+          "remote_digital"
+        ],
+        "requiresVerifiedEvidence": false,
+        "reusablePromptRun": {
+          "profile": "public_chat_prompt_reuse_v0",
+          "sourceChatId": "11111111-1111-4111-8111-111111111111",
+          "sourceMessageId": "33333333-3333-4333-8333-333333333333",
+          "sourceChatVisibility": "public",
+          "templateText": "My date of birth is {{date_of_birth}}. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period.",
+          "inputValues": {
+            "date_of_birth": "01/01/2001"
+          },
+          "fieldKeys": [
+            "date_of_birth"
+          ],
+          "renderedPrompt": "My date of birth is 01/01/2001. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period."
+        }
+      },
+      "tags": [
+        "reusable_prompt_run",
+        "chat_prompt_reuse",
+        "first_party_credit"
+      ]
+    },
+    "activeRefs": {
+      "activeFulfillmentId": "99999999-9999-4999-8999-999999999999",
+      "latestArtifactId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "latestTransactionId": "77777777-7777-4777-8777-777777777777"
+    }
+  },
+  "fulfillment": {
+    "id": "99999999-9999-4999-8999-999999999999",
+    "requestId": "44444444-4444-4444-8444-444444444444",
+    "status": "delivered",
+    "lead": {
+      "kind": "agent",
+      "id": "boreal-reusable-prompt-runner",
+      "displayName": "Boreal reusable prompt runner"
+    },
+    "summary": "Reusable prompt answer delivered.",
+    "artifactIds": [
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    ],
+    "metadata": {
+      "reusablePromptRun": {
+        "profile": "public_chat_prompt_reuse_v0",
+        "sourceChatId": "11111111-1111-4111-8111-111111111111",
+        "sourceMessageId": "33333333-3333-4333-8333-333333333333",
+        "providerStatus": "completed",
+        "artifactId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+      }
+    }
+  },
+  "deliveryArtifact": {
+    "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "requestId": "44444444-4444-4444-8444-444444444444",
+    "fulfillmentId": "99999999-9999-4999-8999-999999999999",
+    "kind": "delivery",
+    "title": "Reusable prompt answer",
+    "summary": "Generated answer for the reused chat prompt.",
+    "container": {
+      "kind": "document",
+      "documentId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "documentKind": "text"
+    }
+  },
+  "transaction": {
+    "id": "77777777-7777-4777-8777-777777777777",
+    "requestId": "44444444-4444-4444-8444-444444444444",
+    "kind": "settlement",
+    "status": "settled",
+    "currency": "USD",
+    "amount": "0.05",
+    "metadata": {
+      "profile": "public_chat_prompt_reuse_v0",
+      "fundingSource": "buyer_credit",
+      "creditLedgerEntryId": "88888888-8888-4888-8888-888888888888",
+      "creditAmountApplied": "0.05",
+      "sourceChatId": "11111111-1111-4111-8111-111111111111",
+      "sourceMessageId": "33333333-3333-4333-8333-333333333333",
+      "templateText": "My date of birth is {{date_of_birth}}. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period.",
+      "inputValues": {
+        "date_of_birth": "01/01/2001"
+      },
+      "fieldKeys": [
+        "date_of_birth"
+      ]
+    }
+  },
+  "ledgerEntry": {
+    "id": "88888888-8888-4888-8888-888888888888",
+    "kind": "debit",
+    "status": "settled",
+    "amount": "0.05",
+    "currency": "USD",
+    "requestId": "44444444-4444-4444-8444-444444444444",
+    "transactionId": "77777777-7777-4777-8777-777777777777",
+    "idempotencyKey": "55555555-5555-4555-8555-555555555555",
+    "metadata": {
+      "profile": "public_chat_prompt_reuse_v0",
+      "fundingSource": "buyer_credit",
+      "creditAmountApplied": "0.05",
+      "sourceChatId": "11111111-1111-4111-8111-111111111111",
+      "sourceMessageId": "33333333-3333-4333-8333-333333333333"
+    }
+  },
+  "negativeCases": {
+    "privateChatReadByNonOwner": {
+      "expectedStatus": 403,
+      "reason": "private source chat is forbidden unless the viewer owns it"
+    },
+    "assistantMessageReuse": {
+      "expectedStatus": 400,
+      "reason": "V1 only reuses user text messages"
+    },
+    "missingRequiredVariable": {
+      "expectedStatus": 400,
+      "inputValues": {},
+      "debitCreated": false
+    }
+  },
+  "idempotency": {
+    "key": "55555555-5555-4555-8555-555555555555",
+    "sameKeyReturnsRunRequestId": "44444444-4444-4444-8444-444444444444",
+    "sameKeyLedgerEntryId": "88888888-8888-4888-8888-888888888888"
+  },
+  "invariants": [
+    "analysis is free and read-only",
+    "sourceChat remains public and unchanged",
+    "sourceMessage remains unchanged",
+    "runRequest is private and distinct from sourceChat",
+    "runRequest constraints include source chat id, source message id, template, and input values",
+    "transaction attaches to the private runRequest",
+    "ledgerEntry attaches to the private runRequest and transaction"
+  ]
+}

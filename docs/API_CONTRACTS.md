@@ -135,6 +135,8 @@ For the first web slice, `Request` create and update must support:
 - public-safe listing of `open` plus `public` requests for network or desktop pooling
 - public-safe solution projection reads over completed public requests with `activeRefs.acceptedArtifactId`; this is a Request projection, not a `Solution` root
 - public-safe detail reads for one request by id
+- free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze` inspection over public or owned scratch-chat user text messages
+- paid `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs` execution that creates or reuses one private run `Request`, stores source chat/message provenance in `Request.brief.constraints.reusablePromptRun`, writes buyer-credit debit plus `Transaction` truth to that run request, and starts a delivery fulfillment for the generated answer when the configured model route is available
 - explicit `save draft` normalization from the live request-input document surface
 - request-brief field updates
 - request-seeking field updates for structured matching intent

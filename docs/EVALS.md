@@ -72,6 +72,11 @@ Verify that public solution surfaces are projected only from completed requests 
 Verify that viewing a public solution does not emit credit-debit or transaction writes.
 Verify that running a public solution creates or uses a referenced run request before debiting credits for inference or execution.
 Verify that a public solution run writes buyer-credit debit and request `Transaction` truth to the run request rather than mutating the completed source request.
+Verify that reusable prompt analysis over a public or owned scratch-chat user message is deterministic, read-only, and free.
+Verify that `[20/05/1996]` near `date of birth` becomes a required `date_of_birth` field while explicit `{date_of_birth}` and `{{date_of_birth}}` placeholders preserve the same field key.
+Verify that reusable prompt execution rejects missing required variables before any buyer-credit debit.
+Verify that reusable prompt execution creates or reuses one private run `Request`, stores source chat id, source message id, template text, and input values under request constraints, and writes buyer-credit debit plus transaction truth to the run request without mutating the public source chat.
+Verify that reusable prompt fulfillment publishes a generated answer artifact when the configured model route is available, and moves the same fulfillment to `blocked` when execution cannot complete.
 
 ## Fixture Shape
 

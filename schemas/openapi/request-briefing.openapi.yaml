@@ -150,6 +150,90 @@ paths:
         `routing.preferredSupplyId` already pins an executable first-party supply.
         Once the request leaves `draft`, the full canonical request object is
         rendered read-only.
+  /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze:
+    post:
+      summary: Analyze one public or owned scratch-chat user message as a reusable prompt.
+      description: >
+        Read-only deterministic analysis. The endpoint detects V1 variables such
+        as bracketed examples and explicit placeholders, but does not create a
+        request, debit credits, mutate chat, or publish artifacts.
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Deterministic reusable prompt analysis.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebReusablePromptAnalysis"
+        "400":
+          description: Unsupported source message or non-scratch chat.
+        "403":
+          description: Private source chat is not owned by the viewer.
+        "404":
+          description: Source chat message not found.
+  /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs:
+    post:
+      summary: Create a private request-backed run from one reusable scratch-chat prompt.
+      description: >
+        Validates required fields before credit debit, creates or reuses one
+        private run Request keyed by idempotency, stores source chat/message
+        provenance in Request constraints, and records buyer-credit Transaction
+        truth on the run request. After credits settle, the server starts a
+        private fulfillment that publishes a generated answer artifact when the
+        configured model route is available. The source chat and message remain
+        unchanged.
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: messageId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebReusablePromptRunCreate"
+      responses:
+        "200":
+          description: The created or idempotently replayed private run request and credit truth.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebReusablePromptRunResponse"
+        "400":
+          description: Invalid inputs, missing required variables, insufficient credits, or idempotency conflict.
+        "401":
+          description: Authenticated buyer session required.
+        "403":
+          description: Private source chat is not owned by the viewer.
+        "404":
+          description: Source chat message not found.
   /api/requests/{id}/activity:
     get:
       summary: Get recent activity for one request room.
@@ -434,6 +518,154 @@ paths:
                     $ref: "#/components/schemas/WebFulfillment"
 components:
   schemas:
+    WebReusablePromptField:
+      type: object
+      additionalProperties: false
+      required:
+        - key
+        - label
+        - type
+        - required
+        - token
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        type:
+          type: string
+          enum:
+            - text
+            - date
+            - number
+        required:
+          type: boolean
+        token:
+          type: string
+        example:
+          type: string
+    WebReusablePromptAnalysis:
+      type: object
+      additionalProperties: false
+      required:
+        - profile
+        - sourceText
+        - templateText
+        - fields
+        - warnings
+      properties:
+        profile:
+          type: string
+          enum:
+            - public_chat_prompt_reuse_v0
+        sourceText:
+          type: string
+        templateText:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebReusablePromptField"
+        warnings:
+          type: array
+          items:
+            type: string
+    WebReusablePromptRunCreate:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+        - inputValues
+      properties:
+        inputValues:
+          type: object
+          additionalProperties:
+            type: string
+        amount:
+          oneOf:
+            - type: string
+              pattern: "^\\d+(?:\\.\\d{1,2})?$"
+            - type: number
+              exclusiveMinimum: 0
+        idempotencyKey:
+          oneOf:
+            - type: string
+              format: uuid
+            - type: "null"
+    WebReusablePromptRunProvenance:
+      type: object
+      additionalProperties: true
+      required:
+        - profile
+        - sourceChatId
+        - sourceMessageId
+        - sourceChatVisibility
+        - templateText
+        - inputValues
+        - fieldKeys
+        - renderedPrompt
+      properties:
+        profile:
+          type: string
+          enum:
+            - public_chat_prompt_reuse_v0
+        sourceChatId:
+          type: string
+          format: uuid
+        sourceMessageId:
+          type: string
+          format: uuid
+        sourceChatVisibility:
+          type: string
+          enum:
+            - public
+            - private
+        templateText:
+          type: string
+        inputValues:
+          type: object
+          additionalProperties:
+            type: string
+        fieldKeys:
+          type: array
+          items:
+            type: string
+        renderedPrompt:
+          type: string
+        amount:
+          type: string
+        currency:
+          type: string
+        runRequestId:
+          type: string
+          format: uuid
+    WebReusablePromptRunResponse:
+      type: object
+      additionalProperties: true
+      required:
+        - request
+        - transaction
+        - account
+        - ledgerEntry
+        - chatId
+        - reusablePromptRun
+      properties:
+        request:
+          $ref: "#/components/schemas/WebRequestDraft"
+        transaction:
+          type: object
+          additionalProperties: true
+        account:
+          type: object
+          additionalProperties: true
+        ledgerEntry:
+          type: object
+          additionalProperties: true
+        chatId:
+          type: string
+          format: uuid
+        reusablePromptRun:
+          $ref: "#/components/schemas/WebReusablePromptRunProvenance"
     WebRequestDetailResponse:
       type: object
       additionalProperties: false

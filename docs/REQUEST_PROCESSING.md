@@ -280,6 +280,13 @@ It should not claim active fulfillment until a worker, provider, or human review
 
 If a later user wants a private adaptation, implementation, or follow-up, create a new `Request` that references the accepted artifact.
 
+Reusable public scratch-chat prompts follow the same inspection-versus-execution rule.
+Analyzing a public or owned scratch-chat user text message for variables is read-only, free, and non-durable.
+Running that prompt is execution: the run must validate required variables first, then create or reuse one private run `Request`, attach `reusablePromptRun` provenance under the run request constraints, and debit credits through request-attached `Transaction` truth.
+The public source chat and source message must remain unchanged.
+V1 deterministic analysis may detect bracketed examples and explicit placeholders such as `[20/05/1996]`, `{date_of_birth}`, or `{{date_of_birth}}`, but it must not reuse assistant answers or publish a public solution artifact automatically.
+The first run implementation may start a private fulfillment lane after credits settle and publish the generated answer as a run-request `Artifact`; if the configured model route is unavailable, the fulfillment should become `blocked` rather than pretending the answer was delivered.
+
 ## Visibility Rule
 
 - `draft` requests remain owner-scoped.

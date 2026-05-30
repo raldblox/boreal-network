@@ -1,5 +1,5 @@
 import equal from "fast-deep-equal";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
 import { useCopyToClipboard } from "usehooks-ts";
@@ -9,16 +9,25 @@ import {
   MessageAction as Action,
   MessageActions as Actions,
 } from "../ai-elements/message";
-import { CopyIcon, PencilEditIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
+import {
+  CopyIcon,
+  PencilEditIcon,
+  PlayIcon,
+  ThumbDownIcon,
+  ThumbUpIcon,
+} from "./icons";
+import { ReusablePromptDialog } from "./reusable-prompt-dialog";
 
 export function PureMessageActions({
   chatId,
+  canReusePrompt = false,
   message,
   vote,
   isLoading,
   onEdit,
 }: {
   chatId: string;
+  canReusePrompt?: boolean;
   message: ChatMessage;
   vote: Vote | undefined;
   isLoading: boolean;
@@ -26,6 +35,7 @@ export function PureMessageActions({
 }) {
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
+  const [isReusablePromptOpen, setIsReusablePromptOpen] = useState(false);
 
   if (isLoading) {
     return null;
@@ -49,27 +59,47 @@ export function PureMessageActions({
 
   if (message.role === "user") {
     return (
-      <Actions className="-mr-0.5 justify-end opacity-0 transition-opacity duration-150 group-hover/message:opacity-100">
-        <div className="flex items-center gap-0.5">
-          {onEdit && (
+      <>
+        <Actions className="-mr-0.5 justify-end opacity-0 transition-opacity duration-150 group-hover/message:opacity-100">
+          <div className="flex items-center gap-0.5">
+            {onEdit && (
+              <Action
+                className="size-7 text-muted-foreground/50 hover:text-foreground"
+                data-testid="message-edit-button"
+                onClick={onEdit}
+                tooltip="Edit"
+              >
+                <PencilEditIcon />
+              </Action>
+            )}
             <Action
               className="size-7 text-muted-foreground/50 hover:text-foreground"
-              data-testid="message-edit-button"
-              onClick={onEdit}
-              tooltip="Edit"
+              onClick={handleCopy}
+              tooltip="Copy"
             >
-              <PencilEditIcon />
+              <CopyIcon />
             </Action>
-          )}
-          <Action
-            className="size-7 text-muted-foreground/50 hover:text-foreground"
-            onClick={handleCopy}
-            tooltip="Copy"
-          >
-            <CopyIcon />
-          </Action>
-        </div>
-      </Actions>
+            {canReusePrompt && textFromParts ? (
+              <Action
+                className="size-7 text-muted-foreground/50 hover:text-foreground"
+                data-testid="message-reuse-prompt-button"
+                onClick={() => setIsReusablePromptOpen(true)}
+                tooltip="Reuse prompt"
+              >
+                <PlayIcon />
+              </Action>
+            ) : null}
+          </div>
+        </Actions>
+        {canReusePrompt && textFromParts ? (
+          <ReusablePromptDialog
+            chatId={chatId}
+            messageId={message.id}
+            onOpenChange={setIsReusablePromptOpen}
+            open={isReusablePromptOpen}
+          />
+        ) : null}
+      </>
     );
   }
 
@@ -199,6 +229,12 @@ export const MessageActions = memo(
       return false;
     }
     if (prevProps.isLoading !== nextProps.isLoading) {
+      return false;
+    }
+    if (prevProps.canReusePrompt !== nextProps.canReusePrompt) {
+      return false;
+    }
+    if (prevProps.onEdit !== nextProps.onEdit) {
       return false;
     }
 

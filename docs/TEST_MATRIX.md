@@ -53,6 +53,7 @@ Verify:
 - public solution projections can be traced to completed requests and accepted artifacts
 - public solution inspection leaves the source request state unchanged
 - public solution runs or forks create a new request or accepted execution lane that references the source artifact
+- reusable prompt runs create a private run request that references the source chat and source message without mutating the public source chat
 - file, media, PDF, audio, video, binary, and archive deliveries can be traced through stable artifact references without inflating the request root
 - non-substitutable embodied work cannot be resolved through generated summaries alone when the request requires explicit proof
 
@@ -63,6 +64,7 @@ Verify:
 - only authorized actors can mutate a request
 - participant roles are enforced
 - payment and payout visibility respect ownership and role boundaries
+- public scratch-chat user prompts are readable for reusable-prompt analysis, while private scratch-chat prompts are forbidden unless the viewer owns the chat
 - regular login should accept either username or email when both map to the same account
 - username normalization and uniqueness should prevent ambiguous or duplicate regular-account handles
 - password success alone should not complete login when the account has enrolled required `WebAuthn` MFA
@@ -89,6 +91,7 @@ Verify:
 - duplicate request-grant contributions with the same idempotency key do not double-fund the request
 - duplicate solution-run credit requests with the same idempotency key do not double-debit buyer credit or fork duplicate run requests
 - duplicate `POST /api/requests/{id}/solution-runs` calls with the same idempotency key return the same run `Request`, source artifact reference, buyer-credit debit, and request `Transaction`
+- duplicate reusable-prompt runs with the same idempotency key return the same private run `Request` and do not double-debit buyer credit
 - duplicate event replay does not double-apply side effects
 
 ### Payment webhook tests
@@ -132,6 +135,7 @@ Verify:
 
 Verify:
 
+- `pnpm contracts:reusable-prompts` covers deterministic reusable prompt analysis and request-backed paid run fixture invariants
 - not every chat turn creates a durable request
 - entering `New request` mode alone does not create a durable request
 - the first send in `New request` mode creates one draft request instead of a second root object
@@ -202,6 +206,13 @@ Verify:
 - public solution run creation should require one completed public source `Request`, one matching accepted `Artifact`, an authenticated buyer session, a positive credit amount, and an idempotency key
 - paid solution runs should write credit debit and transaction truth to the run request, not mutate the completed source request
 - solution forks or private adaptations should create a new `Request` referencing the source artifact instead of mutating the completed source request
+- reusable prompt analysis should detect deterministic fields in public or owned scratch-chat user messages without creating requests, credits, transactions, artifacts, or events
+- reusable prompt analysis should infer `[20/05/1996]` near `date of birth` as `date_of_birth`
+- reusable prompt run creation should require a user text source message, authenticated buyer session, positive credit amount, required input values, and an idempotency key
+- reusable prompt run creation should reject assistant messages and missing required variables before credit debit
+- reusable prompt run requests should store source chat id, source message id, template text, and input values under `brief.constraints.reusablePromptRun`
+- reusable prompt run credit debit and request `Transaction` truth should attach to the private run request, not the public source chat
+- reusable prompt fulfillment should publish a generated answer artifact when the model route succeeds, or move the same fulfillment to `blocked` when execution fails
 - live-model benchmark scoring should not depend on a second judge LLM when exact contract or metric-based scoring already exists
 - typing, token deltas, progress ticks, heartbeats, presence, transient runtime logs, and raw tool stdout or stderr should not create default durable request history
 - resolver device approval should not issue tokens before explicit Boreal account approval

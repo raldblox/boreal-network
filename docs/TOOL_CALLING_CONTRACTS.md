@@ -12,6 +12,11 @@ Mutation tools commit.
 Do not let one opaque tool both infer the route and mutate canonical objects.
 Optional prompt-assist profiles may rewrite or expand the latest user ask ephemerally, but they stay read-only and must still hand off through the same planner, policy, and mutation boundaries.
 
+Reusable prompt analysis is a read-only extraction surface.
+It may detect fields in a public or owned scratch-chat user message, but it must not mutate chat, request, credit, transaction, artifact, or event truth.
+Reusable prompt execution is a mutation surface: it must validate required inputs first, create or reuse one private `Request`, then debit credits through request-attached transaction truth.
+It must not mutate the public source chat or treat the reusable prompt as a new root object.
+
 ## Tool Layers
 
 ### Planner tools
