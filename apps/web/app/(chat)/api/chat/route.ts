@@ -58,6 +58,7 @@ import type { DBMessage } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import { canRespondToRequest } from "@/lib/request-server";
+import { createChatAttachmentDownload } from "@/lib/chat-attachment-download";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
@@ -145,6 +146,24 @@ function extractUserMessageText(message: ChatMessage | undefined): string {
     })
     .filter((value) => value.length > 0)
     .join("\n");
+}
+
+function normalizeFilePartFilenames(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((message) => ({
+    ...message,
+    parts: message.parts.map((part) => {
+      if (part.type !== "file" || part.filename) {
+        return part;
+      }
+
+      const legacyName =
+        "name" in part && typeof part.name === "string"
+          ? part.name.trim()
+          : "";
+
+      return legacyName ? { ...part, filename: legacyName } : part;
+    }),
+  }));
 }
 
 function shouldAllowPreDraftClarification(text: string): boolean {
@@ -406,7 +425,9 @@ export async function POST(request: Request) {
             limit: 8,
           })
         : [];
-    const modelMessages = await convertToModelMessages(uiMessages);
+    const modelMessages = await convertToModelMessages(
+      normalizeFilePartFilenames(uiMessages)
+    );
     const modelRoute = selectChatModelRoute({
       requestedModelId: chatModel,
       modelMessages,
@@ -476,6 +497,9 @@ export async function POST(request: Request) {
               openai: { reasoningEffort: modelConfig.reasoningEffort },
             }),
           },
+          experimental_download: createChatAttachmentDownload({
+            requestUrl: request.url,
+          }),
           tools: {
             createRequestBrief: createRequestBrief({
               session,

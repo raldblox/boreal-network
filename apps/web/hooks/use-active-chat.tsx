@@ -132,9 +132,15 @@ function getMessageTextContent(message: ChatMessage) {
       }
 
       if (part.type === "file") {
+        const legacyName =
+          "name" in part && typeof part.name === "string"
+            ? part.name.trim()
+            : "";
         const fileName =
           typeof part.filename === "string" && part.filename.trim().length > 0
             ? part.filename.trim()
+            : legacyName.length > 0
+              ? legacyName
             : "attached file";
         return `Attachment: ${fileName}`;
       }

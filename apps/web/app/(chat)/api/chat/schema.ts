@@ -6,12 +6,17 @@ const textPartSchema = z.object({
   text: z.string().min(1).max(2000),
 });
 
-const filePartSchema = z.object({
-  type: z.enum(["file"]),
-  mediaType: z.enum(chatAttachmentMimeTypes),
-  name: z.string().min(1).max(180),
-  url: z.string().url(),
-});
+const filePartSchema = z
+  .object({
+    type: z.enum(["file"]),
+    mediaType: z.enum(chatAttachmentMimeTypes),
+    filename: z.string().min(1).max(180).optional(),
+    name: z.string().min(1).max(180).optional(),
+    url: z.string().url(),
+  })
+  .refine((part) => part.filename || part.name, {
+    message: "File name is required",
+  });
 
 const partSchema = z.union([textPartSchema, filePartSchema]);
 
