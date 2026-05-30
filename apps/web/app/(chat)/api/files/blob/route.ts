@@ -29,9 +29,21 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Blob delivery link expired" }, { status: 401 });
   }
 
-  const blob = await get(pathname, {
-    access: "private",
-  });
+  let blob: Awaited<ReturnType<typeof get>>;
+
+  try {
+    blob = await get(pathname, {
+      access: "private",
+    });
+  } catch {
+    return NextResponse.json(
+      {
+        error:
+          "Attachment storage is unavailable right now. Re-upload the file and try again.",
+      },
+      { status: 503 }
+    );
+  }
 
   if (!blob || blob.statusCode !== 200 || !blob.stream) {
     return NextResponse.json({ error: "Blob not found" }, { status: 404 });

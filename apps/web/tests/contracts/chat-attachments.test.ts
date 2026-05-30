@@ -5,6 +5,7 @@ import {
   getChatAttachmentUrlRejection,
   isChatBlobDeliveryUrl,
   prepareChatMessagesForModel,
+  readChatBlobDeliveryUrl,
 } from "@/lib/chat-attachment-download";
 
 const requestId = "00000000-0000-4000-8000-000000000010";
@@ -194,6 +195,20 @@ async function main() {
     }) ?? "",
     /URL is invalid/
   );
+
+  globalThis.fetch = async () => {
+    throw new Error("socket hang up");
+  };
+
+  await assert.rejects(
+    readChatBlobDeliveryUrl(
+      new URL(
+        "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/image.png&expires=9999999999&signature=test&filename=image.png"
+      )
+    ),
+    /Attachment could not be read/
+  );
+  globalThis.fetch = originalFetch;
 
   console.log("Chat attachment contracts passed.");
 }

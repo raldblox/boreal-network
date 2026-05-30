@@ -103,10 +103,18 @@ export function getChatAttachmentUrlRejection({
 
 export async function readChatBlobDeliveryUrl(url: URL) {
   const filename = url.searchParams.get("filename")?.trim() || "attachment";
-  const response = await fetch(url, {
-    cache: "no-store",
-    signal: AbortSignal.timeout(chatAttachmentDownloadTimeoutMs),
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(chatAttachmentDownloadTimeoutMs),
+    });
+  } catch {
+    throw new Error(
+      "Attachment could not be read. Re-upload the file and try again."
+    );
+  }
 
   if (!response.ok) {
     throw new Error(
@@ -130,7 +138,15 @@ export async function readChatBlobDeliveryUrl(url: URL) {
       name: filename,
       type: declaredContentType,
     }) ?? declaredContentType;
-  const buffer = await response.arrayBuffer();
+  let buffer: ArrayBuffer;
+
+  try {
+    buffer = await response.arrayBuffer();
+  } catch {
+    throw new Error(
+      "Attachment download was interrupted. Re-upload the file and try again."
+    );
+  }
   const validation = validateChatAttachmentFile({
     name: filename,
     size: buffer.byteLength,
