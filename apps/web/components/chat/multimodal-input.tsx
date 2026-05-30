@@ -125,6 +125,21 @@ type PendingAttachmentUpload = {
   size: number;
 };
 
+type FailedAttachmentUpload = PendingAttachmentUpload & {
+  error: string;
+  file: File;
+};
+
+type UploadFileResult =
+  | {
+      attachment: Attachment;
+      error: null;
+    }
+  | {
+      attachment: null;
+      error: string;
+    };
+
 function toDesktopModelId(modelId: string) {
   return `${DESKTOP_MODEL_PROVIDER}/${modelId}`;
 }
@@ -466,6 +481,9 @@ function PureMultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragDepthRef = useRef(0);
   const [uploadQueue, setUploadQueue] = useState<PendingAttachmentUpload[]>([]);
+  const [failedUploads, setFailedUploads] = useState<FailedAttachmentUpload[]>(
+    []
+  );
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
@@ -561,72 +579,84 @@ function PureMultimodalInput({
     }
   }, [status]);
 
-  const uploadFile = useCallback(async (file: File) => {
-    const clientValidation = validateChatAttachmentSelectionFile(file);
+  const uploadFile = useCallback(
+    async (file: File): Promise<UploadFileResult> => {
+      const clientValidation = validateChatAttachmentSelectionFile(file);
 
-    if (clientValidation.error || !clientValidation.contentType) {
-      toast.error(clientValidation.error ?? "Unsupported file type.");
-      return;
-    }
+      if (clientValidation.error || !clientValidation.contentType) {
+        return {
+          attachment: null,
+          error: clientValidation.error ?? "Unsupported file type.",
+        };
+      }
 
-    try {
-      const preparedFile =
-        getChatAttachmentKind(clientValidation.contentType) === "image"
-          ? await optimizeImageForChat(file, clientValidation.contentType)
-          : file;
-      const resolvedContentType =
-        resolveChatAttachmentMimeType({
+      try {
+        const preparedFile =
+          getChatAttachmentKind(clientValidation.contentType) === "image"
+            ? await optimizeImageForChat(file, clientValidation.contentType)
+            : file;
+        const resolvedContentType =
+          resolveChatAttachmentMimeType({
+            name: preparedFile.name,
+            type: preparedFile.type,
+          }) ?? clientValidation.contentType;
+        const uploadValidation = validateChatAttachmentFile({
           name: preparedFile.name,
-          type: preparedFile.type,
-        }) ?? clientValidation.contentType;
-      const uploadValidation = validateChatAttachmentFile({
-        name: preparedFile.name,
-        size: preparedFile.size,
-        type: resolvedContentType,
-      });
+          size: preparedFile.size,
+          type: resolvedContentType,
+        });
 
-      if (uploadValidation.error) {
-        toast.error(uploadValidation.error);
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append("file", preparedFile);
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/files/upload`,
-        {
-          method: "POST",
-          body: formData,
+        if (uploadValidation.error) {
+          return {
+            attachment: null,
+            error: uploadValidation.error,
+          };
         }
-      );
 
-      if (response.ok) {
+        const formData = new FormData();
+        formData.append("file", preparedFile);
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/files/upload`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json().catch(() => null);
+          const attachment = parseUploadedAttachment(data, resolvedContentType);
+
+          if (!attachment) {
+            return {
+              attachment: null,
+              error:
+                "Upload finished but Boreal returned an invalid attachment. Try again.",
+            };
+          }
+
+          return { attachment, error: null };
+        }
         const data = await response.json().catch(() => null);
-        const attachment = parseUploadedAttachment(data, resolvedContentType);
-
-        if (!attachment) {
-          toast.error(
-            "Upload finished but Boreal returned an invalid attachment. Try again."
-          );
-          return;
-        }
-
-        return attachment;
+        return {
+          attachment: null,
+          error:
+            data?.error ??
+            "Upload failed. Check the file type and size, then try again.",
+        };
+      } catch (error) {
+        return {
+          attachment: null,
+          error:
+            error instanceof Error && error.message.trim()
+              ? error.message.trim()
+              : "Failed to upload file, please try again!",
+        };
       }
-      const data = await response.json().catch(() => null);
-      toast.error(
-        data?.error ??
-          "Upload failed. Check the file type and size, then try again."
-      );
-    } catch (error) {
-      toast.error(
-        error instanceof Error && error.message.trim()
-          ? error.message.trim()
-          : "Failed to upload file, please try again!"
-      );
-    }
-  }, []);
+    },
+    []
+  );
 
   const uploadFiles = useCallback(
     async (files: File[]) => {
@@ -683,9 +713,29 @@ function PureMultimodalInput({
         const uploadedAttachments = await Promise.all(
           acceptedFiles.map((file) => uploadFile(file))
         );
-        const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment) => attachment !== undefined
-        ) as Attachment[];
+        const successfullyUploadedAttachments = uploadedAttachments
+          .map((result) => result.attachment)
+          .filter((attachment): attachment is Attachment => attachment !== null);
+        const failedAttachmentUploads = uploadedAttachments
+          .map((result, index) => ({
+            result,
+            file: acceptedFiles[index],
+            upload: queuedUploads[index],
+          }))
+          .filter(
+            (
+              item
+            ): item is {
+              file: File;
+              result: Extract<UploadFileResult, { attachment: null }>;
+              upload: PendingAttachmentUpload;
+            } => item.result.error !== null && item.file !== undefined
+          )
+          .map(({ file, result, upload }) => ({
+            ...upload,
+            error: result.error,
+            file,
+          }));
 
         if (successfullyUploadedAttachments.length > 0) {
           setAttachments((currentAttachments) => [
@@ -694,8 +744,16 @@ function PureMultimodalInput({
           ]);
         }
 
-        if (successfullyUploadedAttachments.length < acceptedFiles.length) {
-          toast.error("Some files could not be uploaded.");
+        if (failedAttachmentUploads.length > 0) {
+          setFailedUploads((currentUploads) => [
+            ...currentUploads,
+            ...failedAttachmentUploads,
+          ]);
+          toast.error(
+            failedAttachmentUploads.length === 1
+              ? `${failedAttachmentUploads[0].name} could not be uploaded.`
+              : `${failedAttachmentUploads.length} files could not be uploaded.`
+          );
         }
       } catch (_error) {
         toast.error("Failed to upload files");
@@ -706,6 +764,27 @@ function PureMultimodalInput({
       }
     },
     [attachments.length, setAttachments, uploadFile, uploadQueue.length]
+  );
+
+  const retryFailedUpload = useCallback(
+    (id: string) => {
+      const failedUpload = failedUploads.find((upload) => upload.id === id);
+
+      if (!failedUpload) {
+        return;
+      }
+
+      if (attachments.length + uploadQueue.length + 1 > maxChatAttachmentCount) {
+        toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
+        return;
+      }
+
+      setFailedUploads((currentUploads) =>
+        currentUploads.filter((upload) => upload.id !== id)
+      );
+      void uploadFiles([failedUpload.file]);
+    },
+    [attachments.length, failedUploads, uploadFiles, uploadQueue.length]
   );
 
   const handleFileChange = useCallback(
@@ -876,7 +955,9 @@ function PureMultimodalInput({
           }
         }}
       >
-        {(attachments.length > 0 || uploadQueue.length > 0) && (
+        {(attachments.length > 0 ||
+          uploadQueue.length > 0 ||
+          failedUploads.length > 0) && (
           <div
             className="flex w-full self-start flex-row gap-2 overflow-x-auto px-3 pt-3 no-scrollbar"
             data-testid="attachments-preview"
@@ -904,6 +985,23 @@ function PureMultimodalInput({
                 }}
                 isUploading={true}
                 key={upload.id}
+              />
+            ))}
+
+            {failedUploads.map((upload) => (
+              <PreviewAttachment
+                attachment={{
+                  ...upload,
+                  url: "",
+                }}
+                errorMessage={upload.error}
+                key={upload.id}
+                onRemove={() =>
+                  setFailedUploads((currentUploads) =>
+                    currentUploads.filter((item) => item.id !== upload.id)
+                  )
+                }
+                onRetry={() => retryFailedUpload(upload.id)}
               />
             ))}
           </div>

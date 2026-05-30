@@ -210,6 +210,58 @@ test.describe("Chat Input Features", () => {
     await expect(page.getByTestId("send-button")).toBeEnabled();
   });
 
+  test("keeps failed uploads visible and retryable", async ({ page }) => {
+    let uploadCount = 0;
+
+    await page.route("**/api/files/upload", async (route) => {
+      uploadCount += 1;
+
+      if (uploadCount === 1) {
+        await route.fulfill({
+          body: JSON.stringify({
+            error: "Upload storage is unavailable right now.",
+          }),
+          contentType: "application/json",
+          status: 503,
+        });
+        return;
+      }
+
+      await route.fulfill({
+        body: JSON.stringify({
+          contentType: "text/markdown",
+          filename: "retry-me.md",
+          pathname: "chat-attachments/e2e/retry-me.md",
+          size: 14,
+          url: "/api/files/blob?pathname=chat-attachments/e2e/retry-me.md&expires=9999999999&signature=test&filename=retry-me.md",
+        }),
+        contentType: "application/json",
+        status: 200,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+    await page.getByTestId("attachment-file-input").setInputFiles({
+      buffer: Buffer.from("# Retry me"),
+      mimeType: "text/markdown",
+      name: "retry-me.md",
+    });
+
+    await expect(page.getByTestId("input-attachment-error")).toContainText(
+      "unavailable"
+    );
+    await expect(page.getByTestId("send-button")).toBeDisabled();
+
+    await page.getByTestId("input-attachment-retry").click();
+
+    await expect(page.getByTestId("input-attachment-error")).toHaveCount(0);
+    await expect(
+      page.getByTestId("input-attachment-preview").getByText("retry-me.md")
+    ).toBeVisible();
+    await expect(page.getByTestId("send-button")).toBeEnabled();
+    expect(uploadCount).toBe(2);
+  });
+
   test("does not keep malformed successful upload responses", async ({
     page,
   }) => {
@@ -234,7 +286,9 @@ test.describe("Chat Input Features", () => {
     await expect(
       page.getByText(/returned an invalid attachment/)
     ).toBeVisible();
-    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(0);
+    await expect(page.getByTestId("input-attachment-error")).toContainText(
+      "returned an invalid attachment"
+    );
     await expect(page.getByTestId("send-button")).toBeDisabled();
   });
 

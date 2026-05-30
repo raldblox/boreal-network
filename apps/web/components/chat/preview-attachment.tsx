@@ -5,17 +5,22 @@ import {
   getChatAttachmentLabel,
 } from "@/lib/chat-attachment-policy";
 import type { Attachment } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
 import { CrossSmallIcon, FileIcon } from "./icons";
 
 export const PreviewAttachment = ({
   attachment,
+  errorMessage,
   isUploading = false,
   onRemove,
+  onRetry,
 }: {
   attachment: Attachment;
+  errorMessage?: string;
   isUploading?: boolean;
   onRemove?: () => void;
+  onRetry?: () => void;
 }) => {
   const { name, url, contentType, size } = attachment;
   const [imageFailed, setImageFailed] = useState(false);
@@ -26,9 +31,14 @@ export const PreviewAttachment = ({
 
   return (
     <div
-      className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-border/40 bg-muted"
+      className={cn(
+        "group relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border bg-muted",
+        errorMessage
+          ? "border-destructive/50 bg-destructive/5"
+          : "border-border/40"
+      )}
       data-testid="input-attachment-preview"
-      title={name}
+      title={errorMessage ?? name}
     >
       {showImage ? (
         <img
@@ -52,7 +62,14 @@ export const PreviewAttachment = ({
               {name}
             </span>
           ) : null}
-          {sizeLabel ? (
+          {errorMessage ? (
+            <span
+              className="line-clamp-2 text-[9px] leading-3 text-destructive"
+              data-testid="input-attachment-error"
+            >
+              {errorMessage}
+            </span>
+          ) : sizeLabel ? (
             <span
               className="text-[9px] leading-3 text-muted-foreground/70"
               data-testid="input-attachment-size"
@@ -70,6 +87,18 @@ export const PreviewAttachment = ({
         >
           {sizeLabel}
         </span>
+      ) : null}
+
+      {errorMessage && onRetry && !isUploading ? (
+        <button
+          aria-label={`Retry ${name ?? "attachment"}`}
+          className="absolute bottom-1.5 left-1.5 rounded-full bg-background/90 px-2 py-0.5 font-medium text-[10px] text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-background"
+          data-testid="input-attachment-retry"
+          onClick={onRetry}
+          type="button"
+        >
+          Retry
+        </button>
       ) : null}
 
       {isUploading && (
