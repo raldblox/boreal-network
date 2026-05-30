@@ -6,6 +6,7 @@ export const chatImageAttachmentMimeTypes = [
 
 export const chatDocumentAttachmentMimeTypes = [
   "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "text/markdown",
   "text/plain",
   "text/csv",
@@ -34,6 +35,7 @@ export const chatAttachmentAccept = [
   ".csv",
   ".json",
   ".pdf",
+  ".docx",
 ].join(",");
 
 export const maxChatAttachmentCount = 8;
@@ -43,12 +45,15 @@ export const maxChatTextInlineBytes = 256 * 1024;
 export const maxChatPdfTextExtractionBytes = 8 * 1024 * 1024;
 export const maxChatPdfTextExtractionPages = 20;
 export const maxChatPdfInlineCharacters = 80_000;
+export const maxChatDocxTextExtractionBytes = 8 * 1024 * 1024;
+export const maxChatDocxInlineCharacters = 80_000;
 export const maxOptimizedImageDimension = 2048;
 export const maxChatImageSourcePixels = 48_000_000;
 export const optimizedImageQuality = 0.82;
 
 const extensionMimeTypeMap: Record<string, ChatAttachmentMimeType> = {
   ".csv": "text/csv",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   ".jpeg": "image/jpeg",
   ".jpg": "image/jpeg",
   ".json": "application/json",
@@ -100,6 +105,13 @@ export function isChatPdfAttachment(type: string | null | undefined) {
   return type?.toLowerCase().trim() === "application/pdf";
 }
 
+export function isChatDocxAttachment(type: string | null | undefined) {
+  return (
+    type?.toLowerCase().trim() ===
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  );
+}
+
 export function getChatAttachmentLabel({
   name,
   type,
@@ -111,6 +123,13 @@ export function getChatAttachmentLabel({
 
   if (resolvedType === "application/pdf") {
     return "PDF";
+  }
+
+  if (
+    resolvedType ===
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+  ) {
+    return "DOCX";
   }
 
   if (resolvedType === "text/markdown") {
@@ -354,7 +373,7 @@ export function validateChatAttachmentFile(file: {
     return {
       contentType: null,
       error:
-        "Unsupported file type. Attach images, PDF, Markdown, text, CSV, or JSON files.",
+        "Unsupported file type. Attach images, PDF, DOCX, Markdown, text, CSV, or JSON files.",
     };
   }
 

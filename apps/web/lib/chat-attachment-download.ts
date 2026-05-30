@@ -1,10 +1,14 @@
 import type { Experimental_DownloadFunction } from "ai";
+import { inflateRawSync } from "node:zlib";
 import { PDFParse } from "pdf-parse";
 import {
   formatAttachmentBytes,
+  isChatDocxAttachment,
   isChatPdfAttachment,
   isChatTextAttachment,
   maxChatAttachmentBytes,
+  maxChatDocxInlineCharacters,
+  maxChatDocxTextExtractionBytes,
   maxChatPdfInlineCharacters,
   maxChatPdfTextExtractionBytes,
   maxChatPdfTextExtractionPages,
@@ -280,6 +284,202 @@ async function decodePdfAttachment({
   }
 }
 
+function findZipEndOfCentralDirectory(data: Uint8Array) {
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const minimumOffset = Math.max(0, data.byteLength - 65_557);
+
+  for (let offset = data.byteLength - 22; offset >= minimumOffset; offset -= 1) {
+    if (view.getUint32(offset, true) === 0x0605_4b50) {
+      return offset;
+    }
+  }
+
+  return -1;
+}
+
+function extractZipEntry(data: Uint8Array, targetPath: string) {
+  const eocdOffset = findZipEndOfCentralDirectory(data);
+
+  if (eocdOffset < 0) {
+    return null;
+  }
+
+  const decoder = new TextDecoder("utf-8", { fatal: false });
+  const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
+  const entryCount = view.getUint16(eocdOffset + 10, true);
+  let centralOffset = view.getUint32(eocdOffset + 16, true);
+
+  for (let index = 0; index < entryCount; index += 1) {
+    if (
+      centralOffset + 46 > data.byteLength ||
+      view.getUint32(centralOffset, true) !== 0x0201_4b50
+    ) {
+      return null;
+    }
+
+    const compressionMethod = view.getUint16(centralOffset + 10, true);
+    const compressedSize = view.getUint32(centralOffset + 20, true);
+    const filenameLength = view.getUint16(centralOffset + 28, true);
+    const extraLength = view.getUint16(centralOffset + 30, true);
+    const commentLength = view.getUint16(centralOffset + 32, true);
+    const localHeaderOffset = view.getUint32(centralOffset + 42, true);
+    const filenameStart = centralOffset + 46;
+    const filenameEnd = filenameStart + filenameLength;
+
+    if (filenameEnd > data.byteLength) {
+      return null;
+    }
+
+    const filename = decoder
+      .decode(data.slice(filenameStart, filenameEnd))
+      .replace(/\\/g, "/");
+
+    if (filename === targetPath) {
+      if (
+        localHeaderOffset + 30 > data.byteLength ||
+        view.getUint32(localHeaderOffset, true) !== 0x0403_4b50
+      ) {
+        return null;
+      }
+
+      const localFilenameLength = view.getUint16(localHeaderOffset + 26, true);
+      const localExtraLength = view.getUint16(localHeaderOffset + 28, true);
+      const dataStart =
+        localHeaderOffset + 30 + localFilenameLength + localExtraLength;
+      const dataEnd = dataStart + compressedSize;
+
+      if (dataStart > data.byteLength || dataEnd > data.byteLength) {
+        return null;
+      }
+
+      const compressedData = data.slice(dataStart, dataEnd);
+
+      if (compressionMethod === 0) {
+        return compressedData;
+      }
+
+      if (compressionMethod === 8) {
+        return inflateRawSync(compressedData);
+      }
+
+      return null;
+    }
+
+    centralOffset += 46 + filenameLength + extraLength + commentLength;
+  }
+
+  return null;
+}
+
+function decodeXmlEntities(value: string) {
+  return value.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos);/gi, (match, entity) => {
+    const normalized = String(entity).toLowerCase();
+
+    if (normalized === "amp") {
+      return "&";
+    }
+
+    if (normalized === "lt") {
+      return "<";
+    }
+
+    if (normalized === "gt") {
+      return ">";
+    }
+
+    if (normalized === "quot") {
+      return '"';
+    }
+
+    if (normalized === "apos") {
+      return "'";
+    }
+
+    if (normalized.startsWith("#x")) {
+      const codePoint = Number.parseInt(normalized.slice(2), 16);
+      return Number.isFinite(codePoint)
+        ? String.fromCodePoint(codePoint)
+        : match;
+    }
+
+    if (normalized.startsWith("#")) {
+      const codePoint = Number.parseInt(normalized.slice(1), 10);
+      return Number.isFinite(codePoint)
+        ? String.fromCodePoint(codePoint)
+        : match;
+    }
+
+    return match;
+  });
+}
+
+function docxXmlToText(xml: string) {
+  return decodeXmlEntities(
+    xml
+      .replace(/<w:tab\s*\/>/g, "\t")
+      .replace(/<w:br[^>]*\/>/g, "\n")
+      .replace(/<\/w:p>/g, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/[ \t]+\n/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
+}
+
+function decodeDocxAttachment({
+  data,
+  filename,
+}: {
+  data: Uint8Array;
+  filename: string;
+}) {
+  if (data.byteLength > maxChatDocxTextExtractionBytes) {
+    return [
+      `Attached DOCX file: ${filename}`,
+      `[DOCX text was not extracted because the file is ${formatAttachmentBytes(data.byteLength)}. The chat extraction limit is ${formatAttachmentBytes(maxChatDocxTextExtractionBytes)}.]`,
+    ].join("\n");
+  }
+
+  const documentXml = extractZipEntry(data, "word/document.xml");
+
+  if (!documentXml) {
+    return [
+      `Attached DOCX file: ${filename}`,
+      "[No document text was extracted from this DOCX. It may be encrypted, malformed, or unsupported.]",
+    ].join("\n");
+  }
+
+  const normalizedText = docxXmlToText(
+    new TextDecoder("utf-8", { fatal: false }).decode(documentXml)
+  );
+
+  if (!normalizedText) {
+    return [
+      `Attached DOCX file: ${filename}`,
+      "[The DOCX did not contain readable body text.]",
+    ].join("\n");
+  }
+
+  const isTruncated = normalizedText.length > maxChatDocxInlineCharacters;
+  const includedText = isTruncated
+    ? normalizedText.slice(0, maxChatDocxInlineCharacters)
+    : normalizedText;
+  const truncationNote = isTruncated
+    ? `\n\n[Only the first ${maxChatDocxInlineCharacters} characters were included.]`
+    : "";
+
+  return [
+    `Attached DOCX file: ${filename}`,
+    "Extracted text:",
+    "```",
+    includedText,
+    "```",
+    truncationNote,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 async function materializeFileAttachmentPart({
   part,
   requestUrl,
@@ -305,7 +505,8 @@ async function materializeFileAttachmentPart({
   if (
     !mediaType?.startsWith("image/") &&
     !isChatTextAttachment(mediaType) &&
-    !isChatPdfAttachment(mediaType)
+    !isChatPdfAttachment(mediaType) &&
+    !isChatDocxAttachment(mediaType)
   ) {
     return [part];
   }
@@ -340,6 +541,15 @@ async function materializeFileAttachmentPart({
         {
           type: "text",
           text: await decodePdfAttachment(attachment),
+        },
+      ];
+    }
+
+    if (isChatDocxAttachment(attachment.mediaType)) {
+      return [
+        {
+          type: "text",
+          text: decodeDocxAttachment(attachment),
         },
       ];
     }

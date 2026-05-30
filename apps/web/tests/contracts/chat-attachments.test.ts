@@ -54,6 +54,73 @@ function createSimplePdf(text: string) {
   return Buffer.from(body, "latin1");
 }
 
+function createStoredDocxXml(text: string) {
+  const filename = "word/document.xml";
+  const content = Buffer.from(
+    [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">',
+      "<w:body>",
+      "<w:p><w:r><w:t>",
+      text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;"),
+      "</w:t></w:r></w:p>",
+      "</w:body>",
+      "</w:document>",
+    ].join(""),
+    "utf8"
+  );
+  const filenameBytes = Buffer.from(filename, "utf8");
+  const localHeader = Buffer.alloc(30);
+
+  localHeader.writeUInt32LE(0x0403_4b50, 0);
+  localHeader.writeUInt16LE(20, 4);
+  localHeader.writeUInt16LE(0, 6);
+  localHeader.writeUInt16LE(0, 8);
+  localHeader.writeUInt32LE(0, 10);
+  localHeader.writeUInt32LE(0, 14);
+  localHeader.writeUInt32LE(content.byteLength, 18);
+  localHeader.writeUInt32LE(content.byteLength, 22);
+  localHeader.writeUInt16LE(filenameBytes.byteLength, 26);
+  localHeader.writeUInt16LE(0, 28);
+
+  const localFile = Buffer.concat([localHeader, filenameBytes, content]);
+  const centralHeader = Buffer.alloc(46);
+
+  centralHeader.writeUInt32LE(0x0201_4b50, 0);
+  centralHeader.writeUInt16LE(20, 4);
+  centralHeader.writeUInt16LE(20, 6);
+  centralHeader.writeUInt16LE(0, 8);
+  centralHeader.writeUInt16LE(0, 10);
+  centralHeader.writeUInt32LE(0, 12);
+  centralHeader.writeUInt32LE(0, 16);
+  centralHeader.writeUInt32LE(content.byteLength, 20);
+  centralHeader.writeUInt32LE(content.byteLength, 24);
+  centralHeader.writeUInt16LE(filenameBytes.byteLength, 28);
+  centralHeader.writeUInt16LE(0, 30);
+  centralHeader.writeUInt16LE(0, 32);
+  centralHeader.writeUInt16LE(0, 34);
+  centralHeader.writeUInt16LE(0, 36);
+  centralHeader.writeUInt32LE(0, 38);
+  centralHeader.writeUInt32LE(0, 42);
+
+  const centralDirectory = Buffer.concat([centralHeader, filenameBytes]);
+  const endRecord = Buffer.alloc(22);
+
+  endRecord.writeUInt32LE(0x0605_4b50, 0);
+  endRecord.writeUInt16LE(0, 4);
+  endRecord.writeUInt16LE(0, 6);
+  endRecord.writeUInt16LE(1, 8);
+  endRecord.writeUInt16LE(1, 10);
+  endRecord.writeUInt32LE(centralDirectory.byteLength, 12);
+  endRecord.writeUInt32LE(localFile.byteLength, 16);
+  endRecord.writeUInt16LE(0, 20);
+
+  return Buffer.concat([localFile, centralDirectory, endRecord]);
+}
+
 function createPngHeader({ height, width }: { height: number; width: number }) {
   const bytes = Buffer.alloc(24);
   bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], 0);
@@ -225,6 +292,42 @@ async function main() {
   assert.equal(pdfPart.type, "text");
   assert.match(pdfPart.text ?? "", /Attached PDF file: brief\.pdf/);
   assert.match(pdfPart.text ?? "", /Boreal PDF attachment detail/);
+
+  globalThis.fetch = async () =>
+    new Response(createStoredDocxXml("Boreal DOCX attachment detail."), {
+      headers: {
+        "content-type":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      },
+    });
+
+  const preparedDocxMessages = await prepareChatMessagesForModel({
+    requestUrl: "https://network.boreal.work/chat/test",
+    messages: [
+      {
+        role: "user" as const,
+        parts: [
+          {
+            type: "file",
+            mediaType:
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            filename: "brief.docx",
+            url: "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/brief.docx&expires=9999999999&signature=test&filename=brief.docx",
+          },
+        ],
+      },
+    ],
+  }).finally(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const docxPart = preparedDocxMessages[0].parts[0] as {
+    text?: string;
+    type?: string;
+  };
+  assert.equal(docxPart.type, "text");
+  assert.match(docxPart.text ?? "", /Attached DOCX file: brief\.docx/);
+  assert.match(docxPart.text ?? "", /Boreal DOCX attachment detail/);
 
   globalThis.fetch = async () =>
     new Response(tinyPng, {
