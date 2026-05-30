@@ -1,4 +1,4 @@
-# Evals
+﻿# Evals
 
 This file defines how Boreal evaluates request processing, planning, matching, policy, and mutation safety.
 
@@ -74,9 +74,11 @@ Verify that running a public solution creates or uses a referenced run request b
 Verify that a public solution run writes buyer-credit debit and request `Transaction` truth to the run request rather than mutating the completed source request.
 Verify that reusable prompt analysis over a public or owned scratch-chat user message is deterministic, read-only, and free.
 Verify that `[20/05/1996]` near `date of birth` becomes a required `date_of_birth` field while explicit `{date_of_birth}` and `{{date_of_birth}}` placeholders preserve the same field key.
-Verify that reusable prompt execution rejects missing required variables before any buyer-credit debit.
-Verify that reusable prompt execution creates or reuses one private run `Request`, stores source chat id, source message id, template text, and input values under request constraints, and writes buyer-credit debit plus transaction truth to the run request without mutating the public source chat.
-Verify that reusable prompt fulfillment publishes a generated answer artifact when the configured model route is available, and moves the same fulfillment to `blocked` when execution cannot complete.
+Verify that reusable prompt execution rejects missing required variables before creating any forked chat.
+Verify that reusable prompt execution creates or reuses one private scratch chat, stores source chat id, source message id, source user id, template text, input values, run chat id, and quota policy on the forked user message, and does not create a request, debit credits, or write transaction truth.
+Verify that reusable prompt free-chat quotas default to `10` forks per UTC day and increase to `20` for users with any settled buyer-credit top-up history.
+Verify that reusable prompt token ceilings are environment-controlled and enforced before chat creation.
+Verify that reusable prompt execution publishes a generated assistant message in the forked chat when the configured model route is available, and preserves the filled user prompt with a chat-level failure message when execution cannot complete.
 
 ## Fixture Shape
 

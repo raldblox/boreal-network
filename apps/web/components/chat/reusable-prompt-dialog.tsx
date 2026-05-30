@@ -19,7 +19,7 @@ import type {
   ReusablePromptInputValues,
 } from "@/lib/reusable-prompts";
 
-const DEFAULT_REUSABLE_PROMPT_RUN_AMOUNT = "0.05";
+const REUSABLE_PROMPT_RUN_COST_LABEL = "FREE";
 
 type ReusablePromptDialogProps = {
   chatId: string;
@@ -136,7 +136,6 @@ export function ReusablePromptDialog({
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chats/${chatId}/messages/${messageId}/reusable-prompt/runs`,
         {
           body: JSON.stringify({
-            amount: DEFAULT_REUSABLE_PROMPT_RUN_AMOUNT,
             idempotencyKey,
             inputValues,
           }),
@@ -183,8 +182,8 @@ export function ReusablePromptDialog({
         <DialogHeader>
           <DialogTitle>Reuse prompt</DialogTitle>
           <DialogDescription>
-            Inspecting is free. Running creates a private request and spends
-            credits only after required inputs validate.
+            Inspecting is free. Running starts a private chat with your filled
+            prompt while keeping the fork linked to the public source.
           </DialogDescription>
         </DialogHeader>
 
@@ -262,16 +261,14 @@ export function ReusablePromptDialog({
 
         <DialogFooter className="items-center sm:justify-between">
           <div className="text-muted-foreground text-xs">
-            Credit cost: ${DEFAULT_REUSABLE_PROMPT_RUN_AMOUNT}
+            Cost: {REUSABLE_PROMPT_RUN_COST_LABEL}
           </div>
           <Button
             disabled={!canRun || isPendingNavigation}
             onClick={handleRun}
             type="button"
           >
-            {isRunning || isPendingNavigation
-              ? "Running..."
-              : "Run with credits"}
+            {isRunning || isPendingNavigation ? "Running..." : "RUN"}
           </Button>
         </DialogFooter>
       </DialogContent>

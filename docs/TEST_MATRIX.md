@@ -1,4 +1,4 @@
-# Test Matrix
+﻿# Test Matrix
 
 This file defines what must be verifiable as Boreal Network evolves.
 
@@ -53,7 +53,7 @@ Verify:
 - public solution projections can be traced to completed requests and accepted artifacts
 - public solution inspection leaves the source request state unchanged
 - public solution runs or forks create a new request or accepted execution lane that references the source artifact
-- reusable prompt runs create a private run request that references the source chat and source message without mutating the public source chat
+- reusable prompt runs create a private scratch-chat fork that references the source chat and source message without mutating the public source chat or creating a `Request`
 - file, media, PDF, audio, video, binary, and archive deliveries can be traced through stable artifact references without inflating the request root
 - non-substitutable embodied work cannot be resolved through generated summaries alone when the request requires explicit proof
 
@@ -91,7 +91,7 @@ Verify:
 - duplicate request-grant contributions with the same idempotency key do not double-fund the request
 - duplicate solution-run credit requests with the same idempotency key do not double-debit buyer credit or fork duplicate run requests
 - duplicate `POST /api/requests/{id}/solution-runs` calls with the same idempotency key return the same run `Request`, source artifact reference, buyer-credit debit, and request `Transaction`
-- duplicate reusable-prompt runs with the same idempotency key return the same private run `Request` and do not double-debit buyer credit
+- duplicate reusable-prompt runs with the same idempotency key return the same private chat fork and do not create duplicate chats, debit buyer credit, or create transaction truth
 - duplicate event replay does not double-apply side effects
 
 ### Payment webhook tests
@@ -135,7 +135,7 @@ Verify:
 
 Verify:
 
-- `pnpm contracts:reusable-prompts` covers deterministic reusable prompt analysis and request-backed paid run fixture invariants
+- `pnpm contracts:reusable-prompts` covers deterministic reusable prompt analysis and free chat-fork fixture invariants
 - not every chat turn creates a durable request
 - entering `New request` mode alone does not create a durable request
 - the first send in `New request` mode creates one draft request instead of a second root object
@@ -208,11 +208,13 @@ Verify:
 - solution forks or private adaptations should create a new `Request` referencing the source artifact instead of mutating the completed source request
 - reusable prompt analysis should detect deterministic fields in public or owned scratch-chat user messages without creating requests, credits, transactions, artifacts, or events
 - reusable prompt analysis should infer `[20/05/1996]` near `date of birth` as `date_of_birth`
-- reusable prompt run creation should require a user text source message, authenticated buyer session, positive credit amount, required input values, and an idempotency key
-- reusable prompt run creation should reject assistant messages and missing required variables before credit debit
-- reusable prompt run requests should store source chat id, source message id, template text, and input values under `brief.constraints.reusablePromptRun`
-- reusable prompt run credit debit and request `Transaction` truth should attach to the private run request, not the public source chat
-- reusable prompt fulfillment should publish a generated answer artifact when the model route succeeds, or move the same fulfillment to `blocked` when execution fails
+- reusable prompt run creation should require a user text source message, authenticated session, required input values, an idempotency key, and quota availability
+- reusable prompt run creation should reject assistant messages and missing required variables before creating the forked chat
+- reusable prompt run creation should create a private scratch chat and store source chat id, source message id, source user id, template text, input values, run chat id, and quota policy under the forked user message provenance
+- reusable prompt run creation should not create a `Request`, debit credits, create a ledger entry, or create request `Transaction` truth in V1
+- reusable prompt daily quota should default to `10` free chat forks and increase to `20` after any settled buyer-credit top-up history
+- reusable prompt token limits should be environment-controlled and enforced before the forked chat is created
+- reusable prompt execution should publish a generated assistant answer in the forked chat when the model route succeeds, or preserve the filled user prompt and show a chat-level failure message when execution fails
 - live-model benchmark scoring should not depend on a second judge LLM when exact contract or metric-based scoring already exists
 - auto-improve eval runs should produce sanitized audit bundles with raw Promptfoo output, command logs, config snapshots, git state, failure classification, and non-mutating recommendations before any prompt or model-default change is made
 - default nano chat routing should promote context-heavy request turns to `openai/gpt-5.4-mini` and preserve the fallback order `openai/o3-mini`, `openai/o4-mini`, `openai/gpt-5-mini`, `openai/gpt-4.1-nano` without changing the tool allowlist or mutation schemas

@@ -90,6 +90,7 @@ Account setup notes:
 - `OPENAI_API_KEY` is the preferred direct route for OpenAI-backed model calls; `AI_GATEWAY_API_KEY` remains the Vercel Gateway fallback
 - default nano chat traffic keeps `openai/gpt-5.4-nano`, while context-heavy request rooms promote to `openai/gpt-5.4-mini` and then rotate through `openai/o3-mini`, `openai/o4-mini`, `openai/gpt-5-mini`, and `openai/gpt-4.1-nano` on provider failure
 - `BOREAL_CONTEXT_HEAVY_TOKEN_ESTIMATE`, `BOREAL_CONTEXT_HEAVY_MESSAGE_COUNT`, and `BOREAL_CONTEXT_HEAVY_ACTIVITY_COUNT` tune that promotion threshold
+- `BOREAL_REUSABLE_PROMPT_OPENAI_MODEL` may override the direct OpenAI reusable prompt model, defaulting to the current chat model without the `openai/` gateway prefix
 - `Runway` API key needed for Boreal-managed video generation via `RUNWAYML_API_SECRET`
 - `Auth.js` is package code, not a separate hosted account
 - Redis is optional and should not block first local scaffold work

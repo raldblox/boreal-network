@@ -47,6 +47,7 @@ These are safe to state as present canon truth:
 - public solution surfaces are projections over completed requests and accepted artifacts, not canonical root objects
 - public solution inspection is free by default, while live solution runs may consume credits when they use inference, provider APIs, workflow execution, human review, or other service capacity
 - the first credit-metered public solution run endpoint creates or reuses a private run `Request` that references the source accepted artifact and records buyer-credit debit plus request-attached `Transaction` truth
+- reusable scratch-chat prompt runs are a separate V1 chat-interface lane: they create or reuse a private scratch chat with source provenance, are free for now, and are quota-gated instead of credit-debited
 - passive funder cash revenue-share, investment, yield, dividend, and tax-deductible donation language are outside the first accepted model
 
 ## Public Pilot Boundary
@@ -102,6 +103,7 @@ Today, the machine-readable baseline proves:
 - one public-safe request detail view can be fetched directly by request id
 - one public-safe open-request directory surface can keep public demand browsing separate from private workroom history
 - one public solution run HTTP contract exists for creating a private credit-metered run request from a completed public request and accepted artifact
+- one reusable prompt run HTTP contract exists for creating a private free chat fork from a public or owned scratch-chat user message, with source provenance stored on the forked user message and no `Request`, credit debit, or request transaction created
 - one open request room can expose request activity derived from durable `RequestEvent`, `Commitment`, and `Artifact` records
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate

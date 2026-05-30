@@ -187,7 +187,7 @@ function PureMessages({
   return (
     <div className="relative flex-1 bg-background">
       {showEmptyGreeting && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center pb-44 md:pb-48">
           <Greeting isRequestMode={isRequestMode} requestStatus={requestStatus} />
         </div>
       )}

@@ -21,6 +21,35 @@ export type ReusablePromptAnalysis = {
 
 export type ReusablePromptInputValues = Record<string, string>;
 
+export type ReusablePromptSourceData = {
+  profile: typeof REUSABLE_PROMPT_PROFILE;
+  billingMode: "free_chat";
+  sourceChatId: string;
+  sourceMessageId: string;
+  sourceChatVisibility: "public" | "private";
+  sourceChatTitle: string;
+  sourceUserId: string;
+  forkedByUserId: string;
+  templateText: string;
+  inputValues: ReusablePromptInputValues;
+  fieldKeys: string[];
+  renderedPrompt: string;
+  runChatId: string;
+  runUserMessageId: string;
+  runAssistantMessageId?: string | null;
+  forkedAt: string;
+  estimatedInputTokens: number;
+  estimatedRunTokens: number;
+  freeRunPolicy: {
+    windowStartAt: string;
+    dailyChatLimit: number;
+    dailyTokenLimit: number;
+    maxInputTokens: number;
+    maxOutputTokens: number;
+    topUpEligible: boolean;
+  };
+};
+
 const TOKEN_PATTERN =
   /\{\{\s*([A-Za-z0-9_. -]{1,80})\s*\}\}|\{\s*([A-Za-z0-9_. -]{1,80})\s*\}|\[([^\]\n]{1,160})\]/g;
 

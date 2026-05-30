@@ -4093,6 +4093,34 @@ export async function getMessagesByChatId({ id }: { id: string }) {
   }
 }
 
+export async function getMessagesByUserIdSince({
+  userId,
+  since,
+}: {
+  userId: string;
+  since: Date;
+}) {
+  try {
+    return await db
+      .select({
+        id: message.id,
+        chatId: message.chatId,
+        role: message.role,
+        parts: message.parts,
+        createdAt: message.createdAt,
+      })
+      .from(message)
+      .innerJoin(chat, eq(message.chatId, chat.id))
+      .where(and(eq(chat.userId, userId), gte(message.createdAt, since)))
+      .orderBy(asc(message.createdAt));
+  } catch (_error) {
+    throw new ChatbotError(
+      "bad_request:database",
+      "Failed to get messages by user id"
+    );
+  }
+}
+
 export async function voteMessage({
   chatId,
   messageId,

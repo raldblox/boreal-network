@@ -75,7 +75,7 @@ function validateAnalyzer(errors: string[]) {
       inputValues: {},
       templateText: analysis.templateText,
     });
-    errors.push("missing required variable should throw before run debit");
+    errors.push("missing required variable should throw before chat fork");
   } catch (error) {
     assert(
       error instanceof Error &&
@@ -90,12 +90,13 @@ function validateFixture(errors: string[]) {
   const fixture = readJson(fixturePath);
   const {
     analysis,
-    deliveryArtifact,
-    fulfillment,
     idempotency,
     ledgerEntry,
     negativeCases,
-    runRequest,
+    quota,
+    runAssistantMessage,
+    runChat,
+    runUserMessage,
     sourceChat,
     sourceMessage,
     transaction,
@@ -116,105 +117,98 @@ function validateFixture(errors: string[]) {
     "V1 source message must be a user message",
     errors
   );
+  assert(runChat.id !== sourceChat.id, "run chat must be distinct", errors);
+  assert(runChat.visibility === "private", "run chat must be private", errors);
   assert(
-    runRequest.id !== sourceChat.id,
-    "run request must be distinct from source chat",
-    errors
-  );
-  assert(
-    runRequest.visibility === "private",
-    "run request must be private",
+    runChat.requestCreated === false,
+    "reusable prompt run must not create a Request in V1",
     errors
   );
 
-  const reusablePromptRun = runRequest.brief?.constraints?.reusablePromptRun;
+  const provenance = runUserMessage.provenance;
   assert(
-    reusablePromptRun?.profile === "public_chat_prompt_reuse_v0",
-    "run request must carry reusable prompt profile",
+    provenance?.profile === "public_chat_prompt_reuse_v0",
+    "run user message must carry reusable prompt profile",
     errors
   );
   assert(
-    reusablePromptRun?.sourceChatId === sourceChat.id,
-    "run request must reference source chat id",
+    provenance?.billingMode === "free_chat",
+    "reusable prompt run must be a free chat fork",
     errors
   );
   assert(
-    reusablePromptRun?.sourceMessageId === sourceMessage.id,
-    "run request must reference source message id",
+    provenance?.sourceChatId === sourceChat.id,
+    "provenance must reference source chat id",
     errors
   );
   assert(
-    reusablePromptRun?.templateText === analysis.templateText,
-    "run request must store template text",
+    provenance?.sourceMessageId === sourceMessage.id,
+    "provenance must reference source message id",
     errors
   );
   assert(
-    reusablePromptRun?.inputValues?.date_of_birth === "01/01/2001",
-    "run request must store input values",
+    provenance?.sourceUserId === sourceChat.userId,
+    "provenance must reference original sharer",
     errors
   );
   assert(
-    transaction.requestId === runRequest.id,
-    "transaction must attach to run request",
+    provenance?.templateText === analysis.templateText,
+    "provenance must store template text",
     errors
   );
   assert(
-    transaction.metadata?.sourceChatId === sourceChat.id,
-    "transaction metadata must reference source chat",
+    provenance?.inputValues?.date_of_birth === "01/01/2001",
+    "provenance must store input values",
     errors
   );
   assert(
-    transaction.metadata?.sourceMessageId === sourceMessage.id,
-    "transaction metadata must reference source message",
+    provenance?.renderedPrompt === runUserMessage.text,
+    "run user message must contain the filled prompt",
     errors
   );
   assert(
-    ledgerEntry.kind === "debit" && ledgerEntry.status === "settled",
-    "ledger entry must be a settled debit",
+    provenance?.runChatId === runChat.id &&
+      provenance?.runUserMessageId === runUserMessage.id,
+    "provenance must link the forked chat and user message",
     errors
   );
   assert(
-    ledgerEntry.requestId === runRequest.id &&
-      ledgerEntry.transactionId === transaction.id,
-    "ledger entry must attach to run request and transaction",
+    runAssistantMessage.chatId === runChat.id &&
+      runAssistantMessage.role === "assistant",
+    "assistant answer must belong to the forked private chat",
     errors
   );
   assert(
-    runRequest.activeRefs?.latestTransactionId === transaction.id,
-    "run request latestTransactionId must reference transaction",
+    transaction === null && ledgerEntry === null,
+    "free reusable prompt chat fork must not create transaction or ledger truth",
     errors
   );
   assert(
-    runRequest.activeRefs?.activeFulfillmentId === fulfillment.id,
-    "run request activeFulfillmentId must reference reusable prompt fulfillment",
+    quota.costLabel === "FREE" && quota.amount === "0.00",
+    "run cost should be visibly free",
     errors
   );
   assert(
-    runRequest.activeRefs?.latestArtifactId === deliveryArtifact.id,
-    "run request latestArtifactId must reference generated answer artifact",
+    quota.defaultDailyChatLimit === 10 && quota.topUpDailyChatLimit === 20,
+    "quota should default to 10 chats and 20 after any top-up",
     errors
   );
   assert(
-    fulfillment.requestId === runRequest.id &&
-      fulfillment.status === "delivered",
-    "fulfillment must deliver on the run request",
+    provenance?.freeRunPolicy?.dailyChatLimit === 10 &&
+      provenance?.freeRunPolicy?.topUpEligible === false,
+    "provenance should snapshot daily quota policy",
     errors
   );
   assert(
-    fulfillment.artifactIds.includes(deliveryArtifact.id),
-    "fulfillment must include generated answer artifact",
+    typeof provenance?.estimatedInputTokens === "number" &&
+      typeof provenance?.estimatedRunTokens === "number",
+    "provenance should snapshot estimated token usage",
     errors
   );
   assert(
-    deliveryArtifact.requestId === runRequest.id &&
-      deliveryArtifact.fulfillmentId === fulfillment.id,
-    "generated answer artifact must attach to run request fulfillment",
-    errors
-  );
-  assert(
-    idempotency.sameKeyReturnsRunRequestId === runRequest.id &&
-      idempotency.sameKeyLedgerEntryId === ledgerEntry.id,
-    "same idempotency key must resolve to same run request and ledger entry",
+    idempotency.sameKeyReturnsRunChatId === runChat.id &&
+      idempotency.sameKeyDoesNotCreateDuplicateChat === true,
+    "same idempotency key must resolve to same forked chat",
     errors
   );
   assert(
@@ -229,8 +223,15 @@ function validateFixture(errors: string[]) {
   );
   assert(
     negativeCases.missingRequiredVariable.expectedStatus === 400 &&
+      negativeCases.missingRequiredVariable.chatCreated === false &&
       negativeCases.missingRequiredVariable.debitCreated === false,
-    "missing required variable should fail before debit",
+    "missing required variable should fail before chat fork or debit",
+    errors
+  );
+  assert(
+    negativeCases.dailyChatLimitReached.chatCreated === false &&
+      negativeCases.dailyTokenLimitReached.chatCreated === false,
+    "quota failures should happen before chat creation",
     errors
   );
 }

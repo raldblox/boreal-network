@@ -164,6 +164,7 @@ Use concrete verbs:
 - Accept delivery
 - Inspect solution
 - Run with credits
+- RUN
 - Fork into a new request
 
 Avoid vague verbs:

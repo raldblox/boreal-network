@@ -6,6 +6,7 @@ import type { createDocument } from "./ai/tools/create-document";
 import type { requestSuggestions } from "./ai/tools/request-suggestions";
 import type { proposeCommitment } from "./ai/tools/propose-commitment";
 import type { publishArtifact } from "./ai/tools/publish-artifact";
+import type { ReusablePromptSourceData } from "./reusable-prompts";
 import type { updateRequestBrief } from "./ai/tools/update-request-brief";
 import type { updateRequestBudgetTiming } from "./ai/tools/update-request-budget-timing";
 import type { updateRequestConstraints } from "./ai/tools/update-request-constraints";
@@ -64,6 +65,7 @@ export type CustomUIDataTypes = {
   clear: null;
   finish: null;
   "chat-title": string;
+  reusablePromptSource: ReusablePromptSourceData;
 };
 
 export type ChatMessage = UIMessage<

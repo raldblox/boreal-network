@@ -460,9 +460,11 @@ function getFixtureEntries(scenarioIds: string[]) {
   });
 }
 
-function ensureGatewayConfigured() {
-  if (!process.env.AI_GATEWAY_API_KEY) {
-    throw new Error("AI_GATEWAY_API_KEY is required for live request-processing benchmark runs.");
+function ensureModelProviderConfigured() {
+  if (!process.env.OPENAI_API_KEY && !process.env.AI_GATEWAY_API_KEY) {
+    throw new Error(
+      "OPENAI_API_KEY or AI_GATEWAY_API_KEY is required for live request-processing benchmark runs."
+    );
   }
 }
 
@@ -806,7 +808,7 @@ async function main() {
     return;
   }
 
-  ensureGatewayConfigured();
+  ensureModelProviderConfigured();
 
   const systemRuns: SystemRun[] = [];
 

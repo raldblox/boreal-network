@@ -94,7 +94,6 @@ import {
   SlashCommandMenu,
   slashCommands,
 } from "./slash-commands";
-import { SuggestedActions } from "./suggested-actions";
 import type { VisibilityType } from "./visibility-selector";
 
 function setCookie(name: string, value: string) {
@@ -248,16 +247,13 @@ function PureMultimodalInput({
   stop,
   attachments,
   setAttachments,
-  messages,
   setMessages,
   sendMessage,
   className,
-  selectedVisibilityType,
   selectedModelId,
   onModelChange,
   editingMessage,
   onCancelEdit,
-  isLoading,
   activeRequest,
   isRequestMode,
   onCreateRequest,
@@ -401,21 +397,6 @@ function PureMultimodalInput({
   const pinnedWorkerPromptPlaceholder = getPinnedWorkerPromptPlaceholder(
     activeRequest,
     isRequestMode,
-  );
-
-  const handleRequestSuggestionSelect = useCallback(
-    (suggestion: string) => {
-      setInput(suggestion);
-
-      requestAnimationFrame(() => {
-        textareaRef.current?.focus();
-        textareaRef.current?.setSelectionRange(
-          suggestion.length,
-          suggestion.length
-        );
-      });
-    },
-    [setInput]
   );
 
   const submitForm = useCallback(() => {
@@ -675,24 +656,6 @@ function PureMultimodalInput({
           </button>
         </div>
       )}
-
-      {!editingMessage &&
-        !isLoading &&
-        messages.length === 0 &&
-        attachments.length === 0 &&
-        uploadQueue.length === 0 &&
-        !isRequestMode &&
-        !isOpenedRequest && (
-          <SuggestedActions
-            chatId={chatId}
-            isRequestMode={isRequestMode}
-            onRequestSuggestionSelect={handleRequestSuggestionSelect}
-            requestStatus={activeRequest?.status ?? null}
-            selectedVisibilityType={selectedVisibilityType}
-            sendMessage={sendMessage}
-            setInput={setInput}
-          />
-        )}
 
       <input
         accept={chatAttachmentAccept}

@@ -416,6 +416,13 @@ export function ChatShell() {
       { id: "activity", label: "Activity" },
       { id: "artifacts", label: "Artifacts" },
     ];
+  const isInitialComposerCentered =
+    !activeRequest &&
+    messages.length === 0 &&
+    activities.length === 0 &&
+    !isLoading &&
+    !editingMessage &&
+    attachments.length === 0;
 
   const openedRequestControls = isOpenedRequest ? (
     <div className="flex flex-wrap items-center gap-2">
@@ -577,7 +584,10 @@ export function ChatShell() {
               <>
                 <div
                   className={cn(
-                    "sticky bottom-0 z-10 mx-auto flex w-full max-w-4xl gap-2 bg-background/94 px-2 pb-4 pt-2 backdrop-blur md:px-4 md:pb-5",
+                    "z-10 mx-auto flex w-full gap-2 px-2 backdrop-blur md:px-4",
+                    isInitialComposerCentered
+                      ? "absolute left-1/2 top-1/2 max-w-3xl -translate-x-1/2 translate-y-20 bg-transparent pb-0 pt-0 md:translate-y-24"
+                      : "sticky bottom-0 max-w-4xl bg-background/94 pb-4 pt-2 md:pb-5",
                   )}
                 >
                   <MultimodalInput

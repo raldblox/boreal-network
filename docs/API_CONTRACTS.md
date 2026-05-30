@@ -136,7 +136,8 @@ For the first web slice, `Request` create and update must support:
 - public-safe solution projection reads over completed public requests with `activeRefs.acceptedArtifactId`; this is a Request projection, not a `Solution` root
 - public-safe detail reads for one request by id
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze` inspection over public or owned scratch-chat user text messages
-- paid `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs` execution that creates or reuses one private run `Request`, stores source chat/message provenance in `Request.brief.constraints.reusablePromptRun`, writes buyer-credit debit plus `Transaction` truth to that run request, and starts a delivery fulfillment for the generated answer when the configured model route is available
+- free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs` execution that creates or reuses one private scratch chat, stores source chat/message provenance on the forked user message, runs the filled prompt, and does not create a `Request`, debit credits, or write `Transaction` truth in V1
+- reusable prompt free-chat runs are quota-gated by server policy: the default limit is `10` forked chats per UTC day, users with any settled buyer-credit top-up history receive `20` per UTC day, and token limits are controlled by environment variables
 - explicit `save draft` normalization from the live request-input document surface
 - request-brief field updates
 - request-seeking field updates for structured matching intent

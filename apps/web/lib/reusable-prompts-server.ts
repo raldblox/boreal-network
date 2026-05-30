@@ -2,38 +2,31 @@ import "server-only";
 
 import { generateText } from "ai";
 import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
-import { getLanguageModel } from "@/lib/ai/providers";
+import { getGatewayLanguageModel } from "@/lib/ai/providers";
 import {
-  getBuyerCreditLedgerEntryByIdempotencyKey,
+  getBuyerCreditAccountByOwnerId,
   getChatById,
   getMessageById,
+  getMessagesByChatId,
+  getMessagesByUserIdSince,
   getRequestByChatId,
+  saveChat,
+  saveMessages,
 } from "@/lib/db/queries";
-import {
-  compareMoneyAmounts,
-  normalizeMoneyAmount,
-  type RequestTransactionMetadata,
-} from "@/lib/payment";
-import {
-  applyBuyerCreditToRequest,
-  getBuyerCreditSummary,
-} from "@/lib/payment-server";
+import { compareMoneyAmounts } from "@/lib/payment";
 import {
   REUSABLE_PROMPT_PROFILE,
   analyzeReusablePromptText,
   renderReusablePrompt,
   type ReusablePromptAnalysis,
   type ReusablePromptInputValues,
+  type ReusablePromptSourceData,
 } from "@/lib/reusable-prompts";
 import {
-  createFulfillmentForRequestById,
-  ensureRequestDraftForChat,
-  openRequestDraft,
-  persistRequestPatch,
-  publishArtifactForRequestById,
-  updateFulfillmentForRequestById,
-} from "@/lib/request-server";
-import { convertToUIMessages, getTextFromMessage } from "@/lib/utils";
+  convertToUIMessages,
+  generateUUID,
+  getTextFromMessage,
+} from "@/lib/utils";
 
 type ReusablePromptSource = {
   chat: NonNullable<Awaited<ReturnType<typeof getChatById>>>;
@@ -43,23 +36,326 @@ type ReusablePromptSource = {
 
 type ReusablePromptRunInput = {
   actorUserId: string;
-  amount: string | number;
   chatId: string;
   idempotencyKey: string;
   inputValues: ReusablePromptInputValues;
   messageId: string;
 };
 
-export type ReusablePromptRunProvenance = {
-  profile: typeof REUSABLE_PROMPT_PROFILE;
-  sourceChatId: string;
-  sourceMessageId: string;
-  sourceChatVisibility: "public" | "private";
-  templateText: string;
-  inputValues: ReusablePromptInputValues;
-  fieldKeys: string[];
+type ReusablePromptRunPolicy = {
+  freeChatsEnabled: boolean;
+  defaultDailyChatLimit: number;
+  topUpDailyChatLimit: number;
+  defaultDailyTokenLimit: number;
+  topUpDailyTokenLimit: number;
+  maxInputTokens: number;
+  maxOutputTokens: number;
+};
+
+type ReusablePromptRunUsage = {
+  runCount: number;
+  estimatedRunTokens: number;
+};
+
+const DEFAULT_REUSABLE_PROMPT_RUN_POLICY: ReusablePromptRunPolicy = {
+  freeChatsEnabled: true,
+  defaultDailyChatLimit: 10,
+  topUpDailyChatLimit: 20,
+  defaultDailyTokenLimit: 20_000,
+  topUpDailyTokenLimit: 40_000,
+  maxInputTokens: 4_000,
+  maxOutputTokens: 1_200,
+};
+
+const REUSABLE_PROMPT_SOURCE_PART_TYPE = "data-reusablePromptSource";
+const REUSABLE_PROMPT_RUN_SYSTEM_PROMPT =
+  "You are Boreal's reusable prompt runner. Answer the rendered user prompt directly. Do not mention internal fork provenance unless the prompt asks for it.";
+
+type ReusablePromptGenerationInput = {
+  maxOutputTokens: number;
   renderedPrompt: string;
 };
+
+function readBooleanEnv(value: string | undefined, defaultValue: boolean) {
+  if (!value) {
+    return defaultValue;
+  }
+
+  if (/^(?:0|false|off|no)$/i.test(value.trim())) {
+    return false;
+  }
+
+  if (/^(?:1|true|on|yes)$/i.test(value.trim())) {
+    return true;
+  }
+
+  return defaultValue;
+}
+
+function readIntegerEnv({
+  defaultValue,
+  minimum,
+  name,
+}: {
+  defaultValue: number;
+  minimum: number;
+  name: string;
+}) {
+  const parsed = Number.parseInt(process.env[name] ?? "", 10);
+
+  if (!Number.isFinite(parsed) || parsed < minimum) {
+    return defaultValue;
+  }
+
+  return parsed;
+}
+
+export function getReusablePromptRunPolicy(): ReusablePromptRunPolicy {
+  return {
+    freeChatsEnabled: readBooleanEnv(
+      process.env.BOREAL_REUSABLE_PROMPT_FREE_RUNS_ENABLED,
+      DEFAULT_REUSABLE_PROMPT_RUN_POLICY.freeChatsEnabled
+    ),
+    defaultDailyChatLimit: readIntegerEnv({
+      defaultValue: DEFAULT_REUSABLE_PROMPT_RUN_POLICY.defaultDailyChatLimit,
+      minimum: 0,
+      name: "BOREAL_REUSABLE_PROMPT_FREE_DAILY_CHAT_LIMIT",
+    }),
+    topUpDailyChatLimit: readIntegerEnv({
+      defaultValue: DEFAULT_REUSABLE_PROMPT_RUN_POLICY.topUpDailyChatLimit,
+      minimum: 0,
+      name: "BOREAL_REUSABLE_PROMPT_TOPUP_DAILY_CHAT_LIMIT",
+    }),
+    defaultDailyTokenLimit: readIntegerEnv({
+      defaultValue: DEFAULT_REUSABLE_PROMPT_RUN_POLICY.defaultDailyTokenLimit,
+      minimum: 0,
+      name: "BOREAL_REUSABLE_PROMPT_FREE_DAILY_TOKEN_LIMIT",
+    }),
+    topUpDailyTokenLimit: readIntegerEnv({
+      defaultValue: DEFAULT_REUSABLE_PROMPT_RUN_POLICY.topUpDailyTokenLimit,
+      minimum: 0,
+      name: "BOREAL_REUSABLE_PROMPT_TOPUP_DAILY_TOKEN_LIMIT",
+    }),
+    maxInputTokens: readIntegerEnv({
+      defaultValue: DEFAULT_REUSABLE_PROMPT_RUN_POLICY.maxInputTokens,
+      minimum: 1,
+      name: "BOREAL_REUSABLE_PROMPT_FREE_MAX_INPUT_TOKENS",
+    }),
+    maxOutputTokens: readIntegerEnv({
+      defaultValue: DEFAULT_REUSABLE_PROMPT_RUN_POLICY.maxOutputTokens,
+      minimum: 1,
+      name: "BOREAL_REUSABLE_PROMPT_FREE_MAX_OUTPUT_TOKENS",
+    }),
+  };
+}
+
+function getFreeRunWindowStart() {
+  const windowStart = new Date();
+  windowStart.setUTCHours(0, 0, 0, 0);
+  return windowStart;
+}
+
+function estimatePromptTokens(value: string) {
+  return Math.max(1, Math.ceil(value.trim().length / 4));
+}
+
+function normalizeDirectOpenAIModelId(modelId: string) {
+  const trimmed = modelId.trim();
+
+  if (trimmed.startsWith("openai/")) {
+    return trimmed.slice("openai/".length);
+  }
+
+  return trimmed;
+}
+
+function getReusablePromptOpenAIModelId() {
+  return normalizeDirectOpenAIModelId(
+    process.env.BOREAL_REUSABLE_PROMPT_OPENAI_MODEL?.trim() ||
+      process.env.OPENAI_MODEL?.trim() ||
+      DEFAULT_CHAT_MODEL
+  );
+}
+
+function sanitizeProviderErrorMessage(message: string) {
+  return message
+    .replace(/\borg-[A-Za-z0-9_-]+\b/g, "org-***")
+    .replace(/\bsk-[A-Za-z0-9_-]+\b/g, "sk-***")
+    .trim()
+    .slice(0, 800);
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message.trim()) {
+    return sanitizeProviderErrorMessage(error.message);
+  }
+
+  return "Unknown provider error";
+}
+
+function extractOpenAIResponseText(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  const outputText = (payload as { output_text?: unknown }).output_text;
+  if (typeof outputText === "string") {
+    return outputText;
+  }
+
+  const output = (payload as { output?: unknown }).output;
+  if (Array.isArray(output)) {
+    const chunks: string[] = [];
+
+    for (const item of output) {
+      if (!item || typeof item !== "object") {
+        continue;
+      }
+
+      const content = (item as { content?: unknown }).content;
+      if (!Array.isArray(content)) {
+        continue;
+      }
+
+      for (const part of content) {
+        if (!part || typeof part !== "object") {
+          continue;
+        }
+
+        const text = (part as { text?: unknown }).text;
+        if (typeof text === "string") {
+          chunks.push(text);
+        }
+      }
+    }
+
+    return chunks.join("");
+  }
+
+  return "";
+}
+
+function extractOpenAIErrorMessage({
+  fallbackText,
+  payload,
+  status,
+}: {
+  fallbackText: string;
+  payload: unknown;
+  status: number;
+}) {
+  if (payload && typeof payload === "object") {
+    const error = (payload as { error?: unknown }).error;
+    if (error && typeof error === "object") {
+      const message = (error as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) {
+        return sanitizeProviderErrorMessage(message);
+      }
+    }
+  }
+
+  return sanitizeProviderErrorMessage(
+    fallbackText.trim() || `OpenAI request failed with status ${status}`
+  );
+}
+
+async function generateReusablePromptWithOpenAI({
+  maxOutputTokens,
+  renderedPrompt,
+}: ReusablePromptGenerationInput) {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not configured");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      input: renderedPrompt,
+      instructions: REUSABLE_PROMPT_RUN_SYSTEM_PROMPT,
+      max_output_tokens: maxOutputTokens,
+      model: getReusablePromptOpenAIModelId(),
+    }),
+  });
+  const responseText = await response.text();
+  let payload: unknown = null;
+
+  if (responseText.trim()) {
+    try {
+      payload = JSON.parse(responseText);
+    } catch {
+      payload = null;
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      extractOpenAIErrorMessage({
+        fallbackText: responseText,
+        payload,
+        status: response.status,
+      })
+    );
+  }
+
+  const answer = extractOpenAIResponseText(payload).trim();
+  if (!answer) {
+    throw new Error("OpenAI direct execution returned no text.");
+  }
+
+  return answer;
+}
+
+async function generateReusablePromptWithGateway({
+  maxOutputTokens,
+  renderedPrompt,
+}: ReusablePromptGenerationInput) {
+  const result = await generateText({
+    model: getGatewayLanguageModel(DEFAULT_CHAT_MODEL),
+    system: REUSABLE_PROMPT_RUN_SYSTEM_PROMPT,
+    prompt: renderedPrompt,
+    maxOutputTokens,
+  });
+  const answer = result.text.trim();
+
+  if (!answer) {
+    throw new Error("Vercel Gateway execution returned no text.");
+  }
+
+  return answer;
+}
+
+async function generateReusablePromptAnswer(
+  input: ReusablePromptGenerationInput
+) {
+  let directOpenAIError: string | null = null;
+
+  if (process.env.OPENAI_API_KEY?.trim()) {
+    try {
+      return await generateReusablePromptWithOpenAI(input);
+    } catch (error) {
+      directOpenAIError = getErrorMessage(error);
+    }
+  }
+
+  try {
+    return await generateReusablePromptWithGateway(input);
+  } catch (error) {
+    const gatewayError = getErrorMessage(error);
+
+    if (directOpenAIError) {
+      throw new Error(
+        `Direct OpenAI failed: ${directOpenAIError}; Vercel Gateway fallback failed: ${gatewayError}`
+      );
+    }
+
+    throw new Error(gatewayError);
+  }
+}
 
 function getPromptRunTitle(sourceText: string) {
   const normalized = sourceText.replace(/\s+/g, " ").trim();
@@ -70,126 +366,206 @@ function getPromptRunTitle(sourceText: string) {
   return `Run: ${title}${words.length > 9 ? "..." : ""}`;
 }
 
-function buildRunBody({
-  renderedPrompt,
-  source,
-}: {
-  renderedPrompt: string;
-  source: Pick<ReusablePromptSource, "chat" | "message">;
-}) {
-  return [
-    "Run this reused chat prompt as a private request.",
-    `Source chat: ${source.chat.id}.`,
-    `Source message: ${source.message.id}.`,
-    "",
-    "Rendered prompt:",
-    renderedPrompt,
-    "",
-    "Done means Boreal spends credits only for execution capacity, keeps the public source chat unchanged, and writes new output/proof to this private request thread.",
-  ].join("\n");
-}
-
-function buildRunProvenance({
-  analysis,
-  inputValues,
-  renderedPrompt,
-  source,
-}: {
-  analysis: ReusablePromptAnalysis;
-  inputValues: ReusablePromptInputValues;
-  renderedPrompt: string;
-  source: Pick<ReusablePromptSource, "chat" | "message">;
-}): ReusablePromptRunProvenance {
-  return {
-    profile: REUSABLE_PROMPT_PROFILE,
-    sourceChatId: source.chat.id,
-    sourceMessageId: source.message.id,
-    sourceChatVisibility: source.chat.visibility,
-    templateText: analysis.templateText,
-    inputValues,
-    fieldKeys: analysis.fields.map((field) => field.key),
-    renderedPrompt,
-  };
-}
-
-function buildRunTransactionMetadata({
-  amount,
-  provenance,
-}: {
-  amount: string;
-  provenance: ReusablePromptRunProvenance;
-}): RequestTransactionMetadata {
-  return {
-    profile: REUSABLE_PROMPT_PROFILE,
-    sourceChatId: provenance.sourceChatId,
-    sourceMessageId: provenance.sourceMessageId,
-    sourceChatVisibility: provenance.sourceChatVisibility,
-    templateText: provenance.templateText,
-    inputValues: provenance.inputValues,
-    fieldKeys: provenance.fieldKeys,
-    creditAmountApplied: amount,
-  };
-}
-
-function getReusablePromptConstraint(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+function getReusablePromptSourceData(parts: unknown): ReusablePromptSourceData | null {
+  if (!Array.isArray(parts)) {
     return null;
   }
 
-  const record = value as Record<string, unknown>;
-  const reusablePromptRun = record.reusablePromptRun;
+  const sourcePart = parts.find(
+    (part) =>
+      part &&
+      typeof part === "object" &&
+      (part as { type?: unknown }).type === REUSABLE_PROMPT_SOURCE_PART_TYPE
+  );
+
+  const data = (sourcePart as { data?: unknown } | undefined)?.data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return null;
+  }
+
+  const candidate = data as Partial<ReusablePromptSourceData>;
   if (
-    !reusablePromptRun ||
-    typeof reusablePromptRun !== "object" ||
-    Array.isArray(reusablePromptRun)
+    candidate.profile !== REUSABLE_PROMPT_PROFILE ||
+    typeof candidate.sourceChatId !== "string" ||
+    typeof candidate.sourceMessageId !== "string" ||
+    typeof candidate.runChatId !== "string"
   ) {
     return null;
   }
 
-  return reusablePromptRun as Partial<ReusablePromptRunProvenance>;
-}
-
-function getStoredRunProvenance(
-  value: unknown
-): ReusablePromptRunProvenance | null {
-  const reusablePromptRun = getReusablePromptConstraint(value);
-  if (
-    reusablePromptRun?.profile !== REUSABLE_PROMPT_PROFILE ||
-    typeof reusablePromptRun.sourceChatId !== "string" ||
-    typeof reusablePromptRun.sourceMessageId !== "string" ||
-    typeof reusablePromptRun.templateText !== "string" ||
-    typeof reusablePromptRun.renderedPrompt !== "string" ||
-    !reusablePromptRun.inputValues ||
-    typeof reusablePromptRun.inputValues !== "object" ||
-    Array.isArray(reusablePromptRun.inputValues) ||
-    !Array.isArray(reusablePromptRun.fieldKeys)
-  ) {
-    return null;
-  }
-
-  return reusablePromptRun as ReusablePromptRunProvenance;
+  return candidate as ReusablePromptSourceData;
 }
 
 function assertSameReusablePromptSource({
-  existingConstraints,
+  provenance,
   source,
 }: {
-  existingConstraints: unknown;
+  provenance: ReusablePromptSourceData | null;
   source: Pick<ReusablePromptSource, "chat" | "message">;
 }) {
-  const reusablePromptRun = getReusablePromptConstraint(existingConstraints);
-  if (!reusablePromptRun) {
-    return;
+  if (!provenance) {
+    throw new Error("Idempotency key already used for another chat");
   }
 
   if (
-    reusablePromptRun.sourceChatId !== source.chat.id ||
-    reusablePromptRun.sourceMessageId !== source.message.id
+    provenance.sourceChatId !== source.chat.id ||
+    provenance.sourceMessageId !== source.message.id
   ) {
     throw new Error(
       "Idempotency key already used for another reusable prompt source"
     );
   }
+}
+
+function getExistingReusablePromptSource(
+  messages: Awaited<ReturnType<typeof getMessagesByChatId>>
+) {
+  for (const message of messages) {
+    const sourceData = getReusablePromptSourceData(message.parts);
+    if (sourceData) {
+      return sourceData;
+    }
+  }
+
+  return null;
+}
+
+async function hasSettledTopUp({ actorUserId }: { actorUserId: string }) {
+  const account = await getBuyerCreditAccountByOwnerId({
+    ownerId: actorUserId,
+    currency: "USD",
+  });
+
+  return compareMoneyAmounts(account?.lifetimePurchased ?? "0.00", "0.00") > 0;
+}
+
+async function getReusablePromptRunUsage({
+  actorUserId,
+  windowStartAt,
+}: {
+  actorUserId: string;
+  windowStartAt: Date;
+}): Promise<ReusablePromptRunUsage> {
+  const messages = await getMessagesByUserIdSince({
+    userId: actorUserId,
+    since: windowStartAt,
+  });
+
+  return messages.reduce<ReusablePromptRunUsage>(
+    (usage, message) => {
+      if (message.role !== "user") {
+        return usage;
+      }
+
+      const sourceData = getReusablePromptSourceData(message.parts);
+      if (!sourceData) {
+        return usage;
+      }
+
+      usage.runCount += 1;
+      usage.estimatedRunTokens += Math.max(
+        1,
+        sourceData.estimatedRunTokens ?? sourceData.estimatedInputTokens ?? 1
+      );
+      return usage;
+    },
+    { runCount: 0, estimatedRunTokens: 0 }
+  );
+}
+
+function assertFreeReusablePromptRunAllowed({
+  estimatedInputTokens,
+  estimatedRunTokens,
+  policy,
+  usage,
+  dailyChatLimit,
+  dailyTokenLimit,
+}: {
+  estimatedInputTokens: number;
+  estimatedRunTokens: number;
+  policy: ReusablePromptRunPolicy;
+  usage: ReusablePromptRunUsage;
+  dailyChatLimit: number;
+  dailyTokenLimit: number;
+}) {
+  if (!policy.freeChatsEnabled) {
+    throw new Error("Reusable prompt free chats are disabled");
+  }
+
+  if (estimatedInputTokens > policy.maxInputTokens) {
+    throw new Error("Reusable prompt input token limit exceeded");
+  }
+
+  if (usage.runCount >= dailyChatLimit) {
+    throw new Error("Reusable prompt daily chat limit reached");
+  }
+
+  if (usage.estimatedRunTokens + estimatedRunTokens > dailyTokenLimit) {
+    throw new Error("Reusable prompt daily token limit reached");
+  }
+}
+
+function buildRunProvenance({
+  analysis,
+  actorUserId,
+  estimatedInputTokens,
+  estimatedRunTokens,
+  inputValues,
+  policy,
+  renderedPrompt,
+  runChatId,
+  runUserMessageId,
+  source,
+  topUpEligible,
+  windowStartAt,
+}: {
+  actorUserId: string;
+  analysis: ReusablePromptAnalysis;
+  estimatedInputTokens: number;
+  estimatedRunTokens: number;
+  inputValues: ReusablePromptInputValues;
+  policy: ReusablePromptRunPolicy;
+  renderedPrompt: string;
+  runChatId: string;
+  runUserMessageId: string;
+  source: Pick<ReusablePromptSource, "chat" | "message">;
+  topUpEligible: boolean;
+  windowStartAt: Date;
+}): ReusablePromptSourceData {
+  const dailyChatLimit = topUpEligible
+    ? policy.topUpDailyChatLimit
+    : policy.defaultDailyChatLimit;
+  const dailyTokenLimit = topUpEligible
+    ? policy.topUpDailyTokenLimit
+    : policy.defaultDailyTokenLimit;
+
+  return {
+    profile: REUSABLE_PROMPT_PROFILE,
+    billingMode: "free_chat",
+    sourceChatId: source.chat.id,
+    sourceMessageId: source.message.id,
+    sourceChatVisibility: source.chat.visibility,
+    sourceChatTitle: source.chat.title,
+    sourceUserId: source.chat.userId,
+    forkedByUserId: actorUserId,
+    templateText: analysis.templateText,
+    inputValues,
+    fieldKeys: analysis.fields.map((field) => field.key),
+    renderedPrompt,
+    runChatId,
+    runUserMessageId,
+    forkedAt: new Date().toISOString(),
+    estimatedInputTokens,
+    estimatedRunTokens,
+    freeRunPolicy: {
+      windowStartAt: windowStartAt.toISOString(),
+      dailyChatLimit,
+      dailyTokenLimit,
+      maxInputTokens: policy.maxInputTokens,
+      maxOutputTokens: policy.maxOutputTokens,
+      topUpEligible,
+    },
+  };
 }
 
 export async function assertReusablePromptSource({
@@ -256,15 +632,13 @@ export async function analyzeChatReusablePrompt({
   return analyzeReusablePromptText(source.sourceText);
 }
 
-export async function createReusablePromptRunRequest({
+export async function createReusablePromptRunChat({
   actorUserId,
-  amount,
   chatId,
   idempotencyKey,
   inputValues,
   messageId,
 }: ReusablePromptRunInput) {
-  const normalizedAmount = normalizeMoneyAmount(amount);
   const source = await assertReusablePromptSource({
     chatId,
     messageId,
@@ -276,251 +650,154 @@ export async function createReusablePromptRunRequest({
     inputValues,
     templateText: analysis.templateText,
   });
-  const provenance = buildRunProvenance({
-    analysis,
-    inputValues,
-    renderedPrompt,
-    source,
-  });
+  const existingRunChat = await getChatById({ id: idempotencyKey });
+  const existingRunMessages = existingRunChat
+    ? await getMessagesByChatId({ id: existingRunChat.id })
+    : [];
 
-  const creditSummary = await getBuyerCreditSummary({
-    ownerId: actorUserId,
-    currency: "USD",
-  });
-  const existingLedgerEntry = await getBuyerCreditLedgerEntryByIdempotencyKey({
-    buyerCreditAccountId: creditSummary.account.id,
-    idempotencyKey,
-  });
+  if (existingRunChat) {
+    if (existingRunChat.userId !== actorUserId) {
+      throw new Error("Idempotency key already used for another chat");
+    }
 
-  if (
-    !existingLedgerEntry &&
-    compareMoneyAmounts(
-      creditSummary.account.availableBalance,
-      normalizedAmount
-    ) < 0
-  ) {
-    throw new Error("Insufficient buyer credit");
-  }
-
-  const runRequest = await ensureRequestDraftForChat({
-    chatId: idempotencyKey,
-    userId: actorUserId,
-    visibility: "private",
-  });
-
-  assertSameReusablePromptSource({
-    existingConstraints: runRequest.brief.constraints,
-    source,
-  });
-
-  const storedProvenance = getStoredRunProvenance(runRequest.brief.constraints);
-  if (runRequest.status !== "draft" && !storedProvenance) {
-    throw new Error("Idempotency key already used for another request");
-  }
-
-  const responseProvenance = storedProvenance ?? provenance;
-  const transactionMetadata = buildRunTransactionMetadata({
-    amount: normalizedAmount,
-    provenance: responseProvenance,
-  });
-
-  if (runRequest.status !== "draft") {
-    const creditPayment = await applyBuyerCreditToRequest({
-      requestId: runRequest.id,
-      actorUserId,
-      amount: normalizedAmount,
-      idempotencyKey,
-      metadata: transactionMetadata,
-      source: "api.chats.reusable_prompt.runs.create",
+    const existingProvenance =
+      getExistingReusablePromptSource(existingRunMessages);
+    assertSameReusablePromptSource({
+      provenance: existingProvenance,
+      source,
     });
 
     return {
-      ...creditPayment,
-      chatId: runRequest.chatId,
-      reusablePromptRun: {
-        ...responseProvenance,
-        amount: normalizedAmount,
-        currency: "USD",
-        runRequestId: creditPayment.request.id,
-      },
+      chatId: existingRunChat.id,
+      reusablePromptRun: existingProvenance,
     };
   }
 
-  const patchedRequest = await persistRequestPatch({
-    requestId: runRequest.id,
-    userId: actorUserId,
-    patch: {
-      brief: {
-        title: getPromptRunTitle(source.sourceText),
-        summary:
-          "Credit-metered reuse of a public or owned chat prompt as a private request.",
-        body: buildRunBody({
-          renderedPrompt,
-          source,
-        }),
-        constraints: {
-          executionModes: ["remote_digital"],
-          requiresVerifiedEvidence: false,
-          reusablePromptRun: provenance,
-        },
-        outputKinds: ["draft", "delivery"],
-        tags: [
-          "reusable_prompt_run",
-          "chat_prompt_reuse",
-          "first_party_credit",
-        ],
-      },
-      seeking: {
-        actorKinds: ["agent", "tool"],
-        supplyKinds: ["agent_worker", "provider_capability"],
-        teamMode: "solo_or_team",
-        notes:
-          "Execute the rendered reusable prompt as a private request and attach any answer or proof to this run request.",
-      },
-      budget: {
-        mode: "fixed",
-        currency: "USD",
-        fixedAmount: Number(normalizedAmount),
-        notes:
-          "Paid with first-party Boreal buyer credits for reusable prompt execution.",
-      },
-      deadline: {
-        notes:
-          "Run starts after required reusable inputs validate and credits settle.",
-      },
-      derived: {
-        routeFamily: "direct_tool",
-        executionKind: "provider_api",
-        paymentMode: "fixed_funded_request",
-        matchingMode: "lead_first_then_collaborators",
-        routeSummary:
-          "Execute a reused chat prompt as a private, credit-metered run request while preserving source chat/message provenance.",
-      },
-    },
-  });
-  const openedRequest = await openRequestDraft({
-    requestId: patchedRequest.id,
-    userId: actorUserId,
-  });
-  const creditPayment = await applyBuyerCreditToRequest({
-    requestId: openedRequest.id,
+  const policy = getReusablePromptRunPolicy();
+  const topUpEligible = await hasSettledTopUp({ actorUserId });
+  const dailyChatLimit = topUpEligible
+    ? policy.topUpDailyChatLimit
+    : policy.defaultDailyChatLimit;
+  const dailyTokenLimit = topUpEligible
+    ? policy.topUpDailyTokenLimit
+    : policy.defaultDailyTokenLimit;
+  const windowStartAt = getFreeRunWindowStart();
+  const usage = await getReusablePromptRunUsage({
     actorUserId,
-    amount: normalizedAmount,
-    idempotencyKey,
-    metadata: transactionMetadata,
-    source: "api.chats.reusable_prompt.runs.create",
+    windowStartAt,
+  });
+  const estimatedInputTokens = estimatePromptTokens(renderedPrompt);
+  const estimatedRunTokens = estimatedInputTokens + policy.maxOutputTokens;
+
+  assertFreeReusablePromptRunAllowed({
+    estimatedInputTokens,
+    estimatedRunTokens,
+    policy,
+    usage,
+    dailyChatLimit,
+    dailyTokenLimit,
   });
 
-  return {
-    ...creditPayment,
-    chatId: openedRequest.chatId,
-    reusablePromptRun: {
-      ...provenance,
-      amount: normalizedAmount,
-      currency: "USD",
-      runRequestId: creditPayment.request.id,
-    },
-  };
-}
-
-function getExecutionErrorMessage(error: unknown) {
-  return error instanceof Error && error.message.trim()
-    ? error.message.trim()
-    : "Reusable prompt execution failed.";
-}
-
-export async function executeReusablePromptRunDelivery({
-  actorUserId,
-  idempotencyKey,
-  provenance,
-  requestId,
-}: {
-  actorUserId: string;
-  idempotencyKey: string;
-  provenance: ReusablePromptRunProvenance;
-  requestId: string;
-}) {
-  const source = "system.reusable_prompt.run";
-  const fulfillment = await createFulfillmentForRequestById({
-    requestId,
+  const runChatId = idempotencyKey;
+  const runUserMessageId = generateUUID();
+  const provenance = buildRunProvenance({
     actorUserId,
-    initialStatus: "active",
-    summary: "Reusable prompt execution started.",
-    lead: {
-      kind: "agent",
-      id: "boreal-reusable-prompt-runner",
-      displayName: "Boreal reusable prompt runner",
-    },
-    metadata: {
-      reusablePromptRun: {
-        ...provenance,
-        modelId: DEFAULT_CHAT_MODEL,
-        providerStatus: "starting",
-      },
-    },
-    idempotencyKey: `${idempotencyKey}:fulfillment`,
+    analysis,
+    estimatedInputTokens,
+    estimatedRunTokens,
+    inputValues,
+    policy,
+    renderedPrompt,
+    runChatId,
+    runUserMessageId,
     source,
+    topUpEligible,
+    windowStartAt,
   });
 
-  try {
-    const result = await generateText({
-      model: getLanguageModel(DEFAULT_CHAT_MODEL),
-      system:
-        "You are Boreal's reusable prompt runner. Answer the rendered user prompt directly, without mentioning internal request bookkeeping, credits, or provenance unless the prompt asks for it.",
-      prompt: provenance.renderedPrompt,
-    });
-    const answer = result.text.trim();
+  await saveChat({
+    id: runChatId,
+    userId: actorUserId,
+    title: getPromptRunTitle(source.sourceText),
+    visibility: "private",
+  });
 
-    if (!answer) {
-      throw new Error("Reusable prompt execution returned no text.");
-    }
-
-    const artifact = await publishArtifactForRequestById({
-      requestId,
-      actorUserId,
-      artifactKind: "delivery",
-      documentKind: "text",
-      title: "Reusable prompt answer",
-      summary: "Generated answer for the reused chat prompt.",
-      content: answer,
-      fulfillmentId: fulfillment.id,
-      idempotencyKey: `${idempotencyKey}:artifact`,
-      source,
-    });
-
-    return updateFulfillmentForRequestById({
-      fulfillmentId: fulfillment.id,
-      actorUserId,
-      status: "delivered",
-      summary: "Reusable prompt answer delivered.",
-      artifactIds: [artifact.artifactId],
-      metadata: {
-        reusablePromptRun: {
-          ...provenance,
-          modelId: DEFAULT_CHAT_MODEL,
-          providerStatus: "completed",
-          artifactId: artifact.artifactId,
-        },
+  await saveMessages({
+    messages: [
+      {
+        id: runUserMessageId,
+        chatId: runChatId,
+        role: "user",
+        parts: [
+          {
+            type: REUSABLE_PROMPT_SOURCE_PART_TYPE,
+            data: provenance,
+          },
+          {
+            type: "text",
+            text: renderedPrompt,
+          },
+        ],
+        attachments: [],
+        createdAt: new Date(),
       },
-      idempotencyKey: `${idempotencyKey}:delivered`,
-      source,
+    ],
+  });
+
+  let runAssistantMessageId: string | null = null;
+  try {
+    const answer = await generateReusablePromptAnswer({
+      maxOutputTokens: policy.maxOutputTokens,
+      renderedPrompt,
+    });
+
+    runAssistantMessageId = generateUUID();
+    await saveMessages({
+      messages: [
+        {
+          id: runAssistantMessageId,
+          chatId: runChatId,
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: answer,
+            },
+          ],
+          attachments: [],
+          createdAt: new Date(),
+        },
+      ],
     });
   } catch (error) {
-    return updateFulfillmentForRequestById({
-      fulfillmentId: fulfillment.id,
-      actorUserId,
-      status: "blocked",
-      summary: `Reusable prompt execution paused: ${getExecutionErrorMessage(error)}`,
-      metadata: {
-        reusablePromptRun: {
-          ...provenance,
-          modelId: DEFAULT_CHAT_MODEL,
-          providerStatus: "blocked",
-          errorMessage: getExecutionErrorMessage(error),
+    runAssistantMessageId = generateUUID();
+    await saveMessages({
+      messages: [
+        {
+          id: runAssistantMessageId,
+          chatId: runChatId,
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text:
+                error instanceof Error && error.message.trim()
+                  ? `Reusable prompt run could not complete: ${error.message.trim()}`
+                  : "Reusable prompt run could not complete.",
+            },
+          ],
+          attachments: [],
+          createdAt: new Date(),
         },
-      },
-      idempotencyKey: `${idempotencyKey}:blocked`,
-      source,
+      ],
     });
   }
+
+  return {
+    chatId: runChatId,
+    reusablePromptRun: {
+      ...provenance,
+      runAssistantMessageId,
+    },
+  };
 }

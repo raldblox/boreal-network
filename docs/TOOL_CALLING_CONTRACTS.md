@@ -1,4 +1,4 @@
-# Tool Calling Contracts
+﻿# Tool Calling Contracts
 
 This file defines Boreal's internal planner, matcher, policy, and mutation tool boundaries.
 
@@ -14,8 +14,9 @@ Optional prompt-assist profiles may rewrite or expand the latest user ask epheme
 
 Reusable prompt analysis is a read-only extraction surface.
 It may detect fields in a public or owned scratch-chat user message, but it must not mutate chat, request, credit, transaction, artifact, or event truth.
-Reusable prompt execution is a mutation surface: it must validate required inputs first, create or reuse one private `Request`, then debit credits through request-attached transaction truth.
-It must not mutate the public source chat or treat the reusable prompt as a new root object.
+Reusable prompt execution is a chat mutation surface in V1: it must validate required inputs first, create or reuse one private scratch chat, store source provenance on the forked user message, and run the filled prompt without debiting credits.
+It must not mutate the public source chat, create a durable `Request`, write `Transaction` truth, or treat the reusable prompt as a new root object.
+Daily fork quotas and token ceilings must be server-side and environment-controlled, with the default free-chat allowance increasing from `10` to `20` per UTC day when the signed-in user has settled any buyer-credit top-up.
 
 Runtime model routing, provider retry, and model fallback must reuse the same active tool allowlist, tool-choice policy, and mutation-tool schemas as the originally selected chat route. Fallback is capacity management, not a separate planner or policy lane.
 

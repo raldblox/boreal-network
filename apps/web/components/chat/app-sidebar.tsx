@@ -9,6 +9,7 @@ import {
   MessageSquareIcon,
   PackageIcon,
   PanelLeftIcon,
+  PlusIcon,
   StoreIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -37,6 +38,12 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { guestRegex } from "@/lib/constants";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
@@ -45,6 +52,10 @@ const EXPLORE_HREFS = new Set([
   "/services",
   "/open-requests",
   "/supplies",
+]);
+
+const NEW_HREFS = new Set([
+  "/?mode=request",
   "/supplies/new",
   "/supplies/new?entry=whitelist",
 ]);
@@ -77,10 +88,17 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     pathname === "/supplies/new" && searchParams.get("entry") === "whitelist";
   const isNewSupplyMode = pathname === "/supplies/new";
   const isBorealWorkActive =
-    isHomeMode || isServicesView || isSuppliesView || isOpenRequestsView;
+    isHomeMode ||
+    isServicesView ||
+    (isSuppliesView && !isNewSupplyMode) ||
+    isOpenRequestsView;
+  const isNewAreaActive = isNewRequestMode || isNewSupplyMode;
   const isExploreNavActive = optimisticHref
     ? EXPLORE_HREFS.has(optimisticHref)
     : isBorealWorkActive;
+  const isNewNavActive = optimisticHref
+    ? NEW_HREFS.has(optimisticHref)
+    : isNewAreaActive;
 
   const routeArrived = useCallback(
     (href: string) => {
@@ -134,6 +152,9 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     optimisticHref === href && !routeArrived(href);
   const isExplorePending =
     Boolean(optimisticHref && EXPLORE_HREFS.has(optimisticHref)) &&
+    !routeArrived(optimisticHref ?? "");
+  const isNewPending =
+    Boolean(optimisticHref && NEW_HREFS.has(optimisticHref)) &&
     !routeArrived(optimisticHref ?? "");
 
   useEffect(() => {
@@ -301,16 +322,49 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                  isActive={isNavActive("/?mode=request", isNewRequestMode)}
-                  onClick={() => navigateSidebar("/?mode=request")}
-                  tooltip="New request"
-                >
-                  <FilePenLineIcon className="size-4" />
-                  <span className="font-medium">Request</span>
-                  <SidebarNavPendingDot visible={isNavPending("/?mode=request")} />
-                </SidebarMenuButton>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                      className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                      isActive={isNewNavActive}
+                      tooltip="New"
+                    >
+                      <PlusIcon className="size-4" />
+                      <span className="font-medium">New</span>
+                      <SidebarNavPendingDot visible={isNewPending} />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-52 rounded-2xl border-sidebar-border bg-sidebar p-1 text-sidebar-foreground shadow-[var(--shadow-float)]"
+                    side="right"
+                    sideOffset={8}
+                  >
+                    <SidebarNewMenuItem
+                      icon={<MessageSquareIcon className="size-4" />}
+                      label="Chat"
+                      onSelect={() => navigateSidebar("/?mode=chat")}
+                    />
+                    <SidebarNewMenuItem
+                      icon={<FilePenLineIcon className="size-4" />}
+                      label="Request"
+                      onSelect={() => navigateSidebar("/?mode=request")}
+                    />
+                    <SidebarNewMenuItem
+                      icon={<PackageIcon className="size-4" />}
+                      label={
+                        isRegularUser ? "Supply" : "Join supply whitelist"
+                      }
+                      onSelect={() =>
+                        navigateSidebar(
+                          isRegularUser
+                            ? "/supplies/new"
+                            : "/supplies/new?entry=whitelist"
+                        )
+                      }
+                    />
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </SidebarMenuItem>
 
               <SidebarMenuItem>
@@ -339,6 +393,28 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+  );
+}
+
+function SidebarNewMenuItem({
+  icon,
+  label,
+  onSelect,
+}: {
+  icon: ReactNode;
+  label: string;
+  onSelect: () => void;
+}) {
+  return (
+    <DropdownMenuItem
+      className="flex cursor-pointer items-center gap-2 rounded-xl px-2.5 py-2 text-[12px] text-sidebar-foreground/75 focus:bg-sidebar-accent/38 focus:text-sidebar-foreground"
+      onSelect={onSelect}
+    >
+      <span className="flex size-4 shrink-0 items-center justify-center text-sidebar-foreground/55">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+    </DropdownMenuItem>
   );
 }
 

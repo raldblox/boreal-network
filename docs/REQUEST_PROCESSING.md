@@ -1,4 +1,4 @@
-# Request Processing
+﻿# Request Processing
 
 This file defines Boreal's canonical request-processing flow before durable mutations are committed.
 
@@ -282,12 +282,16 @@ It should not claim active fulfillment until a worker, provider, or human review
 
 If a later user wants a private adaptation, implementation, or follow-up, create a new `Request` that references the accepted artifact.
 
-Reusable public scratch-chat prompts follow the same inspection-versus-execution rule.
+Reusable public scratch-chat prompts are a chat-interface reuse lane, not the same thing as public solution reruns.
 Analyzing a public or owned scratch-chat user text message for variables is read-only, free, and non-durable.
-Running that prompt is execution: the run must validate required variables first, then create or reuse one private run `Request`, attach `reusablePromptRun` provenance under the run request constraints, and debit credits through request-attached `Transaction` truth.
+Running that prompt must validate required variables first, then create or reuse one private scratch chat with the filled prompt and an explicit provenance part linking the fork back to the original source chat, source message, source user, template text, and inputs.
+It must not create a durable `Request`, debit credits, or write request-attached `Transaction` truth in V1.
+Reusable prompt chat forks are free for all signed-in users, but server policy must enforce daily abuse limits.
+The default quota is `10` reusable chat forks per UTC day, increased to `20` per UTC day for users with any settled buyer-credit top-up history.
+Token ceilings for filled prompts and daily run capacity must stay environment-controlled.
 The public source chat and source message must remain unchanged.
 V1 deterministic analysis may detect bracketed examples and explicit placeholders such as `[20/05/1996]`, `{date_of_birth}`, or `{{date_of_birth}}`, but it must not reuse assistant answers or publish a public solution artifact automatically.
-The first run implementation may start a private fulfillment lane after credits settle and publish the generated answer as a run-request `Artifact`; if the configured model route is unavailable, the fulfillment should become `blocked` rather than pretending the answer was delivered.
+The first run implementation may generate an assistant reply inside the private forked chat; if the configured model route is unavailable, the forked chat should preserve the filled user prompt and show the failure in chat instead of inventing request fulfillment truth.
 
 ## Visibility Rule
 

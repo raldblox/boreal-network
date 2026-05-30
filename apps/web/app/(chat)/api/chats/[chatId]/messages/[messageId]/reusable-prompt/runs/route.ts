@@ -1,14 +1,9 @@
 import { z } from "zod";
-import { after } from "next/server";
 import { ChatbotError } from "@/lib/errors";
 import { getRequestActorContext } from "@/lib/resolver-session";
-import {
-  createReusablePromptRunRequest,
-  executeReusablePromptRunDelivery,
-} from "@/lib/reusable-prompts-server";
+import { createReusablePromptRunChat } from "@/lib/reusable-prompts-server";
 
 const reusablePromptRunSchema = z.object({
-  amount: z.union([z.string().min(1), z.number().positive()]),
   idempotencyKey: z.string().uuid().nullable().optional(),
   inputValues: z.record(z.string()).default({}),
 });
@@ -61,24 +56,17 @@ function reusablePromptRunErrorResponse(error: unknown) {
   if (
     error instanceof Error &&
     [
-      "Buyer credit account is not active",
-      "Buyer credit account not found",
-      "Buyer credit application is missing transaction truth",
-      "Buyer credit application is still settling",
-      "Idempotency key already used for another amount",
-      "Idempotency key already used for another request",
+      "Idempotency key already used for another chat",
       "Idempotency key already used for another reusable prompt source",
       "Idempotency-Key header and body idempotencyKey must match.",
       "Idempotency-Key is required for reusable prompt runs.",
       "Idempotency-Key must be a UUID.",
-      "Insufficient buyer credit",
-      "Money amount must be a positive decimal with two cents.",
-      "Money amount must be greater than zero.",
-      "Only draft requests can be opened",
       "Only user text messages can be reused",
-      "Request not found",
-      "Request not ready to open",
       "Reusable prompt message has no text",
+      "Reusable prompt daily chat limit reached",
+      "Reusable prompt daily token limit reached",
+      "Reusable prompt free chats are disabled",
+      "Reusable prompt input token limit exceeded",
       "Reusable prompt only supports scratch chat messages in V1",
     ].includes(error.message)
   ) {
@@ -123,25 +111,12 @@ export async function POST(
       request,
     });
     const { chatId, messageId } = await context.params;
-    const result = await createReusablePromptRunRequest({
+    const result = await createReusablePromptRunChat({
       actorUserId: actor.userId,
-      amount: body.amount,
       chatId,
       idempotencyKey,
       inputValues: body.inputValues,
       messageId,
-    });
-    after(async () => {
-      try {
-        await executeReusablePromptRunDelivery({
-          actorUserId: actor.userId,
-          idempotencyKey,
-          provenance: result.reusablePromptRun,
-          requestId: result.request.id,
-        });
-      } catch {
-        return;
-      }
     });
 
     return Response.json(result, { status: 200 });

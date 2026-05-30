@@ -1,6 +1,6 @@
 {
   "scenarioId": "public-chat-prompt-reuse-v0",
-  "description": "A public scratch-chat user prompt can be inspected for free and run as one private request-backed, credit-metered reusable prompt execution.",
+  "description": "A public scratch-chat user prompt can be inspected for free and run as one private chat fork with source provenance, without creating a Request or debiting credits.",
   "sourceChat": {
     "id": "11111111-1111-4111-8111-111111111111",
     "visibility": "public",
@@ -29,123 +29,72 @@
     ],
     "warnings": []
   },
-  "runRequest": {
+  "runChat": {
+    "id": "55555555-5555-4555-8555-555555555555",
+    "visibility": "private",
+    "userId": "66666666-6666-4666-8666-666666666666",
+    "title": "Run: My date of birth is [20/05/1996]. Using global events,...",
+    "requestCreated": false
+  },
+  "runUserMessage": {
     "id": "44444444-4444-4444-8444-444444444444",
     "chatId": "55555555-5555-4555-8555-555555555555",
-    "status": "delivered",
-    "visibility": "private",
-    "ownerId": "66666666-6666-4666-8666-666666666666",
-    "brief": {
-      "title": "Run: My date of birth is [20/05/1996]. Using global events,...",
-      "summary": "Credit-metered reuse of a public or owned chat prompt as a private request.",
-      "constraints": {
-        "executionModes": [
-          "remote_digital"
-        ],
-        "requiresVerifiedEvidence": false,
-        "reusablePromptRun": {
-          "profile": "public_chat_prompt_reuse_v0",
-          "sourceChatId": "11111111-1111-4111-8111-111111111111",
-          "sourceMessageId": "33333333-3333-4333-8333-333333333333",
-          "sourceChatVisibility": "public",
-          "templateText": "My date of birth is {{date_of_birth}}. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period.",
-          "inputValues": {
-            "date_of_birth": "01/01/2001"
-          },
-          "fieldKeys": [
-            "date_of_birth"
-          ],
-          "renderedPrompt": "My date of birth is 01/01/2001. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period."
-        }
-      },
-      "tags": [
-        "reusable_prompt_run",
-        "chat_prompt_reuse",
-        "first_party_credit"
-      ]
-    },
-    "activeRefs": {
-      "activeFulfillmentId": "99999999-9999-4999-8999-999999999999",
-      "latestArtifactId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      "latestTransactionId": "77777777-7777-4777-8777-777777777777"
-    }
-  },
-  "fulfillment": {
-    "id": "99999999-9999-4999-8999-999999999999",
-    "requestId": "44444444-4444-4444-8444-444444444444",
-    "status": "delivered",
-    "lead": {
-      "kind": "agent",
-      "id": "boreal-reusable-prompt-runner",
-      "displayName": "Boreal reusable prompt runner"
-    },
-    "summary": "Reusable prompt answer delivered.",
-    "artifactIds": [
-      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
-    ],
-    "metadata": {
-      "reusablePromptRun": {
-        "profile": "public_chat_prompt_reuse_v0",
-        "sourceChatId": "11111111-1111-4111-8111-111111111111",
-        "sourceMessageId": "33333333-3333-4333-8333-333333333333",
-        "providerStatus": "completed",
-        "artifactId": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
-      }
-    }
-  },
-  "deliveryArtifact": {
-    "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    "requestId": "44444444-4444-4444-8444-444444444444",
-    "fulfillmentId": "99999999-9999-4999-8999-999999999999",
-    "kind": "delivery",
-    "title": "Reusable prompt answer",
-    "summary": "Generated answer for the reused chat prompt.",
-    "container": {
-      "kind": "document",
-      "documentId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-      "documentKind": "text"
-    }
-  },
-  "transaction": {
-    "id": "77777777-7777-4777-8777-777777777777",
-    "requestId": "44444444-4444-4444-8444-444444444444",
-    "kind": "settlement",
-    "status": "settled",
-    "currency": "USD",
-    "amount": "0.05",
-    "metadata": {
+    "role": "user",
+    "text": "My date of birth is 01/01/2001. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period.",
+    "provenance": {
       "profile": "public_chat_prompt_reuse_v0",
-      "fundingSource": "buyer_credit",
-      "creditLedgerEntryId": "88888888-8888-4888-8888-888888888888",
-      "creditAmountApplied": "0.05",
+      "billingMode": "free_chat",
       "sourceChatId": "11111111-1111-4111-8111-111111111111",
       "sourceMessageId": "33333333-3333-4333-8333-333333333333",
+      "sourceChatVisibility": "public",
+      "sourceChatTitle": "Generational prompt examples",
+      "sourceUserId": "22222222-2222-4222-8222-222222222222",
+      "forkedByUserId": "66666666-6666-4666-8666-666666666666",
       "templateText": "My date of birth is {{date_of_birth}}. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period.",
       "inputValues": {
         "date_of_birth": "01/01/2001"
       },
       "fieldKeys": [
         "date_of_birth"
-      ]
+      ],
+      "renderedPrompt": "My date of birth is 01/01/2001. Using global events, cultural changes, and generational psychology, describe the most common childhood experiences of people born during this period.",
+      "runChatId": "55555555-5555-4555-8555-555555555555",
+      "runUserMessageId": "44444444-4444-4444-8444-444444444444",
+      "runAssistantMessageId": "99999999-9999-4999-8999-999999999999",
+      "forkedAt": "2026-05-30T00:00:00.000Z",
+      "estimatedInputTokens": 43,
+      "estimatedRunTokens": 1243,
+      "freeRunPolicy": {
+        "windowStartAt": "2026-05-30T00:00:00.000Z",
+        "dailyChatLimit": 10,
+        "dailyTokenLimit": 20000,
+        "maxInputTokens": 4000,
+        "maxOutputTokens": 1200,
+        "topUpEligible": false
+      }
     }
   },
-  "ledgerEntry": {
-    "id": "88888888-8888-4888-8888-888888888888",
-    "kind": "debit",
-    "status": "settled",
-    "amount": "0.05",
-    "currency": "USD",
-    "requestId": "44444444-4444-4444-8444-444444444444",
-    "transactionId": "77777777-7777-4777-8777-777777777777",
-    "idempotencyKey": "55555555-5555-4555-8555-555555555555",
-    "metadata": {
-      "profile": "public_chat_prompt_reuse_v0",
-      "fundingSource": "buyer_credit",
-      "creditAmountApplied": "0.05",
-      "sourceChatId": "11111111-1111-4111-8111-111111111111",
-      "sourceMessageId": "33333333-3333-4333-8333-333333333333"
-    }
+  "runAssistantMessage": {
+    "id": "99999999-9999-4999-8999-999999999999",
+    "chatId": "55555555-5555-4555-8555-555555555555",
+    "role": "assistant",
+    "text": "Generated answer for the filled reusable prompt."
   },
+  "quota": {
+    "costLabel": "FREE",
+    "amount": "0.00",
+    "defaultDailyChatLimit": 10,
+    "topUpDailyChatLimit": 20,
+    "freeRunsEnabledEnv": "BOREAL_REUSABLE_PROMPT_FREE_RUNS_ENABLED",
+    "dailyChatLimitEnv": "BOREAL_REUSABLE_PROMPT_FREE_DAILY_CHAT_LIMIT",
+    "topUpDailyChatLimitEnv": "BOREAL_REUSABLE_PROMPT_TOPUP_DAILY_CHAT_LIMIT",
+    "dailyTokenLimitEnv": "BOREAL_REUSABLE_PROMPT_FREE_DAILY_TOKEN_LIMIT",
+    "topUpDailyTokenLimitEnv": "BOREAL_REUSABLE_PROMPT_TOPUP_DAILY_TOKEN_LIMIT",
+    "maxInputTokensEnv": "BOREAL_REUSABLE_PROMPT_FREE_MAX_INPUT_TOKENS",
+    "maxOutputTokensEnv": "BOREAL_REUSABLE_PROMPT_FREE_MAX_OUTPUT_TOKENS"
+  },
+  "transaction": null,
+  "ledgerEntry": null,
   "negativeCases": {
     "privateChatReadByNonOwner": {
       "expectedStatus": 403,
@@ -158,21 +107,33 @@
     "missingRequiredVariable": {
       "expectedStatus": 400,
       "inputValues": {},
+      "chatCreated": false,
       "debitCreated": false
+    },
+    "dailyChatLimitReached": {
+      "expectedStatus": 400,
+      "chatCreated": false
+    },
+    "dailyTokenLimitReached": {
+      "expectedStatus": 400,
+      "chatCreated": false
     }
   },
   "idempotency": {
     "key": "55555555-5555-4555-8555-555555555555",
-    "sameKeyReturnsRunRequestId": "44444444-4444-4444-8444-444444444444",
-    "sameKeyLedgerEntryId": "88888888-8888-4888-8888-888888888888"
+    "sameKeyReturnsRunChatId": "55555555-5555-4555-8555-555555555555",
+    "sameKeyDoesNotCreateDuplicateChat": true
   },
   "invariants": [
     "analysis is free and read-only",
     "sourceChat remains public and unchanged",
     "sourceMessage remains unchanged",
-    "runRequest is private and distinct from sourceChat",
-    "runRequest constraints include source chat id, source message id, template, and input values",
-    "transaction attaches to the private runRequest",
-    "ledgerEntry attaches to the private runRequest and transaction"
+    "runChat is private and distinct from sourceChat",
+    "runChat is not backed by a Request",
+    "runUserMessage contains the filled prompt",
+    "runUserMessage provenance links source chat id, source message id, source user id, template, input values, and run chat id",
+    "runAssistantMessage belongs to the forked private chat",
+    "transaction remains null",
+    "ledgerEntry remains null"
   ]
 }

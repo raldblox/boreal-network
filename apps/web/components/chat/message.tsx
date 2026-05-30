@@ -120,6 +120,27 @@ const PurePreviewMessage = ({
       return null;
     }
 
+    if (type === "data-reusablePromptSource") {
+      const sourceTitle = part.data.sourceChatTitle?.trim() || "source prompt";
+      return (
+        <div
+          className="w-fit max-w-[min(80%,56ch)] rounded-xl border border-border/40 bg-muted/30 px-3 py-2 text-muted-foreground text-xs"
+          key={key}
+        >
+          Forked from{" "}
+          <a
+            className="font-medium text-foreground underline"
+            href={`/chat/${part.data.sourceChatId}`}
+          >
+            {sourceTitle}
+          </a>
+          <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-emerald-700 dark:text-emerald-300">
+            Free run
+          </span>
+        </div>
+      );
+    }
+
     if (type === "text") {
       return (
         <MessageContent
