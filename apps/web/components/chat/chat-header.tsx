@@ -12,6 +12,7 @@ function PureChatHeader({
   selectedVisibilityType,
   isReadonly,
   isRequestMode,
+  isNewMode,
   requestStatus,
 }: {
   chatId: string;
@@ -20,6 +21,7 @@ function PureChatHeader({
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   isRequestMode: boolean;
+  isNewMode?: boolean;
   requestStatus?: RequestStatus | null;
 }) {
   return (
@@ -35,7 +37,9 @@ function PureChatHeader({
       }
       title={
         requestTitle?.trim() ||
-        (requestStatus === "draft"
+        (isNewMode
+          ? "New"
+          : requestStatus === "draft"
           ? "Request Preflight"
           : isRequestMode
             ? "Request Preflight"
@@ -53,6 +57,7 @@ export const ChatHeader = memo(PureChatHeader, (prevProps, nextProps) => {
     prevProps.selectedVisibilityType === nextProps.selectedVisibilityType &&
     prevProps.isReadonly === nextProps.isReadonly &&
     prevProps.isRequestMode === nextProps.isRequestMode &&
+    prevProps.isNewMode === nextProps.isNewMode &&
     prevProps.requestStatus === nextProps.requestStatus
   );
 });

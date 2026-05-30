@@ -3,7 +3,6 @@
 import {
   ChevronDownIcon,
   CompassIcon,
-  FilePenLineIcon,
   HomeIcon,
   ListChecksIcon,
   MessageSquareIcon,
@@ -38,12 +37,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { guestRegex } from "@/lib/constants";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
@@ -55,6 +48,7 @@ const EXPLORE_HREFS = new Set([
 ]);
 
 const NEW_HREFS = new Set([
+  "/?mode=new",
   "/?mode=request",
   "/supplies/new",
   "/supplies/new?entry=whitelist",
@@ -74,6 +68,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const canShowHistory = hasUser;
   const isRootView = pathname === "/";
   const isHomeMode = isRootView && !searchParams.get("mode");
+  const isNewPageMode = isRootView && searchParams.get("mode") === "new";
   const isChatMode = isRootView && searchParams.get("mode") === "chat";
   const isChatsArea = isChatMode || pathname.startsWith("/chat/");
   const isSuppliesView =
@@ -92,7 +87,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     isServicesView ||
     (isSuppliesView && !isNewSupplyMode) ||
     isOpenRequestsView;
-  const isNewAreaActive = isNewRequestMode || isNewSupplyMode;
+  const isNewAreaActive = isNewPageMode || isNewRequestMode || isNewSupplyMode;
   const isExploreNavActive = optimisticHref
     ? EXPLORE_HREFS.has(optimisticHref)
     : isBorealWorkActive;
@@ -105,6 +100,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       switch (href) {
         case "/":
           return isHomeMode;
+        case "/?mode=new":
+          return isNewPageMode;
         case "/?mode=chat":
           return isChatMode;
         case "/?mode=request":
@@ -125,6 +122,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     },
     [
       isHomeMode,
+      isNewPageMode,
       isChatMode,
       isNewRequestMode,
       isOpenRequestsView,
@@ -308,63 +306,23 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         }
                       />
                     ) : null}
-                    {isRegularUser ? (
-                      <ExploreChildButton
-                        icon={<PackageIcon className="size-3.5" />}
-                        isActive={isNavActive("/supplies/new", isNewSupplyMode)}
-                        isPending={isNavPending("/supplies/new")}
-                        label="New supply"
-                        onClick={() => navigateSidebar("/supplies/new")}
-                      />
-                    ) : null}
                   </div>
                 </div>
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton
-                      className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                      isActive={isNewNavActive}
-                      tooltip="New"
-                    >
-                      <PlusIcon className="size-4" />
-                      <span className="font-medium">New</span>
-                      <SidebarNavPendingDot visible={isNewPending} />
-                    </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    className="w-52 rounded-2xl border-sidebar-border bg-sidebar p-1 text-sidebar-foreground shadow-[var(--shadow-float)]"
-                    side="right"
-                    sideOffset={8}
-                  >
-                    <SidebarNewMenuItem
-                      icon={<MessageSquareIcon className="size-4" />}
-                      label="Chat"
-                      onSelect={() => navigateSidebar("/?mode=chat")}
-                    />
-                    <SidebarNewMenuItem
-                      icon={<FilePenLineIcon className="size-4" />}
-                      label="Request"
-                      onSelect={() => navigateSidebar("/?mode=request")}
-                    />
-                    <SidebarNewMenuItem
-                      icon={<PackageIcon className="size-4" />}
-                      label={
-                        isRegularUser ? "Supply" : "Join supply whitelist"
-                      }
-                      onSelect={() =>
-                        navigateSidebar(
-                          isRegularUser
-                            ? "/supplies/new"
-                            : "/supplies/new?entry=whitelist"
-                        )
-                      }
-                    />
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <SidebarMenuButton
+                  className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                  isActive={isNewNavActive}
+                  onClick={() => navigateSidebar("/?mode=new")}
+                  tooltip="New"
+                >
+                  <PlusIcon className="size-4" />
+                  <span className="font-medium">New</span>
+                  <SidebarNavPendingDot
+                    visible={isNewPending || isNavPending("/?mode=new")}
+                  />
+                </SidebarMenuButton>
               </SidebarMenuItem>
 
               <SidebarMenuItem>
@@ -372,7 +330,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
                   isActive={isNavActive("/?mode=chat", isChatsArea)}
                   onClick={() => navigateSidebar("/?mode=chat")}
-                  tooltip="New chat"
+                  tooltip="Chats"
                 >
                   <MessageSquareIcon className="size-4" />
                   <span className="font-medium">Chats</span>
@@ -393,28 +351,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  );
-}
-
-function SidebarNewMenuItem({
-  icon,
-  label,
-  onSelect,
-}: {
-  icon: ReactNode;
-  label: string;
-  onSelect: () => void;
-}) {
-  return (
-    <DropdownMenuItem
-      className="flex cursor-pointer items-center gap-2 rounded-xl px-2.5 py-2 text-[12px] text-sidebar-foreground/75 focus:bg-sidebar-accent/38 focus:text-sidebar-foreground"
-      onSelect={onSelect}
-    >
-      <span className="flex size-4 shrink-0 items-center justify-center text-sidebar-foreground/55">
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-    </DropdownMenuItem>
   );
 }
 

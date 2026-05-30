@@ -273,7 +273,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
 
   const chatIdFromUrl = extractChatId(pathname);
   const isNewChat = !chatIdFromUrl;
-  const requestModeFromUrl = searchParams.get("mode") === "request";
+  const modeFromUrl = searchParams.get("mode");
+  const newTypeFromUrl = searchParams.get("type");
+  const requestModeFromUrl =
+    modeFromUrl === "request" ||
+    (modeFromUrl === "new" && newTypeFromUrl === "request");
   const preferredSupplyIdFromUrl = searchParams.get("preferredSupplyId");
   const newChatIdRef = useRef(generateUUID());
   const prevPathnameRef = useRef(pathname);

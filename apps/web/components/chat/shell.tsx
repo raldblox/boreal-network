@@ -129,6 +129,7 @@ export function ChatShell() {
   const serviceFamilyKeyFromUrl = searchParams.get("serviceFamilyKey");
   const servicePlanKeyFromUrl = searchParams.get("servicePlanKey");
   const referenceRequestIdFromUrl = searchParams.get("referenceRequestId");
+  const isNewPage = searchParams.get("mode") === "new";
 
   const stopRef = useRef(stop);
   stopRef.current = stop;
@@ -456,6 +457,7 @@ export function ChatShell() {
         >
           <ChatHeader
             chatId={chatId}
+            isNewMode={isNewPage}
             isReadonly={isReadonly}
             isRequestMode={isRequestMode}
             requestId={activeRequest?.id ?? null}
@@ -501,18 +503,20 @@ export function ChatShell() {
               </div>
             ) : (
               <>
-                <RequestBriefingPanel
-                  isLoading={isLoading}
-                  isReadonly={isReadonly}
-                  isRequestMode={isRequestMode}
-                  isStartingRequest={isStartingRequest}
-                  onSaveDraft={saveRequestDraft}
-                  onSetRequestPromptOptimizerEnabled={
-                    setRequestPromptOptimizerEnabled
-                  }
-                  request={activeRequest}
-                  requestPromptOptimizerEnabled={requestPromptOptimizerEnabled}
-                />
+                {activeRequest || !isNewPage ? (
+                  <RequestBriefingPanel
+                    isLoading={isLoading}
+                    isReadonly={isReadonly}
+                    isRequestMode={isRequestMode}
+                    isStartingRequest={isStartingRequest}
+                    onSaveDraft={saveRequestDraft}
+                    onSetRequestPromptOptimizerEnabled={
+                      setRequestPromptOptimizerEnabled
+                    }
+                    request={activeRequest}
+                    requestPromptOptimizerEnabled={requestPromptOptimizerEnabled}
+                  />
+                ) : null}
 
                 <Messages
                   addToolApprovalResponse={addToolApprovalResponse}

@@ -8,12 +8,15 @@ import {
   ArrowUpRightIcon,
   BrainIcon,
   EyeIcon,
+  FilePenLineIcon,
   LaptopMinimalIcon,
   Link2Icon,
   LoaderCircleIcon,
+  MessageSquareIcon,
+  PackageIcon,
   WrenchIcon,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   type ChangeEvent,
@@ -79,6 +82,12 @@ import {
   PromptInputTools,
 } from "../ai-elements/prompt-input";
 import { Button } from "../ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -282,6 +291,8 @@ function PureMultimodalInput({
   onCreateRequest: () => Promise<BorealRequestDraft | null>;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { setTheme, resolvedTheme } = useTheme();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -393,6 +404,8 @@ function PureMultimodalInput({
   const [slashIndex, setSlashIndex] = useState(0);
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isOpenedRequest = Boolean(activeRequest && activeRequest.status !== "draft");
+  const isNewPage = pathname === "/" && searchParams.get("mode") === "new";
+  const showNewModeControls = isNewPage && !activeRequest && !editingMessage;
   const showSubmitPending = isSubmitPending && status === "ready";
   const pinnedWorkerPromptPlaceholder = getPinnedWorkerPromptPlaceholder(
     activeRequest,
@@ -820,6 +833,9 @@ function PureMultimodalInput({
               selectedModelId={selectedModelId}
               status={status}
             />
+            {showNewModeControls ? (
+              <NewModeControls isRequestMode={isRequestMode} />
+            ) : null}
             <ModelSelectorCompact
               activeRequest={activeRequest}
               onModelChange={onModelChange}
@@ -903,6 +919,85 @@ export const MultimodalInput = memo(
     return true;
   }
 );
+
+function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
+  const router = useRouter();
+
+  const setMode = useCallback(
+    (nextMode: "chat" | "request") => {
+      router.replace(`/?mode=new&type=${nextMode}`, { scroll: false });
+    },
+    [router]
+  );
+
+  return (
+    <div
+      aria-label="New mode"
+      className="flex items-center gap-1 rounded-xl border border-border/40 bg-muted/30 p-0.5"
+      role="group"
+    >
+      <button
+        aria-pressed={!isRequestMode}
+        className={cn(
+          "inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] transition-colors",
+          !isRequestMode
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+        onClick={() => setMode("chat")}
+        type="button"
+      >
+        <MessageSquareIcon className="size-3.5" />
+        Chat
+      </button>
+      <button
+        aria-pressed={isRequestMode}
+        className={cn(
+          "inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] transition-colors",
+          isRequestMode
+            ? "bg-background text-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground"
+        )}
+        onClick={() => setMode("request")}
+        type="button"
+      >
+        <FilePenLineIcon className="size-3.5" />
+        Request
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            aria-label="More new actions"
+            className="inline-flex h-7 items-center justify-center rounded-lg px-2 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+            type="button"
+          >
+            <PackageIcon className="size-3.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="start"
+          className="min-w-48 rounded-2xl border-border/60 p-1"
+          sideOffset={8}
+        >
+          <DropdownMenuItem
+            className="cursor-pointer rounded-xl text-[12px]"
+            onSelect={() => router.push("/supplies/new")}
+          >
+            <PackageIcon className="size-3.5" />
+            New supply
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="cursor-pointer rounded-xl text-[12px]"
+            onSelect={() => router.push("/supplies/new?entry=whitelist")}
+          >
+            <PackageIcon className="size-3.5" />
+            Join supply whitelist
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
 
 function PureAttachmentsButton({
   fileInputRef,
