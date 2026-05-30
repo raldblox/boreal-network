@@ -236,7 +236,11 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                       : "grid-rows-[0fr] opacity-0"
                   }`}
                 >
-                  <div className="flex min-h-0 flex-col gap-1 pl-5 pt-1">
+                  <div
+                    className={`flex min-h-0 flex-col gap-1 pl-0 transition-[padding] duration-200 ${
+                      isExploreOpen ? "pt-1" : "pt-0"
+                    }`}
+                  >
                     <ExploreChildButton
                       icon={<HomeIcon className="size-3.5" />}
                       isActive={isNavActive("/", isHomeMode)}
@@ -367,7 +371,7 @@ function ExploreChildButton({
 }) {
   return (
     <button
-      className={`flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-[12px] transition-colors duration-150 ${
+      className={`flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-left text-[12px] transition-colors duration-150 ${
         isActive
           ? "bg-sidebar-accent/34 text-sidebar-foreground"
           : "text-sidebar-foreground/55 hover:bg-sidebar-accent/24 hover:text-sidebar-foreground"
@@ -375,7 +379,9 @@ function ExploreChildButton({
       onClick={onClick}
       type="button"
     >
-      <span className="shrink-0 text-sidebar-foreground/55">{icon}</span>
+      <span className="flex size-4 shrink-0 items-center justify-center text-sidebar-foreground/55">
+        {icon}
+      </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <SidebarNavPendingDot visible={isPending} />
     </button>
