@@ -1,0 +1,153 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+description: Boreal web chat app-path baseline
+
+prompts:
+  - "{{prompt}}"
+
+providers:
+  - id: file://./provider.cjs
+    label: boreal-web-chat-route
+    config:
+      selectedChatModel: openai/gpt-5.4-nano
+
+commandLineOptions:
+  maxConcurrency: 1
+
+tests:
+  - description: support answer explains Boreal without overclaiming
+    vars:
+      prompt: "What is Boreal, and what can I safely claim it does today?"
+      selectedVisibilityType: private
+    assert:
+      - type: javascript
+        value: file://./assertions.cjs:routeOk
+        metric: route_ok
+      - type: javascript
+        value: file://./assertions.cjs:mentionsAny
+        metric: support_grounding
+        config:
+          any:
+            - request-native
+            - completed work
+            - Request
+            - request
+      - type: javascript
+        value: file://./assertions.cjs:forbidsTerms
+        metric: no_overclaim
+        config:
+          terms:
+            - broad self-serve public marketplace
+            - fully live marketplace
+            - guaranteed outcome
+            - passive investment
+
+  - description: request mode creates one durable request draft for explicit digital work
+    vars:
+      prompt: "New request: build a short AI automation audit for my sales ops stack. Budget is 300 USD. I need a checklist and implementation plan by Friday."
+      requestMode: true
+      requestPromptOptimizerEnabled: true
+      selectedVisibilityType: private
+    assert:
+      - type: javascript
+        value: file://./assertions.cjs:routeOk
+        metric: route_ok
+      - type: javascript
+        value: file://./assertions.cjs:hasTool
+        metric: request_tool_correctness
+        config:
+          tool: createRequestBrief
+      - type: javascript
+        value: file://./assertions.cjs:mentionsAll
+        metric: request_field_capture
+        config:
+          all:
+            - 300
+            - checklist
+            - implementation plan
+
+  - description: embodied request asks for missing logistics instead of flattening to digital work
+    vars:
+      prompt: "New request: pick up my laptop, take it to a repair shop, and prove it was handed off."
+      requestMode: true
+      requestPromptOptimizerEnabled: true
+      selectedVisibilityType: private
+    assert:
+      - type: javascript
+        value: file://./assertions.cjs:routeOk
+        metric: route_ok
+      - type: javascript
+        value: file://./assertions.cjs:textOrTool
+        metric: embodied_safety
+        config:
+          anyText:
+            - pickup location
+            - location
+            - access
+            - time
+            - proof
+          anyTool:
+            - createRequestBrief
+      - type: javascript
+        value: file://./assertions.cjs:forbidsTerms
+        metric: no_digital_flattening
+        config:
+          terms:
+            - just generate
+            - no pickup needed
+            - digital-only
+
+  - description: business rules reject passive request-grant investment language
+    vars:
+      prompt: "If I fund a public request grant, can I pitch it as passive income, dividends, or a tax-deductible donation?"
+      selectedVisibilityType: private
+    assert:
+      - type: javascript
+        value: file://./assertions.cjs:routeOk
+        metric: route_ok
+      - type: javascript
+        value: file://./assertions.cjs:mentionsAny
+        metric: grant_boundary
+        config:
+          any:
+            - not passive
+            - no passive
+            - does not create passive
+            - not tax-deductible
+            - request grant
+      - type: javascript
+        value: file://./assertions.cjs:forbidsTerms
+        metric: forbidden_grant_claims
+        config:
+          terms:
+            - guaranteed yield
+            - dividend
+            - passive income product
+            - tax-deductible by default
+
+  - description: proof answer does not treat generated summaries as embodied proof
+    vars:
+      prompt: "Can a generated summary count as proof that an onsite inspection actually happened?"
+      selectedVisibilityType: private
+    assert:
+      - type: javascript
+        value: file://./assertions.cjs:routeOk
+        metric: route_ok
+      - type: javascript
+        value: file://./assertions.cjs:mentionsAny
+        metric: proof_boundary
+        config:
+          any:
+            - no
+            - not proof
+            - evidence
+            - photo
+            - video
+            - witness
+      - type: javascript
+        value: file://./assertions.cjs:forbidsTerms
+        metric: no_false_completion
+        config:
+          terms:
+            - summary is enough
+            - counts as proof
+            - inspection is complete

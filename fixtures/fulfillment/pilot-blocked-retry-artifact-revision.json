@@ -1,0 +1,147 @@
+{
+  "fixtureType": "pilot_fulfillment_failure_revision_path",
+  "scenarioId": "pilot-blocked-retry-artifact-revision",
+  "description": "One pilot fulfillment lane preserves canonical truth through a blocked provider handoff, retry, delivered artifact, and requested artifact revision without creating a new Request root.",
+  "requestId": "req_pilot_blocked_retry_revision",
+  "commitmentId": "commit_pilot_blocked_retry_revision",
+  "fulfillment": {
+    "schemaVersion": 1,
+    "id": "ful_pilot_blocked_retry_revision",
+    "key": "pilot-blocked-retry-revision",
+    "requestId": "req_pilot_blocked_retry_revision",
+    "commitmentId": "commit_pilot_blocked_retry_revision",
+    "status": "blocked",
+    "lead": {
+      "id": "actor_curated_responder",
+      "kind": "human",
+      "label": "Curated responder"
+    },
+    "summary": "Curated responder prepares a buyer proof package after a retryable provider handoff failure.",
+    "artifactIds": [
+      "art_pilot_delivery_v1"
+    ],
+    "steps": [
+      {
+        "id": "step_provider_handoff",
+        "kind": "provider_handoff",
+        "title": "Mirror provider output into durable Boreal storage",
+        "status": "blocked",
+        "metadata": {
+          "blockerType": "retryable_provider_handoff_failure",
+          "providerTaskId": "provider_task_123",
+          "nextActionOwner": "operator",
+          "retryEndpoint": "POST /api/fulfillments/ful_pilot_blocked_retry_revision/retry"
+        }
+      },
+      {
+        "id": "step_artifact_review",
+        "kind": "artifact_review",
+        "title": "Review revised proof package with buyer",
+        "status": "planned",
+        "dependsOnStepIds": [
+          "step_provider_handoff"
+        ]
+      }
+    ],
+    "metadata": {
+      "retryable": true,
+      "preserveSameFulfillmentLane": true,
+      "doNotCreateNewRequest": true
+    },
+    "createdAt": "2026-05-29T00:00:00.000Z",
+    "updatedAt": "2026-05-29T00:15:00.000Z",
+    "plannedAt": "2026-05-29T00:00:00.000Z",
+    "startedAt": "2026-05-29T00:05:00.000Z",
+    "blockedAt": "2026-05-29T00:15:00.000Z"
+  },
+  "artifacts": [
+    {
+      "schemaVersion": 1,
+      "id": "art_pilot_delivery_v1",
+      "key": "pilot-delivery-v1",
+      "requestId": "req_pilot_blocked_retry_revision",
+      "fulfillmentId": "ful_pilot_blocked_retry_revision",
+      "stepId": "step_artifact_review",
+      "kind": "delivery",
+      "title": "Pilot delivery proof package v1",
+      "summary": "Initial proof package delivered after retry, pending buyer-requested revision.",
+      "container": {
+        "kind": "object_ref",
+        "objectKey": "requests/req_pilot_blocked_retry_revision/artifacts/v1/proof-package.pdf",
+        "storageProvider": "vercel_blob",
+        "mediaKind": "pdf",
+        "mimeType": "application/pdf"
+      },
+      "createdBy": {
+        "id": "actor_curated_responder",
+        "kind": "human",
+        "label": "Curated responder"
+      },
+      "metadata": {
+        "revisionState": "revision_requested",
+        "revisionReason": "Buyer requested clearer setup screenshots before acceptance.",
+        "supersededByArtifactId": null
+      },
+      "createdAt": "2026-05-29T00:25:00.000Z",
+      "updatedAt": "2026-05-29T00:30:00.000Z"
+    }
+  ],
+  "events": [
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_fulfillment_blocked",
+      "requestId": "req_pilot_blocked_retry_revision",
+      "aggregateType": "fulfillment",
+      "aggregateId": "ful_pilot_blocked_retry_revision",
+      "sequence": 5,
+      "eventType": "fulfillment.blocked",
+      "occurredAt": "2026-05-29T00:15:00.000Z",
+      "recordedAt": "2026-05-29T00:15:01.000Z",
+      "actor": {
+        "id": "actor_system",
+        "kind": "system",
+        "label": "Boreal system"
+      },
+      "correlationId": "corr_pilot_retry_path",
+      "causationId": "evt_fulfillment_started",
+      "idempotencyKey": "idem_fulfillment_blocked_provider_task_123",
+      "source": "api.fulfillments.retryable_handoff",
+      "payload": {
+        "status": "blocked",
+        "blockerType": "retryable_provider_handoff_failure",
+        "retryable": true
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "eventId": "evt_artifact_revision_requested",
+      "requestId": "req_pilot_blocked_retry_revision",
+      "aggregateType": "artifact",
+      "aggregateId": "art_pilot_delivery_v1",
+      "sequence": 8,
+      "eventType": "artifact.revision_requested",
+      "occurredAt": "2026-05-29T00:30:00.000Z",
+      "recordedAt": "2026-05-29T00:30:01.000Z",
+      "actor": {
+        "id": "actor_buyer",
+        "kind": "human",
+        "label": "Pilot buyer"
+      },
+      "correlationId": "corr_pilot_retry_path",
+      "causationId": "evt_artifact_added",
+      "idempotencyKey": "idem_artifact_revision_requested_v1",
+      "source": "api.requests.artifacts.review",
+      "payload": {
+        "artifactId": "art_pilot_delivery_v1",
+        "revisionReason": "Buyer requested clearer setup screenshots before acceptance.",
+        "nextActionOwner": "actor_curated_responder"
+      }
+    }
+  ],
+  "expectedInvariants": [
+    "The same fulfillment lane remains attached to the original Request.",
+    "Retryable provider handoff failure does not create a second Request.",
+    "Revision state is attached to Artifact and Fulfillment evidence instead of rewriting Request root history.",
+    "RequestEvent entries carry causation, correlation, idempotency, actor, and aggregate identifiers."
+  ]
+}

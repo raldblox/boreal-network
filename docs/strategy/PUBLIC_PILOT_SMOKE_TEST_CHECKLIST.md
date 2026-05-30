@@ -13,6 +13,8 @@ Run these from the monorepo root before a public or semi-public pilot demo:
   - compares a deterministic actual request-processing sample against its fixture
 - `pnpm run evals:request-processing`
   - validates all request-processing eval fixture shapes
+- `pnpm contracts:validate`
+  - validates canonical JSON Schema files, deterministic fixture JSON, and active OpenAPI or AsyncAPI contract files
 - `pnpm peer:build`
   - verifies the runnable peer foundation parses under Node
 - `pnpm desktop:build`

@@ -1120,6 +1120,22 @@ export function renderRequestObjectJson(draft: BorealRequestDraft): string {
   return JSON.stringify(toRequestDocumentObject(draft), null, 2);
 }
 
+export function canUseDirectOwnerPrivateFulfillmentLane({
+  request,
+  actorUserId,
+  commitmentId,
+}: {
+  request: Pick<BorealRequestDraft, "ownerId" | "visibility">;
+  actorUserId: string;
+  commitmentId?: string | null;
+}) {
+  return (
+    !commitmentId &&
+    request.ownerId === actorUserId &&
+    request.visibility === "private"
+  );
+}
+
 export function toPublicRequestPoolEntry(
   draft: BorealRequestDraft
 ): PublicRequestPoolEntry {

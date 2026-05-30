@@ -38,6 +38,7 @@ import {
 import { getBorealWorkerKeyFromSupply } from "@/lib/boreal-workers/starter-catalog";
 import {
   applyRequestPatch,
+  canUseDirectOwnerPrivateFulfillmentLane,
   type CommitmentKind,
   type CommitmentTerms,
   createInitialRequestDraft,
@@ -1720,8 +1721,11 @@ export async function createFulfillmentForRequestById({
 
   const requestDraft = toRequestDraft(existingRequest);
   const isOwner = requestDraft.ownerId === actorUserId;
-  const useDirectOwnerPrivateLane =
-    !commitmentId && isOwner && requestDraft.visibility === "private";
+  const useDirectOwnerPrivateLane = canUseDirectOwnerPrivateFulfillmentLane({
+    actorUserId,
+    commitmentId,
+    request: requestDraft,
+  });
   const preferredSupplyId = requestDraft.routing.preferredSupplyId?.trim();
   const resolvedSupplyId = supplyId?.trim() || undefined;
   const effectiveSupplyId =

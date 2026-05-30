@@ -65,10 +65,13 @@ Checklist:
   - accepted `Artifact` lands outside the request root
   - `Transaction` truth is visible for funded work
   - `RequestEvent` activity is replay-safe enough for the workroom timeline
-- [ ] Confirm owner-private auto-fulfillment does not leak into public or cross-actor lanes.
-- [ ] Confirm public-safe request listing excludes owner-only fields and planner-internal fields.
+- [x] Confirm owner-private auto-fulfillment does not leak into public or cross-actor lanes.
+  - Completed: `pnpm web:test:request-boundaries` verifies direct owner-private fulfillment is allowed only for the owner, private visibility, and no commitment id.
+- [x] Confirm public-safe request listing excludes owner-only fields and planner-internal fields.
+  - Completed: `pnpm web:test:request-boundaries` verifies public request projections omit routing and planner-internal matching fields.
 - [ ] Confirm desktop execution remains an execution participant and not a second request ledger.
-- [ ] Document manual operator procedures for pilot support, refunds, blocked fulfillments, provider failures, and artifact review.
+- [x] Document manual operator procedures for pilot support, refunds, blocked fulfillments, provider failures, and artifact review.
+  - Completed: `docs/strategy/PUBLIC_PILOT_OPERATOR_RUNBOOK.md` covers manual pilot flow, refunds, blocked fulfillment, provider failures, artifact review, and escalation triggers.
 - [x] Add a short pilot smoke-test checklist to the relevant app or test docs once the first pilot lane is stable.
   - Completed: `docs/strategy/PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md` records automated checks, manual pilot path checks, and pilot claim review.
 
@@ -85,15 +88,21 @@ Purpose: make the first pilot repeatable enough that each new request does not r
 
 Checklist:
 
-- [ ] Add contract validation for active OpenAPI and AsyncAPI files in CI or a repeatable local command.
-- [ ] Add schema validation for canonical JSON Schema examples or fixtures.
-- [ ] Expand fixtures for at least one blocked fulfillment, one retryable provider handoff failure, and one artifact revision path.
+- [x] Add contract validation for active OpenAPI and AsyncAPI files in CI or a repeatable local command.
+  - Completed: `pnpm contracts:validate` checks active OpenAPI and AsyncAPI contract files for required top-level contract structure and merge-marker safety.
+- [x] Add schema validation for canonical JSON Schema examples or fixtures.
+  - Completed: `pnpm contracts:validate` parses canonical JSON Schema files and deterministic fixture JSON files, including BOM-safe reads.
+- [x] Expand fixtures for at least one blocked fulfillment, one retryable provider handoff failure, and one artifact revision path.
+  - Completed: `fixtures/fulfillment/pilot-blocked-retry-artifact-revision.json` captures a blocked fulfillment, retryable provider handoff failure, artifact revision request, durable events, and invariants.
 - [ ] Add request-room replay checks for durable activity derived from `RequestEvent`, `Commitment`, and `Artifact` records.
 - [ ] Add idempotency checks for payment, credit, commitment, artifact, and fulfillment mutation surfaces that can replay.
 - [ ] Add authorization checks for owner reads, public projections, resolver tokens, and supply owner boundaries.
-- [ ] Add observability notes for payment settlement, provider handoff, fulfillment blocking, and artifact acceptance.
-- [ ] Make the operator workflow explicit for manually curating supply and resolving stuck requests.
-- [ ] Keep `docs/TEST_MATRIX.md` aligned as new test families become executable.
+- [x] Add observability notes for payment settlement, provider handoff, fulfillment blocking, and artifact acceptance.
+  - Completed: `docs/strategy/PUBLIC_PILOT_OBSERVABILITY.md` defines minimum pilot signals for payment settlement, provider handoff, blocked fulfillment, artifact acceptance, and dashboard gates.
+- [x] Make the operator workflow explicit for manually curating supply and resolving stuck requests.
+  - Completed: `docs/strategy/PUBLIC_PILOT_OPERATOR_RUNBOOK.md` records the first pilot operator workflow and canonical evidence requirements.
+- [x] Keep `docs/TEST_MATRIX.md` aligned as new test families become executable.
+  - Completed for this slice: `docs/TEST_MATRIX.md` names the executable request-boundary projection and owner-private fulfillment checks.
 
 Exit criteria:
 
@@ -205,7 +214,10 @@ Exit criteria:
 ## Recommended Next Work Sequence
 
 1. Add or verify one seeded happy path for buyer request, funding or credit, commitment if required, fulfillment, artifact, transaction, and request activity.
-2. Add public-safe projection tests before widening request browsing.
-3. Add curated responder/supply return-path work before inviting more supply.
-4. Expand OpenAPI, AsyncAPI, fixtures, and idempotency checks before broad public marketplace claims.
-5. Expand solution-run v0 with fulfillment attachment only when the worker, provider, or review lane is real.
+2. Confirm desktop execution remains an execution participant and not a second request ledger.
+3. Add request-room replay checks for durable activity derived from `RequestEvent`, `Commitment`, and `Artifact` records.
+4. Add idempotency checks for payment, credit, commitment, artifact, and fulfillment mutation surfaces that can replay.
+5. Add authorization checks for owner reads, resolver tokens, and supply owner boundaries.
+6. Add curated responder/supply return-path work before inviting more supply.
+7. Expand OpenAPI, AsyncAPI, fixtures, and idempotency checks before broad public marketplace claims.
+8. Expand solution-run v0 with fulfillment attachment only when the worker, provider, or review lane is real.

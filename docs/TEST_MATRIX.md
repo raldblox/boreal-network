@@ -300,6 +300,8 @@ Verify:
 - embodied or verification-heavy asks prefer clarification or escalation over false digital completion
 - policy does not imply completion before proof and closure conditions are satisfied
 - public or cross-actor lanes do not inherit owner-private desktop assumptions in planner, matcher, or policy behavior
+- executable request-boundary tests keep public request projections free of routing and planner-internal matching fields
+- executable request-boundary tests keep direct owner-private fulfillment unavailable to public, cross-actor, or commitment-bound lanes
 - deterministic benchmark outputs expose false-completion and forbidden-mutation rates clearly across competing planning styles
 
 ### Risk governance tests

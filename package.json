@@ -25,6 +25,11 @@
     "evals:request-processing:matcher": "pnpm --filter @boreal/web eval:request-processing:matcher",
     "evals:request-processing:matcher:write": "pnpm --filter @boreal/web eval:request-processing:matcher --write-benchmark-actuals C:\\Users\\raldb\\boreal-network\\fixtures\\request\\benchmark-actuals\\web-live",
     "evals:request-processing:live": "pnpm --filter @boreal/web eval:request-processing:live",
-    "evals:request-processing:live:study": "pnpm --filter @boreal/web eval:request-processing:live --model openai/gpt-4.1-nano --model openai/gpt-5.4-nano --model openai/gpt-5-mini --model openai/o4-mini --model openai/gpt-5-pro --prompt neutral_contract_v2 --prompt boreal_canon_v2 --output-dir C:\\Users\\raldb\\boreal-network\\docs\\papers\\request-rooted-orchestration-for-mixed-human-ai-fulfillment\\results\\live-benchmark\\study-openai-multimodel-v1"
+    "evals:request-processing:live:study": "pnpm --filter @boreal/web eval:request-processing:live --model openai/gpt-4.1-nano --model openai/gpt-5.4-nano --model openai/gpt-5-mini --model openai/o4-mini --model openai/gpt-5-pro --prompt neutral_contract_v2 --prompt boreal_canon_v2 --output-dir C:\\Users\\raldb\\boreal-network\\docs\\papers\\request-rooted-orchestration-for-mixed-human-ai-fulfillment\\results\\live-benchmark\\study-openai-multimodel-v1",
+    "web:test:request-boundaries": "pnpm --filter @boreal/web test:request-boundaries",
+    "contracts:validate": "node tests/contracts/validate-contract-artifacts.mjs"
+  },
+  "devDependencies": {
+    "promptfoo": "0.121.13"
   }
 }
