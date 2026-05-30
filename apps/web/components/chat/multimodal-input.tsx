@@ -117,8 +117,12 @@ function setCookie(name: string, value: string) {
 }
 
 const DESKTOP_MODEL_PROVIDER = "codex-desktop";
+const chatUploadTimeoutMs = 60_000;
+const canceledUploadAbortReason = "chat-upload-canceled";
+const timedOutUploadAbortReason = "chat-upload-timeout";
 
 type PendingAttachmentUpload = {
+  abortController: AbortController;
   contentType: string;
   id: string;
   name: string;
@@ -133,11 +137,18 @@ type FailedAttachmentUpload = PendingAttachmentUpload & {
 type UploadFileResult =
   | {
       attachment: Attachment;
+      canceled?: false;
       error: null;
     }
   | {
       attachment: null;
+      canceled?: false;
       error: string;
+    }
+  | {
+      attachment: null;
+      canceled: true;
+      error: null;
     };
 
 function toDesktopModelId(modelId: string) {
@@ -184,6 +195,10 @@ function createUploadId(file: File, index: number) {
   return `${file.name || "attachment"}-${file.size}-${file.lastModified}-${index}-${Math.random()
     .toString(36)
     .slice(2)}`;
+}
+
+function getUploadAbortReason(signal?: AbortSignal | null) {
+  return signal?.aborted ? signal.reason : undefined;
 }
 
 function normalizeUploadedAttachmentUrl(url: string) {
@@ -580,8 +595,19 @@ function PureMultimodalInput({
   }, [status]);
 
   const uploadFile = useCallback(
-    async (file: File): Promise<UploadFileResult> => {
+    async (
+      file: File,
+      signal?: AbortSignal
+    ): Promise<UploadFileResult> => {
       const clientValidation = validateChatAttachmentSelectionFile(file);
+
+      if (getUploadAbortReason(signal) === canceledUploadAbortReason) {
+        return {
+          attachment: null,
+          canceled: true,
+          error: null,
+        };
+      }
 
       if (clientValidation.error || !clientValidation.contentType) {
         return {
@@ -621,6 +647,7 @@ function PureMultimodalInput({
           {
             method: "POST",
             body: formData,
+            signal,
           }
         );
 
@@ -646,6 +673,23 @@ function PureMultimodalInput({
             "Upload failed. Check the file type and size, then try again.",
         };
       } catch (error) {
+        const abortReason = getUploadAbortReason(signal);
+
+        if (abortReason === canceledUploadAbortReason) {
+          return {
+            attachment: null,
+            canceled: true,
+            error: null,
+          };
+        }
+
+        if (abortReason === timedOutUploadAbortReason) {
+          return {
+            attachment: null,
+            error: "Upload timed out. Check your connection, then retry.",
+          };
+        }
+
         return {
           attachment: null,
           error:
@@ -699,6 +743,7 @@ function PureMultimodalInput({
           }) ?? "application/octet-stream";
 
         return {
+          abortController: new AbortController(),
           contentType,
           id: createUploadId(file, index),
           name: file.name || "Attachment",
@@ -711,7 +756,16 @@ function PureMultimodalInput({
 
       try {
         const uploadedAttachments = await Promise.all(
-          acceptedFiles.map((file) => uploadFile(file))
+          acceptedFiles.map((file, index) => {
+            const upload = queuedUploads[index];
+            const timeoutId = window.setTimeout(() => {
+              upload?.abortController.abort(timedOutUploadAbortReason);
+            }, chatUploadTimeoutMs);
+
+            return uploadFile(file, upload?.abortController.signal).finally(
+              () => window.clearTimeout(timeoutId)
+            );
+          })
         );
         const successfullyUploadedAttachments = uploadedAttachments
           .map((result) => result.attachment)
@@ -727,9 +781,9 @@ function PureMultimodalInput({
               item
             ): item is {
               file: File;
-              result: Extract<UploadFileResult, { attachment: null }>;
+              result: Extract<UploadFileResult, { error: string }>;
               upload: PendingAttachmentUpload;
-            } => item.result.error !== null && item.file !== undefined
+            } => typeof item.result.error === "string" && item.file !== undefined
           )
           .map(({ file, result, upload }) => ({
             ...upload,
@@ -985,6 +1039,12 @@ function PureMultimodalInput({
                 }}
                 isUploading={true}
                 key={upload.id}
+                onRemove={() => {
+                  upload.abortController.abort(canceledUploadAbortReason);
+                  setUploadQueue((currentQueue) =>
+                    currentQueue.filter((item) => item.id !== upload.id)
+                  );
+                }}
               />
             ))}
 

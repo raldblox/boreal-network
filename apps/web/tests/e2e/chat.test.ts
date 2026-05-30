@@ -262,6 +262,57 @@ test.describe("Chat Input Features", () => {
     expect(uploadCount).toBe(2);
   });
 
+  test("can cancel a stuck upload without breaking the composer", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const originalFetch = window.fetch.bind(window);
+
+      window.fetch = (input, init) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof Request
+              ? input.url
+              : String(input);
+
+        if (!url.includes("/api/files/upload")) {
+          return originalFetch(input, init);
+        }
+
+        const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+
+        return new Promise<Response>((_resolve, reject) => {
+          const rejectAbort = () =>
+            reject(new DOMException("Upload canceled", "AbortError"));
+
+          if (signal?.aborted) {
+            rejectAbort();
+            return;
+          }
+
+          signal?.addEventListener("abort", rejectAbort, { once: true });
+        });
+      };
+    });
+
+    await page.goto("/?mode=chat");
+    await page.getByTestId("attachment-file-input").setInputFiles({
+      buffer: Buffer.from("# Stuck"),
+      mimeType: "text/markdown",
+      name: "stuck.md",
+    });
+
+    await expect(page.getByTestId("input-attachment-loader")).toBeVisible();
+    await expect(page.getByTestId("send-button")).toBeDisabled();
+
+    await page.getByTestId("input-attachment-remove").click();
+
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(0);
+    await expect(page.getByTestId("input-attachment-error")).toHaveCount(0);
+    await expect(page.getByTestId("send-button")).toBeDisabled();
+  });
+
   test("does not keep malformed successful upload responses", async ({
     page,
   }) => {
