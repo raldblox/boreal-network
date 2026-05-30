@@ -695,11 +695,15 @@ export async function applyBuyerCreditToRequest({
   actorUserId,
   amount,
   idempotencyKey,
+  metadata,
+  source = "api.buyer_credits.apply",
 }: {
   requestId: string;
   actorUserId: string;
   amount: string;
   idempotencyKey?: string | null;
+  metadata?: RequestTransactionMetadata | null;
+  source?: string;
 }) {
   const account = await getBuyerCreditAccountByOwnerId({
     ownerId: actorUserId,
@@ -775,12 +779,13 @@ export async function applyBuyerCreditToRequest({
     kind: "settlement",
     status: "settled",
     metadata: {
+      ...(metadata ?? {}),
       fundingSource: "buyer_credit",
       creditLedgerEntryId: ledgerEntryId,
       creditAmountApplied: normalizedAmount,
     },
     idempotencyKey,
-    source: "api.buyer_credits.apply",
+    source,
   });
 
   const updatedAccount = await updateBuyerCreditAccountById({
@@ -805,6 +810,7 @@ export async function applyBuyerCreditToRequest({
     transactionId: directFunding.transaction.id,
     idempotencyKey,
     metadata: {
+      ...(metadata ?? {}),
       fundingSource: "buyer_credit",
       creditAmountApplied: normalizedAmount,
     },

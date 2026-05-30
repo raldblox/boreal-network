@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const repoRoot = new URL("../..", import.meta.url).pathname;
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
 function filesIn(dir, suffix) {
   return readdirSync(join(repoRoot, dir))

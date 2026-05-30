@@ -272,6 +272,12 @@ Running a solution is execution.
 If a run consumes inference, provider APIs, workflow execution, media generation, human review, embodied capacity, or other service resources, it should consume first-party credits or another approved payment source.
 The paid run should create a new `Request` or accepted execution lane that references the source accepted artifact, and its credit debit must land in request-attached `Transaction` truth.
 
+The first committed HTTP path for this is `POST /api/requests/{id}/solution-runs`.
+In that route, `{id}` is the completed public source request.
+The endpoint creates or reuses one private run `Request` for the authenticated buyer, references the source accepted artifact in the run request, applies first-party buyer credit, and records request-attached `Transaction` truth on the run request.
+It must not mutate the completed source request, charge for inspection, or create a separate `SolutionRun` root.
+It should not claim active fulfillment until a worker, provider, or human review lane is actually attached.
+
 If a later user wants a private adaptation, implementation, or follow-up, create a new `Request` that references the accepted artifact.
 
 ## Visibility Rule
@@ -367,6 +373,7 @@ These objects are derived and rebuildable, not durable roots:
 - A public `Solution` surface is a projection over accepted request artifacts, not a new canonical root object.
 - Public solution inspection does not consume credits by default.
 - Credit consumption begins when a user runs the solution through inference, provider APIs, workflow execution, human review, or other live execution capacity.
+- A credit-metered public solution run creates or reuses one private run `Request` with source request and accepted artifact references before debiting buyer credit.
 - Passive funder revenue-share, investment, yield, dividend, and tax-deductible donation language must not appear in default request-processing outputs.
 - open request rooms should prefer adjacent durable objects plus request projection updates over inlining response history on the request root
 - ephemeral realtime signals should stay outside default durable history unless promoted

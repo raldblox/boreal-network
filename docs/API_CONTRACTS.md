@@ -224,6 +224,7 @@ The first first-party payment and credit slice exposes:
 - `POST /api/paypal/webhook`
 - `POST /api/services/character-call-starter/checkout`
 - `POST /api/services/character-call-starter/session`
+- `POST /api/requests/{id}/solution-runs`
 - `GET /api/requests/{id}/transactions`
 - `POST /api/requests/{id}/transactions`
 
@@ -243,6 +244,10 @@ Rules:
 - curated first-party service checkout must stay idempotency-keyed and must not introduce a separate order root object for launch-price credit spend
 - payment idempotency replays must resolve to the same request, amount, ledger debit, and request-attached `Transaction`
 - solution-run idempotency replays must resolve to the same run request, same source artifact reference, same credit debit, and same request-attached `Transaction`
+- `POST /api/requests/{id}/solution-runs` creates or reuses one private run `Request` for the authenticated buyer, where `{id}` is the completed public source request
+- solution-run requests must reference the source accepted artifact in request metadata or constraints before buyer credits are debited
+- solution-run inspection remains separate from execution; reading `scope=public_solutions` or the source request detail must not debit credits
+- solution-run responses must return the run `Request`, source request projection, source artifact projection, buyer-credit debit, request `Transaction`, and ledger entry
 - Character Call Starter checkout should also bootstrap the owner-private `Fulfillment` lane and request artifacts after settlement instead of storing service-progress truth outside the request
 - Character Call Starter session launch returns ephemeral Runway realtime credentials, must resolve the `fulfillmentId` to the same owned request, and must not persist one-time session tokens as durable artifacts
 - mutating payment routes accept `Idempotency-Key`
@@ -251,8 +256,14 @@ Machine-readable contract:
 
 - `schemas/openapi/payment-and-credit.openapi.yaml`
 
-No public solution-run HTTP endpoint is committed in this canon pass.
-When one is added, it must update OpenAPI in the same patch and must return canonical request, supply, fulfillment, artifact, transaction, and buyer-credit ledger references instead of inventing a second run object.
+The first public solution-run endpoint is committed as:
+
+- `POST /api/requests/{id}/solution-runs`
+
+It is intentionally narrow.
+It does not introduce a `SolutionRun` root.
+It creates or reuses one private run `Request`, references the source accepted artifact, applies first-party buyer credits, and returns request-attached transaction and ledger truth.
+Future fulfillment automation may attach `Fulfillment` after route or supply selection, but the v0 endpoint must not fake active execution when no worker lane exists.
 
 ## Account Auth Surface
 

@@ -46,6 +46,7 @@ These are safe to state as present canon truth:
 - optional request grants attach to one durable `Request` through participants, commitments, transactions, artifacts, and events instead of creating a new grant root
 - public solution surfaces are projections over completed requests and accepted artifacts, not canonical root objects
 - public solution inspection is free by default, while live solution runs may consume credits when they use inference, provider APIs, workflow execution, human review, or other service capacity
+- the first credit-metered public solution run endpoint creates or reuses a private run `Request` that references the source accepted artifact and records buyer-credit debit plus request-attached `Transaction` truth
 - passive funder cash revenue-share, investment, yield, dividend, and tax-deductible donation language are outside the first accepted model
 
 ## Public Pilot Boundary
@@ -100,6 +101,7 @@ Today, the machine-readable baseline proves:
 - one `open` plus `public` request can be exposed through a public-safe web pool listing
 - one public-safe request detail view can be fetched directly by request id
 - one public-safe open-request directory surface can keep public demand browsing separate from private workroom history
+- one public solution run HTTP contract exists for creating a private credit-metered run request from a completed public request and accepted artifact
 - one open request room can expose request activity derived from durable `RequestEvent`, `Commitment`, and `Artifact` records
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
@@ -140,7 +142,7 @@ These are intended next layers, not fully modeled proof yet:
 - first-class buyer-credit support objects and narrower payment-source coverage for first-party supply, initially standardized through `standards/` before broader schema and API coverage lands
 - first-class request-grant profile for pooled public-solution funding, grant-pool display, explicit refund policy, solver award release, reviewer compensation, and public artifact projection
 - public solution surfaces that let later users inspect, run, fork, or reference accepted artifacts while preserving the source request as durable truth
-- credit-metered solution runs that debit first-party credits for inference or execution while creating request-attached transaction truth on the run request
+- richer credit-metered solution runs that automatically attach the right fulfillment worker, provider adapter, or human review lane after the run request is funded
 - exact service plan links that resolve stable first-party unlisted supply ids and set `routing.preferredSupplyId` before request opening
 - broader supply discovery, responder reads, and public market publish lanes
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views

@@ -36,6 +36,11 @@ import {
   buildTrackedRequestFlowGraph,
   type RequestFlowNodeDescriptor,
 } from "@/lib/request-flow";
+import {
+  buildRequestPathBuilderViewModel,
+  type RequestPathSignal,
+  type RequestSupportingPath,
+} from "@/lib/request-path-builder";
 import type {
   BorealRequestDraft,
   RequestActivityEntry,
@@ -375,6 +380,10 @@ export function RequestTracker({
       preferredSupply,
       request,
     ]
+  );
+  const pathBuilder = useMemo(
+    () => buildRequestPathBuilderViewModel({ request, scope: "open" }),
+    [request]
   );
   const selectedFlowNodeDescriptor =
     (selectedFlowNodeId
@@ -814,7 +823,11 @@ export function RequestTracker({
                         Open activity
                       </button>
                     </div>
-                    <div className="mt-4">
+                    <div className="mt-4 space-y-3">
+                      <WorkroomPathSignalStrip signals={pathBuilder.signals} />
+                      <WorkroomSupportingPathRail
+                        slots={pathBuilder.supportingPaths}
+                      />
                       <WorkroomMonitorSummary items={monitorSummaryItems} />
                     </div>
                   </div>
@@ -948,6 +961,60 @@ type WorkroomMonitorItem = {
   value: string;
 };
 
+function WorkroomPathSignalStrip({ signals }: { signals: RequestPathSignal[] }) {
+  return (
+    <section
+      aria-label="Path readiness signals"
+      className="grid gap-2 md:grid-cols-5"
+    >
+      {signals.map((signal) => (
+        <div
+          className={cn(
+            "min-w-0 rounded-[16px] border px-3 py-2.5",
+            getPathSignalClassName(signal.tone)
+          )}
+          key={signal.label}
+        >
+          <div className="text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+            {signal.label}
+          </div>
+          <div className="mt-1 truncate text-[13px] leading-5 text-foreground">
+            {signal.value}
+          </div>
+          <div className="mt-0.5 line-clamp-2 text-[11px] leading-4.5 text-muted-foreground">
+            {signal.detail}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function WorkroomSupportingPathRail({
+  slots,
+}: {
+  slots: RequestSupportingPath[];
+}) {
+  return (
+    <section aria-label="Supporting path slots" className="flex flex-wrap gap-2">
+      {slots.map((slot) => (
+        <div
+          className="inline-flex max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/92 px-3 py-1.5"
+          key={`${slot.source}:${slot.title}`}
+          title={slot.summary}
+        >
+          <span className="truncate text-[11px] font-medium text-foreground">
+            {slot.title}
+          </span>
+          <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
+            {slot.status}
+          </span>
+        </div>
+      ))}
+    </section>
+  );
+}
+
 function WorkroomMonitorSummary({ items }: { items: WorkroomMonitorItem[] }) {
   return (
     <section
@@ -975,6 +1042,20 @@ function WorkroomMonitorSummary({ items }: { items: WorkroomMonitorItem[] }) {
       ))}
     </section>
   );
+}
+
+function getPathSignalClassName(tone: RequestPathSignal["tone"]) {
+  switch (tone) {
+    case "good":
+      return "border-emerald-500/22 bg-emerald-500/[0.055]";
+    case "warn":
+      return "border-amber-500/24 bg-amber-500/[0.06]";
+    case "danger":
+      return "border-rose-500/24 bg-rose-500/[0.06]";
+    case "neutral":
+    default:
+      return "border-border/60 bg-background/94";
+  }
 }
 
 function getMonitorItemClassName(tone: WorkroomMonitorItem["tone"] = "default") {

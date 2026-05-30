@@ -22,7 +22,7 @@ The target launch shape is:
 
 Use these gates as the long-running operating model.  Do not skip a gate by renaming unfinished target-direction work as live capability.
 
-### Gate 0 — Plan And Claim Alignment
+### Gate 0 - Plan And Claim Alignment
 
 Purpose: make the launch plan itself durable and keep future work from drifting into overclaim.
 
@@ -39,7 +39,7 @@ Exit criteria:
 - the team can point agents and humans at one durable plan before continuing marketplace work
 - launch claims are explicitly tied to canon-locked or machine-modeled truth
 
-### Gate 1 — Public Pilot Must-Fix
+### Gate 1 - Public Pilot Must-Fix
 
 Purpose: make a narrow public or semi-public pilot safe enough to expose to real buyers and curated supply.
 
@@ -82,7 +82,7 @@ Exit criteria:
 - one buyer-funded or buyer-credit-backed request can move through the intended pilot path without ad hoc data mutation
 - public copy says pilot, curated supply, and request-native work commerce rather than broad public marketplace
 
-### Gate 2 — Pilot Hardening
+### Gate 2 - Pilot Hardening
 
 Purpose: make the first pilot repeatable enough that each new request does not require engineering intervention.
 
@@ -110,7 +110,7 @@ Exit criteria:
 - known failure modes create canonical records instead of private side channels
 - tests or evals cover the first blocked/retry/revision cases
 
-### Gate 3 — Self-Serve Buyer Core
+### Gate 3 - Self-Serve Buyer Core
 
 Purpose: reduce buyer dependence on founder/operator intervention.
 
@@ -131,7 +131,7 @@ Exit criteria:
 - the buyer can understand request status, proof, artifact, and payment state from the UI
 - support can diagnose the request from canonical records
 
-### Gate 4 — Curated Supply Self-Serve
+### Gate 4 - Curated Supply Self-Serve
 
 Purpose: let approved supply participate without requiring internal operators to manually bridge every step.
 
@@ -152,7 +152,7 @@ Exit criteria:
 - owner-private desktop assumptions cannot affect public or cross-actor supply lanes
 - support can audit who did what through durable activity
 
-### Gate 5 — Public Marketplace Readiness
+### Gate 5 - Public Marketplace Readiness
 
 Purpose: prepare for broader public launch while preserving request-native truth and marketplace safety.
 
@@ -165,7 +165,7 @@ Checklist:
 - [ ] Add richer golden fixtures for failure, replay, dispute, collective fulfillment, private-supply paths, and public-market paths.
 - [ ] Finish broader supply discovery, responder reads, and public market publish lanes.
 - [ ] Finish public solution surfaces as projections over completed requests with accepted artifacts.
-- [ ] Finish credit-metered solution runs that create or use a run `Request` before debiting credits.
+- [ ] Expand credit-metered solution runs beyond v0 by attaching the right fulfillment worker, provider adapter, or human review lane after the run `Request` is funded.
 - [ ] Finish request-grant support only within the accepted non-investment, non-donation boundary.
 - [ ] Finish isolated worker mode for public or external untrusted request execution.
 - [ ] Finish encrypted-at-rest handling for external trace material if public execution records require it.
@@ -181,7 +181,7 @@ Exit criteria:
 - public solution and credit claims are backed by request-attached transaction truth
 - unsafe public execution is isolated or explicitly unavailable
 
-### Gate 6 — Broad Public Launch
+### Gate 6 - Broad Public Launch
 
 Purpose: launch the self-serve marketplace without claiming target-direction work as already shipped.
 
@@ -213,10 +213,11 @@ Exit criteria:
 
 ## Recommended Next Work Sequence
 
-1. Fix deterministic web build by removing or hardening build-time remote font dependency.
-2. Add a pilot-scope section to `docs/LIVE_VS_TARGET.md` that names the exact public pilot claim boundary.
-3. Run request-processing evals with one actual output and record the expected command in the pilot smoke checklist.
-4. Add or verify one seeded happy path for buyer request, funding or credit, commitment if required, fulfillment, artifact, transaction, and request activity.
-5. Add public-safe projection tests before widening request browsing.
+1. Add or verify one seeded happy path for buyer request, funding or credit, commitment if required, fulfillment, artifact, transaction, and request activity.
+2. Confirm desktop execution remains an execution participant and not a second request ledger.
+3. Add request-room replay checks for durable activity derived from `RequestEvent`, `Commitment`, and `Artifact` records.
+4. Add idempotency checks for payment, credit, commitment, artifact, and fulfillment mutation surfaces that can replay.
+5. Add authorization checks for owner reads, resolver tokens, and supply owner boundaries.
 6. Add curated responder/supply return-path work before inviting more supply.
 7. Expand OpenAPI, AsyncAPI, fixtures, and idempotency checks before broad public marketplace claims.
+8. Expand solution-run v0 with fulfillment attachment only when the worker, provider, or review lane is real.

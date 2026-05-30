@@ -26,17 +26,26 @@ Do not use this folder to silently change:
 
 If a strategy doc implies a change to canon, update canon first or in the same patch.
 
-## Files
+## State Register
 
-- [ICP_MATRIX.md](ICP_MATRIX.md) - primary, secondary, and excluded user matrix
-- [WHY_NOW_AND_WHY_THIS_MARKET.md](WHY_NOW_AND_WHY_THIS_MARKET.md) - research-backed demand and timing memo
-- [LANDING_PAGE_MESSAGING_FRAMEWORK.md](LANDING_PAGE_MESSAGING_FRAMEWORK.md) - homepage and wedge-page message architecture
-- [FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md) - worker instructions for request-grant and public-solution UI/copy
-- [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md) - full web UX revamp blueprint for request board, workroom, flow UI, services, supply, account, credits, and public solutions
-- [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md) - V1 request-attached Path Builder plan for baseline and supporting paths
-- [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md) - quality bar across brand, product, supply, trust, and commerce
-- [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md) - first-party service families, preset plans, and launch pricing
-- [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md) - canon-safe direct-link service and buyer-credit spec
+Last reviewed: 2026-05-29.
+
+Use `../DOC_LIFECYCLE.md` for state definitions.
+Strategy docs are downstream of canon and should not override live-versus-target boundaries.
+
+| File | State | Implementation state | Current reading | Review trigger |
+| --- | --- | --- | --- | --- |
+| [ICP_MATRIX.md](ICP_MATRIX.md) | `reference` | Market-shaping guidance | Primary ICP and excluded-user filter still apply. | Review after three paid pilots or any wedge change. |
+| [WHY_NOW_AND_WHY_THIS_MARKET.md](WHY_NOW_AND_WHY_THIS_MARKET.md) | `reference` | Evidence-sensitive market memo | Useful timing memo, but evidence freshness matters more than file age. | Review before investor material, public launch copy, or monthly while fundraising. |
+| [LANDING_PAGE_MESSAGING_FRAMEWORK.md](LANDING_PAGE_MESSAGING_FRAMEWORK.md) | `active` | Copy and page-architecture guidance | Current messaging framework for homepage and wedge pages. | Review before homepage, landing-page, or public-solution copy changes. |
+| [FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md) | `active` | Worker instruction | Current guardrails for request-grant, public-solution, inspect, and run-with-credits copy. | Review before frontend or hero-copy worker runs. |
+| [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md) | `active` | UX blueprint | Current revamp blueprint for request board, workroom, account, credits, supply, and public solutions. | Review before major web IA or request-room changes. |
+| [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md) | `active` | V1 UX plan | Current guidance for request-owned Path Builder surfaces. | Review when Path Builder implementation lands or changes scope. |
+| [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md) | `pilot_active` | Long-running gate plan | Current durable queue for pilot, self-serve buyer, curated supply, and public-market readiness. | Review in every patch that completes or changes a gate item. |
+| [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md) | `pilot_active` | Gate 1 verification checklist | Current narrow pilot verification checklist; not broad marketplace proof. | Review before any public or semi-public pilot demo. |
+| [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md) | `active` | Service packaging spec | Current first-party service families, preset plans, and launch pricing. | Review after real sales, pricing change, or fulfillment evidence change. |
+| [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md) | `active` | Direct-link and credit spec | Current canon-safe spec for unlisted service links and first-party credits. | Review when checkout, credit, ledger, or request-funding code changes. |
+| [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md) | `reference` | Quality bar | Current product-quality rubric, not a launch claim by itself. | Review before using it as launch-readiness proof. |
 
 Related canon:
 
@@ -53,11 +62,17 @@ Related canon:
 7. [../REQUEST_PLAN_MODEL.md](../REQUEST_PLAN_MODEL.md)
 8. [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
 9. [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md)
-10. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
-11. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
-12. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
+10. [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
+11. [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
+12. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
+13. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
+14. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
 
 ## Working Rule
 
 The job of this folder is not to make Boreal sound impressive.
 The job is to keep Boreal legible, specific, and testable in the real market.
+
+Do not use a strategy doc for implementation authority unless its state register row says `active` or `pilot_active`.
+Use `reference` docs for context and quality checks, not as live work queues.
+Move parked, superseded, or archived docs out of active read paths.
