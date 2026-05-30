@@ -56,20 +56,16 @@ Checklist:
   - Completed in claim boundary: public launch language stays at buyer-funded request pilots and curated or whitelisted supply until broader public lanes are proven.
 - [x] Run request-processing validation against actual outputs, not only fixture shape.
   - Completed: `pnpm run evals:request-processing:sample` compares `fixtures/request/eval-complex-human-planning-and-match.actual.sample.json` against its fixture.
-- [ ] Confirm the first request-to-fulfillment happy path against one real or seeded pilot scenario.
-  - buyer creates or opens a `Request`
-  - payment or buyer-credit state is explicit
-  - responder or first-party supply creates a `Commitment` when required
-  - owner accepts the commitment when required
-  - `Fulfillment` starts and records progress
-  - accepted `Artifact` lands outside the request root
-  - `Transaction` truth is visible for funded work
-  - `RequestEvent` activity is replay-safe enough for the workroom timeline
+- [x] Confirm the first request-to-fulfillment happy path against one real or seeded pilot scenario.
+  - Completed: `pnpm contracts:public-pilot` validates `fixtures/request/public-pilot-happy-path.json` across `Request`, funding, `Commitment`, `Fulfillment`, `Artifact`, `Transaction`, and `RequestEvent`.
+  - Evidence: committed in `cc3c054`.
 - [x] Confirm owner-private auto-fulfillment does not leak into public or cross-actor lanes.
   - Completed: `pnpm web:test:request-boundaries` verifies direct owner-private fulfillment is allowed only for the owner, private visibility, and no commitment id.
 - [x] Confirm public-safe request listing excludes owner-only fields and planner-internal fields.
   - Completed: `pnpm web:test:request-boundaries` verifies public request projections omit routing and planner-internal matching fields.
-- [ ] Confirm desktop execution remains an execution participant and not a second request ledger.
+- [x] Confirm desktop execution remains an execution participant and not a second request ledger.
+  - Completed: `pnpm contracts:desktop-ledger-boundary` validates that desktop local transcript and ephemeral runtime signals do not become a second request ledger, while durable writes target Boreal web truth.
+  - Evidence: committed in `bdc092b`.
 - [x] Document manual operator procedures for pilot support, refunds, blocked fulfillments, provider failures, and artifact review.
   - Completed: `docs/strategy/PUBLIC_PILOT_OPERATOR_RUNBOOK.md` covers manual pilot flow, refunds, blocked fulfillment, provider failures, artifact review, and escalation triggers.
 - [x] Add a short pilot smoke-test checklist to the relevant app or test docs once the first pilot lane is stable.
@@ -213,11 +209,9 @@ Exit criteria:
 
 ## Recommended Next Work Sequence
 
-1. Add or verify one seeded happy path for buyer request, funding or credit, commitment if required, fulfillment, artifact, transaction, and request activity.
-2. Confirm desktop execution remains an execution participant and not a second request ledger.
-3. Add request-room replay checks for durable activity derived from `RequestEvent`, `Commitment`, and `Artifact` records.
-4. Add idempotency checks for payment, credit, commitment, artifact, and fulfillment mutation surfaces that can replay.
-5. Add authorization checks for owner reads, resolver tokens, and supply owner boundaries.
-6. Add curated responder/supply return-path work before inviting more supply.
-7. Expand OpenAPI, AsyncAPI, fixtures, and idempotency checks before broad public marketplace claims.
-8. Expand solution-run v0 with fulfillment attachment only when the worker, provider, or review lane is real.
+1. Add request-room replay checks for durable activity derived from `RequestEvent`, `Commitment`, and `Artifact` records.
+2. Add idempotency checks for payment, credit, commitment, artifact, and fulfillment mutation surfaces that can replay.
+3. Add authorization checks for owner reads, public projections, resolver tokens, and supply owner boundaries.
+4. Add curated responder/supply return-path work before inviting more supply.
+5. Expand OpenAPI, AsyncAPI, fixtures, and idempotency checks before broad public marketplace claims.
+6. Expand solution-run v0 with fulfillment attachment only when the worker, provider, or review lane is real.
