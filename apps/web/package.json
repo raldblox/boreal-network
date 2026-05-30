@@ -18,6 +18,7 @@
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
+    "evals": "node scripts/run-promptfoo-evals.mjs",
     "seed:character-call-demo": "tsx scripts/seed-character-call-demo.ts",
     "eval:request-processing:matcher": "tsx scripts/run-request-processing-matcher-benchmark.ts",
     "eval:request-processing:live": "tsx scripts/run-request-processing-live-benchmark.ts",

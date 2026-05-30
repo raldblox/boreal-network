@@ -206,6 +206,8 @@ Metric intent:
 
 From the repo root:
 
+- `pnpm evals`
+  Runs the Promptfoo app-path suite for `apps/web` chat behavior. The wrapper starts the web app locally, logs in through guest auth, posts synthetic cases to `/api/chat`, and writes Promptfoo output under `tmp/promptfoo/`.
 - `pnpm evals:request-processing`
   Validates eval fixture structure only.
 - `pnpm evals:request-processing:sample`
@@ -256,6 +258,41 @@ The default live runner behavior should remain:
 - zero hidden repair passes
 - zero hidden model-judge scoring
 - explicit artifact recording under a timestamped output directory
+
+## Promptfoo App-Path Suite
+
+The first Promptfoo suite lives under:
+
+- `apps/web/evals/promptfoo/`
+
+It evaluates the route users hit instead of only the raw prompt:
+
+- `apps/web/evals/promptfoo/provider.cjs` signs in as a guest and posts to `/api/chat`
+- `apps/web/evals/promptfoo/promptfooconfig.yaml` defines synthetic seed cases
+- `apps/web/evals/promptfoo/assertions.cjs` scores deterministic route output, tool calls, and business-rule language without using a second model judge
+
+Initial seed coverage:
+
+- support answer quality and live-versus-target overclaim risk
+- request-mode `createRequestBrief` correctness
+- embodied-work clarification and proof discipline
+- request-grant passive-investment and tax-treatment boundaries
+- generated-summary versus embodied-proof boundaries
+
+Required local environment:
+
+- `POSTGRES_URL`
+- `AUTH_SECRET`
+- existing model gateway credentials used by `/api/chat`
+
+Optional overrides:
+
+- `BOREAL_PROMPTFOO_PORT`
+- `BOREAL_PROMPTFOO_BASE_URL`
+- `BOREAL_PROMPTFOO_COOKIE`
+- `BOREAL_PROMPTFOO_MODEL`
+
+Fixtures must stay synthetic and free of secrets, customer data, and sensitive personal data.
 
 A reproducible multi-model study command now exists at the repo root:
 
