@@ -20,6 +20,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   type ChangeEvent,
+  type DragEvent,
   type Dispatch,
   memo,
   type SetStateAction,
@@ -159,9 +160,13 @@ function ModelProviderMark({ provider }: { provider: string }) {
 }
 
 function createUploadId(file: File, index: number) {
-  return `${file.name}-${file.size}-${file.lastModified}-${index}-${Math.random()
+  return `${file.name || "attachment"}-${file.size}-${file.lastModified}-${index}-${Math.random()
     .toString(36)
     .slice(2)}`;
+}
+
+function hasDraggedFiles(event: DragEvent<HTMLElement>) {
+  return Array.from(event.dataTransfer.types).includes("Files");
 }
 
 function renameFileExtension(name: string, extension: string) {
@@ -398,7 +403,9 @@ function PureMultimodalInput({
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragDepthRef = useRef(0);
   const [uploadQueue, setUploadQueue] = useState<PendingAttachmentUpload[]>([]);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
@@ -547,62 +554,82 @@ function PureMultimodalInput({
     }
   }, []);
 
-  const handleFileChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files || []);
-
+  const uploadFiles = useCallback(
+    async (files: File[]) => {
       if (files.length === 0) {
         return;
       }
 
-      if (attachments.length + uploadQueue.length + files.length > maxChatAttachmentCount) {
+      if (
+        attachments.length + uploadQueue.length + files.length >
+        maxChatAttachmentCount
+      ) {
         toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
-        event.target.value = "";
         return;
       }
 
-      const rejectedFiles = files
-        .map((file) => ({ file, validation: validateChatAttachmentFile(file) }))
-        .filter(({ validation }) => validation.error);
-      const acceptedFiles = files.filter(
-        (file) => !validateChatAttachmentFile(file).error
+      const validatedFiles = files.map((file) => ({
+        file,
+        validation: validateChatAttachmentFile(file),
+      }));
+      const rejectedFiles = validatedFiles.filter(
+        ({ validation }) => validation.error
       );
+      const acceptedFiles = validatedFiles
+        .filter(({ validation }) => !validation.error)
+        .map(({ file }) => file);
 
       for (const { file, validation } of rejectedFiles) {
-        toast.error(`${file.name}: ${validation.error}`);
+        toast.error(`${file.name || "Attachment"}: ${validation.error}`);
       }
 
       if (acceptedFiles.length === 0) {
-        event.target.value = "";
         return;
       }
 
-      setUploadQueue(
-        acceptedFiles.map((file, index) => ({
-          id: createUploadId(file, index),
-          name: file.name,
-        }))
-      );
+      const queuedUploads = acceptedFiles.map((file, index) => ({
+        id: createUploadId(file, index),
+        name: file.name || "Attachment",
+      }));
+      const queuedUploadIds = new Set(queuedUploads.map((upload) => upload.id));
+
+      setUploadQueue((currentQueue) => [...currentQueue, ...queuedUploads]);
 
       try {
-        const uploadPromises = acceptedFiles.map((file) => uploadFile(file));
-        const uploadedAttachments = await Promise.all(uploadPromises);
+        const uploadedAttachments = await Promise.all(
+          acceptedFiles.map((file) => uploadFile(file))
+        );
         const successfullyUploadedAttachments = uploadedAttachments.filter(
           (attachment) => attachment !== undefined
         ) as Attachment[];
 
-        setAttachments((currentAttachments) => [
-          ...currentAttachments,
-          ...successfullyUploadedAttachments,
-        ]);
+        if (successfullyUploadedAttachments.length > 0) {
+          setAttachments((currentAttachments) => [
+            ...currentAttachments,
+            ...successfullyUploadedAttachments,
+          ]);
+        }
+
+        if (successfullyUploadedAttachments.length < acceptedFiles.length) {
+          toast.error("Some files could not be uploaded.");
+        }
       } catch (_error) {
         toast.error("Failed to upload files");
       } finally {
-        setUploadQueue([]);
-        event.target.value = "";
+        setUploadQueue((currentQueue) =>
+          currentQueue.filter((upload) => !queuedUploadIds.has(upload.id))
+        );
       }
     },
     [attachments.length, setAttachments, uploadFile, uploadQueue.length]
+  );
+
+  const handleFileChange = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      await uploadFiles(Array.from(event.target.files || []));
+      event.target.value = "";
+    },
+    [uploadFiles]
   );
 
   const handlePaste = useCallback(
@@ -626,44 +653,56 @@ function PureMultimodalInput({
         .map((item) => item.getAsFile())
         .filter((file): file is File => file !== null);
 
-      if (
-        attachments.length + uploadQueue.length + files.length >
-        maxChatAttachmentCount
-      ) {
-        toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
+      await uploadFiles(files);
+    },
+    [uploadFiles]
+  );
+
+  const handleDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (!hasDraggedFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    dragDepthRef.current += 1;
+    setIsDraggingFiles(true);
+  }, []);
+
+  const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (!hasDraggedFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+    setIsDraggingFiles(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (!hasDraggedFiles(event)) {
+      return;
+    }
+
+    event.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+
+    if (dragDepthRef.current === 0) {
+      setIsDraggingFiles(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    async (event: DragEvent<HTMLDivElement>) => {
+      if (!hasDraggedFiles(event)) {
         return;
       }
 
-      setUploadQueue((prev) => [
-        ...prev,
-        ...files.map((file, index) => ({
-          id: createUploadId(file, index),
-          name: file.name || "Pasted image",
-        })),
-      ]);
-
-      try {
-        const uploadPromises = files.map((file) => uploadFile(file));
-
-        const uploadedAttachments = await Promise.all(uploadPromises);
-        const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment) =>
-            attachment !== undefined &&
-            attachment.url !== undefined &&
-            attachment.contentType !== undefined
-        );
-
-        setAttachments((curr) => [
-          ...curr,
-          ...(successfullyUploadedAttachments as Attachment[]),
-        ]);
-      } catch (_error) {
-        toast.error("Failed to upload pasted image(s)");
-      } finally {
-        setUploadQueue([]);
-      }
+      event.preventDefault();
+      dragDepthRef.current = 0;
+      setIsDraggingFiles(false);
+      await uploadFiles(Array.from(event.dataTransfer.files || []));
     },
-    [attachments.length, setAttachments, uploadFile, uploadQueue.length]
+    [uploadFiles]
   );
 
   useEffect(() => {
@@ -677,7 +716,13 @@ function PureMultimodalInput({
   }, [handlePaste]);
 
   return (
-    <div className={cn("relative flex w-full flex-col gap-4", className)}>
+    <div
+      className={cn("relative flex w-full flex-col gap-4", className)}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
       {editingMessage && onCancelEdit && (
         <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
           <span>Editing message</span>
@@ -714,6 +759,15 @@ function PureMultimodalInput({
           />
         )}
       </div>
+
+      {isDraggingFiles && (
+        <div
+          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-[32px] border border-dashed border-foreground/25 bg-background/75 text-foreground text-sm shadow-[var(--shadow-float)] backdrop-blur-md"
+          data-testid="attachments-dropzone"
+        >
+          Drop files to attach
+        </div>
+      )}
 
       <PromptInput
         className="[&>div]:rounded-[28px] [&>div]:border [&>div]:border-border/60 [&>div]:bg-background/92 [&>div]:shadow-[0_18px_55px_rgba(15,23,42,0.06)] [&>div]:transition-shadow [&>div]:duration-300 [&>div]:focus-within:shadow-[0_22px_70px_rgba(15,23,42,0.1)]"
