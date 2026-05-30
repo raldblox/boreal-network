@@ -18,10 +18,11 @@ test.describe("Chat Page", () => {
     await expect(page.getByTestId("send-button")).toBeVisible();
   });
 
-  test("suggested actions are visible on empty chat", async ({ page }) => {
+  test("empty chat keeps the composer ready", async ({ page }) => {
     await page.goto("/?mode=chat");
-    const suggestions = page.locator("[data-testid='suggested-actions']");
-    await expect(suggestions).toBeVisible();
+    await expect(page.getByTestId("multimodal-input")).toBeVisible();
+    await expect(page.getByTestId("attachments-button")).toBeEnabled();
+    await expect(page.getByTestId("send-button")).toBeDisabled();
   });
 
   test("can stop generation with stop button", async ({ page }) => {
@@ -120,7 +121,9 @@ test.describe("Chat Input Features", () => {
       },
     ]);
 
-    await expect(page.getByText(/malware\.exe: Unsupported file type/)).toBeVisible();
+    await expect(
+      page.getByText(/malware\.exe: Unsupported file type/)
+    ).toBeVisible();
     await expect(page.getByTestId("input-attachment-preview")).toHaveCount(8);
     expect(uploadCount).toBe(8);
   });

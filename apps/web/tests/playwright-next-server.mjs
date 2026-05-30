@@ -2,13 +2,7 @@ import { spawn } from "node:child_process";
 
 const port = process.env.PORT ?? "3100";
 const pnpmExecPath = process.env.npm_execpath;
-const command = pnpmExecPath
-  ? process.execPath
-  : process.platform === "win32"
-    ? "pnpm.cmd"
-    : "pnpm";
-const args = [
-  ...(pnpmExecPath ? [pnpmExecPath] : []),
+const nextDevArgs = [
   "exec",
   "next",
   "dev",
@@ -18,6 +12,17 @@ const args = [
   "--port",
   port,
 ];
+const isDirectWindowsCmd = !pnpmExecPath && process.platform === "win32";
+const command = pnpmExecPath
+  ? process.execPath
+  : isDirectWindowsCmd
+    ? "cmd.exe"
+    : "pnpm";
+const args = pnpmExecPath
+  ? [pnpmExecPath, ...nextDevArgs]
+  : isDirectWindowsCmd
+    ? ["/d", "/s", "/c", ["pnpm.cmd", ...nextDevArgs].join(" ")]
+    : nextDevArgs;
 
 const child = spawn(
   command,
