@@ -4,6 +4,7 @@ import {
   toPublicRequestPoolEntry,
   type BorealRequestDraft,
 } from "@/lib/request";
+import { selectChatModelRoute } from "@/lib/ai/model-routing";
 
 function makeDraft(overrides: Partial<BorealRequestDraft> = {}): BorealRequestDraft {
   return {
@@ -131,4 +132,52 @@ assert.equal(
   false
 );
 
-console.log("Request public projection and owner-private fulfillment boundaries passed.");
+const lightModelRoute = selectChatModelRoute({
+  requestedModelId: "openai/gpt-5.4-nano",
+  modelMessages: [{ role: "user", content: "short request" }],
+  hasActiveRequest: false,
+  recentActivityCount: 0,
+  requestMode: false,
+});
+
+assert.equal(lightModelRoute.effectiveModelId, "openai/gpt-5.4-nano");
+assert.deepEqual(lightModelRoute.fallbackModelIds, [
+  "openai/gpt-5.4-mini",
+  "openai/o3-mini",
+  "openai/o4-mini",
+  "openai/gpt-5-mini",
+  "openai/gpt-4.1-nano",
+]);
+
+const heavyModelRoute = selectChatModelRoute({
+  requestedModelId: "openai/gpt-5.4-nano",
+  modelMessages: [{ role: "user", content: "x".repeat(60_000) }],
+  hasActiveRequest: false,
+  recentActivityCount: 0,
+  requestMode: false,
+});
+
+assert.equal(heavyModelRoute.effectiveModelId, "openai/gpt-5.4-mini");
+assert.deepEqual(heavyModelRoute.fallbackModelIds, [
+  "openai/o3-mini",
+  "openai/o4-mini",
+  "openai/gpt-5-mini",
+  "openai/gpt-4.1-nano",
+]);
+
+const requestedFallbackRoute = selectChatModelRoute({
+  requestedModelId: "openai/o3-mini",
+  modelMessages: [{ role: "user", content: "reason through this request" }],
+  hasActiveRequest: true,
+  recentActivityCount: 0,
+  requestMode: false,
+});
+
+assert.equal(requestedFallbackRoute.effectiveModelId, "openai/o3-mini");
+assert.deepEqual(requestedFallbackRoute.fallbackModelIds, [
+  "openai/o4-mini",
+  "openai/gpt-5-mini",
+  "openai/gpt-4.1-nano",
+]);
+
+console.log("Request boundaries and model routing passed.");

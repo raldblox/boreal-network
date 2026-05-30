@@ -8,6 +8,10 @@ export async function proxy(request: NextRequest) {
   const isE2eAuthBypass =
     process.env.BOREAL_E2E_AUTH_BYPASS === "1" &&
     request.headers.get("x-boreal-e2e-auth") === "1";
+  const isPromptfooNoDbEvalBypass =
+    process.env.NODE_ENV !== "production" &&
+    process.env.BOREAL_PROMPTFOO_EVAL_NO_DB === "1" &&
+    request.headers.get("x-boreal-eval-no-db") === "1";
   const isPublicHomeView = pathname === "/" && !mode;
   const isPublicRequestBoardView = pathname === "/open-requests";
   const isPublicDesktopView =
@@ -59,7 +63,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (isE2eAuthBypass) {
+  if (isE2eAuthBypass || isPromptfooNoDbEvalBypass) {
     return NextResponse.next();
   }
 

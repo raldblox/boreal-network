@@ -19,6 +19,8 @@
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
     "evals": "node scripts/run-promptfoo-evals.mjs",
+    "evals:auto-improve": "node scripts/run-promptfoo-auto-improve.mjs",
+    "evals:model-routing": "tsx scripts/run-model-routing-evals.ts",
     "seed:character-call-demo": "tsx scripts/seed-character-call-demo.ts",
     "eval:request-processing:matcher": "tsx scripts/run-request-processing-matcher-benchmark.ts",
     "eval:request-processing:live": "tsx scripts/run-request-processing-live-benchmark.ts",
@@ -26,6 +28,7 @@
     "test:request-boundaries": "tsx tests/contracts/request-boundary.test.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.67",
     "@ai-sdk/provider": "^3.0.3",
     "@ai-sdk/react": "3.0.118",
     "@boreal/ui": "workspace:*",

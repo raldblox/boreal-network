@@ -9,6 +9,7 @@ import {
 } from "ai";
 import { checkBotId } from "botid/server";
 import { after } from "next/server";
+import type { Session } from "next-auth";
 import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
@@ -18,6 +19,7 @@ import {
   DEFAULT_CHAT_MODEL,
   getCapabilities,
 } from "@/lib/ai/models";
+import { selectChatModelRoute } from "@/lib/ai/model-routing";
 import {
   type RequestHints,
   type RequestSupplyContextSummary,
@@ -180,6 +182,27 @@ function getStreamContext() {
 
 export { getStreamContext };
 
+function isNoDbPromptfooEvalRequest(request: Request) {
+  return (
+    !isProductionEnvironment &&
+    process.env.BOREAL_PROMPTFOO_EVAL_NO_DB === "1" &&
+    request.headers.get("x-boreal-eval-no-db") === "1"
+  );
+}
+
+function createNoDbEvalSession(): Session {
+  return {
+    expires: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    user: {
+      id: "00000000-0000-4000-8000-000000000001",
+      type: "guest",
+      email: "guest-eval@boreal.local",
+      name: "Eval Guest",
+      image: null,
+    },
+  };
+}
+
 export async function POST(request: Request) {
   let requestBody: PostRequestBody;
 
@@ -201,9 +224,10 @@ export async function POST(request: Request) {
       selectedVisibilityType,
     } = requestBody;
 
+    const noDbEvalMode = isNoDbPromptfooEvalRequest(request);
     const [, session] = await Promise.all([
       checkBotId().catch(() => null),
-      auth(),
+      noDbEvalMode ? Promise.resolve(createNoDbEvalSession()) : auth(),
     ]);
 
     if (!session?.user) {
@@ -214,14 +238,18 @@ export async function POST(request: Request) {
       ? selectedChatModel
       : DEFAULT_CHAT_MODEL;
 
-    await checkIpRateLimit(ipAddress(request));
+    if (!noDbEvalMode) {
+      await checkIpRateLimit(ipAddress(request));
+    }
 
     const userType: UserType = session.user.type;
 
-    const messageCount = await getMessageCountByUserId({
-      id: session.user.id,
-      differenceInHours: 1,
-    });
+    const messageCount = noDbEvalMode
+      ? 0
+      : await getMessageCountByUserId({
+          id: session.user.id,
+          differenceInHours: 1,
+        });
 
     if (messageCount > entitlementsByUserType[userType].maxMessagesPerHour) {
       return new ChatbotError("rate_limit:chat").toResponse();
@@ -229,8 +257,10 @@ export async function POST(request: Request) {
 
     const isToolApprovalFlow = Boolean(messages);
 
-    const chat = await getChatById({ id });
-    const activeRequestRecord = await getRequestByChatId({ chatId: id });
+    const chat = noDbEvalMode ? null : await getChatById({ id });
+    const activeRequestRecord = noDbEvalMode
+      ? null
+      : await getRequestByChatId({ chatId: id });
     const activeRequest = activeRequestRecord
       ? toRequestDraft(activeRequestRecord)
       : null;
@@ -278,7 +308,7 @@ export async function POST(request: Request) {
       if (!activeRequest) {
         messagesFromDb = await getMessagesByChatId({ id });
       }
-    } else if (message?.role === "user") {
+    } else if (message?.role === "user" && !noDbEvalMode) {
       await saveChat({
         id,
         userId: session.user.id,
@@ -335,7 +365,12 @@ export async function POST(request: Request) {
       country,
     };
 
-    if (message?.role === "user" && !activeRequest && !requestMode) {
+    if (
+      message?.role === "user" &&
+      !activeRequest &&
+      !requestMode &&
+      !noDbEvalMode
+    ) {
       await saveMessages({
         messages: [
           {
@@ -350,11 +385,6 @@ export async function POST(request: Request) {
       });
     }
 
-    const modelConfig = chatModels.find((m) => m.id === chatModel);
-    const modelCapabilities = await getCapabilities();
-    const capabilities = modelCapabilities[chatModel];
-    const isReasoningModel = capabilities?.reasoning === true;
-    const supportsTools = capabilities?.tools === true;
     const isActiveRequestMode = activeRequest !== null;
     const isDraftRequestMode = activeRequest?.status === "draft";
     const isPreDraftRequestMode = requestMode === true && activeRequest === null;
@@ -376,6 +406,23 @@ export async function POST(request: Request) {
             limit: 8,
           })
         : [];
+    const modelMessages = await convertToModelMessages(uiMessages);
+    const modelRoute = selectChatModelRoute({
+      requestedModelId: chatModel,
+      modelMessages,
+      hasActiveRequest: isActiveRequestMode,
+      recentActivityCount: recentActivity.length,
+      requestMode,
+    });
+    const routedChatModel = modelRoute.effectiveModelId;
+    const modelConfig =
+      chatModels.find((m) => m.id === routedChatModel) ??
+      chatModels.find((m) => m.id === chatModel);
+    const modelCapabilities = await getCapabilities();
+    const capabilities =
+      modelCapabilities[routedChatModel] ?? modelCapabilities[chatModel];
+    const isReasoningModel = capabilities?.reasoning === true;
+    const supportsTools = capabilities?.tools === true;
     const activeToolNames =
       isReasoningModel && !supportsTools
         ? []
@@ -399,13 +446,13 @@ export async function POST(request: Request) {
         ? stepCountIs(1)
         : stepCountIs(5);
 
-    const modelMessages = await convertToModelMessages(uiMessages);
-
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
         const result = streamText({
-          model: getLanguageModel(chatModel),
+          model: getLanguageModel(routedChatModel, {
+            fallbackModelIds: modelRoute.fallbackModelIds,
+          }),
           system: systemPrompt({
             requestHints,
             supportsTools,
@@ -435,17 +482,18 @@ export async function POST(request: Request) {
               dataStream,
               chatId: id,
               visibility: selectedVisibilityType,
+              dryRun: noDbEvalMode,
             }),
             createDocument: createDocument({
               session,
               dataStream,
-              modelId: chatModel,
+              modelId: routedChatModel,
             }),
             editDocument: editDocument({ dataStream, session }),
             updateDocument: updateDocument({
               session,
               dataStream,
-              modelId: chatModel,
+              modelId: routedChatModel,
             }),
             updateRequestBrief: updateRequestBrief({
               session,
@@ -483,7 +531,7 @@ export async function POST(request: Request) {
             requestSuggestions: requestSuggestions({
               session,
               dataStream,
-              modelId: chatModel,
+              modelId: routedChatModel,
             }),
           },
           experimental_telemetry: {
@@ -504,6 +552,10 @@ export async function POST(request: Request) {
       },
       generateId: generateUUID,
       onFinish: async ({ messages: finishedMessages }) => {
+        if (noDbEvalMode) {
+          return;
+        }
+
         if (activeRequest || requestMode) {
           return;
         }
@@ -564,7 +616,7 @@ export async function POST(request: Request) {
     return createUIMessageStreamResponse({
       stream,
       async consumeSseStream({ stream: sseStream }) {
-        if (!process.env.REDIS_URL) {
+        if (noDbEvalMode || !process.env.REDIS_URL) {
           return;
         }
         try {

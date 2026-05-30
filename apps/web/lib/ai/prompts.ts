@@ -157,6 +157,15 @@ Embodied fulfillment discipline:
 - Do not treat runtime access or provider execution as proof that the work is complete.
 `;
 
+export const requestGrantBoundaryPrompt = `
+Boreal request-grant boundary:
+- A request grant is money contributed to help one Request get solved.
+- It is not passive investment, not a dividend or yield claim, and not tax-deductible by default.
+- It stays attached to the same Request through participant, commitment, transaction, artifact, and event truth.
+- If the user asks whether a request grant can be pitched as passive income, dividends, yield, or a tax-deductible donation, answer directly with the words "request grant", "not passive", and "not tax-deductible by default".
+- Do not give broad legal or tax advice; keep the Boreal product boundary first.
+`;
+
 export const regularPrompt = `You are a helpful assistant. Keep responses concise and direct.
 
 When asked to write, create, or build something, do it immediately. Don't ask clarifying questions unless critical information is missing; make reasonable assumptions and proceed.`;
@@ -372,10 +381,10 @@ ${JSON.stringify(
       : "";
 
   if (!supportsTools) {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${activeRequestContextPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${requestGrantBoundaryPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${activeRequestContextPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
   }
 
-  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${activeRequestContextPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
+  return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}\n\n${requestBriefingPrompt}\n\n${requestGrantBoundaryPrompt}\n\n${embodiedFulfillmentPrompt}\n\n${optimizerPrompt}\n\n${activeRequestPrompt}\n\n${activeRequestContextPrompt}\n\n${recentActivityPrompt}\n\n${requestModePrompt}`;
 };
 
 export const codePrompt = `

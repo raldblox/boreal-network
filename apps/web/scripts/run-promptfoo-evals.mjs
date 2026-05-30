@@ -1,18 +1,22 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(appRoot, "..", "..");
 const port = process.env.BOREAL_PROMPTFOO_PORT ?? "3110";
-const baseUrl =
+let baseUrl =
   process.env.BOREAL_PROMPTFOO_BASE_URL ?? `http://127.0.0.1:${port}`;
-const useExistingServer = process.env.BOREAL_PROMPTFOO_USE_EXISTING_SERVER === "1";
+let useExistingServer = process.env.BOREAL_PROMPTFOO_USE_EXISTING_SERVER === "1";
+const evalNoDbMode = process.env.BOREAL_PROMPTFOO_EVAL_NO_DB === "1";
 const promptfooConfigDir = path.join(repoRoot, "tmp", "promptfoo", "config");
 const promptfooOutputDir = path.join(repoRoot, "tmp", "promptfoo", "results");
 const promptfooOutputPath = path.join(promptfooOutputDir, "latest.json");
+const promptfooPreflightPath = path.join(promptfooOutputDir, "preflight.json");
 const passthroughArgs = process.argv.slice(2).filter((arg) => arg !== "--");
+const require = createRequire(import.meta.url);
 
 await mkdir(promptfooConfigDir, { recursive: true });
 await mkdir(promptfooOutputDir, { recursive: true });
@@ -20,15 +24,24 @@ await mkdir(promptfooOutputDir, { recursive: true });
 let server = null;
 let shuttingDown = false;
 
-function shutdownServer() {
+async function shutdownServer() {
   if (shuttingDown) {
     return;
   }
 
   shuttingDown = true;
 
-  if (server && !server.killed) {
-    server.kill("SIGTERM");
+  if (server && !server.killed && server.exitCode === null) {
+    await new Promise((resolve) => {
+      const timeout = setTimeout(resolve, 6_000);
+
+      server.once("exit", () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+
+      server.kill("SIGTERM");
+    });
   }
 }
 
@@ -77,6 +90,15 @@ async function waitForServer() {
   throw new Error(`Timed out waiting for ${baseUrl}/ping`);
 }
 
+async function isServerReady(url) {
+  try {
+    const response = await fetch(`${url}/ping`);
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function runPromptfoo() {
   const { command, args } = pnpmCommandArgs([
     "exec",
@@ -108,7 +130,91 @@ async function runPromptfoo() {
   });
 }
 
+async function runHealthPreflight() {
+  if (evalNoDbMode) {
+    await writePreflightResult({
+      ok: true,
+      skipped: true,
+      mode: "eval_no_db",
+      baseUrl,
+      durationMs: 0,
+      reason:
+        "BOREAL_PROMPTFOO_EVAL_NO_DB=1 skips guest auth and database preflight for prompt/tool scoring only.",
+    });
+    return;
+  }
+
+  if (process.env.BOREAL_PROMPTFOO_SKIP_HEALTH_PREFLIGHT === "1") {
+    await writePreflightResult({
+      ok: true,
+      skipped: true,
+      baseUrl,
+      durationMs: 0,
+    });
+    return;
+  }
+
+  const startedAt = Date.now();
+
+  try {
+    const provider = require("../evals/promptfoo/provider.cjs");
+    provider.resetSessionCookieForPreflight?.();
+    const cookie = await provider.getSessionCookieForPreflight(baseUrl);
+    const cookieSummary = provider.describeCookieForPreflight?.(cookie) ?? {
+      present: Boolean(cookie),
+      hasSessionCookie: false,
+      cookieNames: [],
+    };
+
+    await writePreflightResult({
+      ok: true,
+      skipped: false,
+      baseUrl,
+      durationMs: Date.now() - startedAt,
+      cookie: cookieSummary,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await writePreflightResult({
+      ok: false,
+      skipped: false,
+      baseUrl,
+      durationMs: Date.now() - startedAt,
+      error: message,
+    });
+
+    throw new Error(
+      `Promptfoo health preflight failed before /api/chat evals: ${message}`
+    );
+  }
+}
+
+async function writePreflightResult(result) {
+  await writeFile(
+    promptfooPreflightPath,
+    `${JSON.stringify(
+      {
+        generatedAt: new Date().toISOString(),
+        ...result,
+      },
+      null,
+      2
+    )}\n`
+  );
+}
+
 try {
+  const defaultDevServerUrl = "http://127.0.0.1:3000";
+  if (
+    !process.env.BOREAL_PROMPTFOO_BASE_URL &&
+    !useExistingServer &&
+    !evalNoDbMode &&
+    (await isServerReady(defaultDevServerUrl))
+  ) {
+    baseUrl = defaultDevServerUrl;
+    useExistingServer = true;
+  }
+
   if (!useExistingServer) {
     server = spawnInherited(process.execPath, ["tests/playwright-next-server.mjs"], {
       env: {
@@ -119,21 +225,20 @@ try {
   }
 
   await waitForServer();
+  await runHealthPreflight();
   const exitCode = await runPromptfoo();
-  shutdownServer();
+  await shutdownServer();
   process.exit(exitCode);
 } catch (error) {
   console.error(error);
-  shutdownServer();
+  await shutdownServer();
   process.exit(1);
 }
 
 process.on("SIGINT", () => {
-  shutdownServer();
-  process.exit(130);
+  shutdownServer().finally(() => process.exit(130));
 });
 
 process.on("SIGTERM", () => {
-  shutdownServer();
-  process.exit(143);
+  shutdownServer().finally(() => process.exit(143));
 });

@@ -1,8 +1,7 @@
 import { tool, type UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
-import { borealOutputKindSchema } from "@/lib/matching-fingerprints";
-import type { RequestOutputKind, RequestVisibility } from "@/lib/request";
+import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import {
   applyRequestBriefPatch,
@@ -10,7 +9,9 @@ import {
   requestBudgetInputSchema,
   requestDeadlineInputSchema,
   requestEmbodiedConstraintInputSchema,
+  requestOutputKindsInputSchema,
   requestSeekingInputSchema,
+  sanitizeRequestOutputKindsInput,
 } from "./request-briefing-shared";
 
 type CreateRequestBriefProps = {
@@ -18,6 +19,7 @@ type CreateRequestBriefProps = {
   dataStream: UIMessageStreamWriter<ChatMessage>;
   chatId: string;
   visibility: RequestVisibility;
+  dryRun?: boolean;
 };
 
 export const createRequestBrief = ({
@@ -25,6 +27,7 @@ export const createRequestBrief = ({
   dataStream,
   chatId,
   visibility,
+  dryRun = false,
 }: CreateRequestBriefProps) =>
   tool({
     description:
@@ -35,9 +38,7 @@ export const createRequestBrief = ({
       body: z.string(),
       constraints: z.record(z.string(), z.unknown()).optional(),
       embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
-      outputKinds: z
-        .union([borealOutputKindSchema, z.array(borealOutputKindSchema)])
-        .optional(),
+      outputKinds: requestOutputKindsInputSchema.optional(),
       seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
       deadline: requestDeadlineInputSchema.optional(),
@@ -52,30 +53,49 @@ export const createRequestBrief = ({
       seeking,
       budget,
       deadline,
-    }) =>
-      applyRequestBriefPatch({
+    }) => {
+      const patch = {
+        brief: buildCreateRequestBriefPayload({
+          title,
+          summary,
+          body,
+          constraints,
+          embodiedConstraints,
+          outputKinds,
+        }),
+        ...(seeking !== undefined
+          ? { seeking: seeking as any }
+          : {}),
+        ...(budget !== undefined ? { budget: budget as any } : {}),
+        ...(deadline !== undefined
+          ? { deadline: deadline as any }
+          : {}),
+      };
+
+      if (dryRun) {
+        return {
+          id: `eval-document-${chatId}`,
+          requestId: `eval-request-${chatId}`,
+          title: patch.brief.title?.trim() || "Untitled request",
+          kind: "code" as const,
+          status: "draft",
+          readiness: {
+            state: "draft",
+            summary:
+              "Eval dry run only; no durable Request, Artifact, or RequestEvent was written.",
+          },
+          missingDetails: [],
+        };
+      }
+
+      return applyRequestBriefPatch({
         session,
         dataStream,
         chatId,
         visibility,
-        patch: {
-          brief: buildCreateRequestBriefPayload({
-            title,
-            summary,
-            body,
-            constraints,
-            embodiedConstraints,
-            outputKinds,
-          }),
-          ...(seeking !== undefined
-            ? { seeking: seeking as any }
-            : {}),
-          ...(budget !== undefined ? { budget: budget as any } : {}),
-          ...(deadline !== undefined
-            ? { deadline: deadline as any }
-            : {}),
-        },
-      }),
+        patch,
+      });
+    },
   });
 
 function normalizeOptionalText(value: string | undefined) {
@@ -105,7 +125,7 @@ function buildCreateRequestBriefPayload({
   body: string;
   constraints: Record<string, unknown> | undefined;
   embodiedConstraints: z.infer<typeof requestEmbodiedConstraintInputSchema> | undefined;
-  outputKinds: RequestOutputKind | RequestOutputKind[] | undefined;
+  outputKinds: z.infer<typeof requestOutputKindsInputSchema> | undefined;
 }) {
   const normalizedTitle = normalizeOptionalText(title);
   const normalizedSummary = normalizeOptionalText(summary);
@@ -113,8 +133,7 @@ function buildCreateRequestBriefPayload({
     constraints,
     embodiedConstraints,
   });
-  const normalizedOutputKinds =
-    typeof outputKinds === "string" ? [outputKinds] : outputKinds;
+  const normalizedOutputKinds = sanitizeRequestOutputKindsInput(outputKinds);
 
   return {
     ...(normalizedTitle ? { title: normalizedTitle } : {}),

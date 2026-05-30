@@ -120,9 +120,10 @@ tests:
         config:
           terms:
             - guaranteed yield
-            - dividend
+            - pays dividends
+            - dividend income
             - passive income product
-            - tax-deductible by default
+            - automatically tax-deductible
 
   - description: proof answer does not treat generated summaries as embodied proof
     vars:

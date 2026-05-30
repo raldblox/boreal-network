@@ -18,6 +18,8 @@
     "web:test": "pnpm --filter @boreal/web test",
     "docs:audit": "node tests/contracts/run-doc-state-audit.mjs",
     "evals": "pnpm --filter @boreal/web evals",
+    "evals:auto-improve": "pnpm --filter @boreal/web evals:auto-improve",
+    "evals:model-routing": "pnpm --filter @boreal/web evals:model-routing",
     "contracts:public-pilot": "node tests/contracts/run-public-pilot-happy-path-fixture.mjs",
     "contracts:desktop-ledger-boundary": "node tests/contracts/run-desktop-ledger-boundary-fixture.mjs",
     "contracts:request-room-replay": "node tests/contracts/run-request-room-replay-fixtures.mjs",

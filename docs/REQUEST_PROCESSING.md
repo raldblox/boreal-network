@@ -1,4 +1,4 @@
-﻿# Request Processing
+# Request Processing
 
 This file defines Boreal's canonical request-processing flow before durable mutations are committed.
 
@@ -55,6 +55,7 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
    Boreal extracts meaning, classifies route, retrieves supply, ranks candidates, and decides the next action.
    Optional request-briefing assist profiles may normalize terse asks into a clearer derived brief shape inside this layer, but they remain read-only and non-durable until a mutation tool writes the `Request`.
    When routing context already exists, this layer may also consume owner-safe preferred-supply and candidate-supply summaries, but it must not treat those summaries as buyer-authored brief text or attached execution truth.
+   Runtime model rotation is operational capacity management only. It may choose a higher-throughput model for larger contexts, but it must not change request lifecycle meaning, policy gates, tool boundaries, or canonical object names.
 3. Execution layer
    Only approved mutation tools write `Request`, `Commitment`, `Fulfillment`, `FulfillmentStep`, `Artifact`, or `Transaction`.
 
@@ -81,6 +82,7 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
    Matching-facing structure should prefer top-level `seeking` criteria instead of overloading `brief.tags`.
    Matching-facing fingerprint fields must use canon-locked enum values when they are structured: `brief.outputKinds`, `seeking.actorKinds`, `seeking.supplyKinds`, `seeking.teamMode`, `derived.routeFamily`, `derived.executionKind`, `derived.paymentMode`, `derived.matchingMode`, `derived.leadRole`, `derived.roleSlots[].roleKey`, `derived.phases[].phaseKey`, `derived.embodiedConstraintSet.verificationRequirements`, `derived.verificationPlan.requiredEvidenceClaims`, and `Supply.capability.{supplyKinds, fulfillmentActorKinds, outputKinds, executionChannels}`.
    Unknown fingerprint values should be rejected or normalized away instead of being stored as freeform canonical state.
+   Request-briefing tool input may arrive as loose model-generated strings or string lists, but durable writes must normalize them into the canon enum catalog. Cross-catalog values such as `written_report` belong in evidence claims or verification requirements, not `brief.outputKinds`.
    If the ask implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, or other non-substitutable human execution, the decision layer should derive explicit embodied execution and verification requirements instead of flattening the request into digital-only work.
 5. Complexity and route classification
    Decide complexity, route family, and whether clarification is required.

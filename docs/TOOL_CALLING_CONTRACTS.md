@@ -1,4 +1,4 @@
-﻿# Tool Calling Contracts
+# Tool Calling Contracts
 
 This file defines Boreal's internal planner, matcher, policy, and mutation tool boundaries.
 
@@ -16,6 +16,8 @@ Reusable prompt analysis is a read-only extraction surface.
 It may detect fields in a public or owned scratch-chat user message, but it must not mutate chat, request, credit, transaction, artifact, or event truth.
 Reusable prompt execution is a mutation surface: it must validate required inputs first, create or reuse one private `Request`, then debit credits through request-attached transaction truth.
 It must not mutate the public source chat or treat the reusable prompt as a new root object.
+
+Runtime model routing, provider retry, and model fallback must reuse the same active tool allowlist, tool-choice policy, and mutation-tool schemas as the originally selected chat route. Fallback is capacity management, not a separate planner or policy lane.
 
 ## Tool Layers
 
@@ -201,6 +203,7 @@ Every mutation call should return:
 - Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.
 - Request-briefing, route-summary, and supply-management mutations that touch structured matching fields must use the canon-locked fingerprint enums documented in `docs/MATCHING_ENGINE.md`.
 - Unknown `outputKinds`, `supplyKinds`, `executionChannels`, route-family values, matching-mode values, role keys, or evidence-claim values must be rejected or normalized away before they reach the durable `Request` or `Supply`.
+- Request-briefing tools may accept loose model-facing string or string-list inputs for `outputKinds`, but only canon `outputKind` values may persist. Evidence-only values such as `written_report` must remain under verification requirements or evidence claims.
 - If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
 - The editable request-input projection must stay limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
 - Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.

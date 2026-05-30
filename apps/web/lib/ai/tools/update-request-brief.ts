@@ -1,8 +1,7 @@
 import { tool, type UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
-import { borealOutputKindSchema } from "@/lib/matching-fingerprints";
-import type { RequestOutputKind, RequestVisibility } from "@/lib/request";
+import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import {
   applyRequestBriefPatch,
@@ -10,7 +9,9 @@ import {
   requestBudgetInputSchema,
   requestDeadlineInputSchema,
   requestEmbodiedConstraintInputSchema,
+  requestOutputKindsInputSchema,
   requestSeekingInputSchema,
+  sanitizeRequestOutputKindsInput,
 } from "./request-briefing-shared";
 
 type UpdateRequestBriefProps = {
@@ -35,9 +36,7 @@ export const updateRequestBrief = ({
       body: z.string().optional(),
       constraints: z.record(z.string(), z.unknown()).optional(),
       embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
-      outputKinds: z
-        .union([borealOutputKindSchema, z.array(borealOutputKindSchema)])
-        .optional(),
+      outputKinds: requestOutputKindsInputSchema.optional(),
       seeking: requestSeekingInputSchema.optional(),
       budget: requestBudgetInputSchema.optional(),
       deadline: requestDeadlineInputSchema.optional(),
@@ -96,7 +95,7 @@ function buildUpdateRequestBriefPayload({
   body: string | undefined;
   constraints: Record<string, unknown> | undefined;
   embodiedConstraints: z.infer<typeof requestEmbodiedConstraintInputSchema> | undefined;
-  outputKinds: RequestOutputKind | RequestOutputKind[] | undefined;
+  outputKinds: z.infer<typeof requestOutputKindsInputSchema> | undefined;
 }) {
   const normalizedTitle = normalizeOptionalText(title);
   const normalizedSummary = normalizeOptionalText(summary);
@@ -105,8 +104,7 @@ function buildUpdateRequestBriefPayload({
     constraints,
     embodiedConstraints,
   });
-  const normalizedOutputKinds =
-    typeof outputKinds === "string" ? [outputKinds] : outputKinds;
+  const normalizedOutputKinds = sanitizeRequestOutputKindsInput(outputKinds);
 
   return {
     ...(normalizedTitle ? { title: normalizedTitle } : {}),

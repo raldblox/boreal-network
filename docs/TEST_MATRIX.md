@@ -1,4 +1,4 @@
-﻿# Test Matrix
+# Test Matrix
 
 This file defines what must be verifiable as Boreal Network evolves.
 
@@ -214,6 +214,11 @@ Verify:
 - reusable prompt run credit debit and request `Transaction` truth should attach to the private run request, not the public source chat
 - reusable prompt fulfillment should publish a generated answer artifact when the model route succeeds, or move the same fulfillment to `blocked` when execution fails
 - live-model benchmark scoring should not depend on a second judge LLM when exact contract or metric-based scoring already exists
+- auto-improve eval runs should produce sanitized audit bundles with raw Promptfoo output, command logs, config snapshots, git state, failure classification, and non-mutating recommendations before any prompt or model-default change is made
+- default nano chat routing should promote context-heavy request turns to `openai/gpt-5.4-mini` and preserve the fallback order `openai/o3-mini`, `openai/o4-mini`, `openai/gpt-5-mini`, `openai/gpt-4.1-nano` without changing the tool allowlist or mutation schemas
+- model-routing eval output should record light, token-heavy, active-request-heavy, message-heavy, activity-heavy, explicitly requested rotation, and pinned-model cases without calling provider APIs
+- Promptfoo app-path evals should run a guest-auth/database preflight before `/api/chat` scoring so Neon/auth failures do not get misread as answer-quality regressions
+- Promptfoo no-DB eval fallback should require an explicit local env flag and header, skip durable writes, dry-run request-brief tool output, and label the run as prompt/tool scoring only rather than persistence or auth coverage
 - typing, token deltas, progress ticks, heartbeats, presence, transient runtime logs, and raw tool stdout or stderr should not create default durable request history
 - resolver device approval should not issue tokens before explicit Boreal account approval
 - resolver refresh rotation should revoke or replace the previous refresh token
@@ -356,6 +361,7 @@ Verify:
 - `RoleSlot` actor-kind and requiredness rules
 - `MatchCandidate` ranking and explanation quality
 - fingerprint enum acceptance and rejection for `outputKinds`, `supplyKinds`, `executionChannels`, route fields, role keys, phase keys, and evidence claims
+- request-briefing chat tools normalize loose `outputKinds` strings or lists before persistence and keep evidence-only values such as `written_report` out of `brief.outputKinds`
 - canonical role normalization for `field_verification -> field_technician` and `local_runner` or `pickup_dropoff -> courier_runner`
 
 ### `Request`

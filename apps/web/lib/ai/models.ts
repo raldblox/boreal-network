@@ -32,6 +32,13 @@ export const chatModels: ChatModel[] = [
     gatewayOrder: ["openai", "azure"],
   },
   {
+    id: "openai/gpt-5.4-mini",
+    name: "GPT-5.4 mini",
+    provider: "openai",
+    description: "Higher-throughput GPT-5.4-class model for larger contexts",
+    gatewayOrder: ["openai", "azure"],
+  },
+  {
     id: "openai/gpt-5.1-codex-mini",
     name: "GPT-5.1 Codex mini",
     provider: "openai",
@@ -51,6 +58,13 @@ export const chatModels: ChatModel[] = [
     name: "GPT-5 mini",
     provider: "openai",
     description: "Fast and cost-efficient GPT-5 model",
+    gatewayOrder: ["openai", "azure"],
+  },
+  {
+    id: "openai/o3-mini",
+    name: "o3-mini",
+    provider: "openai",
+    description: "High-throughput reasoning fallback for large contexts",
     gatewayOrder: ["openai", "azure"],
   },
   {

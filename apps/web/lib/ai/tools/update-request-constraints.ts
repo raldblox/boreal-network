@@ -1,14 +1,15 @@
 import { tool, type UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
-import { borealOutputKindSchema } from "@/lib/matching-fingerprints";
 import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import {
   applyRequestBriefPatch,
   mergeRequestConstraintInputs,
   requestEmbodiedConstraintInputSchema,
+  requestOutputKindsInputSchema,
   requestSeekingInputSchema,
+  sanitizeRequestOutputKindsInput,
 } from "./request-briefing-shared";
 
 type UpdateRequestConstraintsProps = {
@@ -30,9 +31,7 @@ export const updateRequestConstraints = ({
     inputSchema: z.object({
       constraints: z.record(z.string(), z.unknown()).default({}),
       embodiedConstraints: requestEmbodiedConstraintInputSchema.optional(),
-      outputKinds: z
-        .union([borealOutputKindSchema, z.array(borealOutputKindSchema)])
-        .optional(),
+      outputKinds: requestOutputKindsInputSchema.optional(),
       seeking: requestSeekingInputSchema.optional(),
       tags: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
     }),
@@ -54,8 +53,7 @@ export const updateRequestConstraints = ({
               constraints,
               embodiedConstraints,
             }),
-            outputKinds:
-              typeof outputKinds === "string" ? [outputKinds] : outputKinds,
+            outputKinds: sanitizeRequestOutputKindsInput(outputKinds),
             tags: typeof tags === "string" ? [tags] : tags,
           },
           ...(seeking !== undefined

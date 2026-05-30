@@ -6,6 +6,7 @@ import type {
   RequestActorKind,
   RequestBudget,
   RequestExecutionMode,
+  RequestOutputKind,
   RequestPatch,
   RequestVisibility,
 } from "@/lib/request";
@@ -58,6 +59,8 @@ export const requestSeekingInputSchema = z.object({
   teamMode: borealRequestTeamModeSchema.optional(),
   notes: z.string().optional(),
 });
+
+export const requestOutputKindsInputSchema = looseMaybeStringListSchema;
 
 export const requestExecutionModeInputSchema = borealRequestExecutionModeSchema;
 
@@ -288,6 +291,17 @@ function sanitizeRequestSeekingInput(
     ...(teamMode ? { teamMode } : {}),
     ...(notes ? { notes } : {}),
   };
+}
+
+export function sanitizeRequestOutputKindsInput(
+  outputKinds: z.infer<typeof requestOutputKindsInputSchema> | undefined
+): RequestOutputKind[] | undefined {
+  const normalizedOutputKinds = normalizeFingerprintArray(
+    normalizeMaybeStringList(outputKinds),
+    [...borealOutputKindSchema.options]
+  );
+
+  return normalizedOutputKinds.length > 0 ? normalizedOutputKinds : undefined;
 }
 
 function sanitizeRequestBudgetInput(

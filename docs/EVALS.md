@@ -1,4 +1,4 @@
-﻿# Evals
+# Evals
 
 This file defines how Boreal evaluates request processing, planning, matching, policy, and mutation safety.
 
@@ -212,7 +212,9 @@ Metric intent:
 From the repo root:
 
 - `pnpm evals`
-  Runs the Promptfoo app-path suite for `apps/web` chat behavior. The wrapper starts the web app locally, logs in through guest auth, posts synthetic cases to `/api/chat`, and writes Promptfoo output under `tmp/promptfoo/`.
+  Runs the Promptfoo app-path suite for `apps/web` chat behavior. The wrapper starts the web app locally, runs a guest-auth/database preflight, posts synthetic cases to `/api/chat`, and writes Promptfoo output under `tmp/promptfoo/`.
+- `pnpm evals:model-routing`
+  Runs deterministic model-routing evals for default nano traffic, context-heavy promotion to `openai/gpt-5.4-mini`, and the direct OpenAI fallback order. It writes `tmp/promptfoo/model-routing/latest.json`.
 - `pnpm evals:request-processing`
   Validates eval fixture structure only.
 - `pnpm evals:request-processing:sample`
@@ -238,7 +240,7 @@ From the repo root:
 - `pnpm evals:request-processing:matcher:write`
   Rebuilds `fixtures/request/benchmark-actuals/web-live/` from the live `apps/web` matcher so deterministic benchmark comparisons stay tied to real repo behavior.
 - `pnpm evals:request-processing:live`
-  Runs the live-model request-processing benchmark through the `apps/web` AI Gateway stack using the default neutral prompt preset and writes a timestamped artifact bundle under `docs/papers/request-rooted-orchestration-for-mixed-human-ai-fulfillment/results/live-benchmark/`.
+  Runs the live-model request-processing benchmark through the `apps/web` model provider route, preferring direct OpenAI when `OPENAI_API_KEY` is configured and falling back to Vercel AI Gateway when `AI_GATEWAY_API_KEY` is configured. It uses the default neutral prompt preset and writes a timestamped artifact bundle under `docs/papers/request-rooted-orchestration-for-mixed-human-ai-fulfillment/results/live-benchmark/`.
 - `pnpm --filter @boreal/web eval:request-processing:live --model <model-id> --prompt <preset-id> --scenario <scenario-id> --repetitions <n> --output-dir <path>`
   Runs the same live benchmark with explicit models, frozen prompt presets, scenario filters, repetition count, and output path.
 
@@ -281,6 +283,7 @@ The first Promptfoo suite lives under:
 It evaluates the route users hit instead of only the raw prompt:
 
 - `apps/web/evals/promptfoo/provider.cjs` signs in as a guest and posts to `/api/chat`
+- `apps/web/scripts/run-promptfoo-evals.mjs` runs the local app-path health preflight before starting Promptfoo
 - `apps/web/evals/promptfoo/promptfooconfig.yaml` defines synthetic seed cases
 - `apps/web/evals/promptfoo/assertions.cjs` scores deterministic route output, tool calls, and business-rule language without using a second model judge
 
@@ -289,6 +292,7 @@ Initial seed coverage:
 - support answer quality and live-versus-target overclaim risk
 - request-mode `createRequestBrief` correctness
 - embodied-work clarification and proof discipline
+- request-briefing tool-call correctness for `outputKinds` versus evidence-only proof requirements
 - request-grant passive-investment and tax-treatment boundaries
 - generated-summary versus embodied-proof boundaries
 
@@ -296,7 +300,7 @@ Required local environment:
 
 - `POSTGRES_URL`
 - `AUTH_SECRET`
-- existing model gateway credentials used by `/api/chat`
+- `OPENAI_API_KEY` for the preferred direct OpenAI route, or `AI_GATEWAY_API_KEY` for the Vercel AI Gateway fallback used by `/api/chat`
 
 Optional overrides:
 
@@ -304,8 +308,61 @@ Optional overrides:
 - `BOREAL_PROMPTFOO_BASE_URL`
 - `BOREAL_PROMPTFOO_COOKIE`
 - `BOREAL_PROMPTFOO_MODEL`
+- `BOREAL_PROMPTFOO_RATE_LIMIT_RETRIES` defaults to `1` and also retries transient provider timeouts
+- `BOREAL_PROMPTFOO_RATE_LIMIT_DELAY_MS` defaults to `65000`
+- `BOREAL_PROMPTFOO_AUTH_RETRIES` defaults to `4` and retries transient guest-auth/database connectivity failures before posting to `/api/chat`
+- `BOREAL_PROMPTFOO_AUTH_RETRY_DELAY_MS` defaults to `5000`
+- `BOREAL_PROMPTFOO_AUTH_TIMEOUT_MS` defaults to `20000`
+- `BOREAL_PROMPTFOO_SKIP_HEALTH_PREFLIGHT=1` skips the wrapper preflight when the caller has already verified guest auth and database access
+- `BOREAL_PROMPTFOO_EVAL_NO_DB=1` starts a fresh local eval server with an explicit no-DB eval session and dry-run request-brief tool output. Use only when live Neon auth/database connectivity is unavailable; this scores prompt, model, and tool-call behavior but does not cover persistence, real guest auth, rate-count reads, or replay safety.
+- `BOREAL_PROMPTFOO_ROUTE_RETRY_DELAY_MS` defaults to `2000` for transient empty route responses during local server startup or auth refresh
+- `BOREAL_PROMPTFOO_MIN_INTERVAL_MS` defaults to `0`; set to `65000` or higher for one-request-per-minute gateway limits
+- `BOREAL_CONTEXT_HEAVY_TOKEN_ESTIMATE`, `BOREAL_CONTEXT_HEAVY_MESSAGE_COUNT`, and `BOREAL_CONTEXT_HEAVY_ACTIVITY_COUNT` tune when default nano chat traffic promotes to `openai/gpt-5.4-mini`
 
 Fixtures must stay synthetic and free of secrets, customer data, and sensitive personal data.
+
+## Model Routing Evals
+
+The model-routing eval command is deterministic and does not call model providers:
+
+- `pnpm evals:model-routing`
+
+It verifies that:
+
+- light default `openai/gpt-5.4-nano` traffic keeps nano as the effective model
+- token-heavy, active-request-heavy, message-heavy, or recent-activity-heavy default nano traffic promotes to `openai/gpt-5.4-mini`
+- direct rotation fallbacks preserve `openai/o3-mini`, `openai/o4-mini`, `openai/gpt-5-mini`, then `openai/gpt-4.1-nano`
+- explicitly requested rotation models start at the requested model instead of silently promoting
+- non-rotation pinned models stay unchanged
+
+## Auto-Improve Audit Mode
+
+The audit-first auto-improve command is:
+
+- `pnpm evals:auto-improve`
+
+It runs the Promptfoo app-path suite across candidate models, diagnoses failures, and writes a complete local audit bundle under `tmp/promptfoo/auto-improve/<run-id>/`.
+
+Audit bundle contents:
+
+- `audit.json` with sanitized environment presence, git state, per-model stats, per-case route/tool/error details, failure classification, and recommendations
+- `summary.md` with the ranked model recommendation and follow-up actions
+- `logs/*.log` with raw command output per model
+- `results/*.json` with raw Promptfoo output and per-model preflight output
+- `snapshots/*` with the eval config, assertions, provider, and runner used for the audit
+
+When the command targets an already-running local server, the environment snapshot covers the audit runner process only. The existing app server may have loaded ignored env files such as `apps/web/.env.local`; secret values must not be copied into the audit bundle.
+
+Policy:
+
+- auto-improve is audit-only by default
+- it must not silently edit production prompts, model defaults, tool schemas, or app behavior
+- any recommended production change must be made as a normal reviewed patch and then rerun through the same eval suite
+
+Optional model override:
+
+- `BOREAL_PROMPTFOO_AUTO_MODELS=openai/gpt-5.4-nano,openai/gpt-5.4-mini,openai/o3-mini,openai/o4-mini,openai/gpt-5-mini,openai/gpt-4.1-nano`
+- or `pnpm evals:auto-improve -- --models=openai/gpt-5.4-mini,openai/o3-mini,openai/o4-mini`
 
 A reproducible multi-model study command now exists at the repo root:
 
