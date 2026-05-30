@@ -233,7 +233,7 @@ async function optimizeImageForChat(file: File, contentType: string) {
       }
     );
   } catch {
-    return file;
+    throw new Error("Image could not be decoded. Try a different image file.");
   } finally {
     URL.revokeObjectURL(imageUrl);
   }
@@ -400,6 +400,9 @@ function PureMultimodalInput({
   );
 
   const submitForm = useCallback(() => {
+    const draftAttachments = attachments;
+    const draftInput = input;
+
     window.history.pushState(
       {},
       "",
@@ -430,9 +433,26 @@ function PureMultimodalInput({
 
       void Promise.resolve(sendResult).catch(() => {
         setIsSubmitPending(false);
+        setAttachments((currentAttachments) => {
+          const currentUrls = new Set(
+            currentAttachments.map((attachment) => attachment.url)
+          );
+          return [
+            ...currentAttachments,
+            ...draftAttachments.filter(
+              (attachment) => !currentUrls.has(attachment.url)
+            ),
+          ];
+        });
+        setInput((currentInput) =>
+          currentInput.trim().length > 0 ? currentInput : draftInput
+        );
+        setLocalStorageInput(draftInput);
+        toast.error("Message failed to send. Draft restored.");
       });
     } catch {
       setIsSubmitPending(false);
+      toast.error("Message failed to send. Try again.");
       return;
     }
 
@@ -468,19 +488,19 @@ function PureMultimodalInput({
       return;
     }
 
-    const preparedFile =
-      getChatAttachmentKind(clientValidation.contentType) === "image"
-        ? await optimizeImageForChat(file, clientValidation.contentType)
-        : file;
-    const resolvedContentType =
-      resolveChatAttachmentMimeType({
-        name: preparedFile.name,
-        type: preparedFile.type,
-      }) ?? clientValidation.contentType;
-    const formData = new FormData();
-    formData.append("file", preparedFile);
-
     try {
+      const preparedFile =
+        getChatAttachmentKind(clientValidation.contentType) === "image"
+          ? await optimizeImageForChat(file, clientValidation.contentType)
+          : file;
+      const resolvedContentType =
+        resolveChatAttachmentMimeType({
+          name: preparedFile.name,
+          type: preparedFile.type,
+        }) ?? clientValidation.contentType;
+      const formData = new FormData();
+      formData.append("file", preparedFile);
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/files/upload`,
         {
@@ -505,8 +525,12 @@ function PureMultimodalInput({
         data?.error ??
           "Upload failed. Check the file type and size, then try again."
       );
-    } catch (_error) {
-      toast.error("Failed to upload file, please try again!");
+    } catch (error) {
+      toast.error(
+        error instanceof Error && error.message.trim()
+          ? error.message.trim()
+          : "Failed to upload file, please try again!"
+      );
     }
   }, []);
 
