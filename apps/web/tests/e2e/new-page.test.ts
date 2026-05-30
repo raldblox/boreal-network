@@ -31,6 +31,25 @@ test.describe("New page composer", () => {
       "data-expanded",
       "false",
     );
+    await expect(page.getByTestId("sidebar-new-chat")).toContainText(
+      "New chat",
+    );
+    await expect(page.getByTestId("sidebar-post-request")).toContainText(
+      "Post request",
+    );
+    await page.getByTestId("sidebar-post-request").click();
+    await expect(page).toHaveURL(/mode=new&type=request/);
+    await expect(page.getByTestId("new-mode-request")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByTestId("sidebar-new-chat").click();
+    await expect(page).toHaveURL(/mode=new&type=chat/);
+    await expect(page.getByTestId("new-mode-chat")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.waitForTimeout(250);
     await expect(page.getByTestId("suggested-actions")).toHaveCount(0);
     await expect(page.getByText("Quick start")).toHaveCount(0);
 

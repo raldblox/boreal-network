@@ -3,11 +3,12 @@
 import {
   ChevronDownIcon,
   CompassIcon,
+  FilePenLineIcon,
   HomeIcon,
   ListChecksIcon,
+  MessageSquareIcon,
   PackageIcon,
   PanelLeftIcon,
-  PlusIcon,
   StoreIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -47,12 +48,8 @@ const EXPLORE_HREFS = new Set([
   "/supplies",
 ]);
 
-const NEW_HREFS = new Set([
-  "/?mode=new",
-  "/?mode=request",
-  "/supplies/new",
-  "/supplies/new?entry=whitelist",
-]);
+const NEW_CHAT_HREF = "/?mode=new&type=chat";
+const POST_REQUEST_HREF = "/?mode=new&type=request";
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -67,14 +64,18 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const isRegularUser = hasUser && !isGuest;
   const canShowHistory = hasUser;
   const isRootView = pathname === "/";
+  const mode = searchParams.get("mode");
+  const newType = searchParams.get("type");
   const isHomeMode = isRootView && !searchParams.get("mode");
-  const isNewPageMode = isRootView && searchParams.get("mode") === "new";
+  const isNewPageMode = isRootView && mode === "new";
+  const isNewChatMode = isNewPageMode && newType !== "request";
+  const isNewPostRequestMode = isNewPageMode && newType === "request";
   const isSuppliesView =
     pathname === "/supplies" || pathname.startsWith("/supplies/");
   const isServicesView =
     pathname === "/services" || pathname.startsWith("/services/");
   const isOpenRequestsView = pathname === "/open-requests";
-  const isNewRequestMode = isRootView && searchParams.get("mode") === "request";
+  const isNewRequestMode = isRootView && mode === "request";
   const isWhitelistMode =
     pathname === "/supplies/new" && searchParams.get("entry") === "whitelist";
   const isNewSupplyMode = pathname === "/supplies/new";
@@ -83,13 +84,15 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     isServicesView ||
     (isSuppliesView && !isNewSupplyMode) ||
     isOpenRequestsView;
-  const isNewAreaActive = isNewPageMode || isNewRequestMode || isNewSupplyMode;
   const isExploreNavActive = optimisticHref
     ? EXPLORE_HREFS.has(optimisticHref)
     : isBorealWorkActive;
-  const isNewNavActive = optimisticHref
-    ? NEW_HREFS.has(optimisticHref)
-    : isNewAreaActive;
+  const isNewChatNavActive = optimisticHref
+    ? optimisticHref === NEW_CHAT_HREF
+    : isNewChatMode;
+  const isPostRequestNavActive = optimisticHref
+    ? optimisticHref === POST_REQUEST_HREF || optimisticHref === "/?mode=request"
+    : isNewPostRequestMode || isNewRequestMode;
 
   const routeArrived = useCallback(
     (href: string) => {
@@ -98,6 +101,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           return isHomeMode;
         case "/?mode=new":
           return isNewPageMode;
+        case "/?mode=new&type=chat":
+          return isNewChatMode;
+        case "/?mode=new&type=request":
+          return isNewPostRequestMode;
         case "/?mode=request":
           return isNewRequestMode;
         case "/open-requests":
@@ -117,6 +124,8 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     [
       isHomeMode,
       isNewPageMode,
+      isNewChatMode,
+      isNewPostRequestMode,
       isNewRequestMode,
       isOpenRequestsView,
       isServicesView,
@@ -143,9 +152,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     optimisticHref === href && !routeArrived(href);
   const isExplorePending =
     Boolean(optimisticHref && EXPLORE_HREFS.has(optimisticHref)) &&
-    !routeArrived(optimisticHref ?? "");
-  const isNewPending =
-    Boolean(optimisticHref && NEW_HREFS.has(optimisticHref)) &&
     !routeArrived(optimisticHref ?? "");
 
   useEffect(() => {
@@ -304,14 +310,29 @@ export function AppSidebar({ user }: { user: User | undefined }) {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                  isActive={isNewNavActive}
-                  onClick={() => navigateSidebar("/?mode=new")}
-                  tooltip="New"
+                  data-testid="sidebar-new-chat"
+                  isActive={isNewChatNavActive}
+                  onClick={() => navigateSidebar(NEW_CHAT_HREF)}
+                  tooltip="New chat"
                 >
-                  <PlusIcon className="size-4" />
-                  <span className="font-medium">New</span>
+                  <MessageSquareIcon className="size-4" />
+                  <span className="font-medium">New chat</span>
+                  <SidebarNavPendingDot visible={isNavPending(NEW_CHAT_HREF)} />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
+                  data-testid="sidebar-post-request"
+                  isActive={isPostRequestNavActive}
+                  onClick={() => navigateSidebar(POST_REQUEST_HREF)}
+                  tooltip="Post request"
+                >
+                  <FilePenLineIcon className="size-4" />
+                  <span className="font-medium">Post request</span>
                   <SidebarNavPendingDot
-                    visible={isNewPending || isNavPending("/?mode=new")}
+                    visible={isNavPending(POST_REQUEST_HREF)}
                   />
                 </SidebarMenuButton>
               </SidebarMenuItem>
