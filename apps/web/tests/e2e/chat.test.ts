@@ -167,6 +167,48 @@ test.describe("Chat Input Features", () => {
     await expect(page.getByTestId("send-button")).toBeEnabled();
   });
 
+  test("refuses huge image dimensions before browser decode", async ({
+    page,
+  }) => {
+    const pageErrors: Error[] = [];
+    let uploadCount = 0;
+    const hugePngHeader = Buffer.alloc(24);
+
+    hugePngHeader.set(
+      [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+      0
+    );
+    hugePngHeader.write("IHDR", 12, "ascii");
+    hugePngHeader.writeUInt32BE(100_000, 16);
+    hugePngHeader.writeUInt32BE(100_000, 20);
+
+    page.on("pageerror", (error) => pageErrors.push(error));
+    await page.route("**/api/files/upload", async (route) => {
+      uploadCount += 1;
+      await route.fulfill({
+        body: JSON.stringify({
+          error: "Upload should not be reached for huge dimensions.",
+        }),
+        contentType: "application/json",
+        status: 500,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+    await page.getByTestId("attachment-file-input").setInputFiles({
+      buffer: hugePngHeader,
+      mimeType: "image/png",
+      name: "giant-map.png",
+    });
+
+    await expect(page.getByTestId("input-attachment-error")).toContainText(
+      "Image dimensions are too large"
+    );
+    await expect(page.getByTestId("send-button")).toBeDisabled();
+    expect(uploadCount).toBe(0);
+    expect(pageErrors).toEqual([]);
+  });
+
   test("shows supported document guidance and uploaded file metadata", async ({
     page,
   }) => {

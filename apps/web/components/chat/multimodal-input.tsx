@@ -58,6 +58,7 @@ import {
   maxChatAttachmentCount,
   maxOptimizedImageDimension,
   optimizedImageQuality,
+  readChatImageDimensionsFromBytes,
   resolveChatAttachmentMimeType,
   chatAttachmentSupportSummary,
   validateChatAttachmentFile,
@@ -272,6 +273,18 @@ async function optimizeImageForChat(file: File, contentType: string) {
     return file;
   }
 
+  const imageDimensions = readChatImageDimensionsFromBytes({
+    contentType,
+    data: new Uint8Array(await file.arrayBuffer()),
+  });
+  const imageDimensionError = imageDimensions
+    ? getChatImageDimensionError(imageDimensions)
+    : "Image dimensions could not be read. Try a different image file.";
+
+  if (imageDimensionError) {
+    throw new Error(imageDimensionError);
+  }
+
   const imageUrl = URL.createObjectURL(file);
 
   try {
@@ -281,15 +294,6 @@ async function optimizeImageForChat(file: File, contentType: string) {
       element.onerror = () => reject(new Error("Image could not be decoded."));
       element.src = imageUrl;
     });
-    const dimensionError = getChatImageDimensionError({
-      height: image.height,
-      width: image.width,
-    });
-
-    if (dimensionError) {
-      throw new Error(dimensionError);
-    }
-
     const scale = Math.min(
       1,
       maxOptimizedImageDimension / Math.max(image.width, image.height)
@@ -337,8 +341,12 @@ async function optimizeImageForChat(file: File, contentType: string) {
         type: outputType,
       }
     );
-  } catch {
-    throw new Error("Image could not be decoded. Try a different image file.");
+  } catch (error) {
+    throw new Error(
+      error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : "Image could not be decoded. Try a different image file."
+    );
   } finally {
     URL.revokeObjectURL(imageUrl);
   }
