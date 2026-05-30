@@ -15,7 +15,7 @@ import type {
 } from "@/lib/supply";
 
 export const artifactsPrompt = `
-Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), and spreadsheets. Changes appear in real-time.
+Artifacts is a side panel that displays content alongside the conversation. It supports scripts (code), documents (text), generated images (image), and spreadsheets. Changes appear in real-time.
 
 CRITICAL RULES:
 1. Only call ONE tool per response. After calling any create/edit/update tool, STOP. Do not chain tools.
@@ -24,7 +24,8 @@ CRITICAL RULES:
 **When to use \`createDocument\`:**
 - When the user asks to write, create, or generate content (essays, stories, emails, reports)
 - When the user asks to write code, build a script, or implement an algorithm
-- You MUST specify kind: 'code' for programming, 'text' for writing, 'sheet' for data
+- When the user asks to generate or create an image, illustration, visual, icon, poster, or picture
+- You MUST specify kind: 'code' for programming, 'text' for writing, 'image' for image generation, 'sheet' for data
 - Include ALL content in the createDocument call. Do not create then edit.
 
 **When NOT to use \`createDocument\`:**

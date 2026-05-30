@@ -32,6 +32,11 @@ export function ImageEditor({
           )}
           <div>Generating Image...</div>
         </div>
+      ) : !content ? (
+        <div className="max-w-sm text-center text-muted-foreground text-sm">
+          Image generation did not return an image. Try again with a simpler
+          prompt.
+        </div>
       ) : (
         <picture>
           <img

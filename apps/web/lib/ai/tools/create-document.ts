@@ -21,13 +21,13 @@ export const createDocument = ({
 }: CreateDocumentProps) =>
   tool({
     description:
-      "Create an artifact. You MUST specify kind: use 'code' for any programming/algorithm request (creates a script), 'text' for essays/writing (creates a document), 'sheet' for spreadsheets/data.",
+      "Create an artifact. You MUST specify kind: use 'code' for any programming/algorithm request (creates a script), 'text' for essays/writing (creates a document), 'image' for image generation, 'sheet' for spreadsheets/data.",
     inputSchema: z.object({
       title: z.string().describe("The title of the artifact"),
       kind: z
         .enum(artifactKinds)
         .describe(
-          "REQUIRED. 'code' for programming/algorithms, 'text' for essays/writing, 'sheet' for spreadsheets"
+          "REQUIRED. 'code' for programming/algorithms, 'text' for essays/writing, 'image' for image generation, 'sheet' for spreadsheets"
         ),
     }),
     execute: async ({ title, kind }) => {
@@ -66,13 +66,18 @@ export const createDocument = ({
         throw new Error(`No document handler found for kind: ${kind}`);
       }
 
-      await documentHandler.onCreateDocument({
-        id,
-        title,
-        dataStream,
-        session,
-        modelId,
-      });
+      try {
+        await documentHandler.onCreateDocument({
+          id,
+          title,
+          dataStream,
+          session,
+          modelId,
+        });
+      } catch (error) {
+        dataStream.write({ type: "data-finish", data: null, transient: true });
+        throw error;
+      }
 
       dataStream.write({ type: "data-finish", data: null, transient: true });
 
@@ -83,6 +88,8 @@ export const createDocument = ({
         content:
           kind === "code"
             ? "A script was created and is now visible to the user."
+            : kind === "image"
+              ? "An image was generated and is now visible to the user."
             : "A document was created and is now visible to the user.",
       };
     },
