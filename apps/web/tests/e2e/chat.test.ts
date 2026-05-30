@@ -86,6 +86,34 @@ test.describe("Chat Input Features", () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test("does not keep malformed successful upload responses", async ({
+    page,
+  }) => {
+    await page.route("**/api/files/upload", async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          contentType: "text/markdown",
+          filename: "notes.md",
+        }),
+        contentType: "application/json",
+        status: 200,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+    await page.getByTestId("attachment-file-input").setInputFiles({
+      buffer: Buffer.from("# Broken upload"),
+      mimeType: "text/markdown",
+      name: "notes.md",
+    });
+
+    await expect(
+      page.getByText(/returned an invalid attachment/)
+    ).toBeVisible();
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(0);
+    await expect(page.getByTestId("send-button")).toBeDisabled();
+  });
+
   test("refuses unsupported files before enforcing attachment limits", async ({
     page,
   }) => {

@@ -167,6 +167,48 @@ function createUploadId(file: File, index: number) {
     .slice(2)}`;
 }
 
+function normalizeUploadedAttachmentUrl(url: string) {
+  try {
+    return new URL(url, window.location.origin).toString();
+  } catch {
+    return null;
+  }
+}
+
+function parseUploadedAttachment(
+  data: unknown,
+  fallbackContentType: string
+): Attachment | null {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  const record = data as Record<string, unknown>;
+  const rawUrl = typeof record.url === "string" ? record.url.trim() : "";
+  const url = rawUrl ? normalizeUploadedAttachmentUrl(rawUrl) : null;
+  const contentType =
+    resolveChatAttachmentMimeType({
+      name: typeof record.filename === "string" ? record.filename : undefined,
+      type: typeof record.contentType === "string" ? record.contentType : undefined,
+    }) ?? fallbackContentType;
+  const nameCandidates = [record.filename, record.pathname, "Attachment"];
+  const name =
+    nameCandidates.find(
+      (value): value is string =>
+        typeof value === "string" && value.trim().length > 0
+    )?.trim() ?? "Attachment";
+
+  if (!url || !contentType) {
+    return null;
+  }
+
+  return {
+    contentType,
+    name,
+    url,
+  };
+}
+
 function hasDraggedFiles(event: DragEvent<HTMLElement>) {
   return Array.from(event.dataTransfer.types).includes("Files");
 }
@@ -541,15 +583,17 @@ function PureMultimodalInput({
       );
 
       if (response.ok) {
-        const data = await response.json();
-        const { url, pathname, filename, contentType, size } = data;
+        const data = await response.json().catch(() => null);
+        const attachment = parseUploadedAttachment(data, resolvedContentType);
 
-        return {
-          contentType: contentType ?? resolvedContentType,
-          name: filename ?? pathname,
-          size,
-          url,
-        };
+        if (!attachment) {
+          toast.error(
+            "Upload finished but Boreal returned an invalid attachment. Try again."
+          );
+          return;
+        }
+
+        return attachment;
       }
       const data = await response.json().catch(() => null);
       toast.error(
