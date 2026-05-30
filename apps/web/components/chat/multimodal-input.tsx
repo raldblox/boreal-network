@@ -7,6 +7,7 @@ import {
   ArrowUpIcon,
   ArrowUpRightIcon,
   BrainIcon,
+  ChevronDownIcon,
   EyeIcon,
   FilePenLineIcon,
   LaptopMinimalIcon,
@@ -84,18 +85,18 @@ import {
 } from "../ai-elements/prompt-input";
 import { Button } from "../ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "../ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { Spinner } from "../ui/spinner";
 import { PaperclipIcon, StopIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
@@ -986,10 +987,10 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
   );
 
   return (
-    <div
+    <fieldset
       aria-label="New mode"
       className="flex items-center gap-1 rounded-xl border border-border/40 bg-muted/30 p-0.5"
-      role="group"
+      data-testid="new-mode-controls"
     >
       <button
         aria-pressed={!isRequestMode}
@@ -999,6 +1000,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
         )}
+        data-testid="new-mode-chat"
         onClick={() => setMode("chat")}
         type="button"
       >
@@ -1013,6 +1015,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
             ? "bg-background text-foreground shadow-sm"
             : "text-muted-foreground hover:text-foreground"
         )}
+        data-testid="new-mode-request"
         onClick={() => setMode("request")}
         type="button"
       >
@@ -1023,10 +1026,13 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         <DropdownMenuTrigger asChild>
           <button
             aria-label="More new actions"
-            className="inline-flex h-7 items-center justify-center rounded-lg px-2 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+            className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+            data-testid="new-supply-menu"
             type="button"
           >
             <PackageIcon className="size-3.5" />
+            Supply
+            <ChevronDownIcon className="size-3" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -1050,7 +1056,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+    </fieldset>
   );
 }
 
