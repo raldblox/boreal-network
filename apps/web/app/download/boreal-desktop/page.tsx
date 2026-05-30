@@ -32,13 +32,19 @@ import {
 import {
   SurfaceTopNav,
 } from "@/components/chat/surface-top-nav";
+import { JsonLd } from "@/components/seo/json-ld";
+import { buildPageMetadata } from "@/lib/seo";
+import { jsonLdGraph, webPageJsonLd } from "@/lib/seo-jsonld";
 import { DesktopRuntimeMonitor } from "./desktop-runtime-monitor";
 
-export const metadata: Metadata = {
+const description =
+  "Boreal Desktop is a local workspace for requests that need privacy, human review, or local tools before the result is ready to send back.";
+
+export const metadata: Metadata = buildPageMetadata({
+  description,
+  path: "/download/boreal-desktop",
   title: "Boreal Desktop",
-  description:
-    "Boreal Desktop is a local workspace for requests that need privacy, human review, or local tools before the result is ready to send back.",
-};
+});
 
 const liveCapabilities = [
   {
@@ -77,7 +83,17 @@ const nextSteps = [
 
 export default function BorealDesktopDownloadPage() {
   return (
-    <div className={surfacePageClassName}>
+    <>
+      <JsonLd
+        data={jsonLdGraph([
+          webPageJsonLd({
+            description,
+            name: "Boreal Desktop",
+            path: "/download/boreal-desktop",
+          }),
+        ])}
+      />
+      <div className={surfacePageClassName}>
       <div className={surfaceColumnClassName}>
         <SurfaceTopNav
           rightSlot={
@@ -333,7 +349,8 @@ export default function BorealDesktopDownloadPage() {
           </main>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
 

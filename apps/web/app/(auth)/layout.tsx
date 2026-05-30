@@ -1,5 +1,9 @@
 import { ArrowLeftIcon, KeyRoundIcon } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
+import { buildPrivateMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPrivateMetadata("Boreal Account");
 
 export default function AuthLayout({
   children,

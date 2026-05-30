@@ -10,12 +10,19 @@ import {
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { JsonLd } from "@/components/seo/json-ld";
 import { mvpArchitecture } from "@/lib/mvp-architecture";
+import { buildPageMetadata } from "@/lib/seo";
+import { jsonLdGraph, webPageJsonLd } from "@/lib/seo-jsonld";
 
-export const metadata: Metadata = {
-  title: "Architecture | Boreal",
-  description: "Production MVP architecture for Boreal Network.",
-};
+const description =
+  "Production MVP architecture for Boreal's request-native work commerce system.";
+
+export const metadata: Metadata = buildPageMetadata({
+  description,
+  path: "/architecture",
+  title: "Architecture",
+});
 
 const sectionIcons = {
   system: Layers3Icon,
@@ -28,7 +35,17 @@ const sectionIcons = {
 
 export default function ArchitecturePage() {
   return (
-    <main className="min-h-dvh bg-background text-foreground">
+    <>
+      <JsonLd
+        data={jsonLdGraph([
+          webPageJsonLd({
+            description,
+            name: "Boreal Architecture",
+            path: "/architecture",
+          }),
+        ])}
+      />
+      <main className="min-h-dvh bg-background text-foreground">
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/92 px-5 backdrop-blur md:px-8">
         <div className="mx-auto flex h-14 w-full max-w-[82rem] items-center justify-between gap-4">
           <Link
@@ -278,7 +295,8 @@ export default function ArchitecturePage() {
           </Link>
         </footer>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 

@@ -2,20 +2,13 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { buildRootMetadata } from "@/lib/seo";
 
 import "@runwayml/avatars-react/styles.css";
 import "./globals.css";
 import { SessionProvider } from "next-auth/react";
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://boreal.work"),
-  title: {
-    default: "Boreal",
-    template: "%s | Boreal",
-  },
-  description:
-    "Boreal turns requests into completed work across humans and AI, with plans, proof, review, and reusable solutions attached to one durable Request.",
-};
+export const metadata: Metadata = buildRootMetadata();
 
 export const viewport = {
   maximumScale: 1,

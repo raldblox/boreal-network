@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/seo/json-ld";
 import { loadProblemIntelDashboard } from "@/lib/problem-intel";
+import { buildPageMetadata } from "@/lib/seo";
+import { jsonLdGraph, webPageJsonLd } from "@/lib/seo-jsonld";
 import { ProblemIntelDirectory } from "./problem-intel-directory";
 
-export const metadata: Metadata = {
+const description =
+  "Structured public problem clusters tagged for pattern mining, request drafts, and Boreal wedge fit.";
+
+export const metadata: Metadata = buildPageMetadata({
+  description,
+  path: "/problem-intel",
   title: "Problem Intel",
-  description:
-    "Structured internet-derived problem clusters, tagged for pattern mining and judged for Boreal wedge fit.",
-};
+});
 
 export default function ProblemIntelPage() {
   const dashboard = loadProblemIntelDashboard();
@@ -15,11 +21,22 @@ export default function ProblemIntelPage() {
     Boolean(process.env.PROBLEM_INTEL_EDIT_TOKEN);
 
   return (
-    <ProblemIntelDirectory
-      report={dashboard.report}
-      source={dashboard.source}
-      problems={dashboard.problems}
-      isEditable={isEditable}
-    />
+    <>
+      <JsonLd
+        data={jsonLdGraph([
+          webPageJsonLd({
+            description,
+            name: "Problem Intel",
+            path: "/problem-intel",
+          }),
+        ])}
+      />
+      <ProblemIntelDirectory
+        report={dashboard.report}
+        source={dashboard.source}
+        problems={dashboard.problems}
+        isEditable={isEditable}
+      />
+    </>
   );
 }

@@ -13,6 +13,15 @@ export async function proxy(request: NextRequest) {
   const isPublicDesktopView =
     pathname === "/download/boreal-desktop" || pathname === "/download/desktop";
   const isPublicAuthView = pathname === "/login" || pathname === "/register";
+  const isPublicDiscoveryView =
+    pathname === "/llms.txt" ||
+    pathname.startsWith("/opengraph-image") ||
+    pathname.startsWith("/twitter-image");
+  const isPublicSeoView =
+    pathname === "/architecture" ||
+    pathname === "/problem-intel" ||
+    pathname === "/services" ||
+    pathname.startsWith("/services/");
 
   if (pathname.startsWith("/ping")) {
     return new Response("pong", { status: 200 });
@@ -67,7 +76,9 @@ export async function proxy(request: NextRequest) {
     (isPublicHomeView ||
       isPublicRequestBoardView ||
       isPublicDesktopView ||
-      isPublicAuthView)
+      isPublicAuthView ||
+      isPublicDiscoveryView ||
+      isPublicSeoView)
   ) {
     return NextResponse.next();
   }

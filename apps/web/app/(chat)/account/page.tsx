@@ -7,11 +7,15 @@ import {
   WalletCardsIcon,
 } from "lucide-react";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/app/(auth)/auth";
 import { Button } from "@/components/ui/button";
 import { getUserById } from "@/lib/db/queries";
 import { getBuyerCreditSummary } from "@/lib/payment-server";
+import { buildPrivateMetadata } from "@/lib/seo";
+
+export const metadata: Metadata = buildPrivateMetadata("Account Credits");
 
 function formatMoney(value: string | null | undefined, currency = "USD") {
   const amount = Number(value ?? 0);

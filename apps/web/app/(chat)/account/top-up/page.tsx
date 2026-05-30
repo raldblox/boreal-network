@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/app/(auth)/auth";
 import { Button } from "@/components/ui/button";
@@ -15,8 +16,11 @@ import {
   createPayPalBuyerCreditTopUpOrder,
   getBuyerCreditSummary,
 } from "@/lib/payment-server";
+import { buildPrivateMetadata } from "@/lib/seo";
 import { generateUUID } from "@/lib/utils";
 import { AccountTopUpForm } from "./top-up-form";
+
+export const metadata: Metadata = buildPrivateMetadata("Top Up Credits");
 
 const defaultTopUpAmount = "1.00";
 const topUpFundingSources = [

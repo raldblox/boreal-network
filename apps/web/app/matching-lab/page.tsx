@@ -1,16 +1,9 @@
 import type { Metadata } from "next";
 import { loadRequestMatchingLabFixtures } from "@/lib/request-matching-lab-server";
+import { buildPrivateMetadata } from "@/lib/seo";
 import { MatchingLabClient } from "./matching-lab-client";
 
-export const metadata: Metadata = {
-  title: "Matching Lab",
-  description:
-    "Full-screen Boreal request workflow canvas with draggable nodes, adaptive match edges, and a collapsible inspector.",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
+export const metadata: Metadata = buildPrivateMetadata("Matching Lab");
 
 export default function MatchingLabPage() {
   const fixtures = loadRequestMatchingLabFixtures();

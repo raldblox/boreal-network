@@ -1,5 +1,6 @@
 import { KeyRoundIcon, ShieldCheckIcon, Trash2Icon } from "lucide-react";
 import { revalidatePath } from "next/cache";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/app/(auth)/auth";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,10 @@ import {
   getAccountPasskeyCredentialsByUserId,
   getUserById,
 } from "@/lib/db/queries";
+import { buildPrivateMetadata } from "@/lib/seo";
 import { PasskeyEnrollment } from "./passkey-enrollment";
+
+export const metadata: Metadata = buildPrivateMetadata("Account Security");
 
 function formatDate(value: Date | null) {
   if (!value) {
