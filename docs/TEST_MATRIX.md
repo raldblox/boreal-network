@@ -78,6 +78,7 @@ Verify:
 
 Verify:
 
+- `pnpm contracts:idempotency` covers the seeded payment, buyer-credit, commitment, artifact, and fulfillment mutation replay contract
 - duplicate create actions do not fork business truth
 - duplicate payment verification does not double-settle
 - duplicate buyer-credit top-up or apply-credit requests with the same idempotency key do not double-change credit balance

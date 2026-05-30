@@ -21,6 +21,7 @@
     "contracts:public-pilot": "node tests/contracts/run-public-pilot-happy-path-fixture.mjs",
     "contracts:desktop-ledger-boundary": "node tests/contracts/run-desktop-ledger-boundary-fixture.mjs",
     "contracts:request-room-replay": "node tests/contracts/run-request-room-replay-fixtures.mjs",
+    "contracts:idempotency": "node tests/contracts/run-idempotency-replay-fixtures.mjs",
     "contracts:solution-runs": "node tests/contracts/run-solution-run-fixtures.mjs",
     "evals:request-processing": "node tests/contracts/run-request-processing-evals.mjs",
     "evals:request-processing:sample": "node tests/contracts/run-request-processing-evals.mjs --actual fixtures/request/eval-complex-human-planning-and-match.actual.sample.json",

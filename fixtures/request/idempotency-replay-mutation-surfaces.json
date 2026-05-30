@@ -1,0 +1,338 @@
+{
+  "fixtureType": "idempotency_replay_mutation_surfaces",
+  "scenarioId": "idempotency-replay-mutation-surfaces",
+  "description": "Mutating payment, buyer-credit, commitment, artifact, and fulfillment surfaces return the same durable records on same-key replay and reject same-key conflicting payloads without duplicate writes.",
+  "request": {
+    "id": "req_idempotency_surface_pilot",
+    "status": "funded",
+    "visibility": "private",
+    "ownerId": "act_idempotency_buyer",
+    "activeRefs": {
+      "activeCommitmentId": "cmt_idem_commitment_proposal",
+      "activeFulfillmentId": "ful_idem_create"
+    }
+  },
+  "buyerCreditAccount": {
+    "id": "bca_idempotency_buyer",
+    "ownerId": "act_idempotency_buyer",
+    "currency": "USD",
+    "balanceBefore": 25,
+    "balanceAfter": 20
+  },
+  "commitments": [
+    {
+      "id": "cmt_idem_commitment_proposal",
+      "requestId": "req_idempotency_surface_pilot",
+      "status": "proposed",
+      "supplyId": "sup_idempotency_responder",
+      "idempotencyKey": "idem_commitment_propose_001"
+    }
+  ],
+  "fulfillments": [
+    {
+      "id": "ful_idem_create",
+      "requestId": "req_idempotency_surface_pilot",
+      "commitmentId": "cmt_idem_commitment_proposal",
+      "status": "active",
+      "idempotencyKey": "idem_fulfillment_create_001"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "art_idem_delivery_proof",
+      "requestId": "req_idempotency_surface_pilot",
+      "fulfillmentId": "ful_idem_create",
+      "kind": "delivery",
+      "container": {
+        "kind": "document",
+        "documentId": "doc_idem_delivery_proof",
+        "documentKind": "text"
+      },
+      "idempotencyKey": "idem_artifact_publish_001"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "txn_idem_payment_verification",
+      "requestId": "req_idempotency_surface_pilot",
+      "kind": "verification",
+      "status": "verified",
+      "amount": 500,
+      "currency": "USD",
+      "idempotencyKey": "idem_payment_verify_001"
+    },
+    {
+      "id": "txn_idem_credit_apply",
+      "requestId": "req_idempotency_surface_pilot",
+      "kind": "settlement",
+      "status": "settled",
+      "amount": 5,
+      "currency": "USD",
+      "metadata": {
+        "fundingSource": "buyer_credit",
+        "creditLedgerEntryId": "cle_idem_apply"
+      },
+      "idempotencyKey": "idem_credit_apply_001"
+    }
+  ],
+  "buyerCreditLedgerEntries": [
+    {
+      "id": "cle_idem_apply",
+      "accountId": "bca_idempotency_buyer",
+      "requestId": "req_idempotency_surface_pilot",
+      "transactionId": "txn_idem_credit_apply",
+      "kind": "debit",
+      "status": "settled",
+      "amount": 5,
+      "currency": "USD",
+      "balanceAfter": 20,
+      "idempotencyKey": "idem_credit_apply_001"
+    }
+  ],
+  "events": [
+    {
+      "eventId": "evt_idem_payment_verified",
+      "requestId": "req_idempotency_surface_pilot",
+      "eventType": "transaction.verified",
+      "aggregateType": "transaction",
+      "aggregateId": "txn_idem_payment_verification",
+      "idempotencyKey": "idem_payment_verify_001"
+    },
+    {
+      "eventId": "evt_idem_credit_applied",
+      "requestId": "req_idempotency_surface_pilot",
+      "eventType": "transaction.settled",
+      "aggregateType": "transaction",
+      "aggregateId": "txn_idem_credit_apply",
+      "idempotencyKey": "idem_credit_apply_001"
+    },
+    {
+      "eventId": "evt_idem_commitment_proposed",
+      "requestId": "req_idempotency_surface_pilot",
+      "eventType": "commitment.proposed",
+      "aggregateType": "commitment",
+      "aggregateId": "cmt_idem_commitment_proposal",
+      "idempotencyKey": "idem_commitment_propose_001"
+    },
+    {
+      "eventId": "evt_idem_artifact_added",
+      "requestId": "req_idempotency_surface_pilot",
+      "eventType": "artifact.added",
+      "aggregateType": "artifact",
+      "aggregateId": "art_idem_delivery_proof",
+      "idempotencyKey": "idem_artifact_publish_001"
+    },
+    {
+      "eventId": "evt_idem_fulfillment_created",
+      "requestId": "req_idempotency_surface_pilot",
+      "eventType": "fulfillment.created",
+      "aggregateType": "fulfillment",
+      "aggregateId": "ful_idem_create",
+      "idempotencyKey": "idem_fulfillment_create_001"
+    }
+  ],
+  "operations": [
+    {
+      "surface": "payment",
+      "mutation": "request_transaction_verification",
+      "method": "POST",
+      "endpoint": "/api/requests/req_idempotency_surface_pilot/transactions",
+      "idempotencyKey": "idem_payment_verify_001",
+      "first": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|kind=verification|amount=500|currency=USD|provider_ref=pay_verified_001",
+        "status": "created",
+        "durableWriteCount": 2,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "transactionId": "txn_idem_payment_verification",
+          "eventIds": [
+            "evt_idem_payment_verified"
+          ]
+        }
+      },
+      "replay": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|kind=verification|amount=500|currency=USD|provider_ref=pay_verified_001",
+        "status": "idempotent_replay",
+        "durableWriteCount": 0,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "transactionId": "txn_idem_payment_verification",
+          "eventIds": [
+            "evt_idem_payment_verified"
+          ]
+        }
+      },
+      "conflict": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|kind=verification|amount=700|currency=USD|provider_ref=pay_verified_001",
+        "status": "idempotency_conflict",
+        "durableWriteCount": 0,
+        "durableRefs": {}
+      }
+    },
+    {
+      "surface": "credit",
+      "mutation": "buyer_credit_apply",
+      "method": "POST",
+      "endpoint": "/api/buyer-credits/apply",
+      "idempotencyKey": "idem_credit_apply_001",
+      "first": {
+        "inputFingerprint": "account=bca_idempotency_buyer|request=req_idempotency_surface_pilot|amount=5|currency=USD",
+        "status": "created",
+        "durableWriteCount": 3,
+        "balanceAfter": 20,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "transactionId": "txn_idem_credit_apply",
+          "ledgerEntryId": "cle_idem_apply",
+          "eventIds": [
+            "evt_idem_credit_applied"
+          ]
+        }
+      },
+      "replay": {
+        "inputFingerprint": "account=bca_idempotency_buyer|request=req_idempotency_surface_pilot|amount=5|currency=USD",
+        "status": "idempotent_replay",
+        "durableWriteCount": 0,
+        "balanceAfter": 20,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "transactionId": "txn_idem_credit_apply",
+          "ledgerEntryId": "cle_idem_apply",
+          "eventIds": [
+            "evt_idem_credit_applied"
+          ]
+        }
+      },
+      "conflict": {
+        "inputFingerprint": "account=bca_idempotency_buyer|request=req_idempotency_surface_pilot|amount=7|currency=USD",
+        "status": "idempotency_conflict",
+        "durableWriteCount": 0,
+        "balanceAfter": 20,
+        "durableRefs": {}
+      }
+    },
+    {
+      "surface": "commitment",
+      "mutation": "commitment_propose",
+      "method": "POST",
+      "endpoint": "/api/requests/req_idempotency_surface_pilot/commitments",
+      "idempotencyKey": "idem_commitment_propose_001",
+      "first": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|supply=sup_idempotency_responder|amount=500|deliverable=pilot-proof",
+        "status": "created",
+        "durableWriteCount": 2,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "commitmentId": "cmt_idem_commitment_proposal",
+          "eventIds": [
+            "evt_idem_commitment_proposed"
+          ]
+        }
+      },
+      "replay": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|supply=sup_idempotency_responder|amount=500|deliverable=pilot-proof",
+        "status": "idempotent_replay",
+        "durableWriteCount": 0,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "commitmentId": "cmt_idem_commitment_proposal",
+          "eventIds": [
+            "evt_idem_commitment_proposed"
+          ]
+        }
+      },
+      "conflict": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|supply=sup_idempotency_responder|amount=650|deliverable=pilot-proof",
+        "status": "idempotency_conflict",
+        "durableWriteCount": 0,
+        "durableRefs": {}
+      }
+    },
+    {
+      "surface": "artifact",
+      "mutation": "artifact_publish",
+      "method": "POST",
+      "endpoint": "/api/requests/req_idempotency_surface_pilot/artifacts",
+      "idempotencyKey": "idem_artifact_publish_001",
+      "first": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|fulfillment=ful_idem_create|kind=delivery|document=doc_idem_delivery_proof",
+        "status": "created",
+        "durableWriteCount": 2,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "artifactId": "art_idem_delivery_proof",
+          "fulfillmentId": "ful_idem_create",
+          "eventIds": [
+            "evt_idem_artifact_added"
+          ]
+        }
+      },
+      "replay": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|fulfillment=ful_idem_create|kind=delivery|document=doc_idem_delivery_proof",
+        "status": "idempotent_replay",
+        "durableWriteCount": 0,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "artifactId": "art_idem_delivery_proof",
+          "fulfillmentId": "ful_idem_create",
+          "eventIds": [
+            "evt_idem_artifact_added"
+          ]
+        }
+      },
+      "conflict": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|fulfillment=ful_idem_create|kind=delivery|document=doc_changed_delivery_proof",
+        "status": "idempotency_conflict",
+        "durableWriteCount": 0,
+        "durableRefs": {}
+      }
+    },
+    {
+      "surface": "fulfillment",
+      "mutation": "fulfillment_create",
+      "method": "POST",
+      "endpoint": "/api/requests/req_idempotency_surface_pilot/fulfillments",
+      "idempotencyKey": "idem_fulfillment_create_001",
+      "first": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|commitment=cmt_idem_commitment_proposal|supply=sup_idempotency_responder",
+        "status": "created",
+        "durableWriteCount": 2,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "commitmentId": "cmt_idem_commitment_proposal",
+          "fulfillmentId": "ful_idem_create",
+          "eventIds": [
+            "evt_idem_fulfillment_created"
+          ]
+        }
+      },
+      "replay": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|commitment=cmt_idem_commitment_proposal|supply=sup_idempotency_responder",
+        "status": "idempotent_replay",
+        "durableWriteCount": 0,
+        "durableRefs": {
+          "requestId": "req_idempotency_surface_pilot",
+          "commitmentId": "cmt_idem_commitment_proposal",
+          "fulfillmentId": "ful_idem_create",
+          "eventIds": [
+            "evt_idem_fulfillment_created"
+          ]
+        }
+      },
+      "conflict": {
+        "inputFingerprint": "request=req_idempotency_surface_pilot|commitment=cmt_idem_commitment_proposal|supply=sup_other_responder",
+        "status": "idempotency_conflict",
+        "durableWriteCount": 0,
+        "durableRefs": {}
+      }
+    }
+  ],
+  "expectedInvariants": [
+    "Same idempotency key plus same input fingerprint returns the same durable refs.",
+    "Same idempotency key plus changed input fingerprint fails as an idempotency conflict.",
+    "Replays create zero new durable writes.",
+    "Conflict attempts create zero durable writes.",
+    "Buyer-credit replay does not double-debit balance.",
+    "Commitment, artifact, and fulfillment replays do not create duplicate request activity."
+  ]
+}
