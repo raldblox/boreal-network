@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { convertToModelMessages } from "ai";
 import { postRequestBodySchema } from "@/app/(chat)/api/chat/schema";
+import { desktopTurnPersistBodySchema } from "@/app/(chat)/api/chat/desktop-turn/schema";
 import {
   getChatImageDimensionError,
   maxChatAttachmentBytes,
@@ -195,6 +196,38 @@ const legacyFilePayload = postRequestBodySchema.parse({
 });
 
 assert.equal(legacyFilePayload.message?.parts[0]?.type, "file");
+const desktopTurnDocumentPayload = desktopTurnPersistBodySchema.parse({
+  assistantId: "00000000-0000-4000-8000-000000000012",
+  assistantText: "I read the attachment reference.",
+  id: requestId,
+  message: {
+    id: messageId,
+    role: "user",
+    parts: [
+      {
+        type: "file",
+        mediaType: "application/pdf",
+        filename: "brief.pdf",
+        url: "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/brief.pdf&expires=9999999999&signature=test&filename=brief.pdf",
+      },
+      {
+        type: "file",
+        mediaType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        name: "field-notes.docx",
+        url: "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/field-notes.docx&expires=9999999999&signature=test&filename=field-notes.docx",
+      },
+      {
+        type: "file",
+        mediaType: "image/webp",
+        filename: "reference.webp",
+        url: "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/reference.webp&expires=9999999999&signature=test&filename=reference.webp",
+      },
+    ],
+  },
+  selectedVisibilityType: "private",
+});
+assert.equal(desktopTurnDocumentPayload.message.parts.length, 3);
 assert.equal(
   getChatImageDimensionError({ height: 4000, width: 4000 }),
   null

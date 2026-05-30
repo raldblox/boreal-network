@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { auth } from "@/app/(auth)/auth";
 import { generateTitleFromUserMessage } from "@/app/(chat)/actions";
 import {
@@ -11,36 +10,13 @@ import {
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 import { canRespondToRequest } from "@/lib/request-server";
-
-const textPartSchema = z.object({
-  type: z.literal("text"),
-  text: z.string().min(1).max(2000),
-});
-
-const filePartSchema = z.object({
-  type: z.literal("file"),
-  mediaType: z.enum(["image/jpeg", "image/png"]),
-  name: z.string().min(1).max(100),
-  url: z.string().url(),
-});
-
-const userMessageSchema = z.object({
-  id: z.string().uuid(),
-  role: z.literal("user"),
-  parts: z.array(z.union([textPartSchema, filePartSchema])),
-});
-
-const desktopTurnPersistBodySchema = z.object({
-  assistantId: z.string().uuid(),
-  assistantText: z.string(),
-  id: z.string().uuid(),
-  message: userMessageSchema,
-  requestMode: z.boolean().optional(),
-  selectedVisibilityType: z.enum(["public", "private"]),
-});
+import {
+  type DesktopTurnPersistBody,
+  desktopTurnPersistBodySchema,
+} from "./schema";
 
 export async function POST(request: Request) {
-  let body: z.infer<typeof desktopTurnPersistBodySchema>;
+  let body: DesktopTurnPersistBody;
 
   try {
     body = desktopTurnPersistBodySchema.parse(await request.json());
