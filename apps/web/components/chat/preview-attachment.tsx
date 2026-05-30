@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  formatAttachmentBytes,
   getChatAttachmentKind,
   getChatAttachmentLabel,
 } from "@/lib/chat-attachment-policy";
@@ -16,10 +17,11 @@ export const PreviewAttachment = ({
   isUploading?: boolean;
   onRemove?: () => void;
 }) => {
-  const { name, url, contentType } = attachment;
+  const { name, url, contentType, size } = attachment;
   const [imageFailed, setImageFailed] = useState(false);
   const kind = getChatAttachmentKind(contentType);
   const label = getChatAttachmentLabel({ name, type: contentType });
+  const sizeLabel = typeof size === "number" ? formatAttachmentBytes(size) : null;
   const showImage = kind === "image" && url && !imageFailed;
 
   return (
@@ -39,7 +41,10 @@ export const PreviewAttachment = ({
       ) : (
         <div className="flex size-full flex-col items-center justify-center gap-1 px-2 text-center text-muted-foreground text-xs">
           <FileIcon size={20} />
-          <span className="rounded-full bg-background/80 px-2 py-0.5 font-medium text-[10px] text-foreground">
+          <span
+            className="rounded-full bg-background/80 px-2 py-0.5 font-medium text-[10px] text-foreground"
+            data-testid="input-attachment-label"
+          >
             {label}
           </span>
           {name ? (
@@ -47,8 +52,25 @@ export const PreviewAttachment = ({
               {name}
             </span>
           ) : null}
+          {sizeLabel ? (
+            <span
+              className="text-[9px] leading-3 text-muted-foreground/70"
+              data-testid="input-attachment-size"
+            >
+              {sizeLabel}
+            </span>
+          ) : null}
         </div>
       )}
+
+      {showImage && sizeLabel ? (
+        <span
+          className="absolute bottom-1.5 left-1.5 rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] text-white backdrop-blur-sm"
+          data-testid="input-attachment-size"
+        >
+          {sizeLabel}
+        </span>
+      ) : null}
 
       {isUploading && (
         <div

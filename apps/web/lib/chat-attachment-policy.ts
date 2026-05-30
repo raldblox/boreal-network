@@ -50,6 +50,8 @@ export const maxChatDocxInlineCharacters = 80_000;
 export const maxOptimizedImageDimension = 2048;
 export const maxChatImageSourcePixels = 48_000_000;
 export const optimizedImageQuality = 0.82;
+export const chatAttachmentSupportSummary =
+  "Images, PDF, DOCX, Markdown, TXT, CSV, JSON. Images are optimized before upload.";
 
 const extensionMimeTypeMap: Record<string, ChatAttachmentMimeType> = {
   ".csv": "text/csv",

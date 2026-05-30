@@ -86,6 +86,49 @@ test.describe("Chat Input Features", () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test("shows supported document guidance and uploaded file metadata", async ({
+    page,
+  }) => {
+    const docxBody = Buffer.from("fake docx body");
+
+    await page.route("**/api/files/upload", async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          contentType:
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          filename: "field-notes.docx",
+          pathname: "chat-attachments/e2e/field-notes.docx",
+          size: 1536,
+          url: "/api/files/blob?pathname=chat-attachments/e2e/field-notes.docx&expires=9999999999&signature=test&filename=field-notes.docx",
+        }),
+        contentType: "application/json",
+        status: 200,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+    await expect(page.getByTestId("attachment-support-hint")).toContainText(
+      "Images, PDF, DOCX, Markdown, TXT, CSV, JSON"
+    );
+    await expect(page.getByTestId("attachment-file-input")).toHaveAttribute(
+      "accept",
+      /\.docx/
+    );
+
+    await page.getByTestId("attachment-file-input").setInputFiles({
+      buffer: docxBody,
+      mimeType:
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      name: "field-notes.docx",
+    });
+
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(1);
+    await expect(page.getByTestId("input-attachment-label")).toHaveText("DOCX");
+    await expect(page.getByText("field-notes.docx")).toBeVisible();
+    await expect(page.getByTestId("input-attachment-size")).toHaveText("1.5 KB");
+    await expect(page.getByTestId("send-button")).toBeEnabled();
+  });
+
   test("does not keep malformed successful upload responses", async ({
     page,
   }) => {

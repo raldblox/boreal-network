@@ -59,6 +59,7 @@ import {
   maxOptimizedImageDimension,
   optimizedImageQuality,
   resolveChatAttachmentMimeType,
+  chatAttachmentSupportSummary,
   validateChatAttachmentFile,
 } from "@/lib/chat-attachment-policy";
 import {
@@ -117,8 +118,10 @@ function setCookie(name: string, value: string) {
 const DESKTOP_MODEL_PROVIDER = "codex-desktop";
 
 type PendingAttachmentUpload = {
+  contentType: string;
   id: string;
   name: string;
+  size: number;
 };
 
 function toDesktopModelId(modelId: string) {
@@ -205,6 +208,10 @@ function parseUploadedAttachment(
   return {
     contentType,
     name,
+    size:
+      typeof record.size === "number" && Number.isFinite(record.size)
+        ? record.size
+        : undefined,
     url,
   };
 }
@@ -642,10 +649,20 @@ function PureMultimodalInput({
         return;
       }
 
-      const queuedUploads = acceptedFiles.map((file, index) => ({
-        id: createUploadId(file, index),
-        name: file.name || "Attachment",
-      }));
+      const queuedUploads = acceptedFiles.map((file, index) => {
+        const contentType =
+          resolveChatAttachmentMimeType({
+            name: file.name,
+            type: file.type,
+          }) ?? "application/octet-stream";
+
+        return {
+          contentType,
+          id: createUploadId(file, index),
+          name: file.name || "Attachment",
+          size: file.size,
+        };
+      });
       const queuedUploadIds = new Set(queuedUploads.map((upload) => upload.id));
 
       setUploadQueue((currentQueue) => [...currentQueue, ...queuedUploads]);
@@ -870,9 +887,8 @@ function PureMultimodalInput({
             {uploadQueue.map((upload) => (
               <PreviewAttachment
                 attachment={{
+                  ...upload,
                   url: "",
-                  name: upload.name,
-                  contentType: "",
                 }}
                 isUploading={true}
                 key={upload.id}
@@ -880,6 +896,17 @@ function PureMultimodalInput({
             ))}
           </div>
         )}
+        <div
+          aria-live="polite"
+          className="px-4 pt-3 text-[11px] text-muted-foreground/65"
+          data-testid="attachment-support-hint"
+        >
+          {uploadQueue.length > 0
+            ? `Uploading ${uploadQueue.length} ${
+                uploadQueue.length === 1 ? "file" : "files"
+              }. Send unlocks when uploads finish.`
+            : chatAttachmentSupportSummary}
+        </div>
         <PromptInputTextarea
           className={cn(
             "px-4 pb-1.5 pt-4 text-[13px] leading-7 placeholder:text-muted-foreground/35",
