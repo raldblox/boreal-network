@@ -437,6 +437,116 @@ test.describe("Chat Input Features", () => {
     await expect(page.getByTestId("send-button")).toBeDisabled();
   });
 
+  test("does not carry late uploads into a new chat after navigation", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      const testWindow = window as Window &
+        typeof globalThis & {
+          __chatUploadAbortCount?: number;
+          __resolveChatUpload?: () => void;
+        };
+      const originalFetch = window.fetch.bind(window);
+
+      testWindow.__chatUploadAbortCount = 0;
+      window.fetch = (input, init) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof Request
+              ? input.url
+              : String(input);
+
+        if (!url.includes("/api/files/upload")) {
+          return originalFetch(input, init);
+        }
+
+        const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+
+        return new Promise<Response>((resolve, reject) => {
+          let settled = false;
+          const rejectAbort = () => {
+            testWindow.__chatUploadAbortCount =
+              (testWindow.__chatUploadAbortCount ?? 0) + 1;
+
+            if (settled) {
+              return;
+            }
+
+            settled = true;
+            reject(new DOMException("Upload canceled", "AbortError"));
+          };
+
+          testWindow.__resolveChatUpload = () => {
+            if (settled) {
+              return;
+            }
+
+            settled = true;
+            resolve(
+              new Response(
+                JSON.stringify({
+                  contentType: "text/markdown",
+                  filename: "late-upload.md",
+                  pathname: "chat-attachments/e2e/late-upload.md",
+                  size: 13,
+                  url: "/api/files/blob?pathname=chat-attachments/e2e/late-upload.md&expires=9999999999&signature=test&filename=late-upload.md",
+                }),
+                {
+                  headers: {
+                    "content-type": "application/json",
+                  },
+                  status: 200,
+                }
+              )
+            );
+          };
+
+          if (signal?.aborted) {
+            rejectAbort();
+            return;
+          }
+
+          signal?.addEventListener("abort", rejectAbort, { once: true });
+        });
+      };
+    });
+
+    await page.goto("/chat/00000000-0000-4000-8000-000000000101");
+    await page.getByTestId("attachment-file-input").setInputFiles({
+      buffer: Buffer.from("# Late upload"),
+      mimeType: "text/markdown",
+      name: "late-upload.md",
+    });
+
+    await expect(page.getByTestId("input-attachment-loader")).toBeVisible();
+
+    await page.getByRole("button", { exact: true, name: "New" }).click();
+    await expect(page).toHaveURL(/\/\?mode=new$/);
+    await expect(page.getByTestId("multimodal-input")).toBeVisible();
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(0);
+
+    await page.evaluate(() => {
+      (
+        window as Window &
+          typeof globalThis & { __resolveChatUpload?: () => void }
+      ).__resolveChatUpload?.();
+    });
+    await page.waitForTimeout(250);
+
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(0);
+    await expect(page.getByTestId("input-attachment-error")).toHaveCount(0);
+    await expect(page.getByTestId("send-button")).toBeDisabled();
+    const abortCount = await page.evaluate(
+      () =>
+        (
+          window as Window &
+            typeof globalThis & { __chatUploadAbortCount?: number }
+        ).__chatUploadAbortCount ?? 0
+    );
+    expect(abortCount).toBeGreaterThan(0);
+  });
+
   test("does not keep malformed successful upload responses", async ({
     page,
   }) => {

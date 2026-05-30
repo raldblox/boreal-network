@@ -585,10 +585,39 @@ function PureMultimodalInput({
   const isNewPage = pathname === "/" && searchParams.get("mode") === "new";
   const showNewModeControls = isNewPage && !activeRequest && !editingMessage;
   const showSubmitPending = isSubmitPending && status === "ready";
+  const activeUploadControllersRef = useRef(new Map<string, AbortController>());
+  const uploadScopeRef = useRef(0);
   const pinnedWorkerPromptPlaceholder = getPinnedWorkerPromptPlaceholder(
     activeRequest,
     isRequestMode,
   );
+  const abortActiveUploads = useCallback((reason: string) => {
+    for (const controller of activeUploadControllersRef.current.values()) {
+      if (!controller.signal.aborted) {
+        controller.abort(reason);
+      }
+    }
+
+    activeUploadControllersRef.current.clear();
+  }, []);
+
+  useEffect(() => {
+    uploadScopeRef.current += 1;
+    abortActiveUploads(canceledUploadAbortReason);
+    setUploadQueue([]);
+    setFailedUploads([]);
+    dragDepthRef.current = 0;
+    setIsDraggingFiles(false);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+
+    return () => {
+      uploadScopeRef.current += 1;
+      abortActiveUploads(canceledUploadAbortReason);
+    };
+  }, [abortActiveUploads, chatId]);
 
   const submitForm = useCallback(() => {
     const draftAttachments = attachments;
@@ -833,6 +862,15 @@ function PureMultimodalInput({
         };
       });
       const queuedUploadIds = new Set(queuedUploads.map((upload) => upload.id));
+      const uploadScope = uploadScopeRef.current;
+      const isCurrentUploadScope = () => uploadScopeRef.current === uploadScope;
+
+      for (const upload of queuedUploads) {
+        activeUploadControllersRef.current.set(
+          upload.id,
+          upload.abortController
+        );
+      }
 
       setUploadQueue((currentQueue) => [...currentQueue, ...queuedUploads]);
 
@@ -849,6 +887,11 @@ function PureMultimodalInput({
             );
           })
         );
+
+        if (!isCurrentUploadScope()) {
+          return;
+        }
+
         const successfullyUploadedAttachments = uploadedAttachments
           .map((result) => result.attachment)
           .filter((attachment): attachment is Attachment => attachment !== null);
@@ -892,11 +935,19 @@ function PureMultimodalInput({
           );
         }
       } catch (_error) {
-        toast.error("Failed to upload files");
+        if (isCurrentUploadScope()) {
+          toast.error("Failed to upload files");
+        }
       } finally {
-        setUploadQueue((currentQueue) =>
-          currentQueue.filter((upload) => !queuedUploadIds.has(upload.id))
-        );
+        for (const uploadId of queuedUploadIds) {
+          activeUploadControllersRef.current.delete(uploadId);
+        }
+
+        if (isCurrentUploadScope()) {
+          setUploadQueue((currentQueue) =>
+            currentQueue.filter((upload) => !queuedUploadIds.has(upload.id))
+          );
+        }
       }
     },
     [attachments.length, setAttachments, uploadFile, uploadQueue.length]
@@ -1123,6 +1174,7 @@ function PureMultimodalInput({
                 key={upload.id}
                 onRemove={() => {
                   upload.abortController.abort(canceledUploadAbortReason);
+                  activeUploadControllersRef.current.delete(upload.id);
                   setUploadQueue((currentQueue) =>
                     currentQueue.filter((item) => item.id !== upload.id)
                   );
