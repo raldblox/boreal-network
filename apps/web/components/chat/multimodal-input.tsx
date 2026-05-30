@@ -989,20 +989,16 @@ function PureMultimodalInput({
         return;
       }
 
-      const imageItems = Array.from(items).filter((item) =>
-        item.type.startsWith("image/")
-      );
+      const files = Array.from(items)
+        .filter((item) => item.kind === "file")
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null);
 
-      if (imageItems.length === 0) {
+      if (files.length === 0) {
         return;
       }
 
       event.preventDefault();
-
-      const files = imageItems
-        .map((item) => item.getAsFile())
-        .filter((file): file is File => file !== null);
-
       await uploadFiles(files);
     },
     [uploadFiles]

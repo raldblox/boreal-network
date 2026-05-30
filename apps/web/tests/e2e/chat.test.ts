@@ -334,6 +334,60 @@ test.describe("Chat Input Features", () => {
     await expect(page.getByTestId("send-button")).toBeEnabled();
   });
 
+  test("pastes supported document files from the clipboard", async ({
+    page,
+  }) => {
+    let uploadCount = 0;
+
+    await page.route("**/api/files/upload", async (route) => {
+      uploadCount += 1;
+
+      await route.fulfill({
+        body: JSON.stringify({
+          contentType: "text/markdown",
+          filename: "clipboard-notes.md",
+          pathname: "chat-attachments/e2e/clipboard-notes.md",
+          size: 19,
+          url: "/api/files/blob?pathname=chat-attachments/e2e/clipboard-notes.md&expires=9999999999&signature=test&filename=clipboard-notes.md",
+        }),
+        contentType: "application/json",
+        status: 200,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+    await page.getByTestId("multimodal-input").focus();
+    await page.evaluate(() => {
+      const input = document.querySelector<HTMLTextAreaElement>(
+        "[data-testid='multimodal-input']"
+      );
+
+      if (!input) {
+        throw new Error("Chat input not found.");
+      }
+
+      const data = new DataTransfer();
+      data.items.add(
+        new File(["# Clipboard notes"], "clipboard-notes.md", {
+          type: "text/markdown",
+        })
+      );
+      input.dispatchEvent(
+        new ClipboardEvent("paste", {
+          bubbles: true,
+          cancelable: true,
+          clipboardData: data,
+        })
+      );
+    });
+
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(1);
+    await expect(page.getByTestId("input-attachment-label")).toHaveText("MD");
+    await expect(page.getByText("clipboard-notes.md")).toBeVisible();
+    await expect(page.getByTestId("send-button")).toBeEnabled();
+    expect(uploadCount).toBe(1);
+  });
+
   test("keeps failed uploads visible and retryable", async ({ page }) => {
     let uploadCount = 0;
 
