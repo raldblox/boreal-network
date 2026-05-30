@@ -19,8 +19,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
   type ChangeEvent,
-  type DragEvent,
   type Dispatch,
+  type DragEvent,
   memo,
   type SetStateAction,
   useCallback,
@@ -38,9 +38,9 @@ import {
   ModelSelectorInput,
   ModelSelectorItem,
   ModelSelectorList,
-  ModelSelectorSeparator,
   ModelSelectorLogo,
   ModelSelectorName,
+  ModelSelectorSeparator,
   ModelSelectorTrigger,
 } from "@/components/ai-elements/model-selector";
 import {
@@ -66,11 +66,11 @@ import {
   clearStoredDesktopBridgeUrl,
   DESKTOP_BRIDGE_STORAGE_KEY,
   type DesktopRuntimeAccessSnapshot,
-  discoverDesktopRuntime,
   type DesktopRuntimeDiscoveryPayload,
+  type DesktopRuntimeModelOption,
+  discoverDesktopRuntime,
   isDesktopBridgeSupportedOrigin,
   readStoredDesktopBridgeUrl,
-  type DesktopRuntimeModelOption,
   storeDesktopBridgeUrl,
   tryOpenDesktopRuntimeApp,
 } from "@/lib/desktop-runtime-bridge";
@@ -1375,7 +1375,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         className={cn(
           "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           !isRequestMode
-            ? "w-[4.75rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
+            ? "w-[5.8rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
             : "w-8 px-0 text-muted-foreground hover:text-foreground"
         )}
         data-expanded={!isRequestMode}
@@ -1387,19 +1387,19 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         <span
           className={cn(
             "whitespace-nowrap transition-[max-width,opacity] duration-200",
-            !isRequestMode ? "max-w-12 opacity-100" : "max-w-0 opacity-0"
+            !isRequestMode ? "max-w-20 opacity-100" : "max-w-0 opacity-0"
           )}
         >
-          Chat
+          New chat
         </span>
       </button>
       <button
         aria-pressed={isRequestMode}
-        aria-label="New request"
+        aria-label="Post request"
         className={cn(
           "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           isRequestMode
-            ? "w-[5.7rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
+            ? "w-[6.95rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
             : "w-8 px-0 text-muted-foreground hover:text-foreground"
         )}
         data-expanded={isRequestMode}
@@ -1411,10 +1411,10 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         <span
           className={cn(
             "whitespace-nowrap transition-[max-width,opacity] duration-200",
-            isRequestMode ? "max-w-16 opacity-100" : "max-w-0 opacity-0"
+            isRequestMode ? "max-w-24 opacity-100" : "max-w-0 opacity-0"
           )}
         >
-          Request
+          Post request
         </span>
       </button>
     </fieldset>

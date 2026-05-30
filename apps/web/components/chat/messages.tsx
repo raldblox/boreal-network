@@ -37,6 +37,7 @@ type MessagesProps = {
   onEditMessage?: (message: ChatMessage) => void;
   displayMode?: "timeline" | "activity" | "chat";
   contentClassName?: string;
+  hideEmptyGreeting?: boolean;
   onApproveDraftPlan?: () => Promise<void>;
   isOpeningDraftPlan?: boolean;
 };
@@ -61,6 +62,7 @@ function PureMessages({
   onEditMessage,
   displayMode = "timeline",
   contentClassName,
+  hideEmptyGreeting = false,
   onApproveDraftPlan,
   isOpeningDraftPlan = false,
 }: MessagesProps) {
@@ -170,9 +172,10 @@ function PureMessages({
 
       return left.index - right.index;
     });
-  }, [activities, displayMode, messages, request, requestStatus]);
+  }, [activities, displayMode, messages, request, requestStatus, status]);
 
   const showEmptyGreeting =
+    !hideEmptyGreeting &&
     displayMode === "timeline" &&
     messages.length === 0 &&
     activities.length === 0 &&
@@ -187,7 +190,7 @@ function PureMessages({
   return (
     <div className="relative flex-1 bg-background">
       {showEmptyGreeting && (
-        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center pb-44 md:pb-48">
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center pb-36 md:pb-40">
           <Greeting isRequestMode={isRequestMode} requestStatus={requestStatus} />
         </div>
       )}

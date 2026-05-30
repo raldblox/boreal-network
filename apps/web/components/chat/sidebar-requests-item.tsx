@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import type { BorealRequestDraft } from "@/lib/request";
 import { cn } from "@/lib/utils";
 import {
@@ -30,6 +30,7 @@ const PureSidebarRequestItem = ({
   const requestTitle = request.brief.title?.trim() || "Untitled request";
   const requestStatus = request.status.replace(/_/g, " ");
   const [isNavigating, setIsNavigating] = useState(false);
+  const previousChatIdRef = useRef(request.chatId);
   const isVisuallyActive = isActive || isNavigating;
 
   useEffect(() => {
@@ -39,7 +40,10 @@ const PureSidebarRequestItem = ({
   }, [isActive, isNavigating]);
 
   useEffect(() => {
-    setIsNavigating(false);
+    if (previousChatIdRef.current !== request.chatId) {
+      previousChatIdRef.current = request.chatId;
+      setIsNavigating(false);
+    }
   }, [request.chatId]);
 
   useEffect(() => {
@@ -56,7 +60,7 @@ const PureSidebarRequestItem = ({
 
   const copyRequestLink = async () => {
     await navigator.clipboard.writeText(
-      `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${request.chatId}`
+      `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${request.chatId}`,
     );
 
     toast({
@@ -78,7 +82,7 @@ const PureSidebarRequestItem = ({
     <SidebarMenuItem>
       <SidebarMenuButton
         asChild
-        className="h-auto min-h-8 rounded-lg bg-transparent px-2 py-1.5 text-[13px] text-sidebar-foreground/55 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-active:bg-sidebar-accent/38 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium"
+        className="h-auto min-h-8 rounded-lg bg-transparent px-2 py-1.5 text-[13px] text-sidebar-foreground/68 transition-colors duration-150 hover:bg-sidebar-accent/24 hover:text-sidebar-foreground data-active:bg-sidebar-accent/34 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/34 data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground"
         isActive={isVisuallyActive}
       >
         <Link
@@ -94,7 +98,7 @@ const PureSidebarRequestItem = ({
               <span
                 className={cn(
                   "size-1.5 shrink-0 rounded-full",
-                  getRequestStatusDotClassName(request.status)
+                  getRequestStatusDotClassName(request.status),
                 )}
               />
               {requestStatus}
@@ -139,7 +143,9 @@ const PureSidebarRequestItem = ({
             variant="destructive"
           >
             <TrashIcon />
-            <span>{request.status === "draft" ? "Delete draft" : "Delete request"}</span>
+            <span>
+              {request.status === "draft" ? "Delete draft" : "Delete request"}
+            </span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -167,7 +173,7 @@ export const SidebarRequestItem = memo(
     }
 
     return true;
-  }
+  },
 );
 
 function getRequestStatusDotClassName(status: BorealRequestDraft["status"]) {

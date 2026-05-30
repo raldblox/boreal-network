@@ -5,7 +5,6 @@ import {
   CompassIcon,
   HomeIcon,
   ListChecksIcon,
-  MessageSquareIcon,
   PackageIcon,
   PanelLeftIcon,
   PlusIcon,
@@ -15,13 +14,14 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { User } from "next-auth";
 import {
+  type ReactNode,
   useCallback,
   useEffect,
   useState,
   useTransition,
-  type ReactNode,
 } from "react";
 import { SidebarHistory } from "@/components/chat/sidebar-history";
+import { SidebarRequests } from "@/components/chat/sidebar-requests";
 import { SidebarUserNav } from "@/components/chat/sidebar-user-nav";
 import {
   Sidebar,
@@ -69,16 +69,12 @@ export function AppSidebar({ user }: { user: User | undefined }) {
   const isRootView = pathname === "/";
   const isHomeMode = isRootView && !searchParams.get("mode");
   const isNewPageMode = isRootView && searchParams.get("mode") === "new";
-  const isChatMode = isRootView && searchParams.get("mode") === "chat";
-  const isChatsArea = isChatMode || pathname.startsWith("/chat/");
   const isSuppliesView =
     pathname === "/supplies" || pathname.startsWith("/supplies/");
   const isServicesView =
     pathname === "/services" || pathname.startsWith("/services/");
   const isOpenRequestsView = pathname === "/open-requests";
-  const isNewRequestMode =
-    isRootView && searchParams.get("mode") === "request";
-  const isScratchChatMode = isRootView && searchParams.get("mode") === "chat";
+  const isNewRequestMode = isRootView && searchParams.get("mode") === "request";
   const isWhitelistMode =
     pathname === "/supplies/new" && searchParams.get("entry") === "whitelist";
   const isNewSupplyMode = pathname === "/supplies/new";
@@ -102,8 +98,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
           return isHomeMode;
         case "/?mode=new":
           return isNewPageMode;
-        case "/?mode=chat":
-          return isChatMode;
         case "/?mode=request":
           return isNewRequestMode;
         case "/open-requests":
@@ -123,14 +117,13 @@ export function AppSidebar({ user }: { user: User | undefined }) {
     [
       isHomeMode,
       isNewPageMode,
-      isChatMode,
       isNewRequestMode,
       isOpenRequestsView,
       isServicesView,
       isWhitelistMode,
       isSuppliesView,
       isNewSupplyMode,
-    ]
+    ],
   );
 
   const navigateSidebar = useCallback(
@@ -141,7 +134,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
         router.push(href);
       });
     },
-    [router, setOpenMobile, startNavigationTransition]
+    [router, setOpenMobile],
   );
 
   const isNavActive = (href: string, fallback: boolean) =>
@@ -178,11 +171,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       setIsExploreOpen(true);
     }
   }, [isBorealWorkActive]);
-
-  const sidebarListMode = getSidebarListMode({
-    isScratchChatMode,
-    pathname,
-  });
 
   return (
     <Sidebar collapsible="icon">
@@ -276,7 +264,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                     />
                     <ExploreChildButton
                       icon={<ListChecksIcon className="size-3.5" />}
-                      isActive={isNavActive("/open-requests", isOpenRequestsView)}
+                      isActive={isNavActive(
+                        "/open-requests",
+                        isOpenRequestsView,
+                      )}
                       isPending={isNavPending("/open-requests")}
                       label="Open requests"
                       onClick={() => navigateSidebar("/open-requests")}
@@ -295,10 +286,10 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                         icon={<PackageIcon className="size-3.5" />}
                         isActive={isNavActive(
                           "/supplies/new?entry=whitelist",
-                          isWhitelistMode
+                          isWhitelistMode,
                         )}
                         isPending={isNavPending(
-                          "/supplies/new?entry=whitelist"
+                          "/supplies/new?entry=whitelist",
                         )}
                         label="Supply whitelist"
                         onClick={() =>
@@ -324,26 +315,14 @@ export function AppSidebar({ user }: { user: User | undefined }) {
                   />
                 </SidebarMenuButton>
               </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  className="h-8 rounded-lg border-0 bg-transparent text-[13px] text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:text-sidebar-foreground"
-                  isActive={isNavActive("/?mode=chat", isChatsArea)}
-                  onClick={() => navigateSidebar("/?mode=chat")}
-                  tooltip="Chats"
-                >
-                  <MessageSquareIcon className="size-4" />
-                  <span className="font-medium">Chats</span>
-                  <SidebarNavPendingDot visible={isNavPending("/?mode=chat")} />
-                </SidebarMenuButton>
-              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {canShowHistory && sidebarListMode === "chats" ? (
+        <div className="flex min-h-0 flex-col gap-1">
+          {canShowHistory ? <SidebarRequests user={user} /> : null}
           <SidebarHistory user={user} />
-        ) : null}
+        </div>
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border pt-2 pb-3">
@@ -352,20 +331,6 @@ export function AppSidebar({ user }: { user: User | undefined }) {
       <SidebarRail />
     </Sidebar>
   );
-}
-
-function getSidebarListMode({
-  isScratchChatMode,
-  pathname,
-}: {
-  isScratchChatMode: boolean;
-  pathname: string;
-}): "chats" | "none" {
-  if (isScratchChatMode || pathname.startsWith("/chat/")) {
-    return "chats";
-  }
-
-  return "none";
 }
 
 function ExploreChildButton({
@@ -434,10 +399,7 @@ function BorealSidebarMark({ className }: { className?: string }) {
         d="M617.035 330.546 181.039 476.958V184.981l435.996 145.565Z"
         fill="#23C1F0"
       />
-      <path
-        d="M0 547.782 632.372 335.667l1.445 212.115H0Z"
-        fill="#3D73CB"
-      />
+      <path d="M0 547.782 632.372 335.667l1.445 212.115H0Z" fill="#3D73CB" />
     </svg>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { BracesIcon, MessageSquareIcon, XIcon } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { Artifact } from "./artifact";
 import { ChatHeader } from "./chat-header";
 import { DataStreamHandler } from "./data-stream-handler";
+import { Greeting } from "./greeting";
 import { submitEditedMessage } from "./message-editor";
 import { Messages } from "./messages";
 import { MultimodalInput } from "./multimodal-input";
@@ -469,7 +470,7 @@ export function ChatShell() {
             selectedVisibilityType={visibilityType}
           />
 
-          <div className={surfaceShellClassName}>
+          <div className={surfaceShellClassName} data-testid="chat-shell-surface">
             {isOpenedRequest && activeRequest ? (
               <div
                 className="min-h-0 flex-1 overflow-y-auto"
@@ -530,6 +531,7 @@ export function ChatShell() {
                   isLoading={isLoading}
                   isReadonly={isReadonly}
                   isRequestMode={isRequestMode}
+                  hideEmptyGreeting={isInitialComposerCentered}
                   messages={messages}
                   request={activeRequest}
                   requestStatus={activeRequest?.status ?? null}
@@ -588,63 +590,69 @@ export function ChatShell() {
             ) : null}
 
             {!isReadonly && !isOpenedRequest && (
-              <>
-                <div
-                  className={cn(
-                    "z-10 mx-auto flex w-full px-2 backdrop-blur md:px-4",
-                    isInitialComposerCentered
-                      ? "absolute left-1/2 top-1/2 max-w-3xl -translate-x-1/2 -translate-y-4 flex-col gap-3 bg-transparent pb-0 pt-0 md:-translate-y-3"
-                      : "sticky bottom-0 max-w-4xl gap-2 bg-background/94 pb-4 pt-2 md:pb-5",
-                  )}
-                >
-                  <MultimodalInput
-                    attachments={attachments}
-                    chatId={chatId}
-                    editingMessage={editingMessage}
-                    input={input}
-                    activeRequest={activeRequest}
-                    isRequestMode={isRequestMode}
-                    isLoading={isLoading}
-                    messages={messages}
-                    onCreateRequest={handleCreateRequest}
-                    onCancelEdit={() => {
-                      setEditingMessage(null);
-                      setInput("");
-                    }}
-                    onModelChange={setCurrentModelId}
-                    selectedModelId={currentModelId}
-                    selectedVisibilityType={visibilityType}
-                    sendMessage={
-                      editingMessage
-                        ? async () => {
-                            const msg = editingMessage;
-                            setEditingMessage(null);
-                            await submitEditedMessage({
-                              message: msg,
-                              text: input,
-                              setMessages,
-                              regenerate,
-                            });
-                            setInput("");
-                          }
-                        : sendMessage
-                    }
-                    setAttachments={setAttachments}
-                    setInput={setInput}
-                    setMessages={setMessages}
-                    status={status}
-                    stop={stop}
-                  />
-                  {isInitialComposerCentered ? (
-                    <p
-                      className="mx-auto max-w-2xl text-center text-[13px] leading-6 text-muted-foreground/68 md:text-sm"
-                      data-testid="new-composer-description"
-                    >
-                      {initialComposerDescription}
-                    </p>
-                  ) : null}
-                </div>
-              </>
+              <div
+                className={cn(
+                  "z-10 mx-auto flex w-full px-2 backdrop-blur md:px-4",
+                  isInitialComposerCentered
+                    ? "absolute left-1/2 top-1/2 max-w-3xl -translate-x-1/2 -translate-y-1/2 bg-transparent pb-0 pt-0"
+                    : "sticky bottom-0 max-w-4xl gap-2 bg-background/94 pb-4 pt-2 md:pb-5",
+                )}
+              >
+                {isInitialComposerCentered ? (
+                  <div className="pointer-events-none absolute bottom-[calc(100%+1.5rem)] left-1/2 w-screen max-w-4xl -translate-x-1/2 px-4">
+                    <Greeting
+                      isRequestMode={isRequestMode}
+                      requestStatus={null}
+                    />
+                  </div>
+                ) : null}
+                <MultimodalInput
+                  attachments={attachments}
+                  chatId={chatId}
+                  editingMessage={editingMessage}
+                  input={input}
+                  activeRequest={activeRequest}
+                  isRequestMode={isRequestMode}
+                  isLoading={isLoading}
+                  messages={messages}
+                  onCreateRequest={handleCreateRequest}
+                  onCancelEdit={() => {
+                    setEditingMessage(null);
+                    setInput("");
+                  }}
+                  onModelChange={setCurrentModelId}
+                  selectedModelId={currentModelId}
+                  selectedVisibilityType={visibilityType}
+                  sendMessage={
+                    editingMessage
+                      ? async () => {
+                          const msg = editingMessage;
+                          setEditingMessage(null);
+                          await submitEditedMessage({
+                            message: msg,
+                            text: input,
+                            setMessages,
+                            regenerate,
+                          });
+                          setInput("");
+                        }
+                      : sendMessage
+                  }
+                  setAttachments={setAttachments}
+                  setInput={setInput}
+                  setMessages={setMessages}
+                  status={status}
+                  stop={stop}
+                />
+                {isInitialComposerCentered ? (
+                  <p
+                    className="pointer-events-none absolute top-[calc(100%+1.25rem)] left-1/2 w-screen max-w-2xl -translate-x-1/2 px-4 text-center text-[13px] leading-6 text-muted-foreground/68 md:text-sm"
+                    data-testid="new-composer-description"
+                  >
+                    {initialComposerDescription}
+                  </p>
+                ) : null}
+              </div>
             )}
           </div>
         </div>

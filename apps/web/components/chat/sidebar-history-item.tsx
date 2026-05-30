@@ -1,15 +1,10 @@
 import Link from "next/link";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useChatVisibility } from "@/hooks/use-chat-visibility";
 import type { Chat } from "@/lib/db/schema";
 import { SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
-import {
-  CopyIcon,
-  GlobeIcon,
-  LockIcon,
-  TrashIcon,
-} from "./icons";
+import { CopyIcon, GlobeIcon, LockIcon, TrashIcon } from "./icons";
 
 const PureChatItem = ({
   chat,
@@ -27,6 +22,7 @@ const PureChatItem = ({
     initialVisibilityType: chat.visibility,
   });
   const [isNavigating, setIsNavigating] = useState(false);
+  const previousChatIdRef = useRef(chat.id);
   const isVisuallyActive = isActive || isNavigating;
 
   useEffect(() => {
@@ -36,7 +32,10 @@ const PureChatItem = ({
   }, [isActive, isNavigating]);
 
   useEffect(() => {
-    setIsNavigating(false);
+    if (previousChatIdRef.current !== chat.id) {
+      previousChatIdRef.current = chat.id;
+      setIsNavigating(false);
+    }
   }, [chat.id]);
 
   useEffect(() => {
@@ -53,7 +52,7 @@ const PureChatItem = ({
 
   const copyChatLink = async () => {
     await navigator.clipboard.writeText(
-      `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chat.id}`
+      `${window.location.origin}${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chat.id}`,
     );
 
     toast.success("Chat link copied");
@@ -67,7 +66,7 @@ const PureChatItem = ({
     toast.success(
       nextVisibilityType === "public"
         ? "Chat is now public"
-        : "Chat is now private"
+        : "Chat is now private",
     );
   };
 
@@ -75,7 +74,7 @@ const PureChatItem = ({
     <SidebarMenuItem className="group/chatitem relative">
       <SidebarMenuButton
         asChild
-        className="h-8 rounded-lg bg-transparent pr-2.5 text-[13px] text-sidebar-foreground/55 transition-[color,background-color,padding] duration-150 hover:bg-sidebar-accent/32 hover:text-sidebar-foreground data-active:bg-sidebar-accent/38 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/38 data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground group-focus-within/chatitem:pr-[5.8rem] group-hover/chatitem:pr-[5.8rem]"
+        className="h-8 rounded-lg bg-transparent pr-2.5 text-[13px] text-sidebar-foreground/68 transition-[color,background-color,padding] duration-150 hover:bg-sidebar-accent/24 hover:text-sidebar-foreground data-active:bg-sidebar-accent/34 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/34 data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground group-focus-within/chatitem:pr-[5.8rem] group-hover/chatitem:pr-[5.8rem]"
         isActive={isVisuallyActive}
       >
         <Link
@@ -104,7 +103,9 @@ const PureChatItem = ({
         </button>
         <button
           aria-label={
-            visibilityType === "public" ? "Make chat private" : "Make chat public"
+            visibilityType === "public"
+              ? "Make chat private"
+              : "Make chat public"
           }
           className="flex size-6 items-center justify-center rounded-md text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent/45 hover:text-sidebar-foreground"
           onClick={() => void toggleVisibility()}

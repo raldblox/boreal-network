@@ -19,6 +19,10 @@ test.describe("New page composer", () => {
       "data-expanded",
       "true",
     );
+    await expect(page.getByTestId("new-mode-chat")).toContainText("New chat");
+    await expect(page.getByTestId("new-mode-request")).toContainText(
+      "Post request",
+    );
     await expect(page.getByTestId("new-mode-request")).toHaveAttribute(
       "aria-pressed",
       "false",
@@ -47,9 +51,23 @@ test.describe("New page composer", () => {
     expect(firstLayoutGeometry.composerTop).toBeGreaterThan(
       firstLayoutGeometry.headlineBottom,
     );
+    expect(
+      Math.abs(
+        firstLayoutGeometry.composerCenterY - firstLayoutGeometry.shellCenterY,
+      ),
+    ).toBeLessThan(36);
     expect(firstLayoutGeometry.descriptionTop).toBeGreaterThan(
       firstLayoutGeometry.composerBottom,
     );
+    expect(
+      firstLayoutGeometry.composerTop - firstLayoutGeometry.headlineBottom,
+    ).toBeGreaterThan(12);
+    expect(
+      firstLayoutGeometry.composerTop - firstLayoutGeometry.headlineBottom,
+    ).toBeLessThan(96);
+    expect(
+      firstLayoutGeometry.descriptionTop - firstLayoutGeometry.composerBottom,
+    ).toBeGreaterThan(12);
 
     const firstFooterGeometry = await readComposerFooterGeometry(page);
     expect(firstFooterGeometry.modelRight).toBeLessThan(
@@ -109,19 +127,23 @@ async function readInitialLayoutGeometry(page: Page) {
     const description = document.querySelector(
       "[data-testid='new-composer-description']",
     );
+    const shell = document.querySelector("[data-testid='chat-shell-surface']");
     const composer = input?.closest("form")?.getBoundingClientRect();
     const headlineRect = headline?.getBoundingClientRect();
     const descriptionRect = description?.getBoundingClientRect();
+    const shellRect = shell?.getBoundingClientRect();
 
-    if (!composer || !headlineRect || !descriptionRect) {
+    if (!composer || !headlineRect || !descriptionRect || !shellRect) {
       throw new Error("Initial composer layout is missing.");
     }
 
     return {
       composerBottom: composer.bottom,
+      composerCenterY: composer.top + composer.height / 2,
       composerTop: composer.top,
       descriptionTop: descriptionRect.top,
       headlineBottom: headlineRect.bottom,
+      shellCenterY: shellRect.top + shellRect.height / 2,
     };
   });
 }
