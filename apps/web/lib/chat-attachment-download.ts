@@ -176,6 +176,16 @@ function getAttachmentErrorMessage(error: unknown) {
   return "Attachment could not be read.";
 }
 
+function encodeAttachmentDataUrl({
+  data,
+  mediaType,
+}: {
+  data: Uint8Array;
+  mediaType: string;
+}) {
+  return `data:${mediaType};base64,${Buffer.from(data).toString("base64")}`;
+}
+
 function decodeTextAttachment({
   data,
   filename,
@@ -282,7 +292,21 @@ async function materializeFileAttachmentPart({
     type: part.mediaType,
   });
 
-  if (!isChatTextAttachment(mediaType) && !isChatPdfAttachment(mediaType)) {
+  if (
+    mediaType?.startsWith("image/") &&
+    mediaType !== part.mediaType
+  ) {
+    part = {
+      ...part,
+      mediaType,
+    };
+  }
+
+  if (
+    !mediaType?.startsWith("image/") &&
+    !isChatTextAttachment(mediaType) &&
+    !isChatPdfAttachment(mediaType)
+  ) {
     return [part];
   }
 
@@ -300,6 +324,16 @@ async function materializeFileAttachmentPart({
 
   try {
     const attachment = await readChatBlobDeliveryUrl(url);
+
+    if (attachment.mediaType.startsWith("image/")) {
+      return [
+        {
+          ...part,
+          mediaType: attachment.mediaType,
+          url: encodeAttachmentDataUrl(attachment),
+        },
+      ];
+    }
 
     if (isChatPdfAttachment(attachment.mediaType)) {
       return [

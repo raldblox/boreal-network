@@ -10,6 +10,10 @@ import {
 
 const requestId = "00000000-0000-4000-8000-000000000010";
 const messageId = "00000000-0000-4000-8000-000000000011";
+const tinyPng = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+  "base64"
+);
 
 function escapePdfText(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
@@ -79,7 +83,7 @@ async function main() {
     requestUrl: "https://network.boreal.work/chat/test",
     messages: [
       {
-        role: "user",
+        role: "user" as const,
         parts: [
           {
             type: "file",
@@ -113,7 +117,7 @@ async function main() {
     requestUrl: "https://network.boreal.work/chat/test",
     messages: [
       {
-        role: "user",
+        role: "user" as const,
         parts: [
           {
             type: "file",
@@ -135,6 +139,83 @@ async function main() {
   assert.equal(pdfPart.type, "text");
   assert.match(pdfPart.text ?? "", /Attached PDF file: brief\.pdf/);
   assert.match(pdfPart.text ?? "", /Boreal PDF attachment detail/);
+
+  globalThis.fetch = async () =>
+    new Response(tinyPng, {
+      headers: {
+        "content-type": "image/png",
+      },
+    });
+
+  const preparedImageMessages = await prepareChatMessagesForModel({
+    requestUrl: "https://network.boreal.work/chat/test",
+    messages: [
+      {
+        role: "user" as const,
+        parts: [
+          {
+            type: "file",
+            mediaType: "image/png",
+            filename: "pixel.png",
+            url: "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/pixel.png&expires=9999999999&signature=test&filename=pixel.png",
+          },
+        ],
+      },
+    ],
+  }).finally(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const imagePart = preparedImageMessages[0].parts[0] as {
+    mediaType?: string;
+    type?: string;
+    url?: string;
+  };
+  assert.equal(imagePart.type, "file");
+  assert.equal(imagePart.mediaType, "image/png");
+  assert.match(imagePart.url ?? "", /^data:image\/png;base64,/);
+
+  const imageModelMessages = await convertToModelMessages(
+    preparedImageMessages
+  );
+  const [imageModelMessage] = imageModelMessages;
+  assert.equal(imageModelMessage.role, "user");
+  assert.ok(Array.isArray(imageModelMessage.content));
+  assert.deepEqual(imageModelMessage.content[0], {
+    type: "file",
+    mediaType: "image/png",
+    filename: "pixel.png",
+    data: imagePart.url,
+  });
+
+  globalThis.fetch = async () => {
+    throw new Error("socket hang up");
+  };
+
+  const failedImageMessages = await prepareChatMessagesForModel({
+    requestUrl: "https://network.boreal.work/chat/test",
+    messages: [
+      {
+        role: "user" as const,
+        parts: [
+          {
+            type: "file",
+            mediaType: "image/png",
+            filename: "broken.png",
+            url: "https://network.boreal.work/api/files/blob?pathname=chat-attachments/test/broken.png&expires=9999999999&signature=test&filename=broken.png",
+          },
+        ],
+      },
+    ],
+  }).finally(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const failedImagePart = failedImageMessages[0].parts[0] as {
+    text?: string;
+    type?: string;
+  };
+  assert.equal(failedImagePart.type, "text");
+  assert.match(failedImagePart.text ?? "", /broken\.png could not be read/);
 
   const modelMessages = await convertToModelMessages([
     {
