@@ -1,7 +1,11 @@
-import Image from "next/image";
+import { useState } from "react";
+import {
+  getChatAttachmentKind,
+  getChatAttachmentLabel,
+} from "@/lib/chat-attachment-policy";
 import type { Attachment } from "@/lib/types";
 import { Spinner } from "../ui/spinner";
-import { CrossSmallIcon } from "./icons";
+import { CrossSmallIcon, FileIcon } from "./icons";
 
 export const PreviewAttachment = ({
   attachment,
@@ -13,23 +17,36 @@ export const PreviewAttachment = ({
   onRemove?: () => void;
 }) => {
   const { name, url, contentType } = attachment;
+  const [imageFailed, setImageFailed] = useState(false);
+  const kind = getChatAttachmentKind(contentType);
+  const label = getChatAttachmentLabel({ name, type: contentType });
+  const showImage = kind === "image" && url && !imageFailed;
 
   return (
     <div
       className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-border/40 bg-muted"
       data-testid="input-attachment-preview"
+      title={name}
     >
-      {contentType?.startsWith("image") ? (
-        <Image
+      {showImage ? (
+        <img
           alt={name ?? "attachment"}
           className="size-full object-cover"
-          height={96}
+          draggable={false}
+          onError={() => setImageFailed(true)}
           src={url}
-          width={96}
         />
       ) : (
-        <div className="flex size-full items-center justify-center text-muted-foreground text-xs">
-          File
+        <div className="flex size-full flex-col items-center justify-center gap-1 px-2 text-center text-muted-foreground text-xs">
+          <FileIcon size={20} />
+          <span className="rounded-full bg-background/80 px-2 py-0.5 font-medium text-[10px] text-foreground">
+            {label}
+          </span>
+          {name ? (
+            <span className="line-clamp-2 max-w-full break-all text-[10px] leading-3">
+              {name}
+            </span>
+          ) : null}
         </div>
       )}
 
@@ -44,6 +61,7 @@ export const PreviewAttachment = ({
 
       {onRemove && !isUploading && (
         <button
+          aria-label={`Remove ${name ?? "attachment"}`}
           className="absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/80 group-hover:opacity-100"
           onClick={onRemove}
           type="button"

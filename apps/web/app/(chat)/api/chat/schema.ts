@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { chatAttachmentMimeTypes } from "@/lib/chat-attachment-policy";
 
 const textPartSchema = z.object({
   type: z.enum(["text"]),
@@ -7,8 +8,8 @@ const textPartSchema = z.object({
 
 const filePartSchema = z.object({
   type: z.enum(["file"]),
-  mediaType: z.enum(["image/jpeg", "image/png"]),
-  name: z.string().min(1).max(100),
+  mediaType: z.enum(chatAttachmentMimeTypes),
+  name: z.string().min(1).max(180),
   url: z.string().url(),
 });
 

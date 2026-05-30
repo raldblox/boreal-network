@@ -47,6 +47,15 @@ import {
   type ModelCapabilities,
 } from "@/lib/ai/models";
 import {
+  chatAttachmentAccept,
+  getChatAttachmentKind,
+  maxChatAttachmentCount,
+  maxOptimizedImageDimension,
+  optimizedImageQuality,
+  resolveChatAttachmentMimeType,
+  validateChatAttachmentFile,
+} from "@/lib/chat-attachment-policy";
+import {
   buildDesktopBridgeModelsUrl,
   clearStoredDesktopBridgeUrl,
   DESKTOP_BRIDGE_STORAGE_KEY,
@@ -96,6 +105,11 @@ function setCookie(name: string, value: string) {
 
 const DESKTOP_MODEL_PROVIDER = "codex-desktop";
 
+type PendingAttachmentUpload = {
+  id: string;
+  name: string;
+};
+
 function toDesktopModelId(modelId: string) {
   return `${DESKTOP_MODEL_PROVIDER}/${modelId}`;
 }
@@ -134,6 +148,96 @@ function ModelProviderMark({ provider }: { provider: string }) {
   }
 
   return <ModelSelectorLogo provider={provider} />;
+}
+
+function createUploadId(file: File, index: number) {
+  return `${file.name}-${file.size}-${file.lastModified}-${index}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
+}
+
+function renameFileExtension(name: string, extension: string) {
+  const cleanName = name.trim() || "image";
+  const withoutExtension = cleanName.replace(/\.[^.]+$/, "");
+  return `${withoutExtension}.${extension}`;
+}
+
+async function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  type: string,
+  quality: number
+) {
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), type, quality);
+  });
+}
+
+async function optimizeImageForChat(file: File, contentType: string) {
+  if (typeof window === "undefined" || !contentType.startsWith("image/")) {
+    return file;
+  }
+
+  const imageUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error("Image could not be decoded."));
+      element.src = imageUrl;
+    });
+    const scale = Math.min(
+      1,
+      maxOptimizedImageDimension / Math.max(image.width, image.height)
+    );
+
+    if (scale >= 1 && file.size <= 2 * 1024 * 1024) {
+      return file;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(image.width * scale));
+    canvas.height = Math.max(1, Math.round(image.height * scale));
+
+    const context = canvas.getContext("2d");
+    if (!context) {
+      return file;
+    }
+
+    const outputType = contentType === "image/png" ? "image/png" : "image/jpeg";
+
+    if (outputType === "image/jpeg") {
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    const optimizedBlob = await canvasToBlob(
+      canvas,
+      outputType,
+      optimizedImageQuality
+    );
+
+    if (!optimizedBlob || optimizedBlob.size >= file.size) {
+      return file;
+    }
+
+    return new File(
+      [optimizedBlob],
+      outputType === "image/jpeg"
+        ? renameFileExtension(file.name, "jpg")
+        : renameFileExtension(file.name, "png"),
+      {
+        lastModified: Date.now(),
+        type: outputType,
+      }
+    );
+  } catch {
+    return file;
+  } finally {
+    URL.revokeObjectURL(imageUrl);
+  }
 }
 
 function PureMultimodalInput({
@@ -287,7 +391,7 @@ function PureMultimodalInput({
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadQueue, setUploadQueue] = useState<string[]>([]);
+  const [uploadQueue, setUploadQueue] = useState<PendingAttachmentUpload[]>([]);
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
@@ -331,10 +435,14 @@ function PureMultimodalInput({
             name: attachment.name,
             mediaType: attachment.contentType,
           })),
-          {
-            type: "text",
-            text: input,
-          },
+          ...(input.trim()
+            ? [
+                {
+                  type: "text" as const,
+                  text: input,
+                },
+              ]
+            : []),
         ],
       });
 
@@ -371,8 +479,24 @@ function PureMultimodalInput({
   }, [status]);
 
   const uploadFile = useCallback(async (file: File) => {
+    const clientValidation = validateChatAttachmentFile(file);
+
+    if (clientValidation.error || !clientValidation.contentType) {
+      toast.error(clientValidation.error ?? "Unsupported file type.");
+      return;
+    }
+
+    const preparedFile =
+      getChatAttachmentKind(clientValidation.contentType) === "image"
+        ? await optimizeImageForChat(file, clientValidation.contentType)
+        : file;
+    const resolvedContentType =
+      resolveChatAttachmentMimeType({
+        name: preparedFile.name,
+        type: preparedFile.type,
+      }) ?? clientValidation.contentType;
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", preparedFile);
 
     try {
       const response = await fetch(
@@ -385,16 +509,20 @@ function PureMultimodalInput({
 
       if (response.ok) {
         const data = await response.json();
-          const { url, pathname, filename, contentType } = data;
+        const { url, pathname, filename, contentType, size } = data;
 
-          return {
-            url,
-            name: filename ?? pathname,
-            contentType,
-          };
+        return {
+          contentType: contentType ?? resolvedContentType,
+          name: filename ?? pathname,
+          size,
+          url,
+        };
       }
-      const { error } = await response.json();
-      toast.error(error);
+      const data = await response.json().catch(() => null);
+      toast.error(
+        data?.error ??
+          "Upload failed. Check the file type and size, then try again."
+      );
     } catch (_error) {
       toast.error("Failed to upload file, please try again!");
     }
@@ -404,14 +532,45 @@ function PureMultimodalInput({
     async (event: ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files || []);
 
-      setUploadQueue(files.map((file) => file.name));
+      if (files.length === 0) {
+        return;
+      }
+
+      if (attachments.length + uploadQueue.length + files.length > maxChatAttachmentCount) {
+        toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
+        event.target.value = "";
+        return;
+      }
+
+      const rejectedFiles = files
+        .map((file) => ({ file, validation: validateChatAttachmentFile(file) }))
+        .filter(({ validation }) => validation.error);
+      const acceptedFiles = files.filter(
+        (file) => !validateChatAttachmentFile(file).error
+      );
+
+      for (const { file, validation } of rejectedFiles) {
+        toast.error(`${file.name}: ${validation.error}`);
+      }
+
+      if (acceptedFiles.length === 0) {
+        event.target.value = "";
+        return;
+      }
+
+      setUploadQueue(
+        acceptedFiles.map((file, index) => ({
+          id: createUploadId(file, index),
+          name: file.name,
+        }))
+      );
 
       try {
-        const uploadPromises = files.map((file) => uploadFile(file));
+        const uploadPromises = acceptedFiles.map((file) => uploadFile(file));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
           (attachment) => attachment !== undefined
-        );
+        ) as Attachment[];
 
         setAttachments((currentAttachments) => [
           ...currentAttachments,
@@ -421,9 +580,10 @@ function PureMultimodalInput({
         toast.error("Failed to upload files");
       } finally {
         setUploadQueue([]);
+        event.target.value = "";
       }
     },
-    [setAttachments, uploadFile]
+    [attachments.length, setAttachments, uploadFile, uploadQueue.length]
   );
 
   const handlePaste = useCallback(
@@ -443,13 +603,28 @@ function PureMultimodalInput({
 
       event.preventDefault();
 
-      setUploadQueue((prev) => [...prev, "Pasted image"]);
+      const files = imageItems
+        .map((item) => item.getAsFile())
+        .filter((file): file is File => file !== null);
+
+      if (
+        attachments.length + uploadQueue.length + files.length >
+        maxChatAttachmentCount
+      ) {
+        toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
+        return;
+      }
+
+      setUploadQueue((prev) => [
+        ...prev,
+        ...files.map((file, index) => ({
+          id: createUploadId(file, index),
+          name: file.name || "Pasted image",
+        })),
+      ]);
 
       try {
-        const uploadPromises = imageItems
-          .map((item) => item.getAsFile())
-          .filter((file): file is File => file !== null)
-          .map((file) => uploadFile(file));
+        const uploadPromises = files.map((file) => uploadFile(file));
 
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
@@ -469,7 +644,7 @@ function PureMultimodalInput({
         setUploadQueue([]);
       }
     },
-    [setAttachments, uploadFile]
+    [attachments.length, setAttachments, uploadFile, uploadQueue.length]
   );
 
   useEffect(() => {
@@ -519,6 +694,7 @@ function PureMultimodalInput({
         )}
 
       <input
+        accept={chatAttachmentAccept}
         className="pointer-events-none fixed -top-4 -left-4 size-0.5 opacity-0"
         multiple
         onChange={handleFileChange}
@@ -580,15 +756,15 @@ function PureMultimodalInput({
               />
             ))}
 
-            {uploadQueue.map((filename) => (
+            {uploadQueue.map((upload) => (
               <PreviewAttachment
                 attachment={{
                   url: "",
-                  name: filename,
+                  name: upload.name,
                   contentType: "",
                 }}
                 isUploading={true}
-                key={filename}
+                key={upload.id}
               />
             ))}
           </div>
@@ -671,12 +847,16 @@ function PureMultimodalInput({
                 "h-7 w-7 rounded-xl transition-all duration-200",
                 showSubmitPending
                   ? "bg-foreground text-background"
-                  : input.trim()
+                  : input.trim() || attachments.length > 0
                   ? "bg-foreground text-background hover:opacity-85 active:scale-95"
                   : "bg-muted text-muted-foreground/25 cursor-not-allowed"
               )}
               data-testid="send-button"
-              disabled={showSubmitPending || !input.trim() || uploadQueue.length > 0}
+              disabled={
+                showSubmitPending ||
+                (!input.trim() && attachments.length === 0) ||
+                uploadQueue.length > 0
+              }
               status={status}
               variant="secondary"
             >
@@ -759,16 +939,21 @@ function PureAttachmentsButton({
     <Button
       className={cn(
         "h-7 w-7 rounded-lg border border-border/40 p-1 transition-colors",
-        hasVision
+        status === "ready"
           ? "text-foreground hover:border-border hover:text-foreground"
           : "text-muted-foreground/30 cursor-not-allowed"
       )}
       data-testid="attachments-button"
-      disabled={status !== "ready" || !hasVision}
+      disabled={status !== "ready"}
       onClick={(event) => {
         event.preventDefault();
         fileInputRef.current?.click();
       }}
+      title={
+        hasVision
+          ? "Attach an image or document"
+          : "Attach files. Image analysis needs a vision-capable model."
+      }
       variant="ghost"
     >
       <PaperclipIcon size={14} style={{ width: 14, height: 14 }} />

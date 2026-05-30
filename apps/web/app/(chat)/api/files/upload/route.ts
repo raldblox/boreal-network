@@ -4,18 +4,22 @@ import { z } from "zod";
 
 import { auth } from "@/app/(auth)/auth";
 import { buildAbsoluteSignedBlobDeliveryUrl } from "@/lib/blob-delivery";
+import {
+  formatAttachmentBytes,
+  maxChatAttachmentBytes,
+  resolveChatAttachmentMimeType,
+  validateChatAttachmentFile,
+} from "@/lib/chat-attachment-policy";
 import { generateUUID } from "@/lib/utils";
 
 const FileSchema = z.object({
-  file: z
-    .instanceof(Blob)
-    .refine((file) => file.size <= 5 * 1024 * 1024, {
-      message: "File size should be less than 5MB",
-    })
-    .refine((file) => ["image/jpeg", "image/png"].includes(file.type), {
-      message: "File type should be JPEG or PNG",
-    }),
+  file: z.instanceof(Blob),
 });
+
+function sanitizeUploadFilename(value: string) {
+  const normalized = value.trim().replace(/[^a-zA-Z0-9._-]/g, "_");
+  return normalized.replace(/_+/g, "_").slice(0, 180) || "attachment";
+}
 
 export async function POST(request: Request) {
   const session = await auth();
@@ -30,13 +34,13 @@ export async function POST(request: Request) {
 
   try {
     const formData = await request.formData();
-    const file = formData.get("file") as Blob;
+    const uploadedFile = formData.get("file");
 
-    if (!file) {
+    if (!(uploadedFile instanceof Blob)) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    const validatedFile = FileSchema.safeParse({ file });
+    const validatedFile = FileSchema.safeParse({ file: uploadedFile });
 
     if (!validatedFile.success) {
       const errorMessage = validatedFile.error.errors
@@ -46,16 +50,47 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
-    const filename = (formData.get("file") as File).name;
-    const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const fileBuffer = await file.arrayBuffer();
+    const rawFilename =
+      "name" in uploadedFile && typeof uploadedFile.name === "string"
+        ? uploadedFile.name
+        : "";
+    const filename = rawFilename.trim() ? rawFilename : "attachment";
+    const contentType = resolveChatAttachmentMimeType({
+      name: filename,
+      type: uploadedFile.type,
+    });
+    const validation = validateChatAttachmentFile({
+      name: filename,
+      size: uploadedFile.size,
+      type: uploadedFile.type,
+    });
+
+    if (validation.error) {
+      return NextResponse.json(
+        {
+          error: validation.error,
+          limit: formatAttachmentBytes(maxChatAttachmentBytes),
+        },
+        { status: contentType ? 413 : 415 }
+      );
+    }
+
+    if (!contentType) {
+      return NextResponse.json(
+        { error: "Unsupported file type." },
+        { status: 415 }
+      );
+    }
+
+    const safeName = sanitizeUploadFilename(filename);
+    const fileBuffer = await uploadedFile.arrayBuffer();
 
     try {
       const pathname = `chat-attachments/${session.user.id}/${generateUUID()}-${safeName}`;
       const data = await put(pathname, fileBuffer, {
         access: "private",
         addRandomSuffix: false,
-        contentType: file.type || undefined,
+        contentType,
       });
 
       return NextResponse.json({
@@ -66,10 +101,17 @@ export async function POST(request: Request) {
         }),
         pathname: data.pathname || pathname,
         filename: safeName,
-        contentType: data.contentType ?? file.type,
+        contentType: data.contentType ?? contentType,
+        size: uploadedFile.size,
       });
     } catch (_error) {
-      return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+      return NextResponse.json(
+        {
+          error:
+            "Upload storage is unavailable right now. Try again or remove the file before sending.",
+        },
+        { status: 500 }
+      );
     }
   } catch (_error) {
     return NextResponse.json(
