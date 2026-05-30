@@ -209,6 +209,88 @@ test.describe("Chat Input Features", () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test("can cancel an image while optimization is still running", async ({
+    page,
+  }) => {
+    const pageErrors: Error[] = [];
+    let uploadCount = 0;
+
+    await page.addInitScript(() => {
+      const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+
+      HTMLCanvasElement.prototype.toBlob = function (
+        callback,
+        type,
+        quality
+      ) {
+        if (this.width <= 2048 && this.height <= 2048 && type === "image/png") {
+          return;
+        }
+
+        return originalToBlob.call(this, callback, type, quality);
+      };
+    });
+    page.on("pageerror", (error) => pageErrors.push(error));
+    await page.route("**/api/files/upload", async (route) => {
+      uploadCount += 1;
+      await route.fulfill({
+        body: JSON.stringify({
+          error: "Upload should not start after cancellation.",
+        }),
+        contentType: "application/json",
+        status: 500,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+    await page.evaluate(async () => {
+      const input = document.querySelector<HTMLInputElement>(
+        "[data-testid='attachment-file-input']"
+      );
+
+      if (!input) {
+        throw new Error("Attachment input not found.");
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 2200;
+      canvas.height = 2200;
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        throw new Error("Canvas context unavailable.");
+      }
+
+      context.fillStyle = "#1e5bff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (value) =>
+            value ? resolve(value) : reject(new Error("PNG encode failed.")),
+          "image/png",
+          1
+        );
+      });
+      const file = new File([blob], "cancel-while-optimizing.png", {
+        type: "image/png",
+      });
+      const transfer = new DataTransfer();
+      transfer.items.add(file);
+      input.files = transfer.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    await expect(page.getByTestId("input-attachment-loader")).toBeVisible();
+    await page.getByTestId("input-attachment-remove").click();
+
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(0);
+    await expect(page.getByTestId("input-attachment-error")).toHaveCount(0);
+    await expect(page.getByTestId("send-button")).toBeDisabled();
+    expect(uploadCount).toBe(0);
+    expect(pageErrors).toEqual([]);
+  });
+
   test("shows supported document guidance and uploaded file metadata", async ({
     page,
   }) => {

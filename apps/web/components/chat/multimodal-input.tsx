@@ -261,22 +261,93 @@ function renameFileExtension(name: string, extension: string) {
 async function canvasToBlob(
   canvas: HTMLCanvasElement,
   type: string,
-  quality: number
+  quality: number,
+  signal?: AbortSignal
 ) {
-  return new Promise<Blob | null>((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), type, quality);
+  return new Promise<Blob | null>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException("Upload aborted", "AbortError"));
+      return;
+    }
+
+    let settled = false;
+    const cleanup = () => {
+      signal?.removeEventListener("abort", abort);
+    };
+    const abort = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      reject(new DOMException("Upload aborted", "AbortError"));
+    };
+
+    signal?.addEventListener("abort", abort, { once: true });
+    canvas.toBlob((blob) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      resolve(blob);
+    }, type, quality);
   });
 }
 
-async function optimizeImageForChat(file: File, contentType: string) {
+function throwIfUploadAborted(signal?: AbortSignal) {
+  if (signal?.aborted) {
+    throw new DOMException("Upload aborted", "AbortError");
+  }
+}
+
+async function decodeImageForChat(imageUrl: string, signal?: AbortSignal) {
+  throwIfUploadAborted(signal);
+
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const element = new Image();
+    let settled = false;
+    const cleanup = () => {
+      element.onload = null;
+      element.onerror = null;
+      signal?.removeEventListener("abort", abort);
+    };
+    const finish = (callback: () => void) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      cleanup();
+      callback();
+    };
+    const abort = () => {
+      element.src = "";
+      finish(() => reject(new DOMException("Upload aborted", "AbortError")));
+    };
+
+    signal?.addEventListener("abort", abort, { once: true });
+    element.onload = () => finish(() => resolve(element));
+    element.onerror = () =>
+      finish(() => reject(new Error("Image could not be decoded.")));
+    element.src = imageUrl;
+  });
+}
+
+async function optimizeImageForChat(
+  file: File,
+  contentType: string,
+  signal?: AbortSignal
+) {
   if (typeof window === "undefined" || !contentType.startsWith("image/")) {
     return file;
   }
 
+  throwIfUploadAborted(signal);
   const imageDimensions = readChatImageDimensionsFromBytes({
     contentType,
     data: new Uint8Array(await file.arrayBuffer()),
   });
+  throwIfUploadAborted(signal);
   const imageDimensionError = imageDimensions
     ? getChatImageDimensionError(imageDimensions)
     : "Image dimensions could not be read. Try a different image file.";
@@ -288,12 +359,8 @@ async function optimizeImageForChat(file: File, contentType: string) {
   const imageUrl = URL.createObjectURL(file);
 
   try {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const element = new Image();
-      element.onload = () => resolve(element);
-      element.onerror = () => reject(new Error("Image could not be decoded."));
-      element.src = imageUrl;
-    });
+    const image = await decodeImageForChat(imageUrl, signal);
+    throwIfUploadAborted(signal);
     const scale = Math.min(
       1,
       maxOptimizedImageDimension / Math.max(image.width, image.height)
@@ -324,8 +391,10 @@ async function optimizeImageForChat(file: File, contentType: string) {
     const optimizedBlob = await canvasToBlob(
       canvas,
       outputType,
-      optimizedImageQuality
+      optimizedImageQuality,
+      signal
     );
+    throwIfUploadAborted(signal);
 
     if (!optimizedBlob || optimizedBlob.size >= file.size) {
       return file;
@@ -627,8 +696,13 @@ function PureMultimodalInput({
       try {
         const preparedFile =
           getChatAttachmentKind(clientValidation.contentType) === "image"
-            ? await optimizeImageForChat(file, clientValidation.contentType)
+            ? await optimizeImageForChat(
+                file,
+                clientValidation.contentType,
+                signal
+              )
             : file;
+        throwIfUploadAborted(signal);
         const resolvedContentType =
           resolveChatAttachmentMimeType({
             name: preparedFile.name,
