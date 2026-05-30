@@ -424,6 +424,9 @@ export function ChatShell() {
     !isLoading &&
     !editingMessage &&
     attachments.length === 0;
+  const initialComposerDescription = isRequestMode
+    ? "Describe the work, done condition, constraints, budget, timing, and proof."
+    : "Ask a question or start a request when the work needs execution, proof, and follow-through.";
 
   const openedRequestControls = isOpenedRequest ? (
     <div className="flex flex-wrap items-center gap-2">
@@ -588,10 +591,10 @@ export function ChatShell() {
               <>
                 <div
                   className={cn(
-                    "z-10 mx-auto flex w-full gap-2 px-2 backdrop-blur md:px-4",
+                    "z-10 mx-auto flex w-full px-2 backdrop-blur md:px-4",
                     isInitialComposerCentered
-                      ? "absolute left-1/2 top-1/2 max-w-3xl -translate-x-1/2 translate-y-2 bg-transparent pb-0 pt-0 md:translate-y-3"
-                      : "sticky bottom-0 max-w-4xl bg-background/94 pb-4 pt-2 md:pb-5",
+                      ? "absolute left-1/2 top-1/2 max-w-3xl -translate-x-1/2 -translate-y-4 flex-col gap-3 bg-transparent pb-0 pt-0 md:-translate-y-3"
+                      : "sticky bottom-0 max-w-4xl gap-2 bg-background/94 pb-4 pt-2 md:pb-5",
                   )}
                 >
                   <MultimodalInput
@@ -632,6 +635,14 @@ export function ChatShell() {
                     status={status}
                     stop={stop}
                   />
+                  {isInitialComposerCentered ? (
+                    <p
+                      className="mx-auto max-w-2xl text-center text-[13px] leading-6 text-muted-foreground/68 md:text-sm"
+                      data-testid="new-composer-description"
+                    >
+                      {initialComposerDescription}
+                    </p>
+                  ) : null}
                 </div>
               </>
             )}

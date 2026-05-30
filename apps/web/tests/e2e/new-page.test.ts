@@ -9,6 +9,8 @@ test.describe("New page composer", () => {
     await expect(page.getByText("What needs to get done?")).toBeVisible();
     await expect(page.getByTestId("new-mode-controls")).toBeVisible();
     await expect(page.getByTestId("new-supply-menu")).toHaveCount(0);
+    await expect(page.getByTestId("attachment-support-hint")).toHaveCount(0);
+    await expect(page.getByText("Images, PDF")).toHaveCount(0);
     await expect(page.getByTestId("new-mode-chat")).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -40,6 +42,14 @@ test.describe("New page composer", () => {
     expect(initialGeometry.composerTop ?? 0).toBeLessThan(
       initialGeometry.viewportHeight * 0.6,
     );
+    await expect(page.getByTestId("new-composer-description")).toBeVisible();
+    const firstLayoutGeometry = await readInitialLayoutGeometry(page);
+    expect(firstLayoutGeometry.composerTop).toBeGreaterThan(
+      firstLayoutGeometry.headlineBottom,
+    );
+    expect(firstLayoutGeometry.descriptionTop).toBeGreaterThan(
+      firstLayoutGeometry.composerBottom,
+    );
 
     const firstFooterGeometry = await readComposerFooterGeometry(page);
     expect(firstFooterGeometry.modelRight).toBeLessThan(
@@ -50,7 +60,12 @@ test.describe("New page composer", () => {
         firstFooterGeometry.modelCenterY - firstFooterGeometry.sendCenterY,
       ),
     ).toBeLessThan(24);
+    const firstComposerVisuals = await readComposerVisuals(page);
+    expect(firstComposerVisuals.activeModeBackground).toBe(
+      firstComposerVisuals.inputSurfaceBackground,
+    );
 
+    const chatTextareaHeight = await readTextareaHeight(page);
     await page.getByTestId("new-mode-request").click();
     await expect(page).toHaveURL(/mode=new&type=request/);
     await expect(page.getByTestId("new-mode-request")).toHaveAttribute(
@@ -69,13 +84,47 @@ test.describe("New page composer", () => {
       "placeholder",
       /Describe the work/,
     );
+    await page.waitForTimeout(250);
+    await expect(page.getByText("Images, PDF")).toHaveCount(0);
+    const requestTextareaHeight = await readTextareaHeight(page);
+    expect(requestTextareaHeight).toBe(chatTextareaHeight);
 
     const secondFooterGeometry = await readComposerFooterGeometry(page);
     expect(secondFooterGeometry.modelRight).toBeLessThan(
       secondFooterGeometry.sendLeft,
     );
+    const secondComposerVisuals = await readComposerVisuals(page);
+    expect(secondComposerVisuals.activeModeBackground).toBe(
+      secondComposerVisuals.inputSurfaceBackground,
+    );
   });
 });
+
+async function readInitialLayoutGeometry(page: Page) {
+  return page.evaluate(() => {
+    const headline = document.querySelector(
+      "[data-testid='empty-chat-headline']",
+    );
+    const input = document.querySelector("[data-testid='multimodal-input']");
+    const description = document.querySelector(
+      "[data-testid='new-composer-description']",
+    );
+    const composer = input?.closest("form")?.getBoundingClientRect();
+    const headlineRect = headline?.getBoundingClientRect();
+    const descriptionRect = description?.getBoundingClientRect();
+
+    if (!composer || !headlineRect || !descriptionRect) {
+      throw new Error("Initial composer layout is missing.");
+    }
+
+    return {
+      composerBottom: composer.bottom,
+      composerTop: composer.top,
+      descriptionTop: descriptionRect.top,
+      headlineBottom: headlineRect.bottom,
+    };
+  });
+}
 
 async function readComposerFooterGeometry(page: Page) {
   return page.evaluate(() => {
@@ -95,6 +144,39 @@ async function readComposerFooterGeometry(page: Page) {
       modelRight: model.right,
       sendCenterY: send.top + send.height / 2,
       sendLeft: send.left,
+    };
+  });
+}
+
+async function readTextareaHeight(page: Page) {
+  return page.evaluate(() => {
+    const textarea = document
+      .querySelector("[data-testid='multimodal-input']")
+      ?.getBoundingClientRect();
+
+    if (!textarea) {
+      throw new Error("Composer textarea is missing.");
+    }
+
+    return textarea.height;
+  });
+}
+
+async function readComposerVisuals(page: Page) {
+  return page.evaluate(() => {
+    const input = document.querySelector("[data-testid='multimodal-input']");
+    const surface = input?.closest("form")?.firstElementChild;
+    const activeMode = document.querySelector(
+      "[data-testid='new-mode-controls'] [aria-pressed='true']",
+    );
+
+    if (!surface || !activeMode) {
+      throw new Error("Composer surface or active mode is missing.");
+    }
+
+    return {
+      activeModeBackground: window.getComputedStyle(activeMode).backgroundColor,
+      inputSurfaceBackground: window.getComputedStyle(surface).backgroundColor,
     };
   });
 }

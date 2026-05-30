@@ -58,7 +58,6 @@ import {
   optimizedImageQuality,
   readChatImageDimensionsFromBytes,
   resolveChatAttachmentMimeType,
-  chatAttachmentSupportSummary,
   validateChatAttachmentFile,
   validateChatAttachmentSelectionFile,
 } from "@/lib/chat-attachment-policy";
@@ -1109,7 +1108,7 @@ function PureMultimodalInput({
       )}
 
       <PromptInput
-        className="[&>div]:rounded-[28px] [&>div]:border [&>div]:border-border/60 [&>div]:bg-background/92 [&>div]:shadow-[0_24px_70px_rgba(0,0,0,0.18)] [&>div]:transition-shadow [&>div]:duration-300 dark:[&>div]:shadow-[0_28px_95px_rgba(0,0,0,0.56)] [&>div]:focus-within:shadow-[0_28px_90px_rgba(0,0,0,0.24)] dark:[&>div]:focus-within:shadow-[0_32px_110px_rgba(0,0,0,0.68)]"
+        className="[&>div]:rounded-[28px] [&>div]:border [&>div]:border-border/65 [&>div]:bg-card/95 [&>div]:shadow-[0_24px_70px_rgba(0,0,0,0.18)] [&>div]:transition-shadow [&>div]:duration-300 dark:[&>div]:shadow-[0_28px_95px_rgba(0,0,0,0.56)] [&>div]:focus-within:shadow-[0_28px_90px_rgba(0,0,0,0.24)] dark:[&>div]:focus-within:shadow-[0_32px_110px_rgba(0,0,0,0.68)]"
         onSubmit={() => {
           if (input.startsWith("/")) {
             const query = input.slice(1).trim();
@@ -1188,21 +1187,23 @@ function PureMultimodalInput({
             ))}
           </div>
         )}
-        <div
-          aria-live="polite"
-          className="px-4 pt-3 text-[11px] text-muted-foreground/65"
-          data-testid="attachment-support-hint"
-        >
-          {uploadQueue.length > 0
-            ? `Uploading ${uploadQueue.length} ${
-                uploadQueue.length === 1 ? "file" : "files"
-              }. Send unlocks when uploads finish.`
-            : chatAttachmentSupportSummary}
-        </div>
+        {uploadQueue.length > 0 ? (
+          <div
+            aria-live="polite"
+            className="px-4 pt-3 text-[11px] text-muted-foreground/65"
+            data-testid="attachment-support-hint"
+          >
+            {`Uploading ${uploadQueue.length} ${
+              uploadQueue.length === 1 ? "file" : "files"
+            }. Send unlocks when uploads finish.`}
+          </div>
+        ) : null}
         <PromptInputTextarea
           className={cn(
             "px-4 pb-1.5 pt-4 text-[13px] leading-7 placeholder:text-muted-foreground/35",
-            isRequestMode || isOpenedRequest ? "min-h-16" : "min-h-24"
+            showNewModeControls || (!isRequestMode && !isOpenedRequest)
+              ? "min-h-24"
+              : "min-h-16"
           )}
           data-testid="multimodal-input"
           onChange={handleInput}
@@ -1365,7 +1366,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
   return (
     <fieldset
       aria-label="New mode"
-      className="flex items-center gap-0.5 rounded-xl border border-border/45 bg-muted/35 p-0.5"
+      className="flex items-center gap-0.5 rounded-xl border border-border/50 bg-background p-0.5"
       data-testid="new-mode-controls"
     >
       <button
@@ -1374,7 +1375,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         className={cn(
           "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           !isRequestMode
-            ? "w-[4.75rem] gap-1.5 bg-background px-2.5 text-foreground shadow-sm"
+            ? "w-[4.75rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
             : "w-8 px-0 text-muted-foreground hover:text-foreground"
         )}
         data-expanded={!isRequestMode}
@@ -1398,7 +1399,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         className={cn(
           "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           isRequestMode
-            ? "w-[5.7rem] gap-1.5 bg-background px-2.5 text-foreground shadow-sm"
+            ? "w-[5.7rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
             : "w-8 px-0 text-muted-foreground hover:text-foreground"
         )}
         data-expanded={isRequestMode}
