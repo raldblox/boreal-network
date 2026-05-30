@@ -73,17 +73,85 @@ function getDatabaseErrorDetail(error: unknown) {
   return "Unknown database error";
 }
 
-export function getWebAuthnRequestContext(headersList: HeadersLike) {
-  const headerOrigin = headersList.get("origin");
-  const host =
-    headersList.get("x-forwarded-host") ?? headersList.get("host") ?? "";
+function splitEnvList(value: string | undefined) {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+}
+
+function normalizeOrigin(value: string | undefined | null) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(value);
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+function configuredWebAuthnOrigins() {
+  const origins = new Set<string>();
+  const candidates = [
+    process.env.WEBAUTHN_ORIGIN,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.APP_URL,
+    process.env.NEXTAUTH_URL,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+    ...splitEnvList(process.env.WEBAUTHN_ALLOWED_ORIGINS),
+  ];
+
+  if (process.env.NODE_ENV !== "production") {
+    candidates.push("http://localhost:3000", "http://127.0.0.1:3000");
+  }
+
+  for (const candidate of candidates) {
+    const origin = normalizeOrigin(candidate);
+    if (origin) {
+      origins.add(origin);
+    }
+  }
+
+  return [...origins];
+}
+
+function deriveLocalDevOrigin(headersList: HeadersLike) {
+  if (process.env.NODE_ENV === "production") {
+    return null;
+  }
+
+  const host = headersList.get("host") ?? "";
+  if (!(host.startsWith("localhost") || host.startsWith("127.0.0.1"))) {
+    return null;
+  }
+
   const protocol =
-    headersList.get("x-forwarded-proto") ??
-    (host.startsWith("localhost") || host.startsWith("127.0.0.1")
+    host.startsWith("localhost") || host.startsWith("127.0.0.1")
       ? "http"
-      : "https");
-  const origin = headerOrigin ?? `${protocol}://${host || "localhost:3000"}`;
-  const rpID = new URL(origin).hostname;
+      : "https";
+
+  return normalizeOrigin(`${protocol}://${host}`);
+}
+
+export function getWebAuthnRequestContext(headersList: HeadersLike) {
+  const allowedOrigins = configuredWebAuthnOrigins();
+  const headerOrigin = normalizeOrigin(headersList.get("origin"));
+  const origin =
+    headerOrigin ?? deriveLocalDevOrigin(headersList) ?? allowedOrigins[0];
+
+  if (!origin || !allowedOrigins.includes(origin)) {
+    throw new ChatbotError(
+      "bad_request:auth",
+      "Passkey origin is not configured for this deployment."
+    );
+  }
+
+  // WebAuthn origin/RP ID is security-critical. Never trust forwarded host
+  // headers for production challenge metadata; use explicit deployment config.
+  const rpID = process.env.WEBAUTHN_RP_ID?.trim() || new URL(origin).hostname;
 
   return {
     origin,

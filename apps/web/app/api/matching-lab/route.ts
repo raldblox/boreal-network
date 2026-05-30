@@ -1,7 +1,11 @@
+import { ipAddress } from "@vercel/functions";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/app/(auth)/auth";
 import { DEFAULT_CHAT_MODEL, allowedModelIds } from "@/lib/ai/models";
+import { ChatbotError } from "@/lib/errors";
 import { matchingLabMockSupplies } from "@/lib/matching-lab-catalog";
+import { checkRouteRateLimit, requestIpAddress } from "@/lib/ratelimit";
 import { buildRequestMatchingLabRunWithLlm } from "@/lib/request-matching-lab-llm";
 
 export const maxDuration = 60;
@@ -44,6 +48,34 @@ export async function POST(request: Request) {
     return NextResponse.json({
       workflow,
     });
+  }
+
+  const session = await auth();
+
+  if (!session?.user) {
+    return new ChatbotError("unauthorized:auth").toResponse();
+  }
+
+  if (session.user.type !== "regular") {
+    return new ChatbotError("forbidden:auth").toResponse();
+  }
+
+  // LLM normalization spends model capacity. Keep the local heuristic public,
+  // but require a real account and rate limit before provider work starts.
+  try {
+    await checkRouteRateLimit({
+      key: `matching-lab:llm:${session.user.id}:${
+        ipAddress(request) ?? requestIpAddress(request)
+      }`,
+      limit: 12,
+      ttlSeconds: 60 * 60,
+    });
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      return error.toResponse();
+    }
+
+    throw error;
   }
 
   const workflow = await buildRequestMatchingLabRunWithLlm({

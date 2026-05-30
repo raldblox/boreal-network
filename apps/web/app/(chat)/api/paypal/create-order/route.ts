@@ -54,11 +54,11 @@ export async function POST(request: Request) {
 
     return Response.json(result, { status: 200 });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to create PayPal order";
+    console.error("[paypal-create-order] failed", error);
 
-    return new ChatbotError("bad_request:api", message).toResponse();
+    return new ChatbotError(
+      "bad_request:api",
+      "Failed to create PayPal order."
+    ).toResponse();
   }
 }

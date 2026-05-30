@@ -1,5 +1,7 @@
+import { ipAddress } from "@vercel/functions";
 import { z } from "zod";
 import { ChatbotError } from "@/lib/errors";
+import { checkRouteRateLimit, requestIpAddress } from "@/lib/ratelimit";
 import { resolverScopes } from "@/lib/resolver";
 import { startResolverAuthorization } from "@/lib/resolver-server";
 
@@ -13,6 +15,23 @@ const startResolverSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  try {
+    const rateLimitIp = ipAddress(request) ?? requestIpAddress(request);
+
+    await checkRouteRateLimit({
+      errorCode: "rate_limit:auth",
+      key: `resolver-device-start:${rateLimitIp}`,
+      limit: 5,
+      ttlSeconds: 10 * 60,
+    });
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      return error.toResponse();
+    }
+
+    throw error;
+  }
+
   let body: z.infer<typeof startResolverSchema>;
   try {
     body = startResolverSchema.parse(await request.json());

@@ -129,6 +129,10 @@ Exported request-draft templates live under:
 
 - `tmp/problem-intel/promotions/request-drafts/`
 
+Promotion writes require `PROBLEM_INTEL_EDIT_TOKEN` in every environment.
+Staging, demo, and local servers must not become writable merely because
+`NODE_ENV` is not `production`.
+
 ## Output shape
 
 Use the sample fixture in:

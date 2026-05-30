@@ -518,7 +518,7 @@ paths:
                   handled:
                     type: string
         "400":
-          description: Invalid payload or failed PayPal signature verification.
+          description: Invalid payload or failed PayPal signature verification. Error responses are generic and do not expose upstream PayPal response bodies.
   /api/requests/{id}/transactions:
     get:
       summary: List request-attached transactions for one owned Request.

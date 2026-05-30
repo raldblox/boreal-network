@@ -101,9 +101,11 @@ async function getPayPalAccessToken() {
   });
 
   if (!response.ok) {
-    const body = await response.text();
+    await response.text().catch(() => "");
+    // Upstream PayPal bodies can include processor diagnostics. Keep them in
+    // provider logs, not in API errors that may be returned to callers.
     throw new Error(
-      `PayPal OAuth failed: ${response.status} ${body.slice(0, 500)}`
+      `PayPal OAuth failed with status ${response.status}`
     );
   }
 
@@ -135,9 +137,11 @@ async function paypalFetch<T>(
   });
 
   if (!response.ok) {
-    const body = await response.text();
+    await response.text().catch(() => "");
+    // Do not surface upstream response bodies through webhook or checkout
+    // routes; callers only need the processor, endpoint, and status class.
     throw new Error(
-      `PayPal API ${path} failed: ${response.status} ${body.slice(0, 500)}`
+      `PayPal API ${path} failed with status ${response.status}`
     );
   }
 

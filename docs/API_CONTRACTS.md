@@ -338,6 +338,10 @@ The first web slice exposes:
 - `POST /api/auth/resolver/token/refresh`
 - `POST /api/auth/resolver/token/revoke`
 
+Resolver device-start is intentionally unauthenticated because the runtime is
+not paired yet, so it must be rate-limited before any pending resolver client or
+authorization rows are created.
+
 The runtime proof and Boreal actor proof stay separate:
 
 - Codex auth proves the local runtime is connected
@@ -350,14 +354,30 @@ The first desktop-local browser bridge should stay constrained like this:
 - bind to `127.0.0.1` only
 - require a random per-runtime session token
 - reject non-localhost browser origins
+- reject requests with no browser `Origin` header on HTTP bridge routes
 - stream ephemeral execution feedback only
 - allow one localhost-only discovery read such as `/discover` so Boreal web can auto-link a running desktop runtime without a manual copy-paste setup flow
+- `/discover` must never return the live session token or a token-bearing event, model, or chat URL
 - `/discover` may expose bridge-link readiness, Codex worker readiness, and Boreal resolver readiness as separate local states; do not collapse them into one fake `connected` truth
 - `/discover` may also expose local desktop auto-resolve policy such as `autoResolveOwnedPrivate`, one desktop-default supply id, and the desktop-default Codex model and reasoning level, but those remain local runtime state instead of durable Boreal request truth
 - expose read-only local bridge metadata such as `/health` and desktop model-access reads such as `/models` only behind the same session-token and localhost-origin checks
 - allow one localhost-only `POST /chat` bridge write so Boreal web can dispatch one prompt turn into the connected desktop runtime and stream ephemeral token output back into the web chat surface
 - `POST /chat` must stay local-runtime scoped, require the same session token, and must not be treated as durable Boreal request or actor truth by itself
 - never act as durable Boreal request truth by itself
+
+## Security-Sensitive Lab And Auth Surfaces
+
+The matching lab may keep a public heuristic mode for local product exploration.
+Any model-backed or provider-backed normalization mode must require a signed-in
+regular account and route-level rate limiting before provider work starts.
+
+Regular-account `WebAuthn` challenge generation must use an explicit deployment
+origin allowlist and configured RP ID. Production challenge metadata must not be
+derived from `Host`, `x-forwarded-host`, or `x-forwarded-proto` request headers.
+
+PayPal webhook and checkout routes may log provider diagnostics server-side, but
+responses to callers must stay generic and must not include upstream PayPal
+response bodies.
 
 ## Schema Discipline
 

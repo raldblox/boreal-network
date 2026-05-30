@@ -2,7 +2,7 @@ import http from "node:http";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 
 const LOCAL_HOST = "127.0.0.1";
-const DISCOVERY_PORT = 43179;
+const DEFAULT_DISCOVERY_PORT = 43179;
 const KEEPALIVE_INTERVAL_MS = 15000;
 const ALLOWED_ORIGIN_HOSTS = new Set(["127.0.0.1", "localhost"]);
 
@@ -20,7 +20,7 @@ function normalizeUrlPath(requestUrl) {
 
 function isAllowedOrigin(origin) {
   if (typeof origin !== "string" || origin.trim().length === 0) {
-    return true;
+    return false;
   }
 
   try {
@@ -115,6 +115,7 @@ async function readJsonBody(request) {
 }
 
 export function createDesktopLocalhostBridge({
+  discoveryPort = DEFAULT_DISCOVERY_PORT,
   ephemeralBus,
   getDesktopBridgeDiscovery,
   getDesktopModelAccess,
@@ -138,24 +139,47 @@ export function createDesktopLocalhostBridge({
     return address && typeof address === "object" ? address : null;
   }
 
-  function buildState() {
+  function getDiscoveryPort() {
+    const address = discoveryServer?.address();
+    if (
+      address &&
+      typeof address === "object" &&
+      typeof address.port === "number"
+    ) {
+      return address.port;
+    }
+
+    return discoveryPort;
+  }
+
+  function buildState({ includeSessionSecret = true } = {}) {
     const address = getAddress();
     const port = typeof address?.port === "number" ? address.port : null;
     const baseUrl = port ? `http://${LOCAL_HOST}:${port}` : null;
+    const secretSseUrl =
+      includeSessionSecret && port
+        ? `${baseUrl}/events?session=${sessionToken}`
+        : null;
 
     return {
       allowedOrigins: ["http://127.0.0.1:*", "http://localhost:*"],
       baseUrl,
-      discoveryUrl: `http://${LOCAL_HOST}:${DISCOVERY_PORT}/discover`,
+      discoveryUrl: `http://${LOCAL_HOST}:${getDiscoveryPort()}/discover`,
       host: LOCAL_HOST,
       lastError: lastError ?? discoveryLastError,
       port,
       ready: port != null,
-      sessionToken: port ? sessionToken : null,
-      sseUrl: port ? `${baseUrl}/events?session=${sessionToken}` : null,
+      sessionToken: includeSessionSecret && port ? sessionToken : null,
+      sseUrl: secretSseUrl,
       startedAt,
       status: getStatus(),
     };
+  }
+
+  function buildHttpState() {
+    // HTTP callers already have to present the token. Never echo the live token
+    // or a token-bearing EventSource URL back over discoverable localhost routes.
+    return buildState({ includeSessionSecret: false });
   }
 
   function broadcast(envelope) {
@@ -373,7 +397,7 @@ export function createDesktopLocalhostBridge({
         200,
         {
           ok: true,
-          bridge: buildState(),
+          bridge: buildHttpState(),
         },
         origin,
       );
@@ -443,7 +467,7 @@ export function createDesktopLocalhostBridge({
     });
     response.write(
       `event: bridge-ready\ndata: ${JSON.stringify({
-        bridge: buildState(),
+        bridge: buildHttpState(),
       })}\n\n`,
     );
     sseClients.add(response);
@@ -519,7 +543,7 @@ export function createDesktopLocalhostBridge({
       200,
       {
         access: discovery.access ?? null,
-        bridge: buildState(),
+        bridge: buildHttpState(),
         policy: discovery.policy ?? null,
         readiness: discovery.readiness ?? null,
         resolver: discovery.resolver ?? null,
@@ -540,7 +564,7 @@ export function createDesktopLocalhostBridge({
     try {
       await new Promise((resolve, reject) => {
         discoveryServer.once("error", reject);
-        discoveryServer.listen(DISCOVERY_PORT, LOCAL_HOST, resolve);
+        discoveryServer.listen(discoveryPort, LOCAL_HOST, resolve);
       });
     } catch (error) {
       discoveryLastError =

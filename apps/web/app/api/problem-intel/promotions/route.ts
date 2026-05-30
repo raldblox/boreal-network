@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { writeProblemIntelPromotion } from "@/lib/problem-intel";
@@ -10,15 +11,23 @@ const promotionRequestSchema = z.object({
 });
 
 function canEdit(request: Request) {
-  const configuredToken = process.env.PROBLEM_INTEL_EDIT_TOKEN;
+  const configuredToken = process.env.PROBLEM_INTEL_EDIT_TOKEN?.trim();
+  const providedToken = request.headers
+    .get("x-problem-intel-edit-token")
+    ?.trim();
 
-  if (configuredToken) {
-    return (
-      request.headers.get("x-problem-intel-edit-token") === configuredToken
-    );
+  // Problem-intel writes are repo-local filesystem mutations. Do not reopen
+  // them just because a staging or demo server is not running NODE_ENV=production.
+  if (!configuredToken || !providedToken) {
+    return false;
   }
 
-  return process.env.NODE_ENV !== "production";
+  const expected = Buffer.from(configuredToken, "utf8");
+  const provided = Buffer.from(providedToken, "utf8");
+
+  return (
+    expected.length === provided.length && timingSafeEqual(expected, provided)
+  );
 }
 
 export async function POST(request: Request) {

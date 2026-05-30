@@ -94,6 +94,10 @@ export function getMessageByErrorCode(errorCode: ErrorCode): string {
 
     case "rate_limit:chat":
       return "You've reached the message limit. Come back in 1 hour to continue the chat.";
+    case "rate_limit:api":
+      return "Too many requests. Please slow down and try again later.";
+    case "rate_limit:auth":
+      return "Too many authentication attempts. Please slow down and try again later.";
     case "not_found:chat":
       return "The requested chat was not found. Please check the chat ID and try again.";
     case "forbidden:chat":

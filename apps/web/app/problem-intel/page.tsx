@@ -16,9 +16,7 @@ export const metadata: Metadata = buildPageMetadata({
 
 export default function ProblemIntelPage() {
   const dashboard = loadProblemIntelDashboard();
-  const isEditable =
-    process.env.NODE_ENV !== "production" ||
-    Boolean(process.env.PROBLEM_INTEL_EDIT_TOKEN);
+  const isEditable = Boolean(process.env.PROBLEM_INTEL_EDIT_TOKEN?.trim());
 
   return (
     <>

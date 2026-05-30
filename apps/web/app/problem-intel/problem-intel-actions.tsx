@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 type PromotionStatus = "backlog" | "testing" | "validated" | "shipped" | "rejected";
+const EDIT_TOKEN_STORAGE_KEY = "problem-intel-edit-token";
 
 export function ProblemIntelActions({
   problemId,
@@ -27,11 +28,24 @@ export function ProblemIntelActions({
 
     startTransition(async () => {
       setMessage(null);
+      const storedToken = window.sessionStorage.getItem(EDIT_TOKEN_STORAGE_KEY);
+      const editToken =
+        storedToken ||
+        window.prompt("Problem-intel edit token:")?.trim() ||
+        "";
+
+      if (!editToken) {
+        setMessage("Promotion requires the problem-intel edit token.");
+        return;
+      }
+
+      window.sessionStorage.setItem(EDIT_TOKEN_STORAGE_KEY, editToken);
 
       const response = await fetch("/api/problem-intel/promotions", {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-problem-intel-edit-token": editToken,
         },
         body: JSON.stringify({
           problemId,
@@ -44,6 +58,9 @@ export function ProblemIntelActions({
       const payload = await response.json();
 
       if (!response.ok) {
+        if (response.status === 403) {
+          window.sessionStorage.removeItem(EDIT_TOKEN_STORAGE_KEY);
+        }
         setMessage(payload.error ?? "Promotion failed.");
         return;
       }

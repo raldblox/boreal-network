@@ -40,11 +40,11 @@ export async function POST(request: Request) {
       { status: 200 }
     );
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to process PayPal webhook";
+    console.error("[paypal-webhook] processing failed", error);
 
-    return new ChatbotError("bad_request:api", message).toResponse();
+    return new ChatbotError(
+      "bad_request:api",
+      "Failed to process PayPal webhook."
+    ).toResponse();
   }
 }

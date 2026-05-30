@@ -67,6 +67,7 @@ Verify:
 - username normalization and uniqueness should prevent ambiguous or duplicate regular-account handles
 - password success alone should not complete login when the account has enrolled required `WebAuthn` MFA
 - `WebAuthn` MFA challenges should expire, single-use correctly, and reject replay
+- `WebAuthn` challenge creation should reject origins outside the configured allowlist and should not derive production RP ID or origin from forwarded request headers
 - passkey-first login should issue a session from an enrolled discoverable credential without username or password input
 - passkey-first login should reject expired challenges, unknown credential ids, and replayed challenge ids
 - resolver bearer scopes are enforced independently from browser sessions
@@ -97,6 +98,7 @@ Verify:
 - PayPal create-order creates one pending buyer-credit ledger entry and stores the PayPal order reference without creating a request `Transaction`
 - PayPal return capture settles only a matching authenticated owner's pending buyer-credit ledger entry
 - PayPal webhook handling rejects missing or failed PayPal signature verification before any ledger mutation
+- PayPal webhook and checkout errors returned to callers do not include upstream PayPal response bodies or processor diagnostics
 - PayPal `PAYMENT.CAPTURE.COMPLETED` webhook settlement moves pending credit to available credit exactly once
 - PayPal capture amount and currency must match the pending buyer-credit ledger entry before settlement
 
@@ -215,12 +217,16 @@ Verify:
 - desktop should force public or external tracked request lanes onto a dedicated `.boreal-work` request workspace instead of the app repo root
 - desktop should clear extra writable roots and keep network off for public or external tracked request lanes even if broader local settings exist
 - desktop localhost bridge should bind to `127.0.0.1` only, require a valid session token, and reject non-localhost origins
-- desktop localhost bridge `/discover` should stay localhost-origin constrained, expose only local bridge-link metadata plus separate local readiness states for bridge, Codex worker, and Boreal resolver, and never become a durable Boreal identity or request ledger
+- desktop localhost bridge should reject missing `Origin` headers on HTTP routes instead of treating non-browser local requests as browser-safe
+- desktop localhost bridge `/discover` should stay localhost-origin constrained, expose only local bridge-link metadata plus separate local readiness states for bridge, Codex worker, and Boreal resolver, never expose the live session token or token-bearing URLs, and never become a durable Boreal identity or request ledger
 - desktop localhost bridge `/discover` may expose local desktop auto-resolve policy, desktop-default supply selection, and desktop-default Codex model or reasoning selection, but those fields must remain local runtime hints and must not override durable request routing truth
 - desktop localhost bridge `/models` should require the same valid session token, stay localhost-origin constrained, and return only the connected desktop runtime model catalog instead of a second Boreal model ledger
 - desktop localhost bridge `POST /chat` should require the same valid session token, stay localhost-origin constrained, and dispatch only one local runtime turn instead of becoming a second durable Boreal chat ledger
 - desktop-model web chat dispatch should keep normal web models on the existing `/api/chat` path, while only selected `Codex/Desktop` models branch through the localhost bridge
 - desktop-model web chat dispatch should stay blocked for draft request briefing lanes so request-object mutation still runs through Boreal request tools first
+- matching-lab provider or LLM normalization should require a signed-in regular account, enforce route-level rate limiting, and keep heuristic parsing as the only unauthenticated mode
+- resolver device-start should be rate-limited before creating pending resolver client or authorization records
+- problem-intel promotion writes should require `PROBLEM_INTEL_EDIT_TOKEN` in every environment and should not reopen just because `NODE_ENV` is non-production
 - desktop peer runtime should create or reuse one stable peer keypair under `.boreal-work/desktop/peer-runtime.json`
 - desktop peer runtime should listen on the Boreal control topic and expose its listening state without changing Boreal actor identity semantics
 - request-bound desktop turns should be able to join a Boreal request topic through the embedded peer host without promoting peer transport state into durable request truth

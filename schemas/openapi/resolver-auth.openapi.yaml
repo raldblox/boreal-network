@@ -22,6 +22,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResolverDeviceStartResponse"
+        "429":
+          description: Device-start rate limit exceeded before pending resolver records are created.
   /api/auth/resolver/device/poll:
     post:
       summary: Poll one pending resolver device approval.
