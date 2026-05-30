@@ -89,6 +89,10 @@ Account setup notes:
 - `Auth.js` is package code, not a separate hosted account
 - Redis is optional and should not block first local scaffold work
 - `BLOB_READ_WRITE_TOKEN` is required once provider outputs are mirrored into durable Boreal storage
+- `WEBAUTHN_ORIGIN`, `WEBAUTHN_RP_ID`, and `WEBAUTHN_ALLOWED_ORIGINS` must match the deployed Vercel origin before WebAuthn MFA is enabled in production
+- `PROBLEM_INTEL_EDIT_TOKEN` is required in every environment before problem-intel promotion writes are accepted
+- use `vercel env pull .vercel/.env.production.local --environment=production` after production env updates so local production builds reflect the deployed configuration
+- Vercel sensitive env values may pull back as empty strings; keep local copies in ignored env files instead of committing secrets
 
 Demo seed notes:
 
