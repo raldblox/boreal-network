@@ -42,6 +42,89 @@ test.describe("Chat Page", () => {
 });
 
 test.describe("Chat Input Features", () => {
+  test("attaches an uploaded image without breaking the composer", async ({
+    page,
+  }) => {
+    const pageErrors: Error[] = [];
+    const imageBody = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
+      "base64"
+    );
+
+    page.on("pageerror", (error) => pageErrors.push(error));
+    await page.route("**/api/files/upload", async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          contentType: "image/png",
+          filename: "pixel.png",
+          pathname: "chat-attachments/e2e/pixel.png",
+          size: imageBody.byteLength,
+          url: "/api/files/blob?pathname=chat-attachments/e2e/pixel.png&expires=9999999999&signature=test&filename=pixel.png",
+        }),
+        contentType: "application/json",
+        status: 200,
+      });
+    });
+    await page.route("**/api/files/blob?**", async (route) => {
+      await route.fulfill({
+        body: imageBody,
+        contentType: "image/png",
+        status: 200,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+    await page.getByTestId("attachment-file-input").setInputFiles({
+      buffer: imageBody,
+      mimeType: "image/png",
+      name: "pixel.png",
+    });
+
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(1);
+    await expect(page.getByTestId("send-button")).toBeEnabled();
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("refuses unsupported files before enforcing attachment limits", async ({
+    page,
+  }) => {
+    let uploadCount = 0;
+
+    await page.route("**/api/files/upload", async (route) => {
+      const index = uploadCount++;
+
+      await route.fulfill({
+        body: JSON.stringify({
+          contentType: "text/markdown",
+          filename: `note-${index}.md`,
+          pathname: `chat-attachments/e2e/note-${index}.md`,
+          size: 12,
+          url: `/api/files/blob?pathname=chat-attachments/e2e/note-${index}.md&expires=9999999999&signature=test&filename=note-${index}.md`,
+        }),
+        contentType: "application/json",
+        status: 200,
+      });
+    });
+
+    await page.goto("/?mode=chat");
+    await page.getByTestId("attachment-file-input").setInputFiles([
+      ...Array.from({ length: 8 }, (_, index) => ({
+        buffer: Buffer.from(`# Note ${index}`),
+        mimeType: "text/markdown",
+        name: `note-${index}.md`,
+      })),
+      {
+        buffer: Buffer.from("MZ"),
+        mimeType: "application/octet-stream",
+        name: "malware.exe",
+      },
+    ]);
+
+    await expect(page.getByText(/malware\.exe: Unsupported file type/)).toBeVisible();
+    await expect(page.getByTestId("input-attachment-preview")).toHaveCount(8);
+    expect(uploadCount).toBe(8);
+  });
+
   test("input clears after sending", async ({ page }) => {
     await page.goto("/?mode=chat");
     const input = page.getByTestId("multimodal-input");

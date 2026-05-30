@@ -560,14 +560,6 @@ function PureMultimodalInput({
         return;
       }
 
-      if (
-        attachments.length + uploadQueue.length + files.length >
-        maxChatAttachmentCount
-      ) {
-        toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
-        return;
-      }
-
       const validatedFiles = files.map((file) => ({
         file,
         validation: validateChatAttachmentFile(file),
@@ -584,6 +576,14 @@ function PureMultimodalInput({
       }
 
       if (acceptedFiles.length === 0) {
+        return;
+      }
+
+      if (
+        attachments.length + uploadQueue.length + acceptedFiles.length >
+        maxChatAttachmentCount
+      ) {
+        toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
         return;
       }
 
@@ -742,6 +742,7 @@ function PureMultimodalInput({
       <input
         accept={chatAttachmentAccept}
         className="pointer-events-none fixed -top-4 -left-4 size-0.5 opacity-0"
+        data-testid="attachment-file-input"
         multiple
         onChange={handleFileChange}
         ref={fileInputRef}
