@@ -218,6 +218,8 @@ From the repo root:
   Validates the seeded public-pilot happy path across one durable `Request`, verified funding, accepted `Commitment`, `Fulfillment`, delivery `Artifact`, request-attached `Transaction`, and replayable `RequestEvent` activity.
 - `pnpm contracts:desktop-ledger-boundary`
   Validates that desktop request-bound execution is only an execution participant: local transcript and ephemeral runtime signals do not become a second request ledger, owner-private direct fulfillment remains narrow, and public tracked work keeps the accepted-commitment gate.
+- `pnpm contracts:request-room-replay`
+  Validates that request-room timeline cards can be reconstructed from durable `RequestEvent` entries plus related `Commitment`, `Artifact`, `Fulfillment`, and `Transaction` records.
 - `pnpm contracts:solution-runs`
   Validates the v0 public-solution-run fixture: completed public source request, accepted source artifact, private run request, buyer-credit debit, and request-attached transaction truth.
 - `pnpm evals:request-processing:benchmark`

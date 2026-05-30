@@ -223,7 +223,7 @@ Verify:
 - desktop peer runtime should create or reuse one stable peer keypair under `.boreal-work/desktop/peer-runtime.json`
 - desktop peer runtime should listen on the Boreal control topic and expose its listening state without changing Boreal actor identity semantics
 - request-bound desktop turns should be able to join a Boreal request topic through the embedded peer host without promoting peer transport state into durable request truth
-- timeline cards should be reconstructible from `RequestEvent` plus related object refs
+- timeline cards should be reconstructible from `RequestEvent` plus related object refs, with `pnpm contracts:request-room-replay` covering the seeded public-pilot lane
 - route classification follows canon and complexity policy
 - lead-match flow happens before decomposition for complex work
 - planner outputs stay derived and rebuildable

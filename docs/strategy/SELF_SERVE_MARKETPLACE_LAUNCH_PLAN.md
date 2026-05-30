@@ -90,7 +90,8 @@ Checklist:
   - Completed: `pnpm contracts:validate` parses canonical JSON Schema files and deterministic fixture JSON files, including BOM-safe reads.
 - [x] Expand fixtures for at least one blocked fulfillment, one retryable provider handoff failure, and one artifact revision path.
   - Completed: `fixtures/fulfillment/pilot-blocked-retry-artifact-revision.json` captures a blocked fulfillment, retryable provider handoff failure, artifact revision request, durable events, and invariants.
-- [ ] Add request-room replay checks for durable activity derived from `RequestEvent`, `Commitment`, and `Artifact` records.
+- [x] Add request-room replay checks for durable activity derived from `RequestEvent`, `Commitment`, and `Artifact` records.
+  - Completed: `pnpm contracts:request-room-replay` reconstructs request-room timeline cards from seeded durable events and related records.
 - [ ] Add idempotency checks for payment, credit, commitment, artifact, and fulfillment mutation surfaces that can replay.
 - [ ] Add authorization checks for owner reads, public projections, resolver tokens, and supply owner boundaries.
 - [x] Add observability notes for payment settlement, provider handoff, fulfillment blocking, and artifact acceptance.
@@ -209,9 +210,8 @@ Exit criteria:
 
 ## Recommended Next Work Sequence
 
-1. Add request-room replay checks for durable activity derived from `RequestEvent`, `Commitment`, and `Artifact` records.
-2. Add idempotency checks for payment, credit, commitment, artifact, and fulfillment mutation surfaces that can replay.
-3. Add authorization checks for owner reads, public projections, resolver tokens, and supply owner boundaries.
-4. Add curated responder/supply return-path work before inviting more supply.
-5. Expand OpenAPI, AsyncAPI, fixtures, and idempotency checks before broad public marketplace claims.
-6. Expand solution-run v0 with fulfillment attachment only when the worker, provider, or review lane is real.
+1. Add idempotency checks for payment, credit, commitment, artifact, and fulfillment mutation surfaces that can replay.
+2. Add authorization checks for owner reads, public projections, resolver tokens, and supply owner boundaries.
+3. Add curated responder/supply return-path work before inviting more supply.
+4. Expand OpenAPI, AsyncAPI, fixtures, and idempotency checks before broad public marketplace claims.
+5. Expand solution-run v0 with fulfillment attachment only when the worker, provider, or review lane is real.
