@@ -40,6 +40,9 @@ export const maxChatAttachmentCount = 8;
 export const maxChatAttachmentBytes = 20 * 1024 * 1024;
 export const maxChatImageInputBytes = 10 * 1024 * 1024;
 export const maxChatTextInlineBytes = 256 * 1024;
+export const maxChatPdfTextExtractionBytes = 8 * 1024 * 1024;
+export const maxChatPdfTextExtractionPages = 20;
+export const maxChatPdfInlineCharacters = 80_000;
 export const maxOptimizedImageDimension = 2048;
 export const optimizedImageQuality = 0.82;
 
@@ -90,6 +93,10 @@ export function isChatTextAttachment(type: string | null | undefined) {
   return chatTextAttachmentMimeTypes.includes(
     type?.toLowerCase().trim() as (typeof chatTextAttachmentMimeTypes)[number]
   );
+}
+
+export function isChatPdfAttachment(type: string | null | undefined) {
+  return type?.toLowerCase().trim() === "application/pdf";
 }
 
 export function getChatAttachmentLabel({

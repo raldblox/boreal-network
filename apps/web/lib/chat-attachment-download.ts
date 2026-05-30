@@ -1,7 +1,13 @@
 import type { Experimental_DownloadFunction } from "ai";
+import { PDFParse } from "pdf-parse";
 import {
+  formatAttachmentBytes,
+  isChatPdfAttachment,
   isChatTextAttachment,
   maxChatAttachmentBytes,
+  maxChatPdfInlineCharacters,
+  maxChatPdfTextExtractionBytes,
+  maxChatPdfTextExtractionPages,
   maxChatTextInlineBytes,
   resolveChatAttachmentMimeType,
   validateChatAttachmentFile,
@@ -162,20 +168,84 @@ function decodeTextAttachment({
     .join("\n");
 }
 
-async function inlineTextAttachmentPart({
+async function decodePdfAttachment({
+  data,
+  filename,
+}: {
+  data: Uint8Array;
+  filename: string;
+}) {
+  if (data.byteLength > maxChatPdfTextExtractionBytes) {
+    return [
+      `Attached PDF file: ${filename}`,
+      `[PDF text was not extracted because the file is ${formatAttachmentBytes(data.byteLength)}. The chat extraction limit is ${formatAttachmentBytes(maxChatPdfTextExtractionBytes)}.]`,
+    ].join("\n");
+  }
+
+  const parser = new PDFParse({
+    data: data.slice(),
+    disableFontFace: true,
+    isEvalSupported: false,
+    useSystemFonts: false,
+  });
+
+  try {
+    const result = await parser.getText({
+      first: maxChatPdfTextExtractionPages,
+      pageJoiner: "\n\n--- Page page_number of total_number ---\n\n",
+    });
+    const normalizedText = result.text.replace(/\u0000/g, "").trim();
+
+    if (!normalizedText) {
+      return [
+        `Attached PDF file: ${filename}`,
+        "[No selectable text was extracted from this PDF. It may be scanned, image-only, encrypted, or malformed.]",
+      ].join("\n");
+    }
+
+    const isCharacterTruncated =
+      normalizedText.length > maxChatPdfInlineCharacters;
+    const includedText = isCharacterTruncated
+      ? normalizedText.slice(0, maxChatPdfInlineCharacters)
+      : normalizedText;
+    const pageNote =
+      result.total > maxChatPdfTextExtractionPages
+        ? `\n\n[Only the first ${maxChatPdfTextExtractionPages} pages of ${result.total} were extracted.]`
+        : "";
+    const characterNote = isCharacterTruncated
+      ? `\n\n[Only the first ${maxChatPdfInlineCharacters} characters were included.]`
+      : "";
+
+    return [
+      `Attached PDF file: ${filename}`,
+      "Extracted text:",
+      "```",
+      includedText,
+      "```",
+      pageNote,
+      characterNote,
+    ]
+      .filter(Boolean)
+      .join("\n");
+  } finally {
+    await parser.destroy().catch(() => undefined);
+  }
+}
+
+async function materializeFileAttachmentPart({
   part,
   requestUrl,
 }: {
   part: ChatAttachmentFilePart;
   requestUrl: string;
-}): Promise<ChatAttachmentFilePart | ChatAttachmentTextPart> {
+}): Promise<Array<ChatAttachmentFilePart | ChatAttachmentTextPart>> {
   const mediaType = resolveChatAttachmentMimeType({
     name: getFilePartName(part),
     type: part.mediaType,
   });
 
-  if (!isChatTextAttachment(mediaType)) {
-    return part;
+  if (!isChatTextAttachment(mediaType) && !isChatPdfAttachment(mediaType)) {
+    return [part];
   }
 
   let url: URL;
@@ -183,25 +253,38 @@ async function inlineTextAttachmentPart({
   try {
     url = new URL(part.url);
   } catch {
-    return part;
+    return [part];
   }
 
   if (!isChatBlobDeliveryUrl(url, requestUrl)) {
-    return part;
+    return [part];
   }
 
   try {
     const attachment = await readChatBlobDeliveryUrl(url);
 
-    return {
-      type: "text",
-      text: decodeTextAttachment(attachment),
-    };
+    if (isChatPdfAttachment(attachment.mediaType)) {
+      return [
+        {
+          type: "text",
+          text: await decodePdfAttachment(attachment),
+        },
+      ];
+    }
+
+    return [
+      {
+        type: "text",
+        text: decodeTextAttachment(attachment),
+      },
+    ];
   } catch (error) {
-    return {
-      type: "text",
-      text: `Attached file ${getFilePartName(part)} could not be read: ${getAttachmentErrorMessage(error)}`,
-    };
+    return [
+      {
+        type: "text",
+        text: `Attached file ${getFilePartName(part)} could not be read: ${getAttachmentErrorMessage(error)}`,
+      },
+    ];
   }
 }
 
@@ -217,30 +300,32 @@ export async function prepareChatMessagesForModel<
   return Promise.all(
     messages.map(async (message) => ({
       ...message,
-      parts: await Promise.all(
-        message.parts.map(async (part) => {
-          if (!isChatAttachmentFilePart(part)) {
-            return part;
-          }
+      parts: (
+        await Promise.all(
+          message.parts.map(async (part) => {
+            if (!isChatAttachmentFilePart(part)) {
+              return [part];
+            }
 
-          const filename =
-            typeof part.filename === "string" && part.filename.trim()
-              ? part.filename.trim()
-              : typeof part.name === "string" && part.name.trim()
-                ? part.name.trim()
-                : "attachment";
+            const filename =
+              typeof part.filename === "string" && part.filename.trim()
+                ? part.filename.trim()
+                : typeof part.name === "string" && part.name.trim()
+                  ? part.name.trim()
+                  : "attachment";
 
-          const normalizedPart: ChatAttachmentFilePart = {
-            ...part,
-            filename,
-          };
+            const normalizedPart: ChatAttachmentFilePart = {
+              ...part,
+              filename,
+            };
 
-          return inlineTextAttachmentPart({
-            part: normalizedPart,
-            requestUrl,
-          });
-        })
-      ),
+            return materializeFileAttachmentPart({
+              part: normalizedPart,
+              requestUrl,
+            });
+          })
+        )
+      ).flat(),
     }))
   );
 }

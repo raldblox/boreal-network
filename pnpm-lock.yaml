@@ -222,6 +222,9 @@ importers:
       papaparse:
         specifier: ^5.5.2
         version: 5.5.3
+      pdf-parse:
+        specifier: 2.4.5
+        version: 2.4.5
       postgres:
         specifier: ^3.4.4
         version: 3.4.9
@@ -9687,7 +9690,6 @@ snapshots:
       '@napi-rs/canvas-linux-x64-gnu': 0.1.80
       '@napi-rs/canvas-linux-x64-musl': 0.1.80
       '@napi-rs/canvas-win32-x64-msvc': 0.1.80
-    optional: true
 
   '@neon-rs/load@0.0.4': {}
 
@@ -14979,12 +14981,10 @@ snapshots:
     dependencies:
       '@napi-rs/canvas': 0.1.80
       pdfjs-dist: 5.4.296
-    optional: true
 
   pdfjs-dist@5.4.296:
     optionalDependencies:
       '@napi-rs/canvas': 0.1.80
-    optional: true
 
   pem@1.14.8:
     dependencies:
