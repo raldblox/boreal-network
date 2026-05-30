@@ -2,18 +2,8 @@ import Link from "next/link";
 import { memo, useEffect, useRef, useState } from "react";
 import type { BorealRequestDraft } from "@/lib/request";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import {
-  SidebarMenuAction,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "../ui/sidebar";
-import { CopyIcon, MoreHorizontalIcon, TrashIcon } from "./icons";
+import { SidebarMenuButton, SidebarMenuItem } from "../ui/sidebar";
+import { CopyIcon, ShareIcon, TrashIcon } from "./icons";
 import { toast } from "./toast";
 
 const PureSidebarRequestItem = ({
@@ -28,7 +18,7 @@ const PureSidebarRequestItem = ({
   setOpenMobile: (open: boolean) => void;
 }) => {
   const requestTitle = request.brief.title?.trim() || "Untitled request";
-  const requestStatus = request.status.replace(/_/g, " ");
+  const requestStatusLabel = request.status.replace(/_/g, " ");
   const [isNavigating, setIsNavigating] = useState(false);
   const previousChatIdRef = useRef(request.chatId);
   const isVisuallyActive = isActive || isNavigating;
@@ -79,10 +69,10 @@ const PureSidebarRequestItem = ({
   };
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem className="group/requestitem relative">
       <SidebarMenuButton
         asChild
-        className="h-auto min-h-8 rounded-lg bg-transparent px-2 py-1.5 text-[13px] text-sidebar-foreground/68 transition-colors duration-150 hover:bg-sidebar-accent/24 hover:text-sidebar-foreground data-active:bg-sidebar-accent/34 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/34 data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground"
+        className="h-8 rounded-lg bg-transparent pr-2.5 text-[13px] text-sidebar-foreground/68 transition-[color,background-color,padding] duration-150 hover:bg-sidebar-accent/24 hover:text-sidebar-foreground data-active:bg-sidebar-accent/34 data-active:font-medium data-active:text-sidebar-foreground data-[active=true]:bg-sidebar-accent/34 data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground group-focus-within/requestitem:pr-[5.8rem] group-hover/requestitem:pr-[5.8rem]"
         isActive={isVisuallyActive}
       >
         <Link
@@ -91,64 +81,52 @@ const PureSidebarRequestItem = ({
             setIsNavigating(true);
             setOpenMobile(false);
           }}
+          title={`${requestTitle} - ${requestStatusLabel}`}
         >
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="truncate">{requestTitle}</span>
-            <span className="inline-flex items-center gap-1 truncate text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">
-              <span
-                className={cn(
-                  "size-1.5 shrink-0 rounded-full",
-                  getRequestStatusDotClassName(request.status),
-                )}
-              />
-              {requestStatus}
-            </span>
-          </div>
+          <span className="min-w-0 flex-1 truncate">{requestTitle}</span>
+          <span
+            aria-label={`Status: ${requestStatusLabel}`}
+            className={cn(
+              "ml-2 size-2 shrink-0 rounded-full transition-opacity duration-150 group-focus-within/requestitem:opacity-0 group-hover/requestitem:opacity-0",
+              getRequestStatusDotClassName(request.status),
+            )}
+            title={requestStatusLabel}
+          />
         </Link>
       </SidebarMenuButton>
 
-      <DropdownMenu modal={true}>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuAction
-            className="mr-0.5 rounded-md text-sidebar-foreground/50 ring-0 transition-colors duration-150 focus-visible:ring-0 hover:text-sidebar-foreground data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-            showOnHover={!isVisuallyActive}
-          >
-            <MoreHorizontalIcon />
-            <span className="sr-only">More</span>
-          </SidebarMenuAction>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent align="end" side="bottom">
-          <DropdownMenuItem
-            onSelect={() => {
-              void copyRequestLink();
-            }}
-          >
-            <CopyIcon />
-            <span>Copy link</span>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            onSelect={() => {
-              void copyRequestId();
-            }}
-          >
-            <CopyIcon />
-            <span>Copy request ID</span>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            disabled={isActive}
-            onSelect={() => onDelete(request.id)}
-            variant="destructive"
-          >
-            <TrashIcon />
-            <span>
-              {request.status === "draft" ? "Delete draft" : "Delete request"}
-            </span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="pointer-events-none absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-focus-within/requestitem:pointer-events-auto group-focus-within/requestitem:opacity-100 group-hover/requestitem:pointer-events-auto group-hover/requestitem:opacity-100">
+        <button
+          aria-label="Copy request link"
+          className="flex size-6 items-center justify-center rounded-md text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent/45 hover:text-sidebar-foreground"
+          onClick={() => void copyRequestLink()}
+          title="Copy link"
+          type="button"
+        >
+          <ShareIcon size={12} />
+        </button>
+        <button
+          aria-label="Copy request ID"
+          className="flex size-6 items-center justify-center rounded-md text-sidebar-foreground/45 transition-colors hover:bg-sidebar-accent/45 hover:text-sidebar-foreground"
+          onClick={() => void copyRequestId()}
+          title="Copy request ID"
+          type="button"
+        >
+          <CopyIcon size={12} />
+        </button>
+        <button
+          aria-label={
+            request.status === "draft" ? "Delete draft" : "Delete request"
+          }
+          className="flex size-6 items-center justify-center rounded-md text-sidebar-foreground/40 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:pointer-events-none disabled:opacity-35"
+          disabled={isActive}
+          onClick={() => onDelete(request.id)}
+          title={request.status === "draft" ? "Delete draft" : "Delete request"}
+          type="button"
+        >
+          <TrashIcon size={12} />
+        </button>
+      </div>
     </SidebarMenuItem>
   );
 };
