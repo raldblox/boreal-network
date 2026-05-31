@@ -324,7 +324,7 @@ function PreflightChecklist({
           className={cn(
             "rounded-full border text-[11px]",
             item.ready
-              ? "border-emerald-500/20 bg-emerald-500/8 text-emerald-700 dark:text-emerald-300"
+              ? "border-status-success/25 bg-status-success/[0.08] text-status-open dark:text-status-success"
               : "border-border/70 bg-background text-muted-foreground"
           )}
           key={item.label}

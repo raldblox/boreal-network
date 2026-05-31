@@ -32,7 +32,7 @@ const PureSidebarSupplyItem = ({
             <span className="inline-flex items-center gap-1 truncate text-[10px] uppercase tracking-[0.12em] text-sidebar-foreground/60">
               <span
                 className={cn(
-                  "size-1.5 shrink-0 rounded-full",
+                  "status-dot size-1.5 shrink-0 rounded-full bg-current",
                   getSupplyStatusDotClassName(supply.status)
                 )}
               />
@@ -63,15 +63,15 @@ export const SidebarSupplyItem = memo(
 function getSupplyStatusDotClassName(status: BorealSupplyDraft["status"]) {
   switch (status) {
     case "draft":
-      return "bg-zinc-400";
+      return "text-status-draft";
     case "published":
-      return "bg-emerald-400";
+      return "text-status-success";
     case "paused":
-      return "bg-amber-400";
+      return "text-status-waiting";
     case "retired":
-      return "bg-zinc-500";
+      return "text-status-cancelled";
     default:
-      return "bg-zinc-400";
+      return "text-status-muted";
   }
 }
 

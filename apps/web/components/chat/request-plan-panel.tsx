@@ -468,7 +468,7 @@ function BaselinePathCard({
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-emerald-100">
+            <div className="rounded-full border border-status-success/25 bg-status-success/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-status-success">
               Boreal baseline
             </div>
             <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
@@ -660,11 +660,11 @@ function FlowStepRow({
 function getPathSignalToneClassName(tone: RequestPathSignal["tone"]) {
   switch (tone) {
     case "good":
-      return "border-emerald-400/25 bg-emerald-400/10";
+      return "border-status-success/25 bg-status-success/10";
     case "warn":
-      return "border-amber-400/25 bg-amber-400/10";
+      return "border-status-waiting/25 bg-status-waiting/10";
     case "danger":
-      return "border-red-400/25 bg-red-400/10";
+      return "border-status-danger/25 bg-status-danger/10";
     default:
       return "border-border/60 bg-background/92";
   }

@@ -575,7 +575,7 @@ export function RequestTracker({
 
           {canLaunchCharacterCall ? (
             <CharacterCallLauncher
-              className="border-emerald-500/25 bg-emerald-500/5"
+              className="border-status-success/25 bg-status-success/[0.08]"
               fulfillmentId={
                 activeFulfillment?.id ??
                 request.activeRefs.activeFulfillmentId ??
@@ -586,8 +586,8 @@ export function RequestTracker({
           ) : null}
 
           {canCheckActiveWorkerFulfillment ? (
-            <div className="rounded-[18px] border border-sky-300/35 bg-sky-50/70 px-3.5 py-3 dark:bg-sky-500/10">
-              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-sky-700 dark:text-sky-300">
+            <div className="rounded-[18px] border border-status-active/25 bg-status-active/[0.08] px-3.5 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-active">
                 Render in progress
               </div>
               <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
@@ -610,8 +610,8 @@ export function RequestTracker({
           ) : null}
 
           {canRetryBlockedFulfillment ? (
-            <div className="rounded-[18px] border border-amber-300/35 bg-amber-50/70 px-3.5 py-3 dark:bg-amber-500/10">
-              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">
+            <div className="rounded-[18px] border border-status-waiting/25 bg-status-waiting/[0.08] px-3.5 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-waiting">
                 Recovery
               </div>
               <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
@@ -634,8 +634,8 @@ export function RequestTracker({
           ) : null}
 
           {showsLegacyFailedWorkerNote ? (
-            <div className="rounded-[18px] border border-rose-300/30 bg-rose-50/70 px-3.5 py-3 dark:bg-rose-500/10">
-              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-rose-700 dark:text-rose-300">
+            <div className="rounded-[18px] border border-status-danger/25 bg-status-danger/[0.08] px-3.5 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-danger">
                 Terminal failure
               </div>
               <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
@@ -682,8 +682,8 @@ export function RequestTracker({
               ]}
             />
             {canResolveDelivery ? (
-              <div className="rounded-[18px] border border-emerald-300/40 bg-emerald-50/70 px-3.5 py-3 dark:bg-emerald-500/10">
-                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
+              <div className="rounded-[18px] border border-status-success/25 bg-status-success/[0.08] px-3.5 py-3">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-success">
                   Owner action
                 </div>
                 <div className="mt-1.5 max-w-[13rem] text-[13px] leading-5.5 text-foreground">
@@ -899,7 +899,7 @@ export function RequestTracker({
           onClick={resumeLiveStage}
           type="button"
         >
-          <span className="size-2 rounded-full bg-sky-400" />
+          <span className="status-dot size-2 rounded-full bg-current text-status-active" />
           Back to live path
         </button>
       ) : !usesExternalScrollHost && selectedView === "activity" ? (
@@ -1047,11 +1047,11 @@ function WorkroomMonitorSummary({ items }: { items: WorkroomMonitorItem[] }) {
 function getPathSignalClassName(tone: RequestPathSignal["tone"]) {
   switch (tone) {
     case "good":
-      return "border-emerald-500/22 bg-emerald-500/[0.055]";
+      return "border-status-success/25 bg-status-success/[0.08]";
     case "warn":
-      return "border-amber-500/24 bg-amber-500/[0.06]";
+      return "border-status-waiting/25 bg-status-waiting/[0.08]";
     case "danger":
-      return "border-rose-500/24 bg-rose-500/[0.06]";
+      return "border-status-danger/25 bg-status-danger/[0.08]";
     case "neutral":
     default:
       return "border-border/60 bg-background/94";
@@ -1061,11 +1061,11 @@ function getPathSignalClassName(tone: RequestPathSignal["tone"]) {
 function getMonitorItemClassName(tone: WorkroomMonitorItem["tone"] = "default") {
   switch (tone) {
     case "success":
-      return "border-emerald-500/22 bg-emerald-500/[0.055]";
+      return "border-status-success/25 bg-status-success/[0.08]";
     case "warning":
-      return "border-amber-500/24 bg-amber-500/[0.06]";
+      return "border-status-waiting/25 bg-status-waiting/[0.08]";
     case "danger":
-      return "border-rose-500/24 bg-rose-500/[0.06]";
+      return "border-status-danger/25 bg-status-danger/[0.08]";
     case "default":
     default:
       return "border-border/60 bg-background/94";
@@ -1240,8 +1240,8 @@ function DeliveryFlowContext({
       ) : null}
 
       {canResolveDelivery ? (
-        <div className="rounded-[16px] border border-emerald-300/40 bg-emerald-50/70 px-3 py-3 dark:bg-emerald-500/10">
-          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">
+        <div className="rounded-[16px] border border-status-success/25 bg-status-success/[0.08] px-3 py-3">
+          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-success">
             Owner action
           </div>
           <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
@@ -2085,8 +2085,8 @@ function RuntimeStateRow({
     <div className="flex items-center gap-2 text-sm leading-6">
       <span
         className={cn(
-          "size-2 shrink-0 rounded-full",
-          isReady ? "bg-emerald-400" : "bg-zinc-500"
+          "status-dot size-2 shrink-0 rounded-full bg-current",
+          isReady ? "text-status-success" : "text-status-muted"
         )}
       />
       <span className={isReady ? "text-foreground" : "text-muted-foreground"}>

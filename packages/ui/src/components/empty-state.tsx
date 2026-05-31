@@ -38,13 +38,13 @@ const emptyStateIconVariants = cva(
         neutral:
           "border-border bg-muted text-muted-foreground",
         info:
-          "border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-200",
+          "border-status-active/25 bg-status-active/10 text-status-open dark:text-status-active",
         success:
-          "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200",
+          "border-status-success/25 bg-status-success/10 text-status-open dark:text-status-success",
         warning:
-          "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-100",
+          "border-status-waiting/25 bg-status-waiting/10 text-status-waiting dark:text-status-waiting",
         destructive:
-          "border-destructive/25 bg-destructive/10 text-destructive",
+          "border-status-danger/25 bg-status-danger/10 text-status-danger",
       },
     },
     defaultVariants: {

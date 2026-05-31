@@ -410,17 +410,17 @@ function BorealSidebarMark({ className }: { className?: string }) {
     >
       <path
         d="M488.037 72.815 272.879 144.222 273.887 0l214.15 72.815Z"
-        fill="#62FFCE"
+        fill="var(--boreal-mint)"
       />
       <path
         d="M503.367 282.669 196.443 179.869 503.367 78.021v204.648Z"
-        fill="#01FDFF"
+        fill="var(--boreal-cyan)"
       />
       <path
         d="M617.035 330.546 181.039 476.958V184.981l435.996 145.565Z"
-        fill="#23C1F0"
+        fill="var(--boreal-sky)"
       />
-      <path d="M0 547.782 632.372 335.667l1.445 212.115H0Z" fill="#3D73CB" />
+      <path d="M0 547.782 632.372 335.667l1.445 212.115H0Z" fill="var(--boreal-blue)" />
     </svg>
   );
 }

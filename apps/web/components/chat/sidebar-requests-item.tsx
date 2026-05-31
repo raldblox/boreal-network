@@ -87,7 +87,7 @@ const PureSidebarRequestItem = ({
           <span
             aria-label={`Status: ${requestStatusLabel}`}
             className={cn(
-              "ml-2 size-2 shrink-0 rounded-full transition-opacity duration-150 group-focus-within/requestitem:opacity-0 group-hover/requestitem:opacity-0",
+              "status-dot ml-2 size-2 shrink-0 rounded-full bg-current transition-opacity duration-150 group-focus-within/requestitem:opacity-0 group-hover/requestitem:opacity-0",
               getRequestStatusDotClassName(request.status),
             )}
             title={requestStatusLabel}
@@ -157,23 +157,25 @@ export const SidebarRequestItem = memo(
 function getRequestStatusDotClassName(status: BorealRequestDraft["status"]) {
   switch (status) {
     case "draft":
-      return "bg-zinc-400";
+      return "text-status-draft";
     case "open":
+      return "text-status-open";
     case "in_progress":
-      return "bg-sky-400";
+      return "text-status-active";
     case "funding_required":
     case "waiting_for_owner":
-      return "bg-amber-400";
+      return "text-status-waiting";
     case "funded":
+      return "text-status-funded";
     case "completed":
-      return "bg-emerald-400";
+      return "text-status-success";
     case "delivered":
-      return "bg-violet-400";
+      return "text-status-delivered";
     case "failed":
-      return "bg-rose-400";
+      return "text-status-danger";
     case "cancelled":
-      return "bg-zinc-500";
+      return "text-status-cancelled";
     default:
-      return "bg-zinc-400";
+      return "text-status-muted";
   }
 }

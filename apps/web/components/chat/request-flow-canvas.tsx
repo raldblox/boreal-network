@@ -259,7 +259,7 @@ function RequestFlowCanvasNode({
           "relative h-[14.5rem] overflow-hidden rounded-[18px] border bg-[#111217]/94 p-4 text-zinc-100 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.72)] backdrop-blur-xl transition-[border-color,box-shadow] duration-200",
           selected
             ? "border-white/22 shadow-[0_36px_90px_-40px_rgba(0,0,0,0.86)]"
-            : "border-white/8 hover:border-white/14"
+            : "border-white/[0.08] hover:border-white/[0.14]"
         )}
         style={{
           width: descriptor.width,
@@ -282,7 +282,7 @@ function RequestFlowCanvasNode({
               <div className="mt-3 flex min-w-0 items-start gap-3">
                 <div
                   className={cn(
-                    "flex size-9 shrink-0 items-center justify-center rounded-[13px] border border-white/8",
+                    "flex size-9 shrink-0 items-center justify-center rounded-[13px] border border-white/[0.08]",
                     tone.icon
                   )}
                 >
@@ -409,33 +409,33 @@ function getStateStyles(state: RequestFlowNodeState) {
     case "done":
       return {
         label: "done",
-        className: "border-emerald-300/24 bg-emerald-300/[0.12] text-emerald-200",
+        className: "border-status-success/25 bg-status-success/[0.12] text-status-success",
       };
     case "current":
       return {
         label: "active",
-        className: "border-sky-300/24 bg-sky-300/[0.12] text-sky-200",
+        className: "border-status-active/25 bg-status-active/[0.12] text-status-active",
       };
     case "blocked":
       return {
         label: "needs input",
-        className: "border-amber-300/24 bg-amber-300/[0.12] text-amber-200",
+        className: "border-status-waiting/25 bg-status-waiting/[0.12] text-status-waiting",
       };
     case "failed":
       return {
         label: "failed",
-        className: "border-rose-300/24 bg-rose-300/[0.12] text-rose-200",
+        className: "border-status-danger/25 bg-status-danger/[0.12] text-status-danger",
       };
     case "cancelled":
       return {
         label: "cancelled",
-        className: "border-violet-300/24 bg-violet-300/[0.12] text-violet-200",
+        className: "border-status-cancelled/25 bg-status-cancelled/[0.12] text-status-muted",
       };
     case "pending":
     default:
       return {
         label: "waiting",
-        className: "border-zinc-300/18 bg-white/[0.03] text-zinc-300",
+        className: "border-status-muted/20 bg-status-muted/[0.08] text-status-muted",
       };
   }
 }
@@ -444,43 +444,43 @@ function getToneStyles(tone: RequestFlowNodeTone) {
   switch (tone) {
     case "green":
       return {
-        badge: "border-emerald-300/24 bg-emerald-300/[0.12] text-emerald-200",
-        icon: "bg-emerald-200/92 text-emerald-950",
+        badge: "border-status-success/25 bg-status-success/[0.12] text-status-success",
+        icon: "bg-status-success text-primary-foreground",
         surface:
-          "from-emerald-300/[0.12] via-emerald-300/[0.04] to-transparent",
-        handle: "!bg-emerald-200",
+          "from-status-success/[0.14] via-status-success/[0.05] to-transparent",
+        handle: "!bg-status-success",
       };
     case "amber":
       return {
-        badge: "border-amber-300/24 bg-amber-300/[0.12] text-amber-200",
-        icon: "bg-amber-200/92 text-amber-950",
+        badge: "border-status-waiting/25 bg-status-waiting/[0.12] text-status-waiting",
+        icon: "bg-status-waiting text-white",
         surface:
-          "from-amber-300/[0.12] via-amber-300/[0.04] to-transparent",
-        handle: "!bg-amber-200",
+          "from-status-waiting/[0.14] via-status-waiting/[0.05] to-transparent",
+        handle: "!bg-status-waiting",
       };
     case "blue":
       return {
-        badge: "border-sky-300/24 bg-sky-300/[0.12] text-sky-200",
-        icon: "bg-sky-200/92 text-sky-950",
-        surface: "from-sky-300/[0.12] via-sky-300/[0.04] to-transparent",
-        handle: "!bg-sky-200",
+        badge: "border-status-active/25 bg-status-active/[0.12] text-status-active",
+        icon: "bg-status-active text-primary-foreground",
+        surface: "from-status-active/[0.14] via-status-active/[0.05] to-transparent",
+        handle: "!bg-status-active",
       };
     case "pink":
       return {
-        badge: "border-pink-300/24 bg-pink-300/[0.12] text-pink-200",
-        icon: "bg-pink-200/92 text-pink-950",
+        badge: "border-status-delivered/25 bg-status-delivered/[0.12] text-status-delivered",
+        icon: "bg-status-delivered text-white",
         surface:
-          "from-pink-300/[0.12] via-pink-300/[0.04] to-transparent",
-        handle: "!bg-pink-200",
+          "from-status-delivered/[0.14] via-status-delivered/[0.05] to-transparent",
+        handle: "!bg-status-delivered",
       };
     case "violet":
     default:
       return {
-        badge: "border-violet-300/24 bg-violet-300/[0.12] text-violet-200",
-        icon: "bg-violet-200/92 text-violet-950",
+        badge: "border-status-waiting/25 bg-status-waiting/[0.12] text-status-waiting",
+        icon: "bg-status-waiting text-white",
         surface:
-          "from-violet-300/[0.12] via-violet-300/[0.04] to-transparent",
-        handle: "!bg-violet-200",
+          "from-status-waiting/[0.14] via-status-waiting/[0.05] to-transparent",
+        handle: "!bg-status-waiting",
       };
   }
 }
