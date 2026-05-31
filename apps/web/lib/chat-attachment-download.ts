@@ -1,6 +1,8 @@
 import type { Experimental_DownloadFunction } from "ai";
+import { get } from "@vercel/blob";
 import { inflateRawSync } from "node:zlib";
 import { PDFParse } from "pdf-parse";
+import { verifySignedBlobDeliveryToken } from "./blob-delivery-token";
 import {
   formatAttachmentBytes,
   isChatDocxAttachment,
@@ -18,6 +20,20 @@ import {
 } from "./chat-attachment-policy";
 
 const chatAttachmentDownloadTimeoutMs = 15_000;
+
+type ChatAttachmentBlobReadResult = {
+  contentType: string;
+  data: Uint8Array;
+  size: number;
+};
+
+export type ChatAttachmentBlobReader = (
+  pathname: string
+) => Promise<ChatAttachmentBlobReadResult | null>;
+
+type ChatAttachmentReadOptions = {
+  blobReader?: ChatAttachmentBlobReader;
+};
 
 type ChatAttachmentFilePart = {
   type: "file";
@@ -105,8 +121,25 @@ export function getChatAttachmentUrlRejection({
   return null;
 }
 
-export async function readChatBlobDeliveryUrl(url: URL) {
+export async function readChatBlobDeliveryUrl(
+  url: URL,
+  options: ChatAttachmentReadOptions = {}
+) {
   const filename = url.searchParams.get("filename")?.trim() || "attachment";
+  const directAttachment = await readSignedPrivateBlobDeliveryUrl(
+    url,
+    options.blobReader
+  );
+
+  if (directAttachment) {
+    return normalizeDownloadedAttachment({
+      contentType: directAttachment.contentType,
+      data: directAttachment.data,
+      filename,
+      size: directAttachment.size,
+    });
+  }
+
   let response: Response;
 
   try {
@@ -151,9 +184,96 @@ export async function readChatBlobDeliveryUrl(url: URL) {
       "Attachment download was interrupted. Re-upload the file and try again."
     );
   }
+
+  return normalizeDownloadedAttachment({
+    contentType,
+    data: new Uint8Array(buffer),
+    filename,
+    size: buffer.byteLength,
+  });
+}
+
+async function readSignedPrivateBlobDeliveryUrl(
+  url: URL,
+  blobReader: ChatAttachmentBlobReader = readVercelPrivateBlob
+) {
+  if (
+    blobReader === readVercelPrivateBlob &&
+    !process.env.BLOB_READ_WRITE_TOKEN?.trim()
+  ) {
+    return null;
+  }
+
+  const pathname = url.searchParams.get("pathname")?.trim();
+  const expiresRaw = url.searchParams.get("expires");
+  const signature = url.searchParams.get("signature")?.trim();
+  const filename = url.searchParams.get("filename")?.trim() || undefined;
+
+  if (!pathname || !expiresRaw || !signature) {
+    return null;
+  }
+
+  const expiresAt = Number.parseInt(expiresRaw, 10);
+  let isValid = false;
+
+  try {
+    isValid = verifySignedBlobDeliveryToken({
+      expiresAt,
+      filename,
+      pathname,
+      signature,
+    });
+  } catch {
+    return null;
+  }
+
+  if (!isValid) {
+    return null;
+  }
+
+  try {
+    return await blobReader(pathname);
+  } catch {
+    return null;
+  }
+}
+
+async function readVercelPrivateBlob(pathname: string) {
+  const blob = await get(pathname, {
+    access: "private",
+  });
+
+  if (!blob || blob.statusCode !== 200 || !blob.stream) {
+    return null;
+  }
+
+  if (blob.blob.size > maxChatAttachmentBytes) {
+    throw new Error("Attachment is too large to analyze in chat.");
+  }
+
+  const buffer = await new Response(blob.stream).arrayBuffer();
+
+  return {
+    contentType: blob.blob.contentType,
+    data: new Uint8Array(buffer),
+    size: blob.blob.size,
+  };
+}
+
+function normalizeDownloadedAttachment({
+  contentType,
+  data,
+  filename,
+  size,
+}: {
+  contentType: string;
+  data: Uint8Array;
+  filename: string;
+  size: number;
+}) {
   const validation = validateChatAttachmentFile({
     name: filename,
-    size: buffer.byteLength,
+    size,
     type: contentType,
   });
 
@@ -162,7 +282,7 @@ export async function readChatBlobDeliveryUrl(url: URL) {
   }
 
   return {
-    data: new Uint8Array(buffer),
+    data,
     filename,
     mediaType: validation.contentType,
   };
@@ -500,9 +620,11 @@ function decodeDocxAttachment({
 }
 
 async function materializeFileAttachmentPart({
+  blobReader,
   part,
   requestUrl,
 }: {
+  blobReader?: ChatAttachmentBlobReader;
   part: ChatAttachmentFilePart;
   requestUrl: string;
 }): Promise<Array<ChatAttachmentFilePart | ChatAttachmentTextPart>> {
@@ -543,7 +665,7 @@ async function materializeFileAttachmentPart({
   }
 
   try {
-    const attachment = await readChatBlobDeliveryUrl(url);
+    const attachment = await readChatBlobDeliveryUrl(url, { blobReader });
 
     if (attachment.mediaType.startsWith("image/")) {
       return [
@@ -592,9 +714,11 @@ async function materializeFileAttachmentPart({
 export async function prepareChatMessagesForModel<
   T extends ChatAttachmentMessage,
 >({
+  blobReader,
   messages,
   requestUrl,
 }: {
+  blobReader?: ChatAttachmentBlobReader;
   messages: T[];
   requestUrl: string;
 }): Promise<T[]> {
@@ -621,6 +745,7 @@ export async function prepareChatMessagesForModel<
             };
 
             return materializeFileAttachmentPart({
+              blobReader,
               part: normalizedPart,
               requestUrl,
             });
@@ -632,8 +757,10 @@ export async function prepareChatMessagesForModel<
 }
 
 export function createChatAttachmentDownload({
+  blobReader,
   requestUrl,
 }: {
+  blobReader?: ChatAttachmentBlobReader;
   requestUrl: string;
 }): Experimental_DownloadFunction {
   return async (requestedDownloads) =>
@@ -643,7 +770,7 @@ export function createChatAttachmentDownload({
           return null;
         }
 
-        return readChatBlobDeliveryUrl(url);
+        return readChatBlobDeliveryUrl(url, { blobReader });
       })
     );
 }

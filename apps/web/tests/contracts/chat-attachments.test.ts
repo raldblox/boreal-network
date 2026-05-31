@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { convertToModelMessages } from "ai";
 import { postRequestBodySchema } from "@/app/(chat)/api/chat/schema";
 import { desktopTurnPersistBodySchema } from "@/app/(chat)/api/chat/desktop-turn/schema";
+import { createBlobDeliverySignature } from "@/lib/blob-delivery-token";
 import {
   getChatImageDimensionError,
   maxChatAttachmentBytes,
@@ -25,6 +26,32 @@ const tinyPng = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=",
   "base64"
 );
+
+function createSignedBlobUrl({
+  expiresAt = 9_999_999_999,
+  filename,
+  pathname,
+  requestUrl = "https://network.boreal.work/chat/test",
+}: {
+  expiresAt?: number;
+  filename: string;
+  pathname: string;
+  requestUrl?: string;
+}) {
+  const signature = createBlobDeliverySignature({
+    expiresAt,
+    filename,
+    pathname,
+  });
+  const params = new URLSearchParams({
+    expires: String(expiresAt),
+    filename,
+    pathname,
+    signature,
+  });
+
+  return new URL(`/api/files/blob?${params.toString()}`, requestUrl).toString();
+}
 
 function escapePdfText(value: string) {
   return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
@@ -299,6 +326,8 @@ assert.match(
 
 async function main() {
   const originalFetch = globalThis.fetch;
+  const originalAuthSecret = process.env.AUTH_SECRET;
+  process.env.AUTH_SECRET = "chat-attachment-contract-secret";
 
   globalThis.fetch = async () =>
     new Response("# Notes\n\nImportant attachment detail.", {
@@ -499,6 +528,61 @@ async function main() {
   });
 
   globalThis.fetch = async () => {
+    throw new Error("the chat API should not fetch itself for signed blobs");
+  };
+
+  const directBlobUrl = createSignedBlobUrl({
+    filename: "direct-pixel.png",
+    pathname: "chat-attachments/test/direct-pixel.png",
+  });
+  const directPreparedImageMessages = await prepareChatMessagesForModel({
+    blobReader: async (pathname) => {
+      assert.equal(pathname, "chat-attachments/test/direct-pixel.png");
+      return {
+        contentType: "image/png",
+        data: tinyPng,
+        size: tinyPng.byteLength,
+      };
+    },
+    requestUrl: "https://network.boreal.work/chat/test",
+    messages: [
+      {
+        role: "user" as const,
+        parts: [
+          {
+            type: "file",
+            mediaType: "image/png",
+            filename: "direct-pixel.png",
+            url: directBlobUrl,
+          },
+        ],
+      },
+    ],
+  }).finally(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const directImagePart = directPreparedImageMessages[0].parts[0] as {
+    mediaType?: string;
+    type?: string;
+    url?: string;
+  };
+  assert.equal(directImagePart.type, "file");
+  assert.equal(directImagePart.mediaType, "image/png");
+  assert.match(directImagePart.url ?? "", /^data:image\/png;base64,/);
+
+  const [directImageModelMessage] = await convertToModelMessages(
+    directPreparedImageMessages
+  );
+  assert.ok(Array.isArray(directImageModelMessage.content));
+  assert.deepEqual(directImageModelMessage.content[0], {
+    type: "file",
+    mediaType: "image/png",
+    filename: "direct-pixel.png",
+    data: directImagePart.url,
+  });
+
+  globalThis.fetch = async () => {
     throw new Error("socket hang up");
   };
 
@@ -600,6 +684,11 @@ async function main() {
     /Attachment could not be read/
   );
   globalThis.fetch = originalFetch;
+  if (originalAuthSecret === undefined) {
+    delete process.env.AUTH_SECRET;
+  } else {
+    process.env.AUTH_SECRET = originalAuthSecret;
+  }
 
   console.log("Chat attachment contracts passed.");
 }
