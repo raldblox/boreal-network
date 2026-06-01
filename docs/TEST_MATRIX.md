@@ -84,22 +84,26 @@ Verify:
 Verify:
 
 - a fresh agent can discover Boreal from `/llms.txt` and a public agent-start guide without private route knowledge
-- `/agents/actions.md` renders public-safe contract-linked walkthroughs for inspect, apply, submit, monitor, run, and optimize intents
+- `/agents/actions.md` renders public-safe contract-linked walkthroughs for inspect, make request, apply, submit, monitor, run, and optimize intents
 - `/agents/workflows.json` renders a machine-readable workflow catalog that names policy checkpoints, required scopes, idempotency-required actions, stop conditions, completion signals, and canonical write boundaries
+- `/agents/auth.json` renders a machine-readable auth profile that names anonymous, account-session, resolver-bearer, and target OAuth-compatible agent classes; required scopes; approval rules; idempotency requirements; and explicit non-grants
+- `/agents/completion.json` renders a machine-readable completion profile that tells agents what proof packet, Artifact, Fulfillment, RequestEvent, Transaction, and owner-review truth is required before claiming draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed states
 - `/agents/protocols.md` renders public-safe MCP, A2A, and x402 mapping rules and keeps each protocol below Boreal canonical object truth
 - `/agents/protocols.json` renders a machine-readable protocol profile that names MCP, A2A, and x402 roles, official spec URLs, adapter mappings, non-goals, durable writes, implementation order, and canonical boundaries
 - `/agents/recovery.json` renders a machine-readable recovery profile that tells agents when to stop, retry with the same idempotency key, resume from cursor, inspect transaction truth, retry a blocked fulfillment lane, or escalate to a human
 - `/agents/sandbox.md` and `/agents/sandbox.json` render a contract-only sandbox with deterministic mock identities, sample IDs, payloads, and canonical boundaries
 - `schemas/json/agent-sandbox.schema.json` and `fixtures/agent/sandbox-manifest.sample.json` stay parseable and aligned with the public sandbox contract
-- `pnpm contracts:agent-sandbox` validates sandbox fixture coverage for inspect, apply, submit, monitor, run, signed webhook, and optimize flows
+- `pnpm contracts:agent-sandbox` validates sandbox fixture coverage for inspect, make-request, apply, submit, monitor, run, signed webhook, and optimize flows
 - sandbox mock credentials, mock sessions, sample webhook secrets, and sample object ids are never accepted as production mutation authority
 - `/.well-known/agent-card.json` exposes only public-safe identity, endpoint, capability, auth, and skill metadata
-- the public agent card and `/openapi.json` expose the same action catalog for inspect, apply, submit, monitor, run, and optimize intents
+- the public agent card and `/openapi.json` expose the same action catalog for inspect, make request, apply, submit, monitor, run, and optimize intents
 - the public agent card and `/openapi.json` link to the workflow catalog and keep workflows below `Request` truth
 - each catalog action names canonical reads, canonical writes, availability, auth boundary, standard contract links, and guardrails
 - public request projections expose request-level `agentActionAffordances` that map concrete request ids to inspect, apply, submit, monitor, run, and optimize affordances without exposing owner-only routing or granting mutation authority
 - request detail reads expose request-level `agentActionPolicy` decisions that distinguish anonymous, session, and resolver actors; resolver decisions should report missing scopes instead of implying permission
 - public OpenAPI exports expose machine-readable `security` requirements, `BorealAccountSession`, `ResolverBearer`, `x-boreal-auth-boundary`, and `x-boreal-required-scopes` where live agent-facing routes enforce session or resolver gates
+- the public agent auth profile keeps OAuth-compatible external-agent authorization as target direction unless a live route contract says otherwise
+- the public agent completion profile keeps chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, and payment settlement below canonical completion truth unless promoted into `Artifact`, `Fulfillment`, `Transaction`, or `RequestEvent` records
 - public agent discovery links resolve to public-safe OpenAPI, JSON Schema, and AsyncAPI contracts
 - `apps/web/tests/contracts/agent-discovery.test.ts` covers the public agent card, start guide, action playbook, sandbox guide, sandbox manifest, action catalog, discovery index, allowlisted contract assets, and absence of obvious secret material in exported contracts
 - public request inspection remains anonymous-safe and excludes draft, private, owner-only routing, private transcript, and planner-internal fields

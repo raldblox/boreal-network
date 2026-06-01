@@ -95,6 +95,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `pnpm-workspace.yaml`
 - `apps/web/package.json`
 - `apps/web/app/agents/start.md/route.ts`
+- `apps/web/app/agents/auth.json/route.ts`
+- `apps/web/app/agents/completion.json/route.ts`
 - `apps/web/app/agents/workflows.json/route.ts`
 - `apps/web/app/agents/protocols.json/route.ts`
 - `apps/web/app/agents/recovery.json/route.ts`
@@ -107,6 +109,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/events/[contract]/route.ts`
 - `apps/web/tests/contracts/agent-discovery.test.ts`
 - `schemas/json/agent-sandbox.schema.json`
+- `schemas/json/agent-auth.schema.json`
+- `schemas/json/agent-completion.schema.json`
 - `schemas/json/agent-workflows.schema.json`
 - `schemas/json/agent-protocols.schema.json`
 - `schemas/json/agent-recovery.schema.json`
@@ -150,9 +154,11 @@ Today, the machine-readable baseline proves:
 - one localhost Boreal web request room may also read local desktop auto-resolve policy, desktop-default supply selection, and desktop-default Codex model or reasoning through that same guarded discovery lane, while still treating the `Request` object as durable route truth
 - one runnable Pear or Hyperswarm peer foundation now exists under `apps/peer/` and `packages/network-*`, with a real peer keypair, control-topic host, and desktop-embedded peer runtime status
 - one desktop tracked request lane can distinguish owner-private versus public or external trust tiers and block `Full` runtime on untrusted lanes while moving them onto a dedicated `.boreal-work` request workspace
-- one public agent action catalog is exposed through the agent card and `/openapi.json`, mapping inspect, apply, submit, monitor, run, and optimize intents to canonical reads, writes, auth boundaries, standards, and contract links
+- one public agent action catalog is exposed through the agent card and `/openapi.json`, mapping inspect, make-request, apply, submit, monitor, run, and optimize intents to canonical reads, writes, auth boundaries, standards, and contract links
 - one public `/agents/workflows.json` workflow catalog gives agents machine-readable process flows for scouting public work, making human-owned drafts, applying, submitting artifacts, monitoring activity, running public solutions, and optimizing without durable writes
-- one public `/agents/actions.md` playbook gives contract-linked walkthroughs and HTTP sketches for inspect, apply, submit, monitor, run, and optimize intents without creating a parallel agent ledger
+- one public `/agents/actions.md` playbook gives contract-linked walkthroughs and HTTP sketches for inspect, make-request, apply, submit, monitor, run, and optimize intents without creating a parallel agent ledger
+- one public `/agents/auth.json` profile and `schemas/json/agent-auth.schema.json` give agents machine-readable actor classes, auth schemes, scopes, approval boundaries, idempotency requirements, and explicit non-grants without claiming OAuth-compatible external-agent auth is live
+- one public `/agents/completion.json` profile and `schemas/json/agent-completion.schema.json` give agents machine-readable proof packet, artifact, fulfillment, review, payment, and event boundaries for draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims without treating chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, or payment settlement as completion truth by themselves
 - one request activity endpoint can resume monitor reads with `after_sequence` and return `cursor.nextAfterSequence` without creating heartbeat `RequestEvent` records
 - one public `/agents/monitor-webhooks.md` profile and OpenAPI webhook schema define the target signed push-delivery envelope for monitor agents, while actual subscription persistence and delivery remain target direction
 - one public `/agents/protocols.md` profile, `/agents/protocols.json` machine-readable protocol profile, `schemas/json/agent-protocols.schema.json`, and `standards/agent-protocol-profile.md` define MCP, A2A, and x402 adapter/payment boundaries without claiming live protocol adapters
@@ -168,7 +174,7 @@ These are intended next layers, not fully modeled proof yet:
 
 - broader canonical event coverage under `schemas/events/`
 - broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
-- richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, payment/rate-limit-aware policy decisions, failure fixtures, and external-agent auth beyond the first public action playbook, contract-only sandbox runner, request-detail action policy, cursor polling lane, and webhook signature profile
+- richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, payment/rate-limit-aware policy decisions, failure fixtures, and live external-agent auth beyond the first public action playbook, auth profile, contract-only sandbox runner, request-detail action policy, cursor polling lane, and webhook signature profile
 - an MCP profile or server that exposes Boreal request resources, schema resources, and governed tools without replacing HTTP contracts or using MCP for noisy runtime telemetry
 - an A2A adapter that maps A2A tasks, messages, streaming status, and artifacts onto Boreal `Request`, `Fulfillment`, `FulfillmentStep`, and `Artifact` truth without making A2A `Task` the root object
 - an optional x402-compatible payment profile for selected paid solution runs or agent-paid capability calls, with every payment reconciled into Boreal `Transaction` truth

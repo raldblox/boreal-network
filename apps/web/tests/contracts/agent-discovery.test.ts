@@ -3,7 +3,9 @@ import {
   allAgentDiscoveryAssets,
   buildAgentActionCatalog,
   buildAgentActionsMarkdown,
+  buildAgentAuthProfile,
   buildAgentCard,
+  buildAgentCompletionProfile,
   buildAgentMonitorWebhooksMarkdown,
   buildAgentProtocolProfile,
   buildAgentProtocolProfileMarkdown,
@@ -26,6 +28,8 @@ import {
 } from "@/lib/request";
 import { GET as getAgentCard } from "@/app/.well-known/agent-card.json/route";
 import { GET as getAgentActions } from "@/app/agents/actions.md/route";
+import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
+import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
 import { GET as getAgentProtocols } from "@/app/agents/protocols.md/route";
 import { GET as getAgentProtocolsJson } from "@/app/agents/protocols.json/route";
@@ -68,6 +72,19 @@ async function main() {
     agentCard.recoveryProfileUrl.endsWith("/agents/recovery.json"),
     true,
   );
+  assert.equal(agentCard.authProfileUrl.endsWith("/agents/auth.json"), true);
+  assert.equal(
+    agentCard.completionProfileUrl.endsWith("/agents/completion.json"),
+    true,
+  );
+  assert.equal(agentCard.authentication.profileUrl.endsWith("/agents/auth.json"), true);
+  assert.equal(agentCard.auth.status, "live_auth_profile");
+  assert.equal(agentCard.auth.liveActorClasses.includes("resolver_agent"), true);
+  assert.equal(agentCard.completion.status, "live_completion_profile");
+  assert.equal(
+    agentCard.completion.rules.some((rule) => rule.claimState === "completed"),
+    true,
+  );
   assert.equal(
     agentCard.workflows.some(
       (workflow) => workflow.id === "apply_complete_monitor"
@@ -95,6 +112,15 @@ async function main() {
   );
 
   const agentActions = buildAgentActionCatalog();
+  assert.equal(
+    agentActions.some(
+      (action) =>
+        action.id === "make_request_for_human" &&
+        action.canonicalWrites.includes("Request") &&
+        action.auth.includes("Boreal account session")
+    ),
+    true,
+  );
   assert.equal(
     agentActions.some(
       (action) =>
@@ -146,6 +172,9 @@ async function main() {
 
   const actionGuide = buildAgentActionsMarkdown();
   assert.match(actionGuide, /Boreal Agent Action Playbook/);
+  assert.match(actionGuide, /Create a request for me/);
+  assert.match(actionGuide, /POST \/api\/requests/);
+  assert.match(actionGuide, /open_request` only after explicit buyer approval/);
   assert.match(actionGuide, /POST \/api\/requests\/\{id\}\/commitments/);
   assert.match(actionGuide, /POST \/api\/requests\/\{id\}\/artifacts/);
   assert.match(
@@ -247,6 +276,7 @@ async function main() {
       (standard) =>
         standard.id === "mcp" &&
         standard.officialSpecUrl.includes("modelcontextprotocol.io") &&
+        standard.tools.some((tool) => tool.id === "draft_request") &&
         standard.tools.some((tool) => tool.id === "propose_commitment")
     ),
     true,
@@ -306,6 +336,105 @@ async function main() {
     true,
   );
 
+  const authProfile = buildAgentAuthProfile();
+  assert.equal(authProfile.status, "live_auth_profile");
+  assert.equal(authProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    authProfile.authSchemes.some(
+      (scheme) =>
+        scheme.id === "resolver_bearer" &&
+        scheme.officialSpecUrl?.includes("rfc6750") &&
+        scheme.status === "live_resolver_bearer"
+    ),
+    true,
+  );
+  assert.equal(
+    authProfile.authSchemes.some(
+      (scheme) =>
+        scheme.id === "external_oauth2" &&
+        scheme.status === "target_external_agent_auth"
+    ),
+    true,
+  );
+  assert.equal(
+    authProfile.scopes.some(
+      (scope) =>
+        scope.id === "commitments:propose" &&
+        scope.doesNotGrant.some((boundary) =>
+          boundary.includes("fulfillment start")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    authProfile.actionAuthRequirements.some(
+      (requirement) =>
+        requirement.actionId === "submit_artifact" &&
+        requirement.requiredScopes.includes("artifacts:publish") &&
+        requirement.idempotencyRequired
+    ),
+    true,
+  );
+  assert.equal(
+    authProfile.actionAuthRequirements.some(
+      (requirement) =>
+        requirement.actionId === "make_request_for_human" &&
+        requirement.requiredScopes.includes("requests:create") &&
+        requirement.humanApproval.includes("opening")
+    ),
+    true,
+  );
+  assert.equal(
+    authProfile.secretHandling.some((rule) => rule.includes("Never place")),
+    true,
+  );
+
+  const completionProfile = buildAgentCompletionProfile();
+  assert.equal(completionProfile.status, "live_completion_profile");
+  assert.equal(completionProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    completionProfile.proofPacket.requiredFor.includes("submit_artifact"),
+    true,
+  );
+  assert.equal(
+    completionProfile.completionRules.some(
+      (rule) =>
+        rule.id === "proof_submitted_for_review" &&
+        rule.canonicalWrites.includes("Artifact") &&
+        rule.notEnough.includes("payment success")
+    ),
+    true,
+  );
+  assert.equal(
+    completionProfile.completionRules.some(
+      (rule) =>
+        rule.id === "work_completed" &&
+        rule.requiredTruth.some((truth) => truth.includes("Request.status=completed")) &&
+        rule.notEnough.includes("payment settled")
+    ),
+    true,
+  );
+  assert.equal(
+    completionProfile.artifactGuidance.some(
+      (guidance) =>
+        guidance.artifactKind === "evidence" &&
+        guidance.mustNotInclude.includes("raw secrets")
+    ),
+    true,
+  );
+  assert.equal(
+    completionProfile.reviewBoundaries.some((boundary) =>
+      boundary.includes("Payment settled is not work completed")
+    ),
+    true,
+  );
+  assert.equal(
+    completionProfile.canonicalBoundary.notCompletionTruth.includes(
+      "A2A task status alone"
+    ),
+    true,
+  );
+
   const sandboxManifest = buildAgentSandboxManifest();
   assert.equal(sandboxManifest.mode, "contract_only");
   assert.equal(sandboxManifest.status, "live_contract_sandbox");
@@ -328,6 +457,7 @@ async function main() {
     true,
   );
   const sandboxText = JSON.stringify(sandboxManifest);
+  assert.match(sandboxText, /make_request_for_human/);
   assert.match(sandboxText, /apply_to_request/);
   assert.match(sandboxText, /submit_artifact/);
   assert.match(sandboxText, /monitor_request/);
@@ -339,6 +469,7 @@ async function main() {
   assert.match(sandboxText, /after_sequence=0/);
   assert.match(sandboxText, /cursor.nextAfterSequence/);
   assert.match(sandboxText, /Boreal-Webhook-Signature/);
+  assert.match(sandboxText, /open_request without explicit buyer approval/);
 
   const sandboxGuide = buildAgentSandboxMarkdown();
   assert.match(sandboxGuide, /contract-only sandbox/);
@@ -371,6 +502,11 @@ async function main() {
     workflowCatalog.workflows.some(
       (workflow) =>
         workflow.id === "make_request_for_human" &&
+        workflow.steps.some(
+          (step) =>
+            step.id === "create_draft" &&
+            step.actionId === "make_request_for_human"
+        ) &&
         workflow.forbiddenMoves.some((move) =>
           move.includes("without explicit buyer approval")
         )
@@ -570,6 +706,8 @@ async function main() {
   assert.match(startGuide, /GET \/api\/requests\?scope=public/);
   assert.match(startGuide, /agentActionAffordances/);
   assert.match(startGuide, /agentActionPolicy/);
+  assert.match(startGuide, /GET \/agents\/auth\.json/);
+  assert.match(startGuide, /GET \/agents\/completion\.json/);
   assert.match(startGuide, /GET \/agents\/workflows\.json/);
   assert.match(startGuide, /GET \/agents\/protocols\.json/);
   assert.match(startGuide, /GET \/agents\/recovery\.json/);
@@ -601,6 +739,11 @@ async function main() {
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/actions.md"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/auth.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/completion.json"),
+    true,
+  );
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/workflows.json"),
     true,
@@ -626,6 +769,18 @@ async function main() {
     ),
     true,
   );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-auth"].schemes.some(
+      (scheme) => scheme.id === "resolver_bearer"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-completion"].rules.some(
+      (rule) => rule.claimState === "completed"
+    ),
+    true,
+  );
 
   assert.equal(
     findOpenApiAsset("request-briefing.yaml")?.sourcePath,
@@ -642,6 +797,14 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-sandbox.schema.json")?.sourcePath,
     "schemas/json/agent-sandbox.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-auth.schema.json")?.sourcePath,
+    "schemas/json/agent-auth.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-completion.schema.json")?.sourcePath,
+    "schemas/json/agent-completion.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-workflows.schema.json")?.sourcePath,
@@ -721,6 +884,17 @@ async function main() {
     /Boreal Agent Action Playbook/
   );
 
+  const agentAuthResponse = await getAgentAuth();
+  assert.equal(agentAuthResponse.status, 200);
+  assert.equal((await agentAuthResponse.json()).status, "live_auth_profile");
+
+  const agentCompletionResponse = await getAgentCompletion();
+  assert.equal(agentCompletionResponse.status, 200);
+  assert.equal(
+    (await agentCompletionResponse.json()).status,
+    "live_completion_profile"
+  );
+
   const agentWorkflowsResponse = await getAgentWorkflows();
   assert.equal(agentWorkflowsResponse.status, 200);
   assert.equal(
@@ -769,6 +943,8 @@ async function main() {
   const llmsText = await llmsResponse.text();
   assert.match(llmsText, /Agent Discovery/);
   assert.match(llmsText, /Agent action playbook/);
+  assert.match(llmsText, /Agent auth profile/);
+  assert.match(llmsText, /Agent completion profile/);
   assert.match(llmsText, /Agent protocol profile JSON/);
   assert.match(llmsText, /Agent recovery profile/);
   assert.match(llmsText, /Agent contract sandbox/);
@@ -794,6 +970,21 @@ async function main() {
   });
   assert.equal(sandboxSchemaResponse.status, 200);
   assert.equal((await sandboxSchemaResponse.json()).title, "AgentSandbox");
+
+  const authSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-auth.schema.json" }),
+  });
+  assert.equal(authSchemaResponse.status, 200);
+  assert.equal((await authSchemaResponse.json()).title, "AgentAuthProfile");
+
+  const completionSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-completion.schema.json" }),
+  });
+  assert.equal(completionSchemaResponse.status, 200);
+  assert.equal(
+    (await completionSchemaResponse.json()).title,
+    "AgentCompletionProfile"
+  );
 
   const workflowSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-workflows.schema.json" }),

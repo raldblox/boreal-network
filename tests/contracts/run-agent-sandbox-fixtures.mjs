@@ -10,6 +10,7 @@ const implementationPath = "apps/web/lib/agent-sandbox.ts";
 
 const requiredFlows = new Map([
   ["inspect_public_requests", { method: "GET", writes: [] }],
+  ["make_request_for_human", { method: "POST", writes: ["Request"] }],
   ["apply_to_request", { method: "POST", writes: ["Commitment", "RequestEvent"] }],
   ["submit_artifact", { method: "POST", writes: ["Artifact", "RequestEvent"] }],
   ["monitor_request", { method: "GET", writes: [] }],
@@ -33,6 +34,8 @@ const requiredResources = [
   "/agents/start.md",
   "/agents/sandbox.md",
   "/agents/actions.md",
+  "/agents/auth.json",
+  "/agents/completion.json",
   "/agents/workflows.json",
   "/agents/protocols.md",
   "/agents/protocols.json",
@@ -221,6 +224,20 @@ function validateFlows(manifest, errors) {
     errors
   );
 
+  const makeRequest = flowMap.get("make_request_for_human");
+  assert(makeRequest?.auth === "mock_session:requests:create", "make_request_for_human must use mock session auth", errors);
+  assert(makeRequest?.sample?.body?.visibility === "private", "make_request_for_human must create a private draft sample", errors);
+  assert(
+    makeRequest?.sample?.followUp?.body?.action === "save_draft",
+    "make_request_for_human must stop at save_draft before opening",
+    errors
+  );
+  assert(
+    String(makeRequest?.sample?.stopBefore ?? "").includes("explicit buyer approval"),
+    "make_request_for_human must require explicit buyer approval before open_request",
+    errors
+  );
+
   const artifact = flowMap.get("submit_artifact");
   assert(artifact?.sample?.body?.artifactKind === "evidence", "submit_artifact sample must publish evidence", errors);
   assert(artifact?.sample?.body?.documentKind === "text", "submit_artifact sample must use a text document sample", errors);
@@ -254,7 +271,7 @@ function validateCanonBoundary(manifest, errors) {
   assert(boundary.rootObject === "Request", "sandbox boundary must keep Request as root", errors);
   includesAll(
     boundary.durableWrites,
-    ["Commitment", "Fulfillment", "FulfillmentStep", "Artifact", "Transaction", "RequestEvent"],
+    ["Request", "Commitment", "Fulfillment", "FulfillmentStep", "Artifact", "Transaction", "RequestEvent"],
     "sandbox durable writes",
     errors
   );

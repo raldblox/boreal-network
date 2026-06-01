@@ -48,6 +48,8 @@ Recommended naming:
 - `json/request-event.schema.json`
 - `json/artifact.schema.json`
 - `json/agent-sandbox.schema.json`
+- `json/agent-auth.schema.json`
+- `json/agent-completion.schema.json`
 - `json/agent-workflows.schema.json`
 - `json/agent-protocols.schema.json`
 - `json/agent-recovery.schema.json`

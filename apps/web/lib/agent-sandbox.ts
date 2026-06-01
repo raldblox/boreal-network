@@ -3,6 +3,8 @@ import { absoluteUrl } from "@/lib/seo";
 
 export const agentSandboxPaths = {
   actions: "/agents/actions.md",
+  auth: "/agents/auth.json",
+  completion: "/agents/completion.json",
   guide: "/agents/sandbox.md",
   manifest: "/agents/sandbox.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
@@ -16,6 +18,7 @@ export const agentSandboxPaths = {
 export function buildAgentSandboxManifest() {
   const sampleIds = {
     artifactId: "00000000-0000-4000-8000-000000000004",
+    chatId: "00000000-0000-4000-8000-000000000011",
     commitmentId: "00000000-0000-4000-8000-000000000003",
     deliveryId: "00000000-0000-4000-8000-000000000008",
     fulfillmentId: "00000000-0000-4000-8000-000000000005",
@@ -50,6 +53,14 @@ export function buildAgentSandboxManifest() {
       { label: "Start guide", url: absoluteUrl(agentSandboxPaths.start) },
       { label: "Sandbox guide", url: absoluteUrl(agentSandboxPaths.guide) },
       { label: "Action playbook", url: absoluteUrl(agentSandboxPaths.actions) },
+      {
+        label: "Auth profile",
+        url: absoluteUrl(agentSandboxPaths.auth),
+      },
+      {
+        label: "Completion profile",
+        url: absoluteUrl(agentSandboxPaths.completion),
+      },
       {
         label: "Workflow catalog",
         url: absoluteUrl("/agents/workflows.json"),
@@ -154,6 +165,43 @@ export function buildAgentSandboxManifest() {
             "requests[].agentActionAffordances",
             "requests[].agentActionAffordances.actions[].href",
           ],
+        },
+      },
+      {
+        id: "make_request_for_human",
+        intent: "Create a request for me",
+        method: "POST",
+        path: "/api/requests",
+        auth: "mock_session:requests:create",
+        availability: "contract_sample_only",
+        canonicalReads: ["Request"],
+        canonicalWrites: ["Request"],
+        idempotencyRequired: false,
+        productionWrite: false,
+        sample: {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            chatId: sampleIds.chatId,
+            visibility: "private",
+          },
+          followUp: {
+            method: "PATCH",
+            path: `/api/requests/${sampleIds.requestId}`,
+            body: {
+              action: "save_draft",
+              requestId: sampleIds.requestId,
+              request: {
+                brief: {
+                  title: "Sandbox buyer request",
+                  summary: "Draft a request for human review only.",
+                  body: "Capture requested outcome, constraints, proof expectations, budget, deadline, and missing questions before opening.",
+                },
+              },
+            },
+          },
+          stopBefore: "open_request without explicit buyer approval",
         },
       },
       {
@@ -338,6 +386,7 @@ export function buildAgentSandboxManifest() {
     canonicalBoundary: {
       rootObject: "Request",
       durableWrites: [
+        "Request",
         "Commitment",
         "Fulfillment",
         "FulfillmentStep",

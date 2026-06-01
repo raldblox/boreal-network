@@ -39,8 +39,10 @@ export type AgentActionDefinition = {
 };
 
 export const agentDiscoveryPaths = {
+  agentAuth: "/agents/auth.json",
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
+  agentCompletion: "/agents/completion.json",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentProtocols: "/agents/protocols.md",
   agentProtocolsJson: "/agents/protocols.json",
@@ -81,6 +83,35 @@ const agentActionDefinitions = [
       "Return candidate requests with fit, constraints, and missing information.",
     ],
     role: "scout",
+    standards: ["OpenAPI", "JSON Schema"],
+  },
+  {
+    auth: "Boreal account session; resolver draft creation is target direction",
+    availability: "live_authenticated_http_contract",
+    canonicalReads: ["Request"],
+    canonicalWrites: ["Request"],
+    contracts: [
+      "/openapi/request-briefing.yaml",
+      "/schemas/request.schema.json",
+      "/agents/auth.json",
+    ],
+    entrypoints: ["/api/requests", "/api/requests/{id}"],
+    guidePath: `${agentDiscoveryPaths.agentActions}#make_request_for_human`,
+    guardrails: [
+      "Create or update a draft Request only for the signed-in human buyer.",
+      "Do not open the request without explicit buyer approval.",
+      "Do not write server-owned planner, matcher, routing, lifecycle, or policy fields directly.",
+    ],
+    id: "make_request_for_human",
+    intent: "Create a request for me",
+    name: "Make a request draft for a human",
+    process: [
+      "Capture the human buyer's work need, missing details, budget, deadline, proof expectations, and constraints.",
+      "Create a private draft Request through the account-session route.",
+      "Save only buyer-authored draft fields through the governed draft update path.",
+      "Return the draft for human review; open it only after explicit buyer approval.",
+    ],
+    role: "requester",
     standards: ["OpenAPI", "JSON Schema"],
   },
   {
@@ -347,6 +378,24 @@ export const jsonSchemaDiscoveryAssets = [
   },
   {
     contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable agent auth, actor class, scope, approval, and write-boundary profile schema.",
+    routePath: "/schemas/agent-auth.schema.json",
+    sourcePath: "schemas/json/agent-auth.schema.json",
+    standard: "json_schema",
+    title: "Agent auth profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable agent completion, proof, artifact, and review-boundary profile schema.",
+    routePath: "/schemas/agent-completion.schema.json",
+    sourcePath: "schemas/json/agent-completion.schema.json",
+    standard: "json_schema",
+    title: "Agent completion profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
     description: "Machine-readable agent workflow catalog schema.",
     routePath: "/schemas/agent-workflows.schema.json",
     sourcePath: "schemas/json/agent-workflows.schema.json",
@@ -401,6 +450,8 @@ export function buildAgentCard() {
     },
     url: absoluteUrl("/"),
     documentationUrl: absoluteUrl(agentDiscoveryPaths.agentStart),
+    authProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
+    completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
     protocolProfileUrl: absoluteUrl(agentDiscoveryPaths.agentProtocols),
     protocolProfileJsonUrl: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
     recoveryProfileUrl: absoluteUrl(agentDiscoveryPaths.agentRecovery),
@@ -414,6 +465,7 @@ export function buildAgentCard() {
       durableActivityHistory: true,
     },
     authentication: {
+      profileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
       schemes: ["none", "boreal_account_session", "resolver_bearer"],
       notes: [
         "Anonymous access is limited to public-safe inspection.",
@@ -421,6 +473,22 @@ export function buildAgentCard() {
         "Sandbox mock credentials are contract samples only and are not accepted by production endpoints.",
         "OAuth-compatible external-agent auth is target direction, not a live claim in this card.",
       ],
+    },
+    auth: {
+      url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      status: buildAgentAuthProfile().status,
+      liveActorClasses: buildAgentAuthProfile()
+        .actorClasses.filter((actorClass) => actorClass.status.startsWith("live"))
+        .map((actorClass) => actorClass.id),
+    },
+    completion: {
+      url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      status: buildAgentCompletionProfile().status,
+      rules: buildAgentCompletionProfile().completionRules.map((rule) => ({
+        id: rule.id,
+        actionId: rule.actionId,
+        claimState: rule.claimState,
+      })),
     },
     defaultInputModes: ["application/json", "text/markdown"],
     defaultOutputModes: ["application/json", "text/markdown"],
@@ -462,6 +530,16 @@ export function buildAgentCard() {
         outputModes: ["application/json"],
         auth: "required",
         canonicalWrite: "Commitment",
+      },
+      {
+        id: "make_request_for_human",
+        name: "Make a request draft for a human",
+        description:
+          "Create or update a private draft Request for a signed-in human buyer, then stop for buyer review before opening.",
+        inputModes: ["application/json", "text/markdown"],
+        outputModes: ["application/json"],
+        auth: "required",
+        canonicalWrite: "Request",
       },
       {
         id: "submit_artifact",
@@ -539,6 +617,8 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent card: [${agentDiscoveryPaths.agentCard}](${absoluteUrl(agentDiscoveryPaths.agentCard)})
 - Agent-readable overview: [${agentDiscoveryPaths.llms}](${absoluteUrl(agentDiscoveryPaths.llms)})
 - Agent action playbook: [${agentDiscoveryPaths.agentActions}](${absoluteUrl(agentDiscoveryPaths.agentActions)})
+- Agent auth profile: [${agentDiscoveryPaths.agentAuth}](${absoluteUrl(agentDiscoveryPaths.agentAuth)})
+- Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
 - Agent workflow catalog: [${agentDiscoveryPaths.agentWorkflows}](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)})
 - Agent monitor webhook profile: [${agentDiscoveryPaths.agentMonitorWebhooks}](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)})
 - Agent protocol profile: [${agentDiscoveryPaths.agentProtocols}](${absoluteUrl(agentDiscoveryPaths.agentProtocols)})
@@ -593,9 +673,21 @@ For deterministic failure, retry, monitor, and escalation handling, agents can r
 GET ${agentDiscoveryPaths.agentRecovery}
 \`\`\`
 
+For deterministic auth, scope, approval, and write-boundary handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentAuth}
+\`\`\`
+
+For deterministic proof, completion-claim, artifact, and review-boundary handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentCompletion}
+\`\`\`
+
 ## Write-Capable Actions
 
-Write actions require a Boreal account session or an approved resolver bearer token. Agent writes should include an idempotency key where the target endpoint supports it.
+Write actions require a Boreal account session or an approved resolver bearer token. Agent writes should include an idempotency key where the target endpoint supports it. OAuth-compatible external-agent authorization is target direction; do not assume it is live unless the auth profile or a route contract says so.
 
 Common write paths:
 
@@ -609,6 +701,7 @@ Common write paths:
 | Agent intent | Boreal operation | Durable write | Auth |
 | --- | --- | --- | --- |
 | What can I solve? | Read public requests | none | none |
+| Create a request for me | Create or save buyer-owned draft | \`Request\` | account session |
 | Apply to this | Propose commitment | \`Commitment\` | required |
 | Submit here | Attach proof or delivery | \`Artifact\` and event | required |
 | Monitor this | Read activity | none by default | public or scoped |
@@ -717,6 +810,44 @@ export function buildOpenApiDiscoveryIndex() {
                 "Markdown walkthrough for inspect, apply, submit, monitor, run, and optimize agent intents.",
               content: {
                 "text/markdown": { schema: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+      "/agents/auth.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent auth profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for actor classes, auth schemes, scopes, approval rules, and write boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentAuthProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/completion.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent completion profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for proof packets, completion claims, artifact requirements, and owner-review boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentCompletionProfile",
+                  },
+                },
               },
             },
           },
@@ -933,6 +1064,59 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentAuthProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "authSchemes",
+            "actorClasses",
+            "scopes",
+            "actionAuthRequirements",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_auth_profile" },
+            authSchemes: {
+              type: "array",
+              items: { type: "object" },
+            },
+            actorClasses: {
+              type: "array",
+              items: { type: "object" },
+            },
+            scopes: {
+              type: "array",
+              items: { type: "object" },
+            },
+            actionAuthRequirements: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentCompletionProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "completionRules",
+            "proofPacket",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_completion_profile" },
+            completionRules: {
+              type: "array",
+              items: { type: "object" },
+            },
+            proofPacket: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentProtocolProfile: {
           type: "object",
           required: ["schemaVersion", "status", "standards", "canonicalBoundary"],
@@ -963,6 +1147,25 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-contracts": contracts,
     "x-boreal-agent-actions": buildAgentActionCatalog(),
+    "x-boreal-agent-auth": {
+      url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      schemes: buildAgentAuthProfile().authSchemes.map((scheme) => ({
+        id: scheme.id,
+        status: scheme.status,
+      })),
+      scopes: buildAgentAuthProfile().scopes.map((scope) => ({
+        id: scope.id,
+        status: scope.status,
+      })),
+    },
+    "x-boreal-agent-completion": {
+      url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      rules: buildAgentCompletionProfile().completionRules.map((rule) => ({
+        id: rule.id,
+        actionId: rule.actionId,
+        claimState: rule.claimState,
+      })),
+    },
     "x-boreal-agent-protocols": {
       url: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
       standards: buildAgentProtocolProfile().standards.map((standard) => ({
@@ -1006,6 +1209,608 @@ export function buildAgentActionCatalog() {
   }));
 }
 
+export function buildAgentAuthProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_auth_profile",
+    name: "Boreal Agent Auth Profile",
+    description:
+      "Machine-readable auth, scope, approval, and write-boundary guidance for agents using Boreal request-native work contracts.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent recovery profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      },
+      {
+        label: "Agent auth schema",
+        url: absoluteUrl("/schemas/agent-auth.schema.json"),
+      },
+      {
+        label: "Request OpenAPI",
+        url: absoluteUrl("/openapi/request-briefing.yaml"),
+      },
+      {
+        label: "Resolver auth OpenAPI",
+        url: absoluteUrl("/openapi/resolver-auth.yaml"),
+      },
+      {
+        label: "Payment OpenAPI",
+        url: absoluteUrl("/openapi/payment-and-credit.yaml"),
+      },
+    ],
+    authSchemes: [
+      {
+        id: "none",
+        name: "Anonymous public read",
+        standard: "HTTP public GET",
+        officialSpecUrl: null,
+        status: "live_public_read",
+        credentialKind: "none",
+        useFor: [
+          "inspect public requests",
+          "read public schemas",
+          "read public OpenAPI and AsyncAPI contracts",
+          "read agent guides and profiles",
+        ],
+        notFor: [
+          "private request reads",
+          "draft request mutation",
+          "commitment proposals",
+          "artifact publication",
+          "paid solution runs",
+        ],
+      },
+      {
+        id: "boreal_account_session",
+        name: "Boreal account session",
+        standard: "HTTP cookie session",
+        officialSpecUrl: null,
+        status: "live_account_session",
+        credentialKind: "session_cookie",
+        useFor: [
+          "human-approved requester actions",
+          "draft request creation or update",
+          "owner review",
+          "buyer-credit and solution-run actions",
+        ],
+        notFor: [
+          "raw credential delegation to third-party agents",
+          "public crawler mutation",
+          "resolver runtime identity by itself",
+        ],
+      },
+      {
+        id: "resolver_bearer",
+        name: "Approved resolver bearer token",
+        standard: "OAuth 2.0 Bearer Token Usage",
+        officialSpecUrl: "https://datatracker.ietf.org/doc/html/rfc6750",
+        status: "live_resolver_bearer",
+        credentialKind: "bearer_token",
+        useFor: [
+          "approved desktop or runtime calls",
+          "scoped private request reads",
+          "scoped commitment proposal",
+          "scoped artifact publication",
+          "scoped activity monitoring",
+        ],
+        notFor: [
+          "unapproved external-agent delegation",
+          "bypassing owner, participant, or lifecycle checks",
+          "payment authority where the route requires an account session",
+        ],
+      },
+      {
+        id: "external_oauth2",
+        name: "OAuth-compatible external-agent authorization",
+        standard: "OAuth 2.0",
+        officialSpecUrl: "https://datatracker.ietf.org/doc/html/rfc6749",
+        status: "target_external_agent_auth",
+        credentialKind: "oauth_access_token",
+        useFor: [
+          "future third-party agent delegation",
+          "future organization-scoped integrations",
+          "future marketplace agent write access",
+        ],
+        notFor: [
+          "current production write claims",
+          "raw Boreal password sharing",
+          "granting broader scopes than the represented human approved",
+        ],
+      },
+    ],
+    actorClasses: [
+      {
+        id: "anonymous_agent",
+        status: "live_public_read",
+        authScheme: "none",
+        represents: "no Boreal account",
+        can: [
+          "read public-safe request projections",
+          "read public contracts and schemas",
+          "read agent discovery, action, workflow, protocol, recovery, auth, and sandbox profiles",
+        ],
+        cannot: [
+          "read private drafts",
+          "propose commitments",
+          "publish artifacts",
+          "spend credits",
+          "create durable RequestEvent history",
+        ],
+        approvalBoundary:
+          "No represented-human approval is captured, so mutation authority is zero.",
+      },
+      {
+        id: "session_agent",
+        status: "live_account_session",
+        authScheme: "boreal_account_session",
+        represents: "signed-in Boreal human account",
+        can: [
+          "create or update buyer-approved drafts where live routes allow it",
+          "run public solutions through account-session-gated payment or credit routes",
+          "review owner-visible request state",
+        ],
+        cannot: [
+          "mutate requests the account does not own or participate in",
+          "skip explicit buyer approval before opening or funding work",
+          "delegate raw session cookies to untrusted agents",
+        ],
+        approvalBoundary:
+          "The human account session is the approval context; agents still need explicit owner intent for durable mutations.",
+      },
+      {
+        id: "resolver_agent",
+        status: "live_resolver_bearer",
+        authScheme: "resolver_bearer",
+        represents: "approved runtime acting for a Boreal account",
+        can: [
+          "call resolver-scoped request, supply, commitment, artifact, fulfillment, and activity endpoints where scopes and lifecycle allow",
+          "keep runtime identity separate from Boreal actor identity",
+          "publish proof through governed routes after the relevant gate allows it",
+        ],
+        cannot: [
+          "become the Boreal actor solely because a local runtime exists",
+          "spend buyer credits where the route requires a Boreal account session",
+          "use missing scopes as implied permission",
+        ],
+        approvalBoundary:
+          "A Boreal account must approve the resolver, and every call remains limited by scopes, actor role, request state, and endpoint policy.",
+      },
+      {
+        id: "external_oauth_agent",
+        status: "target_external_agent_auth",
+        authScheme: "external_oauth2",
+        represents: "future approved external agent or organization integration",
+        can: [
+          "target future scoped delegation without raw user credentials",
+          "target future apply, submit, monitor, and run flows through explicit consent",
+        ],
+        cannot: [
+          "claim live production write access today",
+          "replace Boreal account or resolver approval boundaries",
+          "write durable truth without endpoint policy and idempotency checks",
+        ],
+        approvalBoundary:
+          "OAuth-compatible delegation is target direction until a live contract says otherwise.",
+      },
+    ],
+    scopes: [
+      {
+        id: "requests:read_public",
+        status: "live_public_read",
+        grants: ["read public-safe request pool and public request detail"],
+        doesNotGrant: ["private drafts", "owner-only routing", "mutation"],
+        requiredFor: ["inspect_public_requests", "monitor_public_request"],
+      },
+      {
+        id: "requests:read_private",
+        status: "live_resolver_scope",
+        grants: ["read owned or authorized private request detail"],
+        doesNotGrant: ["write authority", "payment authority"],
+        requiredFor: ["private_request_detail", "private_solution_context"],
+      },
+      {
+        id: "requests:read_activity",
+        status: "live_resolver_scope",
+        grants: ["read request activity with cursor-safe monitor checkpoints"],
+        doesNotGrant: ["heartbeat RequestEvent writes", "escalation writes"],
+        requiredFor: ["monitor_request"],
+      },
+      {
+        id: "requests:create",
+        status: "live_account_session_or_target_resolver_scope",
+        grants: ["create a buyer-approved draft where live routes support it"],
+        doesNotGrant: ["open public work without owner approval"],
+        requiredFor: ["make_request_for_human"],
+      },
+      {
+        id: "requests:update_draft",
+        status: "live_account_session_or_target_resolver_scope",
+        grants: ["update owner-approved draft fields before opening"],
+        doesNotGrant: ["rewrite an opened buyer-authored brief"],
+        requiredFor: ["optimize_request_brief_with_owner_approval"],
+      },
+      {
+        id: "commitments:propose",
+        status: "live_resolver_scope",
+        grants: ["submit one request-bound Commitment proposal"],
+        doesNotGrant: ["commitment acceptance", "fulfillment start", "payment capture"],
+        requiredFor: ["apply_to_request"],
+      },
+      {
+        id: "artifacts:publish",
+        status: "live_resolver_scope",
+        grants: ["publish proof or delivery Artifact through an authorized lane"],
+        doesNotGrant: ["owner acceptance", "private transcript publication"],
+        requiredFor: ["submit_artifact"],
+      },
+      {
+        id: "fulfillments:create",
+        status: "live_resolver_scope",
+        grants: ["create fulfillment truth only after commitment or direct-owner gates allow it"],
+        doesNotGrant: ["new request creation for worker sub-work"],
+        requiredFor: ["create_fulfillment"],
+      },
+      {
+        id: "fulfillments:update",
+        status: "live_resolver_scope",
+        grants: ["update an authorized fulfillment lane or retry a blocked lane"],
+        doesNotGrant: ["completion claims without Artifact or review truth"],
+        requiredFor: ["update_fulfillment", "retry_fulfillment"],
+      },
+      {
+        id: "solution_runs:create",
+        status: "live_account_session",
+        grants: ["create a private run Request from a completed public solution"],
+        doesNotGrant: ["free paid execution", "source request mutation"],
+        requiredFor: ["run_public_solution"],
+      },
+      {
+        id: "transactions:read",
+        status: "live_account_session_or_resolver_scope",
+        grants: ["read transaction or settlement status where authorized"],
+        doesNotGrant: ["payment completion as fulfillment completion"],
+        requiredFor: ["payment_or_credit_reconciliation"],
+      },
+      {
+        id: "events:subscribe",
+        status: "target_subscription_scope",
+        grants: ["future signed activity webhook subscription management"],
+        doesNotGrant: ["live subscription persistence today"],
+        requiredFor: ["signed_monitor_webhook"],
+      },
+    ],
+    actionAuthRequirements: buildAgentActionCatalog().map((action) => {
+      const byAction: Record<
+        string,
+        {
+          authOptions: string[];
+          requiredScopes: string[];
+          humanApproval: string;
+          idempotencyRequired: boolean;
+        }
+      > = {
+        inspect_public_requests: {
+          authOptions: ["none"],
+          requiredScopes: ["requests:read_public"],
+          humanApproval: "not required for public-safe inspection",
+          idempotencyRequired: false,
+        },
+        make_request_for_human: {
+          authOptions: ["boreal_account_session"],
+          requiredScopes: ["requests:create", "requests:update_draft"],
+          humanApproval:
+            "explicit buyer approval is required before opening or funding the draft request",
+          idempotencyRequired: false,
+        },
+        apply_to_request: {
+          authOptions: ["boreal_account_session", "resolver_bearer"],
+          requiredScopes: ["commitments:propose"],
+          humanApproval:
+            "owner review is required before cross-actor fulfillment starts",
+          idempotencyRequired: true,
+        },
+        submit_artifact: {
+          authOptions: ["boreal_account_session", "resolver_bearer"],
+          requiredScopes: ["artifacts:publish"],
+          humanApproval:
+            "commitment acceptance or direct-owner authorization is required before proof publication",
+          idempotencyRequired: true,
+        },
+        monitor_request: {
+          authOptions: ["none", "boreal_account_session", "resolver_bearer"],
+          requiredScopes: ["requests:read_public", "requests:read_activity"],
+          humanApproval:
+            "not required for public activity; private activity requires owner or participant authority",
+          idempotencyRequired: false,
+        },
+        run_public_solution: {
+          authOptions: ["boreal_account_session"],
+          requiredScopes: ["solution_runs:create", "transactions:read"],
+          humanApproval:
+            "buyer authorization and credit or payment confirmation are required",
+          idempotencyRequired: true,
+        },
+        optimize_request_brief: {
+          authOptions: ["boreal_account_session", "target_resolver_token"],
+          requiredScopes: ["requests:read_private", "requests:update_draft"],
+          humanApproval:
+            "owner approval is required before any durable request mutation",
+          idempotencyRequired: false,
+        },
+      };
+
+      return {
+        actionId: action.id,
+        intent: action.intent,
+        availability: action.availability,
+        authOptions: byAction[action.id].authOptions,
+        requiredScopes: byAction[action.id].requiredScopes,
+        humanApproval: byAction[action.id].humanApproval,
+        idempotencyRequired: byAction[action.id].idempotencyRequired,
+        policyCheckpoint: "Read agentActionPolicy before attempting writes.",
+        canonicalWrites: action.canonicalWrites,
+      };
+    }),
+    approvalRules: [
+      "Public inspection needs no auth but grants no mutation authority.",
+      "Account sessions represent signed-in humans; agents must still preserve explicit owner approval for durable writes.",
+      "Resolver bearer tokens represent approved runtimes, not independent Boreal actors.",
+      "Missing resolver scopes must be treated as blocked until the represented human approves narrower access.",
+      "Cross-actor work must pass through Commitment acceptance before Fulfillment or Artifact writes unless a direct-owner lane explicitly allows it.",
+      "Payment or credit authority does not imply fulfillment completion.",
+      "OAuth-compatible external-agent delegation is target direction until a live route contract says otherwise.",
+    ],
+    secretHandling: [
+      "Never place session cookies, bearer tokens, refresh tokens, device codes, webhook secrets, or private keys in public artifacts, RequestEvent payloads, public agent profiles, or sandbox fixtures.",
+      "Mock credentials in sandbox manifests are shape examples only and must not be accepted by production endpoints.",
+      "Use public actor ids, request ids, idempotency keys, and last observed RequestEvent.sequence in escalation packets instead of raw secrets.",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      authArtifactsNotRoots: [
+        "session cookie",
+        "resolver bearer token",
+        "device code",
+        "refresh token",
+        "OAuth grant",
+        "scope string",
+        "agent auth profile",
+      ],
+      rules: [
+        "Auth profiles explain access boundaries; they do not grant permission.",
+        "Scopes narrow what an already approved actor may do; they do not override request state, ownership, participant roles, or lifecycle gates.",
+        "Use OpenAPI security metadata and request-detail agentActionPolicy before writes.",
+        "Keep raw credentials and resolver secrets out of durable business history.",
+        "Do not create a new root object for external-agent authorization.",
+      ],
+    },
+  };
+}
+
+export function buildAgentCompletionProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_completion_profile",
+    name: "Boreal Agent Completion Profile",
+    description:
+      "Machine-readable proof, artifact, completion-claim, and review-boundary rules for agents completing Boreal work without faking durable truth.",
+    resources: [
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent recovery profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      },
+      {
+        label: "Agent completion schema",
+        url: absoluteUrl("/schemas/agent-completion.schema.json"),
+      },
+      {
+        label: "Artifact schema",
+        url: absoluteUrl("/schemas/artifact.schema.json"),
+      },
+      {
+        label: "Fulfillment schema",
+        url: absoluteUrl("/schemas/fulfillment.schema.json"),
+      },
+      {
+        label: "Request OpenAPI",
+        url: absoluteUrl("/openapi/request-briefing.yaml"),
+      },
+      {
+        label: "Request activity AsyncAPI",
+        url: absoluteUrl("/events/request-room.asyncapi.yaml"),
+      },
+    ],
+    completionRules: [
+      {
+        id: "draft_ready_for_human_review",
+        actionId: "make_request_for_human",
+        claimState: "draft_ready",
+        status: "live_session_http_contract",
+        meaning:
+          "A requester agent may say a draft is ready for human review only when a private draft Request exists and the buyer-authored fields were saved through the governed route.",
+        requiredTruth: ["Request.status=draft", "Request.ownerId is the represented human", "buyer-authored brief fields saved"],
+        canonicalWrites: ["Request"],
+        notEnough: ["chat summary", "agent-local prompt output", "planner suggestion without saved draft"],
+        nextHumanGate: "Human buyer reviews missing details and explicitly chooses whether to open the Request.",
+      },
+      {
+        id: "proposal_submitted_for_owner_review",
+        actionId: "apply_to_request",
+        claimState: "proposal_submitted",
+        status: "live_authenticated_http_contract",
+        meaning:
+          "A solver agent may say it applied only after one request-bound Commitment proposal exists for owner review.",
+        requiredTruth: ["Commitment.kind=proposal", "Commitment.requestId matches the target Request", "RequestEvent records the proposal when the route emits one"],
+        canonicalWrites: ["Commitment", "RequestEvent"],
+        notEnough: ["comment in chat", "A2A task accepted", "MCP tool result without Commitment truth"],
+        nextHumanGate: "Request owner accepts, rejects, or asks for clarification before cross-actor fulfillment starts.",
+      },
+      {
+        id: "proof_submitted_for_review",
+        actionId: "submit_artifact",
+        claimState: "proof_submitted",
+        status: "live_authenticated_http_contract",
+        meaning:
+          "A solver agent may say proof was submitted only after an Artifact is attached to the authorized Request or Fulfillment lane.",
+        requiredTruth: ["Artifact.requestId matches the target Request", "Artifact kind and document/container fields are reviewable", "Artifact is linked to Fulfillment or accepted Commitment when applicable"],
+        canonicalWrites: ["Artifact", "RequestEvent"],
+        notEnough: ["raw stdout", "private prompt transcript", "payment success", "link with no summary or proof claim"],
+        nextHumanGate: "Owner or reviewer checks the Artifact and decides whether delivery is acceptable.",
+      },
+      {
+        id: "delivery_waiting_for_acceptance",
+        actionId: "submit_artifact",
+        claimState: "waiting_for_owner_acceptance",
+        status: "live_authenticated_http_contract",
+        meaning:
+          "Delivery can wait for owner acceptance when fulfillment and artifact truth exist, but it is not completed until review closes.",
+        requiredTruth: ["Fulfillment.status is delivered or waiting_for_owner where live lane supports it", "Artifact proof exists", "Request activity exposes the latest durable state"],
+        canonicalWrites: ["Fulfillment", "FulfillmentStep", "Artifact", "RequestEvent"],
+        notEnough: ["agent says done", "provider callback succeeded", "file uploaded without request attachment"],
+        nextHumanGate: "Owner acceptance or explicit rejection remains required before completion claims.",
+      },
+      {
+        id: "work_completed",
+        actionId: "monitor_request",
+        claimState: "completed",
+        status: "live_or_target_by_lane",
+        meaning:
+          "An agent may say work is completed only when canonical request state, accepted artifact or delivery truth, and review history support completion.",
+        requiredTruth: ["Request.status=completed or equivalent live closure state", "accepted Artifact or delivery record is present", "RequestEvent history supports review or acceptance"],
+        canonicalWrites: ["RequestEvent"],
+        notEnough: ["model output finished", "payment settled", "A2A task completed", "Fulfillment started", "monitor timeout expired"],
+        nextHumanGate: "None for completed work; dispute, revision, or reuse becomes a separate governed action.",
+      },
+      {
+        id: "public_solution_run_started",
+        actionId: "run_public_solution",
+        claimState: "run_started_not_completed",
+        status: "live_authenticated_http_contract",
+        meaning:
+          "Running a public solution creates private run Request and payment truth when paid capacity is used; it does not prove the run output is complete.",
+        requiredTruth: ["source Request is completed and public", "accepted source Artifact exists", "private run Request exists", "Transaction exists when credits or money move"],
+        canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+        notEnough: ["source solution inspection", "credit debit alone", "x402 payment payload alone"],
+        nextHumanGate: "Run output still needs Fulfillment, Artifact, and review truth before completion.",
+      },
+    ],
+    proofPacket: {
+      requiredFor: ["submit_artifact", "delivery_waiting_for_acceptance", "work_completed"],
+      fields: [
+        "requestId",
+        "actionId",
+        "artifactKind",
+        "documentKind or container.kind",
+        "title",
+        "summary",
+        "content or external/object reference",
+        "fulfillmentId or commitmentId when applicable",
+        "idempotency key for write endpoints that require it",
+      ],
+      qualityBar: [
+        "Proof must be attributable to the actor or runtime that produced it.",
+        "Proof must be reviewable without exposing raw secrets, private prompts, or local runtime transcripts.",
+        "Proof should describe what changed, how to inspect it, and what remains unverified.",
+        "Embodied, physical, legal, financial, or safety-sensitive claims need human or qualified reviewer evidence rather than text-only completion.",
+      ],
+    },
+    artifactGuidance: [
+      {
+        artifactKind: "evidence",
+        useFor: "Screenshots, logs summarized for review, test output, receipts, inspection notes, or verification evidence.",
+        mustInclude: ["title", "summary", "content or container", "requestId"],
+        mustNotInclude: ["raw secrets", "private keys", "full private prompt transcript"],
+      },
+      {
+        artifactKind: "delivery",
+        useFor: "Final files, documents, links, generated assets, implementation notes, or handoff packages.",
+        mustInclude: ["title", "summary", "content or container", "requestId"],
+        mustNotInclude: ["unreviewable opaque output", "provider-only task id without artifact content"],
+      },
+      {
+        artifactKind: "receipt",
+        useFor: "Payment, credit, provider, or execution receipts that support audit but do not prove completion by themselves.",
+        mustInclude: ["title", "summary", "transaction or provider reference when authorized"],
+        mustNotInclude: ["wallet private keys", "card data", "processor secrets"],
+      },
+    ],
+    reviewBoundaries: [
+      "Proposal submitted is not proposal accepted.",
+      "Artifact submitted is not owner accepted.",
+      "Payment settled is not work completed.",
+      "Provider callback success is not proof unless it becomes Artifact, Fulfillment, or RequestEvent truth.",
+      "Monitor silence is not completion.",
+      "A2A task completion and MCP tool success must be mapped back to Boreal canonical truth before public or buyer-facing completion claims.",
+    ],
+    completionSignals: [
+      "Request.status and lifecycle state",
+      "Commitment acceptance or rejection state",
+      "Fulfillment and FulfillmentStep status",
+      "Artifact presence, kind, summary, and request attachment",
+      "Transaction settlement only for funding or paid capacity, not delivery acceptance",
+      "RequestEvent sequence and event types for audit and review",
+      "agentActionPolicy next allowed action",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      notCompletionTruth: [
+        "chat message alone",
+        "agent local draft",
+        "MCP tool result alone",
+        "A2A task status alone",
+        "x402 payload alone",
+        "payment settlement alone",
+        "provider callback alone",
+        "runtime log alone",
+      ],
+      rules: [
+        "Completion guidance does not grant permission.",
+        "Use Artifact for proof and delivery instead of inflating the Request root.",
+        "Use Fulfillment and FulfillmentStep for execution state instead of spawning new Requests for sub-work.",
+        "Only claim completed work when request lifecycle, proof, and review truth support that claim.",
+      ],
+    },
+  };
+}
+
 export function buildAgentWorkflowCatalog() {
   return {
     schemaVersion: 1,
@@ -1021,6 +1826,10 @@ export function buildAgentWorkflowCatalog() {
       {
         label: "Agent contract sandbox",
         url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
       },
       { label: "Request OpenAPI", url: absoluteUrl("/openapi/request-briefing.yaml") },
       {
@@ -1169,7 +1978,7 @@ export function buildAgentWorkflowCatalog() {
         steps: [
           workflowStep({
             id: "create_draft",
-            actionId: "optimize_request_brief",
+            actionId: "make_request_for_human",
             method: "POST",
             href: absoluteUrl("/api/requests"),
             auth: "Boreal account session",
@@ -1182,7 +1991,7 @@ export function buildAgentWorkflowCatalog() {
           }),
           workflowStep({
             id: "save_draft",
-            actionId: "optimize_request_brief",
+            actionId: "make_request_for_human",
             method: "PATCH",
             href: absoluteTemplateUrl("/api/requests/{id}"),
             auth: "Boreal account session",
@@ -1556,8 +2365,8 @@ export function buildAgentProtocolProfile() {
           {
             externalConcept: "MCP Tool",
             borealMapping:
-              "A governed wrapper around existing HTTP mutations such as propose commitment, publish artifact, monitor activity, or run public solution.",
-            durableWrites: ["Commitment", "Artifact", "Fulfillment", "Transaction"],
+              "A governed wrapper around existing HTTP mutations such as draft request, propose commitment, publish artifact, monitor activity, or run public solution.",
+            durableWrites: ["Request", "Commitment", "Artifact", "Fulfillment", "Transaction"],
           },
           {
             externalConcept: "MCP Prompt",
@@ -1580,6 +2389,12 @@ export function buildAgentProtocolProfile() {
             actionId: "inspect_public_requests",
             canonicalWrites: [],
             auth: "none",
+          },
+          {
+            id: "draft_request",
+            actionId: "make_request_for_human",
+            canonicalWrites: ["Request"],
+            auth: "Boreal account session",
           },
           {
             id: "propose_commitment",
@@ -1793,6 +2608,10 @@ export function buildAgentRecoveryProfile() {
       {
         label: "Agent action playbook",
         url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
       },
       {
         label: "Request OpenAPI",
@@ -2064,6 +2883,7 @@ Resources:
 Tools:
 
 - \`search_public_requests\` reads public request projections.
+- \`draft_request\` creates or saves a buyer-owned draft \`Request\` through the governed HTTP path.
 - \`propose_commitment\` writes \`Commitment\` through the governed HTTP path.
 - \`publish_artifact\` writes \`Artifact\` through the governed HTTP path.
 - \`monitor_request\` reads activity with \`after_sequence\` checkpoints.
@@ -2178,6 +2998,39 @@ function buildActionHttpExample(actionId: string) {
 GET /api/requests?scope=public&limit=20
 Accept: application/json
 ~~~`;
+    case "make_request_for_human":
+      return `HTTP sketch:
+
+~~~http
+POST /api/requests
+Content-Type: application/json
+
+{
+  "chatId": "<human-owned-chat-uuid>",
+  "visibility": "private"
+}
+~~~
+
+Then save buyer-approved draft fields only:
+
+~~~http
+PATCH /api/requests/{id}
+Content-Type: application/json
+
+{
+  "action": "save_draft",
+  "requestId": "<draft-request-uuid>",
+  "request": {
+    "brief": {
+      "title": "Human-approved draft title",
+      "summary": "Clear requested outcome.",
+      "body": "Scope, constraints, proof expectations, and missing details."
+    }
+  }
+}
+~~~
+
+Use \`open_request\` only after explicit buyer approval.`;
     case "apply_to_request":
       return `HTTP sketch:
 
