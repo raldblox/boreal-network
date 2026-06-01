@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-sandbox-replay.schema.json",
+  "title": "AgentSandboxReplayValidation",
+  "description": "Validation-only request and response contract for checking contract-sandbox replay evidence before an agent attaches it to a conformance report or production access packet. It does not submit a review, issue credentials, grant permission, create a production sandbox, authorize payment, prove completion, or create durable RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "request": {
+      "$ref": "#/$defs/replayValidationRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/replayValidationResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "replayValidationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "replay"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "replay": {
+          "$ref": "#/$defs/replayEvidence"
+        }
+      }
+    },
+    "replayEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenarioId",
+        "validationCommand",
+        "notAcceptedByProduction",
+        "productionEffects",
+        "usesMockCredentialsOnly",
+        "mockCredentialsUsedInProduction",
+        "secretsIncluded",
+        "claimsProductionAccess",
+        "claimsCompletion",
+        "completedSteps",
+        "observedTerminalState"
+      ],
+      "properties": {
+        "scenarioId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validationCommand": {
+          "const": "pnpm contracts:agent-sandbox"
+        },
+        "representedActor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "notAcceptedByProduction": {
+          "const": true
+        },
+        "productionEffects": {
+          "const": false
+        },
+        "usesMockCredentialsOnly": {
+          "const": true
+        },
+        "mockCredentialsUsedInProduction": {
+          "const": false
+        },
+        "secretsIncluded": {
+          "const": false
+        },
+        "claimsProductionAccess": {
+          "const": false
+        },
+        "claimsCompletion": {
+          "const": false
+        },
+        "completedSteps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/completedStep"
+          }
+        },
+        "observedTerminalState": {
+          "$ref": "#/$defs/terminalState"
+        }
+      }
+    },
+    "completedStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "flowId",
+        "actor",
+        "kind",
+        "writes",
+        "productionWrite"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "flowId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "writes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        },
+        "idempotencyKey": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "productionWrite": {
+          "const": false
+        }
+      }
+    },
+    "terminalState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claimState"
+      ],
+      "properties": {
+        "claimState": {
+          "type": "string",
+          "minLength": 1
+        },
+        "durableCompletion": {
+          "type": "boolean"
+        },
+        "publicVisibility": {
+          "type": "boolean"
+        },
+        "sourceRequestMutated": {
+          "type": "boolean"
+        },
+        "duplicateDurableTruth": {
+          "type": "boolean"
+        }
+      }
+    },
+    "replayValidationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "acceptedScenarioIds",
+        "scenarioId",
+        "scenarioTitle",
+        "coveredActions",
+        "expectedCanonicalWrites",
+        "expectedTerminalClaimState",
+        "missingFields",
+        "warnings",
+        "nextSteps",
+        "acceptedByProduction",
+        "reviewSubmissionCreated",
+        "credentialsIssued",
+        "permissionGranted",
+        "productionSandboxCreated",
+        "paymentAuthorized",
+        "completionProven",
+        "durableWriteCreated",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "validation_passed",
+            "validation_failed"
+          ]
+        },
+        "acceptedScenarioIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scenarioId": {
+          "type": "string"
+        },
+        "scenarioTitle": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "coveredActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expectedCanonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expectedTerminalClaimState": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "missingFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptedByProduction": {
+          "const": false
+        },
+        "reviewSubmissionCreated": {
+          "const": false
+        },
+        "credentialsIssued": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "productionSandboxCreated": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "validationIsNot",
+        "durableTruthObjects"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "validationIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

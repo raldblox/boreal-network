@@ -54,6 +54,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent UX profile](${absoluteUrl(agentDiscoveryPaths.agentUx)}): Machine-readable human-first process flow for discovery, consent, action, monitoring, proof review, payment, optimization, and completion claims.
 - [Agent intake validation endpoint](${absoluteUrl(agentDiscoveryPaths.agentIntakeValidation)}): Validation-only POST endpoint for conformance reports and production access packets before review; it does not grant access or create approval.
 - [Agent monitoring profile](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)}): Machine-readable cursor polling, stale-state detection, escalation, and push-boundary guidance.
+- [Agent monitoring validation endpoint](${absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation)}): Validation-only POST endpoint for monitor plans, cursor checkpoints, escalation posture, and target webhook receiver shape.
 - [Agent onboarding profile](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)}): Machine-readable path from public discovery to sandbox validation and scoped production eligibility.
 - [Agent opportunity card examples](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)}): Checked read-only examples for apply, monitor, run, and optimize opportunity recommendations.
 - [Agent opportunity discovery profile](${absoluteUrl(agentDiscoveryPaths.agentOpportunities)}): Machine-readable read-only guidance for ranking public request opportunities and choosing next actions without treating fit as permission or assignment.
@@ -71,6 +72,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent tool registry](${absoluteUrl(agentDiscoveryPaths.agentTools)}): Machine-readable safe HTTP tool calls, target MCP/A2A mappings, preflight checks, and canonical write boundaries.
 - [Agent contract sandbox](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)}): Deterministic mock identities, payloads, and sample IDs for contract tests; mock credentials are not production auth.
 - [Agent sandbox manifest](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)}): Machine-readable contract-only sandbox profile with deterministic replay scenarios.
+- [Agent sandbox replay validation endpoint](${absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation)}): Validation-only POST endpoint for checking sandbox replay evidence before conformance or production-access review.
 - [Agent card](${absoluteUrl(agentDiscoveryPaths.agentCard)}): Public capability card for agent discovery.
 - [OpenAPI discovery index](${absoluteUrl(agentDiscoveryPaths.openApiIndex)}): Public index of agent-readable HTTP contract resources.
 - [Public requests API](${absoluteUrl(agentDiscoveryPaths.publicRequests)}): Public-safe request inspection endpoint.

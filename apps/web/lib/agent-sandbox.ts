@@ -23,6 +23,7 @@ export const agentSandboxPaths = {
   ux: "/agents/ux.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
   monitoring: "/agents/monitoring.json",
+  monitoringValidation: "/agents/monitoring/validate",
   onboarding: "/agents/onboarding.json",
   opportunityCardExamples: "/agents/opportunity-cards.example.json",
   opportunities: "/agents/opportunities.json",
@@ -35,6 +36,7 @@ export const agentSandboxPaths = {
   protocolsJson: "/agents/protocols.json",
   recovery: "/agents/recovery.json",
   readiness: "/agents/readiness.json",
+  replayValidation: "/agents/sandbox/replay",
   schema: "/schemas/agent-sandbox.schema.json",
   start: "/agents/start.md",
   tools: "/agents/tools.json",
@@ -77,6 +79,10 @@ export function buildAgentSandboxManifest() {
     resources: [
       { label: "Start guide", url: absoluteUrl(agentSandboxPaths.start) },
       { label: "Sandbox guide", url: absoluteUrl(agentSandboxPaths.guide) },
+      {
+        label: "Sandbox replay validation endpoint",
+        url: absoluteUrl(agentSandboxPaths.replayValidation),
+      },
       { label: "Action playbook", url: absoluteUrl(agentSandboxPaths.actions) },
       {
         label: "Action preflight endpoint",
@@ -193,6 +199,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Monitoring profile",
         url: absoluteUrl(agentSandboxPaths.monitoring),
+      },
+      {
+        label: "Monitoring validation endpoint",
+        url: absoluteUrl(agentSandboxPaths.monitoringValidation),
       },
       {
         label: "Onboarding profile",

@@ -43,6 +43,8 @@ import {
 import { validateAgentActionPreflight } from "@/lib/agent-action-preflight";
 import { validateAgentEvidencePayload } from "@/lib/agent-evidence-validation";
 import { validateAgentIntakePayload } from "@/lib/agent-intake-validation";
+import { validateAgentMonitoringPayload } from "@/lib/agent-monitoring-validation";
+import { validateAgentSandboxReplayPayload } from "@/lib/agent-sandbox-replay-validation";
 import {
   buildAgentSandboxManifest,
   buildAgentSandboxMarkdown,
@@ -70,6 +72,7 @@ import { GET as getAgentHttp } from "@/app/agents/http.json/route";
 import { GET as getAgentUx } from "@/app/agents/ux.json/route";
 import { POST as postAgentIntakeValidation } from "@/app/agents/intake/validate/route";
 import { GET as getAgentMonitoring } from "@/app/agents/monitoring.json/route";
+import { POST as postAgentMonitoringValidation } from "@/app/agents/monitoring/validate/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
 import { GET as getAgentOnboarding } from "@/app/agents/onboarding.json/route";
 import { GET as getAgentOpportunityCardExamples } from "@/app/agents/opportunity-cards.example.json/route";
@@ -85,6 +88,7 @@ import { GET as getAgentRecovery } from "@/app/agents/recovery.json/route";
 import { GET as getAgentReadiness } from "@/app/agents/readiness.json/route";
 import { GET as getAgentSandboxJson } from "@/app/agents/sandbox.json/route";
 import { GET as getAgentSandboxMd } from "@/app/agents/sandbox.md/route";
+import { POST as postAgentSandboxReplayValidation } from "@/app/agents/sandbox/replay/route";
 import { GET as getAgentStart } from "@/app/agents/start.md/route";
 import { GET as getAgentTools } from "@/app/agents/tools.json/route";
 import { GET as getAgentWorkflows } from "@/app/agents/workflows.json/route";
@@ -110,6 +114,10 @@ async function main() {
   assert.equal(agentCard.xBorealBoundary.notRoots.includes("A2A Task"), true);
   assert.equal(agentCard.capabilities.contractSandbox, true);
   assert.equal(agentCard.sandboxUrl.endsWith("/agents/sandbox.json"), true);
+  assert.equal(
+    agentCard.sandboxReplayValidationUrl.endsWith("/agents/sandbox/replay"),
+    true,
+  );
   assert.equal(
     agentCard.workflowCatalogUrl.endsWith("/agents/workflows.json"),
     true,
@@ -178,6 +186,10 @@ async function main() {
   );
   assert.equal(
     agentCard.monitoringProfileUrl.endsWith("/agents/monitoring.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.monitoringValidationUrl.endsWith("/agents/monitoring/validate"),
     true,
   );
   assert.equal(
@@ -290,6 +302,19 @@ async function main() {
   );
   assert.equal(
     agentCard.actionPreflight.nonAuthority.includes("request mutation"),
+    true,
+  );
+  assert.equal(agentCard.sandboxReplayValidation.status, "live_validation_only");
+  assert.equal(
+    agentCard.sandboxReplayValidation.acceptedScenarioIds.includes(
+      "solver_apply_submit_monitor_replay"
+    ),
+    true,
+  );
+  assert.equal(
+    agentCard.sandboxReplayValidation.nonAuthority.includes(
+      "production credential"
+    ),
     true,
   );
   assert.equal(agentCard.opportunities.status, "live_opportunity_discovery_profile");
@@ -771,6 +796,17 @@ async function main() {
         capability.status === "live_validation_only" &&
         capability.evidence.some((url) =>
           url.endsWith("/agents/evidence/validate")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "monitor_checkpoint_validation" &&
+        capability.status === "live_validation_only" &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/monitoring/validate")
         )
     ),
     true,
@@ -1475,6 +1511,16 @@ async function main() {
     "cursor.nextAfterSequence",
   );
   assert.equal(
+    monitoringProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/monitoring/validate")
+    ),
+    true,
+  );
+  assert.equal(
+    monitoringProfile.validationEndpoint.path,
+    "/agents/monitoring/validate",
+  );
+  assert.equal(
     monitoringProfile.cursorRules.some(
       (rule) => rule.id === "no_heartbeat_events"
     ),
@@ -1491,6 +1537,107 @@ async function main() {
   assert.equal(
     monitoringProfile.webhookBoundary.status,
     "target_signed_push_profile",
+  );
+
+  const pollMonitorValidation = validateAgentMonitoringPayload({
+    schemaVersion: 1,
+    monitor: {
+      mode: "poll_cursor",
+      requestId: "req_public_design_001",
+      visibility: "public",
+      hasRequestAccess: true,
+      requestedScopes: [],
+      cursor: {
+        afterSequence: 0,
+      },
+      poll: {
+        intervalSeconds: 60,
+        limit: 40,
+      },
+      escalationTriggers: ["owner_review_needed", "stale_activity"],
+      storesCursor: true,
+      createsHeartbeatEvents: false,
+      claimsCompletion: false,
+      includesPrivatePayloads: false,
+    },
+  });
+  assert.equal(pollMonitorValidation.status, "validation_passed");
+  assert.equal(pollMonitorValidation.pollingReady, true);
+  assert.equal(pollMonitorValidation.subscriptionPersisted, false);
+  assert.equal(pollMonitorValidation.pushDeliveryActivated, false);
+  assert.equal(pollMonitorValidation.heartbeatEventCreated, false);
+  assert.equal(pollMonitorValidation.requestEventWritten, false);
+  assert.equal(pollMonitorValidation.completionProven, false);
+  assert.equal(pollMonitorValidation.paymentAuthorized, false);
+  assert.equal(pollMonitorValidation.permissionGranted, false);
+  assert.equal(pollMonitorValidation.durableWriteCreated, false);
+
+  const webhookMonitorValidation = validateAgentMonitoringPayload({
+    schemaVersion: 1,
+    monitor: {
+      mode: "signed_webhook_target",
+      requestId: "req_public_design_001",
+      visibility: "public",
+      hasRequestAccess: true,
+      requestedScopes: [],
+      webhook: {
+        callbackUrl: "https://agent.example/boreal/request-activity",
+        signatureVersion: "v1",
+        timestampToleranceSeconds: 300,
+        canVerifySignature: true,
+      },
+      escalationTriggers: ["owner_review_needed", "stale_activity"],
+      storesCursor: true,
+      createsHeartbeatEvents: false,
+      claimsCompletion: false,
+      includesPrivatePayloads: false,
+    },
+  });
+  assert.equal(webhookMonitorValidation.status, "validation_passed");
+  assert.equal(webhookMonitorValidation.signedWebhookTargetReady, true);
+  assert.equal(webhookMonitorValidation.pushDeliveryActivated, false);
+  assert.equal(
+    webhookMonitorValidation.warnings.some((warning) =>
+      warning.includes("target-only")
+    ),
+    true,
+  );
+
+  const failedMonitorValidation = validateAgentMonitoringPayload({
+    schemaVersion: 1,
+    monitor: {
+      mode: "poll_cursor",
+      requestId: "req_private_design_001",
+      visibility: "private",
+      requestedScopes: [],
+      cursor: {},
+      escalationTriggers: ["unknown_trigger"],
+      storesCursor: false,
+      createsHeartbeatEvents: true,
+      claimsCompletion: true,
+      includesPrivatePayloads: true,
+    },
+  });
+  assert.equal(failedMonitorValidation.status, "validation_failed");
+  assert.equal(
+    failedMonitorValidation.missingFields.includes("storesCursor=true"),
+    true,
+  );
+  assert.equal(
+    failedMonitorValidation.missingFields.includes(
+      "hasRequestAccess=true or requestedScopes includes requests:read_activity"
+    ),
+    true,
+  );
+  assert.equal(
+    failedMonitorValidation.missingFields.includes(
+      "cursor.afterSequence or cursor.nextAfterSequence"
+    ),
+    true,
+  );
+  assert.equal(
+    failedMonitorValidation.missingFields.includes("claimsCompletion=false"),
+    true,
   );
 
   const accessReviewProfile = buildAgentAccessReviewProfile();
@@ -1742,6 +1889,126 @@ async function main() {
   assert.equal(unknownActionPreflight.status, "preflight_failed");
   assert.equal(unknownActionPreflight.actionAvailability, "unknown");
   assert.equal(unknownActionPreflight.missingRequirements.includes("actionId"), true);
+
+  const validSandboxReplayPayload = {
+    schemaVersion: 1,
+    replay: {
+      scenarioId: "solver_apply_submit_monitor_replay",
+      validationCommand: "pnpm contracts:agent-sandbox",
+      representedActor: {
+        kind: "resolver_agent",
+        reference: "agent:portfolio-builder",
+      },
+      notAcceptedByProduction: true,
+      productionEffects: false,
+      usesMockCredentialsOnly: true,
+      mockCredentialsUsedInProduction: false,
+      secretsIncluded: false,
+      claimsProductionAccess: false,
+      claimsCompletion: false,
+      completedSteps: [
+        {
+          id: "inspect_public_fit",
+          flowId: "inspect_public_requests",
+          actor: "anonymous-public-scout",
+          kind: "read",
+          writes: [],
+          productionWrite: false,
+        },
+        {
+          id: "submit_commitment_proposal",
+          flowId: "apply_to_request",
+          actor: "sandbox-solver-proposer",
+          kind: "mutation_sample",
+          writes: ["Commitment", "RequestEvent"],
+          productionWrite: false,
+          idempotencyKey: "00000000-0000-4000-8000-000000000101",
+        },
+        {
+          id: "accepted_commitment_gate",
+          flowId: "apply_to_request",
+          actor: "human-owner",
+          kind: "simulated_external_gate",
+          writes: ["Commitment", "Fulfillment", "RequestEvent"],
+          productionWrite: false,
+        },
+        {
+          id: "publish_proof_artifact",
+          flowId: "submit_artifact",
+          actor: "sandbox-solver-publisher",
+          kind: "mutation_sample",
+          writes: ["Artifact", "RequestEvent"],
+          productionWrite: false,
+          idempotencyKey: "00000000-0000-4000-8000-000000000102",
+        },
+        {
+          id: "resume_monitor_cursor",
+          flowId: "monitor_request",
+          actor: "sandbox-monitor",
+          kind: "monitor",
+          writes: [],
+          productionWrite: false,
+        },
+      ],
+      observedTerminalState: {
+        claimState: "proof_submitted_waiting_for_owner_acceptance",
+        durableCompletion: false,
+        publicVisibility: true,
+      },
+    },
+  };
+  const passedSandboxReplayValidation =
+    validateAgentSandboxReplayPayload(validSandboxReplayPayload);
+  assert.equal(passedSandboxReplayValidation.status, "validation_passed");
+  assert.equal(
+    passedSandboxReplayValidation.acceptedScenarioIds.includes(
+      "solver_apply_submit_monitor_replay"
+    ),
+    true,
+  );
+  assert.equal(passedSandboxReplayValidation.acceptedByProduction, false);
+  assert.equal(passedSandboxReplayValidation.reviewSubmissionCreated, false);
+  assert.equal(passedSandboxReplayValidation.credentialsIssued, false);
+  assert.equal(passedSandboxReplayValidation.productionSandboxCreated, false);
+  assert.equal(passedSandboxReplayValidation.paymentAuthorized, false);
+  assert.equal(passedSandboxReplayValidation.completionProven, false);
+  assert.equal(passedSandboxReplayValidation.durableWriteCreated, false);
+
+  const failedSandboxReplayValidation = validateAgentSandboxReplayPayload({
+    ...validSandboxReplayPayload,
+    replay: {
+      ...validSandboxReplayPayload.replay,
+      productionEffects: true,
+      mockCredentialsUsedInProduction: true,
+      claimsCompletion: true,
+      completedSteps: [validSandboxReplayPayload.replay.completedSteps[0]],
+    },
+  });
+  assert.equal(failedSandboxReplayValidation.status, "validation_failed");
+  assert.equal(
+    failedSandboxReplayValidation.missingFields.includes(
+      "productionEffects=false"
+    ),
+    true,
+  );
+  assert.equal(
+    failedSandboxReplayValidation.missingFields.includes(
+      "mockCredentialsUsedInProduction=false"
+    ),
+    true,
+  );
+  assert.equal(
+    failedSandboxReplayValidation.missingFields.includes(
+      "claimsCompletion=false"
+    ),
+    true,
+  );
+  assert.equal(
+    failedSandboxReplayValidation.missingFields.includes(
+      "completedSteps includes publish_proof_artifact"
+    ),
+    true,
+  );
 
   assert.equal(
     onboardingProfile.goLiveChecks.some(
@@ -1995,7 +2262,19 @@ async function main() {
   );
   assert.equal(
     sandboxManifest.resources.some((resource) =>
+      resource.url.endsWith("/agents/sandbox/replay")
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.resources.some((resource) =>
       resource.url.endsWith("/agents/evidence/validate")
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.resources.some((resource) =>
+      resource.url.endsWith("/agents/monitoring/validate")
     ),
     true,
   );
@@ -2304,6 +2583,7 @@ async function main() {
   assert.match(startGuide, /POST \/agents\/actions\/preflight/);
   assert.match(startGuide, /POST \/agents\/intake\/validate/);
   assert.match(startGuide, /GET \/agents\/monitoring\.json/);
+  assert.match(startGuide, /POST \/agents\/monitoring\/validate/);
   assert.match(startGuide, /GET \/agents\/onboarding\.json/);
   assert.match(startGuide, /GET \/agents\/optimization\.json/);
   assert.match(startGuide, /GET \/agents\/payments\.json/);
@@ -2318,6 +2598,7 @@ async function main() {
   assert.match(startGuide, /Agent access review profile/);
   assert.match(startGuide, /Agent conformance report example/);
   assert.match(startGuide, /Agent contract sandbox/);
+  assert.match(startGuide, /Agent sandbox replay validation endpoint/);
   assert.match(startGuide, /Agent error examples/);
   assert.match(startGuide, /Agent human delegation profile/);
   assert.match(startGuide, /Agent evidence validation endpoint/);
@@ -2326,6 +2607,7 @@ async function main() {
   assert.match(startGuide, /Agent UX profile/);
   assert.match(startGuide, /Agent action preflight endpoint/);
   assert.match(startGuide, /Agent intake validation endpoint/);
+  assert.match(startGuide, /Agent monitoring validation endpoint/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent production access packet example/);
   assert.match(startGuide, /Agent opportunity card examples/);
@@ -2338,6 +2620,7 @@ async function main() {
   assert.match(startGuide, /does not create a review submission/);
   assert.match(startGuide, /does not create a commitment/);
   assert.match(startGuide, /does not publish an `Artifact`/);
+  assert.match(startGuide, /POST \/agents\/sandbox\/replay/);
 
   const discoveryIndex = buildOpenApiDiscoveryIndex();
   assert.equal(discoveryIndex.openapi, "3.1.0");
@@ -2396,6 +2679,10 @@ async function main() {
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/http.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/ux.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/monitoring.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/monitoring/validate"),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/onboarding.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/opportunity-cards.example.json"),
@@ -2430,6 +2717,24 @@ async function main() {
     Object.hasOwn(
       discoveryIndex.components.schemas,
       "AgentEvidenceValidationResult"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentMonitoringValidationResult"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/sandbox/replay"),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentSandboxReplayValidationResult"
     ),
     true,
   );
@@ -2478,6 +2783,18 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex[
+      "x-boreal-agent-sandbox-replay-validation"
+    ].acceptedScenarioIds.includes("solver_apply_submit_monitor_replay"),
+    true,
+  );
+  assert.equal(
+    discoveryIndex[
+      "x-boreal-agent-sandbox-replay-validation"
+    ].nonAuthority.includes("production credential"),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-agent-evidence-validation"].acceptedClaimStates.includes(
       "proof_submitted"
     ),
@@ -2486,6 +2803,18 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-evidence-validation"].nonAuthority.includes(
       "artifact publication"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-monitoring-validation"].acceptedModes.includes(
+      "poll_cursor"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-monitoring-validation"].nonAuthority.includes(
+      "subscription record"
     ),
     true,
   );
@@ -2721,6 +3050,10 @@ async function main() {
     "schemas/json/agent-sandbox.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-sandbox-replay.schema.json")?.sourcePath,
+    "schemas/json/agent-sandbox-replay.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-auth.schema.json")?.sourcePath,
     "schemas/json/agent-auth.schema.json",
   );
@@ -2787,6 +3120,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-monitoring.schema.json")?.sourcePath,
     "schemas/json/agent-monitoring.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-monitoring-validation.schema.json")?.sourcePath,
+    "schemas/json/agent-monitoring-validation.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-onboarding.schema.json")?.sourcePath,
@@ -3084,6 +3421,59 @@ async function main() {
     false,
   );
 
+  const sandboxReplayValidationResponse = await postAgentSandboxReplayValidation(
+    new Request("http://boreal.test/agents/sandbox/replay", {
+      body: JSON.stringify(validSandboxReplayPayload),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(sandboxReplayValidationResponse.status, 200);
+  const sandboxReplayValidation = await sandboxReplayValidationResponse.json();
+  assert.equal(sandboxReplayValidation.status, "validation_passed");
+  assert.equal(sandboxReplayValidation.acceptedByProduction, false);
+  assert.equal(sandboxReplayValidation.reviewSubmissionCreated, false);
+  assert.equal(sandboxReplayValidation.credentialsIssued, false);
+  assert.equal(sandboxReplayValidation.durableWriteCreated, false);
+
+  const failedSandboxReplayValidationResponse =
+    await postAgentSandboxReplayValidation(
+      new Request("http://boreal.test/agents/sandbox/replay", {
+        body: JSON.stringify({
+          ...validSandboxReplayPayload,
+          replay: {
+            ...validSandboxReplayPayload.replay,
+            productionEffects: true,
+            claimsCompletion: true,
+          },
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(failedSandboxReplayValidationResponse.status, 400);
+  const failedSandboxReplayValidationRouteResult =
+    await failedSandboxReplayValidationResponse.json();
+  assert.equal(
+    failedSandboxReplayValidationRouteResult.status,
+    "validation_failed"
+  );
+  assert.equal(failedSandboxReplayValidationRouteResult.completionProven, false);
+
+  const malformedSandboxReplayValidationResponse =
+    await postAgentSandboxReplayValidation(
+      new Request("http://boreal.test/agents/sandbox/replay", {
+        body: "{",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(malformedSandboxReplayValidationResponse.status, 400);
+  assert.equal(
+    (await malformedSandboxReplayValidationResponse.json()).permissionGranted,
+    false,
+  );
+
   const evidenceValidationResponse = await postAgentEvidenceValidation(
     new Request("http://boreal.test/agents/evidence/validate", {
       body: JSON.stringify({
@@ -3203,6 +3593,98 @@ async function main() {
   assert.equal(
     (await agentHumanHandoffPacketExamplesResponse.json()).status,
     "live_handoff_packet_examples"
+  );
+
+  const monitorValidationResponse = await postAgentMonitoringValidation(
+    new Request("http://boreal.test/agents/monitoring/validate", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        monitor: {
+          mode: "poll_cursor",
+          requestId: "req_public_design_001",
+          visibility: "public",
+          hasRequestAccess: true,
+          requestedScopes: [],
+          cursor: {
+            afterSequence: 0,
+          },
+          poll: {
+            intervalSeconds: 60,
+            limit: 40,
+          },
+          escalationTriggers: ["owner_review_needed", "stale_activity"],
+          storesCursor: true,
+          createsHeartbeatEvents: false,
+          claimsCompletion: false,
+          includesPrivatePayloads: false,
+        },
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(monitorValidationResponse.status, 200);
+  const monitorValidation = await monitorValidationResponse.json();
+  assert.equal(monitorValidation.status, "validation_passed");
+  assert.equal(monitorValidation.pollingReady, true);
+  assert.equal(monitorValidation.subscriptionPersisted, false);
+  assert.equal(monitorValidation.requestEventWritten, false);
+
+  const failedMonitorValidationResponse = await postAgentMonitoringValidation(
+    new Request("http://boreal.test/agents/monitoring/validate", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        monitor: {
+          mode: "signed_webhook_target",
+          requestId: "req_private_design_001",
+          visibility: "private",
+          requestedScopes: [],
+          webhook: {
+            callbackUrl: "https://agent.example/boreal/request-activity",
+            signatureVersion: "v0",
+            timestampToleranceSeconds: 999,
+            canVerifySignature: false,
+          },
+          escalationTriggers: ["owner_review_needed"],
+          storesCursor: true,
+          createsHeartbeatEvents: true,
+          claimsCompletion: false,
+          includesPrivatePayloads: false,
+        },
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(failedMonitorValidationResponse.status, 400);
+  const failedMonitorValidationRouteResult =
+    await failedMonitorValidationResponse.json();
+  assert.equal(failedMonitorValidationRouteResult.status, "validation_failed");
+  assert.equal(
+    failedMonitorValidationRouteResult.missingFields.includes(
+      "webhook.canVerifySignature=true"
+    ),
+    true,
+  );
+  assert.equal(
+    failedMonitorValidationRouteResult.missingFields.includes(
+      "createsHeartbeatEvents=false"
+    ),
+    true,
+  );
+  assert.equal(failedMonitorValidationRouteResult.pushDeliveryActivated, false);
+
+  const malformedMonitorValidationResponse = await postAgentMonitoringValidation(
+    new Request("http://boreal.test/agents/monitoring/validate", {
+      body: "{",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(malformedMonitorValidationResponse.status, 400);
+  assert.equal(
+    (await malformedMonitorValidationResponse.json()).permissionGranted,
+    false,
   );
 
   const agentMonitoringResponse = await getAgentMonitoring();
@@ -3351,6 +3833,7 @@ async function main() {
   assert.match(llmsText, /Agent UX profile/);
   assert.match(llmsText, /Agent intake validation endpoint/);
   assert.match(llmsText, /Agent monitoring profile/);
+  assert.match(llmsText, /Agent monitoring validation endpoint/);
   assert.match(llmsText, /Agent onboarding profile/);
   assert.match(llmsText, /Agent opportunity card examples/);
   assert.match(llmsText, /Agent opportunity discovery profile/);
@@ -3364,6 +3847,7 @@ async function main() {
   assert.match(llmsText, /Agent readiness profile/);
   assert.match(llmsText, /Agent tool registry/);
   assert.match(llmsText, /Agent contract sandbox/);
+  assert.match(llmsText, /Agent sandbox replay validation endpoint/);
 
   const openApiIndexResponse = await getOpenApiIndex();
   assert.equal(openApiIndexResponse.status, 200);
@@ -3395,6 +3879,18 @@ async function main() {
   });
   assert.equal(sandboxSchemaResponse.status, 200);
   assert.equal((await sandboxSchemaResponse.json()).title, "AgentSandbox");
+
+  const sandboxReplaySchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({ schema: "agent-sandbox-replay.schema.json" }),
+    }
+  );
+  assert.equal(sandboxReplaySchemaResponse.status, 200);
+  assert.equal(
+    (await sandboxReplaySchemaResponse.json()).title,
+    "AgentSandboxReplayValidation"
+  );
 
   const authSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-auth.schema.json" }),
@@ -3569,6 +4065,20 @@ async function main() {
   assert.equal(
     (await monitoringSchemaResponse.json()).title,
     "AgentMonitoringProfile"
+  );
+
+  const monitoringValidationSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-monitoring-validation.schema.json",
+      }),
+    }
+  );
+  assert.equal(monitoringValidationSchemaResponse.status, 200);
+  assert.equal(
+    (await monitoringValidationSchemaResponse.json()).title,
+    "AgentMonitoringValidation"
   );
 
   const onboardingSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

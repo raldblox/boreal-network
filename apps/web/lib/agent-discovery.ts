@@ -4,7 +4,10 @@ import {
   agentMonitorWebhookSignatureVersion,
   agentMonitorWebhookTimestampToleranceSeconds,
 } from "@/lib/agent-monitor-webhook-signature";
-import { agentSandboxPaths } from "@/lib/agent-sandbox";
+import {
+  agentSandboxPaths,
+  buildAgentSandboxManifest,
+} from "@/lib/agent-sandbox";
 import { absoluteUrl } from "@/lib/seo";
 
 export type AgentDiscoveryAsset = {
@@ -59,6 +62,7 @@ export const agentDiscoveryPaths = {
   agentIntakeValidation: "/agents/intake/validate",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
+  agentMonitoringValidation: "/agents/monitoring/validate",
   agentOnboarding: "/agents/onboarding.json",
   agentOpportunityCardExamples: "/agents/opportunity-cards.example.json",
   agentOpportunities: "/agents/opportunities.json",
@@ -74,6 +78,7 @@ export const agentDiscoveryPaths = {
   agentReadiness: "/agents/readiness.json",
   agentSandboxGuide: agentSandboxPaths.guide,
   agentSandboxManifest: agentSandboxPaths.manifest,
+  agentSandboxReplayValidation: "/agents/sandbox/replay",
   agentStart: "/agents/start.md",
   agentTools: "/agents/tools.json",
   agentWorkflows: "/agents/workflows.json",
@@ -414,6 +419,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Validation-only request and response schema for checking contract-sandbox replay evidence before conformance or production-access review.",
+    routePath: "/schemas/agent-sandbox-replay.schema.json",
+    sourcePath: "schemas/json/agent-sandbox-replay.schema.json",
+    standard: "json_schema",
+    title: "Agent sandbox replay validation",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable agent tool registry schema for HTTP, MCP-target, and A2A-target tool mappings over Boreal canonical truth.",
     routePath: "/schemas/agent-tools.schema.json",
     sourcePath: "schemas/json/agent-tools.schema.json",
@@ -621,6 +635,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Validation-only request and response schema for checking agent monitor plans, cursor checkpoints, private-access posture, and target signed webhook receiver shape.",
+    routePath: "/schemas/agent-monitoring-validation.schema.json",
+    sourcePath: "schemas/json/agent-monitoring-validation.schema.json",
+    standard: "json_schema",
+    title: "Agent monitoring validation",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable onboarding profile schema for external agents moving from public discovery to contract sandbox validation and scoped production eligibility.",
     routePath: "/schemas/agent-onboarding.schema.json",
     sourcePath: "schemas/json/agent-onboarding.schema.json",
@@ -719,6 +742,9 @@ export function buildAgentCard() {
     uxProfileUrl: absoluteUrl(agentDiscoveryPaths.agentUx),
     intakeValidationUrl: absoluteUrl(agentDiscoveryPaths.agentIntakeValidation),
     monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+    monitoringValidationUrl: absoluteUrl(
+      agentDiscoveryPaths.agentMonitoringValidation
+    ),
     onboardingProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
     opportunityCardExamplesUrl: absoluteUrl(
       agentDiscoveryPaths.agentOpportunityCardExamples
@@ -737,6 +763,9 @@ export function buildAgentCard() {
     toolRegistryUrl: absoluteUrl(agentDiscoveryPaths.agentTools),
     workflowCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
     sandboxUrl: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+    sandboxReplayValidationUrl: absoluteUrl(
+      agentDiscoveryPaths.agentSandboxReplayValidation
+    ),
     preferredTransport: "http",
     capabilities: {
       contractSandbox: true,
@@ -907,11 +936,36 @@ export function buildAgentCard() {
     },
     monitoring: {
       url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+      validationUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
       status: buildAgentMonitoringProfile().status,
       liveMode: buildAgentMonitoringProfile().pollingBaseline.status,
       escalationTriggers: buildAgentMonitoringProfile().escalationTriggers.map(
         (trigger) => trigger.id
       ),
+    },
+    monitoringValidation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+      status: "live_validation_only",
+      acceptedModes: ["poll_cursor", "signed_webhook_target"],
+      acceptedEscalationTriggers: [
+        "owner_review_needed",
+        "missing_or_unreviewable_proof",
+        "payment_uncertain",
+        "blocked_fulfillment",
+        "private_access_or_scope_missing",
+        "stale_activity",
+      ],
+      schemaUrl: absoluteUrl("/schemas/agent-monitoring-validation.schema.json"),
+      nonAuthority: [
+        "permission grant",
+        "request activity read",
+        "subscription record",
+        "push delivery implementation",
+        "heartbeat event",
+        "durable RequestEvent",
+        "completion proof",
+        "payment authorization",
+      ],
     },
     onboarding: {
       url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
@@ -988,6 +1042,24 @@ export function buildAgentCard() {
         "artifact publication",
         "commitment proposal",
         "request mutation",
+        "durable RequestEvent",
+      ],
+    },
+    sandboxReplayValidation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+      status: "live_validation_only",
+      acceptedScenarioIds: buildAgentSandboxManifest().scenarios.map(
+        (scenario) => scenario.id
+      ),
+      schemaUrl: absoluteUrl("/schemas/agent-sandbox-replay.schema.json"),
+      nonAuthority: [
+        "production credential",
+        "production access grant",
+        "operator approval record",
+        "review submission",
+        "production sandbox",
+        "payment authorization",
+        "completion proof",
         "durable RequestEvent",
       ],
     },
@@ -1153,6 +1225,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent UX profile: [${agentDiscoveryPaths.agentUx}](${absoluteUrl(agentDiscoveryPaths.agentUx)})
 - Agent intake validation endpoint: [${agentDiscoveryPaths.agentIntakeValidation}](${absoluteUrl(agentDiscoveryPaths.agentIntakeValidation)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
+- Agent monitoring validation endpoint: [${agentDiscoveryPaths.agentMonitoringValidation}](${absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation)})
 - Agent onboarding profile: [${agentDiscoveryPaths.agentOnboarding}](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)})
 - Agent opportunity card examples: [${agentDiscoveryPaths.agentOpportunityCardExamples}](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)})
 - Agent opportunity discovery profile: [${agentDiscoveryPaths.agentOpportunities}](${absoluteUrl(agentDiscoveryPaths.agentOpportunities)})
@@ -1170,6 +1243,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent tool registry: [${agentDiscoveryPaths.agentTools}](${absoluteUrl(agentDiscoveryPaths.agentTools)})
 - Agent contract sandbox: [${agentDiscoveryPaths.agentSandboxGuide}](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)})
 - Agent sandbox manifest and replay scenarios: [${agentDiscoveryPaths.agentSandboxManifest}](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)})
+- Agent sandbox replay validation endpoint: [${agentDiscoveryPaths.agentSandboxReplayValidation}](${absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation)})
 - OpenAPI discovery index: [${agentDiscoveryPaths.openApiIndex}](${absoluteUrl(agentDiscoveryPaths.openApiIndex)})
 - Public request board API: [${agentDiscoveryPaths.publicRequests}](${absoluteUrl(agentDiscoveryPaths.publicRequests)})
 
@@ -1252,6 +1326,83 @@ For a deterministic conformance report package shape to mirror during operator r
 GET ${agentDiscoveryPaths.agentConformanceReportExample}
 \`\`\`
 
+For validation-only preflight of contract-sandbox replay evidence before attaching it to conformance or production-access review packets, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentSandboxReplayValidation}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "replay": {
+    "scenarioId": "solver_apply_submit_monitor_replay",
+    "validationCommand": "pnpm contracts:agent-sandbox",
+    "representedActor": {
+      "kind": "resolver_agent",
+      "reference": "agent:example"
+    },
+    "notAcceptedByProduction": true,
+    "productionEffects": false,
+    "usesMockCredentialsOnly": true,
+    "mockCredentialsUsedInProduction": false,
+    "secretsIncluded": false,
+    "claimsProductionAccess": false,
+    "claimsCompletion": false,
+    "completedSteps": [
+      {
+        "id": "inspect_public_fit",
+        "flowId": "inspect_public_requests",
+        "actor": "anonymous-public-scout",
+        "kind": "read",
+        "writes": [],
+        "productionWrite": false
+      },
+      {
+        "id": "submit_commitment_proposal",
+        "flowId": "apply_to_request",
+        "actor": "sandbox-solver-proposer",
+        "kind": "mutation_sample",
+        "writes": ["Commitment", "RequestEvent"],
+        "productionWrite": false,
+        "idempotencyKey": "00000000-0000-4000-8000-000000000101"
+      },
+      {
+        "id": "accepted_commitment_gate",
+        "flowId": "apply_to_request",
+        "actor": "human-owner",
+        "kind": "simulated_external_gate",
+        "writes": ["Commitment", "Fulfillment", "RequestEvent"],
+        "productionWrite": false
+      },
+      {
+        "id": "publish_proof_artifact",
+        "flowId": "submit_artifact",
+        "actor": "sandbox-solver-publisher",
+        "kind": "mutation_sample",
+        "writes": ["Artifact", "RequestEvent"],
+        "productionWrite": false,
+        "idempotencyKey": "00000000-0000-4000-8000-000000000102"
+      },
+      {
+        "id": "resume_monitor_cursor",
+        "flowId": "monitor_request",
+        "actor": "sandbox-monitor",
+        "kind": "monitor",
+        "writes": [],
+        "productionWrite": false
+      }
+    ],
+    "observedTerminalState": {
+      "claimState": "proof_submitted_waiting_for_owner_acceptance",
+      "durableCompletion": false,
+      "publicVisibility": true
+    }
+  }
+}
+\`\`\`
+
+This endpoint returns replay-shape feedback only. It does not submit an access request, issue credentials, certify an agent, create a production sandbox, authorize payment, prove completion, or create durable \`RequestEvent\` truth.
+
 For deterministic failure, retry, monitor, and escalation handling, agents can read:
 
 \`\`\`http
@@ -1263,6 +1414,38 @@ For deterministic cursor polling, stale-state detection, and monitor escalation 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentMonitoring}
 \`\`\`
+
+For validation-only preflight of a monitor plan before cursor polling or target signed webhook receiver setup, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentMonitoringValidation}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "monitor": {
+    "mode": "poll_cursor",
+    "requestId": "req_public_design_001",
+    "visibility": "public",
+    "hasRequestAccess": true,
+    "requestedScopes": [],
+    "cursor": {
+      "afterSequence": 0
+    },
+    "poll": {
+      "intervalSeconds": 60,
+      "limit": 40
+    },
+    "escalationTriggers": ["owner_review_needed", "stale_activity"],
+    "storesCursor": true,
+    "createsHeartbeatEvents": false,
+    "claimsCompletion": false,
+    "includesPrivatePayloads": false
+  }
+}
+\`\`\`
+
+This endpoint returns monitor-shape feedback only. It does not read request activity, create a subscription, activate push delivery, write heartbeat events, authorize payment, prove completion, grant permission, or create durable \`RequestEvent\` truth.
 
 For deterministic live-versus-target capability and agent UX flow handling, agents can read:
 
@@ -2042,6 +2225,47 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/monitoring/validate": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Validate an agent monitor plan before cursor polling or target webhook receiver setup.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentMonitoringValidationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Monitor plan shape passed validation; no activity was read and no subscription, push delivery, heartbeat event, permission grant, payment authorization, completion proof, or durable write was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentMonitoringValidationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Monitor plan shape failed validation; response names missing fields and non-authority boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentMonitoringValidationResult",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/onboarding.json": {
         get: {
           tags: ["agent-discovery"],
@@ -2262,6 +2486,47 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/sandbox/replay": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Validate contract-sandbox replay evidence before conformance or production-access review.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentSandboxReplayValidationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Sandbox replay evidence passed validation; no review submission, credential, permission, production sandbox, payment authorization, completion proof, or durable write was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentSandboxReplayValidationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Sandbox replay evidence failed validation; response names missing fields and non-authority boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentSandboxReplayValidationResult",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/.well-known/agent-card.json": {
         get: {
           tags: ["agent-discovery"],
@@ -2338,6 +2603,115 @@ export function buildOpenApiDiscoveryIndex() {
               type: "array",
               items: { type: "object" },
             },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentSandboxReplayValidationRequest: {
+          type: "object",
+          required: ["schemaVersion", "replay"],
+          properties: {
+            schemaVersion: { const: 1 },
+            replay: {
+              type: "object",
+              required: [
+                "scenarioId",
+                "validationCommand",
+                "notAcceptedByProduction",
+                "productionEffects",
+                "usesMockCredentialsOnly",
+                "mockCredentialsUsedInProduction",
+                "secretsIncluded",
+                "claimsProductionAccess",
+                "claimsCompletion",
+                "completedSteps",
+                "observedTerminalState",
+              ],
+              properties: {
+                scenarioId: { type: "string" },
+                validationCommand: {
+                  const: "pnpm contracts:agent-sandbox",
+                },
+                representedActor: { type: "object" },
+                notAcceptedByProduction: { const: true },
+                productionEffects: { const: false },
+                usesMockCredentialsOnly: { const: true },
+                mockCredentialsUsedInProduction: { const: false },
+                secretsIncluded: { const: false },
+                claimsProductionAccess: { const: false },
+                claimsCompletion: { const: false },
+                completedSteps: {
+                  type: "array",
+                  items: { type: "object" },
+                },
+                observedTerminalState: { type: "object" },
+              },
+              additionalProperties: false,
+            },
+          },
+          additionalProperties: false,
+        },
+        AgentSandboxReplayValidationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "acceptedScenarioIds",
+            "scenarioId",
+            "scenarioTitle",
+            "coveredActions",
+            "expectedCanonicalWrites",
+            "expectedTerminalClaimState",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "acceptedByProduction",
+            "reviewSubmissionCreated",
+            "credentialsIssued",
+            "permissionGranted",
+            "productionSandboxCreated",
+            "paymentAuthorized",
+            "completionProven",
+            "durableWriteCreated",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["validation_passed", "validation_failed"] },
+            acceptedScenarioIds: {
+              type: "array",
+              items: { type: "string" },
+            },
+            scenarioId: { type: "string" },
+            scenarioTitle: { type: ["string", "null"] },
+            coveredActions: {
+              type: "array",
+              items: { type: "string" },
+            },
+            expectedCanonicalWrites: {
+              type: "array",
+              items: { type: "string" },
+            },
+            expectedTerminalClaimState: { type: ["string", "null"] },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
+            },
+            acceptedByProduction: { const: false },
+            reviewSubmissionCreated: { const: false },
+            credentialsIssued: { const: false },
+            permissionGranted: { const: false },
+            productionSandboxCreated: { const: false },
+            paymentAuthorized: { const: false },
+            completionProven: { const: false },
+            durableWriteCreated: { const: false },
             canonicalBoundary: { type: "object" },
           },
         },
@@ -2858,6 +3232,7 @@ export function buildOpenApiDiscoveryIndex() {
             "paymentAuthorized",
             "permissionGranted",
             "durableWriteCreated",
+            "summary",
             "missingFields",
             "warnings",
             "nextSteps",
@@ -3033,6 +3408,109 @@ export function buildOpenApiDiscoveryIndex() {
             escalationTriggers: {
               type: "array",
               items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentMonitoringValidationRequest: {
+          type: "object",
+          required: ["schemaVersion", "monitor"],
+          properties: {
+            schemaVersion: { const: 1 },
+            monitor: {
+              type: "object",
+              required: [
+                "mode",
+                "requestId",
+                "storesCursor",
+                "createsHeartbeatEvents",
+                "claimsCompletion",
+                "includesPrivatePayloads",
+                "escalationTriggers",
+              ],
+              properties: {
+                mode: {
+                  enum: ["poll_cursor", "signed_webhook_target"],
+                },
+                requestId: { type: "string" },
+                visibility: { enum: ["public", "private", "unknown"] },
+                hasRequestAccess: { type: "boolean" },
+                requestedScopes: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                cursor: { type: "object" },
+                poll: { type: "object" },
+                webhook: { type: "object" },
+                escalationTriggers: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                storesCursor: { type: "boolean" },
+                createsHeartbeatEvents: { type: "boolean" },
+                claimsCompletion: { type: "boolean" },
+                includesPrivatePayloads: { type: "boolean" },
+              },
+              additionalProperties: false,
+            },
+          },
+          additionalProperties: false,
+        },
+        AgentMonitoringValidationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "acceptedModes",
+            "acceptedEscalationTriggers",
+            "pollingReady",
+            "signedWebhookTargetReady",
+            "subscriptionPersisted",
+            "pushDeliveryActivated",
+            "heartbeatEventCreated",
+            "requestEventWritten",
+            "completionProven",
+            "paymentAuthorized",
+            "permissionGranted",
+            "durableWriteCreated",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["validation_passed", "validation_failed"] },
+            acceptedModes: {
+              type: "array",
+              items: { type: "string" },
+            },
+            acceptedEscalationTriggers: {
+              type: "array",
+              items: { type: "string" },
+            },
+            pollingReady: { type: "boolean" },
+            signedWebhookTargetReady: { type: "boolean" },
+            subscriptionPersisted: { const: false },
+            pushDeliveryActivated: { const: false },
+            heartbeatEventCreated: { const: false },
+            requestEventWritten: { const: false },
+            completionProven: { const: false },
+            paymentAuthorized: { const: false },
+            permissionGranted: { const: false },
+            durableWriteCreated: { const: false },
+            summary: { type: "string" },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
             },
             canonicalBoundary: { type: "object" },
           },
@@ -3266,6 +3744,24 @@ export function buildOpenApiDiscoveryIndex() {
         "durable RequestEvent",
       ],
     },
+    "x-boreal-agent-sandbox-replay-validation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+      status: "live_validation_only",
+      acceptedScenarioIds: buildAgentSandboxManifest().scenarios.map(
+        (scenario) => scenario.id
+      ),
+      schemaUrl: absoluteUrl("/schemas/agent-sandbox-replay.schema.json"),
+      nonAuthority: [
+        "production credential",
+        "production access grant",
+        "operator approval record",
+        "review submission",
+        "production sandbox",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
+    },
     "x-boreal-agent-auth": {
       url: absoluteUrl(agentDiscoveryPaths.agentAuth),
       schemes: buildAgentAuthProfile().authSchemes.map((scheme) => ({
@@ -3431,11 +3927,35 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-monitoring": {
       url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+      validationUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
       status: buildAgentMonitoringProfile().status,
       liveMode: buildAgentMonitoringProfile().pollingBaseline.status,
       escalationTriggers: buildAgentMonitoringProfile().escalationTriggers.map(
         (trigger) => trigger.id
       ),
+    },
+    "x-boreal-agent-monitoring-validation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+      status: "live_validation_only",
+      acceptedModes: ["poll_cursor", "signed_webhook_target"],
+      acceptedEscalationTriggers: [
+        "owner_review_needed",
+        "missing_or_unreviewable_proof",
+        "payment_uncertain",
+        "blocked_fulfillment",
+        "private_access_or_scope_missing",
+        "stale_activity",
+      ],
+      nonAuthority: [
+        "permission grant",
+        "request activity read",
+        "subscription record",
+        "push delivery implementation",
+        "heartbeat event",
+        "durable RequestEvent",
+        "completion proof",
+        "payment authorization",
+      ],
     },
     "x-boreal-agent-onboarding": {
       url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
@@ -4427,6 +4947,10 @@ export function buildAgentConformanceProfile() {
       {
         label: "Agent sandbox manifest",
         url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+      },
+      {
+        label: "Agent sandbox replay validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
       },
       {
         label: "Agent conformance schema",
@@ -7515,6 +8039,10 @@ export function buildAgentMonitoringProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks),
       },
       {
+        label: "Agent monitoring validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+      },
+      {
         label: "Agent recovery profile",
         url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
       },
@@ -7537,6 +8065,23 @@ export function buildAgentMonitoringProfile() {
       defaultLimit: 40,
       canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction", "Fulfillment", "Commitment"],
       canonicalWrites: [],
+    },
+    validationEndpoint: {
+      status: "live_validation_only",
+      method: "POST",
+      path: agentDiscoveryPaths.agentMonitoringValidation,
+      schemaUrl: absoluteUrl("/schemas/agent-monitoring-validation.schema.json"),
+      acceptedModes: ["poll_cursor", "signed_webhook_target"],
+      canonicalReads: [],
+      canonicalWrites: [],
+      nonAuthority: [
+        "request activity read",
+        "subscription record",
+        "push delivery implementation",
+        "heartbeat event",
+        "durable RequestEvent",
+        "completion proof",
+      ],
     },
     cursorRules: [
       {
@@ -7837,7 +8382,9 @@ export function buildAgentOnboardingProfile() {
         requiredReads: [
           absoluteUrl(agentDiscoveryPaths.agentSandboxGuide),
           absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+          absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
           absoluteUrl("/schemas/agent-sandbox.schema.json"),
+          absoluteUrl("/schemas/agent-sandbox-replay.schema.json"),
         ],
         validationCommand: "pnpm contracts:agent-sandbox",
         passWhen:
@@ -9387,6 +9934,34 @@ export function buildAgentReadinessProfile() {
         ],
       },
       {
+        id: "monitor_checkpoint_validation",
+        primaryAgentIntent: "Check monitor cursor, escalation, and webhook receiver posture before watching work",
+        status: "live_validation_only",
+        actions: ["monitor_request"],
+        standards: ["OpenAPI 3.1", "JSON Schema", "AsyncAPI"],
+        availableNow: [
+          "Post a monitor plan with mode, request id, cursor storage posture, escalation triggers, private-access posture, and no-heartbeat/no-completion flags.",
+          "Receive missing fields, target webhook warnings, and non-authority flags before polling request activity or implementing target signed push receivers.",
+          "Use the result as monitor-shape evidence only; request activity reads, subscriptions, push delivery, permission grants, payments, and completion still require governed route truth.",
+        ],
+        requiresBeforeUse: [
+          "schemaVersion=1",
+          "poll_cursor or signed_webhook_target mode",
+          "cursor checkpoint persistence",
+          "no heartbeat RequestEvent writes and no completion claims",
+        ],
+        stopOrEscalateWhen: [
+          "the monitor lacks private request access or requests:read_activity scope",
+          "the agent would write heartbeat events or include private payloads in monitor output",
+          "the agent treats signed webhook receiver shape as live subscription delivery",
+        ],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+          absoluteUrl("/schemas/agent-monitoring-validation.schema.json"),
+          absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+        ],
+      },
+      {
         id: "apply_to_request",
         primaryAgentIntent: "Apply to this",
         status: "live_authenticated_http_contract",
@@ -9446,6 +10021,7 @@ export function buildAgentReadinessProfile() {
         standards: ["OpenAPI", "AsyncAPI", "JSON Schema"],
         availableNow: [
           "Read public or authorized request activity.",
+          "Validate monitor plan shape before polling or target signed-webhook receiver setup.",
           "Persist cursor.nextAfterSequence and resume with after_sequence.",
           "Escalate stale lanes, missing proof, failed payment, or owner-review needs without creating heartbeat events.",
         ],
@@ -9459,6 +10035,7 @@ export function buildAgentReadinessProfile() {
           "the monitor detects stale state, blocked fulfillment, missing proof, missing payment reconciliation, or owner-review needs",
         ],
         evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
           absoluteUrl(agentDiscoveryPaths.agentRecovery),
           absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks),
           absoluteUrl("/events/request-room.asyncapi.yaml"),
@@ -9549,6 +10126,40 @@ export function buildAgentReadinessProfile() {
         evidence: [
           absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
           absoluteUrl("/schemas/agent-sandbox.schema.json"),
+        ],
+      },
+      {
+        id: "sandbox_replay_validation",
+        primaryAgentIntent: "Validate sandbox replay evidence before requesting production access",
+        status: "live_validation_only",
+        actions: [
+          "inspect_public_requests",
+          "make_request_for_human",
+          "apply_to_request",
+          "submit_artifact",
+          "monitor_request",
+          "run_public_solution",
+          "optimize_request_brief",
+        ],
+        standards: ["JSON Schema", "OpenAPI 3.1"],
+        availableNow: [
+          "Post replay evidence for one checked sandbox scenario and receive missing steps, ordering, idempotency, mock-credential, terminal-state, and non-authority feedback.",
+          "Use the result as conformance evidence only; production access still requires operator review, live credentials, request policy, scopes, and human approval.",
+        ],
+        requiresBeforeUse: [
+          "one accepted sandbox scenario id",
+          "completed scenario steps in manifest order",
+          "productionEffects=false and mockCredentialsUsedInProduction=false",
+          "no secrets, production access claims, or completion claims",
+        ],
+        stopOrEscalateWhen: [
+          "the replay is incomplete, out of order, contains secrets, or claims production authorization",
+          "the agent treats sandbox replay validation as certification or a credential",
+        ],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+          absoluteUrl("/schemas/agent-sandbox-replay.schema.json"),
+          absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
         ],
       },
       {

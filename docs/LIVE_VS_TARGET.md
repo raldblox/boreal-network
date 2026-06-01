@@ -116,6 +116,10 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/actions/preflight/route.ts`
 - `apps/web/lib/agent-action-preflight.ts`
 - `apps/web/app/agents/monitoring.json/route.ts`
+- `apps/web/app/agents/monitoring/validate/route.ts`
+- `apps/web/lib/agent-monitoring-validation.ts`
+- `apps/web/app/agents/sandbox/replay/route.ts`
+- `apps/web/lib/agent-sandbox-replay-validation.ts`
 - `apps/web/app/agents/onboarding.json/route.ts`
 - `apps/web/app/agents/opportunities.json/route.ts`
 - `apps/web/app/agents/optimization.json/route.ts`
@@ -137,6 +141,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/tests/contracts/agent-discovery.test.ts`
 - `schemas/json/agent-access-review.schema.json`
 - `schemas/json/agent-sandbox.schema.json`
+- `schemas/json/agent-sandbox-replay.schema.json`
 - `schemas/json/agent-auth.schema.json`
 - `schemas/json/agent-conformance.schema.json`
 - `schemas/json/agent-conformance-report.schema.json`
@@ -154,6 +159,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-intake-validation.schema.json`
 - `schemas/json/agent-action-preflight.schema.json`
 - `schemas/json/agent-monitoring.schema.json`
+- `schemas/json/agent-monitoring-validation.schema.json`
 - `schemas/json/agent-onboarding.schema.json`
 - `schemas/json/agent-opportunities.schema.json`
 - `schemas/json/agent-optimization.schema.json`
@@ -230,6 +236,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/http.json` profile and `schemas/json/agent-http.schema.json` give agents a unified current-route reference over live HTTP/OpenAPI exports, auth schemes, required scopes, idempotency, preflight order, non-HTTP fallbacks, and canonical reads or writes without creating a new API surface, granting permission, making MCP/A2A/x402 adapters live, or proving completion
 - one public `/agents/ux.json` profile and `schemas/json/agent-ux.schema.json` give agents a human-first process map for discovery, opportunity choice, request drafting, delegation, policy preflight, applying, proof submission, monitoring, recovery, payment authorization, optimization, and completion claims without creating a workflow engine, permission grant, approval record, payment authorization, credential issuer, adapter, or completion proof
 - one public `/agents/monitoring.json` profile and `schemas/json/agent-monitoring.schema.json` give agents machine-readable cursor polling, stale-state detection, escalation trigger, and push-versus-poll boundaries without granting permission, creating subscriptions, writing heartbeat events, accepting proof, settling payment, or proving completion
+- one public `POST /agents/monitoring/validate` route and `schemas/json/agent-monitoring-validation.schema.json` give agents validation-only checks for monitor mode, cursor checkpoint persistence, private-access posture, escalation triggers, no-heartbeat behavior, no-completion claims, and target signed-webhook receiver shape without reading activity, granting permission, creating subscriptions, activating push delivery, writing heartbeat events, settling payment, or proving completion
 - one public `/agents/onboarding.json` profile and `schemas/json/agent-onboarding.schema.json` give external agents a machine-readable path from public discovery to role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness without issuing credentials or claiming OAuth, MCP, A2A, x402, or production sandbox support is live
 - one public `/agents/opportunities.json` profile and `schemas/json/agent-opportunities.schema.json` give agents a machine-readable read-only way to turn public request projections and `agentActionAffordances` into local opportunity cards, fit scores, and recommended next actions without granting permission, assigning supply, creating a match result, starting fulfillment, authorizing payment, or proving completion
 - one public `/agents/optimization.json` profile and `schemas/json/agent-optimization.schema.json` give agents machine-readable draft-only optimization surfaces for briefs, proposals, evidence packets, monitor updates, and public-solution reuse without inventing facts, overriding planner or policy fields, authorizing writes, implying owner approval, settling payment, or proving completion
@@ -243,6 +250,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/readiness.json` readiness profile and `schemas/json/agent-readiness.schema.json` give agents a machine-readable live-versus-target capability matrix, standards map, agent UX flow, go/no-go checks, current limitations, and next implementation priorities without granting credentials, proving completion, or making target adapters live
 - one public `/agents/tools.json` tool registry and `schemas/json/agent-tools.schema.json` map agent intents to safe HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, output truth, and canonical write boundaries without creating a separate tool runtime or making target adapters live
 - one public `/agents/sandbox.md` guide, `/agents/sandbox.json` manifest, `agent-sandbox` JSON Schema, deterministic fixture, and `pnpm contracts:agent-sandbox` runner give agents contract-only mock identities, sample IDs, payloads, idempotency keys, monitor cursors, signed-webhook samples, and replay scenarios for requester drafting, solver apply/submit/monitor, paid-run shape, and recovery; mock credentials are not production auth and create no live objects
+- one public `POST /agents/sandbox/replay` route and `schemas/json/agent-sandbox-replay.schema.json` validate contract-sandbox replay evidence against manifest scenarios, expected step order, idempotency keys, terminal state, canonical writes, and non-authority boundaries before conformance or production-access review packets without creating review submissions, issuing credentials, creating a production sandbox, authorizing payment, proving completion, or writing durable history
 - public request projections now include `agentActionAffordances`, a derived request-level map of inspect, apply, submit, monitor, run, and optimize affordances with concrete endpoints, auth notes, idempotency requirements, and canonical read/write boundaries
 - request detail responses now include `agentActionPolicy`, a derived actor-specific map of inspect, apply, submit, monitor, run, and optimize decisions for anonymous, session, and resolver actors, including resolver missing-scope reporting and idempotency-gated action states
 - request, supply, payment, and resolver-auth OpenAPI exports now declare machine-readable auth boundaries: standard OpenAPI `security` requirements for anonymous, account-session, and resolver-bearer access where live routes support them, plus Boreal `x-boreal-required-scopes` extensions for resolver scope conditions
@@ -253,12 +261,12 @@ These are intended next layers, not fully modeled proof yet:
 
 - broader canonical event coverage under `schemas/events/`
 - broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
-- richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, payment/rate-limit-aware policy decisions, failure fixtures, and live external-agent auth beyond the first public action playbook, auth profile, contract-only sandbox runner and replay scenarios, request-detail action policy, cursor polling lane, and webhook signature profile
-- richer conformance automation where external agents can submit signed sandbox transcripts or live dry-run evidence for operator review; the current profile, report schema, and example route define the evidence shape but do not process submissions
+- richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, payment/rate-limit-aware policy decisions, failure fixtures, and live external-agent auth beyond the first public action playbook, auth profile, contract-only sandbox runner, replay scenarios, replay validation preflight, request-detail action policy, cursor polling lane, and webhook signature profile
+- richer conformance automation where external agents can submit signed sandbox transcripts or live dry-run evidence for operator review; the current profile, report schema, example route, and replay validation endpoint define or preflight evidence shape but do not process submissions
 - richer evidence automation with artifact scanning, checksum verification, private reviewer access, and proof scoring; the current evidence profile is packaging and review guidance only
 - richer execution automation with lane-specific worker dispatch, runtime admission, step updates, provider correlation, and isolated untrusted execution; the current execution profile is descriptive guidance over existing `Fulfillment` and `FulfillmentStep` truth
 - richer human handoff state in live request rooms, including persisted approval records, review prompts, and escalation inboxes; the current public handoff profile and packet examples are descriptive guidance only
-- richer monitor automation with persisted subscriptions, delivery retries, receiver enrollment, SLA configuration, and monitor inboxes; the current monitoring profile is descriptive over live cursor polling plus target signed push delivery
+- richer monitor automation with persisted subscriptions, delivery retries, receiver enrollment, SLA configuration, and monitor inboxes; the current monitoring profile and validation endpoint are descriptive or preflight-only over live cursor polling plus target signed push delivery
 - richer onboarding automation with operator-reviewed production access packets, real production sandbox credentials, revocation enforcement, scope approval, abuse controls, and delegated external-agent auth; the current onboarding and access-review profiles are descriptive guidance only
 - richer prompt automation with versioned prompt packs, prompt evals, locale variants, and signed prompt-pack distribution; the current prompt catalog is descriptive guidance only
 - richer optimization automation with owner-approved diff previews, semantic no-invention checks, and route-specific draft validators; the current optimization profile is descriptive guidance only

@@ -38,6 +38,10 @@
       "url": "https://boreal.work/agents/sandbox.md"
     },
     {
+      "label": "Sandbox replay validation endpoint",
+      "url": "https://boreal.work/agents/sandbox/replay"
+    },
+    {
       "label": "Action playbook",
       "url": "https://boreal.work/agents/actions.md"
     },
@@ -156,6 +160,10 @@
     {
       "label": "Monitoring profile",
       "url": "https://boreal.work/agents/monitoring.json"
+    },
+    {
+      "label": "Monitoring validation endpoint",
+      "url": "https://boreal.work/agents/monitoring/validate"
     },
     {
       "label": "Onboarding profile",

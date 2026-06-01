@@ -45,6 +45,7 @@ const requiredScopes = new Set([
 const requiredResources = [
   "/agents/start.md",
   "/agents/sandbox.md",
+  "/agents/sandbox/replay",
   "/agents/actions.md",
   "/agents/actions/preflight",
   "/agents/access-review.json",
@@ -75,6 +76,7 @@ const requiredResources = [
   "/agents/tools.json",
   "/agents/monitor-webhooks.md",
   "/agents/monitoring.json",
+  "/agents/monitoring/validate",
   "/agents/onboarding.json",
   "/agents/opportunity-cards.example.json",
   "/agents/opportunities.json",

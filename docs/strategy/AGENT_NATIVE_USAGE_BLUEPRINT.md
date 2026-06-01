@@ -76,6 +76,7 @@ Current assets that agents can eventually build on:
 - HTTP contracts exist under `schemas/openapi/`.
 - Request-room async event contracts exist under `schemas/events/`.
 - A contract-only agent sandbox exists through `/agents/sandbox.md`, `/agents/sandbox.json`, `schemas/json/agent-sandbox.schema.json`, `fixtures/agent/sandbox-manifest.sample.json`, and `pnpm contracts:agent-sandbox`; the manifest includes deterministic replay scenarios for requester drafting, solver apply/submit/monitor, paid-run shape, and idempotent recovery.
+- A validation-only sandbox replay endpoint exists through `POST /agents/sandbox/replay` and `schemas/json/agent-sandbox-replay.schema.json`, checking replay scenario id, step order, idempotency, terminal state, canonical writes, and non-authority boundaries before conformance or production-access review packets.
 - The peer workspace exists for future peer transport without replacing request truth.
 - A machine-readable access review profile exists through `/agents/access-review.json` and `schemas/json/agent-access-review.schema.json`, mapping conformance-report review, scope minimization, sandbox or pilot decisions, target adapter review, rate limits, revocation triggers, and decision outcomes.
 - A machine-readable auth profile exists through `/agents/auth.json` and `schemas/json/agent-auth.schema.json`, mapping anonymous, account-session, resolver-bearer, and target OAuth-compatible agent classes to scopes, approvals, idempotency, and non-grants.
@@ -95,6 +96,7 @@ Current assets that agents can eventually build on:
 - A machine-readable HTTP reference profile exists through `/agents/http.json` and `schemas/json/agent-http.schema.json`, giving agents one current-route view over live HTTP/OpenAPI exports, route families, auth, scopes, idempotency, preflight order, non-HTTP fallbacks, and canonical writes.
 - A machine-readable agent UX profile exists through `/agents/ux.json` and `schemas/json/agent-ux.schema.json`, giving agents one human-first process map over discovery, consent, action, monitoring, proof review, payment authorization, optimization, and completion claims.
 - A machine-readable monitoring profile exists through `/agents/monitoring.json` and `schemas/json/agent-monitoring.schema.json`, mapping cursor polling, stale-state detection, escalation triggers, webhook boundaries, and no-heartbeat-noise rules.
+- A validation-only monitor endpoint exists through `POST /agents/monitoring/validate` and `schemas/json/agent-monitoring-validation.schema.json`, checking cursor checkpoint storage, private-access posture, escalation triggers, no-heartbeat behavior, no-completion claims, and target signed-webhook receiver shape before agents monitor work.
 - A machine-readable onboarding profile exists through `/agents/onboarding.json` and `schemas/json/agent-onboarding.schema.json`, mapping external-agent discovery, role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness.
 - A machine-readable opportunity discovery profile exists through `/agents/opportunities.json` and `schemas/json/agent-opportunities.schema.json`, mapping public request projections and `agentActionAffordances` into local opportunity cards, fit scoring, and next-action selection without granting permission or assignment.
 - A machine-readable optimization profile exists through `/agents/optimization.json` and `schemas/json/agent-optimization.schema.json`, mapping draft-only improvement surfaces, no-invention rules, owner-approval gates, and canonical mutation boundaries for agents optimizing briefs, proposals, evidence, monitors, and public-solution reuse.
@@ -126,6 +128,8 @@ Current gaps to close before Boreal is truly agent-native:
 - the first machine-readable execution profile now tells agents when `Fulfillment` lanes may start, why sub-work defaults to `FulfillmentStep`, how direct-owner execution stays narrow, and why runtime signals stay ephemeral until promoted, but lane-specific worker dispatch and isolated untrusted execution remain target direction
 - the first machine-readable human handoff profile and checked packet examples now tell agents when to ask humans, show drafts, request approval, stop, escalate stale work, use precise claim-state labels, and render concrete approval/review/escalation cards, but persisted approval records and in-product escalation inboxes remain target direction
 - the first machine-readable monitoring profile now tells agents how to use cursor polling, detect stale work, escalate review/payment/proof/access blockers, and keep push subscriptions target-only, but persisted monitor subscriptions and delivery retries remain target direction
+- the first validation-only monitor endpoint now lets agents check monitor plans before polling or target webhook receiver setup, but it does not read activity, create subscriptions, activate push delivery, authorize payment, or prove completion
+- the first validation-only sandbox replay endpoint now lets agents check sandbox transcripts before conformance or production-access review packets, but it does not create persisted operator-review submissions, issue credentials, create production sandboxes, authorize spend, or prove completion
 - the first machine-readable onboarding profile now tells external agents how to move from discovery to contract sandbox validation to scoped live HTTP use and target production access review, but real production sandbox credentials, delegated external-agent auth, revocation, and abuse controls remain target direction
 - the first machine-readable optimization profile now tells agents how to improve briefs, proposals, evidence packets, monitor updates, and public-solution run inputs without inventing facts or mutating durable truth without approval, but owner-approved diff previews and semantic validators remain target direction
 - the first machine-readable payment profile now tells agents when inspection is free, when account-session spend authority is required, which payment mutations need idempotency, how buyer credit and paid runs reconcile into `Transaction`, and why x402 remains target-only until explicit endpoint activation
@@ -141,6 +145,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first validation-only intake path now exists, so agents can preflight review packets before involving a human or operator while keeping real access decisions target-bound
 - the first validation-only action preflight path now exists, so agents can check apply, submit, monitor, run, and optimize prerequisites before attempting real governed routes while keeping permission, approval, payment, artifact, commitment, request mutation, and completion decisions target-bound
 - the first validation-only evidence path now exists, so agents can check proof packets before attempting Artifact submission while keeping publication, review acceptance, payment authorization, durable history, and completion decisions target-bound
+- the first validation-only monitor path now exists, so agents can check cursor persistence, access posture, escalation triggers, no-heartbeat behavior, no-completion claims, and target signed-webhook receiver readiness while keeping subscriptions, push delivery, permission, payment, durable history, and completion target-bound
 - the first machine-readable tool registry now exists, so agents can map inspect, make draft, apply, submit, monitor, run, payment reconciliation, and optimization intents to safe HTTP calls while keeping MCP and A2A as target adapter mappings
 - the first contract-only sandbox, replay scenarios, and fixture runner exist, but no production sandbox credentials or isolated write sandbox exists for external agents yet
 - the first signed webhook/push-notification profile is documented for long-running agent monitoring, but subscription persistence and delivery are not live yet
@@ -344,6 +349,7 @@ Add these public surfaces:
 - `GET /agents/production-access-packet.example.json`
 - `POST /agents/intake/validate`
 - `POST /agents/actions/preflight`
+- `POST /agents/sandbox/replay`
 - `GET /agents/completion.json`
 - `GET /agents/evidence.json`
 - `POST /agents/evidence/validate`
@@ -351,6 +357,7 @@ Add these public surfaces:
 - `GET /agents/execution.json`
 - `GET /agents/human-handoffs.json`
 - `GET /agents/monitoring.json`
+- `POST /agents/monitoring/validate`
 - `GET /agents/onboarding.json`
 - `GET /agents/opportunities.json`
 - `GET /agents/optimization.json`
@@ -379,6 +386,7 @@ Add these public surfaces:
 - `GET /schemas/request-event.schema.json`
 - `GET /schemas/agent-access-review.schema.json`
 - `GET /schemas/agent-sandbox.schema.json`
+- `GET /schemas/agent-sandbox-replay.schema.json`
 - `GET /schemas/agent-auth.schema.json`
 - `GET /schemas/agent-conformance.schema.json`
 - `GET /schemas/agent-conformance-report.schema.json`
@@ -391,6 +399,7 @@ Add these public surfaces:
 - `GET /schemas/agent-human-handoffs.schema.json`
 - `GET /schemas/agent-human-handoff-packets.schema.json`
 - `GET /schemas/agent-monitoring.schema.json`
+- `GET /schemas/agent-monitoring-validation.schema.json`
 - `GET /schemas/agent-onboarding.schema.json`
 - `GET /schemas/agent-opportunities.schema.json`
 - `GET /schemas/agent-optimization.schema.json`
@@ -845,6 +854,8 @@ Deliverables:
 - `/agents/http.json` - implemented as a public machine-readable HTTP reference profile for current route families, OpenAPI sources, auth, scopes, idempotency, preflight order, non-HTTP fallbacks, and canonical write boundaries
 - `/agents/ux.json` - implemented as a public machine-readable agent UX profile for human-first discovery, consent, action, monitoring, proof review, payment authorization, optimization, and completion claim surfaces
 - `/agents/monitoring.json` - implemented as a public machine-readable monitoring profile for cursor polling, stale-state detection, escalation triggers, and live-versus-target push delivery boundaries
+- `POST /agents/monitoring/validate` and `schemas/json/agent-monitoring-validation.schema.json` - implemented as a validation-only preflight for monitor plans, cursor checkpoints, escalation posture, private-access posture, no-heartbeat behavior, no-completion claims, and target signed-webhook receiver shape
+- `POST /agents/sandbox/replay` and `schemas/json/agent-sandbox-replay.schema.json` - implemented as a validation-only preflight for sandbox replay evidence before conformance or production-access review packets
 - `/agents/onboarding.json` - implemented as a public machine-readable onboarding profile for external-agent discovery, sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness
 - `/agents/opportunities.json` - implemented as a public read-only opportunity discovery profile for public request fit scoring, local opportunity cards, and next-action selection without permission, assignment, payment, or completion authority
 - `/agents/optimization.json` - implemented as a public machine-readable optimization profile for draft-only brief, proposal, evidence, monitor, and public-solution reuse improvements
@@ -859,6 +870,7 @@ Deliverables:
 - `/agents/readiness.json` - implemented as a public machine-readable readiness profile for live-versus-target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities
 - `/agents/tools.json` - implemented as a public machine-readable tool registry for live HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, output truth, and canonical write boundaries
 - `/agents/sandbox.md` and `/agents/sandbox.json` - implemented as a public contract-only sandbox guide and manifest with deterministic replay scenarios
+- `/agents/sandbox/replay` - implemented as a public validation-only endpoint for checking sandbox replay evidence against manifest scenarios without granting access or creating durable truth
 - `/.well-known/agent-card.json` - implemented as a public-safe JSON card in `apps/web`
 - public OpenAPI route or static export - implemented as `/openapi.json` plus allowlisted YAML contract exports
 - OpenAPI auth metadata for agent-callable routes - implemented for request, supply, payment, and resolver-auth exports with `security`, `BorealAccountSession`, `ResolverBearer`, and Boreal scope extensions where live routes support them
@@ -874,6 +886,7 @@ Deliverables:
 - machine-readable production access packet example - implemented as `/agents/production-access-packet.example.json`, linked from onboarding, access review, conformance, `/llms.txt`, and `/openapi.json`
 - machine-readable agent intake validation endpoint - implemented as `POST /agents/intake/validate`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, readiness profile, and `/openapi.json`
 - machine-readable agent action preflight endpoint - implemented as `POST /agents/actions/preflight`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, UX profile, readiness profile, and `/openapi.json`
+- machine-readable agent sandbox replay validation endpoint - implemented as `POST /agents/sandbox/replay`, linked from the agent card, start guide, sandbox manifest, onboarding, readiness profile, `/llms.txt`, and `/openapi.json`
 - machine-readable agent completion profile - implemented as `/agents/completion.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent human delegation profile - implemented as `/agents/delegation.json`, linked from the agent card, auth profile, start guide, `/llms.txt`, and `/openapi.json`
 - machine-readable agent evidence profile - implemented as `/agents/evidence.json`, linked from the agent card and `/openapi.json`
