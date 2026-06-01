@@ -199,7 +199,30 @@ function isUniqueViolation(error: unknown) {
 }
 
 function isTransientDatabaseConnectionError(error: unknown) {
+  const code =
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    typeof error.code === "string"
+      ? error.code.toUpperCase()
+      : "";
   const detail = getDatabaseErrorDetail(error).toUpperCase();
+
+  const transientPostgresCodes = new Set([
+    "08000", // connection_exception
+    "08003", // connection_does_not_exist
+    "08006", // connection_failure
+    "08001", // sqlclient_unable_to_establish_sqlconnection
+    "08004", // sqlserver_rejected_establishment_of_sqlconnection
+    "53300", // too_many_connections
+    "57P01", // admin_shutdown
+    "57P02", // crash_shutdown
+    "57P03", // cannot_connect_now
+  ]);
+
+  if (transientPostgresCodes.has(code)) {
+    return true;
+  }
 
   return [
     "CONNECT_TIMEOUT",
@@ -243,6 +266,17 @@ async function withDatabaseRetry<T>(
   }
 
   throw lastError;
+}
+
+function createDatabaseQueryError(action: string, error: unknown) {
+  const errorCode = isTransientDatabaseConnectionError(error)
+    ? "offline:database"
+    : "bad_request:database";
+
+  return new ChatbotError(
+    errorCode,
+    `${action}: ${getDatabaseErrorDetail(error)}`
+  );
 }
 
 export async function getUser(email: string): Promise<User[]> {
@@ -440,8 +474,8 @@ export async function saveChat({
       title,
       visibility,
     });
-  } catch (_error) {
-    throw new ChatbotError("bad_request:database", "Failed to save chat");
+  } catch (error) {
+    throw createDatabaseQueryError("Failed to save chat", error);
   }
 }
 
@@ -610,14 +644,16 @@ export async function getChatsByUserId({
 
 export async function getChatById({ id }: { id: string }) {
   try {
-    const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
+    const [selectedChat] = await withDatabaseRetry(() =>
+      db.select().from(chat).where(eq(chat.id, id))
+    );
     if (!selectedChat) {
       return null;
     }
 
     return selectedChat;
-  } catch (_error) {
-    throw new ChatbotError("bad_request:database", "Failed to get chat by id");
+  } catch (error) {
+    throw createDatabaseQueryError("Failed to get chat by id", error);
   }
 }
 
@@ -1059,21 +1095,18 @@ export async function getRequestByChatId({
   chatId: string;
 }): Promise<RequestRecord | null> {
   try {
-    const [selectedRequest] = await db
-      .select()
-      .from(request)
-      .where(eq(request.chatId, chatId))
-      .orderBy(desc(request.createdAt))
-      .limit(1);
+    const [selectedRequest] = await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(request)
+        .where(eq(request.chatId, chatId))
+        .orderBy(desc(request.createdAt))
+        .limit(1)
+    );
 
     return selectedRequest ?? null;
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      _error instanceof Error
-        ? `Failed to get request by chat id: ${_error.message}`
-        : "Failed to get request by chat id"
-    );
+  } catch (error) {
+    throw createDatabaseQueryError("Failed to get request by chat id", error);
   }
 }
 
@@ -3627,18 +3660,29 @@ export async function getRequestEventByIdempotencyKey({
 }
 
 export async function getRequestActivityByRequestId({
+  afterSequence,
   requestId,
   limit = 20,
 }: {
+  afterSequence?: number;
   requestId: string;
   limit?: number;
 }): Promise<RequestActivityEntry[]> {
   try {
+    const whereClauses = [eq(requestEvent.requestId, requestId)];
+    if (afterSequence !== undefined) {
+      whereClauses.push(gt(requestEvent.sequence, afterSequence));
+    }
+
     const rows = await db
       .select()
       .from(requestEvent)
-      .where(eq(requestEvent.requestId, requestId))
-      .orderBy(desc(requestEvent.sequence))
+      .where(and(...whereClauses))
+      .orderBy(
+        afterSequence === undefined
+          ? desc(requestEvent.sequence)
+          : asc(requestEvent.sequence)
+      )
       .limit(limit);
 
     return rows.map(toRequestActivityEntry);
@@ -4059,8 +4103,8 @@ function fallbackActivitySummary(eventType: string) {
 export async function saveMessages({ messages }: { messages: DBMessage[] }) {
   try {
     return await db.insert(message).values(messages);
-  } catch (_error) {
-    throw new ChatbotError("bad_request:database", "Failed to save messages");
+  } catch (error) {
+    throw createDatabaseQueryError("Failed to save messages", error);
   }
 }
 
@@ -4080,16 +4124,15 @@ export async function updateMessage({
 
 export async function getMessagesByChatId({ id }: { id: string }) {
   try {
-    return await db
-      .select()
-      .from(message)
-      .where(eq(message.chatId, id))
-      .orderBy(asc(message.createdAt));
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to get messages by chat id"
+    return await withDatabaseRetry(() =>
+      db
+        .select()
+        .from(message)
+        .where(eq(message.chatId, id))
+        .orderBy(asc(message.createdAt))
     );
+  } catch (error) {
+    throw createDatabaseQueryError("Failed to get messages by chat id", error);
   }
 }
 
@@ -4327,12 +4370,11 @@ export async function getSuggestionsByDocumentId({
 
 export async function getMessageById({ id }: { id: string }) {
   try {
-    return await db.select().from(message).where(eq(message.id, id));
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to get message by id"
+    return await withDatabaseRetry(() =>
+      db.select().from(message).where(eq(message.id, id))
     );
+  } catch (error) {
+    throw createDatabaseQueryError("Failed to get message by id", error);
   }
 }
 
@@ -4344,34 +4386,40 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   timestamp: Date;
 }) {
   try {
-    const messagesToDelete = await db
-      .select({ id: message.id })
-      .from(message)
-      .where(
-        and(eq(message.chatId, chatId), gte(message.createdAt, timestamp))
-      );
+    const messagesToDelete = await withDatabaseRetry(() =>
+      db
+        .select({ id: message.id })
+        .from(message)
+        .where(
+          and(eq(message.chatId, chatId), gte(message.createdAt, timestamp))
+        )
+    );
 
     const messageIds = messagesToDelete.map(
       (currentMessage) => currentMessage.id
     );
 
     if (messageIds.length > 0) {
-      await db
-        .delete(vote)
-        .where(
-          and(eq(vote.chatId, chatId), inArray(vote.messageId, messageIds))
-        );
+      await withDatabaseRetry(() =>
+        db
+          .delete(vote)
+          .where(
+            and(eq(vote.chatId, chatId), inArray(vote.messageId, messageIds))
+          )
+      );
 
-      return await db
-        .delete(message)
-        .where(
-          and(eq(message.chatId, chatId), inArray(message.id, messageIds))
-        );
+      return await withDatabaseRetry(() =>
+        db
+          .delete(message)
+          .where(
+            and(eq(message.chatId, chatId), inArray(message.id, messageIds))
+          )
+      );
     }
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to delete messages by chat id after timestamp"
+  } catch (error) {
+    throw createDatabaseQueryError(
+      "Failed to delete messages by chat id after timestamp",
+      error
     );
   }
 }
@@ -4419,24 +4467,26 @@ export async function getMessageCountByUserId({
       Date.now() - differenceInHours * 60 * 60 * 1000
     );
 
-    const [stats] = await db
-      .select({ count: count(message.id) })
-      .from(message)
-      .innerJoin(chat, eq(message.chatId, chat.id))
-      .where(
-        and(
-          eq(chat.userId, id),
-          gte(message.createdAt, cutoffTime),
-          eq(message.role, "user")
+    const [stats] = await withDatabaseRetry(() =>
+      db
+        .select({ count: count(message.id) })
+        .from(message)
+        .innerJoin(chat, eq(message.chatId, chat.id))
+        .where(
+          and(
+            eq(chat.userId, id),
+            gte(message.createdAt, cutoffTime),
+            eq(message.role, "user")
+          )
         )
-      )
-      .execute();
+        .execute()
+    );
 
     return stats?.count ?? 0;
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to get message count by user id"
+  } catch (error) {
+    throw createDatabaseQueryError(
+      "Failed to get message count by user id",
+      error
     );
   }
 }

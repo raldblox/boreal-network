@@ -43,6 +43,7 @@ for (const path of jsonSchemas) {
 }
 
 const fixtureJson = [
+  ...filesIn("fixtures/agent", ".json"),
   ...filesIn("fixtures/request", ".json"),
   ...filesIn("fixtures/supply", ".json"),
   ...filesIn("fixtures/fulfillment", ".json"),

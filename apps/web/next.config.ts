@@ -1,7 +1,11 @@
 import { withBotId } from "botid/next/config";
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const basePath = process.env.IS_DEMO === "1" ? "/demo" : "";
+const repoRoot = process.cwd().replaceAll("\\", "/").endsWith("/apps/web")
+  ? path.resolve(process.cwd(), "../..")
+  : process.cwd();
 
 const nextConfig: NextConfig = {
   ...(basePath
@@ -24,6 +28,12 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   devIndicators: false,
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  outputFileTracingRoot: repoRoot,
+  outputFileTracingIncludes: {
+    "/events/*": ["../../schemas/events/**/*"],
+    "/openapi/*": ["../../schemas/openapi/**/*"],
+    "/schemas/*": ["../../schemas/json/**/*"],
+  },
   poweredByHeader: false,
   reactCompiler: true,
   transpilePackages: ["@boreal/ui"],

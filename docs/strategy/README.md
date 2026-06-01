@@ -28,7 +28,7 @@ If a strategy doc implies a change to canon, update canon first or in the same p
 
 ## State Register
 
-Last reviewed: 2026-05-29.
+Last reviewed: 2026-06-01.
 
 Use `../DOC_LIFECYCLE.md` for state definitions.
 Strategy docs are downstream of canon and should not override live-versus-target boundaries.
@@ -41,6 +41,7 @@ Strategy docs are downstream of canon and should not override live-versus-target
 | [FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md) | `active` | Worker instruction | Current guardrails for request-grant, public-solution, inspect, and run-with-credits copy. | Review before frontend or hero-copy worker runs. |
 | [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md) | `active` | UX blueprint | Current revamp blueprint for request board, workroom, account, credits, supply, and public solutions. | Review before major web IA or request-room changes. |
 | [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md) | `active` | V1 UX plan | Current guidance for request-owned Path Builder surfaces. | Review when Path Builder implementation lands or changes scope. |
+| [AGENT_NATIVE_USAGE_BLUEPRINT.md](AGENT_NATIVE_USAGE_BLUEPRINT.md) | `active` | Agent usage blueprint | Current guidance for agent discovery, agent UX, protocol mapping, requester/solver/monitor roles, and agent-ready roadmap. | Review before adding agent discovery, MCP, A2A, agent auth, x402, or public agent-write surfaces. |
 | [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md) | `pilot_active` | Long-running gate plan | Current durable queue for pilot, self-serve buyer, curated supply, and public-market readiness. | Review in every patch that completes or changes a gate item. |
 | [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md) | `pilot_active` | Gate 1 verification checklist | Current narrow pilot verification checklist; not broad marketplace proof. | Review before any public or semi-public pilot demo. |
 | [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md) | `active` | Service packaging spec | Current first-party service families, preset plans, and launch pricing. | Review after real sales, pricing change, or fulfillment evidence change. |
@@ -62,11 +63,12 @@ Related canon:
 7. [../REQUEST_PLAN_MODEL.md](../REQUEST_PLAN_MODEL.md)
 8. [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
 9. [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md)
-10. [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
-11. [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
-12. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
-13. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
-14. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
+10. [AGENT_NATIVE_USAGE_BLUEPRINT.md](AGENT_NATIVE_USAGE_BLUEPRINT.md)
+11. [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
+12. [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
+13. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
+14. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
+15. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
 
 ## Working Rule
 

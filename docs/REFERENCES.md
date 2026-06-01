@@ -33,6 +33,18 @@ They explain where the structure and standards came from.
 - OpenAPI Specification: [https://spec.openapis.org/oas/latest.html](https://spec.openapis.org/oas/latest.html)
 - AsyncAPI Docs: [https://www.asyncapi.com/docs](https://www.asyncapi.com/docs)
 
+## Agent Interoperability And Discovery
+
+- Model Context Protocol specification: [https://modelcontextprotocol.io/specification/2025-06-18/basic](https://modelcontextprotocol.io/specification/2025-06-18/basic)
+- Model Context Protocol architecture overview: [https://modelcontextprotocol.io/docs/learn/architecture](https://modelcontextprotocol.io/docs/learn/architecture)
+- Model Context Protocol server concepts: [https://modelcontextprotocol.io/docs/learn/server-concepts](https://modelcontextprotocol.io/docs/learn/server-concepts)
+- Agent2Agent protocol specification: [https://a2a-protocol.org/v0.3.0/specification/](https://a2a-protocol.org/v0.3.0/specification/)
+- Agent2Agent agent discovery: [https://a2a-protocol.org/v0.3.0/topics/agent-discovery/](https://a2a-protocol.org/v0.3.0/topics/agent-discovery/)
+- OAuth 2.0 Authorization Framework: [https://datatracker.ietf.org/doc/html/rfc6749.html](https://datatracker.ietf.org/doc/html/rfc6749.html)
+- x402 payment standard: [https://www.x402.org/](https://www.x402.org/)
+- x402 documentation: [https://docs.x402.org/](https://docs.x402.org/)
+- `/llms.txt` proposal: [https://llmstxt.org/](https://llmstxt.org/)
+
 ## Event and Observability Patterns
 
 - Temporal workflow execution and event history concepts: [https://docs.temporal.io/workflow-execution](https://docs.temporal.io/workflow-execution)

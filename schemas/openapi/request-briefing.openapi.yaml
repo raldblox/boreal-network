@@ -4,8 +4,9 @@ info:
   version: 1.0.0
   description: >
     First web-facing request surface for explicit Request draft creation,
-    request-brief mutations, and public-safe listing of open public requests
-    inside apps/web.
+    request-brief mutations, public-safe listing of open public requests,
+    public solution projections, and per-request agent action affordances inside
+    apps/web.
 paths:
   /api/requests:
     get:
@@ -24,6 +25,7 @@ paths:
             type: string
             enum:
               - public
+              - public_solutions
         - in: query
           name: limit
           required: false
@@ -45,7 +47,7 @@ paths:
             format: uuid
       responses:
         "200":
-          description: The current request draft or a public request pool page.
+          description: The current request draft or a public request pool page with request-level agent action affordances.
           content:
             application/json:
               schema:
@@ -233,7 +235,12 @@ paths:
           description: Source chat message not found.
   /api/requests/{id}/activity:
     get:
-      summary: Get recent activity for one request room.
+      summary: Get recent or cursor-resumed activity for one request room.
+      description: >
+        Without after_sequence this returns the latest durable activity in
+        newest-first order. With after_sequence it returns events with a higher
+        request-local sequence in ascending replay order so agents can resume
+        monitoring from a stable checkpoint without creating heartbeat events.
       parameters:
         - in: path
           name: id
@@ -241,9 +248,24 @@ paths:
           schema:
             type: string
             format: uuid
+        - in: query
+          name: after_sequence
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+          description: Return durable events with sequence greater than this checkpoint.
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 40
       responses:
         "200":
-          description: Recent request activity entries in newest-first order.
+          description: Request activity entries plus a monitor cursor envelope.
           content:
             application/json:
               schema:
@@ -251,11 +273,14 @@ paths:
                 additionalProperties: false
                 required:
                   - activity
+                  - cursor
                 properties:
                   activity:
                     type: array
                     items:
                       $ref: "#/components/schemas/WebRequestActivity"
+                  cursor:
+                    $ref: "#/components/schemas/WebRequestActivityCursor"
   /api/requests/{id}:
     get:
       summary: Get one request detail view for an owner or public responder runtime.
@@ -513,6 +538,48 @@ paths:
                 properties:
                   fulfillment:
                     $ref: "#/components/schemas/WebFulfillment"
+webhooks:
+  requestActivity:
+    post:
+      summary: Receive a signed request activity webhook.
+      description: >
+        Target push-notification profile for agent monitors. Polling
+        `/api/requests/{id}/activity` with after_sequence is the live monitor
+        lane today; this webhook profile defines the signed callback shape for
+        future subscription delivery and receiver implementations.
+      x-boreal-status: target_profile
+      parameters:
+        - in: header
+          name: Boreal-Webhook-Id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: header
+          name: Boreal-Webhook-Timestamp
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+          description: Unix timestamp in seconds.
+        - in: header
+          name: Boreal-Webhook-Signature
+          required: true
+          schema:
+            type: string
+            pattern: "^v1=[a-f0-9]{64}$"
+          description: HMAC-SHA256 signature over the profile base string.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebRequestActivityWebhook"
+      responses:
+        "204":
+          description: The receiver verified and processed or deduplicated the delivery.
+        "400":
+          description: Invalid payload, stale timestamp, invalid signature, or unauthorized monitor context.
 components:
   schemas:
     WebReusablePromptField:
@@ -724,6 +791,9 @@ components:
         activeFulfillmentId:
           type: string
           format: uuid
+        acceptedArtifactId:
+          type: string
+          format: uuid
         latestArtifactId:
           type: string
           format: uuid
@@ -922,6 +992,83 @@ components:
           additionalProperties: true
         artifact:
           $ref: "#/components/schemas/WebRequestActivityArtifact"
+    WebRequestActivityCursor:
+      type: object
+      additionalProperties: false
+      required:
+        - afterSequence
+        - hasMoreNewer
+        - latestSequence
+        - limit
+        - nextAfterSequence
+        - order
+        - returned
+      properties:
+        afterSequence:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+          description: Checkpoint supplied by the caller, or null for latest reads.
+        hasMoreNewer:
+          type: boolean
+          description: True when a cursor-resumed read has more newer events than returned in this page.
+        latestSequence:
+          type:
+            - integer
+            - "null"
+          minimum: 1
+          description: Highest durable sequence represented by this response or checkpoint.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+        nextAfterSequence:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+          description: Use this value as after_sequence on the next monitor poll.
+        order:
+          type: string
+          enum:
+            - newest_first
+            - replay
+          description: Replay order is used when after_sequence is supplied.
+        returned:
+          type: integer
+          minimum: 0
+    WebRequestActivityWebhook:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - deliveryId
+        - requestId
+        - activity
+        - cursor
+        - emittedAt
+      properties:
+        schemaVersion:
+          const: 1
+        deliveryId:
+          type: string
+          format: uuid
+          description: Unique webhook delivery identifier for receiver dedupe.
+        subscriptionId:
+          type: string
+          format: uuid
+          description: Optional monitor subscription identifier once subscription persistence is live.
+        requestId:
+          type: string
+          format: uuid
+        activity:
+          $ref: "#/components/schemas/WebRequestActivity"
+        cursor:
+          $ref: "#/components/schemas/WebRequestActivityCursor"
+        emittedAt:
+          type: string
+          format: date-time
     WebActorRef:
       type: object
       additionalProperties: false
@@ -1545,15 +1692,25 @@ components:
       additionalProperties: false
       required:
         - id
+        - chatId
         - key
         - status
         - visibility
         - brief
+        - seeking
+        - budget
+        - deadline
+        - activeRefs
+        - latest
         - derived
+        - agentActionAffordances
         - createdAt
         - updatedAt
       properties:
         id:
+          type: string
+          format: uuid
+        chatId:
           type: string
           format: uuid
         key:
@@ -1562,6 +1719,14 @@ components:
           type: string
           enum:
             - open
+            - funding_required
+            - funded
+            - in_progress
+            - waiting_for_owner
+            - delivered
+            - completed
+            - cancelled
+            - failed
         visibility:
           type: string
           enum:
@@ -1691,12 +1856,126 @@ components:
                   type: boolean
             routeSummary:
               type: string
+        agentActionAffordances:
+          $ref: "#/components/schemas/WebRequestAgentActionAffordanceSet"
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+    WebRequestAgentActionAffordanceSet:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - subject
+        - roleHint
+        - actions
+      properties:
+        schemaVersion:
+          type: integer
+          enum:
+            - 1
+        subject:
+          type: object
+          additionalProperties: false
+          required:
+            - type
+            - id
+            - status
+            - visibility
+          properties:
+            type:
+              type: string
+              enum:
+                - Request
+            id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum:
+                - open
+                - funding_required
+                - funded
+                - in_progress
+                - waiting_for_owner
+                - delivered
+                - completed
+                - cancelled
+                - failed
+            visibility:
+              type: string
+              enum:
+                - public
+        roleHint:
+          type: string
+          enum:
+            - public_request
+            - public_solution
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebRequestAgentActionAffordance"
+    WebRequestAgentActionAffordance:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - intent
+        - label
+        - method
+        - href
+        - availability
+        - auth
+        - canonicalReads
+        - canonicalWrites
+        - idempotencyRequired
+        - reason
+      properties:
+        id:
+          type: string
+          enum:
+            - inspect_public_requests
+            - apply_to_request
+            - submit_artifact
+            - monitor_request
+            - run_public_solution
+            - optimize_request_brief
+        intent:
+          type: string
+        label:
+          type: string
+        method:
+          type: string
+          enum:
+            - GET
+            - POST
+            - LOCAL_DRAFT
+        href:
+          type: string
+        availability:
+          type: string
+          enum:
+            - available
+            - available_with_auth
+            - requires_authorization
+            - target_profile
+        auth:
+          type: string
+        canonicalReads:
+          type: array
+          items:
+            type: string
+        canonicalWrites:
+          type: array
+          items:
+            type: string
+        idempotencyRequired:
+          type: boolean
+        reason:
+          type: string
     WebRequestDraft:
       type: object
       additionalProperties: false

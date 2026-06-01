@@ -25,6 +25,7 @@
     "contracts:request-room-replay": "node tests/contracts/run-request-room-replay-fixtures.mjs",
     "contracts:idempotency": "node tests/contracts/run-idempotency-replay-fixtures.mjs",
     "contracts:solution-runs": "node tests/contracts/run-solution-run-fixtures.mjs",
+    "contracts:agent-sandbox": "node tests/contracts/run-agent-sandbox-fixtures.mjs",
     "contracts:reusable-prompts": "pnpm --filter @boreal/web exec tsx tests/contracts/reusable-prompt.test.ts",
     "contracts:security-hardening": "node tests/contracts/run-security-hardening-contracts.mjs",
     "evals:request-processing": "node tests/contracts/run-request-processing-evals.mjs",
@@ -35,6 +36,7 @@
     "evals:request-processing:live": "pnpm --filter @boreal/web eval:request-processing:live",
     "evals:request-processing:live:study": "pnpm --filter @boreal/web eval:request-processing:live --model openai/gpt-4.1-nano --model openai/gpt-5.4-nano --model openai/gpt-5-mini --model openai/o4-mini --model openai/gpt-5-pro --prompt neutral_contract_v2 --prompt boreal_canon_v2 --output-dir C:\\Users\\raldb\\boreal-network\\docs\\papers\\request-rooted-orchestration-for-mixed-human-ai-fulfillment\\results\\live-benchmark\\study-openai-multimodel-v1",
     "web:test:request-boundaries": "pnpm --filter @boreal/web test:request-boundaries",
+    "web:test:agent-discovery": "pnpm --filter @boreal/web test:agent-discovery",
     "contracts:validate": "node tests/contracts/validate-contract-artifacts.mjs"
   },
   "devDependencies": {

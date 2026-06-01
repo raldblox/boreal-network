@@ -94,6 +94,17 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `package.json`
 - `pnpm-workspace.yaml`
 - `apps/web/package.json`
+- `apps/web/app/agents/start.md/route.ts`
+- `apps/web/app/agents/sandbox.md/route.ts`
+- `apps/web/app/agents/sandbox.json/route.ts`
+- `apps/web/app/.well-known/agent-card.json/route.ts`
+- `apps/web/app/openapi.json/route.ts`
+- `apps/web/app/openapi/[contract]/route.ts`
+- `apps/web/app/schemas/[schema]/route.ts`
+- `apps/web/app/events/[contract]/route.ts`
+- `apps/web/tests/contracts/agent-discovery.test.ts`
+- `schemas/json/agent-sandbox.schema.json`
+- `fixtures/agent/sandbox-manifest.sample.json`
 
 Today, the machine-readable baseline proves:
 
@@ -105,6 +116,8 @@ Today, the machine-readable baseline proves:
 - one public solution run HTTP contract exists for creating a private credit-metered run request from a completed public request and accepted artifact
 - one reusable prompt run HTTP contract exists for creating a private free chat fork from a public or owned scratch-chat user message, with source provenance stored on the forked user message and no `Request`, credit debit, or request transaction created
 - one open request room can expose request activity derived from durable `RequestEvent`, `Commitment`, and `Artifact` records
+- one public `/llms.txt` route exists and gives agents high-level public-page, claim-boundary, canonical-object, and agent-discovery guidance
+- one read-only agent discovery package exists through `/agents/start.md`, `/.well-known/agent-card.json`, `/openapi.json`, public OpenAPI YAML exports, public JSON Schema exports, and the public request-room AsyncAPI export
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
 - one private request may carry an owner-scoped preferred supply, and one resolver-approved desktop may read owned supplies and bind direct auto-fulfillment to a published owned supply when the request override or desktop default selects it
@@ -131,6 +144,13 @@ Today, the machine-readable baseline proves:
 - one localhost Boreal web request room may also read local desktop auto-resolve policy, desktop-default supply selection, and desktop-default Codex model or reasoning through that same guarded discovery lane, while still treating the `Request` object as durable route truth
 - one runnable Pear or Hyperswarm peer foundation now exists under `apps/peer/` and `packages/network-*`, with a real peer keypair, control-topic host, and desktop-embedded peer runtime status
 - one desktop tracked request lane can distinguish owner-private versus public or external trust tiers and block `Full` runtime on untrusted lanes while moving them onto a dedicated `.boreal-work` request workspace
+- one public agent action catalog is exposed through the agent card and `/openapi.json`, mapping inspect, apply, submit, monitor, run, and optimize intents to canonical reads, writes, auth boundaries, standards, and contract links
+- one public `/agents/actions.md` playbook gives contract-linked walkthroughs and HTTP sketches for inspect, apply, submit, monitor, run, and optimize intents without creating a parallel agent ledger
+- one request activity endpoint can resume monitor reads with `after_sequence` and return `cursor.nextAfterSequence` without creating heartbeat `RequestEvent` records
+- one public `/agents/monitor-webhooks.md` profile and OpenAPI webhook schema define the target signed push-delivery envelope for monitor agents, while actual subscription persistence and delivery remain target direction
+- one public `/agents/protocols.md` profile and `standards/agent-protocol-profile.md` define MCP, A2A, and x402 adapter/payment boundaries without claiming live protocol adapters
+- one public `/agents/sandbox.md` guide, `/agents/sandbox.json` manifest, `agent-sandbox` JSON Schema, deterministic fixture, and `pnpm contracts:agent-sandbox` runner give agents contract-only mock identities, sample IDs, payloads, idempotency keys, monitor cursors, and signed-webhook samples; mock credentials are not production auth and create no live objects
+- public request projections now include `agentActionAffordances`, a derived request-level map of inspect, apply, submit, monitor, run, and optimize affordances with concrete endpoints, auth notes, idempotency requirements, and canonical read/write boundaries
 
 ## Target Direction
 
@@ -138,6 +158,10 @@ These are intended next layers, not fully modeled proof yet:
 
 - broader canonical event coverage under `schemas/events/`
 - broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
+- richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, failure fixtures, and external-agent auth beyond the first public action playbook, contract-only sandbox runner, cursor polling lane, and webhook signature profile
+- an MCP profile or server that exposes Boreal request resources, schema resources, and governed tools without replacing HTTP contracts or using MCP for noisy runtime telemetry
+- an A2A adapter that maps A2A tasks, messages, streaming status, and artifacts onto Boreal `Request`, `Fulfillment`, `FulfillmentStep`, and `Artifact` truth without making A2A `Task` the root object
+- an optional x402-compatible payment profile for selected paid solution runs or agent-paid capability calls, with every payment reconciled into Boreal `Transaction` truth
 - richer golden fixtures for failure, replay, dispute, collective fulfillment, and private-supply paths
 - deeper web runtime coverage beyond the first request-briefing slice in `apps/web/`
 - first-class workflow-backed support objects and adapter coverage for imported templates and reusable execution packs, initially standardized through `standards/` before broader schema and API coverage lands

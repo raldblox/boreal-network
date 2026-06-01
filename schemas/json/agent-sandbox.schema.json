@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-sandbox.schema.json",
+  "title": "AgentSandbox",
+  "description": "Public contract-only sandbox manifest for agents testing Boreal request-native action payloads without creating live work.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "mode",
+    "name",
+    "description",
+    "baseUrl",
+    "schemaUrl",
+    "guideUrl",
+    "contractFixturePath",
+    "validationCommand",
+    "notAcceptedByProduction",
+    "mockCredentialsAcceptedByProduction",
+    "productionEffects",
+    "sampleIds",
+    "resources",
+    "mockIdentities",
+    "flows",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "live_contract_sandbox",
+        "target_runtime_sandbox"
+      ]
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "contract_only"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "schemaUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "guideUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "contractFixturePath": {
+      "type": "string",
+      "const": "fixtures/agent/sandbox-manifest.sample.json"
+    },
+    "validationCommand": {
+      "type": "string",
+      "const": "pnpm contracts:agent-sandbox"
+    },
+    "notAcceptedByProduction": {
+      "const": true
+    },
+    "mockCredentialsAcceptedByProduction": {
+      "const": false
+    },
+    "productionEffects": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sampleIds": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "mockIdentities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "role",
+          "credentialKind",
+          "credential",
+          "scopes",
+          "notAcceptedByProduction"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "credentialKind": {
+            "type": "string",
+            "enum": [
+              "none",
+              "mock_bearer",
+              "mock_session"
+            ]
+          },
+          "credential": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "notAcceptedByProduction": {
+            "const": true
+          }
+        }
+      }
+    },
+    "flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/flow"
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableWrites",
+        "notRoots"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "intent",
+        "method",
+        "path",
+        "auth",
+        "availability",
+        "canonicalReads",
+        "canonicalWrites",
+        "idempotencyRequired",
+        "productionWrite",
+        "sample"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "intent": {
+          "type": "string"
+        },
+        "method": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "auth": {
+          "type": "string"
+        },
+        "availability": {
+          "type": "string",
+          "enum": [
+            "live_public_read",
+            "contract_sample_only",
+            "target_profile_contract_sample"
+          ]
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "idempotencyRequired": {
+          "type": "boolean"
+        },
+        "productionWrite": {
+          "const": false
+        },
+        "sample": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

@@ -581,8 +581,49 @@ export type PublicRequestPoolEntry = {
     readiness: RequestReadiness;
     routeSummary: string | null;
   };
+  agentActionAffordances: RequestAgentActionAffordanceSet;
   createdAt: string;
   updatedAt: string;
+};
+
+export type RequestAgentActionAffordanceId =
+  | "inspect_public_requests"
+  | "apply_to_request"
+  | "submit_artifact"
+  | "monitor_request"
+  | "run_public_solution"
+  | "optimize_request_brief";
+
+export type RequestAgentActionAffordanceAvailability =
+  | "available"
+  | "available_with_auth"
+  | "requires_authorization"
+  | "target_profile";
+
+export type RequestAgentActionAffordance = {
+  id: RequestAgentActionAffordanceId;
+  intent: string;
+  label: string;
+  method: "GET" | "POST" | "LOCAL_DRAFT";
+  href: string;
+  availability: RequestAgentActionAffordanceAvailability;
+  auth: string;
+  canonicalReads: string[];
+  canonicalWrites: string[];
+  idempotencyRequired: boolean;
+  reason: string;
+};
+
+export type RequestAgentActionAffordanceSet = {
+  schemaVersion: 1;
+  subject: {
+    type: "Request";
+    id: string;
+    status: RequestStatus;
+    visibility: "public";
+  };
+  roleHint: "public_request" | "public_solution";
+  actions: RequestAgentActionAffordance[];
 };
 
 export type EditableRequestDocument = {
@@ -1139,6 +1180,13 @@ export function canUseDirectOwnerPrivateFulfillmentLane({
 export function toPublicRequestPoolEntry(
   draft: BorealRequestDraft
 ): PublicRequestPoolEntry {
+  const activeRefs = normalizeActiveRefs(draft.activeRefs);
+  const publicDraft = {
+    ...draft,
+    visibility: "public" as const,
+    activeRefs,
+  };
+
   return {
     id: draft.id,
     chatId: draft.chatId,
@@ -1156,7 +1204,7 @@ export function toPublicRequestPoolEntry(
     seeking: normalizeSeeking(draft.seeking),
     budget: draft.budget,
     deadline: draft.deadline,
-    activeRefs: normalizeActiveRefs(draft.activeRefs),
+    activeRefs,
     latest: normalizeLatest(draft.latest),
     derived: {
       routeFamily: draft.derived.routeFamily ?? null,
@@ -1167,8 +1215,125 @@ export function toPublicRequestPoolEntry(
       readiness: draft.derived.readiness,
       routeSummary: draft.derived.routeSummary ?? null,
     },
+    agentActionAffordances: buildRequestAgentActionAffordances(publicDraft),
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
+  };
+}
+
+export function buildRequestAgentActionAffordances(
+  request: Pick<
+    BorealRequestDraft | PublicRequestPoolEntry,
+    "activeRefs" | "id" | "status" | "visibility"
+  >
+): RequestAgentActionAffordanceSet {
+  const requestHref = `/api/requests/${request.id}`;
+  const roleHint = hasPublicSolutionProjectionTruth(request)
+    ? "public_solution"
+    : "public_request";
+  const actions: RequestAgentActionAffordance[] = [
+    {
+      id: "inspect_public_requests",
+      intent: "What can I solve?",
+      label: "Inspect request",
+      method: "GET",
+      href: requestHref,
+      availability: "available",
+      auth: "none for public-safe request fields",
+      canonicalReads: ["Request", "Supply"],
+      canonicalWrites: [],
+      idempotencyRequired: false,
+      reason: "Public-safe request detail can be read without mutating durable truth.",
+    },
+    {
+      id: "monitor_request",
+      intent: "Monitor this",
+      label: "Monitor request activity",
+      method: "GET",
+      href: `${requestHref}/activity?after_sequence=0&limit=40`,
+      availability: "available",
+      auth: "none for public activity; scoped auth for private activity",
+      canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction"],
+      canonicalWrites: [],
+      idempotencyRequired: false,
+      reason: "Monitors can resume from cursor.nextAfterSequence without writing heartbeat events.",
+    },
+  ];
+
+  if (request.status === "open") {
+    actions.push({
+      id: "apply_to_request",
+      intent: "Apply to this",
+      label: "Propose commitment",
+      method: "POST",
+      href: `${requestHref}/commitments`,
+      availability: "available_with_auth",
+      auth: "Boreal account session or resolver bearer token with commitments:propose scope",
+      canonicalReads: ["Request", "Supply"],
+      canonicalWrites: ["Commitment", "RequestEvent"],
+      idempotencyRequired: true,
+      reason: "Open public requests can receive commitment proposals through the request-bound endpoint.",
+    });
+  }
+
+  actions.push({
+    id: "submit_artifact",
+    intent: "Submit here",
+    label: "Submit proof artifact",
+    method: "POST",
+    href: `${requestHref}/artifacts`,
+    availability:
+      request.activeRefs.activeCommitmentId || request.activeRefs.activeFulfillmentId
+        ? "available_with_auth"
+        : "requires_authorization",
+    auth: "Boreal account session or resolver bearer token with artifacts:publish scope",
+    canonicalReads: ["Request", "Commitment", "Fulfillment"],
+    canonicalWrites: ["Artifact", "RequestEvent"],
+    idempotencyRequired: true,
+    reason:
+      "Proof must attach as an Artifact after commitment acceptance or direct-owner authorization; public projection alone is not mutation authority.",
+  });
+
+  if (hasPublicSolutionProjectionTruth(request)) {
+    actions.push({
+      id: "run_public_solution",
+      intent: "Run this solution",
+      label: "Run public solution",
+      method: "POST",
+      href: `${requestHref}/solution-runs`,
+      availability: "available_with_auth",
+      auth: "Boreal account session with solution_runs:create and payment or credit authority",
+      canonicalReads: ["Request", "Artifact"],
+      canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+      idempotencyRequired: true,
+      reason: "Completed public requests with an accepted artifact can be reused by creating a private run Request.",
+    });
+  }
+
+  actions.push({
+    id: "optimize_request_brief",
+    intent: "Optimize this",
+    label: "Suggest request improvements",
+    method: "LOCAL_DRAFT",
+    href: `${requestHref}#draft-only-optimization`,
+    availability: "target_profile",
+    auth: "authorized request context; owner approval required for durable mutation",
+    canonicalReads: ["Request", "Artifact", "RequestEvent"],
+    canonicalWrites: [],
+    idempotencyRequired: false,
+    reason: "Optimization is advisory unless the owner approves a governed mutation path.",
+  });
+
+  return {
+    schemaVersion: 1,
+    subject: {
+      type: "Request",
+      id: request.id,
+      status: request.status,
+      visibility: "public",
+    },
+    roleHint,
+    actions,
   };
 }
 

@@ -5,6 +5,10 @@ import {
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 import {
+  buildRequestActivityCursor,
+  parseRequestActivityCursor,
+} from "@/lib/request-activity-cursor";
+import {
   getRequestActorContext,
   hasResolverScope,
 } from "@/lib/resolver-session";
@@ -40,10 +44,29 @@ export async function GET(
     }
   }
 
-  const activity = await getRequestActivityByRequestId({
+  const parsedCursor = parseRequestActivityCursor(
+    new URL(request.url).searchParams
+  );
+  if (!parsedCursor.ok) {
+    return new ChatbotError("bad_request:api", parsedCursor.message).toResponse();
+  }
+
+  const queryLimit =
+    parsedCursor.value.afterSequence === undefined
+      ? parsedCursor.value.limit
+      : parsedCursor.value.limit + 1;
+  const fetchedActivity = await getRequestActivityByRequestId({
+    afterSequence: parsedCursor.value.afterSequence,
     requestId: requestDraft.id,
-    limit: 40,
+    limit: queryLimit,
+  });
+  const activity = fetchedActivity.slice(0, parsedCursor.value.limit);
+  const cursor = buildRequestActivityCursor({
+    activity,
+    afterSequence: parsedCursor.value.afterSequence,
+    fetchedCount: fetchedActivity.length,
+    limit: parsedCursor.value.limit,
   });
 
-  return Response.json({ activity }, { status: 200 });
+  return Response.json({ activity, cursor }, { status: 200 });
 }
