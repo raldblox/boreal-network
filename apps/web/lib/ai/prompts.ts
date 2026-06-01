@@ -252,16 +252,16 @@ ${JSON.stringify(
     id: activeRequest.id,
     status: activeRequest.status,
     visibility: activeRequest.visibility,
-        brief: activeRequest.brief,
-        seeking: activeRequest.seeking,
-        budget: activeRequest.budget,
-        deadline: activeRequest.deadline,
-        activeRefs: activeRequest.activeRefs,
-        latest: activeRequest.latest,
-        derived: activeRequest.derived,
-      },
-      null,
-      2
+    brief: activeRequest.brief,
+    seeking: activeRequest.seeking,
+    budget: activeRequest.budget,
+    deadline: activeRequest.deadline,
+    activeRefs: activeRequest.activeRefs,
+    latest: activeRequest.latest,
+    derived: activeRequest.derived,
+  },
+  null,
+  2,
 )}`
     : "No active request draft is open yet.";
   const activeRequestContextPrompt = activeRequest
@@ -277,10 +277,14 @@ ${JSON.stringify(
         activeRequest.routing.preferredSupplyId?.trim() || "none"
       } (selected or pinned supply context only; not assignment)
 - requiresHumanPresence: ${
-        activeRequest.derived.executionProfile.requiresHumanPresence ? "yes" : "no"
+        activeRequest.derived.executionProfile.requiresHumanPresence
+          ? "yes"
+          : "no"
       }
 - requiresLocalAccess: ${
-        activeRequest.derived.executionProfile.requiresLocalAccess ? "yes" : "no"
+        activeRequest.derived.executionProfile.requiresLocalAccess
+          ? "yes"
+          : "no"
       }
 - requiresVerifiedEvidence: ${
         activeRequest.derived.executionProfile.requiresVerifiedEvidence
@@ -292,23 +296,23 @@ ${JSON.stringify(
       }
 - assignmentProposalState: ${activeRequest.derived.assignmentProposal.state}
 ${
-        preferredSupplySummary
-          ? `- preferredSupplySummary: ${JSON.stringify(
-              preferredSupplySummary,
-              null,
-              2
-            )}`
-          : "- preferredSupplySummary: none"
-      }
+  preferredSupplySummary
+    ? `- preferredSupplySummary: ${JSON.stringify(
+        preferredSupplySummary,
+        null,
+        2,
+      )}`
+    : "- preferredSupplySummary: none"
+}
 ${
-        candidateSupplySummaries && candidateSupplySummaries.length > 0
-          ? `- candidateSupplySummaries: ${JSON.stringify(
-              candidateSupplySummaries,
-              null,
-              2
-            )}`
-          : "- candidateSupplySummaries: []"
-      }`
+  candidateSupplySummaries && candidateSupplySummaries.length > 0
+    ? `- candidateSupplySummaries: ${JSON.stringify(
+        candidateSupplySummaries,
+        null,
+        2,
+      )}`
+    : "- candidateSupplySummaries: []"
+}`
     : "";
   const recentActivityPrompt =
     activeRequest && recentActivity && recentActivity.length > 0
@@ -331,7 +335,7 @@ ${JSON.stringify(
       : undefined,
   })),
   null,
-  2
+  2,
 )}`
       : "";
   const isPreDraftRequestMode = requestMode === true && !activeRequest;
@@ -339,19 +343,20 @@ ${JSON.stringify(
     ? `Pre-draft request mode rules:
 - The user explicitly entered New request mode, but there is no durable Request yet.
 - Treat the latest user turn as request intake and briefing, not generic conversation.
-- If the ask is fuzzy or missing facts that would change plans, ask exactly one focused briefing question and do not call \`createRequestBrief\`.
-- Prioritize the missing fact with the highest execution impact: done condition, proof/acceptance, constraints, location/access for embodied work, timing, budget, or output shape.
-- Create exactly one draft Request through \`createRequestBrief\` only when the brief is ready enough to produce useful buyer-facing plans, or when the buyer explicitly asks to create/open the request.
+- If the latest turn contains a real work ask, create exactly one draft Request through \`createRequestBrief\` even when details are incomplete.
+- Store the raw ask first and let missing done condition, proof/acceptance, constraints, location/access for embodied work, timing, budget, or output shape remain visible as missing planning details.
+- Ask exactly one focused briefing question only when the latest turn is not enough to form a non-empty \`brief.body\`.
 - When creating the draft, store the explicit ask in \`brief.body\`, expanding terse phrasing only enough to make the request readable.
 - Do not invent missing facts.
 - If the same turn explicitly states budget, deadline, seeking details, execution mode, service location, access needs, or proof requirements, include them in the same \`createRequestBrief\` call.
-- If the request implies embodied work and critical location, access, timing, or proof fields are missing, ask before creating the draft. Do not create a fake digital-only request just to satisfy request mode.
+- For public storefront, exterior, or street-facing photo requests, preserve onsite location, timing, and proof, but do not invent or force private access requirements unless restricted access is stated.
+- If the request implies embodied work and critical location, access, timing, or proof fields are missing, create the draft with the explicit ask and leave those missing fields blank. Do not create a fake digital-only request just to satisfy request mode.
 - If a supply is already pinned later in routing, that narrows the route but does not mean the request already has a real match or assigned lane.
 - Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.`
     : !activeRequest
       ? ""
       : activeRequest.status === "draft"
-      ? `Draft request mode rules:
+        ? `Draft request mode rules:
 - The user is drafting a Request object right now.
 - Every user message should usually update the draft Request through exactly one draft request tool.
 - Do not produce a generic conversational answer instead of a request mutation unless a missing embodied safety field makes clarification unavoidable.
@@ -360,19 +365,20 @@ ${JSON.stringify(
 - Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.
 - If the user explicitly stated budget or deadline in the same turn, do not leave those structured fields null.
 - If the user explicitly stated execution mode, service location, access, time-window, safety, or proof requirements, persist them in request constraints instead of leaving them only in prose.
+- For public storefront, exterior, or street-facing photo requests, preserve onsite location, timing, and proof, but do not invent or force private access requirements unless restricted access is stated.
 - If the draft implies embodied work, do not rewrite it into a digital-only request. Let missing location, access, timing, or verification fields remain visible through \`derived.missingDetails\`.
 - Use top-level seeking for matching-facing structure, not generated tags.
 - If \`routing.preferredSupplyId\` exists, treat it as pinned route context only. Do not imply assignment or completion from it alone.`
-      : `Open request room rules:
+        : `Open request room rules:
 - This Request is already open. Do not treat it like a draft request.
 - You may answer directly when the user asks about progress, recent activity, blockers, or what should happen next.
 - Use \`proposeCommitment\` for quotes, proposals, pricing positions, or formal terms that should become durable request activity.
 - Use \`publishArtifact\` for drafts, proofs, files, deliveries, or evidence that should become durable request activity.
 - ${
-          requestRoomRole === "open_responder"
-            ? "The current user is responding to another user's public request. Do not rewrite owner-authored brief, budget, deadline, or visibility fields."
-            : "The current user owns this open request room. Root request edits should be explicit and rare; prefer commitments, artifacts, and activity over rewriting the brief."
-        }
+            requestRoomRole === "open_responder"
+              ? "The current user is responding to another user's public request. Do not rewrite owner-authored brief, budget, deadline, or visibility fields."
+              : "The current user owns this open request room. Root request edits should be explicit and rare; prefer commitments, artifacts, and activity over rewriting the brief."
+          }
 - Preferred or pinned supply context may narrow the route, but it does not mean the request is already matched or assigned.
 - Public or cross-actor request lanes must not inherit owner-private desktop assumptions.
 - For embodied or verification-heavy work, do not describe the request as done until the required evidence and owner review path are explicit.
@@ -416,7 +422,7 @@ Requirements:
 
 export const updateDocumentPrompt = (
   currentContent: string | null,
-  type: ArtifactKind
+  type: ArtifactKind,
 ) => {
   const mediaTypes: Record<string, string> = {
     code: "script",

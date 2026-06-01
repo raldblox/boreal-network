@@ -38,12 +38,14 @@ function PureChatHeader({
       title={
         requestTitle?.trim() ||
         (isNewMode
-          ? "New"
-          : requestStatus === "draft"
-          ? "Request Preflight"
-          : isRequestMode
+          ? isRequestMode
             ? "Request Preflight"
-            : "Chat")
+            : "New"
+          : requestStatus === "draft"
+            ? "Request Preflight"
+            : isRequestMode
+              ? "Request Preflight"
+              : "Chat")
       }
     />
   );

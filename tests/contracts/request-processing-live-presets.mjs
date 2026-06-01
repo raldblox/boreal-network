@@ -82,6 +82,7 @@ const CANONICAL_NORMALIZATION_RULES = [
   "Normalize budget ranges into budgetCurrency, budgetMin, and budgetMax when the request states a currency and range.",
   "Normalize service location into serviceLocation and time windows into timeWindows when they are explicitly stated.",
   "Normalize embodied proof requirements into requiresHumanPresence, requiresVerifiedEvidence, and verificationRequirements when supported by the request.",
+  "Treat public storefront or exterior photo visits as embodied work with geography and proof, but do not force access requirements unless private, controlled, permissioned, pickup, dropoff, or handoff access is stated.",
   "Use compact normalized role keys such as field_inspector, migration_lead, automation_builder, qa_documentation, and documentation_support rather than human-readable role titles.",
   "Use normalized outputKinds such as inspection_report, photo_evidence, issue_log, migration_plan, workflow_build, handoff_doc, and operator_training rather than raw prose.",
   "For embodied work, executionProfile should use executionModes, requiresHumanPresence, requiresLocalAccess, requiresVerifiedEvidence, requiresScheduling, requiresGeography, and riskTier when those claims are justified.",

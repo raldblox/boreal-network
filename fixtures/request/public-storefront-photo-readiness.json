@@ -1,0 +1,54 @@
+{
+  "scenarioId": "public-storefront-photo-readiness",
+  "description": "A public storefront photo request with a known city, tomorrow timing, and photo proof should be ready to open without forcing private access requirements.",
+  "requestInput": {
+    "actor": {
+      "kind": "human",
+      "id": "actor_public_buyer",
+      "displayName": "Public Buyer"
+    },
+    "rawAsk": "need to onsite visit and take picture of any uniqlo storefront around manila tomorrow"
+  },
+  "requestPatch": {
+    "visibility": "public",
+    "brief": {
+      "title": "Visit a Uniqlo storefront around Manila and take photos",
+      "body": "Need someone to onsite visit and take picture of any Uniqlo storefront around Manila tomorrow.",
+      "constraints": {},
+      "outputKinds": [
+        "photo_evidence"
+      ],
+      "tags": []
+    },
+    "seeking": {
+      "actorKinds": [
+        "human"
+      ],
+      "supplyKinds": [
+        "field_inspection"
+      ],
+      "teamMode": "solo_or_team"
+    },
+    "deadline": {
+      "notes": "tomorrow"
+    }
+  },
+  "expectedDerived": {
+    "readiness": {
+      "readyForOpen": true
+    },
+    "missingDetailsExcluded": [
+      "access_requirements",
+      "execution_modes"
+    ],
+    "embodiedConstraintSet": {
+      "serviceLocation": "Manila",
+      "timeWindows": [
+        "tomorrow"
+      ],
+      "verificationRequirements": [
+        "photo_proof"
+      ]
+    }
+  }
+}

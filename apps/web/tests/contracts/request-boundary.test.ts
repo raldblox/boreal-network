@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { selectChatModelRoute } from "@/lib/ai/model-routing";
 import { composerChatModels, isComposerChatModelId } from "@/lib/ai/models";
 import {
@@ -13,8 +15,10 @@ import { getModelProviderRouteEntries } from "@/lib/ai/providers";
 import { buildRequestPreflightPreview } from "@/lib/request-preflight";
 import { buildDraftRequestFlowGraph } from "@/lib/request-flow";
 import {
+  applyRequestPatch,
   type BorealRequestDraft,
   canUseDirectOwnerPrivateFulfillmentLane,
+  createInitialRequestDraft,
   toPublicRequestPoolEntry,
 } from "@/lib/request";
 import {
@@ -79,7 +83,10 @@ assert.equal(
   }).success,
   true,
 );
-assert.equal(chatDeleteQuerySchema.safeParse({ id: "not-a-uuid" }).success, false);
+assert.equal(
+  chatDeleteQuerySchema.safeParse({ id: "not-a-uuid" }).success,
+  false,
+);
 assert.equal(
   chatDeleteQuerySchema.safeParse({
     id: "66666666-6666-4666-8666-666666666666",
@@ -242,7 +249,7 @@ assert.deepEqual(
 );
 assert.equal(
   draftFlowGraph.nodes.some(
-    (node) => node.kind === "worker" || node.kind === "delivery"
+    (node) => node.kind === "worker" || node.kind === "delivery",
   ),
   false,
 );
@@ -484,6 +491,79 @@ assert.equal(readyPreflight.humanOrLocalNeeds.length > 0, true);
 assert.equal(readyPreflight.proofNeeds.length > 0, true);
 assert.equal(readyPreflight.budget, "Budget is under $80.");
 assert.equal(readyPreflight.deadline, "tomorrow.");
+
+const storefrontFixture = JSON.parse(
+  readFileSync(
+    fileURLToPath(
+      new URL(
+        "../../../../fixtures/request/public-storefront-photo-readiness.json",
+        import.meta.url,
+      ),
+    ),
+    "utf8",
+  ),
+);
+const storefrontPreflight = buildRequestPreflightPreview([
+  {
+    role: "user",
+    parts: [
+      {
+        type: "text",
+        text: storefrontFixture.requestInput.rawAsk,
+      },
+    ],
+  },
+]);
+
+assert.equal(storefrontPreflight.readyToDraft, true);
+assert.deepEqual(storefrontPreflight.missingEssentials, []);
+
+const storefrontDraft = applyRequestPatch(
+  createInitialRequestDraft({
+    id: "req_storefront_photo",
+    chatId: "chat_storefront_photo",
+    documentId: "doc_storefront_photo",
+    userId: "buyer_1",
+    visibility: "public",
+    createdAt: "2026-06-01T00:00:00.000Z",
+  }),
+  storefrontFixture.requestPatch,
+  "2026-06-01T00:01:00.000Z",
+);
+
+assert.equal(storefrontDraft.derived.readiness.readyForOpen, true);
+assert.equal(
+  storefrontDraft.derived.executionProfile.requiresHumanPresence,
+  true,
+);
+assert.equal(
+  storefrontDraft.derived.executionProfile.requiresLocalAccess,
+  true,
+);
+assert.equal(
+  storefrontDraft.derived.executionProfile.requiresVerifiedEvidence,
+  true,
+);
+assert.deepEqual(
+  storefrontDraft.derived.embodiedConstraintSet.serviceLocation,
+  storefrontFixture.expectedDerived.embodiedConstraintSet.serviceLocation,
+);
+assert.deepEqual(
+  storefrontDraft.derived.embodiedConstraintSet.timeWindows,
+  storefrontFixture.expectedDerived.embodiedConstraintSet.timeWindows,
+);
+assert.deepEqual(
+  storefrontDraft.derived.embodiedConstraintSet.verificationRequirements,
+  storefrontFixture.expectedDerived.embodiedConstraintSet
+    .verificationRequirements,
+);
+assert.equal(
+  storefrontFixture.expectedDerived.missingDetailsExcluded.every(
+    (detail: string) =>
+      !storefrontDraft.derived.missingDetails.includes(detail),
+  ),
+  true,
+);
 
 const originalOpenAIKey = process.env.OPENAI_API_KEY;
 delete process.env.OPENAI_API_KEY;

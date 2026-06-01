@@ -41,7 +41,10 @@ type MessagesProps = {
   onApproveDraftPlan?: () => Promise<void>;
   isOpeningDraftPlan?: boolean;
   onUpdateRequestDraft?: (
-    patch: Pick<RequestPatch, "brief" | "seeking" | "budget" | "deadline" | "routing">
+    patch: Pick<
+      RequestPatch,
+      "brief" | "seeking" | "budget" | "deadline" | "routing"
+    >,
   ) => Promise<BorealRequestDraft | null>;
 };
 
@@ -86,9 +89,9 @@ function PureMessages({
   const visibleMessages = useMemo(
     () =>
       messages.filter(
-        (message) => message.metadata?.requestBriefingSource?.hidden !== true
+        (message) => message.metadata?.requestBriefingSource?.hidden !== true,
       ),
-    [messages]
+    [messages],
   );
 
   const prevChatIdRef = useRef(chatId);
@@ -102,12 +105,14 @@ function PureMessages({
   const timelineItems = useMemo(() => {
     const requestOpenedTimestamp =
       requestStatus && requestStatus !== "draft"
-        ? activities
+        ? (activities
             .filter((activity) => activity.eventType === "request.opened")
-            .map((activity) =>
-              Date.parse(activity.occurredAt || activity.recordedAt || "") || 0
+            .map(
+              (activity) =>
+                Date.parse(activity.occurredAt || activity.recordedAt || "") ||
+                0,
             )
-            .find((timestamp) => timestamp > 0) ?? null
+            .find((timestamp) => timestamp > 0) ?? null)
         : null;
 
     const shouldFilterMessagesAfterOpen =
@@ -123,7 +128,7 @@ function PureMessages({
       .filter(
         (item) =>
           !shouldFilterMessagesAfterOpen ||
-          item.timestamp >= requestOpenedTimestamp
+          item.timestamp >= requestOpenedTimestamp,
       );
 
     const activityItems =
@@ -138,9 +143,7 @@ function PureMessages({
           }))
         : [];
     const derivedDraftItems =
-      displayMode === "timeline" &&
-      request?.status === "draft" &&
-      shouldRenderDraftPlanMessage(request, status)
+      displayMode === "timeline" && request?.status === "draft"
         ? [
             {
               type: "draft-plan" as const,
@@ -161,40 +164,47 @@ function PureMessages({
       return activityItems;
     }
 
-    return [...messageItems, ...activityItems, ...derivedDraftItems].sort((left, right) => {
-      if (left.timestamp !== right.timestamp) {
-        return left.timestamp - right.timestamp;
-      }
-
-      if (left.type !== right.type) {
-        if (left.type === "message" && left.message.role === "user") {
-          return -1;
+    return [...messageItems, ...activityItems, ...derivedDraftItems].sort(
+      (left, right) => {
+        if (left.timestamp !== right.timestamp) {
+          return left.timestamp - right.timestamp;
         }
 
-        if (right.type === "message" && right.message.role === "user") {
-          return 1;
+        if (left.type !== right.type) {
+          if (left.type === "message" && left.message.role === "user") {
+            return -1;
+          }
+
+          if (right.type === "message" && right.message.role === "user") {
+            return 1;
+          }
+
+          if (left.type === "draft-plan") {
+            return 1;
+          }
+
+          if (right.type === "draft-plan") {
+            return -1;
+          }
+
+          return left.type === "activity" ? -1 : 1;
         }
 
-        if (left.type === "draft-plan") {
-          return 1;
-        }
+        return left.index - right.index;
+      },
+    );
+  }, [activities, displayMode, request, requestStatus, visibleMessages]);
 
-        if (right.type === "draft-plan") {
-          return -1;
-        }
-
-        return left.type === "activity" ? -1 : 1;
-      }
-
-      return left.index - right.index;
-    });
-  }, [activities, displayMode, request, requestStatus, status, visibleMessages]);
-
-  const lastRawMessage = messages.at(-1);
   const lastVisibleMessage = visibleMessages.at(-1);
-  const isHiddenBriefingPending =
-    status === "submitted" &&
-    lastRawMessage?.metadata?.requestBriefingSource?.hidden === true;
+  const hasHiddenBriefingSource = messages.some(
+    (message) => message.metadata?.requestBriefingSource?.hidden === true,
+  );
+  const isBriefingInFlight =
+    displayMode === "timeline" &&
+    isRequestMode &&
+    !request &&
+    status !== "error" &&
+    hasHiddenBriefingSource;
 
   const showEmptyGreeting =
     !hideEmptyGreeting &&
@@ -202,7 +212,7 @@ function PureMessages({
     visibleMessages.length === 0 &&
     activities.length === 0 &&
     !(request && request.status === "draft") &&
-    !isHiddenBriefingPending &&
+    !isBriefingInFlight &&
     !isLoading;
 
   const showEmptyActivityState =
@@ -214,17 +224,22 @@ function PureMessages({
     <div className="relative flex-1 bg-background">
       {showEmptyGreeting && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center pb-36 md:pb-40">
-          <Greeting isRequestMode={isRequestMode} requestStatus={requestStatus} />
+          <Greeting
+            isRequestMode={isRequestMode}
+            requestStatus={requestStatus}
+          />
         </div>
       )}
       <div
         className={cn(
           "absolute inset-0 touch-pan-y overflow-y-auto",
-          (displayMode === "chat"
-            ? visibleMessages.length > 0
-            : timelineItems.length > 0)
+          (
+            displayMode === "chat"
+              ? visibleMessages.length > 0
+              : timelineItems.length > 0 || isBriefingInFlight
+          )
             ? "bg-background"
-            : "bg-transparent"
+            : "bg-transparent",
         )}
         ref={messagesContainerRef}
         style={isArtifactVisible ? { scrollbarWidth: "none" } : undefined}
@@ -232,7 +247,7 @@ function PureMessages({
         <div
           className={cn(
             "mx-auto flex min-h-full min-w-0 max-w-4xl flex-col gap-5 px-2 py-6 md:gap-7 md:px-4",
-            contentClassName
+            contentClassName,
           )}
         >
           {showEmptyActivityState ? (
@@ -255,6 +270,7 @@ function PureMessages({
               </div>
             </div>
           ) : null}
+          {isBriefingInFlight ? <BriefingIntakePending /> : null}
           {timelineItems.map((item, index) =>
             item.type === "activity" ? (
               <RequestActivityMessage
@@ -270,7 +286,7 @@ function PureMessages({
                 ownerUserId={requestOwnerUserId}
                 totalCount={
                   timelineItems.filter(
-                    (timelineItem) => timelineItem.type === "activity"
+                    (timelineItem) => timelineItem.type === "activity",
                   ).length
                 }
               />
@@ -310,14 +326,12 @@ function PureMessages({
                     : undefined
                 }
               />
-            )
+            ),
           )}
 
           {status === "submitted" &&
-            !isHiddenBriefingPending &&
-            lastVisibleMessage?.role !== "assistant" && (
-            <ThinkingMessage />
-          )}
+            !isBriefingInFlight &&
+            lastVisibleMessage?.role !== "assistant" && <ThinkingMessage />}
 
           <div
             className="min-h-[24px] min-w-[24px] shrink-0"
@@ -344,6 +358,47 @@ function PureMessages({
 
 export const Messages = PureMessages;
 
+function BriefingIntakePending() {
+  return (
+    <div
+      className="group/message w-full"
+      data-role="assistant"
+      data-testid="request-briefing-pending"
+    >
+      <div className="animate-[fade-up_0.32s_cubic-bezier(0.22,1,0.36,1)] flex items-start">
+        <section className="w-full rounded-[22px] border border-border/60 bg-muted/[0.18] p-3.5 md:p-4">
+          <div className="space-y-2">
+            <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+              Briefing result
+            </div>
+            <div className="text-[13px] leading-6 text-muted-foreground">
+              Boreal is structuring the submitted ask into a draft Request.
+              Missing details stay visible instead of becoming invented plan
+              steps.
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-[18px] border border-dashed border-border/60 bg-background/92 px-3.5 py-3">
+            <div className="flex items-center gap-2 text-[14px] leading-6 text-foreground">
+              <span className="size-2 rounded-full bg-foreground/70" />
+              Preparing the briefing.
+            </div>
+            <div className="mt-1.5 text-[13px] leading-5.5 text-muted-foreground">
+              Next up: brief body, missing details, route hints, and proof
+              needs.
+            </div>
+            <div className="mt-4 space-y-2" aria-hidden="true">
+              <div className="h-2.5 w-2/3 animate-pulse rounded-full bg-muted" />
+              <div className="h-2.5 w-full animate-pulse rounded-full bg-muted/80" />
+              <div className="h-2.5 w-5/6 animate-pulse rounded-full bg-muted/70" />
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 function DraftPlanMessage({
   request,
   onApproveDraftPlan,
@@ -354,7 +409,10 @@ function DraftPlanMessage({
   onApproveDraftPlan?: () => Promise<void>;
   isOpeningDraftPlan?: boolean;
   onUpdateRequestDraft?: (
-    patch: Pick<RequestPatch, "brief" | "seeking" | "budget" | "deadline" | "routing">
+    patch: Pick<
+      RequestPatch,
+      "brief" | "seeking" | "budget" | "deadline" | "routing"
+    >,
   ) => Promise<BorealRequestDraft | null>;
 }) {
   return (
@@ -376,26 +434,4 @@ function DraftPlanMessage({
       </div>
     </div>
   );
-}
-
-function shouldRenderDraftPlanMessage(
-  request: BorealRequestDraft,
-  status: UseChatHelpers<ChatMessage>["status"]
-) {
-  if (status === "submitted" || status === "streaming") {
-    return false;
-  }
-
-  const hasBriefContent =
-    Boolean(request.brief.title?.trim()) ||
-    Boolean(request.brief.summary?.trim()) ||
-    Boolean(request.brief.body?.trim());
-  const hasConstraintContent =
-    Object.keys(request.brief.constraints ?? {}).length > 0;
-  const hasPlannerContent =
-    request.derived.roleSlots.length > 0 ||
-    request.derived.phases.length > 0 ||
-    request.derived.clarificationNeeded.required;
-
-  return hasBriefContent || hasConstraintContent || hasPlannerContent;
 }

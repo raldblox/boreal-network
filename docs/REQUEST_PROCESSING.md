@@ -90,6 +90,7 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
    Unknown fingerprint values should be rejected or normalized away instead of being stored as freeform canonical state.
    Request-briefing tool input may arrive as loose model-generated strings or string lists, but durable writes must normalize them into the canon enum catalog. Cross-catalog values such as `written_report` belong in evidence claims or verification requirements, not `brief.outputKinds`.
    If the ask implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, or other non-substitutable human execution, the decision layer should derive explicit embodied execution and verification requirements instead of flattening the request into digital-only work.
+   Public storefront, exterior, or street-facing photo requests may be ready to open when the city or area, timing, and proof output are already clear. Separate access requirements are blocking only when missing access materially controls execution, such as private property, controlled entry, appointment/permission needs, pickup, dropoff, or handoff work.
 5. Complexity and route classification
    Decide complexity, route family, and whether clarification is required.
 6. Lead retrieval

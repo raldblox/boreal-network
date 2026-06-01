@@ -214,6 +214,7 @@ Verify:
 - chat transcript reads should keep draft or private request envelopes owner-only while allowing public opened request envelopes without the owner's private transcript
 - chat/message hot-path indexes should cover owner history, transcript load, edit-resend cleanup, and hourly quota counting before request chat volume can turn those routes into scan-heavy database failures
 - `Open request` should remain disabled until `readyForOpen` is true
+- public storefront, exterior, or street-facing photo requests should become `readyForOpen` when geography, timing, and proof are clear, without forcing `access_requirements` unless controlled access, pickup, dropoff, or handoff is stated
 - draft-mode plans should not expose supply path, role candidates, workers, capability lanes, feasibility grids, ranking, or assignment projections to the primary buyer preflight surface
 - structured matching intent should land in top-level `seeking` rather than relying on generated `brief.tags`
 - selected or pinned supply should stay in `routing.preferredSupplyId` and must not be rewritten into fake buyer-authored brief text

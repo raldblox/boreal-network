@@ -203,6 +203,7 @@ Every mutation call should return:
 - Web briefing-workspace submits are hidden briefing-source turns, not visible transcript rows; they must create or update the same draft `Request` and hide completed draft request tool chrome once the briefing form is visible.
 - `create_request_brief` should be called only when the brief is ready enough for useful draft plans or when the buyer explicitly asks to create the request draft.
 - Draft request mode may clarify before mutation when missing embodied, geographic, access, scheduling, or verification-critical fields materially change the safe route.
+- Public storefront, exterior, or street-facing photo requests should preserve embodied execution and proof requirements, but should not force an `accessRequirements` blocker unless private, controlled, permissioned, pickup, dropoff, or handoff access is stated.
 - Open request room tools should prefer `Commitment`, `Artifact`, and `RequestEvent` writes over `brief` rewrites.
 - Owner support-chat turns inside an opened request may be persisted as chat transcript for continuity, but they must not become durable request activity unless a mutation tool or direct request endpoint writes canonical request truth.
 - Public responders must not receive owner-private preflight transcript as hidden model context by default.

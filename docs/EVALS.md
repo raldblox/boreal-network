@@ -53,6 +53,7 @@ Verify that the correct lead and collaborator supplies appear in the top-ranked 
 Verify the next action.
 Examples: clarify, show shortlist, draft commitment, or block and escalate.
 For embodied or verification-heavy asks, verify that policy prefers clarification or escalation when place, access, timing, or proof requirements are missing.
+For public storefront, exterior, or street-facing photo asks, verify that policy preserves onsite execution and proof but does not force clarification for access requirements unless private, controlled, permissioned, pickup, dropoff, or handoff access is stated.
 Verify that preselected supply may narrow the route, but does not bypass clarification, proof, funding, approval, or safety gates.
 Verify that requests asking for pooled funding, donations, grants, or bounties are framed as optional request grants unless a narrower commercial policy exists.
 Verify that funder participation does not imply passive investment upside, yield, dividend, or tax-deductible donation treatment.

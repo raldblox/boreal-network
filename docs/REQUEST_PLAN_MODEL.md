@@ -129,6 +129,7 @@ That preview is a UI projection over chat history, not a canonical object.
 Once a draft `Request` exists, buyer-facing draft mode should show an inline briefing or plan review surface in the chat timeline instead of exposing raw tool-call completion as the final state.
 If the draft is not ready to open, that surface should show captured facts, missing essentials, and the next question or disabled open state.
 If derived plan steps exist, draft-mode plans should stay limited to buyer-facing completion paths, steps, done criteria, and proof requirements.
+Public storefront, exterior, or street-facing photo requests should not be held in draft only because no private access requirement was supplied. If geography, timing, and proof are clear, missing access stays optional unless the request implies controlled entry, permission, pickup, dropoff, or handoff.
 Draft flow review should render only the `Request` plus one or more parallel `Plan` cards before opening.
 Supply path, role candidates, worker lanes, delivery lanes, capability lanes, and assignment projections belong after the request opens or inside advanced owner/debug context.
 

@@ -1,8 +1,10 @@
 import { tool, type UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
+import { appendRequestEvent } from "@/lib/db/queries";
 import type { RequestVisibility } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
+import { generateUUID } from "@/lib/utils";
 import {
   applyRequestBriefPatch,
   mergeRequestConstraintInputs,
@@ -20,6 +22,11 @@ type CreateRequestBriefProps = {
   chatId: string;
   visibility: RequestVisibility;
   dryRun?: boolean;
+  source?: {
+    inputHash?: string;
+    messageId: string;
+    sourceText: string;
+  } | null;
 };
 
 export const createRequestBrief = ({
@@ -28,6 +35,7 @@ export const createRequestBrief = ({
   chatId,
   visibility,
   dryRun = false,
+  source,
 }: CreateRequestBriefProps) =>
   tool({
     description:
@@ -63,13 +71,9 @@ export const createRequestBrief = ({
           embodiedConstraints,
           outputKinds,
         }),
-        ...(seeking !== undefined
-          ? { seeking: seeking as any }
-          : {}),
+        ...(seeking !== undefined ? { seeking: seeking as any } : {}),
         ...(budget !== undefined ? { budget: budget as any } : {}),
-        ...(deadline !== undefined
-          ? { deadline: deadline as any }
-          : {}),
+        ...(deadline !== undefined ? { deadline: deadline as any } : {}),
       };
 
       if (dryRun) {
@@ -88,13 +92,41 @@ export const createRequestBrief = ({
         };
       }
 
-      return applyRequestBriefPatch({
+      const result = await applyRequestBriefPatch({
         session,
         dataStream,
         chatId,
         visibility,
         patch,
       });
+
+      if (source?.sourceText.trim()) {
+        const occurredAt = new Date();
+        await appendRequestEvent({
+          eventId: generateUUID(),
+          requestId: result.requestId,
+          aggregateType: "request",
+          aggregateId: result.requestId,
+          eventType: "request.updated",
+          actor: {
+            kind: "human",
+            id: session.user.id,
+          },
+          correlationId: source.messageId,
+          causationId: source.messageId,
+          idempotencyKey: source.messageId,
+          source: "api.chat.request_briefing_source",
+          payload: {
+            summary: "Buyer briefing source submitted.",
+            sourceKind: "briefing_source",
+            sourceText: source.sourceText.trim(),
+            inputHash: source.inputHash,
+          },
+          occurredAt,
+        });
+      }
+
+      return result;
     },
   });
 
@@ -124,7 +156,9 @@ function buildCreateRequestBriefPayload({
   summary: string | undefined;
   body: string;
   constraints: Record<string, unknown> | undefined;
-  embodiedConstraints: z.infer<typeof requestEmbodiedConstraintInputSchema> | undefined;
+  embodiedConstraints:
+    | z.infer<typeof requestEmbodiedConstraintInputSchema>
+    | undefined;
   outputKinds: z.infer<typeof requestOutputKindsInputSchema> | undefined;
 }) {
   const normalizedTitle = normalizeOptionalText(title);

@@ -1,15 +1,6 @@
-import { z } from "zod";
 import type { UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
-import { ensureRequestDraftForChat, persistRequestPatch, streamRequestDraftToArtifact } from "@/lib/request-server";
-import type {
-  RequestActorKind,
-  RequestBudget,
-  RequestExecutionMode,
-  RequestOutputKind,
-  RequestPatch,
-  RequestVisibility,
-} from "@/lib/request";
+import { z } from "zod";
 import {
   borealActorKindSchema,
   borealOutputKindSchema,
@@ -20,6 +11,18 @@ import {
   normalizeFingerprintArray,
   normalizeFingerprintValue,
 } from "@/lib/matching-fingerprints";
+import type {
+  RequestActorKind,
+  RequestBudget,
+  RequestExecutionMode,
+  RequestOutputKind,
+  RequestPatch,
+  RequestVisibility,
+} from "@/lib/request";
+import {
+  ensureRequestDraftForChat,
+  persistRequestPatch,
+} from "@/lib/request-server";
 import type { ChatMessage } from "@/lib/types";
 
 const looseStringSchema = z.string();
@@ -97,7 +100,6 @@ type ApplyRequestPatchArgs = {
 
 export async function applyRequestBriefPatch({
   session,
-  dataStream,
   chatId,
   visibility,
   patch,
@@ -117,11 +119,6 @@ export async function applyRequestBriefPatch({
     requestId: currentDraft.id,
     userId,
     patch: hydrateExplicitStructuredFields(patch),
-  });
-
-  streamRequestDraftToArtifact({
-    dataStream,
-    draft: nextDraft,
   });
 
   return {
@@ -151,21 +148,21 @@ function hydrateExplicitStructuredFields(patch: RequestPatch): RequestPatch {
     ...(patch.seeking !== undefined
       ? {
           seeking: sanitizeRequestSeekingInput(
-            patch.seeking as z.infer<typeof requestSeekingInputSchema>
+            patch.seeking as z.infer<typeof requestSeekingInputSchema>,
           ),
         }
       : {}),
     ...(patch.budget !== undefined
       ? {
           budget: sanitizeRequestBudgetInput(
-            patch.budget as z.infer<typeof requestBudgetInputSchema>
+            patch.budget as z.infer<typeof requestBudgetInputSchema>,
           ),
         }
       : {}),
     ...(patch.deadline !== undefined
       ? {
           deadline: sanitizeRequestDeadlineInput(
-            patch.deadline as z.infer<typeof requestDeadlineInputSchema>
+            patch.deadline as z.infer<typeof requestDeadlineInputSchema>,
           ),
         }
       : {}),
@@ -186,12 +183,11 @@ export function mergeRequestConstraintInputs({
 
   if (embodiedConstraints) {
     const executionModes = normalizeMaybeStringList(
-      embodiedConstraints.executionModes
+      embodiedConstraints.executionModes,
     );
     if (executionModes.length > 0) {
-      nextConstraints.executionModes = sanitizeExecutionModeInputs(
-        executionModes
-      );
+      nextConstraints.executionModes =
+        sanitizeExecutionModeInputs(executionModes);
     }
 
     if (embodiedConstraints.requiresHumanPresence !== undefined) {
@@ -218,38 +214,36 @@ export function mergeRequestConstraintInputs({
         embodiedConstraints.serviceLocation.trim();
     }
 
-    const timeWindows = normalizeMaybeStringList(embodiedConstraints.timeWindows);
+    const timeWindows = normalizeMaybeStringList(
+      embodiedConstraints.timeWindows,
+    );
     if (timeWindows.length > 0) {
-      nextConstraints.timeWindows = normalizeConstraintStringList(
-        timeWindows
-      );
+      nextConstraints.timeWindows = normalizeConstraintStringList(timeWindows);
     }
 
     const accessRequirements = normalizeMaybeStringList(
-      embodiedConstraints.accessRequirements
+      embodiedConstraints.accessRequirements,
     );
     if (accessRequirements.length > 0) {
-      nextConstraints.accessRequirements = normalizeConstraintStringList(
-        accessRequirements
-      );
+      nextConstraints.accessRequirements =
+        normalizeConstraintStringList(accessRequirements);
     }
 
     const safetyRequirements = normalizeMaybeStringList(
-      embodiedConstraints.safetyRequirements
+      embodiedConstraints.safetyRequirements,
     );
     if (safetyRequirements.length > 0) {
-      nextConstraints.safetyRequirements = normalizeConstraintStringList(
-        safetyRequirements
-      );
+      nextConstraints.safetyRequirements =
+        normalizeConstraintStringList(safetyRequirements);
     }
 
     const verificationRequirements = normalizeMaybeStringList(
-      embodiedConstraints.verificationRequirements
+      embodiedConstraints.verificationRequirements,
     );
     if (verificationRequirements.length > 0) {
       nextConstraints.verificationRequirements = normalizeFingerprintArray(
         verificationRequirements,
-        [...borealRequestEvidenceClaimSchema.options]
+        [...borealRequestEvidenceClaimSchema.options],
       );
     }
   }
@@ -258,18 +252,18 @@ export function mergeRequestConstraintInputs({
 }
 
 function sanitizeRequestSeekingInput(
-  seeking: z.infer<typeof requestSeekingInputSchema> | undefined
+  seeking: z.infer<typeof requestSeekingInputSchema> | undefined,
 ): RequestPatch["seeking"] | undefined {
   if (!seeking) {
     return undefined;
   }
 
   const actorKinds = normalizeRequestedActorKinds(
-    normalizeMaybeStringList(seeking.actorKinds)
+    normalizeMaybeStringList(seeking.actorKinds),
   );
   const supplyKinds = normalizeFingerprintArray(
     normalizeMaybeStringList(seeking.supplyKinds),
-    [...borealSupplyKindSchema.options]
+    [...borealSupplyKindSchema.options],
   );
   const teamMode = normalizeFingerprintValue(seeking.teamMode, [
     ...borealRequestTeamModeSchema.options,
@@ -294,18 +288,18 @@ function sanitizeRequestSeekingInput(
 }
 
 export function sanitizeRequestOutputKindsInput(
-  outputKinds: z.infer<typeof requestOutputKindsInputSchema> | undefined
+  outputKinds: z.infer<typeof requestOutputKindsInputSchema> | undefined,
 ): RequestOutputKind[] | undefined {
   const normalizedOutputKinds = normalizeFingerprintArray(
     normalizeMaybeStringList(outputKinds),
-    [...borealOutputKindSchema.options]
+    [...borealOutputKindSchema.options],
   );
 
   return normalizedOutputKinds.length > 0 ? normalizedOutputKinds : undefined;
 }
 
 function sanitizeRequestBudgetInput(
-  budget: z.infer<typeof requestBudgetInputSchema> | undefined
+  budget: z.infer<typeof requestBudgetInputSchema> | undefined,
 ): RequestBudget | undefined {
   if (!budget) {
     return undefined;
@@ -320,7 +314,8 @@ function sanitizeRequestBudgetInput(
   const explicitMode = budget.mode;
   const hasFixedAmount = typeof budget.fixedAmount === "number";
   const hasRangeAmounts =
-    typeof budget.minAmount === "number" || typeof budget.maxAmount === "number";
+    typeof budget.minAmount === "number" ||
+    typeof budget.maxAmount === "number";
   const inferredMode = explicitMode
     ? explicitMode
     : hasRangeAmounts
@@ -350,7 +345,7 @@ function sanitizeRequestBudgetInput(
 }
 
 function sanitizeRequestDeadlineInput(
-  deadline: z.infer<typeof requestDeadlineInputSchema> | undefined
+  deadline: z.infer<typeof requestDeadlineInputSchema> | undefined,
 ) {
   if (!deadline) {
     return undefined;
@@ -375,7 +370,7 @@ function sanitizeRequestDeadlineInput(
 }
 
 function normalizeRequestedActorKinds(
-  actorKinds: string[] | undefined
+  actorKinds: string[] | undefined,
 ): RequestActorKind[] {
   if (!actorKinds) {
     return [];
@@ -389,7 +384,10 @@ function normalizeRequestedActorKinds(
 }
 
 function mapLooseActorKind(value: string): RequestActorKind | null {
-  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
   if (!normalized) {
     return null;
   }
@@ -429,7 +427,7 @@ function mapLooseActorKind(value: string): RequestActorKind | null {
 }
 
 function sanitizeExecutionModeInputs(
-  executionModes: string[]
+  executionModes: string[],
 ): RequestExecutionMode[] {
   const normalizedModes = executionModes
     .map((value) => mapLooseExecutionMode(value))
@@ -438,10 +436,11 @@ function sanitizeExecutionModeInputs(
   return Array.from(new Set(normalizedModes));
 }
 
-function mapLooseExecutionMode(
-  value: string
-): RequestExecutionMode | null {
-  const normalized = value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+function mapLooseExecutionMode(value: string): RequestExecutionMode | null {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
   if (!normalized) {
     return null;
   }
@@ -492,15 +491,13 @@ function normalizeStringList(values: string[] | undefined): string[] {
 
   return Array.from(
     new Set(
-      values
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0)
-    )
+      values.map((value) => value.trim()).filter((value) => value.length > 0),
+    ),
   );
 }
 
 function normalizeMaybeStringList(
-  value: string | string[] | undefined
+  value: string | string[] | undefined,
 ): string[] {
   if (typeof value === "string") {
     return normalizeStringList([value]);
@@ -522,10 +519,10 @@ function inferBudgetFromText(text: string): RequestBudget | undefined {
 
   const rangeMatch =
     normalizedText.match(
-      /\bbudget(?:\s+is|\s+of|\s+around|\s+about|\s+between|\s*:)?\s*(?:\$|usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)?\s*(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)\s*(usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)?/i
+      /\bbudget(?:\s+is|\s+of|\s+around|\s+about|\s+between|\s*:)?\s*(?:\$|usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)?\s*(\d+(?:\.\d+)?)\s*(?:-|to)\s*(\d+(?:\.\d+)?)\s*(usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)?/i,
     ) ??
     normalizedText.match(
-      /\bbudget(?:\s+is|\s+of|\s+around|\s+about|\s*:)?\s*between\s*(\d+(?:\.\d+)?)\s*and\s*(\d+(?:\.\d+)?)\s*(usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)/i
+      /\bbudget(?:\s+is|\s+of|\s+around|\s+about|\s*:)?\s*between\s*(\d+(?:\.\d+)?)\s*and\s*(\d+(?:\.\d+)?)\s*(usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)/i,
     );
 
   if (rangeMatch) {
@@ -545,17 +542,17 @@ function inferBudgetFromText(text: string): RequestBudget | undefined {
 
   const fixedMatch =
     normalizedText.match(
-      /\bbudget(?:\s+is|\s+of|\s+around|\s+about|\s*:)?\s*(\$)?\s*(\d+(?:\.\d+)?)\s*(usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)?/i
+      /\bbudget(?:\s+is|\s+of|\s+around|\s+about|\s*:)?\s*(\$)?\s*(\d+(?:\.\d+)?)\s*(usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)?/i,
     ) ??
     normalizedText.match(
-      /\bbudget(?:\s+is|\s+of|\s+around|\s+about|\s*:)?\s*(usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)\s*(\d+(?:\.\d+)?)/i
+      /\bbudget(?:\s+is|\s+of|\s+around|\s+about|\s*:)?\s*(usd|php|eur|gbp|jpy|aud|cad|sgd|hkd)\s*(\d+(?:\.\d+)?)/i,
     );
 
   if (fixedMatch) {
     const amount = Number(fixedMatch[2] ?? fixedMatch[1]);
     const currency = normalizeCurrencyCode(
       fixedMatch[3] ?? fixedMatch[1],
-      normalizedText
+      normalizedText,
     );
 
     if (!Number.isNaN(amount)) {
@@ -572,7 +569,7 @@ function inferBudgetFromText(text: string): RequestBudget | undefined {
 
 function normalizeCurrencyCode(
   token: string | undefined,
-  text: string
+  text: string,
 ): string | undefined {
   if (token === "$") {
     return "USD";
@@ -594,10 +591,8 @@ function normalizeCurrencyCode(
 function normalizeConstraintStringList(values: string[]): string[] {
   return Array.from(
     new Set(
-      values
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0)
-    )
+      values.map((value) => value.trim()).filter((value) => value.length > 0),
+    ),
   );
 }
 

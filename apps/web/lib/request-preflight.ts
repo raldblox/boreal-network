@@ -22,7 +22,7 @@ export type RequestPreflightPreview = {
 const MAX_PREVIEW_TEXT_LENGTH = 180;
 
 export function buildRequestPreflightPreview(
-  messages: RequestPreflightPreviewMessage[]
+  messages: RequestPreflightPreviewMessage[],
 ): RequestPreflightPreview {
   const userTexts = messages
     .filter((message) => message.role === "user")
@@ -64,7 +64,7 @@ export function buildRequestPreflightPreview(
 }
 
 export function getRequestPreflightMessageText(
-  message: RequestPreflightPreviewMessage
+  message: RequestPreflightPreviewMessage,
 ) {
   return (message.parts ?? [])
     .filter((part) => part.type === "text" && typeof part.text === "string")
@@ -86,7 +86,7 @@ function compactPreviewText(value: string) {
 
 function extractDoneCondition(text: string, capturedAsk: string | null) {
   const doneMatch = text.match(
-    /\b(?:done|complete|completed|finished|success|accepted|deliver(?:y|able)?|output|result)\b[^.!?\n]*(?:[.!?]|$)/i
+    /\b(?:done|complete|completed|finished|success|accepted|deliver(?:y|able)?|output|result)\b[^.!?\n]*(?:[.!?]|$)/i,
   );
 
   if (doneMatch?.[0]) {
@@ -95,8 +95,8 @@ function extractDoneCondition(text: string, capturedAsk: string | null) {
 
   if (
     capturedAsk &&
-    /\b(?:create|make|build|write|review|audit|find|explain|summarize|generate|book|buy|design|fix|install|inspect)\b/i.test(
-      capturedAsk
+    /\b(?:create|make|build|write|review|audit|find|explain|summarize|generate|book|buy|design|fix|install|inspect|visit|capture|photograph)\b|\btake\s+(?:a\s+)?pictures?\b/i.test(
+      capturedAsk,
     )
   ) {
     return "The requested outcome is delivered and reviewable.";
@@ -107,7 +107,7 @@ function extractDoneCondition(text: string, capturedAsk: string | null) {
 
 function extractBudget(text: string) {
   const budgetMatch = text.match(
-    /(?:budget|under|less than|up to|around|about|between|from)\s+[^.!?\n]*(?:\$|usd|php|eur|gbp|credits?)?[^.!?\n]*(?:[.!?]|$)|(?:\$|usd|php|eur|gbp)\s?\d[\d,]*(?:\.\d+)?/i
+    /(?:budget|under|less than|up to|around|about|between|from)\s+[^.!?\n]*(?:\$|usd|php|eur|gbp|credits?|\d)[^.!?\n]*(?:[.!?]|$)|(?:\$|usd|php|eur|gbp)\s?\d[\d,]*(?:\.\d+)?/i,
   );
 
   return budgetMatch?.[0] ? compactPreviewText(budgetMatch[0]) : null;
@@ -115,7 +115,7 @@ function extractBudget(text: string) {
 
 function extractDeadline(text: string) {
   const deadlineMatch = text.match(
-    /\b(?:deadline|due|by|before|today|tomorrow|tonight|this week|next week|friday|monday|tuesday|wednesday|thursday|saturday|sunday|in \d+ (?:hours?|days?|weeks?))\b[^.!?\n]*(?:[.!?]|$)/i
+    /\b(?:deadline|due|by|before|today|tomorrow|tonight|this week|next week|friday|monday|tuesday|wednesday|thursday|saturday|sunday|in \d+ (?:hours?|days?|weeks?))\b[^.!?\n]*(?:[.!?]|$)/i,
   );
 
   return deadlineMatch?.[0] ? compactPreviewText(deadlineMatch[0]) : null;
@@ -124,15 +124,27 @@ function extractDeadline(text: string) {
 function extractKnownConstraints(text: string) {
   const constraints: string[] = [];
 
-  if (/\b(?:location|address|onsite|on-site|in person|pickup|dropoff|visit|field|inspect|inspection)\b/i.test(text)) {
+  if (
+    /\b(?:location|address|onsite|on-site|in person|pickup|dropoff|visit|field|inspect|inspection)\b/i.test(
+      text,
+    )
+  ) {
     constraints.push("Location or access may matter");
   }
 
-  if (/\b(?:safety|permission|access|credential|login|keys?|private|sensitive)\b/i.test(text)) {
+  if (
+    /\b(?:safety|permission|access|credential|login|keys?|private|sensitive)\b/i.test(
+      text,
+    )
+  ) {
     constraints.push("Access or safety constraints mentioned");
   }
 
-  if (/\b(?:style|format|tone|brand|template|pdf|video|image|report|spreadsheet)\b/i.test(text)) {
+  if (
+    /\b(?:style|format|tone|brand|template|pdf|video|image|report|spreadsheet)\b/i.test(
+      text,
+    )
+  ) {
     constraints.push("Output format or style mentioned");
   }
 
@@ -142,11 +154,19 @@ function extractKnownConstraints(text: string) {
 function extractProofNeeds(text: string) {
   const proofNeeds: string[] = [];
 
-  if (/\b(?:proof|evidence|verify|verification|receipt|screenshot|photo|video|signature|witness|review)\b/i.test(text)) {
+  if (
+    /\b(?:proof|evidence|verify|verification|receipt|screenshot|photo|picture|image|video|signature|witness|review)\b/i.test(
+      text,
+    )
+  ) {
     proofNeeds.push("Proof or review expected");
   }
 
-  if (/\b(?:deliverable|file|artifact|attachment|link|report|video|image|pdf)\b/i.test(text)) {
+  if (
+    /\b(?:deliverable|file|artifact|attachment|link|report|video|image|pdf)\b/i.test(
+      text,
+    )
+  ) {
     proofNeeds.push("Deliverable artifact expected");
   }
 
@@ -156,11 +176,19 @@ function extractProofNeeds(text: string) {
 function extractHumanOrLocalNeeds(text: string) {
   const needs: string[] = [];
 
-  if (/\b(?:human|expert|reviewer|designer|lawyer|doctor|technician|courier|driver)\b/i.test(text)) {
+  if (
+    /\b(?:human|expert|reviewer|designer|lawyer|doctor|technician|courier|driver)\b/i.test(
+      text,
+    )
+  ) {
     needs.push("Human capability may be needed");
   }
 
-  if (/\b(?:onsite|on-site|in person|site visit|field inspection|inspect|inspection|pickup|dropoff|handoff|install|measure|local)\b/i.test(text)) {
+  if (
+    /\b(?:onsite|on-site|in person|site visit|field inspection|inspect|inspection|pickup|dropoff|handoff|install|measure|local)\b/i.test(
+      text,
+    )
+  ) {
     needs.push("Local or physical execution may be needed");
   }
 
@@ -190,10 +218,7 @@ function getMissingEssentials({
   sourceText,
 }: Pick<
   RequestPreflightPreview,
-  | "capturedAsk"
-  | "doneCondition"
-  | "humanOrLocalNeeds"
-  | "proofNeeds"
+  "capturedAsk" | "doneCondition" | "humanOrLocalNeeds" | "proofNeeds"
 > & {
   sourceText: string;
 }) {
@@ -221,21 +246,24 @@ function getMissingEssentials({
 function hasLocationOrAccessDetail(text: string) {
   if (
     /\b(?:address|location|located|service location|site is)\s*(?::|is|at|in)?\s+\S+/i.test(
-      text
+      text,
     )
   ) {
     return true;
   }
 
   if (
-    /\b(?:in|near|around|at)\s+[A-Z][A-Za-z0-9.'-]+(?:\s+[A-Z][A-Za-z0-9.'-]+){0,4}\b/.test(
-      text
+    /\b(?:in)\s+[A-Z][A-Za-z0-9.'-]+(?:\s+[A-Z][A-Za-z0-9.'-]+){0,4}\b/.test(
+      text,
+    ) ||
+    /\b(?:near|around|at)\s+[A-Za-z0-9.'-]+(?:\s+[A-Za-z0-9.'-]+){0,4}\b/i.test(
+      text,
     )
   ) {
     return true;
   }
 
   return /\b(?:permission|gate code|keys?|credential|access window|login)\b/i.test(
-    text
+    text,
   );
 }

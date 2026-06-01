@@ -164,7 +164,9 @@ function toDesktopModelId(modelId: string) {
   return `${DESKTOP_MODEL_PROVIDER}/${modelId}`;
 }
 
-function mapDesktopRuntimeModels(models: DesktopRuntimeModelOption[]): ChatModel[] {
+function mapDesktopRuntimeModels(
+  models: DesktopRuntimeModelOption[],
+): ChatModel[] {
   return models.map((model) => ({
     description:
       model.description?.trim() ||
@@ -220,7 +222,7 @@ function normalizeUploadedAttachmentUrl(url: string) {
 
 function parseUploadedAttachment(
   data: unknown,
-  fallbackContentType: string
+  fallbackContentType: string,
 ): Attachment | null {
   if (!data || typeof data !== "object") {
     return null;
@@ -232,14 +234,17 @@ function parseUploadedAttachment(
   const contentType =
     resolveChatAttachmentMimeType({
       name: typeof record.filename === "string" ? record.filename : undefined,
-      type: typeof record.contentType === "string" ? record.contentType : undefined,
+      type:
+        typeof record.contentType === "string" ? record.contentType : undefined,
     }) ?? fallbackContentType;
   const nameCandidates = [record.filename, record.pathname, "Attachment"];
   const name =
-    nameCandidates.find(
-      (value): value is string =>
-        typeof value === "string" && value.trim().length > 0
-    )?.trim() ?? "Attachment";
+    nameCandidates
+      .find(
+        (value): value is string =>
+          typeof value === "string" && value.trim().length > 0,
+      )
+      ?.trim() ?? "Attachment";
 
   if (!url || !contentType) {
     return null;
@@ -270,7 +275,7 @@ async function canvasToBlob(
   canvas: HTMLCanvasElement,
   type: string,
   quality: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ) {
   return new Promise<Blob | null>((resolve, reject) => {
     if (signal?.aborted) {
@@ -292,14 +297,18 @@ async function canvasToBlob(
     };
 
     signal?.addEventListener("abort", abort, { once: true });
-    canvas.toBlob((blob) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      cleanup();
-      resolve(blob);
-    }, type, quality);
+    canvas.toBlob(
+      (blob) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve(blob);
+      },
+      type,
+      quality,
+    );
   });
 }
 
@@ -344,7 +353,7 @@ async function decodeImageForChat(imageUrl: string, signal?: AbortSignal) {
 async function optimizeImageForChat(
   file: File,
   contentType: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ) {
   if (typeof window === "undefined" || !contentType.startsWith("image/")) {
     return file;
@@ -371,7 +380,7 @@ async function optimizeImageForChat(
     throwIfUploadAborted(signal);
     const scale = Math.min(
       1,
-      maxOptimizedImageDimension / Math.max(image.width, image.height)
+      maxOptimizedImageDimension / Math.max(image.width, image.height),
     );
 
     if (scale >= 1 && file.size <= 2 * 1024 * 1024) {
@@ -400,7 +409,7 @@ async function optimizeImageForChat(
       canvas,
       outputType,
       optimizedImageQuality,
-      signal
+      signal,
     );
     throwIfUploadAborted(signal);
 
@@ -416,13 +425,13 @@ async function optimizeImageForChat(
       {
         lastModified: Date.now(),
         type: outputType,
-      }
+      },
     );
   } catch (error) {
     throw new Error(
       error instanceof Error && error.message.trim()
         ? error.message.trim()
-        : "Image could not be decoded. Try a different image file."
+        : "Image could not be decoded. Try a different image file.",
     );
   } finally {
     URL.revokeObjectURL(imageUrl);
@@ -490,7 +499,7 @@ function PureMultimodalInput({
 
   const [localStorageInput, setLocalStorageInput] = useLocalStorage(
     "input",
-    ""
+    "",
   );
 
   useEffect(() => {
@@ -536,7 +545,7 @@ function PureMultimodalInput({
         break;
       case "model": {
         const modelBtn = document.querySelector<HTMLButtonElement>(
-          "[data-testid='model-selector']"
+          "[data-testid='model-selector']",
         );
         modelBtn?.click();
         break;
@@ -551,7 +560,7 @@ function PureMultimodalInput({
             onClick: () => {
               fetch(
                 `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/chat?id=${chatId}`,
-                { method: "DELETE" }
+                { method: "DELETE" },
               );
               router.push("/");
               toast.success("Chat deleted");
@@ -582,7 +591,7 @@ function PureMultimodalInput({
   const dragDepthRef = useRef(0);
   const [uploadQueue, setUploadQueue] = useState<PendingAttachmentUpload[]>([]);
   const [failedUploads, setFailedUploads] = useState<FailedAttachmentUpload[]>(
-    []
+    [],
   );
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [slashOpen, setSlashOpen] = useState(false);
@@ -592,7 +601,9 @@ function PureMultimodalInput({
   const [lastSubmittedBriefingInput, setLastSubmittedBriefingInput] = useState<
     string | null
   >(null);
-  const isOpenedRequest = Boolean(activeRequest && activeRequest.status !== "draft");
+  const isOpenedRequest = Boolean(
+    activeRequest && activeRequest.status !== "draft",
+  );
   const isPreOpenBriefingComposer =
     isRequestMode && !isOpenedRequest && !editingMessage;
   const isNewPage = pathname === "/" && searchParams.get("mode") === "new";
@@ -666,10 +677,21 @@ function PureMultimodalInput({
       setLastSubmittedBriefingInput(normalizedDraftInput);
     }
 
+    const nextChatSearchParams = isPreOpenBriefingComposer
+      ? new URLSearchParams(window.location.search)
+      : new URLSearchParams();
+    if (isPreOpenBriefingComposer) {
+      nextChatSearchParams.set("mode", "request");
+      nextChatSearchParams.delete("type");
+    }
+    const nextChatQuery = nextChatSearchParams.toString();
+
     window.history.pushState(
       {},
       "",
-      `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}`
+      `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}${
+        nextChatQuery ? `?${nextChatQuery}` : ""
+      }`,
     );
 
     try {
@@ -713,17 +735,17 @@ function PureMultimodalInput({
         }
         setAttachments((currentAttachments) => {
           const currentUrls = new Set(
-            currentAttachments.map((attachment) => attachment.url)
+            currentAttachments.map((attachment) => attachment.url),
           );
           return [
             ...currentAttachments,
             ...draftAttachments.filter(
-              (attachment) => !currentUrls.has(attachment.url)
+              (attachment) => !currentUrls.has(attachment.url),
             ),
           ];
         });
         setInput((currentInput) =>
-          currentInput.trim().length > 0 ? currentInput : draftInput
+          currentInput.trim().length > 0 ? currentInput : draftInput,
         );
         setLocalStorageInput(draftInput);
         toast.error("Message failed to send. Draft restored.");
@@ -762,7 +784,11 @@ function PureMultimodalInput({
   ]);
 
   useEffect(() => {
-    if (status === "submitted" || status === "streaming" || status === "error") {
+    if (
+      status === "submitted" ||
+      status === "streaming" ||
+      status === "error"
+    ) {
       setIsSubmitPending(false);
     }
     if (status === "error") {
@@ -771,10 +797,7 @@ function PureMultimodalInput({
   }, [status]);
 
   const uploadFile = useCallback(
-    async (
-      file: File,
-      signal?: AbortSignal
-    ): Promise<UploadFileResult> => {
+    async (file: File, signal?: AbortSignal): Promise<UploadFileResult> => {
       const clientValidation = validateChatAttachmentSelectionFile(file);
 
       if (getUploadAbortReason(signal) === canceledUploadAbortReason) {
@@ -798,7 +821,7 @@ function PureMultimodalInput({
             ? await optimizeImageForChat(
                 file,
                 clientValidation.contentType,
-                signal
+                signal,
               )
             : file;
         throwIfUploadAborted(signal);
@@ -829,7 +852,7 @@ function PureMultimodalInput({
             method: "POST",
             body: formData,
             signal,
-          }
+          },
         );
 
         if (response.ok) {
@@ -880,7 +903,7 @@ function PureMultimodalInput({
         };
       }
     },
-    []
+    [],
   );
 
   const uploadFiles = useCallback(
@@ -894,7 +917,7 @@ function PureMultimodalInput({
         validation: validateChatAttachmentSelectionFile(file),
       }));
       const rejectedFiles = validatedFiles.filter(
-        ({ validation }) => validation.error
+        ({ validation }) => validation.error,
       );
       const acceptedFiles = validatedFiles
         .filter(({ validation }) => !validation.error)
@@ -912,7 +935,9 @@ function PureMultimodalInput({
         attachments.length + uploadQueue.length + acceptedFiles.length >
         maxChatAttachmentCount
       ) {
-        toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
+        toast.error(
+          `Attach up to ${maxChatAttachmentCount} files per message.`,
+        );
         return;
       }
 
@@ -938,7 +963,7 @@ function PureMultimodalInput({
       for (const upload of queuedUploads) {
         activeUploadControllersRef.current.set(
           upload.id,
-          upload.abortController
+          upload.abortController,
         );
       }
 
@@ -953,9 +978,9 @@ function PureMultimodalInput({
             }, chatUploadTimeoutMs);
 
             return uploadFile(file, upload?.abortController.signal).finally(
-              () => window.clearTimeout(timeoutId)
+              () => window.clearTimeout(timeoutId),
             );
-          })
+          }),
         );
 
         if (!isCurrentUploadScope()) {
@@ -964,7 +989,9 @@ function PureMultimodalInput({
 
         const successfullyUploadedAttachments = uploadedAttachments
           .map((result) => result.attachment)
-          .filter((attachment): attachment is Attachment => attachment !== null);
+          .filter(
+            (attachment): attachment is Attachment => attachment !== null,
+          );
         const failedAttachmentUploads = uploadedAttachments
           .map((result, index) => ({
             result,
@@ -973,12 +1000,13 @@ function PureMultimodalInput({
           }))
           .filter(
             (
-              item
+              item,
             ): item is {
               file: File;
               result: Extract<UploadFileResult, { error: string }>;
               upload: PendingAttachmentUpload;
-            } => typeof item.result.error === "string" && item.file !== undefined
+            } =>
+              typeof item.result.error === "string" && item.file !== undefined,
           )
           .map(({ file, result, upload }) => ({
             ...upload,
@@ -1001,7 +1029,7 @@ function PureMultimodalInput({
           toast.error(
             failedAttachmentUploads.length === 1
               ? `${failedAttachmentUploads[0].name} could not be uploaded.`
-              : `${failedAttachmentUploads.length} files could not be uploaded.`
+              : `${failedAttachmentUploads.length} files could not be uploaded.`,
           );
         }
       } catch (_error) {
@@ -1015,12 +1043,12 @@ function PureMultimodalInput({
 
         if (isCurrentUploadScope()) {
           setUploadQueue((currentQueue) =>
-            currentQueue.filter((upload) => !queuedUploadIds.has(upload.id))
+            currentQueue.filter((upload) => !queuedUploadIds.has(upload.id)),
           );
         }
       }
     },
-    [attachments.length, setAttachments, uploadFile, uploadQueue.length]
+    [attachments.length, setAttachments, uploadFile, uploadQueue.length],
   );
 
   const retryFailedUpload = useCallback(
@@ -1031,17 +1059,22 @@ function PureMultimodalInput({
         return;
       }
 
-      if (attachments.length + uploadQueue.length + 1 > maxChatAttachmentCount) {
-        toast.error(`Attach up to ${maxChatAttachmentCount} files per message.`);
+      if (
+        attachments.length + uploadQueue.length + 1 >
+        maxChatAttachmentCount
+      ) {
+        toast.error(
+          `Attach up to ${maxChatAttachmentCount} files per message.`,
+        );
         return;
       }
 
       setFailedUploads((currentUploads) =>
-        currentUploads.filter((upload) => upload.id !== id)
+        currentUploads.filter((upload) => upload.id !== id),
       );
       void uploadFiles([failedUpload.file]);
     },
-    [attachments.length, failedUploads, uploadFiles, uploadQueue.length]
+    [attachments.length, failedUploads, uploadFiles, uploadQueue.length],
   );
 
   const handleFileChange = useCallback(
@@ -1049,7 +1082,7 @@ function PureMultimodalInput({
       await uploadFiles(Array.from(event.target.files || []));
       event.target.value = "";
     },
-    [uploadFiles]
+    [uploadFiles],
   );
 
   const handlePaste = useCallback(
@@ -1071,7 +1104,7 @@ function PureMultimodalInput({
       event.preventDefault();
       await uploadFiles(files);
     },
-    [uploadFiles]
+    [uploadFiles],
   );
 
   const handleDragEnter = useCallback((event: DragEvent<HTMLDivElement>) => {
@@ -1118,7 +1151,7 @@ function PureMultimodalInput({
       setIsDraggingFiles(false);
       await uploadFiles(Array.from(event.dataTransfer.files || []));
     },
-    [uploadFiles]
+    [uploadFiles],
   );
 
   useEffect(() => {
@@ -1224,7 +1257,7 @@ function PureMultimodalInput({
                 key={attachment.url}
                 onRemove={() => {
                   setAttachments((currentAttachments) =>
-                    currentAttachments.filter((a) => a.url !== attachment.url)
+                    currentAttachments.filter((a) => a.url !== attachment.url),
                   );
                   if (fileInputRef.current) {
                     fileInputRef.current.value = "";
@@ -1245,7 +1278,7 @@ function PureMultimodalInput({
                   upload.abortController.abort(canceledUploadAbortReason);
                   activeUploadControllersRef.current.delete(upload.id);
                   setUploadQueue((currentQueue) =>
-                    currentQueue.filter((item) => item.id !== upload.id)
+                    currentQueue.filter((item) => item.id !== upload.id),
                   );
                 }}
               />
@@ -1261,7 +1294,7 @@ function PureMultimodalInput({
                 key={upload.id}
                 onRemove={() =>
                   setFailedUploads((currentUploads) =>
-                    currentUploads.filter((item) => item.id !== upload.id)
+                    currentUploads.filter((item) => item.id !== upload.id),
                   )
                 }
                 onRetry={() => retryFailedUpload(upload.id)}
@@ -1285,7 +1318,7 @@ function PureMultimodalInput({
             "px-4 pb-1.5 pt-4 text-[13px] leading-7 placeholder:text-muted-foreground/35",
             showNewModeControls || (!isRequestMode && !isOpenedRequest)
               ? "min-h-24"
-              : "min-h-16"
+              : "min-h-16",
           )}
           data-testid="multimodal-input"
           disabled={isBriefingBusy}
@@ -1293,7 +1326,7 @@ function PureMultimodalInput({
           onKeyDown={(e) => {
             if (slashOpen) {
               const filtered = slashCommands.filter((cmd) =>
-                cmd.name.startsWith(slashQuery.toLowerCase())
+                cmd.name.startsWith(slashQuery.toLowerCase()),
               );
               if (e.key === "ArrowDown") {
                 e.preventDefault();
@@ -1326,15 +1359,15 @@ function PureMultimodalInput({
           placeholder={
             editingMessage
               ? "Edit your message..."
-                : pinnedWorkerPromptPlaceholder
-                  ? pinnedWorkerPromptPlaceholder
+              : pinnedWorkerPromptPlaceholder
+                ? pinnedWorkerPromptPlaceholder
                 : activeRequest?.status === "draft"
                   ? "Add ask, done condition, constraints, budget, deadline, and proof..."
-                : activeRequest
-                  ? "Post an update, change request details, or ask what should happen next..."
-                : isRequestMode
-                    ? "Post the work, done condition, proof, and constraints..."
-                    : "Ask anything..."
+                  : activeRequest
+                    ? "Post an update, change request details, or ask what should happen next..."
+                    : isRequestMode
+                      ? "Post the work, done condition, proof, and constraints..."
+                      : "Ask anything..."
           }
           ref={textareaRef}
           value={input}
@@ -1367,8 +1400,8 @@ function PureMultimodalInput({
                   isBriefingBusy || showSubmitPending
                     ? "bg-foreground text-background"
                     : !isSubmitDisabled
-                    ? "bg-foreground text-background hover:opacity-85 active:scale-95"
-                    : "bg-muted text-muted-foreground/25 cursor-not-allowed"
+                      ? "bg-foreground text-background hover:opacity-85 active:scale-95"
+                      : "bg-muted text-muted-foreground/25 cursor-not-allowed",
                 )}
                 data-testid="send-button"
                 disabled={isSubmitDisabled}
@@ -1422,14 +1455,12 @@ export const MultimodalInput = memo(
     if (prevProps.activeRequest?.id !== nextProps.activeRequest?.id) {
       return false;
     }
-    if (
-      prevProps.activeRequest?.status !== nextProps.activeRequest?.status
-    ) {
+    if (prevProps.activeRequest?.status !== nextProps.activeRequest?.status) {
       return false;
     }
 
     return true;
-  }
+  },
 );
 
 function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
@@ -1439,7 +1470,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
     (nextMode: "chat" | "request") => {
       router.replace(`/?mode=new&type=${nextMode}`, { scroll: false });
     },
-    [router]
+    [router],
   );
 
   return (
@@ -1455,7 +1486,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
           "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           !isRequestMode
             ? "w-[5.8rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
-            : "w-8 px-0 text-muted-foreground hover:text-foreground"
+            : "w-8 px-0 text-muted-foreground hover:text-foreground",
         )}
         data-expanded={!isRequestMode}
         data-testid="new-mode-chat"
@@ -1466,7 +1497,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         <span
           className={cn(
             "whitespace-nowrap transition-[max-width,opacity] duration-200",
-            !isRequestMode ? "max-w-20 opacity-100" : "max-w-0 opacity-0"
+            !isRequestMode ? "max-w-20 opacity-100" : "max-w-0 opacity-0",
           )}
         >
           New chat
@@ -1479,7 +1510,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
           "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           isRequestMode
             ? "w-[6.95rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
-            : "w-8 px-0 text-muted-foreground hover:text-foreground"
+            : "w-8 px-0 text-muted-foreground hover:text-foreground",
         )}
         data-expanded={isRequestMode}
         data-testid="new-mode-request"
@@ -1490,7 +1521,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         <span
           className={cn(
             "whitespace-nowrap transition-[max-width,opacity] duration-200",
-            isRequestMode ? "max-w-24 opacity-100" : "max-w-0 opacity-0"
+            isRequestMode ? "max-w-24 opacity-100" : "max-w-0 opacity-0",
           )}
         >
           Post request
@@ -1512,7 +1543,7 @@ function PureAttachmentsButton({
   const { data: modelsResponse } = useSWR(
     `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/models`,
     (url: string) => fetch(url).then((r) => r.json()),
-    { revalidateOnFocus: false, dedupingInterval: 3_600_000 }
+    { revalidateOnFocus: false, dedupingInterval: 3_600_000 },
   );
 
   const caps: Record<string, ModelCapabilities> | undefined =
@@ -1525,7 +1556,7 @@ function PureAttachmentsButton({
         "h-7 w-7 rounded-lg border border-border/40 p-1 transition-colors",
         status === "ready"
           ? "text-foreground hover:border-border hover:text-foreground"
-          : "text-muted-foreground/30 cursor-not-allowed"
+          : "text-muted-foreground/30 cursor-not-allowed",
       )}
       data-testid="attachments-button"
       disabled={status !== "ready"}
@@ -1564,8 +1595,10 @@ function PureModelSelectorCompact({
   };
 
   const [open, setOpen] = useState(false);
-  const [isDesktopRuntimeConnectDialogOpen, setIsDesktopRuntimeConnectDialogOpen] =
-    useState(false);
+  const [
+    isDesktopRuntimeConnectDialogOpen,
+    setIsDesktopRuntimeConnectDialogOpen,
+  ] = useState(false);
   const [isConnectingDesktopRuntime, setIsConnectingDesktopRuntime] =
     useState(false);
   const [desktopRuntimeConnectMessage, setDesktopRuntimeConnectMessage] =
@@ -1573,14 +1606,14 @@ function PureModelSelectorCompact({
   const { data: modelsData } = useSWR(
     `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/models`,
     (url: string) => fetch(url).then((r) => r.json()),
-    { revalidateOnFocus: false, dedupingInterval: 3_600_000 }
+    { revalidateOnFocus: false, dedupingInterval: 3_600_000 },
   );
 
   const capabilities: Record<string, ModelCapabilities> | undefined =
     modelsData?.capabilities ?? modelsData;
   const dynamicModels: ChatModel[] | undefined = modelsData?.models;
   const dynamicComposerModels = dynamicModels?.filter((model) =>
-    isComposerChatModelId(model.id)
+    isComposerChatModelId(model.id),
   );
   const webModels =
     dynamicComposerModels && dynamicComposerModels.length > 0
@@ -1613,11 +1646,13 @@ function PureModelSelectorCompact({
       const access = payload.access ?? null;
       const runtimeModels = Array.isArray(access?.models) ? access.models : [];
       const authProvider =
-        typeof access?.authProvider === "string" && access.authProvider.length > 0
+        typeof access?.authProvider === "string" &&
+        access.authProvider.length > 0
           ? access.authProvider
           : "Codex";
       const modelAccessReady =
-        payload.readiness?.modelAccessReady === true || access?.connected === true;
+        payload.readiness?.modelAccessReady === true ||
+        access?.connected === true;
       const resolverReady =
         payload.readiness?.borealResolverReady === true ||
         payload.resolver?.connected === true;
@@ -1637,7 +1672,9 @@ function PureModelSelectorCompact({
             : "Desktop runtime found, worker auth missing",
       );
       setDesktopRuntimeModels(mapDesktopRuntimeModels(runtimeModels));
-      setDesktopRuntimeCapabilities(mapDesktopRuntimeCapabilities(runtimeModels));
+      setDesktopRuntimeCapabilities(
+        mapDesktopRuntimeCapabilities(runtimeModels),
+      );
 
       return {
         linked: true,
@@ -1661,8 +1698,8 @@ function PureModelSelectorCompact({
     setDesktopRuntimeCapabilities({});
   }, []);
 
-  const loadDesktopRuntimeModels = useCallback(
-    async (): Promise<DesktopRuntimeLoadResult> => {
+  const loadDesktopRuntimeModels =
+    useCallback(async (): Promise<DesktopRuntimeLoadResult> => {
       const discovery = await discoverDesktopRuntime();
 
       if (discovery?.bridge?.sseUrl) {
@@ -1714,9 +1751,7 @@ function PureModelSelectorCompact({
         requestLaneReady: false,
         resolverReady: false,
       };
-    },
-    [applyDesktopRuntimeDiscovery, resetDesktopRuntimeAccess],
-  );
+    }, [applyDesktopRuntimeDiscovery, resetDesktopRuntimeAccess]);
 
   const connectDesktopRuntime = useCallback(async () => {
     setIsDesktopRuntimeConnectDialogOpen(true);
@@ -1840,11 +1875,10 @@ function PureModelSelectorCompact({
   const desktopRuntimeDispatchReady = desktopRuntimeModelAccessReady;
   const desktopModelsSelectable =
     desktopRuntimeDispatchReady && activeRequest?.status !== "draft";
-  const desktopRuntimeActionLabel =
-    desktopRuntimeRequestLaneReady
-      ? "Reconnect desktop runtime"
-      : desktopRuntimeLinked
-        ? "Finish desktop connection"
+  const desktopRuntimeActionLabel = desktopRuntimeRequestLaneReady
+    ? "Reconnect desktop runtime"
+    : desktopRuntimeLinked
+      ? "Finish desktop connection"
       : "Connect desktop runtime";
 
   return (
@@ -1871,7 +1905,7 @@ function PureModelSelectorCompact({
                     className={cn(
                       "flex w-full",
                       model.id === selectedModel.id &&
-                        "rounded-md bg-accent/60 text-foreground"
+                        "rounded-md bg-accent/60 text-foreground",
                     )}
                     key={model.id}
                     onSelect={() => {
@@ -1881,7 +1915,7 @@ function PureModelSelectorCompact({
                       setTimeout(() => {
                         document
                           .querySelector<HTMLTextAreaElement>(
-                            "[data-testid='multimodal-input']"
+                            "[data-testid='multimodal-input']",
                           )
                           ?.focus();
                       }, 50);
@@ -1923,7 +1957,9 @@ function PureModelSelectorCompact({
               >
                 <LaptopMinimalIcon className="size-4 text-muted-foreground" />
                 <div className="min-w-0 flex flex-1 flex-col">
-                  <ModelSelectorName>{desktopRuntimeActionLabel}</ModelSelectorName>
+                  <ModelSelectorName>
+                    {desktopRuntimeActionLabel}
+                  </ModelSelectorName>
                   <span className="truncate text-[11px] text-muted-foreground">
                     {desktopRuntimeAccessLabel}
                   </span>
@@ -1945,7 +1981,7 @@ function PureModelSelectorCompact({
                           "flex w-full",
                           rowDisabled && "opacity-70",
                           model.id === selectedModel.id &&
-                            "rounded-md bg-accent/60 text-foreground"
+                            "rounded-md bg-accent/60 text-foreground",
                         )}
                         disabled={rowDisabled}
                         key={model.id}
@@ -1960,7 +1996,7 @@ function PureModelSelectorCompact({
                           setTimeout(() => {
                             document
                               .querySelector<HTMLTextAreaElement>(
-                                "[data-testid='multimodal-input']"
+                                "[data-testid='multimodal-input']",
                               )
                               ?.focus();
                           }, 50);

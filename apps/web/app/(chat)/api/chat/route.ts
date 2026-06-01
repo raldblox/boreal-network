@@ -13,33 +13,39 @@ import type { Session } from "next-auth";
 import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
+import { selectChatModelRoute } from "@/lib/ai/model-routing";
 import {
   chatModels,
   composerAllowedModelIds,
   DEFAULT_CHAT_MODEL,
   getCapabilities,
 } from "@/lib/ai/models";
-import { selectChatModelRoute } from "@/lib/ai/model-routing";
 import {
   type RequestHints,
   type RequestSupplyContextSummary,
   systemPrompt,
 } from "@/lib/ai/prompts";
 import { getLanguageModel } from "@/lib/ai/providers";
-import { createRequestBrief } from "@/lib/ai/tools/create-request-brief";
 import { createDocument } from "@/lib/ai/tools/create-document";
+import { createRequestBrief } from "@/lib/ai/tools/create-request-brief";
 import { editDocument } from "@/lib/ai/tools/edit-document";
 import { proposeCommitment } from "@/lib/ai/tools/propose-commitment";
 import { publishArtifact } from "@/lib/ai/tools/publish-artifact";
 import { requestSuggestions } from "@/lib/ai/tools/request-suggestions";
+import { updateDocument } from "@/lib/ai/tools/update-document";
 import { updateRequestBrief } from "@/lib/ai/tools/update-request-brief";
 import { updateRequestBudgetTiming } from "@/lib/ai/tools/update-request-budget-timing";
 import { updateRequestConstraints } from "@/lib/ai/tools/update-request-constraints";
 import { updateRequestRouteSummary } from "@/lib/ai/tools/update-request-route-summary";
-import { updateDocument } from "@/lib/ai/tools/update-document";
+import {
+  createChatAttachmentDownload,
+  getChatAttachmentUrlRejection,
+  prepareChatMessagesForModel,
+} from "@/lib/chat-attachment-download";
 import { chatDeleteQuerySchema } from "@/lib/chat-route-validation";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
+  appendRequestEvent,
   createStreamId,
   deleteChatById,
   getChatById,
@@ -48,7 +54,6 @@ import {
   getRequestActivityByRequestId,
   getRequestByChatId,
   getSupplyById,
-  appendRequestEvent,
   saveChat,
   saveMessages,
   toRequestDraft,
@@ -60,15 +65,7 @@ import type { DBMessage } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import { checkIpRateLimit } from "@/lib/ratelimit";
 import { canUseRequestChatTranscript } from "@/lib/request-chat-access";
-import {
-  canRespondToRequest,
-  ensureRequestDraftForChat,
-} from "@/lib/request-server";
-import {
-  createChatAttachmentDownload,
-  getChatAttachmentUrlRejection,
-  prepareChatMessagesForModel,
-} from "@/lib/chat-attachment-download";
+import { canRespondToRequest } from "@/lib/request-server";
 import type { ChatMessage } from "@/lib/types";
 import { convertToUIMessages, generateUUID } from "@/lib/utils";
 import { generateTitleFromUserMessage } from "../../actions";
@@ -157,9 +154,7 @@ function normalizeFilePartFilenames(messages: ChatMessage[]): ChatMessage[] {
       }
 
       const legacyName =
-        "name" in part && typeof part.name === "string"
-          ? part.name.trim()
-          : "";
+        "name" in part && typeof part.name === "string" ? part.name.trim() : "";
 
       return legacyName ? { ...part, filename: legacyName } : part;
     }),
@@ -172,8 +167,8 @@ function hasImageFilePart(messages: ChatMessage[]) {
       (part) =>
         part.type === "file" &&
         typeof part.mediaType === "string" &&
-        part.mediaType.toLowerCase().startsWith("image/")
-    )
+        part.mediaType.toLowerCase().startsWith("image/"),
+    ),
   );
 }
 
@@ -207,7 +202,7 @@ function getIncomingAttachmentRejection({
 }
 
 function toRequestSupplyContextSummary(
-  supply: ReturnType<typeof toSupplyDraft>
+  supply: ReturnType<typeof toSupplyDraft>,
 ): RequestSupplyContextSummary {
   return {
     id: supply.id,
@@ -217,7 +212,9 @@ function toRequestSupplyContextSummary(
     displayName: supply.profile.displayName.trim() || supply.key,
     headline: supply.profile.headline?.trim() || "",
     summary:
-      supply.profile.summary?.trim() || supply.profile.description?.trim() || "",
+      supply.profile.summary?.trim() ||
+      supply.profile.description?.trim() ||
+      "",
     supplyKinds: supply.capability.supplyKinds,
     fulfillmentActorKinds: supply.capability.fulfillmentActorKinds,
     outputKinds: supply.capability.outputKinds,
@@ -285,7 +282,10 @@ export async function POST(request: Request) {
     });
 
     if (attachmentRejection) {
-      return new ChatbotError("bad_request:api", attachmentRejection).toResponse();
+      return new ChatbotError(
+        "bad_request:api",
+        attachmentRejection,
+      ).toResponse();
     }
 
     const noDbEvalMode = isNoDbPromptfooEvalRequest(request);
@@ -325,23 +325,21 @@ export async function POST(request: Request) {
     const activeRequestRecord = noDbEvalMode
       ? null
       : await getRequestByChatId({ chatId: id });
-    let activeRequest = activeRequestRecord
+    const activeRequest = activeRequestRecord
       ? toRequestDraft(activeRequestRecord)
       : null;
     const isRequestBriefingSourceTurn =
       requestMode === true &&
       message?.role === "user" &&
       message.metadata?.requestBriefingSource?.hidden === true;
-    let didEnsureRequestDraft = false;
-
-    if (isRequestBriefingSourceTurn && !activeRequest && !noDbEvalMode) {
-      activeRequest = await ensureRequestDraftForChat({
-        chatId: id,
-        userId: session.user.id,
-        visibility: selectedVisibilityType,
-      });
-      didEnsureRequestDraft = true;
-    }
+    const requestBriefingSource =
+      isRequestBriefingSourceTurn && message?.role === "user"
+        ? {
+            inputHash: message.metadata?.requestBriefingSource?.inputHash,
+            messageId: message.id,
+            sourceText: extractUserMessageText(message as ChatMessage).trim(),
+          }
+        : null;
 
     const canUsePublicRequestRoom =
       activeRequest !== null &&
@@ -365,7 +363,11 @@ export async function POST(request: Request) {
       activeRequest?.routing.preferredSupplyId?.trim()
         ? await getSupplyById({
             id: activeRequest.routing.preferredSupplyId.trim(),
-          }).then((record) => (record ? toRequestSupplyContextSummary(toSupplyDraft(record)) : null))
+          }).then((record) =>
+            record
+              ? toRequestSupplyContextSummary(toSupplyDraft(record))
+              : null,
+          )
         : null;
     const candidateSupplySummaries =
       includeOwnerSupplyPromptContext && activeRequest
@@ -375,14 +377,17 @@ export async function POST(request: Request) {
                 .filter(
                   (supplyId) =>
                     supplyId &&
-                    supplyId !== activeRequest.routing.preferredSupplyId?.trim()
+                    supplyId !==
+                      activeRequest.routing.preferredSupplyId?.trim(),
                 )
                 .slice(0, 3)
                 .map((supplyId) =>
                   getSupplyById({ id: supplyId }).then((record) =>
-                    record ? toRequestSupplyContextSummary(toSupplyDraft(record)) : null
-                  )
-                )
+                    record
+                      ? toRequestSupplyContextSummary(toSupplyDraft(record))
+                      : null,
+                  ),
+                ),
             )
           ).filter((value): value is NonNullable<typeof value> => value != null)
         : [];
@@ -394,11 +399,7 @@ export async function POST(request: Request) {
       if (canUseChatTranscript) {
         messagesFromDb = await getMessagesByChatId({ id });
       }
-    } else if (
-      message?.role === "user" &&
-      !didEnsureRequestDraft &&
-      !noDbEvalMode
-    ) {
+    } else if (message?.role === "user" && !noDbEvalMode) {
       await saveChat({
         id,
         userId: session.user.id,
@@ -419,13 +420,13 @@ export async function POST(request: Request) {
               ?.filter(
                 (p: Record<string, unknown>) =>
                   p.state === "approval-responded" ||
-                  p.state === "output-denied"
+                  p.state === "output-denied",
               )
               .map((p: Record<string, unknown>) => [
                 String(p.toolCallId ?? ""),
                 p,
-              ]) ?? []
-        )
+              ]) ?? [],
+        ),
       );
       uiMessages = dbMessages.map((msg) => ({
         ...msg,
@@ -481,8 +482,7 @@ export async function POST(request: Request) {
       message?.role === "user" &&
       !noDbEvalMode
     ) {
-      const sourceText = extractUserMessageText(message as ChatMessage).trim();
-      if (sourceText) {
+      if (requestBriefingSource?.sourceText) {
         const occurredAt = new Date();
         await appendRequestEvent({
           eventId: generateUUID(),
@@ -494,15 +494,15 @@ export async function POST(request: Request) {
             kind: "human",
             id: session.user.id,
           },
-          correlationId: message.id,
-          causationId: message.id,
-          idempotencyKey: `briefing-source:${message.id}`,
+          correlationId: requestBriefingSource.messageId,
+          causationId: requestBriefingSource.messageId,
+          idempotencyKey: requestBriefingSource.messageId,
           source: "api.chat.request_briefing_source",
           payload: {
             summary: "Buyer briefing source submitted.",
             sourceKind: "briefing_source",
-            sourceText,
-            inputHash: message.metadata?.requestBriefingSource?.inputHash,
+            sourceText: requestBriefingSource.sourceText,
+            inputHash: requestBriefingSource.inputHash,
           },
           occurredAt,
         });
@@ -511,7 +511,8 @@ export async function POST(request: Request) {
 
     const isActiveRequestMode = activeRequest !== null;
     const isDraftRequestMode = activeRequest?.status === "draft";
-    const isPreDraftRequestMode = requestMode === true && activeRequest === null;
+    const isPreDraftRequestMode =
+      requestMode === true && activeRequest === null;
     const isOpenRequestMode =
       activeRequest !== null && activeRequest.status !== "draft";
     const isOpenRequestOwner =
@@ -560,15 +561,16 @@ export async function POST(request: Request) {
         : isPreDraftRequestMode
           ? preDraftRequestToolNames
           : isDraftRequestMode
-          ? requestUpdateToolNames
-          : isOpenRequestMode
-            ? isOpenRequestOwner
-              ? openOwnerRequestToolNames
-              : openResponderRequestToolNames
-            : defaultToolNames;
+            ? requestUpdateToolNames
+            : isOpenRequestMode
+              ? isOpenRequestOwner
+                ? openOwnerRequestToolNames
+                : openResponderRequestToolNames
+              : defaultToolNames;
     const requestToolChoice =
       supportsTools &&
-      isDraftRequestMode
+      (isDraftRequestMode ||
+        (isRequestBriefingSourceTurn && isPreDraftRequestMode))
         ? "required"
         : undefined;
     const stopCondition =
@@ -616,6 +618,7 @@ export async function POST(request: Request) {
               chatId: id,
               visibility: selectedVisibilityType,
               dryRun: noDbEvalMode,
+              source: requestBriefingSource,
             }),
             createDocument: createDocument({
               session,
@@ -674,7 +677,7 @@ export async function POST(request: Request) {
         });
 
         dataStream.merge(
-          result.toUIMessageStream({ sendReasoning: isReasoningModel })
+          result.toUIMessageStream({ sendReasoning: isReasoningModel }),
         );
 
         if (titlePromise) {
@@ -686,6 +689,10 @@ export async function POST(request: Request) {
       generateId: generateUUID,
       onFinish: async ({ messages: finishedMessages }) => {
         if (noDbEvalMode) {
+          return;
+        }
+
+        if (isRequestBriefingSourceTurn) {
           return;
         }
 
@@ -718,10 +725,10 @@ export async function POST(request: Request) {
           }
         } else if (finishedMessages.length > 0) {
           const existingMessageIds = new Set(
-            uiMessages.map((currentMessage) => currentMessage.id)
+            uiMessages.map((currentMessage) => currentMessage.id),
           );
           const newMessages = finishedMessages.filter(
-            (currentMessage) => !existingMessageIds.has(currentMessage.id)
+            (currentMessage) => !existingMessageIds.has(currentMessage.id),
           );
 
           if (newMessages.length === 0) {
@@ -745,7 +752,7 @@ export async function POST(request: Request) {
         if (
           error instanceof Error &&
           error.message?.includes(
-            "AI Gateway requires a valid credit card on file to service requests"
+            "AI Gateway requires a valid credit card on file to service requests",
           )
         ) {
           return "Boreal model access is unavailable right now.";
@@ -770,7 +777,7 @@ export async function POST(request: Request) {
             await createStreamId({ streamId, chatId: id });
             await streamContext.createNewResumableStream(
               streamId,
-              () => sseStream
+              () => sseStream,
             );
           }
         } catch (_) {
@@ -788,7 +795,7 @@ export async function POST(request: Request) {
     if (
       error instanceof Error &&
       error.message?.includes(
-        "AI Gateway requires a valid credit card on file to service requests"
+        "AI Gateway requires a valid credit card on file to service requests",
       )
     ) {
       return new ChatbotError("bad_request:activate_gateway").toResponse();
@@ -809,7 +816,7 @@ export async function DELETE(request: Request) {
     if (!parsedQuery.success) {
       return new ChatbotError(
         "bad_request:api",
-        "Valid chat id is required."
+        "Valid chat id is required.",
       ).toResponse();
     }
 

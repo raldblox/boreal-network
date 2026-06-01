@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
 import {
   applyRequestPatch,
   createInitialRequestDraft,
@@ -24,8 +24,7 @@ const draftRequestBase = applyRequestPatch(
       title: "Inspect a used car before purchase",
       summary:
         "A local inspector should check the car and attach proof before the buyer commits.",
-      body:
-        "Inspect a used car in Quezon City tomorrow. Done means a written condition note, timestamped photos, and video proof that the car was checked before purchase.",
+      body: "Inspect a used car in Quezon City tomorrow. Done means a written condition note, timestamped photos, and video proof that the car was checked before purchase.",
       constraints: {
         location: "Quezon City",
       },
@@ -64,7 +63,7 @@ const draftRequestBase = applyRequestPatch(
       },
     },
   },
-  updatedAt
+  updatedAt,
 );
 const draftRequest = {
   ...draftRequestBase,
@@ -82,7 +81,8 @@ const draftRequest = {
       {
         phaseKey: "field_execution" as const,
         title: "Inspect the car",
-        summary: "Visit the car, check visible condition, and capture evidence.",
+        summary:
+          "Visit the car, check visible condition, and capture evidence.",
         roleKeys: ["field_inspector" as const],
         requiredEvidenceClaims: [
           "timestamped_photos" as const,
@@ -246,10 +246,88 @@ test.describe("Request chat lifecycle", () => {
     const body = sentBodies[0] as {
       message?: { parts?: Array<{ type?: string; text?: string }> };
     };
-    expect(body.message?.parts?.find((part) => part.type === "text")?.text).toBe(
-      "Edited request with proof requirements"
-    );
+    expect(
+      body.message?.parts?.find((part) => part.type === "text")?.text,
+    ).toBe("Edited request with proof requirements");
     await expect(page.getByText("Original answer")).toHaveCount(0);
+
+    releaseChat();
+  });
+
+  test("new request submit hides the source turn and shows briefing feedback", async ({
+    page,
+  }) => {
+    const sentBodies: unknown[] = [];
+    let releaseChat: () => void = () => {};
+    const releaseChatResponse = new Promise<void>((resolve) => {
+      releaseChat = resolve;
+    });
+    const prompt =
+      "Need a local inspector to check a used car tomorrow with photo proof.";
+
+    await page.route("**/api/messages?chatId=**", async (route) => {
+      await route.fulfill({
+        body: JSON.stringify({
+          messages: [],
+          visibility: "private",
+          ownerUserId: ownerId,
+          viewerUserId: ownerId,
+          isReadonly: false,
+          request: null,
+        }),
+        contentType: "application/json",
+      });
+    });
+    await page.route("**/api/vote?chatId=**", async (route) => {
+      await route.fulfill({
+        body: JSON.stringify([]),
+        contentType: "application/json",
+      });
+    });
+    await page.route("**/api/chat", async (route: Route) => {
+      sentBodies.push(route.request().postDataJSON());
+      await releaseChatResponse;
+      await route.fulfill({
+        body: JSON.stringify({ message: "Forced test failure after send." }),
+        contentType: "application/json",
+        status: 503,
+      });
+    });
+
+    await page.goto("/?mode=new&type=request");
+    await page.getByTestId("multimodal-input").fill(prompt);
+    await page.getByTestId("send-button").click();
+
+    await expect(page.getByTestId("request-briefing-pending")).toBeVisible();
+    await expect(page.getByTestId("multimodal-input")).toHaveValue(prompt);
+    await expect(page).toHaveURL(/\/chat\/.+[?&]mode=request/);
+    await expect(page.getByTestId("message-assistant-loading")).toHaveCount(0);
+    await expect(page.getByTestId("artifact")).not.toBeVisible();
+    await expect(
+      page
+        .locator('[data-testid="message-content"]')
+        .filter({ hasText: prompt }),
+    ).toHaveCount(0);
+    await expect(page.getByText("Untitled request")).toHaveCount(0);
+    await expect.poll(() => sentBodies.length).toBe(1);
+
+    const body = sentBodies[0] as {
+      message?: {
+        metadata?: {
+          requestBriefingSource?: { hidden?: boolean; inputHash?: string };
+        };
+        parts?: Array<{ type?: string; text?: string }>;
+      };
+      requestMode?: boolean;
+    };
+    expect(body.requestMode).toBe(true);
+    expect(body.message?.metadata?.requestBriefingSource?.hidden).toBe(true);
+    expect(
+      body.message?.metadata?.requestBriefingSource?.inputHash,
+    ).toBeTruthy();
+    expect(
+      body.message?.parts?.find((part) => part.type === "text")?.text,
+    ).toBe(prompt);
 
     releaseChat();
   });
@@ -283,21 +361,29 @@ test.describe("Request chat lifecycle", () => {
     await expect(page.getByTestId("request-preflight-preview")).toHaveCount(0);
     await expect(page.getByText("Plans").first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Stepper" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Flow review" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Flow review" }),
+    ).toBeVisible();
     await expect(page.getByText("Confirm inspection details")).toBeVisible();
     await expect(page.getByText("Inspect the car")).toBeVisible();
-    await expect(page.getByText("Package the delivery and proof")).toBeVisible();
+    await expect(
+      page.getByText("Package the delivery and proof"),
+    ).toBeVisible();
     await expect(
       page
         .getByTestId("draft-plan-message")
-        .getByRole("button", { name: "Post request", exact: true })
+        .getByRole("button", { name: "Post request", exact: true }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Flow review" }).click();
     await expect(page.getByLabel("Request workflow canvas")).toBeVisible();
     await expect(page.getByText("Confirm inspection details")).toBeVisible();
     await expect(page.getByText("Deliver proof package")).toBeVisible();
-    await expect(page.getByText("Lead lane opens after approval")).toHaveCount(0);
-    await expect(page.getByText("Proof package", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Lead lane opens after approval")).toHaveCount(
+      0,
+    );
+    await expect(page.getByText("Proof package", { exact: true })).toHaveCount(
+      0,
+    );
   });
 });
