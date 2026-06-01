@@ -441,6 +441,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-conformance.schema.json` for the machine-readable agent conformance profile shape
 - `/schemas/agent-conformance-report.schema.json` for the machine-readable agent conformance report shape used to package sandbox replay evidence and requested scopes for operator review
 - `/schemas/agent-production-access-packet.schema.json` for the checked production access packet example shape used as operator-review input
+- `/schemas/agent-intake-validation.schema.json` for the validation-only request and response envelope used to preflight conformance reports and production access packets
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
 - `/schemas/agent-delegation.schema.json` for the machine-readable human delegation profile shape
 - `/schemas/agent-evidence.schema.json` for the machine-readable agent evidence profile shape
@@ -463,6 +464,10 @@ Read-only public discovery surfaces:
 - `/schemas/agent-readiness.schema.json` for the machine-readable agent readiness profile shape
 - `/schemas/agent-tools.schema.json` for the machine-readable agent tool registry shape
 - `/events/request-room.asyncapi.yaml` for durable request-room monitoring contracts
+
+Validation-only public agent surface:
+
+- `POST /agents/intake/validate` accepts either a conformance report or production access packet envelope and returns missing fields, warnings, next steps, and non-authority boundaries. It does not create a review submission, issue credentials, grant permission, approve spend, create a production sandbox, write `RequestEvent` truth, or prove completion.
 
 The agent card and `/openapi.json` include the same action catalog for common
 agent intents: inspect public requests, make a request draft for a human, apply
@@ -542,6 +547,13 @@ handling, idempotency, rate-limit, and target-protocol boundaries are known. It
 is not a credential, permission grant, operator approval record, human approval
 record, payment authorization, production sandbox, certification, or completion
 proof.
+
+The public agent intake validation endpoint is validation-only and
+safety-oriented. It gives agents immediate machine-readable feedback on
+conformance reports and production access packets before a human or operator
+review. It is not a submission endpoint, credential issuer, permission grant,
+operator approval record, human approval record, production sandbox, payment
+authorization, certification, completion proof, or durable history write.
 
 The public agent delegation profile is descriptive and safety-oriented. It tells
 agents how a human can delegate one action through public read, account-session,
@@ -692,6 +704,7 @@ routes:
 - `/agents/human-handoffs.json` is the public handoff lens agents should read before asking, stopping, escalating, requesting approval, or claiming draft, proposal, proof, payment, monitor, or completion state to a human
 - `/agents/http.json` is the public HTTP lens agents should read before choosing a live route; it summarizes existing OpenAPI exports and does not create a new endpoint contract, grant permission, replace route auth, make target adapters live, or prove completion
 - `/agents/ux.json` is the public UX lens agents should read before rendering human-facing process state; it organizes existing profiles and route contracts without creating a workflow engine, permission grant, approval record, payment authorization, adapter, or completion proof
+- `POST /agents/intake/validate` is the public validation-only preflight agents may call before human or operator review; it validates conformance reports and production access packets but does not submit them, issue credentials, grant permission, record approval, authorize spend, create a production sandbox, write `RequestEvent` truth, or prove completion
 - `/agents/optimization.json` is the public optimization lens agents should read before improving a brief, proposal, evidence packet, monitor update, or solution-run input; optimization is draft-only unless a human approves a governed mutation
 - `/agents/monitoring.json` is the public monitor lens agents should read before polling, detecting stale work, processing target webhook envelopes, or escalating monitor findings
 - `/agents/onboarding.json` is the public onboarding lens external agents should read before claiming production eligibility; it is not a credential issuer, OAuth server, production sandbox, adapter implementation, payment endpoint, or permission grant

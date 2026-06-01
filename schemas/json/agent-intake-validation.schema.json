@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-intake-validation.schema.json",
+  "title": "AgentIntakeValidation",
+  "description": "Validation-only request and response contract for checking agent conformance reports and production access packets before human or operator review. It does not create credentials, permissions, approvals, payment authority, completion proof, production sandboxes, or durable RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "acceptedKinds",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "acceptedKinds": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "const": "conformance_report"
+        },
+        {
+          "const": "production_access_packet"
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "request": {
+      "$ref": "#/$defs/intakeRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/validationResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "intakeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "intakeKind",
+        "payload"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "intakeKind": {
+          "enum": [
+            "conformance_report",
+            "production_access_packet"
+          ]
+        },
+        "payload": {
+          "type": "object",
+          "description": "Either an AgentConformanceReport or AgentProductionAccessPacketExample-shaped object."
+        }
+      }
+    },
+    "validationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "intakeKind",
+        "acceptedKinds",
+        "acceptedByProduction",
+        "reviewSubmissionCreated",
+        "credentialsIssued",
+        "permissionGranted",
+        "paymentAuthorized",
+        "completionProven",
+        "summary",
+        "missingFields",
+        "warnings",
+        "nextSteps",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "validation_passed",
+            "validation_failed"
+          ]
+        },
+        "intakeKind": {
+          "enum": [
+            "conformance_report",
+            "production_access_packet",
+            "unknown"
+          ]
+        },
+        "acceptedKinds": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "conformance_report",
+              "production_access_packet"
+            ]
+          },
+          "minItems": 2
+        },
+        "acceptedByProduction": {
+          "const": false
+        },
+        "reviewSubmissionCreated": {
+          "const": false
+        },
+        "credentialsIssued": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missingFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "validationIsNot",
+        "durableTruthObjects"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "validationIsNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

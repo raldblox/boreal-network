@@ -62,6 +62,7 @@ Recommended naming:
 - `json/agent-human-handoff-packets.schema.json`
 - `json/agent-http.schema.json`
 - `json/agent-ux.schema.json`
+- `json/agent-intake-validation.schema.json`
 - `json/agent-monitoring.schema.json`
 - `json/agent-onboarding.schema.json`
 - `json/agent-opportunity-cards.schema.json`

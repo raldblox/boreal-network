@@ -82,6 +82,7 @@ Current assets that agents can eventually build on:
 - A machine-readable conformance profile exists through `/agents/conformance.json` and `schemas/json/agent-conformance.schema.json`, mapping pre-production checks across discovery, auth, human handoff, work actions, proof, payment, recovery, sandbox, and target protocol boundaries.
 - A machine-readable conformance report contract exists through `schemas/json/agent-conformance-report.schema.json`, `/agents/conformance-report.example.json`, and `fixtures/agent/conformance-report.sample.json`, giving agents a standard way to package sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions.
 - A checked production access packet example exists through `/agents/production-access-packet.example.json`, `schemas/json/agent-production-access-packet.schema.json`, and `fixtures/agent/production-access-packet.sample.json`, giving agents a concrete operator-review package for represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, payment boundary, and target-protocol claims without granting access.
+- A validation-only intake endpoint exists through `POST /agents/intake/validate` and `schemas/json/agent-intake-validation.schema.json`, giving agents machine-readable preflight feedback on conformance reports and production access packets before human or operator review without creating access, approvals, credentials, production sandboxes, payment authority, completion proof, or durable history.
 - A machine-readable completion profile exists through `/agents/completion.json` and `schemas/json/agent-completion.schema.json`, mapping draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims to proof, Artifact, Fulfillment, Transaction, RequestEvent, and owner-review truth.
 - A machine-readable delegation profile exists through `/agents/delegation.json` and `schemas/json/agent-delegation.schema.json`, mapping human consent screens, scopes, account-session use, resolver bearer delegation, target OAuth, revocation, and per-action approval expiry.
 - A machine-readable evidence profile exists through `/agents/evidence.json` and `schemas/json/agent-evidence.schema.json`, mapping evidence packets, artifact packaging, redaction rules, review signals, and retry-safe proof submission.
@@ -114,6 +115,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first machine-readable access review profile now tells agents how Boreal operators should evaluate conformance reports, requested scopes, rate limits, revocation triggers, decision outcomes, and target adapter claims, but it does not issue credentials, grant permission, certify agents, authorize spend, or make protocol adapters live
 - the first machine-readable auth profile now tells agents which actor class, auth scheme, scope, approval boundary, and idempotency rule applies before writes, but it does not create production credentials or make OAuth-compatible external-agent auth live
 - the first machine-readable conformance profile now gives agent builders a checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol behavior, and the first conformance report schema plus public example route now gives them an operator-review evidence packet shape; neither certifies agents nor grants production access
+- the first validation-only intake endpoint now gives agents immediate feedback on conformance reports and production access packets, but it does not create persisted operator-review submissions, issue credentials, grant permission, authorize spend, create production sandboxes, or prove completion
 - the first machine-readable completion profile now tells agents what proof and review truth is required before saying draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed, but deeper lane-specific proof scoring remains target direction
 - the first machine-readable evidence profile now tells agents how to package proof, receipts, outputs, redaction statements, and review signals as `Artifact` support, but automated proof scoring, private reviewer access, and artifact scanning remain target direction
 - the first RFC 9457-style error example pack now tells agents how to classify auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write failures before retrying or escalating, but live routes still need consistent problem-details envelopes before this is fully production behavior
@@ -132,6 +134,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first machine-readable recovery profile now exists, so agents can handle failed writes, missing scopes, rate limits, blocked fulfillments, payment uncertainty, and stale monitor cursors without inventing parallel recovery state
 - the first machine-readable readiness profile now exists, so agents can distinguish live public reads, live authenticated HTTP contracts, contract-only sandbox flows, and target OAuth/MCP/A2A/x402 layers without overclaiming adapter availability
 - the first machine-readable agent UX profile now exists, so agents can render the human-first process order and visible surfaces without collapsing UX cards, prompts, payments, adapter tasks, or tool results into completion truth
+- the first validation-only intake path now exists, so agents can preflight review packets before involving a human or operator while keeping real access decisions target-bound
 - the first machine-readable tool registry now exists, so agents can map inspect, make draft, apply, submit, monitor, run, payment reconciliation, and optimization intents to safe HTTP calls while keeping MCP and A2A as target adapter mappings
 - the first contract-only sandbox, replay scenarios, and fixture runner exist, but no production sandbox credentials or isolated write sandbox exists for external agents yet
 - the first signed webhook/push-notification profile is documented for long-running agent monitoring, but subscription persistence and delivery are not live yet
@@ -333,6 +336,7 @@ Add these public surfaces:
 - `GET /agents/conformance.json`
 - `GET /agents/conformance-report.example.json`
 - `GET /agents/production-access-packet.example.json`
+- `POST /agents/intake/validate`
 - `GET /agents/completion.json`
 - `GET /agents/evidence.json`
 - `GET /agents/error-examples.json`
@@ -371,6 +375,7 @@ Add these public surfaces:
 - `GET /schemas/agent-conformance.schema.json`
 - `GET /schemas/agent-conformance-report.schema.json`
 - `GET /schemas/agent-production-access-packet.schema.json`
+- `GET /schemas/agent-intake-validation.schema.json`
 - `GET /schemas/agent-completion.schema.json`
 - `GET /schemas/agent-evidence.schema.json`
 - `GET /schemas/agent-error-examples.schema.json`
@@ -820,6 +825,7 @@ Deliverables:
 - `schemas/json/agent-conformance-report.schema.json` and `fixtures/agent/conformance-report.sample.json` - implemented as a public machine-readable report shape and sample for packaging sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions
 - `/agents/conformance-report.example.json` - implemented as the public fetchable conformance report example package
 - `/agents/production-access-packet.example.json`, `schemas/json/agent-production-access-packet.schema.json`, and `fixtures/agent/production-access-packet.sample.json` - implemented as a checked operator-review packet example for represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, payment boundary, and target-protocol claims
+- `POST /agents/intake/validate` and `schemas/json/agent-intake-validation.schema.json` - implemented as a validation-only preflight for conformance reports and production access packets before human or operator review
 - `/agents/completion.json` - implemented as a public machine-readable completion profile for proof packets, Artifact guidance, completion claims, and review boundaries
 - `/agents/delegation.json` - implemented as a public machine-readable human delegation profile for consent screens, scope minimization, account-session use, resolver bearer delegation, target OAuth, revocation, and per-action approval expiry
 - `/agents/evidence.json` - implemented as a public machine-readable evidence profile for proof packets, Artifact packaging, redaction, review signals, and retry-safe submission boundaries
@@ -856,6 +862,7 @@ Deliverables:
 - machine-readable agent conformance report schema - implemented as `/schemas/agent-conformance-report.schema.json`, linked from the conformance profile and public schema catalog
 - machine-readable agent conformance report example - implemented as `/agents/conformance-report.example.json`, linked from the conformance profile and `/openapi.json`
 - machine-readable production access packet example - implemented as `/agents/production-access-packet.example.json`, linked from onboarding, access review, conformance, `/llms.txt`, and `/openapi.json`
+- machine-readable agent intake validation endpoint - implemented as `POST /agents/intake/validate`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, readiness profile, and `/openapi.json`
 - machine-readable agent completion profile - implemented as `/agents/completion.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent human delegation profile - implemented as `/agents/delegation.json`, linked from the agent card, auth profile, start guide, `/llms.txt`, and `/openapi.json`
 - machine-readable agent evidence profile - implemented as `/agents/evidence.json`, linked from the agent card and `/openapi.json`
@@ -895,6 +902,7 @@ Acceptance:
 - an agent can show a human an action-specific consent screen with required scopes, canonical writes, expiration or revocation path, and non-grants before requesting delegated authority
 - an agent can map live HTTP route families, auth schemes, scopes, idempotency requirements, OpenAPI sources, and non-HTTP fallbacks without treating the reference as a new API surface
 - an agent can render a human-first process surface for discovery, consent, action, monitoring, proof review, payment authorization, optimization, and completion claims without treating UX state as durable truth
+- an agent can validate conformance-report and production-access-packet shape before human or operator review without treating validation as access, approval, payment authority, production sandbox creation, or completion proof
 
 Current evidence:
 
@@ -904,6 +912,7 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent access review profile, requested-scope review, low-volume pilot rate limit, revocation triggers, decision outcomes, non-credential boundary, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public conformance report example route, report kind, operator-review status, non-credential boundary, and OpenAPI index link.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public production access packet example route, packet kind, operator-review status, non-production boundary, target-protocol boundary, payment non-authority, onboarding link, OpenAPI path, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the validation-only intake endpoint for passing conformance reports, passing production access packets, malformed bodies, non-authority flags, OpenAPI path and extension, public schema route, `/llms.txt`, start-guide, sandbox-manifest, and readiness links.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent completion profile, proof packet, Artifact and owner-review boundaries, non-completion truth list, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent human delegation profile, live account-session and resolver-bearer modes, target OAuth boundary, action consent flows, revocation routes, non-grant boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent HTTP reference profile, OpenAPI source list, route families, idempotency-required HTTP intents, non-HTTP fallbacks, non-new-API boundary, OpenAPI extension, public route, and public schema route.

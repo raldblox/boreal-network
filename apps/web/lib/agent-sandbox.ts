@@ -16,6 +16,7 @@ export const agentSandboxPaths = {
   guide: "/agents/sandbox.md",
   humanHandoffs: "/agents/human-handoffs.json",
   http: "/agents/http.json",
+  intakeValidation: "/agents/intake/validate",
   manifest: "/agents/sandbox.json",
   ux: "/agents/ux.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
@@ -126,6 +127,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Agent UX profile",
         url: absoluteUrl(agentSandboxPaths.ux),
+      },
+      {
+        label: "Agent intake validation endpoint",
+        url: absoluteUrl(agentSandboxPaths.intakeValidation),
       },
       {
         label: "Optimization profile",

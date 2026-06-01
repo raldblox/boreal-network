@@ -40,6 +40,7 @@ import {
   readAgentProtocolAdapterSamples,
   readDiscoveryAsset,
 } from "@/lib/agent-discovery";
+import { validateAgentIntakePayload } from "@/lib/agent-intake-validation";
 import {
   buildAgentSandboxManifest,
   buildAgentSandboxMarkdown,
@@ -63,6 +64,7 @@ import { GET as getAgentHumanHandoffPacketExamples } from "@/app/agents/human-ha
 import { GET as getAgentHumanHandoffs } from "@/app/agents/human-handoffs.json/route";
 import { GET as getAgentHttp } from "@/app/agents/http.json/route";
 import { GET as getAgentUx } from "@/app/agents/ux.json/route";
+import { POST as postAgentIntakeValidation } from "@/app/agents/intake/validate/route";
 import { GET as getAgentMonitoring } from "@/app/agents/monitoring.json/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
 import { GET as getAgentOnboarding } from "@/app/agents/onboarding.json/route";
@@ -159,6 +161,10 @@ async function main() {
   assert.equal(agentCard.httpProfileUrl.endsWith("/agents/http.json"), true);
   assert.equal(agentCard.uxProfileUrl.endsWith("/agents/ux.json"), true);
   assert.equal(
+    agentCard.intakeValidationUrl.endsWith("/agents/intake/validate"),
+    true,
+  );
+  assert.equal(
     agentCard.monitoringProfileUrl.endsWith("/agents/monitoring.json"),
     true,
   );
@@ -254,6 +260,15 @@ async function main() {
         surface.id === "payment_authorization_card" &&
         surface.canonicalWrites.includes("Transaction")
     ),
+    true,
+  );
+  assert.equal(agentCard.intakeValidation.status, "live_validation_only");
+  assert.equal(
+    agentCard.intakeValidation.acceptedKinds.includes("conformance_report"),
+    true,
+  );
+  assert.equal(
+    agentCard.intakeValidation.nonAuthority.includes("permission grant"),
     true,
   );
   assert.equal(agentCard.opportunities.status, "live_opportunity_discovery_profile");
@@ -694,6 +709,17 @@ async function main() {
       (capability) =>
         capability.id === "protocol_adapters" &&
         capability.status === "target_adapter_profile"
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "review_packet_validation" &&
+        capability.status === "live_validation_only" &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/intake/validate")
+        )
     ),
     true,
   );
@@ -1461,6 +1487,49 @@ async function main() {
     ),
     true,
   );
+  const conformanceValidation = validateAgentIntakePayload({
+    schemaVersion: 1,
+    intakeKind: "conformance_report",
+    payload: conformanceReportExample,
+  });
+  assert.equal(conformanceValidation.status, "validation_passed");
+  assert.equal(conformanceValidation.acceptedByProduction, false);
+  assert.equal(conformanceValidation.credentialsIssued, false);
+  assert.equal(conformanceValidation.permissionGranted, false);
+  assert.equal(conformanceValidation.paymentAuthorized, false);
+  assert.equal(conformanceValidation.completionProven, false);
+  assert.equal(
+    conformanceValidation.canonicalBoundary.validationIsNot.includes(
+      "durable RequestEvent"
+    ),
+    true,
+  );
+
+  const productionAccessValidation = validateAgentIntakePayload({
+    schemaVersion: 1,
+    intakeKind: "production_access_packet",
+    payload: productionAccessPacket,
+  });
+  assert.equal(productionAccessValidation.status, "validation_passed");
+  assert.equal(productionAccessValidation.reviewSubmissionCreated, false);
+  assert.equal(productionAccessValidation.acceptedByProduction, false);
+
+  const malformedValidation = validateAgentIntakePayload({
+    schemaVersion: 1,
+    intakeKind: "production_access_packet",
+    payload: {
+      packetKind: "agent_production_access_packet",
+      protocolClaims: { mcp: "live" },
+    },
+  });
+  assert.equal(malformedValidation.status, "validation_failed");
+  assert.equal(
+    malformedValidation.missingFields.includes(
+      "protocolClaims.mcp=target_only"
+    ),
+    true,
+  );
+  assert.equal(malformedValidation.credentialsIssued, false);
   assert.equal(
     onboardingProfile.goLiveChecks.some(
       (check) => check.id === "scope_minimization" && check.blocking
@@ -2006,6 +2075,7 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/human-handoff-packets\.example\.json/);
   assert.match(startGuide, /GET \/agents\/http\.json/);
   assert.match(startGuide, /GET \/agents\/ux\.json/);
+  assert.match(startGuide, /POST \/agents\/intake\/validate/);
   assert.match(startGuide, /GET \/agents\/monitoring\.json/);
   assert.match(startGuide, /GET \/agents\/onboarding\.json/);
   assert.match(startGuide, /GET \/agents\/optimization\.json/);
@@ -2026,6 +2096,7 @@ async function main() {
   assert.match(startGuide, /Agent human handoff packet examples/);
   assert.match(startGuide, /Agent HTTP reference profile/);
   assert.match(startGuide, /Agent UX profile/);
+  assert.match(startGuide, /Agent intake validation endpoint/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent production access packet example/);
   assert.match(startGuide, /Agent opportunity card examples/);
@@ -2035,6 +2106,7 @@ async function main() {
   assert.match(startGuide, /`Request` is the durable root object/);
   assert.match(startGuide, /If the request requires physical presence/);
   assert.match(startGuide, /MCP server support, A2A task adapters/);
+  assert.match(startGuide, /does not create a review submission/);
 
   const discoveryIndex = buildOpenApiDiscoveryIndex();
   assert.equal(discoveryIndex.openapi, "3.1.0");
@@ -2095,6 +2167,17 @@ async function main() {
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/payments.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/production-access-packet.example.json"),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/intake/validate"),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentIntakeValidationResult"
+    ),
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/prompts.json"), true);
@@ -2222,6 +2305,22 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-ux"].nonAuthority.includes(
       "workflow engine"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-intake-validation"].status,
+    "live_validation_only",
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-intake-validation"].acceptedKinds.includes(
+      "production_access_packet"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-intake-validation"].nonAuthority.includes(
+      "permission grant"
     ),
     true,
   );
@@ -2359,6 +2458,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-production-access-packet.schema.json")?.sourcePath,
     "schemas/json/agent-production-access-packet.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-intake-validation.schema.json")?.sourcePath,
+    "schemas/json/agent-intake-validation.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-completion.schema.json")?.sourcePath,
@@ -2588,6 +2691,53 @@ async function main() {
     "live_agent_ux_profile"
   );
 
+  const intakeValidationResponse = await postAgentIntakeValidation(
+    new Request("http://boreal.test/agents/intake/validate", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        intakeKind: "production_access_packet",
+        payload: productionAccessPacket,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(intakeValidationResponse.status, 200);
+  const intakeValidation = await intakeValidationResponse.json();
+  assert.equal(intakeValidation.status, "validation_passed");
+  assert.equal(intakeValidation.acceptedByProduction, false);
+  assert.equal(intakeValidation.reviewSubmissionCreated, false);
+  assert.equal(intakeValidation.credentialsIssued, false);
+
+  const failedIntakeValidationResponse = await postAgentIntakeValidation(
+    new Request("http://boreal.test/agents/intake/validate", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        intakeKind: "conformance_report",
+        payload: {},
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(failedIntakeValidationResponse.status, 400);
+  const failedIntakeValidation = await failedIntakeValidationResponse.json();
+  assert.equal(failedIntakeValidation.status, "validation_failed");
+  assert.equal(failedIntakeValidation.paymentAuthorized, false);
+
+  const malformedIntakeValidationResponse = await postAgentIntakeValidation(
+    new Request("http://boreal.test/agents/intake/validate", {
+      body: "{",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(malformedIntakeValidationResponse.status, 400);
+  assert.equal(
+    (await malformedIntakeValidationResponse.json()).credentialsIssued,
+    false,
+  );
+
   const agentEvidenceResponse = await getAgentEvidence();
   assert.equal(agentEvidenceResponse.status, 200);
   assert.equal(
@@ -2766,6 +2916,7 @@ async function main() {
   assert.match(llmsText, /Agent human handoff packet examples/);
   assert.match(llmsText, /Agent HTTP reference profile/);
   assert.match(llmsText, /Agent UX profile/);
+  assert.match(llmsText, /Agent intake validation endpoint/);
   assert.match(llmsText, /Agent monitoring profile/);
   assert.match(llmsText, /Agent onboarding profile/);
   assert.match(llmsText, /Agent opportunity card examples/);
@@ -2851,6 +3002,20 @@ async function main() {
   assert.equal(
     (await productionAccessPacketSchemaResponse.json()).title,
     "AgentProductionAccessPacketExample"
+  );
+
+  const intakeValidationSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-intake-validation.schema.json",
+      }),
+    }
+  );
+  assert.equal(intakeValidationSchemaResponse.status, 200);
+  assert.equal(
+    (await intakeValidationSchemaResponse.json()).title,
+    "AgentIntakeValidation"
   );
 
   const completionSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

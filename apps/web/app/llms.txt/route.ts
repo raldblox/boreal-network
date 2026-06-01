@@ -50,6 +50,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent human handoff packet examples](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples)}): Checked renderable packets for draft approval, Commitment review, proof review, monitor escalation, and payment authorization.
 - [Agent HTTP reference profile](${absoluteUrl(agentDiscoveryPaths.agentHttp)}): Machine-readable current HTTP baseline for agent-callable routes, auth, scopes, idempotency, and canonical writes.
 - [Agent UX profile](${absoluteUrl(agentDiscoveryPaths.agentUx)}): Machine-readable human-first process flow for discovery, consent, action, monitoring, proof review, payment, optimization, and completion claims.
+- [Agent intake validation endpoint](${absoluteUrl(agentDiscoveryPaths.agentIntakeValidation)}): Validation-only POST endpoint for conformance reports and production access packets before review; it does not grant access or create approval.
 - [Agent monitoring profile](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)}): Machine-readable cursor polling, stale-state detection, escalation, and push-boundary guidance.
 - [Agent onboarding profile](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)}): Machine-readable path from public discovery to sandbox validation and scoped production eligibility.
 - [Agent opportunity card examples](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)}): Checked read-only examples for apply, monitor, run, and optimize opportunity recommendations.

@@ -54,6 +54,7 @@ export const agentDiscoveryPaths = {
   agentHumanHandoffPacketExamples: "/agents/human-handoff-packets.example.json",
   agentHttp: "/agents/http.json",
   agentUx: "/agents/ux.json",
+  agentIntakeValidation: "/agents/intake/validate",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
   agentOnboarding: "/agents/onboarding.json",
@@ -483,6 +484,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Validation-only request and response schema for checking agent conformance reports and production access packets before human or operator review.",
+    routePath: "/schemas/agent-intake-validation.schema.json",
+    sourcePath: "schemas/json/agent-intake-validation.schema.json",
+    standard: "json_schema",
+    title: "Agent intake validation",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable agent payment, buyer-credit, paid-run, x402 target, and Transaction reconciliation profile schema.",
     routePath: "/schemas/agent-payments.schema.json",
     sourcePath: "schemas/json/agent-payments.schema.json",
@@ -685,6 +695,7 @@ export function buildAgentCard() {
     ),
     httpProfileUrl: absoluteUrl(agentDiscoveryPaths.agentHttp),
     uxProfileUrl: absoluteUrl(agentDiscoveryPaths.agentUx),
+    intakeValidationUrl: absoluteUrl(agentDiscoveryPaths.agentIntakeValidation),
     monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
     onboardingProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
     opportunityCardExamplesUrl: absoluteUrl(
@@ -835,6 +846,21 @@ export function buildAgentCard() {
           canonicalWrites: surface.canonicalWrites,
         })
       ),
+    },
+    intakeValidation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentIntakeValidation),
+      status: "live_validation_only",
+      acceptedKinds: ["conformance_report", "production_access_packet"],
+      schemaUrl: absoluteUrl("/schemas/agent-intake-validation.schema.json"),
+      nonAuthority: [
+        "production credential",
+        "permission grant",
+        "operator approval record",
+        "human approval record",
+        "payment authorization",
+        "completion proof",
+        "production sandbox",
+      ],
     },
     monitoring: {
       url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
@@ -1062,6 +1088,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent human handoff packet examples: [${agentDiscoveryPaths.agentHumanHandoffPacketExamples}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples)})
 - Agent HTTP reference profile: [${agentDiscoveryPaths.agentHttp}](${absoluteUrl(agentDiscoveryPaths.agentHttp)})
 - Agent UX profile: [${agentDiscoveryPaths.agentUx}](${absoluteUrl(agentDiscoveryPaths.agentUx)})
+- Agent intake validation endpoint: [${agentDiscoveryPaths.agentIntakeValidation}](${absoluteUrl(agentDiscoveryPaths.agentIntakeValidation)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
 - Agent onboarding profile: [${agentDiscoveryPaths.agentOnboarding}](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)})
 - Agent opportunity card examples: [${agentDiscoveryPaths.agentOpportunityCardExamples}](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)})
@@ -1180,6 +1207,14 @@ For a deterministic production access packet example to mirror during operator r
 \`\`\`http
 GET ${agentDiscoveryPaths.agentProductionAccessPacketExample}
 \`\`\`
+
+For validation-only preflight of conformance reports or production access packets before human or operator review, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentIntakeValidation}
+\`\`\`
+
+This endpoint returns shape feedback only. It does not create a review submission, issue credentials, grant permission, approve spend, create a production sandbox, or prove completion.
 
 For deterministic tool invocation, preflight, HTTP fallback, and target MCP/A2A mapping, agents can read:
 
@@ -1492,6 +1527,49 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentProductionAccessPacketExample",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/intake/validate": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Validate an agent conformance report or production access packet before review.",
+          description:
+            "Validation-only preflight. This endpoint does not create a review submission, issue credentials, grant permission, authorize payment, create a production sandbox, or prove completion.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentIntakeValidationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Packet shape passed validation but no production authority was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentIntakeValidationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Packet shape failed validation or overclaimed authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentIntakeValidationResult",
                   },
                 },
               },
@@ -2201,6 +2279,70 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentIntakeValidationRequest: {
+          type: "object",
+          required: ["schemaVersion", "intakeKind", "payload"],
+          properties: {
+            schemaVersion: { const: 1 },
+            intakeKind: {
+              enum: ["conformance_report", "production_access_packet"],
+            },
+            payload: {
+              type: "object",
+              description:
+                "Either an AgentConformanceReport or AgentProductionAccessPacketExample-shaped object.",
+            },
+          },
+          additionalProperties: false,
+        },
+        AgentIntakeValidationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "intakeKind",
+            "acceptedByProduction",
+            "reviewSubmissionCreated",
+            "credentialsIssued",
+            "permissionGranted",
+            "paymentAuthorized",
+            "completionProven",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["validation_passed", "validation_failed"] },
+            intakeKind: {
+              enum: [
+                "conformance_report",
+                "production_access_packet",
+                "unknown",
+              ],
+            },
+            acceptedByProduction: { const: false },
+            reviewSubmissionCreated: { const: false },
+            credentialsIssued: { const: false },
+            permissionGranted: { const: false },
+            paymentAuthorized: { const: false },
+            completionProven: { const: false },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentCompletionProfile: {
           type: "object",
           required: [
@@ -2780,6 +2922,21 @@ export function buildOpenApiDiscoveryIndex() {
         })
       ),
       nonAuthority: buildAgentUxProfile().canonicalBoundary.uxProfileIsNot,
+    },
+    "x-boreal-agent-intake-validation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentIntakeValidation),
+      status: "live_validation_only",
+      acceptedKinds: ["conformance_report", "production_access_packet"],
+      schemaUrl: absoluteUrl("/schemas/agent-intake-validation.schema.json"),
+      nonAuthority: [
+        "production credential",
+        "permission grant",
+        "operator approval record",
+        "human approval record",
+        "payment authorization",
+        "completion proof",
+        "production sandbox",
+      ],
     },
     "x-boreal-agent-optimization": {
       url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
@@ -5787,6 +5944,10 @@ export function buildAgentUxProfile() {
       {
         label: "Agent completion profile",
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent intake validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentIntakeValidation),
       },
       {
         label: "Agent UX schema",
@@ -8821,6 +8982,29 @@ export function buildAgentReadinessProfile() {
         evidence: [
           absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
           absoluteUrl("/schemas/agent-sandbox.schema.json"),
+        ],
+      },
+      {
+        id: "review_packet_validation",
+        primaryAgentIntent: "Preflight agent review packets",
+        status: "live_validation_only",
+        actions: ["package_production_access_packet"],
+        standards: ["JSON Schema", "OpenAPI 3.1"],
+        availableNow: [
+          "Validate conformance reports and production access packets before human or operator review.",
+          "Return missing fields, warnings, and non-authority boundaries without creating credentials or review submissions.",
+        ],
+        requiresBeforeUse: [
+          "agent conformance report or production access packet payload",
+          "explicit operator-review boundary",
+          "target protocols kept target-only unless a live route contract says otherwise",
+        ],
+        stopOrEscalateWhen: [
+          "the packet contains secrets, claims permission, requests payment authority, or treats validation as certification",
+        ],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentIntakeValidation),
+          absoluteUrl("/schemas/agent-intake-validation.schema.json"),
         ],
       },
       {

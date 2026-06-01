@@ -94,6 +94,10 @@
       "url": "https://boreal.work/agents/ux.json"
     },
     {
+      "label": "Agent intake validation endpoint",
+      "url": "https://boreal.work/agents/intake/validate"
+    },
+    {
       "label": "Optimization profile",
       "url": "https://boreal.work/agents/optimization.json"
     },
