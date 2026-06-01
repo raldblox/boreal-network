@@ -1,10 +1,11 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
+  ConnectionLineType,
   Controls,
   Handle,
   Position,
@@ -14,22 +15,14 @@ import {
   type Node,
   type NodeProps,
   type ReactFlowInstance,
+  type NodeChange,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
-import {
-  AlertTriangleIcon,
-  CheckIcon,
-  CircleDashedIcon,
-  LoaderCircleIcon,
-  SparklesIcon,
-  SplitIcon,
-  XIcon,
-} from "lucide-react";
 import type {
   RequestFlowGraph,
   RequestFlowNodeDescriptor,
-  RequestFlowNodeState,
+  RequestFlowNodeKind,
   RequestFlowNodeTone,
 } from "@/lib/request-flow";
 import { cn } from "@/lib/utils";
@@ -46,9 +39,16 @@ type RequestFlowCanvasNodeData = {
   descriptor: RequestFlowNodeDescriptor;
 };
 
+type PendingWorkflowAction = {
+  sourceId: string;
+  x: number;
+  y: number;
+};
+
 const nodeTypes = {
   requestFlow: RequestFlowCanvasNode,
 };
+const NODE_HANDLE_TOP = "4.85rem";
 
 export function RequestFlowCanvas({
   graph,
@@ -81,6 +81,10 @@ function RequestFlowCanvasInner({
     graph.initialSelectedNodeId
   );
   const selectedNodeId = selectedNodeIdProp ?? uncontrolledSelectedNodeId;
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const connectingSourceNodeIdRef = useRef<string | null>(null);
+  const [pendingAction, setPendingAction] =
+    useState<PendingWorkflowAction | null>(null);
   const [flowInstance, setFlowInstance] = useState<
     ReactFlowInstance<Node<RequestFlowCanvasNodeData>, Edge> | null
   >(null);
@@ -105,13 +109,13 @@ function RequestFlowCanvasInner({
     () =>
       graph.edges.map((edge) => ({
         ...edge,
-        type: "smoothstep",
+        type: "bezier",
         animated: false,
         selectable: false,
         focusable: false,
         style: {
-          stroke: "rgba(148, 163, 184, 0.58)",
-          strokeWidth: 2.1,
+          stroke: "rgba(52, 211, 153, 0.72)",
+          strokeWidth: 2,
           strokeLinecap: "round" as const,
           strokeLinejoin: "round" as const,
         },
@@ -123,6 +127,10 @@ function RequestFlowCanvasInner({
     []
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const handleNodesChange = (changes: NodeChange<Node<RequestFlowCanvasNodeData>>[]) => {
+    setPendingAction(null);
+    onNodesChange(changes);
+  };
 
   useEffect(() => {
     setNodes((currentNodes) =>
@@ -163,12 +171,44 @@ function RequestFlowCanvasInner({
       flowInstance.fitView({
         duration: 280,
         maxZoom: 1,
-        padding: 0.14,
+        padding: 0.2,
       });
     }, 30);
 
     return () => window.clearTimeout(handle);
   }, [flowInstance, graph.edges.length, graph.nodes.length]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !flowInstance) {
+      return;
+    }
+
+    let resizeHandle: number | null = null;
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeHandle !== null) {
+        window.clearTimeout(resizeHandle);
+      }
+
+      resizeHandle = window.setTimeout(() => {
+        flowInstance.fitView({
+          duration: 240,
+          maxZoom: 1,
+          padding: 0.2,
+        });
+      }, 80);
+    });
+
+    resizeObserver.observe(canvas);
+
+    return () => {
+      if (resizeHandle !== null) {
+        window.clearTimeout(resizeHandle);
+      }
+
+      resizeObserver.disconnect();
+    };
+  }, [flowInstance]);
 
   if (graph.nodes.length === 0) {
     return null;
@@ -177,52 +217,115 @@ function RequestFlowCanvasInner({
   return (
     <div className={className}>
       <div
+        ref={canvasRef}
+        aria-label="Request workflow canvas"
         className={cn(
-          "overflow-hidden rounded-[20px] border border-border/60 bg-[#0b0b0f]",
+          "relative overflow-hidden rounded-[20px] border border-border/60 bg-background",
           heightClassName
         )}
+        role="region"
+        style={{
+          background:
+            "radial-gradient(circle at 18% 0%, color-mix(in oklch, var(--status-success) 16%, transparent), transparent 34rem), radial-gradient(circle at 84% 18%, color-mix(in oklch, var(--status-active) 10%, transparent), transparent 30rem), linear-gradient(135deg, var(--background), color-mix(in oklch, var(--background) 76%, var(--card) 24%))",
+        }}
       >
         <ReactFlow
           className="[&_.react-flow__pane]:cursor-grab [&_.react-flow__pane.dragging]:cursor-grabbing"
           colorMode="dark"
+          connectOnClick={false}
+          connectionLineStyle={{
+            stroke: "rgb(34, 197, 94)",
+            strokeWidth: 2,
+          }}
+          connectionLineType={ConnectionLineType.Bezier}
+          connectionRadius={42}
           defaultEdgeOptions={{
-            type: "smoothstep",
+            type: "bezier",
             style: {
-              stroke: "rgba(148, 163, 184, 0.58)",
-              strokeWidth: 2.1,
+              stroke: "rgba(52, 211, 153, 0.72)",
+              strokeWidth: 2,
             },
           }}
           edges={edges}
           fitView
+          fitViewOptions={{
+            maxZoom: 1,
+            padding: 0.2,
+          }}
           maxZoom={1.25}
           minZoom={0.45}
           nodeTypes={nodeTypes}
           nodes={nodes}
-          nodesConnectable={false}
+          nodesConnectable
+          nodesDraggable
           onEdgesChange={onEdgesChange}
           onInit={setFlowInstance}
+          onConnectEnd={(event) => {
+            const sourceId = connectingSourceNodeIdRef.current;
+            connectingSourceNodeIdRef.current = null;
+            if (!sourceId || !canvasRef.current) {
+              return;
+            }
+
+            const point = getClientPoint(event);
+            if (!point) {
+              return;
+            }
+
+            const rect = canvasRef.current.getBoundingClientRect();
+            setPendingAction({
+              sourceId,
+              x: Math.min(Math.max(point.clientX - rect.left, 24), rect.width - 320),
+              y: Math.min(Math.max(point.clientY - rect.top, 24), rect.height - 220),
+            });
+          }}
+          onConnectStart={(_, params) => {
+            connectingSourceNodeIdRef.current = params.nodeId;
+            setPendingAction(null);
+          }}
           onNodeClick={(_, node) => {
             setUncontrolledSelectedNodeId(node.id);
+            setPendingAction(null);
             onSelectedNodeChange?.(node.id);
           }}
-          onNodesChange={onNodesChange}
+          onNodesChange={handleNodesChange}
           panOnDrag
-          panOnScroll
+          panOnScroll={false}
+          preventScrolling={false}
           proOptions={{ hideAttribution: true }}
           selectionOnDrag={false}
+          style={{ background: "transparent" }}
+          zoomOnScroll={false}
         >
           <Background
-            color="rgba(148, 163, 184, 0.16)"
+            color="color-mix(in oklch, var(--muted-foreground) 32%, transparent)"
             gap={28}
             size={1}
             variant={BackgroundVariant.Dots}
           />
           <Controls
-            className="[&_button]:!h-9 [&_button]:!w-9 [&_button]:!border-white/10 [&_button]:!bg-[#16161d] [&_button]:!text-zinc-100 [&_button:hover]:!bg-[#20212b]"
+            aria-label="Workflow viewport controls"
+            className="!bottom-4 !left-4 !m-0 overflow-hidden !rounded-[18px] !border !border-border/70 !bg-background/82 !shadow-[0_18px_52px_rgba(0,0,0,0.28)] !backdrop-blur-xl [&_button]:!h-9 [&_button]:!w-9 [&_button]:!border-border/60 [&_button]:!bg-transparent [&_button]:!text-foreground [&_button:hover]:!bg-muted/78 [&_button:focus-visible]:!outline-none [&_button:focus-visible]:!ring-2 [&_button:focus-visible]:!ring-ring [&_svg]:!fill-foreground"
             position="bottom-left"
             showInteractive={false}
           />
         </ReactFlow>
+        <p className="sr-only">
+          Press and drag open canvas space to move the workflow. Use the
+          bottom-left controls to fit, zoom in, or zoom out.
+        </p>
+        {pendingAction ? (
+          <WorkflowActionSearchPanel
+            graph={graph}
+            onChooseNode={(nodeId) => {
+              setUncontrolledSelectedNodeId(nodeId);
+              setPendingAction(null);
+              onSelectedNodeChange?.(nodeId);
+            }}
+            onClose={() => setPendingAction(null)}
+            pendingAction={pendingAction}
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -239,26 +342,30 @@ function RequestFlowCanvasNode({
     <div className="relative">
       <Handle
         className={cn(
-          "!size-2.5 !border-2 !border-[#0b0b0f] shadow-[0_0_0_4px_rgba(11,11,15,0.72)]",
+          "!size-4 !border-2 !border-[#050608] shadow-[0_0_0_4px_rgba(5,6,8,0.72)]",
           tone.handle
         )}
+        isConnectable={false}
         position={Position.Left}
+        style={{ top: NODE_HANDLE_TOP }}
         type="target"
       />
       <Handle
         className={cn(
-          "!size-2.5 !border-2 !border-[#0b0b0f] shadow-[0_0_0_4px_rgba(11,11,15,0.72)]",
+          "!size-4 !border-2 !border-[#050608] shadow-[0_0_0_4px_rgba(5,6,8,0.72)]",
           tone.handle
         )}
+        isConnectable
         position={Position.Right}
+        style={{ top: NODE_HANDLE_TOP }}
         type="source"
       />
 
       <div
         className={cn(
-          "relative h-[14.5rem] overflow-hidden rounded-[18px] border bg-[#111217]/94 p-4 text-zinc-100 shadow-[0_28px_80px_-36px_rgba(0,0,0,0.72)] backdrop-blur-xl transition-[border-color,box-shadow] duration-200",
+          "relative h-[17.5rem] cursor-grab overflow-hidden rounded-[22px] border bg-card/96 p-5 text-card-foreground shadow-[0_34px_90px_-40px_rgba(0,0,0,0.78)] backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-200 active:cursor-grabbing",
           selected
-            ? "border-white/22 shadow-[0_36px_90px_-40px_rgba(0,0,0,0.86)]"
+            ? "border-white/24 shadow-[0_40px_96px_-42px_rgba(0,0,0,0.9)]"
             : "border-white/[0.08] hover:border-white/[0.14]"
         )}
         style={{
@@ -266,65 +373,20 @@ function RequestFlowCanvasNode({
         }}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <div
-                  className={cn(
-                    "inline-flex rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
-                    tone.badge
-                  )}
-                >
-                  {descriptor.laneLabel}
-                </div>
-              </div>
-
-              <div className="mt-3 flex min-w-0 items-start gap-3">
-                <div
-                  className={cn(
-                    "flex size-9 shrink-0 items-center justify-center rounded-[13px] border border-white/[0.08]",
-                    tone.icon
-                  )}
-                >
-                  {getNodeIcon(descriptor)}
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[14px] font-medium leading-5.5 text-zinc-50">
-                    <ClampedText lines={2}>{descriptor.title}</ClampedText>
-                  </div>
-                  <div className="mt-0.5 text-[12px] leading-5 text-zinc-400">
-                    <ClampedText lines={1}>{descriptor.subtitle}</ClampedText>
-                  </div>
-                </div>
-              </div>
+          <div className="min-w-0">
+            <div className="text-[15px] font-medium leading-6 text-card-foreground">
+              <ClampedText lines={1}>{descriptor.title}</ClampedText>
             </div>
-
-            <NodeStatePill
-              label={descriptor.stateLabel}
-              state={descriptor.state}
-            />
+            <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+              <ClampedText lines={1}>{getBuyerNodeSubtitle(descriptor)}</ClampedText>
+            </div>
           </div>
 
-          <div className="mt-4 h-px bg-white/6" />
-
-          <div className="flex min-h-0 flex-1 items-center py-3 text-[13px] leading-6 text-zinc-100">
-            <ClampedText lines={4}>{descriptor.summary}</ClampedText>
+          <div className="mt-5 flex min-h-0 flex-1 items-center rounded-[16px] bg-muted/34 px-4 py-5 text-[14px] leading-7 text-card-foreground">
+            <ClampedText lines={5}>{getBuyerNodeSummary(descriptor)}</ClampedText>
           </div>
 
-          {descriptor.chips.length > 0 ? (
-            <div className="flex min-h-7 flex-wrap content-end gap-1.5">
-              {descriptor.chips.map((chip) => (
-                <span
-                  className="rounded-full border border-white/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400"
-                  key={`${descriptor.id}:${chip}`}
-                >
-                  {chip}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="min-h-7" />
-          )}
+          <div className="mt-4 h-px bg-border/60" />
         </div>
       </div>
     </div>
@@ -352,137 +414,203 @@ function ClampedText({
   );
 }
 
-function NodeStatePill({
-  label: labelOverride,
-  state,
-}: {
-  label?: string;
-  state: RequestFlowNodeState;
-}) {
-  const {
-    label,
-    className,
-  } = getStateStyles(state);
-
-  return (
-    <div
-      className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
-        className
-      )}
-    >
-      {labelOverride ?? label}
-    </div>
-  );
-}
-
-function getNodeIcon(descriptor: RequestFlowNodeDescriptor) {
-  switch (descriptor.kind) {
-    case "request":
-      return <SparklesIcon className="size-4" />;
-    case "phase":
-    case "stage":
-      return <SplitIcon className="size-4" />;
-    case "worker":
-      return <CircleDashedIcon className="size-4" />;
-    case "delivery":
-    case "step":
-      switch (descriptor.state) {
-        case "done":
-          return <CheckIcon className="size-4" />;
-        case "blocked":
-          return <AlertTriangleIcon className="size-4" />;
-        case "failed":
-        case "cancelled":
-          return <XIcon className="size-4" />;
-        case "current":
-          return <LoaderCircleIcon className="size-4" />;
-        case "pending":
-        default:
-          return <CircleDashedIcon className="size-4" />;
-      }
-  }
-}
-
-function getStateStyles(state: RequestFlowNodeState) {
-  switch (state) {
-    case "done":
-      return {
-        label: "done",
-        className: "border-status-success/25 bg-status-success/[0.12] text-status-success",
-      };
-    case "current":
-      return {
-        label: "active",
-        className: "border-status-active/25 bg-status-active/[0.12] text-status-active",
-      };
-    case "blocked":
-      return {
-        label: "needs input",
-        className: "border-status-waiting/25 bg-status-waiting/[0.12] text-status-waiting",
-      };
-    case "failed":
-      return {
-        label: "failed",
-        className: "border-status-danger/25 bg-status-danger/[0.12] text-status-danger",
-      };
-    case "cancelled":
-      return {
-        label: "cancelled",
-        className: "border-status-cancelled/25 bg-status-cancelled/[0.12] text-status-muted",
-      };
-    case "pending":
-    default:
-      return {
-        label: "waiting",
-        className: "border-status-muted/20 bg-status-muted/[0.08] text-status-muted",
-      };
-  }
-}
-
 function getToneStyles(tone: RequestFlowNodeTone) {
   switch (tone) {
     case "green":
       return {
-        badge: "border-status-success/25 bg-status-success/[0.12] text-status-success",
-        icon: "bg-status-success text-primary-foreground",
-        surface:
-          "from-status-success/[0.14] via-status-success/[0.05] to-transparent",
         handle: "!bg-status-success",
       };
     case "amber":
       return {
-        badge: "border-status-waiting/25 bg-status-waiting/[0.12] text-status-waiting",
-        icon: "bg-status-waiting text-white",
-        surface:
-          "from-status-waiting/[0.14] via-status-waiting/[0.05] to-transparent",
         handle: "!bg-status-waiting",
       };
     case "blue":
       return {
-        badge: "border-status-active/25 bg-status-active/[0.12] text-status-active",
-        icon: "bg-status-active text-primary-foreground",
-        surface: "from-status-active/[0.14] via-status-active/[0.05] to-transparent",
         handle: "!bg-status-active",
       };
     case "pink":
       return {
-        badge: "border-status-delivered/25 bg-status-delivered/[0.12] text-status-delivered",
-        icon: "bg-status-delivered text-white",
-        surface:
-          "from-status-delivered/[0.14] via-status-delivered/[0.05] to-transparent",
         handle: "!bg-status-delivered",
       };
     case "violet":
     default:
       return {
-        badge: "border-status-waiting/25 bg-status-waiting/[0.12] text-status-waiting",
-        icon: "bg-status-waiting text-white",
-        surface:
-          "from-status-waiting/[0.14] via-status-waiting/[0.05] to-transparent",
         handle: "!bg-status-waiting",
       };
   }
+}
+
+function getBuyerNodeSubtitle(descriptor: RequestFlowNodeDescriptor) {
+  switch (descriptor.kind) {
+    case "request":
+      return descriptor.stateLabel ?? "Request";
+    case "phase":
+    case "stage":
+      return "Plan";
+    case "worker":
+      return descriptor.state === "done" ? "Completed work" : "Worker route";
+    case "delivery":
+    case "step":
+      return descriptor.state === "done" ? "Result attached" : "Delivery";
+  }
+}
+
+function getBuyerNodeSummary(descriptor: RequestFlowNodeDescriptor) {
+  if (descriptor.kind === "request") {
+    return descriptor.summary;
+  }
+
+  if (descriptor.kind === "phase" || descriptor.kind === "stage") {
+    return descriptor.summary || "Boreal turns the request into a reusable path.";
+  }
+
+  if (descriptor.kind === "worker") {
+    return descriptor.state === "done"
+      ? "The worker lane has finished or supported the accepted delivery."
+      : descriptor.summary;
+  }
+
+  if (descriptor.kind === "delivery" || descriptor.kind === "step") {
+    return descriptor.summary || "The result appears here when it is ready.";
+  }
+
+  return descriptor.summary;
+}
+
+function WorkflowActionSearchPanel({
+  graph,
+  onChooseNode,
+  onClose,
+  pendingAction,
+}: {
+  graph: RequestFlowGraph;
+  onChooseNode: (nodeId: string) => void;
+  onClose: () => void;
+  pendingAction: PendingWorkflowAction;
+}) {
+  const sourceNode = graph.nodes.find((node) => node.id === pendingAction.sourceId);
+  const options = getWorkflowActionOptions(graph, sourceNode);
+
+  if (!sourceNode || options.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      aria-label="Choose the next workflow step"
+      className="nopan absolute z-30 w-[min(22rem,calc(100%-2rem))] overflow-hidden rounded-[18px] border border-white/10 bg-[#111217]/98 text-zinc-100 shadow-[0_30px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+      role="dialog"
+      style={{
+        left: pendingAction.x,
+        top: pendingAction.y,
+      }}
+    >
+      <div className="border-b border-white/8 px-4 py-3">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-zinc-500">
+          Next step
+        </div>
+        <div className="mt-1 text-[14px] font-medium text-zinc-50">
+          After {sourceNode.title}
+        </div>
+      </div>
+      <div className="max-h-64 overflow-y-auto py-1">
+        {options.map((option) => (
+          <button
+            className="flex w-full flex-col items-start px-4 py-3 text-left transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/50"
+            key={option.nodeId}
+            onClick={() => onChooseNode(option.nodeId)}
+            type="button"
+          >
+            <span className="text-[14px] font-medium text-zinc-50">
+              {option.title}
+            </span>
+            <span className="mt-0.5 text-[12px] leading-5 text-zinc-400">
+              {option.description}
+            </span>
+          </button>
+        ))}
+      </div>
+      <button
+        className="absolute right-3 top-3 text-[12px] text-zinc-500 transition-colors hover:text-zinc-100"
+        onClick={onClose}
+        type="button"
+      >
+        Close
+      </button>
+    </div>
+  );
+}
+
+function getWorkflowActionOptions(
+  graph: RequestFlowGraph,
+  sourceNode: RequestFlowNodeDescriptor | undefined
+) {
+  if (!sourceNode) {
+    return [];
+  }
+
+  const nextKind = getNextWorkflowKind(sourceNode.kind);
+  const candidates = graph.nodes.filter((node) => node.kind === nextKind);
+
+  return candidates.map((node) => ({
+    nodeId: node.id,
+    title: getWorkflowActionTitle(sourceNode.kind, node),
+    description: node.summary,
+  }));
+}
+
+function getNextWorkflowKind(
+  kind: RequestFlowNodeKind
+): RequestFlowNodeKind {
+  switch (kind) {
+    case "request":
+      return "phase";
+    case "phase":
+    case "stage":
+      return "worker";
+    case "worker":
+      return "delivery";
+    case "delivery":
+    case "step":
+      return "delivery";
+  }
+}
+
+function getWorkflowActionTitle(
+  sourceKind: RequestFlowNodeKind,
+  node: RequestFlowNodeDescriptor
+) {
+  switch (sourceKind) {
+    case "request":
+      return "Open the plan";
+    case "phase":
+    case "stage":
+      return "Choose worker route";
+    case "worker":
+      return "Review delivery";
+    case "delivery":
+    case "step":
+      return "Inspect result";
+  }
+}
+
+function getClientPoint(event: MouseEvent | TouchEvent) {
+  if ("changedTouches" in event && event.changedTouches.length > 0) {
+    const touch = event.changedTouches[0];
+    return {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+    };
+  }
+
+  if ("clientX" in event) {
+    return {
+      clientX: event.clientX,
+      clientY: event.clientY,
+    };
+  }
+
+  return null;
 }
 
 function mergeNodes({

@@ -51,6 +51,7 @@ function PureArtifactMessages({
           chatId={chatId}
           isLoading={status === "streaming" && index === messages.length - 1}
           isReadonly={isReadonly}
+          isRequestMode={false}
           key={message.id}
           message={message}
           regenerate={regenerate}

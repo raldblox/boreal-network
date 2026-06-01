@@ -1,8 +1,13 @@
 import "server-only";
 
 import { generateText } from "ai";
-import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
-import { getGatewayLanguageModel } from "@/lib/ai/providers";
+import { selectChatModelRoute } from "@/lib/ai/model-routing";
+import { chatModels, DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import {
+  getLanguageModel,
+  getModelProviderRouteEntries,
+  hasDirectOpenAIProvider,
+} from "@/lib/ai/providers";
 import {
   getBuyerCreditAccountByOwnerId,
   getChatById,
@@ -15,12 +20,12 @@ import {
 } from "@/lib/db/queries";
 import { compareMoneyAmounts } from "@/lib/payment";
 import {
-  REUSABLE_PROMPT_PROFILE,
   analyzeReusablePromptText,
-  renderReusablePrompt,
+  REUSABLE_PROMPT_PROFILE,
   type ReusablePromptAnalysis,
   type ReusablePromptInputValues,
   type ReusablePromptSourceData,
+  renderReusablePrompt,
 } from "@/lib/reusable-prompts";
 import {
   convertToUIMessages,
@@ -114,7 +119,7 @@ export function getReusablePromptRunPolicy(): ReusablePromptRunPolicy {
   return {
     freeChatsEnabled: readBooleanEnv(
       process.env.BOREAL_REUSABLE_PROMPT_FREE_RUNS_ENABLED,
-      DEFAULT_REUSABLE_PROMPT_RUN_POLICY.freeChatsEnabled
+      DEFAULT_REUSABLE_PROMPT_RUN_POLICY.freeChatsEnabled,
     ),
     defaultDailyChatLimit: readIntegerEnv({
       defaultValue: DEFAULT_REUSABLE_PROMPT_RUN_POLICY.defaultDailyChatLimit,
@@ -159,21 +164,25 @@ function estimatePromptTokens(value: string) {
   return Math.max(1, Math.ceil(value.trim().length / 4));
 }
 
-function normalizeDirectOpenAIModelId(modelId: string) {
+function normalizeOpenAIRouteModelId(modelId: string) {
   const trimmed = modelId.trim();
 
   if (trimmed.startsWith("openai/")) {
-    return trimmed.slice("openai/".length);
+    return trimmed;
   }
 
-  return trimmed;
+  if (trimmed.includes("/")) {
+    return trimmed;
+  }
+
+  return `openai/${trimmed}`;
 }
 
-function getReusablePromptOpenAIModelId() {
-  return normalizeDirectOpenAIModelId(
+function getReusablePromptRouteModelId() {
+  return normalizeOpenAIRouteModelId(
     process.env.BOREAL_REUSABLE_PROMPT_OPENAI_MODEL?.trim() ||
       process.env.OPENAI_MODEL?.trim() ||
-      DEFAULT_CHAT_MODEL
+      DEFAULT_CHAT_MODEL,
   );
 }
 
@@ -193,167 +202,78 @@ function getErrorMessage(error: unknown) {
   return "Unknown provider error";
 }
 
-function extractOpenAIResponseText(payload: unknown) {
-  if (!payload || typeof payload !== "object") {
-    return "";
-  }
-
-  const outputText = (payload as { output_text?: unknown }).output_text;
-  if (typeof outputText === "string") {
-    return outputText;
-  }
-
-  const output = (payload as { output?: unknown }).output;
-  if (Array.isArray(output)) {
-    const chunks: string[] = [];
-
-    for (const item of output) {
-      if (!item || typeof item !== "object") {
-        continue;
-      }
-
-      const content = (item as { content?: unknown }).content;
-      if (!Array.isArray(content)) {
-        continue;
-      }
-
-      for (const part of content) {
-        if (!part || typeof part !== "object") {
-          continue;
-        }
-
-        const text = (part as { text?: unknown }).text;
-        if (typeof text === "string") {
-          chunks.push(text);
-        }
-      }
-    }
-
-    return chunks.join("");
-  }
-
-  return "";
-}
-
-function extractOpenAIErrorMessage({
-  fallbackText,
-  payload,
-  status,
-}: {
-  fallbackText: string;
-  payload: unknown;
-  status: number;
-}) {
-  if (payload && typeof payload === "object") {
-    const error = (payload as { error?: unknown }).error;
-    if (error && typeof error === "object") {
-      const message = (error as { message?: unknown }).message;
-      if (typeof message === "string" && message.trim()) {
-        return sanitizeProviderErrorMessage(message);
-      }
-    }
-  }
-
-  return sanitizeProviderErrorMessage(
-    fallbackText.trim() || `OpenAI request failed with status ${status}`
-  );
-}
-
-async function generateReusablePromptWithOpenAI({
-  maxOutputTokens,
-  renderedPrompt,
-}: ReusablePromptGenerationInput) {
-  const apiKey = process.env.OPENAI_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not configured");
-  }
-
-  const response = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      input: renderedPrompt,
-      instructions: REUSABLE_PROMPT_RUN_SYSTEM_PROMPT,
-      max_output_tokens: maxOutputTokens,
-      model: getReusablePromptOpenAIModelId(),
-    }),
-  });
-  const responseText = await response.text();
-  let payload: unknown = null;
-
-  if (responseText.trim()) {
-    try {
-      payload = JSON.parse(responseText);
-    } catch {
-      payload = null;
-    }
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      extractOpenAIErrorMessage({
-        fallbackText: responseText,
-        payload,
-        status: response.status,
-      })
-    );
-  }
-
-  const answer = extractOpenAIResponseText(payload).trim();
-  if (!answer) {
-    throw new Error("OpenAI direct execution returned no text.");
-  }
-
-  return answer;
-}
-
-async function generateReusablePromptWithGateway({
-  maxOutputTokens,
-  renderedPrompt,
-}: ReusablePromptGenerationInput) {
-  const result = await generateText({
-    model: getGatewayLanguageModel(DEFAULT_CHAT_MODEL),
-    system: REUSABLE_PROMPT_RUN_SYSTEM_PROMPT,
-    prompt: renderedPrompt,
-    maxOutputTokens,
-  });
-  const answer = result.text.trim();
-
-  if (!answer) {
-    throw new Error("Vercel Gateway execution returned no text.");
-  }
-
-  return answer;
+function formatProviderRouteEntries(
+  entries: ReturnType<typeof getModelProviderRouteEntries>,
+) {
+  return entries
+    .map((entry) =>
+      entry.kind === "openai_direct"
+        ? `direct OpenAI:${entry.providerModelId}`
+        : `Vercel Gateway:${entry.providerModelId}`,
+    )
+    .join(" -> ");
 }
 
 async function generateReusablePromptAnswer(
-  input: ReusablePromptGenerationInput
+  input: ReusablePromptGenerationInput,
 ) {
-  let directOpenAIError: string | null = null;
-
-  if (process.env.OPENAI_API_KEY?.trim()) {
-    try {
-      return await generateReusablePromptWithOpenAI(input);
-    } catch (error) {
-      directOpenAIError = getErrorMessage(error);
-    }
-  }
+  let providerRouteSummary = "";
 
   try {
-    return await generateReusablePromptWithGateway(input);
-  } catch (error) {
-    const gatewayError = getErrorMessage(error);
+    const requestedModelId = getReusablePromptRouteModelId();
+    const modelRoute = selectChatModelRoute({
+      requestedModelId,
+      modelMessages: [{ role: "user", content: input.renderedPrompt }],
+      hasActiveRequest: false,
+      recentActivityCount: 0,
+      requestMode: false,
+    });
+    const modelConfig =
+      chatModels.find((model) => model.id === modelRoute.effectiveModelId) ??
+      chatModels.find((model) => model.id === requestedModelId);
+    const providerRoute = getModelProviderRouteEntries([
+      modelRoute.effectiveModelId,
+      ...modelRoute.fallbackModelIds,
+    ]);
+    providerRouteSummary = formatProviderRouteEntries(providerRoute);
+    const result = await generateText({
+      model: getLanguageModel(modelRoute.effectiveModelId, {
+        fallbackModelIds: modelRoute.fallbackModelIds,
+      }),
+      system: REUSABLE_PROMPT_RUN_SYSTEM_PROMPT,
+      prompt: input.renderedPrompt,
+      maxOutputTokens: input.maxOutputTokens,
+      maxRetries: 0,
+      providerOptions: {
+        ...(modelConfig?.gatewayOrder && {
+          gateway: { order: modelConfig.gatewayOrder },
+        }),
+        ...(modelConfig?.reasoningEffort && {
+          openai: { reasoningEffort: modelConfig.reasoningEffort },
+        }),
+      },
+    });
+    const answer = result.text.trim();
 
-    if (directOpenAIError) {
+    if (!answer) {
+      throw new Error("Model route returned no text.");
+    }
+
+    return answer;
+  } catch (error) {
+    const message = getErrorMessage(error);
+
+    if (!hasDirectOpenAIProvider()) {
       throw new Error(
-        `Direct OpenAI failed: ${directOpenAIError}; Vercel Gateway fallback failed: ${gatewayError}`
+        `Direct OpenAI is not configured. Set OPENAI_API_KEY in the deployment environment. Vercel Gateway fallback failed: ${message}`,
       );
     }
 
-    throw new Error(gatewayError);
+    throw new Error(
+      providerRouteSummary
+        ? `${message} Route attempted: ${providerRouteSummary}.`
+        : message,
+    );
   }
 }
 
@@ -366,7 +286,9 @@ function getPromptRunTitle(sourceText: string) {
   return `Run: ${title}${words.length > 9 ? "..." : ""}`;
 }
 
-function getReusablePromptSourceData(parts: unknown): ReusablePromptSourceData | null {
+function getReusablePromptSourceData(
+  parts: unknown,
+): ReusablePromptSourceData | null {
   if (!Array.isArray(parts)) {
     return null;
   }
@@ -375,7 +297,7 @@ function getReusablePromptSourceData(parts: unknown): ReusablePromptSourceData |
     (part) =>
       part &&
       typeof part === "object" &&
-      (part as { type?: unknown }).type === REUSABLE_PROMPT_SOURCE_PART_TYPE
+      (part as { type?: unknown }).type === REUSABLE_PROMPT_SOURCE_PART_TYPE,
   );
 
   const data = (sourcePart as { data?: unknown } | undefined)?.data;
@@ -412,13 +334,13 @@ function assertSameReusablePromptSource({
     provenance.sourceMessageId !== source.message.id
   ) {
     throw new Error(
-      "Idempotency key already used for another reusable prompt source"
+      "Idempotency key already used for another reusable prompt source",
     );
   }
 }
 
 function getExistingReusablePromptSource(
-  messages: Awaited<ReturnType<typeof getMessagesByChatId>>
+  messages: Awaited<ReturnType<typeof getMessagesByChatId>>,
 ) {
   for (const message of messages) {
     const sourceData = getReusablePromptSourceData(message.parts);
@@ -465,11 +387,11 @@ async function getReusablePromptRunUsage({
       usage.runCount += 1;
       usage.estimatedRunTokens += Math.max(
         1,
-        sourceData.estimatedRunTokens ?? sourceData.estimatedInputTokens ?? 1
+        sourceData.estimatedRunTokens ?? sourceData.estimatedInputTokens ?? 1,
       );
       return usage;
     },
-    { runCount: 0, estimatedRunTokens: 0 }
+    { runCount: 0, estimatedRunTokens: 0 },
   );
 }
 
@@ -589,7 +511,9 @@ export async function assertReusablePromptSource({
   }
 
   if (requestRecord) {
-    throw new Error("Reusable prompt only supports scratch chat messages in V1");
+    throw new Error(
+      "Reusable prompt only supports scratch chat messages in V1",
+    );
   }
 
   if (chat.visibility !== "public" && chat.userId !== viewerUserId) {

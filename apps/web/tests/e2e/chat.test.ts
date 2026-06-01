@@ -690,19 +690,21 @@ test.describe("Chat Input Features", () => {
     await expect(input).toContainText("Line 1");
   });
 
-  test("request mode shows the briefing optimizer toggle", async ({
+  test("request mode starts as a centered chat composer without briefing chrome", async ({
     page,
   }) => {
     await page.goto("/?mode=request");
 
-    const optimizerToggle = page.getByTestId(
-      "request-prompt-optimizer-toggle"
+    await expect(page.getByText("What needs to get done?")).toBeVisible();
+    await expect(page.getByTestId("multimodal-input")).toHaveAttribute(
+      "placeholder",
+      /Describe the work/,
     );
-
-    await expect(optimizerToggle).toBeVisible();
-    await expect(optimizerToggle).toHaveText("Preflight assist off");
-
-    await optimizerToggle.click();
-    await expect(optimizerToggle).toHaveText("Preflight assist on");
+    await expect(page.getByText("Request briefing")).toHaveCount(0);
+    await expect(page.getByTestId("request-preflight-preview")).toHaveCount(0);
+    await expect(page.getByTestId("request-prompt-optimizer-toggle")).toHaveCount(
+      0,
+    );
+    await expect(page.getByTestId("new-composer-description")).toBeVisible();
   });
 });

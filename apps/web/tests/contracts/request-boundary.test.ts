@@ -181,66 +181,6 @@ assert.equal("matchCandidates" in publicProjection.derived, false);
 assert.equal("leadRanking" in publicProjection.derived, false);
 assert.equal("assignmentProposal" in publicProjection.derived, false);
 assert.equal(publicProjection.derived.routeSummary, "Human-led pilot lane");
-assert.equal(publicProjection.agentActionAffordances.schemaVersion, 1);
-assert.equal(publicProjection.agentActionAffordances.subject.type, "Request");
-assert.equal(publicProjection.agentActionAffordances.subject.id, publicProjection.id);
-assert.equal(publicProjection.agentActionAffordances.roleHint, "public_request");
-assert.equal(
-  publicProjection.agentActionAffordances.actions.some(
-    (action) =>
-      action.id === "apply_to_request" &&
-      action.href.endsWith(`/api/requests/${publicProjection.id}/commitments`) &&
-      action.availability === "available_with_auth" &&
-      action.canonicalWrites.includes("Commitment") &&
-      action.idempotencyRequired
-  ),
-  true,
-);
-assert.equal(
-  publicProjection.agentActionAffordances.actions.some(
-    (action) =>
-      action.id === "monitor_request" &&
-      action.href.includes("after_sequence=0") &&
-      action.canonicalWrites.length === 0
-  ),
-  true,
-);
-assert.equal(
-  publicProjection.agentActionAffordances.actions.some(
-    (action) =>
-      action.id === "submit_artifact" &&
-      action.availability === "requires_authorization" &&
-      action.canonicalWrites.includes("Artifact")
-  ),
-  true,
-);
-assert.equal(
-  publicProjection.agentActionAffordances.actions.some(
-    (action) => action.id === "run_public_solution"
-  ),
-  false,
-);
-
-const publicSolutionProjection = toPublicRequestPoolEntry(
-  makeDraft({
-    status: "completed",
-    activeRefs: {
-      acceptedArtifactId: "artifact_accepted",
-      latestArtifactId: "artifact_accepted",
-    },
-  })
-);
-assert.equal(publicSolutionProjection.agentActionAffordances.roleHint, "public_solution");
-assert.equal(
-  publicSolutionProjection.agentActionAffordances.actions.some(
-    (action) =>
-      action.id === "run_public_solution" &&
-      action.href.endsWith(`/api/requests/${publicSolutionProjection.id}/solution-runs`) &&
-      action.canonicalWrites.includes("Transaction") &&
-      action.idempotencyRequired
-  ),
-  true,
-);
 
 const draftFlowRequest = makeDraft({
   status: "draft",

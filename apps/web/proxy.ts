@@ -3,7 +3,9 @@ import { getToken } from "next-auth/jwt";
 import { guestRegex, isDevelopmentEnvironment } from "./lib/constants";
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const rawPathname = request.nextUrl.pathname;
+  const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  const pathname = stripConfiguredBasePath(rawPathname, base);
   const mode = request.nextUrl.searchParams.get("mode");
   const isE2eAuthBypass =
     process.env.BOREAL_E2E_AUTH_BYPASS === "1" &&
@@ -17,6 +19,7 @@ export async function proxy(request: NextRequest) {
   const isPublicDesktopView =
     pathname === "/download/boreal-desktop" || pathname === "/download/desktop";
   const isPublicAuthView = pathname === "/login" || pathname === "/register";
+  const isSharedChatView = /^\/chat\/[^/]+$/.test(pathname);
   const isPublicDiscoveryView =
     pathname === "/llms.txt" ||
     pathname.startsWith("/opengraph-image") ||
@@ -63,6 +66,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  if (request.method === "GET" && pathname === "/api/messages") {
+    return NextResponse.next();
+  }
+
   if (isE2eAuthBypass || isPromptfooNoDbEvalBypass) {
     return NextResponse.next();
   }
@@ -73,14 +80,13 @@ export async function proxy(request: NextRequest) {
     secureCookie: !isDevelopmentEnvironment,
   });
 
-  const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-
   if (
     !token &&
     (isPublicHomeView ||
       isPublicRequestBoardView ||
       isPublicDesktopView ||
       isPublicAuthView ||
+      isSharedChatView ||
       isPublicDiscoveryView ||
       isPublicSeoView)
   ) {
@@ -105,6 +111,22 @@ export async function proxy(request: NextRequest) {
   }
 
   return NextResponse.next();
+}
+
+function stripConfiguredBasePath(pathname: string, basePath: string) {
+  if (!basePath || basePath === "/") {
+    return pathname;
+  }
+
+  if (pathname === basePath) {
+    return "/";
+  }
+
+  if (pathname.startsWith(`${basePath}/`)) {
+    return pathname.slice(basePath.length) || "/";
+  }
+
+  return pathname;
 }
 
 export const config = {

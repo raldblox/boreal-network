@@ -141,10 +141,10 @@ export function SidebarRequests({ user }: { user: User | undefined }) {
           Requests
         </SidebarGroupLabel>
         <SidebarGroupContent>
-          <div className="flex flex-col gap-0.5 px-1">
+          <div className="flex flex-col gap-0.5">
             {[42, 30, 56].map((item) => (
               <div
-                className="flex h-8 items-center gap-2 rounded-lg px-2"
+                className="flex h-5 items-center gap-2 rounded-lg px-2"
                 key={item}
               >
                 <div
@@ -360,7 +360,7 @@ function SidebarRequestSection({
   setOpenMobile: (open: boolean) => void;
 }) {
   return (
-    <div>
+    <div className="flex flex-col gap-0.5">
       <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-sidebar-foreground/70">
         {label}
       </div>

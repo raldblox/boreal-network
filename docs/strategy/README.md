@@ -40,10 +40,13 @@ Strategy docs are downstream of canon and should not override live-versus-target
 | [LANDING_PAGE_MESSAGING_FRAMEWORK.md](LANDING_PAGE_MESSAGING_FRAMEWORK.md) | `active` | Copy and page-architecture guidance | Current messaging framework for homepage and wedge pages. | Review before homepage, landing-page, or public-solution copy changes. |
 | [FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md) | `active` | Worker instruction | Current guardrails for request-grant, public-solution, inspect, and run-with-credits copy. | Review before frontend or hero-copy worker runs. |
 | [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md) | `active` | UX blueprint | Current revamp blueprint for request board, workroom, account, credits, supply, and public solutions. | Review before major web IA or request-room changes. |
+| [REQUEST_WORKROOM_V2_UX_PLAN.md](REQUEST_WORKROOM_V2_UX_PLAN.md) | `active` | Focused workroom UX plan | Current implementation guidance for request workroom cards, flow orientation, right object viewer, supply search, activity, artifacts, and reusable path iteration. | Review before changing request tracker, flow canvas, activity, artifacts, or supply routing UI. |
 | [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md) | `active` | V1 UX plan | Current guidance for request-owned Path Builder surfaces. | Review when Path Builder implementation lands or changes scope. |
 | [AGENT_NATIVE_USAGE_BLUEPRINT.md](AGENT_NATIVE_USAGE_BLUEPRINT.md) | `active` | Agent usage blueprint | Current guidance for agent discovery, agent UX, protocol mapping, requester/solver/monitor roles, and agent-ready roadmap. | Review before adding agent discovery, MCP, A2A, agent auth, x402, or public agent-write surfaces. |
 | [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md) | `pilot_active` | Long-running gate plan | Current durable queue for pilot, self-serve buyer, curated supply, and public-market readiness. | Review in every patch that completes or changes a gate item. |
 | [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md) | `pilot_active` | Gate 1 verification checklist | Current narrow pilot verification checklist; not broad marketplace proof. | Review before any public or semi-public pilot demo. |
+| [PUBLIC_PILOT_OPERATOR_RUNBOOK.md](PUBLIC_PILOT_OPERATOR_RUNBOOK.md) | `pilot_active` | Operator runbook | Current support procedure for narrow public or semi-public pilots. | Review before pilot ops, support, refund, blocker, or artifact review changes. |
+| [PUBLIC_PILOT_OBSERVABILITY.md](PUBLIC_PILOT_OBSERVABILITY.md) | `pilot_active` | Observability notes | Minimum operator-visible pilot signals. | Review before pilot telemetry or observability changes. |
 | [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md) | `active` | Service packaging spec | Current first-party service families, preset plans, and launch pricing. | Review after real sales, pricing change, or fulfillment evidence change. |
 | [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md) | `active` | Direct-link and credit spec | Current canon-safe spec for unlisted service links and first-party credits. | Review when checkout, credit, ledger, or request-funding code changes. |
 | [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md) | `reference` | Quality bar | Current product-quality rubric, not a launch claim by itself. | Review before using it as launch-readiness proof. |
@@ -51,6 +54,9 @@ Strategy docs are downstream of canon and should not override live-versus-target
 Related canon:
 
 - [../REQUEST_PLAN_MODEL.md](../REQUEST_PLAN_MODEL.md) - Boreal's plan meaning, code audit, and worker rules for keeping `Plan` as a request-owned process lens
+- [../REQUEST_UX_NOTES.md](../REQUEST_UX_NOTES.md) - End-to-end request UX guardrails from intake through proof and resolution
+- [../decisions/0016-open-request-room-as-monitored-workroom.md](../decisions/0016-open-request-room-as-monitored-workroom.md) - Accepted open request room behavior boundary
+- [../decisions/0018-request-flow-view-as-process-projection.md](../decisions/0018-request-flow-view-as-process-projection.md) - Accepted request flow view behavior boundary
 
 ## Suggested Read Order
 
@@ -62,13 +68,16 @@ Related canon:
 6. [FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md](FRONTEND_AND_HERO_COPY_AGENT_BRIEF.md)
 7. [../REQUEST_PLAN_MODEL.md](../REQUEST_PLAN_MODEL.md)
 8. [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
-9. [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md)
-10. [AGENT_NATIVE_USAGE_BLUEPRINT.md](AGENT_NATIVE_USAGE_BLUEPRINT.md)
-11. [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
-12. [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
-13. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
-14. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
-15. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
+9. [REQUEST_WORKROOM_V2_UX_PLAN.md](REQUEST_WORKROOM_V2_UX_PLAN.md)
+10. [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md)
+11. [AGENT_NATIVE_USAGE_BLUEPRINT.md](AGENT_NATIVE_USAGE_BLUEPRINT.md)
+12. [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
+13. [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
+14. [PUBLIC_PILOT_OPERATOR_RUNBOOK.md](PUBLIC_PILOT_OPERATOR_RUNBOOK.md)
+15. [PUBLIC_PILOT_OBSERVABILITY.md](PUBLIC_PILOT_OBSERVABILITY.md)
+16. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
+17. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
+18. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
 
 ## Working Rule
 

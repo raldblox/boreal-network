@@ -92,6 +92,13 @@
       "when": 1711036800000,
       "tag": "0012_workflow_pack_support",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1711123200000,
+      "tag": "0013_chat_message_hot_path_indexes",
+      "breakpoints": true
     }
   ]
 }

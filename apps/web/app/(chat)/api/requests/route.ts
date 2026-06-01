@@ -10,6 +10,7 @@ import {
   getUserById,
   toRequestDraft,
 } from "@/lib/db/queries";
+import { requestByChatQuerySchema } from "@/lib/chat-route-validation";
 import { ChatbotError } from "@/lib/errors";
 import {
   getRequestActorContext,
@@ -139,7 +140,17 @@ export async function GET(request: Request) {
     return Response.json(requests, { status: 200 });
   }
 
-  const requestDraft = await getRequestByChatId({ chatId });
+  const parsedQuery = requestByChatQuerySchema.safeParse({ chatId });
+  if (!parsedQuery.success) {
+    return new ChatbotError(
+      "bad_request:api",
+      "Valid chatId is required."
+    ).toResponse();
+  }
+
+  const requestDraft = await getRequestByChatId({
+    chatId: parsedQuery.data.chatId,
+  });
   if (!requestDraft) {
     return Response.json({ request: null }, { status: 200 });
   }

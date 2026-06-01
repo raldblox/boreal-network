@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { selectChatModelRoute } from "@/lib/ai/model-routing";
+import { composerChatModels, isComposerChatModelId } from "@/lib/ai/models";
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(appRoot, "..", "..");
@@ -31,6 +32,15 @@ const fullRotation = [
 ];
 
 const afterMini = [
+  "openai/o3-mini",
+  "openai/o4-mini",
+  "openai/gpt-5-mini",
+  "openai/gpt-4.1-nano",
+];
+
+const expectedComposerModelIds = [
+  "openai/gpt-5.4-nano",
+  "openai/gpt-5.4-mini",
   "openai/o3-mini",
   "openai/o4-mini",
   "openai/gpt-5-mini",
@@ -223,6 +233,19 @@ main().catch((error) => {
 });
 
 async function main() {
+  const composerModelIds = composerChatModels.map((model) => model.id);
+  const composerFailures = [
+    arraysEqual(composerModelIds, expectedComposerModelIds)
+      ? null
+      : `composer models expected ${expectedComposerModelIds.join(",")}, got ${composerModelIds.join(",")}`,
+    isComposerChatModelId("openai/gpt-5-pro")
+      ? "composer should not expose openai/gpt-5-pro until it is part of the evaluated rotation"
+      : null,
+    isComposerChatModelId("openai/gpt-5.1-codex-mini")
+      ? "composer should not expose openai/gpt-5.1-codex-mini until it is part of the evaluated rotation"
+      : null,
+  ].filter((failure): failure is string => Boolean(failure));
+
   const results = cases.map((testCase) => {
     const actual = selectChatModelRoute(testCase.input);
     const failures = [
@@ -263,6 +286,12 @@ async function main() {
         total: results.length,
         passed: results.filter((result) => result.ok).length,
         failed: results.filter((result) => !result.ok).length,
+        composer: {
+          expectedModelIds: expectedComposerModelIds,
+          modelIds: composerModelIds,
+          ok: composerFailures.length === 0,
+          failures: composerFailures,
+        },
         results,
       },
       null,
@@ -272,10 +301,15 @@ async function main() {
 
   const failed = results.filter((result) => !result.ok);
 
-  if (failed.length > 0) {
-    console.error(`Model routing evals failed: ${failed.length}/${results.length}`);
+  if (failed.length > 0 || composerFailures.length > 0) {
+    console.error(
+      `Model routing evals failed: ${failed.length}/${results.length} route cases, ${composerFailures.length} composer failures`
+    );
     for (const result of failed) {
       console.error(`- ${result.id}: ${result.failures.join("; ")}`);
+    }
+    for (const failure of composerFailures) {
+      console.error(`- composer: ${failure}`);
     }
     process.exit(1);
   }

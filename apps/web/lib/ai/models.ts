@@ -83,6 +83,27 @@ export const chatModels: ChatModel[] = [
   },
 ];
 
+export const evaluatedComposerModelIds = [
+  DEFAULT_CHAT_MODEL,
+  "openai/gpt-5.4-mini",
+  "openai/o3-mini",
+  "openai/o4-mini",
+  "openai/gpt-5-mini",
+  "openai/gpt-4.1-nano",
+] as const;
+
+const chatModelById = new Map(chatModels.map((model) => [model.id, model]));
+
+export const composerChatModels = evaluatedComposerModelIds
+  .map((modelId) => chatModelById.get(modelId))
+  .filter((model): model is ChatModel => Boolean(model));
+
+export const composerAllowedModelIds = new Set<string>(evaluatedComposerModelIds);
+
+export function isComposerChatModelId(modelId: string) {
+  return composerAllowedModelIds.has(modelId);
+}
+
 const capabilityFallbacks: Record<string, ModelCapabilities> = {
   "openai/gpt-5.4-nano": { tools: true, vision: true, reasoning: false },
   "openai/gpt-5.4-mini": { tools: true, vision: true, reasoning: false },

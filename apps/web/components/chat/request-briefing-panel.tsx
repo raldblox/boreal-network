@@ -10,7 +10,12 @@ import {
   getBorealWorkerKeyFromSupply,
   getBorealWorkerStarter,
 } from "@/lib/boreal-workers/starter-catalog";
+import {
+  buildRequestPreflightPreview,
+  type RequestPreflightPreview,
+} from "@/lib/request-preflight";
 import type { BorealSupplyDraft } from "@/lib/supply";
+import type { ChatMessage } from "@/lib/types";
 import { cn, fetcher } from "@/lib/utils";
 import type {
   BorealRequestDraft,
@@ -27,6 +32,7 @@ type RequestBriefingPanelProps = {
   isStartingRequest: boolean;
   openedRequestControls?: React.ReactNode;
   onSaveDraft: () => Promise<void>;
+  preflightMessages?: ChatMessage[];
   requestPromptOptimizerEnabled: boolean;
   onSetRequestPromptOptimizerEnabled: (enabled: boolean) => void;
 };
@@ -39,6 +45,7 @@ export function RequestBriefingPanel({
   isStartingRequest,
   openedRequestControls,
   onSaveDraft,
+  preflightMessages,
   requestPromptOptimizerEnabled,
   onSetRequestPromptOptimizerEnabled,
 }: RequestBriefingPanelProps) {
@@ -89,31 +96,38 @@ export function RequestBriefingPanel({
       return null;
     }
 
+    const preflightPreview = buildRequestPreflightPreview(
+      preflightMessages ?? []
+    );
+
     return (
       <div className="border-b border-border/50 bg-background/92 px-4 py-3 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-4xl flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 space-y-1">
-            <div className="text-sm font-medium">Request Preflight</div>
-            <div className="text-[13px] leading-6 text-muted-foreground">
-              {isStartingRequest
-                ? selectedSupply
-                  ? `Starting Request Preflight and pinning ${getSelectedSupplyLabel(selectedSupply)} now.`
-                  : "Starting Request Preflight now."
-                : selectedSupply
-                  ? `${getSelectedSupplyLabel(selectedSupply)} is pinned as service or supply context. Add the ask, done condition, constraints, budget, deadline, proof, and whether human or local runtime work matters.`
-                  : "Your first message starts Request Preflight. Add the ask, done condition, constraints, budget, deadline, proof, and any human or local runtime requirements."}
-            </div>
-            {isStartingRequest ? (
-              <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-                <LoaderCircleIcon className="size-4 animate-spin" />
-                <span>Creating Request Preflight...</span>
+        <div className="mx-auto flex max-w-4xl flex-col gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 space-y-1">
+              <div className="text-sm font-medium">Request briefing</div>
+              <div className="text-[13px] leading-6 text-muted-foreground">
+                {isStartingRequest
+                  ? selectedSupply
+                    ? `Reading the briefing with ${getSelectedSupplyLabel(selectedSupply)} pinned as context.`
+                    : "Reading the briefing before a Request draft exists."
+                  : selectedSupply
+                    ? `${getSelectedSupplyLabel(selectedSupply)} is pinned as service or supply context. Boreal will ask focused questions before creating a draft Request.`
+                    : "Describe the work in plain language. Boreal will ask one focused question at a time, then create plans only when the brief is ready."}
               </div>
-            ) : null}
-            {selectedSupply ? (
-              <PinnedSupplyBanner supply={selectedSupply} />
-            ) : null}
+              {isStartingRequest ? (
+                <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                  <LoaderCircleIcon className="size-4 animate-spin" />
+                  <span>Working through preflight...</span>
+                </div>
+              ) : null}
+              {selectedSupply ? (
+                <PinnedSupplyBanner supply={selectedSupply} />
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">{optimizerToggle}</div>
           </div>
-          <div className="flex flex-wrap gap-2">{optimizerToggle}</div>
+          <PreflightPreviewCard preview={preflightPreview} />
         </div>
       </div>
     );
@@ -306,6 +320,131 @@ function PinnedSupplyBanner({ supply }: { supply: BorealSupplyDraft }) {
       ) : null}
     </div>
   );
+}
+
+function PreflightPreviewCard({
+  preview,
+}: {
+  preview: RequestPreflightPreview;
+}) {
+  const constraintAndProof = [
+    ...preview.knownConstraints,
+    ...preview.proofNeeds,
+  ];
+  const budgetAndDeadline = [
+    preview.budget ? `Budget: ${preview.budget}` : null,
+    preview.deadline ? `Deadline: ${preview.deadline}` : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return (
+    <section
+      aria-live="polite"
+      className="rounded-[20px] border border-border/60 bg-muted/[0.16] p-3.5"
+      data-testid="request-preflight-preview"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+            Compact brief
+          </div>
+          <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+            Private chat-derived preview. It is not a Request yet.
+          </div>
+        </div>
+        <Badge
+          className={cn(
+            "rounded-full border text-[11px]",
+            preview.readyToDraft
+              ? "border-status-success/25 bg-status-success/[0.08] text-status-success"
+              : "border-border/70 bg-background text-muted-foreground"
+          )}
+          variant="secondary"
+        >
+          {preview.readyToDraft ? "Ready for draft plans" : "Briefing"}
+        </Badge>
+      </div>
+
+      <div className="mt-3 grid gap-2.5 md:grid-cols-2">
+        <PreflightPreviewRow
+          label="Captured ask"
+          value={preview.capturedAsk}
+          fallback="No ask captured yet."
+        />
+        <PreflightPreviewRow
+          label="Done condition"
+          value={preview.doneCondition}
+          fallback="Boreal still needs what good completion means."
+        />
+        <PreflightPreviewRow
+          label="Constraints and proof"
+          values={constraintAndProof}
+          fallback="No constraints or proof needs captured yet."
+        />
+        <PreflightPreviewRow
+          label="Budget and deadline"
+          values={budgetAndDeadline}
+          fallback="Budget and deadline are not known."
+        />
+        <PreflightPreviewRow
+          label="Human or local needs"
+          values={preview.humanOrLocalNeeds}
+          fallback="No human or local requirement captured yet."
+        />
+        <PreflightPreviewRow
+          label="Next question"
+          value={preview.nextQuestion}
+          fallback={
+            preview.readyToDraft
+              ? "Ready to create a draft Request with plans."
+              : formatMissingEssentials(preview.missingEssentials)
+          }
+        />
+      </div>
+    </section>
+  );
+}
+
+function PreflightPreviewRow({
+  fallback,
+  label,
+  value,
+  values,
+}: {
+  fallback: string;
+  label: string;
+  value?: string | null;
+  values?: string[];
+}) {
+  const items = values ?? (value ? [value] : []);
+
+  return (
+    <div className="rounded-[16px] border border-border/60 bg-background/80 px-3 py-2.5">
+      <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+        {label}
+      </div>
+      {items.length > 0 ? (
+        <div className="mt-1.5 space-y-1 text-[13px] leading-5.5 text-foreground">
+          {items.map((item) => (
+            <div className="line-clamp-2" key={item}>
+              {item}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-1.5 text-[13px] leading-5.5 text-muted-foreground">
+          {fallback}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function formatMissingEssentials(missingEssentials: string[]) {
+  if (missingEssentials.length === 0) {
+    return "Waiting for the next briefing answer.";
+  }
+
+  return `Still missing: ${missingEssentials.join(", ")}.`;
 }
 
 function PreflightChecklist({

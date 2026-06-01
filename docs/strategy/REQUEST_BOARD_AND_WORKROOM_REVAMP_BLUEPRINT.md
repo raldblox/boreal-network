@@ -9,6 +9,7 @@ Use it when frontend, UI/UX, product, or hero-copy workers need to make Boreal e
 
 Read [../REQUEST_PLAN_MODEL.md](../REQUEST_PLAN_MODEL.md) before implementing plan-heavy surfaces.
 It defines `Plan` as a request-owned process lens and audits what the current code already supports.
+For the focused opened-request workroom implementation plan, read [REQUEST_WORKROOM_V2_UX_PLAN.md](REQUEST_WORKROOM_V2_UX_PLAN.md).
 
 ## Objective
 

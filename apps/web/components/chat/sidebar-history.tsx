@@ -144,10 +144,10 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
           Chats
         </SidebarGroupLabel>
         <SidebarGroupContent>
-          <div className="flex flex-col gap-0.5 px-1">
+          <div className="flex flex-col gap-0.5 ">
             {[44, 32, 28, 64, 52].map((item) => (
               <div
-                className="flex h-8 items-center gap-2 rounded-lg px-2"
+                className="flex h-5 items-center gap-2 rounded-lg px-2"
                 key={item}
               >
                 <div

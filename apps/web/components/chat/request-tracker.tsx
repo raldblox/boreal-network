@@ -1,11 +1,16 @@
 "use client";
 import {
   ArrowDownIcon,
+  BotIcon,
+  CpuIcon,
   ExternalLinkIcon,
   FileTextIcon,
   FileVideoIcon,
   PackageIcon,
   PaperclipIcon,
+  UserRoundIcon,
+  WrenchIcon,
+  XIcon,
 } from "lucide-react";
 import {
   useCallback,
@@ -16,7 +21,9 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { createPortal } from "react-dom";
 import useSWR from "swr";
+import { useWindowSize } from "usehooks-ts";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -37,10 +44,13 @@ import {
   type RequestFlowNodeDescriptor,
 } from "@/lib/request-flow";
 import {
-  buildRequestPathBuilderViewModel,
-  type RequestPathSignal,
-  type RequestSupportingPath,
-} from "@/lib/request-path-builder";
+  buildRequestTaskBoardProjection,
+  type RequestTaskBoardCard,
+  type RequestTaskBoardColumn,
+  type RequestTaskBoardProjection,
+  type RequestTaskBoardStageId,
+  type RequestTaskBoardWorker,
+} from "@/lib/request-task-board";
 import type {
   BorealRequestDraft,
   RequestActivityEntry,
@@ -59,15 +69,21 @@ type RequestTrackerProps = {
   request: BorealRequestDraft;
   activities: RequestActivityEntry[];
   isReadonly: boolean;
+  isCreatingRoleplayDelivery: boolean;
   isRetryingBlockedFulfillment: boolean;
   isResolvingDeliveredRequest: boolean;
+  onCreateRoleplayDelivery?: () => Promise<void>;
   onRetryBlockedFulfillment?: (options?: { quiet?: boolean }) => Promise<void>;
   onResolveDeliveredRequest?: () => Promise<void>;
   onSelectView: (view: WorkroomViewId) => void;
   onUpdatePreferredSupply?: (preferredSupplyId: string | null) => Promise<void>;
+  onBeforeOpenWorkObjectViewer?: () => void;
+  onWorkObjectViewerOpenChange?: (open: boolean) => void;
+  isWorkObjectViewerSuppressed?: boolean;
   requestViewerUserId: string | null;
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
   selectedView: WorkroomViewId;
+  workObjectViewerHost?: HTMLElement | null;
 };
 
 type TrackerStageId =
@@ -78,6 +94,7 @@ type TrackerStageId =
 
 export type WorkroomViewId =
   | "monitor"
+  | "tasks"
   | "activity"
   | "artifacts";
 
@@ -93,16 +110,24 @@ export function RequestTracker({
   request,
   activities,
   isReadonly,
+  isCreatingRoleplayDelivery,
   isRetryingBlockedFulfillment,
   isResolvingDeliveredRequest,
+  onCreateRoleplayDelivery,
   onRetryBlockedFulfillment,
   onResolveDeliveredRequest,
   onSelectView,
   onUpdatePreferredSupply,
+  onBeforeOpenWorkObjectViewer,
+  onWorkObjectViewerOpenChange,
+  isWorkObjectViewerSuppressed = false,
   requestViewerUserId,
   scrollContainerRef,
   selectedView,
+  workObjectViewerHost,
 }: RequestTrackerProps) {
+  const { width: windowWidth } = useWindowSize();
+  const isMobile = windowWidth ? windowWidth < 768 : false;
   const hasFulfillmentFailure = activities.some(
     (activity) => activity.eventType === "fulfillment.failed"
   );
@@ -123,6 +148,7 @@ export function RequestTracker({
   const [selectedFlowNodeId, setSelectedFlowNodeId] = useState<string | null>(
     null
   );
+  const [isWorkObjectViewerOpen, setIsWorkObjectViewerOpen] = useState(false);
   const [selectedArtifactEventId, setSelectedArtifactEventId] =
     useState<string | null>(null);
   const localContainerRef = useRef<HTMLDivElement>(null);
@@ -169,6 +195,19 @@ export function RequestTracker({
   }, [currentStageId, hasFulfillmentFailure, request.id, request.status, scrollToTop]);
 
   useEffect(() => {
+    setSelectedFlowNodeId(null);
+    setIsWorkObjectViewerOpen(false);
+  }, [request.id]);
+
+  useEffect(() => {
+    if (!isWorkObjectViewerSuppressed) {
+      return;
+    }
+
+    setIsWorkObjectViewerOpen(false);
+  }, [isWorkObjectViewerSuppressed]);
+
+  useEffect(() => {
     if (previousSelectedViewRef.current === selectedView) {
       return;
     }
@@ -177,6 +216,9 @@ export function RequestTracker({
 
     if (selectedView !== "monitor") {
       setFollowMode("manual");
+      setIsWorkObjectViewerOpen(false);
+    } else {
+      setFollowMode("auto");
     }
 
     requestAnimationFrame(() => {
@@ -313,6 +355,19 @@ export function RequestTracker({
     requestViewerUserId === request.ownerId &&
     Boolean(request.activeRefs.activeFulfillmentId) &&
     typeof onResolveDeliveredRequest === "function";
+  const canCreateRoleplayDelivery =
+    !isReadonly &&
+    isRequestOwner &&
+    request.visibility === "public" &&
+    typeof onCreateRoleplayDelivery === "function" &&
+    (
+      request.status === "open" ||
+      request.status === "funded" ||
+      request.status === "in_progress" ||
+      request.status === "waiting_for_owner"
+    ) &&
+    activeFulfillment?.status !== "delivered" &&
+    activeFulfillment?.status !== "accepted";
   const artifactActivities = useMemo(
     () => orderedActivities.filter((activity) => Boolean(activity.artifact)),
     [orderedActivities]
@@ -344,10 +399,9 @@ export function RequestTracker({
       : null;
   const showsLegacyFailedWorkerNote =
     request.status === "failed" && hasFulfillmentFailure;
-  const showReturnToLiveStage =
-    followMode === "manual" || selectedView !== "monitor";
+  const showReturnToLiveStage = followMode === "manual";
   const showBackToLiveControl =
-    selectedView !== "activity" && showReturnToLiveStage;
+    selectedView === "monitor" && showReturnToLiveStage;
 
   const routeSummaryValue = getRouteSummaryValue({
     activeFulfillment,
@@ -381,9 +435,22 @@ export function RequestTracker({
       request,
     ]
   );
-  const pathBuilder = useMemo(
-    () => buildRequestPathBuilderViewModel({ request, scope: "open" }),
-    [request]
+  const taskBoardProjection = useMemo(
+    () =>
+      buildRequestTaskBoardProjection({
+        request,
+        activities: orderedActivities,
+        fulfillment: activeFulfillment,
+        activeRouteSupply,
+        preferredSupply,
+      }),
+    [
+      activeFulfillment,
+      activeRouteSupply,
+      orderedActivities,
+      preferredSupply,
+      request,
+    ]
   );
   const selectedFlowNodeDescriptor =
     (selectedFlowNodeId
@@ -394,6 +461,11 @@ export function RequestTracker({
     ) ??
     requestFlowGraph.nodes[0] ??
     null;
+  const openWorkObjectViewer = useCallback((nodeId: string) => {
+    onBeforeOpenWorkObjectViewer?.();
+    setSelectedFlowNodeId(nodeId);
+    setIsWorkObjectViewerOpen(true);
+  }, [onBeforeOpenWorkObjectViewer]);
   const handlePreferredSupplyChange = async (value: string) => {
     if (!onUpdatePreferredSupply) {
       return;
@@ -573,6 +645,13 @@ export function RequestTracker({
             ]}
           />
 
+          {canCreateRoleplayDelivery ? (
+            <RoleplayDeliveryAction
+              isLoading={isCreatingRoleplayDelivery}
+              onCreateRoleplayDelivery={onCreateRoleplayDelivery}
+            />
+          ) : null}
+
           {canLaunchCharacterCall ? (
             <CharacterCallLauncher
               className="border-status-success/25 bg-status-success/[0.08]"
@@ -709,22 +788,11 @@ export function RequestTracker({
 
   const nextActionSummary = getWorkroomNextActionSummary({
     activeFulfillment,
+    canCreateRoleplayDelivery,
     canResolveDelivery,
     canRetryBlockedFulfillment,
     currentStageId,
     request,
-  });
-  const monitorSummaryItems = getWorkroomMonitorSummaryItems({
-    activeFulfillment,
-    activeRouteSupply,
-    artifactCount: artifactActivities.length,
-    canResolveDelivery,
-    canRetryBlockedFulfillment,
-    latestDeliveryArtifact,
-    nextActionSummary,
-    preferredSupply,
-    request,
-    routeSummaryValue,
   });
   const selectedFlowContextKind = selectedFlowNodeDescriptor
     ? getFlowContextKind(selectedFlowNodeDescriptor)
@@ -745,11 +813,14 @@ export function RequestTracker({
     ) : selectedFlowContextKind === "delivery" ? (
       <DeliveryFlowContext
         activeFulfillment={activeFulfillment}
+        canCreateRoleplayDelivery={canCreateRoleplayDelivery}
         canResolveDelivery={canResolveDelivery}
         deliveryArtifactActivities={deliveryArtifactActivities}
         isReadonly={isReadonly}
+        isCreatingRoleplayDelivery={isCreatingRoleplayDelivery}
         isResolvingDeliveredRequest={isResolvingDeliveredRequest}
         latestDeliveryArtifact={latestDeliveryArtifact}
+        onCreateRoleplayDelivery={onCreateRoleplayDelivery}
         onResolveDeliveredRequest={onResolveDeliveredRequest}
         ownerUserId={request.ownerId}
         request={request}
@@ -757,6 +828,33 @@ export function RequestTracker({
     ) : (
       <PlanFlowContext descriptor={selectedFlowNodeDescriptor} />
     );
+  const showWorkObjectViewer =
+    selectedView === "monitor" &&
+    isWorkObjectViewerOpen &&
+    !isWorkObjectViewerSuppressed &&
+    Boolean(selectedFlowNodeDescriptor);
+  const canUseShellWorkObjectViewerHost =
+    Boolean(workObjectViewerHost) && !isMobile;
+
+  useEffect(() => {
+    onWorkObjectViewerOpenChange?.(
+      showWorkObjectViewer && canUseShellWorkObjectViewerHost
+    );
+  }, [
+    canUseShellWorkObjectViewerHost,
+    onWorkObjectViewerOpenChange,
+    showWorkObjectViewer,
+  ]);
+
+  const workObjectViewer = showWorkObjectViewer ? (
+    <WorkroomObjectViewer
+      descriptor={selectedFlowNodeDescriptor}
+      isShellHosted={canUseShellWorkObjectViewerHost}
+      onClose={() => setIsWorkObjectViewerOpen(false)}
+    >
+      {selectedFlowContextBody}
+    </WorkroomObjectViewer>
+  ) : null;
 
   useEffect(() => {
     if (
@@ -786,64 +884,88 @@ export function RequestTracker({
   ]);
 
   return (
-    <div className="relative flex-1 bg-background">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background md:flex-row">
       <div
-        className={usesExternalScrollHost ? undefined : "absolute inset-0 overflow-y-auto"}
+        className={cn(
+          "min-w-0 flex-1 transition-[flex-basis,width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          selectedView === "monitor"
+            ? "min-h-0 overflow-hidden"
+            : usesExternalScrollHost
+              ? undefined
+              : "overflow-y-auto"
+        )}
         ref={usesExternalScrollHost ? undefined : localContainerRef}
       >
-        <div className="flex min-h-full flex-col gap-4 px-4 pb-5 pt-2 md:px-6 md:pb-6 md:pt-3">
-          <div className="mx-auto w-full max-w-[84rem]">
-            <div className="mt-5 space-y-4">
-              {selectedView === "monitor" ? (
-                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                          Path Builder
-                        </div>
-                        <div className="mt-2 text-[15px] leading-6 text-foreground">
-                          {nextActionSummary.value}
-                        </div>
-                        <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                          {nextActionSummary.detail}
-                        </div>
-                        <div className="mt-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground/62">
-                          Request truth: Request -&gt; Path -&gt; Worker -&gt; Proof -&gt; Review
-                        </div>
-                      </div>
-                      <button
-                        className="rounded-full border border-border/60 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                        onClick={() => {
-                          onSelectView("activity");
-                          setFollowMode("manual");
-                        }}
-                        type="button"
-                      >
-                        Open activity
-                      </button>
-                    </div>
-                    <div className="mt-4 space-y-3">
-                      <WorkroomPathSignalStrip signals={pathBuilder.signals} />
-                      <WorkroomSupportingPathRail
-                        slots={pathBuilder.supportingPaths}
-                      />
-                      <WorkroomMonitorSummary items={monitorSummaryItems} />
-                    </div>
+        {selectedView === "monitor" ? (
+          <section className="relative h-full min-h-[38rem] overflow-hidden bg-background">
+            <RequestFlowCanvas
+              className="absolute inset-0"
+              graph={requestFlowGraph}
+              heightClassName="h-full rounded-none border-0"
+              onSelectedNodeChange={openWorkObjectViewer}
+              selectedNodeId={selectedFlowNodeDescriptor?.id}
+            />
+            <div
+              aria-live="polite"
+              className="pointer-events-none absolute left-4 top-4 z-20 w-[min(21rem,calc(100%-2rem))]"
+            >
+              <div className="pointer-events-auto rounded-[20px] border border-border/55 bg-background/82 px-4 py-3 shadow-[0_20px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                    Status
                   </div>
-
-                  <div className="grid gap-4 p-3 md:p-4 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,25rem)]">
-                    <RequestFlowCanvas
-                      graph={requestFlowGraph}
-                      heightClassName="h-[34rem] xl:h-[38rem]"
-                      onSelectedNodeChange={setSelectedFlowNodeId}
-                      selectedNodeId={selectedFlowNodeDescriptor?.id}
-                    />
-                    <FlowNodeInspector descriptor={selectedFlowNodeDescriptor}>
-                      {selectedFlowContextBody}
-                    </FlowNodeInspector>
+                  <div className="max-w-[9rem] truncate rounded-full border border-border/60 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    {formatLabel(request.status)}
                   </div>
-                </section>
+                </div>
+                <div className="mt-2 truncate text-[14px] leading-5.5 text-foreground">
+                  {nextActionSummary.value}
+                </div>
+                <div className="mt-1 line-clamp-2 text-[12px] leading-5 text-muted-foreground">
+                  {nextActionSummary.detail}
+                </div>
+                <button
+                  className="mt-3 rounded-full border border-border/60 px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  onClick={() => {
+                    if (selectedFlowNodeDescriptor) {
+                      openWorkObjectViewer(selectedFlowNodeDescriptor.id);
+                    }
+                  }}
+                  type="button"
+                >
+                  Inspect selected
+                </button>
+                {canCreateRoleplayDelivery ? (
+                  <LoadingButton
+                    className="mt-2 w-full"
+                    isLoading={isCreatingRoleplayDelivery}
+                    loadingText="Creating mock proof..."
+                    onClick={() => void onCreateRoleplayDelivery?.()}
+                    size="sm"
+                  >
+                    Create mock delivery
+                  </LoadingButton>
+                ) : null}
+                {canResolveDelivery ? (
+                  <LoadingButton
+                    className="mt-2 w-full"
+                    isLoading={isResolvingDeliveredRequest}
+                    loadingText="Resolving..."
+                    onClick={() => void onResolveDeliveredRequest?.()}
+                    size="sm"
+                  >
+                    Confirm delivery
+                  </LoadingButton>
+                ) : null}
+              </div>
+            </div>
+          </section>
+        ) : (
+          <div className="flex min-h-full flex-col gap-4 px-4 pb-5 pt-2 md:px-6 md:pb-6 md:pt-3">
+            <div className="mx-auto w-full max-w-[84rem]">
+              <div className="mt-5 space-y-4">
+              {selectedView === "tasks" ? (
+                <TaskBoardPanel projection={taskBoardProjection} />
               ) : null}
 
               {selectedView === "activity" ? (
@@ -891,9 +1013,14 @@ export function RequestTracker({
             </div>
           </div>
         </div>
+        )}
       </div>
 
-      {!usesExternalScrollHost && showBackToLiveControl ? (
+      {workObjectViewer && workObjectViewerHost && canUseShellWorkObjectViewerHost
+        ? createPortal(workObjectViewer, workObjectViewerHost)
+        : workObjectViewer}
+
+      {!usesExternalScrollHost && showBackToLiveControl && !showWorkObjectViewer ? (
         <button
           className="absolute bottom-4 left-1/2 z-10 inline-flex h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-border/60 bg-background/92 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={resumeLiveStage}
@@ -902,7 +1029,7 @@ export function RequestTracker({
           <span className="status-dot size-2 rounded-full bg-current text-status-active" />
           Back to live path
         </button>
-      ) : !usesExternalScrollHost && selectedView === "activity" ? (
+      ) : !usesExternalScrollHost && selectedView === "activity" && !showWorkObjectViewer ? (
         <button
           aria-label="Scroll to bottom"
           className={`absolute bottom-4 left-1/2 z-10 flex h-8 -translate-x-1/2 items-center rounded-full border border-border/60 bg-background/92 px-3.5 text-[10px] shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 ${
@@ -918,6 +1045,231 @@ export function RequestTracker({
       ) : null}
     </div>
   );
+}
+
+function TaskBoardPanel({
+  projection,
+}: {
+  projection: RequestTaskBoardProjection;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+      <div className="border-b border-border/60 px-4 py-4 md:px-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+              Task board
+            </div>
+            <div className="mt-2 max-w-3xl text-[15px] leading-6 text-foreground">
+              {projection.summary}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <TaskBoardStat
+              label="Cards"
+              value={String(projection.totalCards)}
+            />
+            <TaskBoardStat
+              label={projection.hasFulfillmentSteps ? "Source" : "Projection"}
+              value={projection.hasFulfillmentSteps ? "Live steps" : "Plan phases"}
+            />
+            <TaskBoardStat
+              label="Workers"
+              value={projection.hasAssignedWorker ? "Assigned" : "Open"}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 p-3 md:grid-cols-2 md:p-4 xl:grid-cols-4">
+        {projection.columns.map((column) => (
+          <TaskBoardColumnView column={column} key={column.id} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TaskBoardStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-full border border-border/60 bg-muted/[0.16] px-3 py-1.5 text-[10px] uppercase tracking-[0.14em]">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="ml-2 text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function TaskBoardColumnView({ column }: { column: RequestTaskBoardColumn }) {
+  return (
+    <div
+      className={cn(
+        "flex min-h-[24rem] flex-col rounded-[22px] border bg-muted/[0.14]",
+        getTaskColumnClassName(column.id)
+      )}
+    >
+      <div className="border-b border-border/55 px-3.5 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[14px] font-semibold leading-5 text-foreground">
+              {column.title}
+            </div>
+            <div className="mt-1 line-clamp-2 text-[12px] leading-5 text-muted-foreground">
+              {column.summary}
+            </div>
+          </div>
+          <div className="rounded-full border border-border/60 bg-background/82 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            {column.cards.length.toString().padStart(2, "0")}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-2.5 p-2.5">
+        {column.cards.length > 0 ? (
+          column.cards.map((card) => (
+            <TaskBoardCardView card={card} key={card.id} />
+          ))
+        ) : (
+          <div className="flex flex-1 items-center justify-center rounded-[18px] border border-dashed border-border/55 bg-background/55 px-4 py-8 text-center text-[12px] leading-5 text-muted-foreground">
+            No cards in this stage.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TaskBoardCardView({ card }: { card: RequestTaskBoardCard }) {
+  return (
+    <article className="rounded-[18px] border border-border/60 bg-background/96 p-3 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition-colors hover:border-foreground/18">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full border border-border/60 px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.13em] text-muted-foreground">
+              {card.source === "fulfillment_step" ? "Step" : "Plan"}
+            </span>
+            <span className="rounded-full border border-border/60 px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.13em] text-muted-foreground">
+              {card.statusLabel}
+            </span>
+          </div>
+          <h3 className="mt-2 text-[14px] font-semibold leading-5.5 text-foreground">
+            {card.title}
+          </h3>
+        </div>
+        <TaskWorkerAvatar worker={card.worker} />
+      </div>
+
+      <p className="mt-2 line-clamp-3 text-[12px] leading-5 text-muted-foreground">
+        {card.summary}
+      </p>
+
+      <div className="mt-3">
+        <TaskWorkerPill worker={card.worker} />
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {card.roleLabels.slice(0, 2).map((roleLabel) => (
+          <TaskChip key={`role:${roleLabel}`} label={roleLabel} />
+        ))}
+        {card.proofLabels.slice(0, 2).map((proofLabel) => (
+          <TaskChip key={`proof:${proofLabel}`} label={`Proof: ${proofLabel}`} />
+        ))}
+        {card.artifactCount > 0 ? (
+          <TaskChip
+            label={`${card.artifactCount} ${card.artifactCount === 1 ? "artifact" : "artifacts"}`}
+          />
+        ) : null}
+        {card.dependsOnCount > 0 ? (
+          <TaskChip label={`${card.dependsOnCount} dependency`} />
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function TaskChip({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-border/60 bg-muted/[0.16] px-2 py-0.5 text-[10px] leading-5 text-muted-foreground">
+      {label}
+    </span>
+  );
+}
+
+function TaskWorkerPill({ worker }: { worker: RequestTaskBoardWorker }) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2 rounded-2xl border px-2.5 py-2",
+        worker.assigned
+          ? "border-status-success/25 bg-status-success/[0.08]"
+          : "border-dashed border-border/70 bg-muted/[0.12]"
+      )}
+    >
+      <TaskWorkerAvatar size="sm" worker={worker} />
+      <div className="min-w-0">
+        <div className="truncate text-[12px] font-medium leading-4 text-foreground">
+          {worker.label}
+        </div>
+        <div className="truncate text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+          {worker.assigned ? "Assigned" : "Open"} · {worker.detail}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TaskWorkerAvatar({
+  worker,
+  size = "md",
+}: {
+  worker: RequestTaskBoardWorker;
+  size?: "sm" | "md";
+}) {
+  const Icon = getTaskWorkerIcon(worker.kind);
+
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-full border",
+        size === "sm" ? "size-7" : "size-9",
+        worker.assigned
+          ? "border-status-success/35 bg-status-success/[0.14] text-status-success"
+          : "border-border/70 bg-muted/[0.18] text-muted-foreground"
+      )}
+      title={`${worker.label} · ${worker.detail}`}
+    >
+      <Icon className={size === "sm" ? "size-3.5" : "size-4"} />
+    </span>
+  );
+}
+
+function getTaskWorkerIcon(kind: RequestTaskBoardWorker["kind"]) {
+  switch (kind) {
+    case "agent":
+      return BotIcon;
+    case "runtime":
+      return CpuIcon;
+    case "tool":
+      return WrenchIcon;
+    case "human":
+      return UserRoundIcon;
+    default:
+      return PackageIcon;
+  }
+}
+
+function getTaskColumnClassName(stageId: RequestTaskBoardStageId) {
+  switch (stageId) {
+    case "todo":
+      return "border-status-open/20";
+    case "in_progress":
+      return "border-status-active/25";
+    case "review":
+      return "border-status-waiting/25";
+    case "completed":
+      return "border-status-success/25";
+    default:
+      return "border-border/60";
+  }
 }
 
 type CompactFact = {
@@ -954,173 +1306,81 @@ function CompactFactPanel({ facts }: { facts: CompactFact[] }) {
   );
 }
 
-type WorkroomMonitorItem = {
-  detail: string;
-  label: string;
-  tone?: "default" | "danger" | "success" | "warning";
-  value: string;
-};
-
-function WorkroomPathSignalStrip({ signals }: { signals: RequestPathSignal[] }) {
-  return (
-    <section
-      aria-label="Path readiness signals"
-      className="grid gap-2 md:grid-cols-5"
-    >
-      {signals.map((signal) => (
-        <div
-          className={cn(
-            "min-w-0 rounded-[16px] border px-3 py-2.5",
-            getPathSignalClassName(signal.tone)
-          )}
-          key={signal.label}
-        >
-          <div className="text-[9px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-            {signal.label}
-          </div>
-          <div className="mt-1 truncate text-[13px] leading-5 text-foreground">
-            {signal.value}
-          </div>
-          <div className="mt-0.5 line-clamp-2 text-[11px] leading-4.5 text-muted-foreground">
-            {signal.detail}
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function WorkroomSupportingPathRail({
-  slots,
-}: {
-  slots: RequestSupportingPath[];
-}) {
-  return (
-    <section aria-label="Supporting path slots" className="flex flex-wrap gap-2">
-      {slots.map((slot) => (
-        <div
-          className="inline-flex max-w-full items-center gap-2 rounded-full border border-border/60 bg-background/92 px-3 py-1.5"
-          key={`${slot.source}:${slot.title}`}
-          title={slot.summary}
-        >
-          <span className="truncate text-[11px] font-medium text-foreground">
-            {slot.title}
-          </span>
-          <span className="shrink-0 rounded-full border border-border/60 px-2 py-0.5 text-[9px] uppercase tracking-[0.12em] text-muted-foreground">
-            {slot.status}
-          </span>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function WorkroomMonitorSummary({ items }: { items: WorkroomMonitorItem[] }) {
-  return (
-    <section
-      aria-label="Request workroom monitor summary"
-      className="grid gap-3 md:grid-cols-2 xl:grid-cols-4"
-    >
-      {items.map((item) => (
-        <div
-          className={cn(
-            "min-w-0 rounded-[20px] border px-3.5 py-3.5 shadow-[0_12px_34px_rgba(15,23,42,0.025)]",
-            getMonitorItemClassName(item.tone)
-          )}
-          key={item.label}
-        >
-          <div className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-            {item.label}
-          </div>
-          <div className="mt-2 line-clamp-2 text-[14px] leading-5.5 text-foreground">
-            {item.value}
-          </div>
-          <div className="mt-1.5 line-clamp-3 text-[12px] leading-5 text-muted-foreground">
-            {item.detail}
-          </div>
-        </div>
-      ))}
-    </section>
-  );
-}
-
-function getPathSignalClassName(tone: RequestPathSignal["tone"]) {
-  switch (tone) {
-    case "good":
-      return "border-status-success/25 bg-status-success/[0.08]";
-    case "warn":
-      return "border-status-waiting/25 bg-status-waiting/[0.08]";
-    case "danger":
-      return "border-status-danger/25 bg-status-danger/[0.08]";
-    case "neutral":
-    default:
-      return "border-border/60 bg-background/94";
-  }
-}
-
-function getMonitorItemClassName(tone: WorkroomMonitorItem["tone"] = "default") {
-  switch (tone) {
-    case "success":
-      return "border-status-success/25 bg-status-success/[0.08]";
-    case "warning":
-      return "border-status-waiting/25 bg-status-waiting/[0.08]";
-    case "danger":
-      return "border-status-danger/25 bg-status-danger/[0.08]";
-    case "default":
-    default:
-      return "border-border/60 bg-background/94";
-  }
-}
-
-function FlowNodeInspector({
+function WorkroomObjectViewer({
   children,
   descriptor,
+  isShellHosted = false,
+  onClose,
 }: {
   children: ReactNode;
   descriptor: RequestFlowNodeDescriptor | null;
+  isShellHosted?: boolean;
+  onClose: () => void;
 }) {
   if (!descriptor) {
-    return (
-      <aside className="rounded-[20px] border border-dashed border-border/60 bg-muted/[0.12] p-4 text-[13px] leading-5.5 text-muted-foreground">
-        Select a flow card to see the current request context.
-      </aside>
-    );
+    return null;
   }
 
   return (
-    <aside className="overflow-hidden rounded-[20px] border border-border/60 bg-background/92 xl:sticky xl:top-4 xl:max-h-[calc(100dvh-8rem)] xl:overflow-y-auto">
-      <div className="border-b border-border/60 px-4 py-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-border/70 bg-muted/[0.18] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            {descriptor.laneLabel}
-          </span>
-          <span className="rounded-full border border-border/70 bg-muted/[0.18] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            {descriptor.stateLabel ?? formatLabel(descriptor.state)}
-          </span>
-        </div>
-        <div className="mt-3 text-[17px] font-medium leading-6 text-foreground">
-          {descriptor.title}
-        </div>
-        <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
-          {descriptor.summary}
-        </div>
-        {descriptor.chips.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {descriptor.chips.map((chip) => (
-              <span
-                className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground"
-                key={`${descriptor.id}:inspector-chip:${chip}`}
-              >
-                {chip}
-              </span>
-            ))}
+    <aside
+      aria-label="Selected work object"
+      className={cn(
+        "z-20 flex shrink-0 flex-col overflow-hidden bg-secondary transition-[width,flex-basis] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        isShellHosted
+          ? "h-full w-full rounded-tl-[28px] border border-y-0 border-r-0 border-border/70 shadow-[0_24px_65px_rgba(0,0,0,0.18)]"
+          : "h-[60dvh] w-full border-t border-border/70 shadow-[0_-18px_60px_rgba(15,23,42,0.12)] md:h-full md:w-[58%] md:min-w-[34rem] md:max-w-[72rem] md:resize-x md:rounded-tl-[28px] md:border md:border-y-0 md:border-r-0 md:shadow-[0_24px_65px_rgba(0,0,0,0.18)]"
+      )}
+      data-testid="request-object-viewer"
+    >
+      <div className="relative z-20 flex h-14 shrink-0 items-center gap-3 border-b border-border/50 bg-secondary px-4">
+        <button
+          aria-label="Close selected work object"
+          className="inline-flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/45 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-secondary"
+          onClick={onClose}
+          type="button"
+        >
+          <XIcon className="size-4" />
+        </button>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[13px] font-medium text-foreground">
+            {descriptor.title}
           </div>
-        ) : null}
+          <div className="truncate text-[11px] text-muted-foreground md:hidden">
+            {descriptor.laneLabel} /{" "}
+            {descriptor.stateLabel ?? formatLabel(descriptor.state)}
+          </div>
+        </div>
+        <div className="hidden min-w-0 max-w-[18rem] truncate text-[11px] uppercase tracking-[0.14em] text-muted-foreground md:block">
+          {descriptor.laneLabel} /{" "}
+          {descriptor.stateLabel ?? formatLabel(descriptor.state)}
+        </div>
       </div>
 
-      <div className="space-y-4 px-4 py-4">
-        <FlowNodeDetailList details={descriptor.details} />
-        {children}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-transparent">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-5">
+          <div className="rounded-[18px] border border-border/60 bg-background/70 px-4 py-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]">
+            <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+              Object context
+            </div>
+            <div className="mt-2 text-[15px] leading-6 text-foreground">
+              {descriptor.summary}
+            </div>
+            {descriptor.chips.length > 0 ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {descriptor.chips.map((chip) => (
+                  <span
+                    className="rounded-full border border-border/60 bg-muted/[0.18] px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground"
+                    key={`${descriptor.id}:viewer-chip:${chip}`}
+                  >
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <FlowNodeDetailList details={descriptor.details} />
+          {children}
+        </div>
       </div>
     </aside>
   );
@@ -1182,21 +1442,27 @@ function PlanFlowContext({
 
 function DeliveryFlowContext({
   activeFulfillment,
+  canCreateRoleplayDelivery,
   canResolveDelivery,
   deliveryArtifactActivities,
   isReadonly,
+  isCreatingRoleplayDelivery,
   isResolvingDeliveredRequest,
   latestDeliveryArtifact,
+  onCreateRoleplayDelivery,
   onResolveDeliveredRequest,
   ownerUserId,
   request,
 }: {
   activeFulfillment: RequestFulfillment | null;
+  canCreateRoleplayDelivery: boolean;
   canResolveDelivery: boolean;
   deliveryArtifactActivities: RequestActivityEntry[];
   isReadonly: boolean;
+  isCreatingRoleplayDelivery: boolean;
   isResolvingDeliveredRequest: boolean;
   latestDeliveryArtifact: RequestActivityEntry["artifact"] | null;
+  onCreateRoleplayDelivery?: () => Promise<void>;
   onResolveDeliveredRequest?: () => Promise<void>;
   ownerUserId: string | null;
   request: BorealRequestDraft;
@@ -1239,6 +1505,13 @@ function DeliveryFlowContext({
         />
       ) : null}
 
+      {canCreateRoleplayDelivery ? (
+        <RoleplayDeliveryAction
+          isLoading={isCreatingRoleplayDelivery}
+          onCreateRoleplayDelivery={onCreateRoleplayDelivery}
+        />
+      ) : null}
+
       {canResolveDelivery ? (
         <div className="rounded-[16px] border border-status-success/25 bg-status-success/[0.08] px-3 py-3">
           <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-success">
@@ -1258,6 +1531,38 @@ function DeliveryFlowContext({
           </LoadingButton>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function RoleplayDeliveryAction({
+  isLoading,
+  onCreateRoleplayDelivery,
+}: {
+  isLoading: boolean;
+  onCreateRoleplayDelivery?: () => Promise<void>;
+}) {
+  return (
+    <div className="rounded-[18px] border border-status-active/25 bg-status-active/[0.08] px-3.5 py-3">
+      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-active">
+        Roleplay delivery
+      </div>
+      <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
+        Create a mock proposal, fulfillment lane, and proof artifact through the same request APIs real work uses.
+      </div>
+      <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+        This is only for exercising the full lifecycle; replace it with real proof before treating production work as complete.
+      </div>
+      <LoadingButton
+        className="mt-3"
+        isLoading={isLoading}
+        loadingText="Creating mock proof..."
+        onClick={() => void onCreateRoleplayDelivery?.()}
+        size="sm"
+        variant="outline"
+      >
+        Create mock delivery
+      </LoadingButton>
     </div>
   );
 }
@@ -1743,6 +2048,17 @@ function RouteAndWorkersPanel({
           (supply) => supply.id === desktopRuntimePolicy.autoResolveSupplyId
         ) ?? null
       : null;
+  const [supplySearchQuery, setSupplySearchQuery] = useState("");
+  const searchedOwnedSupplies = useMemo(() => {
+    const query = supplySearchQuery.trim().toLowerCase();
+    if (!query) {
+      return publishedOwnedSupplies;
+    }
+
+    return publishedOwnedSupplies.filter((supply) =>
+      getSupplySearchText(supply).includes(query)
+    );
+  }, [publishedOwnedSupplies, supplySearchQuery]);
 
   return (
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,20rem)]">
@@ -1826,6 +2142,15 @@ function RouteAndWorkersPanel({
               Route controls
             </div>
             <div className="mt-2.5 space-y-2.5">
+              <label className="block">
+                <span className="sr-only">Search people and supplies</span>
+                <input
+                  className="h-10 w-full rounded-2xl border border-border/70 bg-background px-3 text-[13px] text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-foreground/30 focus:ring-2 focus:ring-ring/35"
+                  onChange={(event) => setSupplySearchQuery(event.target.value)}
+                  placeholder="Search people, supplies, services, runtimes..."
+                  value={supplySearchQuery}
+                />
+              </label>
               <Select
                 disabled={isLoadingOwnedSupplies || isSavingPreferredSupply}
                 onValueChange={(value) => {
@@ -1856,7 +2181,12 @@ function RouteAndWorkersPanel({
                       Unavailable preferred capability
                     </SelectItem>
                   ) : null}
-                  {publishedOwnedSupplies.map((supply) => (
+                  {searchedOwnedSupplies.length === 0 && publishedOwnedSupplies.length > 0 ? (
+                    <SelectItem disabled value="__no_matching_supply__">
+                      No matching published capability
+                    </SelectItem>
+                  ) : null}
+                  {searchedOwnedSupplies.map((supply) => (
                     <SelectItem key={supply.id} value={supply.id}>
                       {getOwnedSupplyLabel(supply)}
                     </SelectItem>
@@ -1868,6 +2198,8 @@ function RouteAndWorkersPanel({
                   ? "Refreshing published capabilities from Boreal web."
                   : publishedOwnedSupplies.length === 0
                     ? "Publish at least one capability first before pinning a private route."
+                    : supplySearchQuery.trim()
+                      ? `${searchedOwnedSupplies.length} of ${publishedOwnedSupplies.length} published capabilities match this search. Selection pins a route, not a live assignment.`
                     : !preferredSupplyMatchesRequest
                       ? `${getOwnedSupplyLabel(preferredSupply)} is pinned, but it does not match this request's capability kinds.`
                       : pinnedSupplyNote}
@@ -2293,197 +2625,16 @@ function formatCollapseRiskDetailDisplay(request: BorealRequestDraft) {
   return request.derived.planCollapseRisk.reasons.join(" | ");
 }
 
-function getWorkroomMonitorSummaryItems({
-  activeFulfillment,
-  activeRouteSupply,
-  artifactCount,
-  canResolveDelivery,
-  canRetryBlockedFulfillment,
-  latestDeliveryArtifact,
-  nextActionSummary,
-  preferredSupply,
-  request,
-  routeSummaryValue,
-}: {
-  activeFulfillment: RequestFulfillment | null;
-  activeRouteSupply: BorealSupplyDraft | null;
-  artifactCount: number;
-  canResolveDelivery: boolean;
-  canRetryBlockedFulfillment: boolean;
-  latestDeliveryArtifact: RequestActivityEntry["artifact"] | null;
-  nextActionSummary: { detail: string; value: string };
-  preferredSupply: BorealSupplyDraft | null;
-  request: BorealRequestDraft;
-  routeSummaryValue: string;
-}): WorkroomMonitorItem[] {
-  const blockerSummary = getWorkroomBlockerSummary({
-    activeFulfillment,
-    canRetryBlockedFulfillment,
-    request,
-  });
-  const activeLaneLabel = activeFulfillment
-    ? describeWorkerSummary(activeFulfillment)
-    : preferredSupply
-      ? `${getOwnedSupplyLabel(preferredSupply)} is pinned for routing.`
-      : routeSummaryValue;
-  const activeLaneDetail = activeRouteSupply
-    ? `Active capability: ${getOwnedSupplyLabel(activeRouteSupply)}.`
-    : formatSeekingSummaryDisplay(request);
-  const fulfillmentDetail = activeFulfillment?.updatedAt
-    ? `Updated ${formatTimestamp(activeFulfillment.updatedAt)}.`
-    : "Runs, worker ownership, and fulfillment steps appear here after execution starts.";
-  const proofValue =
-    latestDeliveryArtifact?.title ||
-    (request.activeRefs.latestArtifactId
-      ? "Artifact linked"
-      : "No proof package yet");
-  const proofDetail = `${artifactCount} artifact${
-    artifactCount === 1 ? "" : "s"
-  } attached. ${formatVerificationDetailDisplay(request)}`;
-  const transactionValue = request.activeRefs.latestTransactionId
-    ? "Transaction linked"
-    : request.budget
-      ? formatBudgetSummary(request.budget)
-      : "No execution spend yet";
-
-  return [
-    {
-      detail: request.derived.readiness.summary,
-      label: "Status",
-      tone: getStatusMonitorTone(request.status),
-      value: formatLabel(request.status),
-    },
-    {
-      detail: nextActionSummary.detail,
-      label: "Next action",
-      tone: canResolveDelivery || canRetryBlockedFulfillment ? "warning" : "default",
-      value: nextActionSummary.value,
-    },
-    {
-      detail: activeLaneDetail,
-      label: "Owner / lane",
-      value: activeLaneLabel,
-    },
-    {
-      detail: blockerSummary.detail,
-      label: "Blockers",
-      tone: blockerSummary.tone,
-      value: blockerSummary.value,
-    },
-    {
-      detail: fulfillmentDetail,
-      label: "Fulfillment",
-      tone: activeFulfillment?.status === "blocked" ? "warning" : "default",
-      value: activeFulfillment
-        ? formatLabel(activeFulfillment.status)
-        : "No active fulfillment",
-    },
-    {
-      detail: proofDetail,
-      label: "Artifacts",
-      tone: latestDeliveryArtifact ? "success" : "default",
-      value: proofValue,
-    },
-    {
-      detail: getReviewMonitorDetail(request),
-      label: "Review",
-      tone: canResolveDelivery ? "warning" : getStatusMonitorTone(request.status),
-      value: getResolutionSummary(request.status),
-    },
-    {
-      detail: request.activeRefs.latestTransactionId
-        ? "The latest Transaction points back to this Request."
-        : "Credits appear only for execution, provider calls, workflow runs, human review, service capacity, or embodied fulfillment.",
-      label: "Credits / transactions",
-      value: transactionValue,
-    },
-  ];
-}
-
-function getStatusMonitorTone(
-  status: RequestStatus
-): WorkroomMonitorItem["tone"] {
-  switch (status) {
-    case "completed":
-      return "success";
-    case "cancelled":
-    case "failed":
-      return "danger";
-    case "delivered":
-    case "waiting_for_owner":
-      return "warning";
-    default:
-      return "default";
-  }
-}
-
-function getWorkroomBlockerSummary({
-  activeFulfillment,
-  canRetryBlockedFulfillment,
-  request,
-}: {
-  activeFulfillment: RequestFulfillment | null;
-  canRetryBlockedFulfillment: boolean;
-  request: BorealRequestDraft;
-}): Pick<WorkroomMonitorItem, "detail" | "tone" | "value"> {
-  if (canRetryBlockedFulfillment || activeFulfillment?.status === "blocked") {
-    return {
-      detail: getBlockedFulfillmentRecoverySummary(activeFulfillment),
-      tone: "warning",
-      value: "Fulfillment is blocked",
-    };
-  }
-
-  if (request.derived.clarificationNeeded.required) {
-    return {
-      detail: formatClarificationDetailDisplay(request),
-      tone: "warning",
-      value: formatClarificationValue(request),
-    };
-  }
-
-  if (
-    request.derived.planCollapseRisk.riskLevel === "high" ||
-    request.derived.planCollapseRisk.riskLevel === "moderate"
-  ) {
-    return {
-      detail: formatCollapseRiskDetailDisplay(request),
-      tone: "warning",
-      value: formatCollapseRiskValue(request),
-    };
-  }
-
-  return {
-    detail: "No clarification, recovery, or plan-collapse blocker is active.",
-    tone: "success",
-    value: "No active blocker",
-  };
-}
-
-function getReviewMonitorDetail(request: BorealRequestDraft) {
-  if (request.status === "delivered") {
-    return "Review the proof package and accept when the result is correct.";
-  }
-
-  if (request.status === "completed") {
-    return "Accepted delivery is locked to this Request.";
-  }
-
-  if (request.status === "failed" || request.status === "cancelled") {
-    return "The final state remains visible for audit and follow-up decisions.";
-  }
-
-  return "Review and acceptance controls appear when a delivery lands.";
-}
-
 function getWorkroomNextActionSummary({
   activeFulfillment,
+  canCreateRoleplayDelivery,
   canResolveDelivery,
   canRetryBlockedFulfillment,
   currentStageId,
   request,
 }: {
   activeFulfillment: RequestFulfillment | null;
+  canCreateRoleplayDelivery: boolean;
   canResolveDelivery: boolean;
   canRetryBlockedFulfillment: boolean;
   currentStageId: TrackerStageId;
@@ -2500,6 +2651,14 @@ function getWorkroomNextActionSummary({
     return {
       value: "The live lane is paused.",
       detail: "Retry the same delivery lane instead of opening a new request.",
+    };
+  }
+
+  if (canCreateRoleplayDelivery) {
+    return {
+      value: "Create a mock delivery to test the full lifecycle.",
+      detail:
+        "This writes real commitment, fulfillment, and artifact truth, marked clearly as roleplay proof.",
     };
   }
 
@@ -2775,6 +2934,27 @@ function getOwnedSupplyLabel(
   return (
     supply?.profile.displayName.trim() || supply?.key || "Untitled capability"
   );
+}
+
+function getSupplySearchText(supply: BorealSupplyDraft) {
+  return [
+    supply.key,
+    supply.profile.displayName,
+    supply.profile.headline,
+    supply.profile.summary,
+    supply.profile.description,
+    ...supply.profile.tags,
+    ...supply.capability.supplyKinds,
+    ...supply.capability.fulfillmentActorKinds,
+    ...supply.capability.outputKinds,
+    ...supply.capability.executionChannels,
+    supply.status,
+    supply.visibility,
+    supply.source.kind,
+  ]
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .join(" ")
+    .toLowerCase();
 }
 
 function doesOwnedSupplyMatchRequest(

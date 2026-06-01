@@ -1,4 +1,4 @@
-import { chatModels, getCapabilities } from "@/lib/ai/models";
+import { composerChatModels, getCapabilities } from "@/lib/ai/models";
 
 export async function GET() {
   const headers = {
@@ -7,7 +7,7 @@ export async function GET() {
 
   const curatedCapabilities = await getCapabilities();
   return Response.json(
-    { capabilities: curatedCapabilities, models: chatModels },
+    { capabilities: curatedCapabilities, models: composerChatModels },
     { headers }
   );
 }

@@ -152,17 +152,27 @@ export type AccountAuthChallengeRecord = InferSelectModel<
   typeof accountAuthChallenge
 >;
 
-export const chat = pgTable("Chat", {
-  id: uuid("id").primaryKey().notNull().defaultRandom(),
-  createdAt: timestamp("createdAt").notNull(),
-  title: text("title").notNull(),
-  userId: uuid("userId")
-    .notNull()
-    .references(() => user.id),
-  visibility: varchar("visibility", { enum: ["public", "private"] })
-    .notNull()
-    .default("private"),
-});
+export const chat = pgTable(
+  "Chat",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    createdAt: timestamp("createdAt").notNull(),
+    title: text("title").notNull(),
+    userId: uuid("userId")
+      .notNull()
+      .references(() => user.id),
+    visibility: varchar("visibility", { enum: ["public", "private"] })
+      .notNull()
+      .default("private"),
+  },
+  (table) => ({
+    userCreatedAtIdx: index("Chat_userId_createdAt_idx").on(
+      table.userId,
+      table.createdAt
+    ),
+    userIdIdx: index("Chat_userId_id_idx").on(table.userId, table.id),
+  })
+);
 
 export type Chat = InferSelectModel<typeof chat>;
 
@@ -863,16 +873,35 @@ export type WorkflowAdapterRunRecord = InferSelectModel<
   typeof workflowAdapterRun
 >;
 
-export const message = pgTable("Message_v2", {
-  id: uuid("id").primaryKey().notNull().defaultRandom(),
-  chatId: uuid("chatId")
-    .notNull()
-    .references(() => chat.id),
-  role: varchar("role").notNull(),
-  parts: json("parts").notNull(),
-  attachments: json("attachments").notNull(),
-  createdAt: timestamp("createdAt").notNull(),
-});
+export const message = pgTable(
+  "Message_v2",
+  {
+    id: uuid("id").primaryKey().notNull().defaultRandom(),
+    chatId: uuid("chatId")
+      .notNull()
+      .references(() => chat.id),
+    role: varchar("role").notNull(),
+    parts: json("parts").notNull(),
+    attachments: json("attachments").notNull(),
+    createdAt: timestamp("createdAt").notNull(),
+  },
+  (table) => ({
+    chatCreatedAtIdx: index("Message_v2_chatId_createdAt_idx").on(
+      table.chatId,
+      table.createdAt
+    ),
+    chatRoleCreatedAtIdx: index("Message_v2_chatId_role_createdAt_idx").on(
+      table.chatId,
+      table.role,
+      table.createdAt
+    ),
+    roleCreatedAtChatIdx: index("Message_v2_role_createdAt_chatId_idx").on(
+      table.role,
+      table.createdAt,
+      table.chatId
+    ),
+  })
+);
 
 export type DBMessage = InferSelectModel<typeof message>;
 

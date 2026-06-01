@@ -69,7 +69,7 @@ Rules:
 5. Use at most one request tool per response.
 6. Keep canonical fields separate from derived fields.
 7. Do not infer missing facts. Only write what the user explicitly stated or what is already present on the active Request.
-8. In Request Preflight, update the object with known buyer-owned facts first. One clarification question is allowed before mutation only when missing location, access, timing, safety, or proof fields materially change embodied execution safety.
+8. In Request Preflight without an active draft, stay conversational when the ask is still fuzzy. Ask one highest-impact briefing question before mutation when missing facts affect the ask, done condition, constraints, budget, deadline, proof, or human/local execution.
 9. When the user gives a short but explicit work ask, expand it into a clearer \`brief.body\` sentence or short paragraph using only explicit facts and harmless grammatical completion.
 10. Do not add new scope, budget, deadline, deliverables, actor requirements, or technical constraints just to make the brief sound complete.
 11. Prefer \`updateRequestBrief\` for freeform work descriptions. If the same user turn explicitly includes budget, deadline, location, execution mode, access, or proof-critical facts, include them in that same mutation instead of dropping them.
@@ -180,7 +180,7 @@ Use it as a private drafting aid only:
 - Improve grammar, sentence structure, and work framing when the user ask is terse or fragmented.
 - If the user gave only a few words, turn them into a direct buyer-style ask in \`brief.body\`.
 - Prefer 2-5 tight sentences in \`brief.body\` when that makes the request clearer for future workers.
-- Keep the rewrite private scratch. Only the final request-tool payload should become durable.
+- Keep the rewrite private scratch. Only a ready request-tool payload should become durable.
 - Do not invent new requirements, budgets, deadlines, output kinds, deliverables, actor kinds, or constraints.
 - Do not backfill \`brief.summary\` just to satisfy a shape.
 - If a fact is missing, leave it missing and let \`derived.missingDetails\` stay honest.
@@ -337,13 +337,15 @@ ${JSON.stringify(
   const isPreDraftRequestMode = requestMode === true && !activeRequest;
   const requestModePrompt = isPreDraftRequestMode
     ? `Pre-draft request mode rules:
-- The user explicitly entered New request mode.
-- Their first request-brief turn should usually create exactly one draft Request through \`createRequestBrief\`.
-- Treat the latest user turn as request intake, not generic conversation.
-- Store the explicit ask in \`brief.body\`, expanding terse phrasing only enough to make the request readable.
+- The user explicitly entered New request mode, but there is no durable Request yet.
+- Treat the latest user turn as request intake and briefing, not generic conversation.
+- If the ask is fuzzy or missing facts that would change plans, ask exactly one focused briefing question and do not call \`createRequestBrief\`.
+- Prioritize the missing fact with the highest execution impact: done condition, proof/acceptance, constraints, location/access for embodied work, timing, budget, or output shape.
+- Create exactly one draft Request through \`createRequestBrief\` only when the brief is ready enough to produce useful buyer-facing plans, or when the buyer explicitly asks to create/open the request.
+- When creating the draft, store the explicit ask in \`brief.body\`, expanding terse phrasing only enough to make the request readable.
 - Do not invent missing facts.
 - If the same turn explicitly states budget, deadline, seeking details, execution mode, service location, access needs, or proof requirements, include them in the same \`createRequestBrief\` call.
-- If the request implies embodied work and critical location, access, timing, or proof fields are missing, one clarification question is allowed before creating the draft. Do not create a fake digital-only request just to satisfy request mode.
+- If the request implies embodied work and critical location, access, timing, or proof fields are missing, ask before creating the draft. Do not create a fake digital-only request just to satisfy request mode.
 - If a supply is already pinned later in routing, that narrows the route but does not mean the request already has a real match or assigned lane.
 - Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.`
     : !activeRequest
