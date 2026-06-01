@@ -44,6 +44,7 @@ export const agentDiscoveryPaths = {
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
   agentConformance: "/agents/conformance.json",
+  agentConformanceReportExample: "/agents/conformance-report.example.json",
   agentCompletion: "/agents/completion.json",
   agentEvidence: "/agents/evidence.json",
   agentExecution: "/agents/execution.json",
@@ -54,6 +55,7 @@ export const agentDiscoveryPaths = {
   agentOptimization: "/agents/optimization.json",
   agentPayments: "/agents/payments.json",
   agentPrompts: "/agents/prompts.json",
+  agentProtocolAdapterSamples: "/agents/protocol-adapter-samples.json",
   agentProtocols: "/agents/protocols.md",
   agentProtocolsJson: "/agents/protocols.json",
   agentRecovery: "/agents/recovery.json",
@@ -532,6 +534,15 @@ export const jsonSchemaDiscoveryAssets = [
   },
   {
     contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable target-only MCP, A2A, and x402 sample payload pack schema.",
+    routePath: "/schemas/agent-protocol-adapter-samples.schema.json",
+    sourcePath: "schemas/json/agent-protocol-adapter-samples.schema.json",
+    standard: "json_schema",
+    title: "Agent protocol adapter samples",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
     description: "Machine-readable agent recovery, retry, idempotency, and escalation profile schema.",
     routePath: "/schemas/agent-recovery.schema.json",
     sourcePath: "schemas/json/agent-recovery.schema.json",
@@ -873,6 +884,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent access review profile: [${agentDiscoveryPaths.agentAccessReview}](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)})
 - Agent auth profile: [${agentDiscoveryPaths.agentAuth}](${absoluteUrl(agentDiscoveryPaths.agentAuth)})
 - Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
+- Agent conformance report example: [${agentDiscoveryPaths.agentConformanceReportExample}](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)})
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
 - Agent evidence profile: [${agentDiscoveryPaths.agentEvidence}](${absoluteUrl(agentDiscoveryPaths.agentEvidence)})
 - Agent execution profile: [${agentDiscoveryPaths.agentExecution}](${absoluteUrl(agentDiscoveryPaths.agentExecution)})
@@ -886,6 +898,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent monitor webhook profile: [${agentDiscoveryPaths.agentMonitorWebhooks}](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)})
 - Agent protocol profile: [${agentDiscoveryPaths.agentProtocols}](${absoluteUrl(agentDiscoveryPaths.agentProtocols)})
 - Agent protocol profile JSON: [${agentDiscoveryPaths.agentProtocolsJson}](${absoluteUrl(agentDiscoveryPaths.agentProtocolsJson)})
+- Agent protocol adapter samples: [${agentDiscoveryPaths.agentProtocolAdapterSamples}](${absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples)})
 - Agent recovery profile: [${agentDiscoveryPaths.agentRecovery}](${absoluteUrl(agentDiscoveryPaths.agentRecovery)})
 - Agent readiness profile: [${agentDiscoveryPaths.agentReadiness}](${absoluteUrl(agentDiscoveryPaths.agentReadiness)})
 - Agent tool registry: [${agentDiscoveryPaths.agentTools}](${absoluteUrl(agentDiscoveryPaths.agentTools)})
@@ -932,10 +945,22 @@ For deterministic protocol adapter boundaries, agents can read:
 GET ${agentDiscoveryPaths.agentProtocolsJson}
 \`\`\`
 
+For target-only MCP, A2A, and x402 sample payloads that show adapter mapping shape, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentProtocolAdapterSamples}
+\`\`\`
+
 For deterministic conformance checks before production use, agents can read:
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentConformance}
+\`\`\`
+
+For a deterministic conformance report package shape to mirror during operator review, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentConformanceReportExample}
 \`\`\`
 
 For deterministic failure, retry, monitor, and escalation handling, agents can read:
@@ -1210,6 +1235,26 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/conformance-report.example.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary:
+            "Read Boreal's example agent conformance report package.",
+          responses: {
+            "200": {
+              description:
+                "JSON example report for packaging sandbox replay results, requested scopes, protocol claims, secret handling, and human-review questions for operator review.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentConformanceReport",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/completion.json": {
         get: {
           tags: ["agent-discovery"],
@@ -1442,6 +1487,26 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentProtocolProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/protocol-adapter-samples.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary:
+            "Read Boreal's target-only MCP, A2A, and x402 adapter sample payloads.",
+          responses: {
+            "200": {
+              description:
+                "JSON sample pack showing how MCP tools, A2A tasks or artifacts, and x402 payment payloads map onto Boreal Request-native contracts without becoming live adapter authorization.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentProtocolAdapterSamples",
                   },
                 },
               },
@@ -1711,6 +1776,30 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentConformanceReport: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "reportKind",
+            "agent",
+            "requestedProductionAccess",
+            "sandboxValidation",
+            "replayScenarioResults",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            reportKind: { const: "agent_conformance_report" },
+            agent: { type: "object" },
+            requestedProductionAccess: { type: "object" },
+            sandboxValidation: { type: "object" },
+            replayScenarioResults: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentCompletionProfile: {
           type: "object",
           required: [
@@ -1921,6 +2010,24 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentProtocolAdapterSamples: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "samples",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "target_protocol_sample_pack" },
+            samples: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentRecoveryProfile: {
           type: "object",
           required: ["schemaVersion", "status", "recoveryRules", "canonicalBoundary"],
@@ -2015,6 +2122,8 @@ export function buildOpenApiDiscoveryIndex() {
       url: absoluteUrl(agentDiscoveryPaths.agentConformance),
       status: buildAgentConformanceProfile().status,
       reportSchemaUrl: buildAgentConformanceProfile().reportContract.schemaUrl,
+      reportExampleUrl:
+        buildAgentConformanceProfile().reportContract.sampleUrl,
       checklists: buildAgentConformanceProfile().checklists.map((checklist) => ({
         id: checklist.id,
         requiredChecks: checklist.checks.filter((check) => check.required).length,
@@ -2099,6 +2208,7 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-protocols": {
       url: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+      samplePackUrl: absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples),
       standards: buildAgentProtocolProfile().standards.map((standard) => ({
         id: standard.id,
         name: standard.name,
@@ -2593,6 +2703,10 @@ export function buildAgentConformanceProfile() {
         url: absoluteUrl("/schemas/agent-conformance-report.schema.json"),
       },
       {
+        label: "Agent conformance report example",
+        url: absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample),
+      },
+      {
         label: "OpenAPI discovery index",
         url: absoluteUrl(agentDiscoveryPaths.openApiIndex),
       },
@@ -2600,6 +2714,7 @@ export function buildAgentConformanceProfile() {
     reportContract: {
       status: "live_report_schema",
       schemaUrl: absoluteUrl("/schemas/agent-conformance-report.schema.json"),
+      sampleUrl: absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample),
       sampleFixturePath: "fixtures/agent/conformance-report.sample.json",
       useFor:
         "Package sandbox replay results, requested production scopes, protocol claims, secret-handling posture, and human-review questions for operator review.",
@@ -7041,6 +7156,14 @@ export function buildAgentProtocolProfile() {
         url: absoluteUrl("/schemas/agent-protocols.schema.json"),
       },
       {
+        label: "Agent protocol adapter samples",
+        url: absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples),
+      },
+      {
+        label: "Agent protocol adapter samples schema",
+        url: absoluteUrl("/schemas/agent-protocol-adapter-samples.schema.json"),
+      },
+      {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
       },
@@ -7877,6 +8000,24 @@ export async function readDiscoveryAsset(asset: AgentDiscoveryAsset) {
   return readFile(filePath, "utf8");
 }
 
+export async function readAgentConformanceReportExample() {
+  const filePath = path.join(
+    getFixturesRoot(),
+    "agent",
+    "conformance-report.sample.json"
+  );
+  return JSON.parse(await readFile(filePath, "utf8"));
+}
+
+export async function readAgentProtocolAdapterSamples() {
+  const filePath = path.join(
+    getFixturesRoot(),
+    "agent",
+    "protocol-adapter-samples.sample.json"
+  );
+  return JSON.parse(await readFile(filePath, "utf8"));
+}
+
 function findByRouteName(
   assets: readonly AgentDiscoveryAsset[],
   routeName: string,
@@ -7919,6 +8060,15 @@ function getSchemasRoot() {
     return path.resolve(cwd, "../..", "schemas");
   }
   return path.resolve(cwd, "schemas");
+}
+
+function getFixturesRoot() {
+  const cwd = process.cwd();
+  const normalizedCwd = cwd.replaceAll("\\", "/");
+  if (normalizedCwd.endsWith("/apps/web")) {
+    return path.resolve(cwd, "../..", "fixtures");
+  }
+  return path.resolve(cwd, "fixtures");
 }
 
 function toPublicAsset(asset: AgentDiscoveryAsset) {

@@ -28,6 +28,8 @@ import {
   findEventAsset,
   findJsonSchemaAsset,
   findOpenApiAsset,
+  readAgentConformanceReportExample,
+  readAgentProtocolAdapterSamples,
   readDiscoveryAsset,
 } from "@/lib/agent-discovery";
 import {
@@ -43,6 +45,7 @@ import { GET as getAgentActions } from "@/app/agents/actions.md/route";
 import { GET as getAgentAccessReview } from "@/app/agents/access-review.json/route";
 import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
 import { GET as getAgentConformance } from "@/app/agents/conformance.json/route";
+import { GET as getAgentConformanceReportExample } from "@/app/agents/conformance-report.example.json/route";
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
 import { GET as getAgentEvidence } from "@/app/agents/evidence.json/route";
 import { GET as getAgentExecution } from "@/app/agents/execution.json/route";
@@ -55,6 +58,7 @@ import { GET as getAgentPayments } from "@/app/agents/payments.json/route";
 import { GET as getAgentPrompts } from "@/app/agents/prompts.json/route";
 import { GET as getAgentProtocols } from "@/app/agents/protocols.md/route";
 import { GET as getAgentProtocolsJson } from "@/app/agents/protocols.json/route";
+import { GET as getAgentProtocolAdapterSamples } from "@/app/agents/protocol-adapter-samples.json/route";
 import { GET as getAgentRecovery } from "@/app/agents/recovery.json/route";
 import { GET as getAgentReadiness } from "@/app/agents/readiness.json/route";
 import { GET as getAgentSandboxJson } from "@/app/agents/sandbox.json/route";
@@ -436,6 +440,40 @@ async function main() {
     true,
   );
 
+  const protocolAdapterSamples = await readAgentProtocolAdapterSamples();
+  assert.equal(protocolAdapterSamples.status, "target_protocol_sample_pack");
+  assert.equal(protocolAdapterSamples.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    protocolAdapterSamples.samples.some(
+      (sample: { id: string; standard: string }) =>
+        sample.id === "mcp_propose_commitment_tool" &&
+        sample.standard === "mcp"
+    ),
+    true,
+  );
+  assert.equal(
+    protocolAdapterSamples.samples.some(
+      (sample: { id: string; standard: string }) =>
+        sample.id === "a2a_submit_artifact_task" &&
+        sample.standard === "a2a"
+    ),
+    true,
+  );
+  assert.equal(
+    protocolAdapterSamples.samples.some(
+      (sample: { id: string; standard: string }) =>
+        sample.id === "x402_paid_solution_run_shape" &&
+        sample.standard === "x402"
+    ),
+    true,
+  );
+  assert.equal(
+    protocolAdapterSamples.canonicalBoundary.adapterSamplesAreNot.includes(
+      "permission grant"
+    ),
+    true,
+  );
+
   const recoveryProfile = buildAgentRecoveryProfile();
   assert.equal(recoveryProfile.status, "live_recovery_profile");
   assert.equal(recoveryProfile.canonicalBoundary.rootObject, "Request");
@@ -609,6 +647,12 @@ async function main() {
     true,
   );
   assert.equal(
+    conformanceProfile.reportContract.sampleUrl.endsWith(
+      "/agents/conformance-report.example.json"
+    ),
+    true,
+  );
+  assert.equal(
     conformanceProfile.reportContract.sampleFixturePath,
     "fixtures/agent/conformance-report.sample.json",
   );
@@ -621,6 +665,20 @@ async function main() {
   assert.equal(
     conformanceProfile.canonicalBoundary.conformanceProfileIsNot.includes(
       "certification"
+    ),
+    true,
+  );
+
+  const conformanceReportExample = await readAgentConformanceReportExample();
+  assert.equal(conformanceReportExample.reportKind, "agent_conformance_report");
+  assert.equal(
+    conformanceReportExample.requestedProductionAccess.status,
+    "operator_review_required",
+  );
+  assert.equal(conformanceReportExample.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    conformanceReportExample.canonicalBoundary.reportIsNot.includes(
+      "production credential"
     ),
     true,
   );
@@ -1359,6 +1417,7 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/access-review\.json/);
   assert.match(startGuide, /GET \/agents\/auth\.json/);
   assert.match(startGuide, /GET \/agents\/conformance\.json/);
+  assert.match(startGuide, /GET \/agents\/conformance-report\.example\.json/);
   assert.match(startGuide, /GET \/agents\/completion\.json/);
   assert.match(startGuide, /GET \/agents\/evidence\.json/);
   assert.match(startGuide, /GET \/agents\/execution\.json/);
@@ -1370,12 +1429,15 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/prompts\.json/);
   assert.match(startGuide, /GET \/agents\/workflows\.json/);
   assert.match(startGuide, /GET \/agents\/protocols\.json/);
+  assert.match(startGuide, /GET \/agents\/protocol-adapter-samples\.json/);
   assert.match(startGuide, /GET \/agents\/recovery\.json/);
   assert.match(startGuide, /GET \/agents\/readiness\.json/);
   assert.match(startGuide, /GET \/agents\/tools\.json/);
   assert.match(startGuide, /Agent action playbook/);
   assert.match(startGuide, /Agent access review profile/);
+  assert.match(startGuide, /Agent conformance report example/);
   assert.match(startGuide, /Agent contract sandbox/);
+  assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent Workflow Catalog/);
   assert.match(startGuide, /Optimize this/);
   assert.match(startGuide, /`Request` is the durable root object/);
@@ -1406,6 +1468,10 @@ async function main() {
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/auth.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/conformance.json"), true);
   assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/conformance-report.example.json"),
+    true,
+  );
+  assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/completion.json"),
     true,
   );
@@ -1430,6 +1496,10 @@ async function main() {
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/protocols.md"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/protocols.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/protocol-adapter-samples.json"),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/recovery.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/readiness.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/tools.json"), true);
@@ -1438,6 +1508,12 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-protocols"].standards.some(
       (standard) => standard.id === "x402"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-protocols"].samplePackUrl.endsWith(
+      "/agents/protocol-adapter-samples.json"
     ),
     true,
   );
@@ -1468,6 +1544,12 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-conformance"].reportSchemaUrl.endsWith(
       "/schemas/agent-conformance-report.schema.json"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-conformance"].reportExampleUrl.endsWith(
+      "/agents/conformance-report.example.json"
     ),
     true,
   );
@@ -1613,6 +1695,10 @@ async function main() {
     "schemas/json/agent-protocols.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-protocol-adapter-samples.schema.json")?.sourcePath,
+    "schemas/json/agent-protocol-adapter-samples.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-recovery.schema.json")?.sourcePath,
     "schemas/json/agent-recovery.schema.json",
   );
@@ -1708,6 +1794,20 @@ async function main() {
     "live_conformance_profile"
   );
 
+  const agentConformanceReportExampleResponse =
+    await getAgentConformanceReportExample();
+  assert.equal(agentConformanceReportExampleResponse.status, 200);
+  const agentConformanceReportExample =
+    await agentConformanceReportExampleResponse.json();
+  assert.equal(
+    agentConformanceReportExample.reportKind,
+    "agent_conformance_report"
+  );
+  assert.equal(
+    agentConformanceReportExample.requestedProductionAccess.status,
+    "operator_review_required"
+  );
+
   const agentCompletionResponse = await getAgentCompletion();
   assert.equal(agentCompletionResponse.status, 200);
   assert.equal(
@@ -1799,6 +1899,14 @@ async function main() {
     "live_protocol_profile"
   );
 
+  const agentProtocolAdapterSamplesResponse =
+    await getAgentProtocolAdapterSamples();
+  assert.equal(agentProtocolAdapterSamplesResponse.status, 200);
+  assert.equal(
+    (await agentProtocolAdapterSamplesResponse.json()).status,
+    "target_protocol_sample_pack"
+  );
+
   const agentRecoveryResponse = await getAgentRecovery();
   assert.equal(agentRecoveryResponse.status, 200);
   assert.equal(
@@ -1845,6 +1953,7 @@ async function main() {
   assert.match(llmsText, /Agent auth profile/);
   assert.match(llmsText, /Agent conformance profile/);
   assert.match(llmsText, /Agent conformance report schema/);
+  assert.match(llmsText, /Agent conformance report example/);
   assert.match(llmsText, /Agent completion profile/);
   assert.match(llmsText, /Agent evidence profile/);
   assert.match(llmsText, /Agent execution profile/);
@@ -1855,6 +1964,7 @@ async function main() {
   assert.match(llmsText, /Agent payment profile/);
   assert.match(llmsText, /Agent prompt catalog/);
   assert.match(llmsText, /Agent protocol profile JSON/);
+  assert.match(llmsText, /Agent protocol adapter samples/);
   assert.match(llmsText, /Agent recovery profile/);
   assert.match(llmsText, /Agent readiness profile/);
   assert.match(llmsText, /Agent tool registry/);
@@ -2015,6 +2125,20 @@ async function main() {
   assert.equal(
     (await protocolSchemaResponse.json()).title,
     "AgentProtocolProfile"
+  );
+
+  const protocolAdapterSamplesSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-protocol-adapter-samples.schema.json",
+      }),
+    }
+  );
+  assert.equal(protocolAdapterSamplesSchemaResponse.status, 200);
+  assert.equal(
+    (await protocolAdapterSamplesSchemaResponse.json()).title,
+    "AgentProtocolAdapterSamples"
   );
 
   const recoverySchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

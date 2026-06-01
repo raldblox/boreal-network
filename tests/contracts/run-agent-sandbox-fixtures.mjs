@@ -6,8 +6,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 
 const manifestPath = "fixtures/agent/sandbox-manifest.sample.json";
 const conformanceReportPath = "fixtures/agent/conformance-report.sample.json";
+const protocolAdapterSamplesPath = "fixtures/agent/protocol-adapter-samples.sample.json";
 const schemaPath = "schemas/json/agent-sandbox.schema.json";
 const conformanceReportSchemaPath = "schemas/json/agent-conformance-report.schema.json";
+const protocolAdapterSamplesSchemaPath = "schemas/json/agent-protocol-adapter-samples.schema.json";
 const implementationPath = "apps/web/lib/agent-sandbox.ts";
 
 const requiredFlows = new Map([
@@ -39,6 +41,7 @@ const requiredResources = [
   "/agents/access-review.json",
   "/agents/auth.json",
   "/agents/conformance.json",
+  "/agents/conformance-report.example.json",
   "/agents/completion.json",
   "/agents/evidence.json",
   "/agents/execution.json",
@@ -49,6 +52,7 @@ const requiredResources = [
   "/agents/workflows.json",
   "/agents/protocols.md",
   "/agents/protocols.json",
+  "/agents/protocol-adapter-samples.json",
   "/agents/recovery.json",
   "/agents/readiness.json",
   "/agents/tools.json",
@@ -133,6 +137,29 @@ function validateConformanceReportSchema(schema, errors) {
   assert(
     schema.$defs?.protocolClaims?.properties?.mcp?.const === "target_only",
     "agent conformance report schema must keep MCP target-only",
+    errors
+  );
+}
+
+function validateProtocolAdapterSamplesSchema(schema, errors) {
+  assert(
+    schema.$schema === "https://json-schema.org/draft/2020-12/schema",
+    "agent protocol adapter samples schema must use JSON Schema draft 2020-12",
+    errors
+  );
+  assert(
+    schema.title === "AgentProtocolAdapterSamples",
+    "agent protocol adapter samples schema must be titled AgentProtocolAdapterSamples",
+    errors
+  );
+  assert(
+    schema.properties?.status?.const === "target_protocol_sample_pack",
+    "agent protocol adapter samples schema must lock target-only status",
+    errors
+  );
+  assert(
+    schema.$defs?.sample?.properties?.notAcceptedByProduction?.const === true,
+    "agent protocol adapter samples schema must lock production acceptance to false",
     errors
   );
 }
@@ -507,6 +534,48 @@ function validateConformanceReport(report, manifest, errors) {
   );
 }
 
+function validateProtocolAdapterSamples(samples, manifest, errors) {
+  const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
+  const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
+  const standards = new Set((samples.samples ?? []).map((sample) => sample.standard));
+
+  assert(samples.schemaVersion === 1, "protocol adapter samples schemaVersion must be 1", errors);
+  assert(
+    samples.status === "target_protocol_sample_pack",
+    "protocol adapter samples must stay target-only",
+    errors
+  );
+  assert(samples.canonicalBoundary?.rootObject === "Request", "protocol adapter samples must keep Request as root", errors);
+  includesAll(Array.from(standards), ["mcp", "a2a", "x402"], "protocol adapter samples standards", errors);
+
+  for (const sample of samples.samples ?? []) {
+    assert(sample.notAcceptedByProduction === true, `${sample.id} must not be accepted by production`, errors);
+    assert(flowIds.has(sample.actionId), `${sample.id} actionId must reference a sandbox flow`, errors);
+    for (const write of sample.borealOperation?.canonicalWrites ?? []) {
+      assert(durableWrites.has(write), `${sample.id} write ${write} must be canonical`, errors);
+    }
+    assert(
+      (sample.promotionRules ?? []).some((rule) =>
+        /not completion proof|not a Request id|Transaction/i.test(rule)
+      ),
+      `${sample.id} must include a promotion boundary rule`,
+      errors
+    );
+  }
+
+  assert(
+    (samples.canonicalBoundary?.adapterSamplesAreNot ?? []).includes("permission grant"),
+    "protocol adapter samples must not grant permission",
+    errors
+  );
+  assert(
+    (samples.canonicalBoundary?.notRoots ?? []).includes("A2A task") &&
+      (samples.canonicalBoundary?.notRoots ?? []).includes("x402 payment payload"),
+    "protocol adapter samples must keep adapter envelopes out of root truth",
+    errors
+  );
+}
+
 function validateImplementationAndDocs(manifest, errors) {
   const implementation = readText(implementationPath);
   for (const flow of manifest.flows ?? []) {
@@ -535,21 +604,25 @@ function validateImplementationAndDocs(manifest, errors) {
 
 const schema = readJson(schemaPath);
 const conformanceReportSchema = readJson(conformanceReportSchemaPath);
+const protocolAdapterSamplesSchema = readJson(protocolAdapterSamplesSchemaPath);
 const manifest = readJson(manifestPath);
 const conformanceReport = readJson(conformanceReportPath);
+const protocolAdapterSamples = readJson(protocolAdapterSamplesPath);
 const errors = [];
 
 validateSchema(schema, errors);
 validateConformanceReportSchema(conformanceReportSchema, errors);
+validateProtocolAdapterSamplesSchema(protocolAdapterSamplesSchema, errors);
 validateManifestShape(manifest, errors);
 validateMockIdentities(manifest, errors);
 validateFlows(manifest, errors);
 validateScenarios(manifest, errors);
 validateCanonBoundary(manifest, errors);
 validateConformanceReport(conformanceReport, manifest, errors);
+validateProtocolAdapterSamples(protocolAdapterSamples, manifest, errors);
 validateImplementationAndDocs(manifest, errors);
 
-const serialized = JSON.stringify({ manifest, conformanceReport });
+const serialized = JSON.stringify({ manifest, conformanceReport, protocolAdapterSamples });
 assert(!serialized.includes("PRIVATE KEY"), "sandbox manifest must not include private keys", errors);
 assert(!serialized.includes("BEGIN "), "sandbox manifest must not include PEM-like secrets", errors);
 

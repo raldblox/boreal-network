@@ -40,6 +40,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent auth profile](${absoluteUrl(agentDiscoveryPaths.agentAuth)}): Machine-readable actor classes, auth schemes, scopes, approvals, and write boundaries.
 - [Agent conformance profile](${absoluteUrl(agentDiscoveryPaths.agentConformance)}): Machine-readable checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries.
 - [Agent conformance report schema](${absoluteUrl("/schemas/agent-conformance-report.schema.json")}): Machine-readable report shape for sandbox replay evidence, requested scopes, protocol claims, and human review.
+- [Agent conformance report example](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)}): Submit-ready example package for operator review; it is not a credential, permission grant, or certification.
 - [Agent completion profile](${absoluteUrl(agentDiscoveryPaths.agentCompletion)}): Machine-readable proof packets, Artifact requirements, completion claims, and review boundaries.
 - [Agent evidence profile](${absoluteUrl(agentDiscoveryPaths.agentEvidence)}): Machine-readable evidence packet, Artifact packaging, redaction, review, and proof-boundary guidance.
 - [Agent execution profile](${absoluteUrl(agentDiscoveryPaths.agentExecution)}): Machine-readable Fulfillment, FulfillmentStep, runtime signal, and execution-lane boundaries.
@@ -53,6 +54,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent monitor webhook profile](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)}): Target signed push-notification profile for request activity monitors.
 - [Agent protocol profile](${absoluteUrl(agentDiscoveryPaths.agentProtocols)}): MCP, A2A, and x402 adapter/payment boundaries.
 - [Agent protocol profile JSON](${absoluteUrl(agentDiscoveryPaths.agentProtocolsJson)}): Machine-readable MCP, A2A, and x402 mappings that keep adapters below Request truth.
+- [Agent protocol adapter samples](${absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples)}): Target-only MCP, A2A, and x402 sample payloads mapped to Boreal HTTP contracts and canonical writes.
 - [Agent recovery profile](${absoluteUrl(agentDiscoveryPaths.agentRecovery)}): Machine-readable auth, idempotency, retry, monitor, payment, and escalation rules.
 - [Agent readiness profile](${absoluteUrl(agentDiscoveryPaths.agentReadiness)}): Machine-readable live-versus-target capability matrix, agent UX flow, and go/no-go checks.
 - [Agent tool registry](${absoluteUrl(agentDiscoveryPaths.agentTools)}): Machine-readable safe HTTP tool calls, target MCP/A2A mappings, preflight checks, and canonical write boundaries.

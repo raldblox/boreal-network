@@ -98,6 +98,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/access-review.json/route.ts`
 - `apps/web/app/agents/auth.json/route.ts`
 - `apps/web/app/agents/conformance.json/route.ts`
+- `apps/web/app/agents/conformance-report.example.json/route.ts`
 - `apps/web/app/agents/completion.json/route.ts`
 - `apps/web/app/agents/evidence.json/route.ts`
 - `apps/web/app/agents/execution.json/route.ts`
@@ -107,6 +108,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/optimization.json/route.ts`
 - `apps/web/app/agents/payments.json/route.ts`
 - `apps/web/app/agents/prompts.json/route.ts`
+- `apps/web/app/agents/protocol-adapter-samples.json/route.ts`
 - `apps/web/app/agents/workflows.json/route.ts`
 - `apps/web/app/agents/protocols.json/route.ts`
 - `apps/web/app/agents/recovery.json/route.ts`
@@ -135,6 +137,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-prompts.schema.json`
 - `schemas/json/agent-workflows.schema.json`
 - `schemas/json/agent-protocols.schema.json`
+- `schemas/json/agent-protocol-adapter-samples.schema.json`
 - `schemas/json/agent-recovery.schema.json`
 - `schemas/json/agent-readiness.schema.json`
 - `schemas/json/agent-tools.schema.json`
@@ -184,7 +187,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/access-review.json` profile and `schemas/json/agent-access-review.schema.json` give external agents machine-readable operator-review policy for requested scopes, quotas, revocation triggers, decision outcomes, and target adapter claims without issuing credentials, granting permission, certifying agents, authorizing spend, or proving completion
 - one public `/agents/auth.json` profile and `schemas/json/agent-auth.schema.json` give agents machine-readable actor classes, auth schemes, scopes, approval boundaries, idempotency requirements, and explicit non-grants without claiming OAuth-compatible external-agent auth is live
 - one public `/agents/conformance.json` profile and `schemas/json/agent-conformance.schema.json` give agent builders a machine-readable checklist for discovery, auth, human handoff, work actions, proof, payment, recovery, sandbox, and target protocol boundaries without certifying agents, granting permission, authorizing spend, or proving completion
-- one public `schemas/json/agent-conformance-report.schema.json` contract and `fixtures/agent/conformance-report.sample.json` fixture give agents a standard way to package sandbox replay results, requested scopes, target protocol claims, secret-handling posture, and human-review questions for operator review without creating credentials, certification, payment authorization, or completion proof
+- one public `schemas/json/agent-conformance-report.schema.json` contract, `/agents/conformance-report.example.json` route, and `fixtures/agent/conformance-report.sample.json` fixture give agents a standard way to package sandbox replay results, requested scopes, target protocol claims, secret-handling posture, and human-review questions for operator review without creating credentials, certification, payment authorization, or completion proof
 - one public `/agents/completion.json` profile and `schemas/json/agent-completion.schema.json` give agents machine-readable proof packet, artifact, fulfillment, review, payment, and event boundaries for draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims without treating chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, or payment settlement as completion truth by themselves
 - one public `/agents/evidence.json` profile and `schemas/json/agent-evidence.schema.json` give agents machine-readable evidence packet, `Artifact` packaging, redaction, evidence-level, review-signal, and retry-safety guidance without authorizing artifact publication, storing files, accepting review, settling payment, or proving completion by itself
 - one public `/agents/execution.json` profile and `schemas/json/agent-execution.schema.json` give agents machine-readable execution lane, `Fulfillment`, `FulfillmentStep`, direct-owner exception, runtime signal promotion, retry, and non-root adapter boundaries without authorizing writes, proving completion, or treating runtime sessions as request truth
@@ -197,6 +200,7 @@ Today, the machine-readable baseline proves:
 - one request activity endpoint can resume monitor reads with `after_sequence` and return `cursor.nextAfterSequence` without creating heartbeat `RequestEvent` records
 - one public `/agents/monitor-webhooks.md` profile and OpenAPI webhook schema define the target signed push-delivery envelope for monitor agents, while actual subscription persistence and delivery remain target direction
 - one public `/agents/protocols.md` profile, `/agents/protocols.json` machine-readable protocol profile, `schemas/json/agent-protocols.schema.json`, and `standards/agent-protocol-profile.md` define MCP, A2A, and x402 adapter/payment boundaries without claiming live protocol adapters
+- one public `/agents/protocol-adapter-samples.json` sample pack, `schemas/json/agent-protocol-adapter-samples.schema.json`, and `fixtures/agent/protocol-adapter-samples.sample.json` show target-only MCP tool, A2A task or artifact, and x402 payment-shape payload mappings without granting permission, authorizing payment, proving completion, or making adapters live
 - one public `/agents/recovery.json` recovery profile and `schemas/json/agent-recovery.schema.json` give agents machine-readable handling for auth failure, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and human escalation without granting permission
 - one public `/agents/readiness.json` readiness profile and `schemas/json/agent-readiness.schema.json` give agents a machine-readable live-versus-target capability matrix, standards map, agent UX flow, go/no-go checks, current limitations, and next implementation priorities without granting credentials, proving completion, or making target adapters live
 - one public `/agents/tools.json` tool registry and `schemas/json/agent-tools.schema.json` map agent intents to safe HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, output truth, and canonical write boundaries without creating a separate tool runtime or making target adapters live
@@ -212,7 +216,7 @@ These are intended next layers, not fully modeled proof yet:
 - broader canonical event coverage under `schemas/events/`
 - broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
 - richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, payment/rate-limit-aware policy decisions, failure fixtures, and live external-agent auth beyond the first public action playbook, auth profile, contract-only sandbox runner and replay scenarios, request-detail action policy, cursor polling lane, and webhook signature profile
-- richer conformance automation where external agents can submit signed sandbox transcripts or live dry-run evidence for operator review; the current profile plus report schema defines the evidence shape but does not process submissions
+- richer conformance automation where external agents can submit signed sandbox transcripts or live dry-run evidence for operator review; the current profile, report schema, and example route define the evidence shape but do not process submissions
 - richer evidence automation with artifact scanning, checksum verification, private reviewer access, and proof scoring; the current evidence profile is packaging and review guidance only
 - richer execution automation with lane-specific worker dispatch, runtime admission, step updates, provider correlation, and isolated untrusted execution; the current execution profile is descriptive guidance over existing `Fulfillment` and `FulfillmentStep` truth
 - richer human handoff state in live request rooms, including persisted approval records, review prompts, and escalation inboxes; the current public handoff profile is descriptive guidance only

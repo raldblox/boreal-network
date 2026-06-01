@@ -54,6 +54,10 @@
       "url": "https://boreal.work/agents/conformance.json"
     },
     {
+      "label": "Conformance report example",
+      "url": "https://boreal.work/agents/conformance-report.example.json"
+    },
+    {
       "label": "Completion profile",
       "url": "https://boreal.work/agents/completion.json"
     },
@@ -92,6 +96,10 @@
     {
       "label": "Protocol profile JSON",
       "url": "https://boreal.work/agents/protocols.json"
+    },
+    {
+      "label": "Protocol adapter samples",
+      "url": "https://boreal.work/agents/protocol-adapter-samples.json"
     },
     {
       "label": "Recovery profile",

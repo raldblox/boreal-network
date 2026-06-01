@@ -79,7 +79,7 @@ Current assets that agents can eventually build on:
 - A machine-readable access review profile exists through `/agents/access-review.json` and `schemas/json/agent-access-review.schema.json`, mapping conformance-report review, scope minimization, sandbox or pilot decisions, target adapter review, rate limits, revocation triggers, and decision outcomes.
 - A machine-readable auth profile exists through `/agents/auth.json` and `schemas/json/agent-auth.schema.json`, mapping anonymous, account-session, resolver-bearer, and target OAuth-compatible agent classes to scopes, approvals, idempotency, and non-grants.
 - A machine-readable conformance profile exists through `/agents/conformance.json` and `schemas/json/agent-conformance.schema.json`, mapping pre-production checks across discovery, auth, human handoff, work actions, proof, payment, recovery, sandbox, and target protocol boundaries.
-- A machine-readable conformance report contract exists through `schemas/json/agent-conformance-report.schema.json` and `fixtures/agent/conformance-report.sample.json`, giving agents a standard way to package sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions.
+- A machine-readable conformance report contract exists through `schemas/json/agent-conformance-report.schema.json`, `/agents/conformance-report.example.json`, and `fixtures/agent/conformance-report.sample.json`, giving agents a standard way to package sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions.
 - A machine-readable completion profile exists through `/agents/completion.json` and `schemas/json/agent-completion.schema.json`, mapping draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims to proof, Artifact, Fulfillment, Transaction, RequestEvent, and owner-review truth.
 - A machine-readable evidence profile exists through `/agents/evidence.json` and `schemas/json/agent-evidence.schema.json`, mapping evidence packets, artifact packaging, redaction rules, review signals, and retry-safe proof submission.
 - A machine-readable execution profile exists through `/agents/execution.json` and `schemas/json/agent-execution.schema.json`, mapping execution lanes, `Fulfillment`, `FulfillmentStep`, direct-owner exceptions, runtime signal promotion, retry, and non-root adapter boundaries.
@@ -90,6 +90,7 @@ Current assets that agents can eventually build on:
 - A machine-readable payment profile exists through `/agents/payments.json` and `schemas/json/agent-payments.schema.json`, mapping buyer-credit, direct funding, paid solution runs, idempotency, x402 target boundaries, and `Transaction` reconciliation.
 - A machine-readable prompt catalog exists through `/agents/prompts.json` and `schemas/json/agent-prompts.schema.json`, mapping safe briefing, applying, proof submission, monitoring, optimization, and recovery prompts below durable truth.
 - A machine-readable protocol profile exists through `/agents/protocols.json` and `schemas/json/agent-protocols.schema.json`, mapping MCP, A2A, and x402 adapter concepts below Boreal canonical truth.
+- A machine-readable protocol adapter sample pack exists through `/agents/protocol-adapter-samples.json`, `schemas/json/agent-protocol-adapter-samples.schema.json`, and `fixtures/agent/protocol-adapter-samples.sample.json`, showing target-only MCP, A2A, and x402 payload mappings without making adapters live.
 - A machine-readable recovery profile exists through `/agents/recovery.json` and `schemas/json/agent-recovery.schema.json`, mapping auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and escalation behavior for agents.
 - A machine-readable readiness profile exists through `/agents/readiness.json` and `schemas/json/agent-readiness.schema.json`, mapping live versus target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities.
 - A machine-readable tool registry exists through `/agents/tools.json` and `schemas/json/agent-tools.schema.json`, mapping agent intents to live HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, and canonical write boundaries.
@@ -104,7 +105,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first OpenAPI auth metadata pass now declares account-session, resolver-bearer, anonymous-public, provider-callback, and refresh-token body boundaries in the machine-readable contracts; OAuth-compatible external-agent authorization remains target direction
 - the first machine-readable access review profile now tells agents how Boreal operators should evaluate conformance reports, requested scopes, rate limits, revocation triggers, decision outcomes, and target adapter claims, but it does not issue credentials, grant permission, certify agents, authorize spend, or make protocol adapters live
 - the first machine-readable auth profile now tells agents which actor class, auth scheme, scope, approval boundary, and idempotency rule applies before writes, but it does not create production credentials or make OAuth-compatible external-agent auth live
-- the first machine-readable conformance profile now gives agent builders a checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol behavior, and the first conformance report schema now gives them an operator-review evidence packet shape; neither certifies agents nor grants production access
+- the first machine-readable conformance profile now gives agent builders a checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol behavior, and the first conformance report schema plus public example route now gives them an operator-review evidence packet shape; neither certifies agents nor grants production access
 - the first machine-readable completion profile now tells agents what proof and review truth is required before saying draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed, but deeper lane-specific proof scoring remains target direction
 - the first machine-readable evidence profile now tells agents how to package proof, receipts, outputs, redaction statements, and review signals as `Artifact` support, but automated proof scoring, private reviewer access, and artifact scanning remain target direction
 - the first machine-readable execution profile now tells agents when `Fulfillment` lanes may start, why sub-work defaults to `FulfillmentStep`, how direct-owner execution stays narrow, and why runtime signals stay ephemeral until promoted, but lane-specific worker dispatch and isolated untrusted execution remain target direction
@@ -118,7 +119,7 @@ Current gaps to close before Boreal is truly agent-native:
 - no A2A adapter that maps A2A tasks/artifacts onto Boreal requests, fulfillments, and artifacts
 - no live x402 or wallet-based execution payment endpoint in the canonical web app
 - the first MCP/A2A/x402 boundary profile now exists, but implementation adapters are not live yet
-- the first machine-readable MCP/A2A/x402 protocol profile now exists, so agents can read adapter mappings, non-goals, implementation order, and canon boundaries without scraping markdown
+- the first machine-readable MCP/A2A/x402 protocol profile and target-only sample pack now exist, so agents can read adapter mappings, sample payloads, non-goals, implementation order, and canon boundaries without scraping markdown
 - the first machine-readable recovery profile now exists, so agents can handle failed writes, missing scopes, rate limits, blocked fulfillments, payment uncertainty, and stale monitor cursors without inventing parallel recovery state
 - the first machine-readable readiness profile now exists, so agents can distinguish live public reads, live authenticated HTTP contracts, contract-only sandbox flows, and target OAuth/MCP/A2A/x402 layers without overclaiming adapter availability
 - the first machine-readable tool registry now exists, so agents can map inspect, make draft, apply, submit, monitor, run, payment reconciliation, and optimization intents to safe HTTP calls while keeping MCP and A2A as target adapter mappings
@@ -320,6 +321,7 @@ Add these public surfaces:
 - `GET /agents/access-review.json`
 - `GET /agents/auth.json`
 - `GET /agents/conformance.json`
+- `GET /agents/conformance-report.example.json`
 - `GET /agents/completion.json`
 - `GET /agents/evidence.json`
 - `GET /agents/execution.json`
@@ -333,6 +335,7 @@ Add these public surfaces:
 - `GET /agents/sandbox.md`
 - `GET /agents/sandbox.json`
 - `GET /agents/protocols.json`
+- `GET /agents/protocol-adapter-samples.json`
 - `GET /agents/recovery.json`
 - `GET /agents/readiness.json`
 - `GET /agents/tools.json`
@@ -365,6 +368,7 @@ Add these public surfaces:
 - `GET /schemas/agent-prompts.schema.json`
 - `GET /schemas/agent-workflows.schema.json`
 - `GET /schemas/agent-protocols.schema.json`
+- `GET /schemas/agent-protocol-adapter-samples.schema.json`
 - `GET /schemas/agent-recovery.schema.json`
 - `GET /schemas/agent-readiness.schema.json`
 - `GET /schemas/agent-tools.schema.json`
@@ -797,6 +801,7 @@ Deliverables:
 - `/agents/auth.json` - implemented as a public machine-readable auth profile for actor classes, auth schemes, scopes, approval boundaries, idempotency, and explicit non-grants
 - `/agents/conformance.json` - implemented as a public machine-readable checklist for discovery, auth, handoff, work actions, proof, payment, recovery, sandbox, and protocol boundaries before production use
 - `schemas/json/agent-conformance-report.schema.json` and `fixtures/agent/conformance-report.sample.json` - implemented as a public machine-readable report shape and sample for packaging sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions
+- `/agents/conformance-report.example.json` - implemented as the public fetchable conformance report example package
 - `/agents/completion.json` - implemented as a public machine-readable completion profile for proof packets, Artifact guidance, completion claims, and review boundaries
 - `/agents/evidence.json` - implemented as a public machine-readable evidence profile for proof packets, Artifact packaging, redaction, review signals, and retry-safe submission boundaries
 - `/agents/execution.json` - implemented as a public machine-readable execution profile for `Fulfillment` lanes, `FulfillmentStep` sub-work, direct-owner exceptions, runtime signal promotion, retry, and non-root adapter boundaries
@@ -810,6 +815,7 @@ Deliverables:
 - `/agents/monitor-webhooks.md` - implemented as a public target profile for signed request-activity monitor callbacks
 - `/agents/protocols.md` - implemented as a public MCP, A2A, and x402 boundary profile
 - `/agents/protocols.json` - implemented as a public machine-readable MCP, A2A, and x402 protocol profile with adapter mappings, non-goals, implementation order, and canon boundaries
+- `/agents/protocol-adapter-samples.json` - implemented as a public target-only MCP, A2A, and x402 sample payload pack
 - `/agents/recovery.json` - implemented as a public machine-readable recovery profile for auth failures, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and escalation packets
 - `/agents/readiness.json` - implemented as a public machine-readable readiness profile for live-versus-target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities
 - `/agents/tools.json` - implemented as a public machine-readable tool registry for live HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, output truth, and canonical write boundaries
@@ -825,6 +831,7 @@ Deliverables:
 - machine-readable agent auth profile - implemented as `/agents/auth.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent conformance profile - implemented as `/agents/conformance.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent conformance report schema - implemented as `/schemas/agent-conformance-report.schema.json`, linked from the conformance profile and public schema catalog
+- machine-readable agent conformance report example - implemented as `/agents/conformance-report.example.json`, linked from the conformance profile and `/openapi.json`
 - machine-readable agent completion profile - implemented as `/agents/completion.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent evidence profile - implemented as `/agents/evidence.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent execution profile - implemented as `/agents/execution.json`, linked from the agent card and `/openapi.json`
@@ -836,6 +843,7 @@ Deliverables:
 - machine-readable agent prompt catalog - implemented as `/agents/prompts.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent workflow catalog - implemented as `/agents/workflows.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent protocol profile - implemented as `/agents/protocols.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent protocol adapter samples - implemented as `/agents/protocol-adapter-samples.json`, linked from the protocol profile and `/openapi.json`
 - machine-readable agent recovery profile - implemented as `/agents/recovery.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent readiness profile - implemented as `/agents/readiness.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent tool registry - implemented as `/agents/tools.json`, linked from the agent card and `/openapi.json`
@@ -858,11 +866,13 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the action playbook route and its live HTTP sketches for make-request, apply, submit, monitor, and run flows.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent auth profile, resolver bearer and target OAuth boundaries, scope non-grants, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent access review profile, requested-scope review, low-volume pilot rate limit, revocation triggers, decision outcomes, non-credential boundary, public route, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public conformance report example route, report kind, operator-review status, non-credential boundary, and OpenAPI index link.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent completion profile, proof packet, Artifact and owner-review boundaries, non-completion truth list, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent execution profile, accepted-commitment lane, direct-owner exception, ephemeral runtime signal rules, `FulfillmentStep` default, non-root adapter boundary, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent onboarding profile, contract sandbox validation stage, target OAuth-compatible external-agent path, production access packet fields, go-live checks, non-credential-issuer boundary, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent payment profile, free inspection boundary, account-session spend surfaces, idempotency, target x402 boundary, `Transaction` truth, non-root payment objects, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent prompt catalog, apply and submit prompt mappings, draft-only output contract, non-mutation boundary, OpenAPI extension, public route, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent protocol adapter sample pack, MCP/A2A/x402 sample coverage, target-only status, non-permission boundary, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent readiness profile, live and target capability bands, standards map, agent UX flow, go/no-go checks, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent tool registry, HTTP invocation baseline, target MCP/A2A mappings, idempotency, optimization draft-only behavior, payment mutation boundaries, non-root tool objects, and public schema route.
 - `pnpm contracts:agent-sandbox` verifies the sandbox fixture, mock identity coverage, idempotency samples, cursor sample, signed-webhook sample, draft-only optimization sample, deterministic replay scenarios, conformance report fixture, and production-auth boundary.
@@ -959,6 +969,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can find the auth profile and distinguish anonymous reads, account sessions, resolver bearers, and target OAuth-compatible delegation.
 - A fresh agent can find the conformance profile and understand which discovery, auth, handoff, action, proof, payment, recovery, sandbox, and protocol checks it must pass before production use.
 - A fresh agent can find the conformance report schema and package sandbox replay results, requested scopes, protocol claims, secret-handling posture, and human-review questions without treating the report as a permission grant.
+- A fresh agent can fetch the conformance report example and mirror its shape without treating the example as a submission, approval, credential, or certification.
 - A fresh agent can find the completion profile and distinguish draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims.
 - A fresh agent can find the evidence profile and understand how to package proof, receipts, files, media, redaction statements, review signals, and bounded artifact claims.
 - A fresh agent can find the execution profile and distinguish accepted-commitment execution, owner-private direct execution, public solution runs, target adapter execution, runtime signal promotion, retry, and `FulfillmentStep` sub-work boundaries.
@@ -969,6 +980,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can find the optimization profile and distinguish draft-only improvement from owner-approved durable mutation.
 - A fresh agent can find the payment profile and distinguish free inspection, buyer-credit support ledger state, request-attached `Transaction` truth, live account-session spend authority, and target x402 activation.
 - A fresh agent can find the prompt catalog and use briefing, applying, proof submission, monitoring, optimization, and recovery prompts without treating prompt output as mutation, approval, payment, proof, or completion truth.
+- A fresh agent can fetch protocol adapter samples and understand how MCP tool calls, A2A tasks or artifacts, and x402 payment payloads map to Boreal routes without becoming canonical roots or live adapters.
 - A fresh agent can find the readiness profile and distinguish live public reads, live authenticated HTTP contracts, contract-only sandbox flows, and target OAuth, MCP, A2A, and x402 layers.
 - A fresh agent can find the tool registry and map common agent intents to safe HTTP calls, target MCP tools, target A2A operations, required preflights, idempotency requirements, and canonical writes.
 - A fresh agent can inspect public requests without auth.

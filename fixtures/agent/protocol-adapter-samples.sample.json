@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "status": "target_protocol_sample_pack",
+  "name": "Boreal Agent Protocol Adapter Samples",
+  "description": "Concrete target-only MCP, A2A, and x402 sample payloads showing how familiar agent protocols map onto Boreal Request-native contracts without becoming canonical roots or live adapter authorization.",
+  "sourceProfiles": [
+    {
+      "label": "Agent protocol profile",
+      "url": "https://boreal.work/agents/protocols.json"
+    },
+    {
+      "label": "Agent tool registry",
+      "url": "https://boreal.work/agents/tools.json"
+    },
+    {
+      "label": "Agent payment profile",
+      "url": "https://boreal.work/agents/payments.json"
+    }
+  ],
+  "samples": [
+    {
+      "id": "mcp_propose_commitment_tool",
+      "standard": "mcp",
+      "status": "target_adapter_sample",
+      "actionId": "apply_to_request",
+      "transportConcept": "MCP Tool",
+      "externalShape": {
+        "toolName": "boreal.commitments.propose",
+        "arguments": {
+          "requestId": "00000000-0000-4000-8000-000000000001",
+          "idempotencyKey": "00000000-0000-4000-8000-000000000101",
+          "proposal": {
+            "summary": "I can complete the requested automation cleanup and submit proof artifacts.",
+            "terms": {
+              "amountMode": "fixed",
+              "currency": "USD",
+              "fixedAmount": 250,
+              "deliverableSummary": "Working automation fix plus evidence artifact and handoff notes."
+            }
+          }
+        }
+      },
+      "borealOperation": {
+        "method": "POST",
+        "path": "/api/requests/{requestId}/commitments",
+        "canonicalReads": [
+          "Request",
+          "Supply"
+        ],
+        "canonicalWrites": [
+          "Commitment",
+          "RequestEvent"
+        ],
+        "requiredScopes": [
+          "commitments:propose"
+        ],
+        "policyGate": "request-detail agentActionPolicy.apply_to_request must allow the represented actor."
+      },
+      "promotionRules": [
+        "MCP tool success is not completion proof.",
+        "The governed HTTP route creates the Commitment and RequestEvent truth.",
+        "The Idempotency-Key must be preserved across retries."
+      ],
+      "notAcceptedByProduction": true
+    },
+    {
+      "id": "a2a_submit_artifact_task",
+      "standard": "a2a",
+      "status": "target_adapter_sample",
+      "actionId": "submit_artifact",
+      "transportConcept": "A2A Task and Artifact",
+      "externalShape": {
+        "taskId": "a2a-task-sandbox-submit-artifact",
+        "message": {
+          "role": "agent",
+          "parts": [
+            {
+              "kind": "text",
+              "text": "Submit proof for the accepted fulfillment lane."
+            }
+          ]
+        },
+        "artifact": {
+          "name": "sandbox-proof.txt",
+          "mimeType": "text/plain",
+          "summary": "Reviewable proof for the sandbox request."
+        }
+      },
+      "borealOperation": {
+        "method": "POST",
+        "path": "/api/requests/{requestId}/artifacts",
+        "canonicalReads": [
+          "Request",
+          "Commitment",
+          "Fulfillment"
+        ],
+        "canonicalWrites": [
+          "Artifact",
+          "RequestEvent"
+        ],
+        "requiredScopes": [
+          "artifacts:publish"
+        ],
+        "policyGate": "Accepted Commitment or direct-owner Fulfillment authorization must exist before Artifact proof is published."
+      },
+      "promotionRules": [
+        "A2A taskId is an adapter correlation id, not a Request id.",
+        "A2A Artifact becomes Boreal Artifact truth only through the governed artifact route.",
+        "Owner review is still required before completed-state claims."
+      ],
+      "notAcceptedByProduction": true
+    },
+    {
+      "id": "x402_paid_solution_run_shape",
+      "standard": "x402",
+      "status": "target_payment_sample",
+      "actionId": "run_public_solution",
+      "transportConcept": "x402 payment challenge and settlement",
+      "externalShape": {
+        "request": {
+          "method": "POST",
+          "path": "/api/requests/{sourceRequestId}/solution-runs",
+          "headers": {
+            "Idempotency-Key": "00000000-0000-4000-8000-000000000103"
+          }
+        },
+        "payment": {
+          "network": "base-sepolia",
+          "asset": "USDC",
+          "amount": "10.00",
+          "payload": "x402-target-shape-only"
+        }
+      },
+      "borealOperation": {
+        "method": "POST",
+        "path": "/api/requests/{sourceRequestId}/solution-runs",
+        "canonicalReads": [
+          "Request",
+          "Artifact"
+        ],
+        "canonicalWrites": [
+          "Request",
+          "Transaction",
+          "RequestEvent"
+        ],
+        "requiredScopes": [
+          "solution_runs:create"
+        ],
+        "policyGate": "Endpoint must be explicitly marked x402-capable and successful payment verification must reconcile into Transaction truth."
+      },
+      "promotionRules": [
+        "x402 payload is payment metadata, not completion proof.",
+        "Settlement must reconcile into Transaction before paid execution is claimed.",
+        "The completed public source Request must not be mutated by the private run."
+      ],
+      "notAcceptedByProduction": true
+    }
+  ],
+  "canonicalBoundary": {
+    "rootObject": "Request",
+    "durableTruthObjects": [
+      "Request",
+      "Commitment",
+      "Fulfillment",
+      "FulfillmentStep",
+      "Artifact",
+      "Transaction",
+      "RequestEvent"
+    ],
+    "adapterSamplesAreNot": [
+      "live adapter",
+      "permission grant",
+      "production credential",
+      "payment authorization",
+      "completion proof"
+    ],
+    "notRoots": [
+      "MCP tool call",
+      "MCP prompt",
+      "A2A task",
+      "A2A artifact envelope",
+      "x402 payment payload"
+    ],
+    "rules": [
+      "Protocol adapter samples are shape guidance only.",
+      "Live adapters must enforce the same HTTP auth, scopes, idempotency, policy, payment, and completion gates.",
+      "Adapter ids stay correlation ids below Boreal Request truth.",
+      "Do not claim MCP, A2A, or x402 support is live until a live route contract says so."
+    ]
+  }
+}

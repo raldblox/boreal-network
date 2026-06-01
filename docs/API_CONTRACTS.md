@@ -401,6 +401,7 @@ Read-only public discovery surfaces:
 - `/agents/access-review.json` for machine-readable operator-review policy around requested scopes, quotas, revocation, decision outcomes, and target-adapter claims
 - `/agents/auth.json` for machine-readable actor class, auth scheme, scope, approval, and write-boundary handling
 - `/agents/conformance.json` for machine-readable pre-production checks across discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries
+- `/agents/conformance-report.example.json` for a public example package that agents can mirror when submitting sandbox replay evidence, requested scopes, protocol claims, secret-handling posture, and human-review questions for operator review
 - `/agents/completion.json` for machine-readable proof packet, artifact, completion-claim, and review-boundary handling
 - `/agents/evidence.json` for machine-readable evidence packet, artifact packaging, redaction, review, and proof-boundary handling
 - `/agents/execution.json` for machine-readable execution lane, `Fulfillment`, `FulfillmentStep`, runtime signal, and direct-owner exception boundaries
@@ -414,6 +415,7 @@ Read-only public discovery surfaces:
 - `/agents/monitoring.json` for machine-readable cursor polling, stale-state detection, escalation, and push-versus-poll monitoring boundaries
 - `/agents/protocols.md` for MCP, A2A, and x402 adapter/payment boundaries
 - `/agents/protocols.json` for machine-readable MCP, A2A, and x402 adapter mappings, non-goals, implementation order, and canon boundaries
+- `/agents/protocol-adapter-samples.json` for target-only MCP, A2A, and x402 sample payloads mapped to Boreal HTTP contracts, scopes, idempotency, and canonical writes
 - `/agents/recovery.json` for machine-readable auth failure, scope failure, idempotency conflict, rate limit, monitor cursor, fulfillment retry, payment uncertainty, and escalation handling
 - `/agents/readiness.json` for machine-readable live-versus-target capability bands, standard planes, agent UX flow, and go/no-go checks
 - `/agents/tools.json` for machine-readable safe tool invocation, preflight, HTTP fallback, target MCP/A2A mapping, idempotency, and canonical write boundaries
@@ -442,6 +444,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-prompts.schema.json` for the machine-readable agent prompt catalog shape
 - `/schemas/agent-workflows.schema.json` for the machine-readable agent workflow catalog shape
 - `/schemas/agent-protocols.schema.json` for the machine-readable agent protocol profile shape
+- `/schemas/agent-protocol-adapter-samples.schema.json` for the target-only agent protocol adapter sample pack shape
 - `/schemas/agent-recovery.schema.json` for the machine-readable agent recovery profile shape
 - `/schemas/agent-readiness.schema.json` for the machine-readable agent readiness profile shape
 - `/schemas/agent-tools.schema.json` for the machine-readable agent tool registry shape
@@ -514,6 +517,9 @@ production scopes, target protocol claims, secret-handling posture, and blocking
 human-review questions. A report is operator-review input only. It is not a
 credential, certification, human approval record, payment authorization, or
 completion proof.
+The public example report route shows one complete shape for that package and
+must remain sample evidence only; it does not submit the report, grant access,
+or record operator approval.
 
 The public agent human handoff profile is descriptive and safety-oriented. It
 tells agents when to ask a human, show a draft, request approval, stop, escalate,
@@ -570,6 +576,12 @@ and the go/no-go checks that must pass before write, payment, monitor, recovery,
 or completion claims. It does not grant credentials, enable MCP or A2A adapters,
 settle payment, or prove completion by itself.
 
+The public agent protocol adapter samples are descriptive and target-only. They
+show concrete MCP tool, A2A task or artifact, and x402 payment-shape payloads
+mapped to Boreal HTTP routes, scopes, idempotency, policy gates, and canonical
+writes. They are not live adapters, credentials, permission grants, payment
+authorization, or completion proof.
+
 The public agent tool registry is descriptive and safety-oriented. It maps
 agent intents to current HTTP routes plus target MCP and A2A names, and it names
 the preflight, auth, idempotency, output-truth, and canonical write boundaries
@@ -604,6 +616,7 @@ routes:
 - `/agents/access-review.json` is the public operator-review lens agents should read before requesting scoped pilot or production access; it does not issue credentials, grant permission, certify an agent, authorize spend, or make target adapters live
 - `/agents/conformance.json` is the public checklist lens agents should pass before production use; it does not replace request-specific `agentActionPolicy`
 - `/schemas/agent-conformance-report.schema.json` is the public report shape agents should use when attaching sandbox replay evidence to a production access request; it does not grant production access
+- `/agents/conformance-report.example.json` is a sample package agents can copy structurally, not a submission endpoint, credential, approval record, or certification
 - `/agents/evidence.json` is the public evidence lens agents should read before `submit_artifact`; it does not authorize publication or replace `Artifact` review
 - `/agents/execution.json` is the public execution lens agents should read before starting work, retrying a lane, or promoting runtime output; it does not authorize writes, prove completion, or turn runtime sessions, provider tasks, MCP sessions, A2A tasks, x402 payments, stdout, local logs, or tool traces into roots
 - `/agents/human-handoffs.json` is the public handoff lens agents should read before asking, stopping, escalating, requesting approval, or claiming draft, proposal, proof, payment, monitor, or completion state to a human
@@ -611,6 +624,7 @@ routes:
 - `/agents/monitoring.json` is the public monitor lens agents should read before polling, detecting stale work, processing target webhook envelopes, or escalating monitor findings
 - `/agents/onboarding.json` is the public onboarding lens external agents should read before claiming production eligibility; it is not a credential issuer, OAuth server, production sandbox, adapter implementation, payment endpoint, or permission grant
 - `/agents/prompts.json` is the public prompt lens agents should read before drafting briefs, proposals, proof packets, monitor updates, optimizations, or recovery packets; it is not a mutation endpoint, approval record, completion proof, MCP server, or workflow engine
+- `/agents/protocol-adapter-samples.json` is the public standards-interop sample pack agents should read before designing MCP, A2A, or x402 adapters; it is target-only and does not make any adapter live
 - contract sandbox mock identities may validate payload shape only and must never bypass production auth
 - requester agents may draft requests through the `make_request_for_human` action but should not open them without buyer approval
 - solver agents propose through `Commitment` before cross-actor fulfillment

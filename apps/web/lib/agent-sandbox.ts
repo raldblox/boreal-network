@@ -6,6 +6,7 @@ export const agentSandboxPaths = {
   actions: "/agents/actions.md",
   auth: "/agents/auth.json",
   conformance: "/agents/conformance.json",
+  conformanceReportExample: "/agents/conformance-report.example.json",
   completion: "/agents/completion.json",
   evidence: "/agents/evidence.json",
   execution: "/agents/execution.json",
@@ -18,6 +19,7 @@ export const agentSandboxPaths = {
   optimization: "/agents/optimization.json",
   payments: "/agents/payments.json",
   prompts: "/agents/prompts.json",
+  protocolAdapterSamples: "/agents/protocol-adapter-samples.json",
   protocols: "/agents/protocols.md",
   protocolsJson: "/agents/protocols.json",
   recovery: "/agents/recovery.json",
@@ -78,6 +80,10 @@ export function buildAgentSandboxManifest() {
         url: absoluteUrl(agentSandboxPaths.conformance),
       },
       {
+        label: "Conformance report example",
+        url: absoluteUrl(agentSandboxPaths.conformanceReportExample),
+      },
+      {
         label: "Completion profile",
         url: absoluteUrl(agentSandboxPaths.completion),
       },
@@ -116,6 +122,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Protocol profile JSON",
         url: absoluteUrl(agentSandboxPaths.protocolsJson),
+      },
+      {
+        label: "Protocol adapter samples",
+        url: absoluteUrl(agentSandboxPaths.protocolAdapterSamples),
       },
       {
         label: "Recovery profile",

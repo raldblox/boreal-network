@@ -135,6 +135,7 @@
       "required": [
         "status",
         "schemaUrl",
+        "sampleUrl",
         "sampleFixturePath",
         "useFor",
         "requiredSections",
@@ -145,6 +146,10 @@
           "const": "live_report_schema"
         },
         "schemaUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sampleUrl": {
           "type": "string",
           "format": "uri"
         },
