@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-onboarding.schema.json",
+  "title": "AgentOnboardingProfile",
+  "description": "Machine-readable onboarding profile for external agents moving from public discovery to contract sandbox validation and scoped production eligibility.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "standardReferences",
+    "onboardingStages",
+    "credentialPaths",
+    "productionAccessPacket",
+    "goLiveChecks",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_onboarding_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "standardReferences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/standardReference"
+      }
+    },
+    "onboardingStages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/onboardingStage"
+      }
+    },
+    "credentialPaths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/credentialPath"
+      }
+    },
+    "productionAccessPacket": {
+      "$ref": "#/$defs/productionAccessPacket"
+    },
+    "goLiveChecks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/goLiveCheck"
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "onboardingProfileIsNot",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "onboardingProfileIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "standardReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "standard",
+        "officialSpecUrl",
+        "borealUse"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard": {
+          "type": "string",
+          "minLength": 1
+        },
+        "officialSpecUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "borealUse": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "onboardingStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "id",
+        "status",
+        "agentGoal",
+        "requiredReads",
+        "passWhen",
+        "stopWhen"
+      ],
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "live_public_read",
+            "live_profile_guidance",
+            "live_contract_only",
+            "live_where_route_contract_allows",
+            "target_operator_review",
+            "target_adapter_profile"
+          ]
+        },
+        "agentGoal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredReads": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "validationCommand": {
+          "type": "string",
+          "minLength": 1
+        },
+        "passWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stopWhen": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "credentialPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "authScheme",
+        "useFor",
+        "cannotDo"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "live_public_read",
+            "live_where_route_contract_allows",
+            "target_external_agent_auth",
+            "target_isolated_write_sandbox"
+          ]
+        },
+        "authScheme": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useFor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cannotDo": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "productionAccessPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requiredFields",
+        "optionalFields",
+        "rejectWhen"
+      ],
+      "properties": {
+        "status": {
+          "const": "target_operator_review"
+        },
+        "requiredFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optionalFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rejectWhen": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "goLiveCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "blocking",
+        "passWhen"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "passWhen": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

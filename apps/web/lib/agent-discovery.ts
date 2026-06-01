@@ -49,8 +49,10 @@ export const agentDiscoveryPaths = {
   agentHumanHandoffs: "/agents/human-handoffs.json",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
+  agentOnboarding: "/agents/onboarding.json",
   agentOptimization: "/agents/optimization.json",
   agentPayments: "/agents/payments.json",
+  agentPrompts: "/agents/prompts.json",
   agentProtocols: "/agents/protocols.md",
   agentProtocolsJson: "/agents/protocols.json",
   agentRecovery: "/agents/recovery.json",
@@ -469,11 +471,29 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable prompt catalog schema for safe agent drafting, applying, proof submission, monitoring, optimization, and recovery prompts.",
+    routePath: "/schemas/agent-prompts.schema.json",
+    sourcePath: "schemas/json/agent-prompts.schema.json",
+    standard: "json_schema",
+    title: "Agent prompt catalog",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable cursor polling, stale-state detection, escalation, webhook-boundary, and no-heartbeat-noise monitoring profile schema for agents.",
     routePath: "/schemas/agent-monitoring.schema.json",
     sourcePath: "schemas/json/agent-monitoring.schema.json",
     standard: "json_schema",
     title: "Agent monitoring profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable onboarding profile schema for external agents moving from public discovery to contract sandbox validation and scoped production eligibility.",
+    routePath: "/schemas/agent-onboarding.schema.json",
+    sourcePath: "schemas/json/agent-onboarding.schema.json",
+    standard: "json_schema",
+    title: "Agent onboarding profile",
   },
   {
     contentType: "application/schema+json; charset=utf-8",
@@ -547,8 +567,10 @@ export function buildAgentCard() {
     executionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentExecution),
     humanHandoffProfileUrl: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
     monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+    onboardingProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
     optimizationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOptimization),
     paymentProfileUrl: absoluteUrl(agentDiscoveryPaths.agentPayments),
+    promptCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentPrompts),
     protocolProfileUrl: absoluteUrl(agentDiscoveryPaths.agentProtocols),
     protocolProfileJsonUrl: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
     recoveryProfileUrl: absoluteUrl(agentDiscoveryPaths.agentRecovery),
@@ -630,6 +652,16 @@ export function buildAgentCard() {
         (trigger) => trigger.id
       ),
     },
+    onboarding: {
+      url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
+      status: buildAgentOnboardingProfile().status,
+      stages: buildAgentOnboardingProfile().onboardingStages.map((stage) => ({
+        id: stage.id,
+        status: stage.status,
+      })),
+      productionAccessFields:
+        buildAgentOnboardingProfile().productionAccessPacket.requiredFields,
+    },
     optimization: {
       url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
       status: buildAgentOptimizationProfile().status,
@@ -648,6 +680,15 @@ export function buildAgentCard() {
         id: surface.id,
         status: surface.status,
         canonicalWrites: surface.canonicalWrites,
+      })),
+    },
+    prompts: {
+      url: absoluteUrl(agentDiscoveryPaths.agentPrompts),
+      status: buildAgentPromptCatalog().status,
+      prompts: buildAgentPromptCatalog().prompts.map((prompt) => ({
+        id: prompt.id,
+        actionId: prompt.actionId,
+        defaultMode: prompt.defaultMode,
       })),
     },
     defaultInputModes: ["application/json", "text/markdown"],
@@ -805,8 +846,10 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent execution profile: [${agentDiscoveryPaths.agentExecution}](${absoluteUrl(agentDiscoveryPaths.agentExecution)})
 - Agent human handoff profile: [${agentDiscoveryPaths.agentHumanHandoffs}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
+- Agent onboarding profile: [${agentDiscoveryPaths.agentOnboarding}](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)})
 - Agent optimization profile: [${agentDiscoveryPaths.agentOptimization}](${absoluteUrl(agentDiscoveryPaths.agentOptimization)})
 - Agent payment profile: [${agentDiscoveryPaths.agentPayments}](${absoluteUrl(agentDiscoveryPaths.agentPayments)})
+- Agent prompt catalog: [${agentDiscoveryPaths.agentPrompts}](${absoluteUrl(agentDiscoveryPaths.agentPrompts)})
 - Agent workflow catalog: [${agentDiscoveryPaths.agentWorkflows}](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)})
 - Agent monitor webhook profile: [${agentDiscoveryPaths.agentMonitorWebhooks}](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)})
 - Agent protocol profile: [${agentDiscoveryPaths.agentProtocols}](${absoluteUrl(agentDiscoveryPaths.agentProtocols)})
@@ -881,6 +924,12 @@ For deterministic live-versus-target capability and agent UX flow handling, agen
 GET ${agentDiscoveryPaths.agentReadiness}
 \`\`\`
 
+For deterministic external-agent onboarding, sandbox validation, and production eligibility handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentOnboarding}
+\`\`\`
+
 For deterministic tool invocation, preflight, HTTP fallback, and target MCP/A2A mapping, agents can read:
 
 \`\`\`http
@@ -927,6 +976,12 @@ For deterministic payment, buyer-credit, paid-run, and x402-target handling, age
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentPayments}
+\`\`\`
+
+For deterministic briefing, application, proof-submission, monitoring, optimization, and recovery prompts, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentPrompts}
 \`\`\`
 
 ## Write-Capable Actions
@@ -1258,6 +1313,44 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentMonitoringProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/onboarding.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent onboarding profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for external-agent onboarding, contract sandbox validation, production eligibility, and scoped credential boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentOnboardingProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/prompts.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent prompt catalog.",
+          responses: {
+            "200": {
+              description:
+                "JSON catalog of safe prompt templates for briefing, applying, proof submission, monitoring, optimization, and recovery.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentPromptCatalog",
                   },
                 },
               },
@@ -1660,6 +1753,51 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentOnboardingProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "onboardingStages",
+            "credentialPaths",
+            "productionAccessPacket",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_onboarding_profile" },
+            onboardingStages: {
+              type: "array",
+              items: { type: "object" },
+            },
+            credentialPaths: {
+              type: "array",
+              items: { type: "object" },
+            },
+            productionAccessPacket: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentPromptCatalog: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "prompts",
+            "outputContract",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_prompt_catalog" },
+            prompts: {
+              type: "array",
+              items: { type: "object" },
+            },
+            outputContract: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentPaymentProfile: {
           type: "object",
           required: [
@@ -1832,6 +1970,16 @@ export function buildOpenApiDiscoveryIndex() {
         (trigger) => trigger.id
       ),
     },
+    "x-boreal-agent-onboarding": {
+      url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
+      status: buildAgentOnboardingProfile().status,
+      stages: buildAgentOnboardingProfile().onboardingStages.map((stage) => ({
+        id: stage.id,
+        status: stage.status,
+      })),
+      productionAccessFields:
+        buildAgentOnboardingProfile().productionAccessPacket.requiredFields,
+    },
     "x-boreal-agent-payments": {
       url: absoluteUrl(agentDiscoveryPaths.agentPayments),
       status: buildAgentPaymentProfile().status,
@@ -1839,6 +1987,15 @@ export function buildOpenApiDiscoveryIndex() {
         id: surface.id,
         status: surface.status,
         idempotencyRequired: surface.idempotencyRequired,
+      })),
+    },
+    "x-boreal-agent-prompts": {
+      url: absoluteUrl(agentDiscoveryPaths.agentPrompts),
+      status: buildAgentPromptCatalog().status,
+      prompts: buildAgentPromptCatalog().prompts.map((prompt) => ({
+        id: prompt.id,
+        actionId: prompt.actionId,
+        defaultMode: prompt.defaultMode,
       })),
     },
     "x-boreal-agent-protocols": {
@@ -3967,6 +4124,532 @@ export function buildAgentMonitoringProfile() {
   };
 }
 
+export function buildAgentOnboardingProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_onboarding_profile",
+    name: "Boreal Agent Onboarding Profile",
+    description:
+      "Machine-readable onboarding path for external agents moving from public discovery to contract sandbox validation and scoped production eligibility without overclaiming target OAuth, MCP, A2A, x402, or production sandbox credentials.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent conformance profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentConformance),
+      },
+      {
+        label: "Agent contract sandbox manifest",
+        url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+      },
+      {
+        label: "Agent readiness profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentReadiness),
+      },
+      {
+        label: "Agent protocol profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+      },
+      {
+        label: "Agent onboarding schema",
+        url: absoluteUrl("/schemas/agent-onboarding.schema.json"),
+      },
+    ],
+    standardReferences: [
+      {
+        id: "oauth2",
+        standard: "OAuth 2.0",
+        officialSpecUrl: "https://datatracker.ietf.org/doc/html/rfc6749",
+        borealUse:
+          "Target external-agent delegation with scoped owner approval; live writes still use account sessions or resolver bearers until a route contract says otherwise.",
+      },
+      {
+        id: "bearer_tokens",
+        standard: "OAuth 2.0 Bearer Token Usage",
+        officialSpecUrl: "https://datatracker.ietf.org/doc/html/rfc6750",
+        borealUse:
+          "Resolver bearer handling and future delegated token handling; tokens do not replace Actor, RequestParticipant, or route policy.",
+      },
+      {
+        id: "openapi",
+        standard: "OpenAPI 3.1",
+        officialSpecUrl: "https://spec.openapis.org/oas/v3.1.0",
+        borealUse: "HTTP contract discovery and production route shape validation.",
+      },
+      {
+        id: "json_schema",
+        standard: "JSON Schema 2020-12",
+        officialSpecUrl: "https://json-schema.org/draft/2020-12/json-schema-core",
+        borealUse: "Canonical object and agent profile shape validation.",
+      },
+      {
+        id: "asyncapi",
+        standard: "AsyncAPI",
+        officialSpecUrl: "https://www.asyncapi.com/docs/reference/specification/latest",
+        borealUse: "Durable activity and target event or webhook contract description.",
+      },
+      {
+        id: "mcp",
+        standard: "Model Context Protocol",
+        officialSpecUrl: "https://modelcontextprotocol.io/specification/2025-06-18",
+        borealUse:
+          "Target capability and context adapter over Boreal HTTP contracts, not a noisy runtime telemetry lane.",
+      },
+      {
+        id: "a2a",
+        standard: "Agent2Agent Protocol",
+        officialSpecUrl: "https://a2a-protocol.org/v0.3.0/specification/",
+        borealUse:
+          "Target task handoff adapter where A2A Task ids stay correlation ids below Request truth.",
+      },
+      {
+        id: "x402",
+        standard: "x402",
+        officialSpecUrl: "https://docs.x402.org/",
+        borealUse:
+          "Target payment rail for explicitly x402-capable paid endpoints; Transaction remains payment truth.",
+      },
+    ],
+    onboardingStages: [
+      {
+        order: 1,
+        id: "public_discovery",
+        status: "live_public_read",
+        agentGoal: "Find Boreal, public requests, action affordances, and contract resources without private route knowledge.",
+        requiredReads: [
+          absoluteUrl(agentDiscoveryPaths.llms),
+          absoluteUrl(agentDiscoveryPaths.agentCard),
+          absoluteUrl(agentDiscoveryPaths.agentStart),
+          absoluteUrl(agentDiscoveryPaths.openApiIndex),
+        ],
+        passWhen:
+          "The agent can identify Request as the root, find public-safe request inspection, and map intended actions to existing profiles.",
+        stopWhen:
+          "The agent relies on private UI routes, screenshots, guessed endpoints, or Work, Job, Order, A2A Task, MCP session, or x402 payload as the root.",
+      },
+      {
+        order: 2,
+        id: "role_and_intent_classification",
+        status: "live_profile_guidance",
+        agentGoal:
+          "Classify whether the agent is scouting, requesting, applying, submitting proof, monitoring, running, optimizing, paying, or recovering.",
+        requiredReads: [
+          absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+          absoluteUrl(agentDiscoveryPaths.agentTools),
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+        ],
+        passWhen:
+          "One workflow and one auth requirement name the action id, canonical reads, canonical writes, scopes, idempotency, and human approval boundary.",
+        stopWhen:
+          "The action would mutate durable truth without a request-detail policy decision, represented-human approval, or the required scope.",
+      },
+      {
+        order: 3,
+        id: "contract_sandbox_validation",
+        status: "live_contract_only",
+        agentGoal:
+          "Validate payload shape, idempotency samples, mock identities, monitor cursor behavior, signed webhook samples, and canonical boundaries locally.",
+        requiredReads: [
+          absoluteUrl(agentDiscoveryPaths.agentSandboxGuide),
+          absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+          absoluteUrl("/schemas/agent-sandbox.schema.json"),
+        ],
+        validationCommand: "pnpm contracts:agent-sandbox",
+        passWhen:
+          "The deterministic fixture passes and the agent treats every mock credential, sample id, and sample secret as non-production.",
+        stopWhen:
+          "The agent attempts to use sandbox credentials against production or treats the fixture as proof of production authorization.",
+      },
+      {
+        order: 4,
+        id: "scoped_live_http_use",
+        status: "live_where_route_contract_allows",
+        agentGoal:
+          "Use existing HTTP routes only when the represented actor, route contract, scopes, idempotency key, and request-detail agentActionPolicy allow it.",
+        requiredReads: [
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentRecovery),
+          absoluteUrl(agentDiscoveryPaths.agentConformance),
+        ],
+        passWhen:
+          "The agent has a Boreal account session or approved resolver bearer accepted by the live endpoint and can explain the exact canonical write.",
+        stopWhen:
+          "The agent only has anonymous discovery, target OAuth guidance, mock sandbox credentials, raw session cookies, or a protocol-profile description.",
+      },
+      {
+        order: 5,
+        id: "production_access_request",
+        status: "target_operator_review",
+        agentGoal:
+          "Prepare a production access packet for external-agent credentials, scopes, abuse controls, callback boundaries, and represented-human approval.",
+        requiredReads: [
+          absoluteUrl(agentDiscoveryPaths.agentReadiness),
+          absoluteUrl(agentDiscoveryPaths.agentConformance),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+        ],
+        passWhen:
+          "The packet names requested scopes, represented actors, use cases, sandbox evidence, rate-limit needs, data handling, and escalation contacts.",
+        stopWhen:
+          "The packet asks for broad write authority, raw user credentials, unbounded scopes, private data without a represented actor, or payment authority without reconciliation.",
+      },
+      {
+        order: 6,
+        id: "target_protocol_adapter_readiness",
+        status: "target_adapter_profile",
+        agentGoal:
+          "Prepare future MCP, A2A, or x402 integration using Boreal canonical truth rather than adapter-local state.",
+        requiredReads: [
+          absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl(agentDiscoveryPaths.agentExecution),
+        ],
+        passWhen:
+          "The adapter maps to existing Request, Commitment, Fulfillment, FulfillmentStep, Artifact, Transaction, and RequestEvent contracts.",
+        stopWhen:
+          "MCP sessions, A2A tasks, x402 payments, tool traces, or runtime logs would become root truth or completion proof.",
+      },
+    ],
+    credentialPaths: [
+      {
+        id: "anonymous_public_scout",
+        status: "live_public_read",
+        authScheme: "none",
+        useFor: ["public discovery", "public request inspection", "contract lookup"],
+        cannotDo: ["create requests", "apply", "submit artifacts", "spend credits", "read private activity"],
+      },
+      {
+        id: "boreal_account_session",
+        status: "live_where_route_contract_allows",
+        authScheme: "Boreal account session",
+        useFor: ["owner-approved request drafts", "buyer-authorized paid runs", "human-owned review flows"],
+        cannotDo: ["bypass owner approval", "grant third-party production access", "replace idempotency or policy checks"],
+      },
+      {
+        id: "approved_resolver_bearer",
+        status: "live_where_route_contract_allows",
+        authScheme: "Resolver bearer token",
+        useFor: ["scoped resolver actions", "request-bound proposal or artifact lanes", "private activity reads where scopes allow"],
+        cannotDo: ["spend buyer credit", "act outside granted scopes", "prove completion by itself"],
+      },
+      {
+        id: "oauth_compatible_external_agent",
+        status: "target_external_agent_auth",
+        authScheme: "OAuth 2.0 compatible delegated token",
+        useFor: ["future third-party agent delegation", "revocable scoped access", "represented-human consent"],
+        cannotDo: ["operate before a live route contract exists", "use raw passwords or session cookies", "become a new root identity object"],
+      },
+      {
+        id: "production_sandbox_credentials",
+        status: "target_isolated_write_sandbox",
+        authScheme: "future sandbox-scoped credential",
+        useFor: ["future safe write rehearsal", "operator-reviewed conformance evidence", "abuse-control testing"],
+        cannotDo: ["touch real customer requests", "settle money", "create public completion claims"],
+      },
+    ],
+    productionAccessPacket: {
+      status: "target_operator_review",
+      requiredFields: [
+        "agentName",
+        "operatorContact",
+        "representedActor",
+        "requestedScopes",
+        "intendedActions",
+        "sandboxEvidence",
+        "dataHandlingSummary",
+        "idempotencyPlan",
+        "rateLimitPlan",
+        "humanEscalationContact",
+      ],
+      optionalFields: [
+        "callbackUrls",
+        "webhookReceiverPublicKey",
+        "paymentRailsRequested",
+        "mcpClientInfo",
+        "a2aAgentCardUrl",
+        "x402WalletOrFacilitatorMetadata",
+      ],
+      rejectWhen: [
+        "requestedScopes are broader than intendedActions",
+        "the agent requests raw passwords, raw session cookies, private keys, or unmanaged bearer tokens",
+        "the packet cannot identify a represented human, organization, or supply owner",
+        "payment authority is requested without Transaction reconciliation and human approval boundaries",
+        "sandbox evidence is missing for write-capable actions",
+      ],
+    },
+    goLiveChecks: [
+      {
+        id: "contract_discovery_loaded",
+        blocking: true,
+        passWhen: "Agent can fetch llms.txt, agent card, OpenAPI index, JSON Schemas, and AsyncAPI event contract.",
+      },
+      {
+        id: "scope_minimization",
+        blocking: true,
+        passWhen: "Requested scopes are the minimum needed for the declared actions and represented actor.",
+      },
+      {
+        id: "sandbox_evidence_attached",
+        blocking: true,
+        passWhen: "Contract sandbox validation is attached and covers every requested write class.",
+      },
+      {
+        id: "human_handoff_ready",
+        blocking: true,
+        passWhen: "Agent has a human approval, stop, escalation, and claim-state plan before production writes.",
+      },
+      {
+        id: "canonical_boundary_preserved",
+        blocking: true,
+        passWhen:
+          "Agent keeps Request as root and uses Commitment, Fulfillment, FulfillmentStep, Artifact, Transaction, and RequestEvent for durable truth.",
+      },
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      onboardingProfileIsNot: [
+        "credential issuer",
+        "permission grant",
+        "production sandbox",
+        "OAuth server",
+        "MCP server",
+        "A2A adapter",
+        "x402 endpoint",
+        "completion proof",
+      ],
+      rules: [
+        "Onboarding describes the path to eligibility; it does not create credentials or authorize writes.",
+        "Contract sandbox success proves shape alignment only, not production approval.",
+        "Production write eligibility still depends on live route contracts, represented-human approval, scopes, policy, and idempotency.",
+        "Target protocol references must stay target-only until separate live contracts exist.",
+      ],
+    },
+  };
+}
+
+export function buildAgentPromptCatalog() {
+  return {
+    schemaVersion: 1,
+    status: "live_prompt_catalog",
+    name: "Boreal Agent Prompt Catalog",
+    description:
+      "Machine-readable prompt catalog for agents drafting request briefs, applications, proof packets, monitor escalations, optimization suggestions, and recovery packets without inventing facts or creating durable writes by prompt output alone.",
+    resources: [
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent tool registry",
+        url: absoluteUrl(agentDiscoveryPaths.agentTools),
+      },
+      {
+        label: "Agent evidence profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentEvidence),
+      },
+      {
+        label: "Agent completion profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent optimization profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
+      },
+      {
+        label: "Agent prompt catalog schema",
+        url: absoluteUrl("/schemas/agent-prompts.schema.json"),
+      },
+    ],
+    prompts: [
+      {
+        id: "brief_request",
+        actionId: "make_request_for_human",
+        title: "Brief a human-owned Request draft",
+        defaultMode: "draft_only",
+        mcpPromptName: "boreal.prompts.brief_request",
+        useWhen:
+          "A represented human wants a clearer request brief before opening or funding work.",
+        requiredContext: ["buyer ask", "known constraints", "missing details", "desired output"],
+        instructions: [
+          "Rewrite the brief as a request-native work ask.",
+          "Separate known facts from questions.",
+          "Name missing details that affect routing, proof, budget, timing, or safety.",
+          "Do not open, fund, route, or assign the Request from prompt output alone.",
+        ],
+        outputFields: ["title", "summary", "knownFacts", "missingDetails", "suggestedProof", "humanDecisionNeeded"],
+        forbiddenClaims: ["request opened", "worker assigned", "funding approved", "facts not present in context"],
+        canonicalReads: ["Request"],
+        canonicalWrites: [],
+        humanGate: "Human owner approves any durable draft mutation or opening action.",
+      },
+      {
+        id: "apply_to_request",
+        actionId: "apply_to_request",
+        title: "Draft a Commitment proposal",
+        defaultMode: "draft_only",
+        mcpPromptName: "boreal.prompts.apply_to_request",
+        useWhen:
+          "A solver or represented supply wants help drafting a request-bound proposal.",
+        requiredContext: ["public or authorized Request", "Supply fit", "scope", "price or terms", "proof plan"],
+        instructions: [
+          "Draft a proposal that maps directly to the Request requirements.",
+          "State scope, exclusions, delivery artifacts, proof duties, price or terms, and expected timeline.",
+          "Mention any access, human decision, or verification dependency.",
+          "Do not imply the Commitment was submitted or accepted until the governed route writes it.",
+        ],
+        outputFields: ["proposalSummary", "scope", "exclusions", "proofPlan", "priceOrTerms", "dependencies", "submitReadiness"],
+        forbiddenClaims: ["Commitment submitted", "Commitment accepted", "Fulfillment started", "completion guaranteed"],
+        canonicalReads: ["Request", "Supply"],
+        canonicalWrites: [],
+        humanGate: "Solver or represented human reviews before POSTing a Commitment proposal.",
+      },
+      {
+        id: "submit_proof",
+        actionId: "submit_artifact",
+        title: "Draft an Artifact proof packet",
+        defaultMode: "draft_only",
+        mcpPromptName: "boreal.prompts.submit_proof",
+        useWhen:
+          "A solver has output, receipt, media, file, or delivery evidence that may become an Artifact.",
+        requiredContext: ["Request", "Fulfillment or Commitment context", "evidence summary", "redaction needs"],
+        instructions: [
+          "Package proof as an Artifact candidate with bounded claims.",
+          "Identify evidence level, redaction statement, artifact kind, and reviewer question.",
+          "Keep private prompts, secrets, raw local logs, credentials, and unrelated personal data out of the packet.",
+          "Do not claim completion until review and lifecycle truth support it.",
+        ],
+        outputFields: ["artifactKind", "claimState", "evidenceSummary", "redactionStatement", "reviewQuestion", "completionBoundary"],
+        forbiddenClaims: ["work completed", "owner accepted", "payment settled as proof", "unredacted secret"],
+        canonicalReads: ["Request", "Commitment", "Fulfillment", "FulfillmentStep"],
+        canonicalWrites: [],
+        humanGate: "Solver or reviewer approves the Artifact submission through a governed route.",
+      },
+      {
+        id: "monitor_request",
+        actionId: "monitor_request",
+        title: "Summarize monitor state and escalation packet",
+        defaultMode: "analysis_only",
+        mcpPromptName: "boreal.prompts.monitor_request",
+        useWhen:
+          "A monitor agent needs to summarize durable activity, cursor state, stale work, or human decision needs.",
+        requiredContext: ["Request", "RequestEvent cursor", "latest related objects", "expected next action"],
+        instructions: [
+          "Summarize only durable activity and the local cursor checkpoint.",
+          "Identify stale, blocked, proof-needed, payment-uncertain, or scope-missing conditions.",
+          "Recommend the next allowed read, retry, or human escalation.",
+          "Do not create heartbeat events or infer completion from silence.",
+        ],
+        outputFields: ["latestDurableState", "cursor", "watchSignals", "escalationNeeded", "nextAllowedAction"],
+        forbiddenClaims: ["heartbeat RequestEvent written", "implicit failure", "implicit completion", "payment reconciled without Transaction"],
+        canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction", "Fulfillment"],
+        canonicalWrites: [],
+        humanGate: "Human or operator decides on escalations that require approval, spend, access, or completion review.",
+      },
+      {
+        id: "optimize_plan",
+        actionId: "optimize_request_brief",
+        title: "Optimize a brief, proposal, evidence packet, or run input",
+        defaultMode: "draft_only",
+        mcpPromptName: "boreal.prompts.optimize_plan",
+        useWhen:
+          "An agent can improve clarity, proof completeness, routing fit, or reuse input without durable mutation.",
+        requiredContext: ["current draft or packet", "source Request context", "allowed optimization surface"],
+        instructions: [
+          "Produce suggested improvements and mark every unknown as unknown.",
+          "Preserve buyer-authored facts, planner boundaries, proof duties, and payment boundaries.",
+          "Do not invent budget, deadline, capability, credential, evidence, acceptance, or completion state.",
+          "Keep output draft-only unless a human approves a governed mutation path.",
+        ],
+        outputFields: ["suggestedPatch", "reasoning", "unknowns", "riskNotes", "ownerApprovalNeeded"],
+        forbiddenClaims: ["approved change", "durable write completed", "new fact", "completion state"],
+        canonicalReads: ["Request", "Artifact", "RequestEvent"],
+        canonicalWrites: [],
+        humanGate: "Owner approves any durable mutation or public-facing claim.",
+      },
+      {
+        id: "recover_work",
+        actionId: "recover_and_retry",
+        title: "Draft a recovery and retry packet",
+        defaultMode: "analysis_only",
+        mcpPromptName: "boreal.prompts.recover_work",
+        useWhen:
+          "A previous write, payment, monitor, fulfillment, or artifact action is uncertain, blocked, rate-limited, or stale.",
+        requiredContext: ["request id", "action id", "idempotency key if any", "last known route response", "latest durable state"],
+        instructions: [
+          "Classify the failure using auth, idempotency, rate-limit, monitor, fulfillment, payment, or human-escalation categories.",
+          "Inspect durable truth before recommending a retry.",
+          "Use the same idempotency key only for the same operation with the same semantic input.",
+          "Escalate when state cannot be proven.",
+        ],
+        outputFields: ["failureClass", "stateToInspect", "retrySafety", "idempotencyInstruction", "escalationPacket"],
+        forbiddenClaims: ["retry safe without inspection", "new operation with old idempotency key", "payment complete without Transaction", "completion from retry success alone"],
+        canonicalReads: ["Request", "RequestEvent", "Transaction", "Fulfillment", "Artifact"],
+        canonicalWrites: [],
+        humanGate: "Human or operator approves risky retry, payment reconciliation, access change, or completion claim.",
+      },
+    ],
+    outputContract: {
+      durableWriteDefault: false,
+      requiredForEveryPrompt: [
+        "promptId",
+        "actionId",
+        "claimState",
+        "humanGate",
+        "canonicalReads",
+        "canonicalWrites",
+      ],
+      forbiddenFields: [
+        "raw secrets",
+        "private keys",
+        "session cookies",
+        "unredacted private prompts",
+        "full local runtime logs",
+        "durable write assertion",
+      ],
+    },
+    canonicalBoundary: {
+      rootObject: "Request",
+      promptTruthObject: null,
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      promptCatalogIsNot: [
+        "mutation endpoint",
+        "permission grant",
+        "approval record",
+        "completion proof",
+        "MCP server implementation",
+        "workflow engine",
+      ],
+      rules: [
+        "Prompt outputs are draft, analysis, or packaging aids until a governed route writes canonical truth.",
+        "MCP Prompt mappings are target adapter mappings; the live baseline is HTTP plus local agent use of this catalog.",
+        "Do not let prompt success replace agentActionPolicy, idempotency, human approval, Artifact review, Transaction reconciliation, or RequestEvent truth.",
+      ],
+    },
+  };
+}
+
 export function buildAgentPaymentProfile() {
   return {
     schemaVersion: 1,
@@ -4851,6 +5534,10 @@ export function buildAgentReadinessProfile() {
       {
         label: "Agent contract sandbox",
         url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+      },
+      {
+        label: "Agent onboarding profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
       },
       {
         label: "Agent readiness schema",

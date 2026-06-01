@@ -8,11 +8,14 @@ import {
   buildAgentConformanceProfile,
   buildAgentCompletionProfile,
   buildAgentEvidenceProfile,
+  buildAgentExecutionProfile,
   buildAgentHumanHandoffProfile,
   buildAgentMonitoringProfile,
   buildAgentMonitorWebhooksMarkdown,
+  buildAgentOnboardingProfile,
   buildAgentOptimizationProfile,
   buildAgentPaymentProfile,
+  buildAgentPromptCatalog,
   buildAgentProtocolProfile,
   buildAgentProtocolProfileMarkdown,
   buildAgentRecoveryProfile,
@@ -40,11 +43,14 @@ import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
 import { GET as getAgentConformance } from "@/app/agents/conformance.json/route";
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
 import { GET as getAgentEvidence } from "@/app/agents/evidence.json/route";
+import { GET as getAgentExecution } from "@/app/agents/execution.json/route";
 import { GET as getAgentHumanHandoffs } from "@/app/agents/human-handoffs.json/route";
 import { GET as getAgentMonitoring } from "@/app/agents/monitoring.json/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
+import { GET as getAgentOnboarding } from "@/app/agents/onboarding.json/route";
 import { GET as getAgentOptimization } from "@/app/agents/optimization.json/route";
 import { GET as getAgentPayments } from "@/app/agents/payments.json/route";
+import { GET as getAgentPrompts } from "@/app/agents/prompts.json/route";
 import { GET as getAgentProtocols } from "@/app/agents/protocols.md/route";
 import { GET as getAgentProtocolsJson } from "@/app/agents/protocols.json/route";
 import { GET as getAgentRecovery } from "@/app/agents/recovery.json/route";
@@ -115,6 +121,10 @@ async function main() {
     true,
   );
   assert.equal(
+    agentCard.onboardingProfileUrl.endsWith("/agents/onboarding.json"),
+    true,
+  );
+  assert.equal(
     agentCard.optimizationProfileUrl.endsWith("/agents/optimization.json"),
     true,
   );
@@ -122,10 +132,21 @@ async function main() {
     agentCard.paymentProfileUrl.endsWith("/agents/payments.json"),
     true,
   );
+  assert.equal(agentCard.promptCatalogUrl.endsWith("/agents/prompts.json"), true);
   assert.equal(agentCard.authentication.profileUrl.endsWith("/agents/auth.json"), true);
   assert.equal(agentCard.auth.status, "live_auth_profile");
   assert.equal(agentCard.auth.liveActorClasses.includes("resolver_agent"), true);
   assert.equal(agentCard.conformance.status, "live_conformance_profile");
+  assert.equal(agentCard.onboarding.status, "live_onboarding_profile");
+  assert.equal(
+    agentCard.onboarding.productionAccessFields.includes("requestedScopes"),
+    true,
+  );
+  assert.equal(agentCard.prompts.status, "live_prompt_catalog");
+  assert.equal(
+    agentCard.prompts.prompts.some((prompt) => prompt.id === "submit_proof"),
+    true,
+  );
   assert.equal(agentCard.conformance.checklistCount >= 5, true);
   assert.equal(
     agentCard.conformance.requiredCheckIds.includes("proof_before_completion"),
@@ -655,6 +676,52 @@ async function main() {
     true,
   );
 
+  const executionProfile = buildAgentExecutionProfile();
+  assert.equal(executionProfile.status, "live_execution_profile");
+  assert.equal(executionProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    executionProfile.canonicalBoundary.executionTruthObjects.includes(
+      "FulfillmentStep"
+    ),
+    true,
+  );
+  assert.equal(
+    executionProfile.executionLanes.some(
+      (lane) =>
+        lane.id === "cross_actor_accepted_commitment" &&
+        lane.requiredBeforeStart.some((gate) => gate.includes("Commitment")) &&
+        lane.canonicalWrites.includes("FulfillmentStep")
+    ),
+    true,
+  );
+  assert.equal(
+    executionProfile.executionLanes.some(
+      (lane) =>
+        lane.id === "owner_private_direct_runtime" &&
+        lane.status === "live_narrow_exception" &&
+        lane.mustNotDo.includes(
+          "apply direct-owner assumptions to public or external work"
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    executionProfile.runtimeSignalRules.some(
+      (rule) =>
+        rule.id === "ephemeral_by_default" &&
+        rule.signalKinds.includes("heartbeat")
+    ),
+    true,
+  );
+  assert.equal(
+    executionProfile.stepGuidance.defaultSubworkObject,
+    "FulfillmentStep",
+  );
+  assert.equal(
+    executionProfile.canonicalBoundary.notRoots.includes("MCP session"),
+    true,
+  );
+
   const humanHandoffProfile = buildAgentHumanHandoffProfile();
   assert.equal(humanHandoffProfile.status, "live_human_handoff_profile");
   assert.equal(humanHandoffProfile.canonicalBoundary.rootObject, "Request");
@@ -727,6 +794,44 @@ async function main() {
     "target_signed_push_profile",
   );
 
+  const onboardingProfile = buildAgentOnboardingProfile();
+  assert.equal(onboardingProfile.status, "live_onboarding_profile");
+  assert.equal(onboardingProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    onboardingProfile.onboardingStages.some(
+      (stage) =>
+        stage.id === "contract_sandbox_validation" &&
+        stage.validationCommand === "pnpm contracts:agent-sandbox"
+    ),
+    true,
+  );
+  assert.equal(
+    onboardingProfile.credentialPaths.some(
+      (path) =>
+        path.id === "oauth_compatible_external_agent" &&
+        path.status === "target_external_agent_auth"
+    ),
+    true,
+  );
+  assert.equal(
+    onboardingProfile.productionAccessPacket.requiredFields.includes(
+      "requestedScopes"
+    ),
+    true,
+  );
+  assert.equal(
+    onboardingProfile.goLiveChecks.some(
+      (check) => check.id === "scope_minimization" && check.blocking
+    ),
+    true,
+  );
+  assert.equal(
+    onboardingProfile.canonicalBoundary.onboardingProfileIsNot.includes(
+      "credential issuer"
+    ),
+    true,
+  );
+
   const optimizationProfile = buildAgentOptimizationProfile();
   assert.equal(optimizationProfile.status, "live_optimization_profile");
   assert.equal(optimizationProfile.canonicalBoundary.rootObject, "Request");
@@ -795,6 +900,36 @@ async function main() {
   );
   assert.equal(
     paymentProfile.canonicalBoundary.notRoots.includes("Order"),
+    true,
+  );
+
+  const promptCatalog = buildAgentPromptCatalog();
+  assert.equal(promptCatalog.status, "live_prompt_catalog");
+  assert.equal(promptCatalog.canonicalBoundary.rootObject, "Request");
+  assert.equal(promptCatalog.outputContract.durableWriteDefault, false);
+  assert.equal(
+    promptCatalog.prompts.some(
+      (prompt) =>
+        prompt.id === "apply_to_request" &&
+        prompt.actionId === "apply_to_request" &&
+        prompt.canonicalWrites.length === 0 &&
+        prompt.forbiddenClaims.includes("Commitment accepted")
+    ),
+    true,
+  );
+  assert.equal(
+    promptCatalog.prompts.some(
+      (prompt) =>
+        prompt.id === "submit_proof" &&
+        prompt.actionId === "submit_artifact" &&
+        prompt.outputFields.includes("redactionStatement")
+    ),
+    true,
+  );
+  assert.equal(
+    promptCatalog.canonicalBoundary.promptCatalogIsNot.includes(
+      "mutation endpoint"
+    ),
     true,
   );
 
@@ -1124,10 +1259,13 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/conformance\.json/);
   assert.match(startGuide, /GET \/agents\/completion\.json/);
   assert.match(startGuide, /GET \/agents\/evidence\.json/);
+  assert.match(startGuide, /GET \/agents\/execution\.json/);
   assert.match(startGuide, /GET \/agents\/human-handoffs\.json/);
   assert.match(startGuide, /GET \/agents\/monitoring\.json/);
+  assert.match(startGuide, /GET \/agents\/onboarding\.json/);
   assert.match(startGuide, /GET \/agents\/optimization\.json/);
   assert.match(startGuide, /GET \/agents\/payments\.json/);
+  assert.match(startGuide, /GET \/agents\/prompts\.json/);
   assert.match(startGuide, /GET \/agents\/workflows\.json/);
   assert.match(startGuide, /GET \/agents\/protocols\.json/);
   assert.match(startGuide, /GET \/agents\/recovery\.json/);
@@ -1168,13 +1306,16 @@ async function main() {
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/evidence.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/execution.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/human-handoffs.json"),
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/monitoring.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/onboarding.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/optimization.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/payments.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/prompts.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/workflows.json"),
     true,
@@ -1225,6 +1366,12 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex["x-boreal-agent-execution"].lanes.some(
+      (lane) => lane.id === "cross_actor_accepted_commitment"
+    ),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-agent-human-handoffs"].moments.some(
       (moment) => moment.id === "completion_claim_requires_review"
     ),
@@ -1237,6 +1384,12 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex["x-boreal-agent-onboarding"].productionAccessFields.includes(
+      "requestedScopes"
+    ),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-agent-optimization"].surfaces.some(
       (surface) => surface.id === "monitor_escalation_optimization"
     ),
@@ -1245,6 +1398,12 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-payments"].spendSurfaces.some(
       (surface) => surface.id === "public_solution_run"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-prompts"].prompts.some(
+      (prompt) => prompt.id === "submit_proof"
     ),
     true,
   );
@@ -1294,6 +1453,10 @@ async function main() {
     "schemas/json/agent-evidence.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-execution.schema.json")?.sourcePath,
+    "schemas/json/agent-execution.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-human-handoffs.schema.json")?.sourcePath,
     "schemas/json/agent-human-handoffs.schema.json",
   );
@@ -1302,12 +1465,20 @@ async function main() {
     "schemas/json/agent-monitoring.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-onboarding.schema.json")?.sourcePath,
+    "schemas/json/agent-onboarding.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-optimization.schema.json")?.sourcePath,
     "schemas/json/agent-optimization.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-payments.schema.json")?.sourcePath,
     "schemas/json/agent-payments.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-prompts.schema.json")?.sourcePath,
+    "schemas/json/agent-prompts.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-workflows.schema.json")?.sourcePath,
@@ -1420,6 +1591,13 @@ async function main() {
     "live_evidence_profile"
   );
 
+  const agentExecutionResponse = await getAgentExecution();
+  assert.equal(agentExecutionResponse.status, 200);
+  assert.equal(
+    (await agentExecutionResponse.json()).status,
+    "live_execution_profile"
+  );
+
   const agentHumanHandoffsResponse = await getAgentHumanHandoffs();
   assert.equal(agentHumanHandoffsResponse.status, 200);
   assert.equal(
@@ -1434,6 +1612,13 @@ async function main() {
     "live_monitoring_profile"
   );
 
+  const agentOnboardingResponse = await getAgentOnboarding();
+  assert.equal(agentOnboardingResponse.status, 200);
+  assert.equal(
+    (await agentOnboardingResponse.json()).status,
+    "live_onboarding_profile"
+  );
+
   const agentOptimizationResponse = await getAgentOptimization();
   assert.equal(agentOptimizationResponse.status, 200);
   assert.equal(
@@ -1446,6 +1631,13 @@ async function main() {
   assert.equal(
     (await agentPaymentsResponse.json()).status,
     "live_payment_profile"
+  );
+
+  const agentPromptsResponse = await getAgentPrompts();
+  assert.equal(agentPromptsResponse.status, 200);
+  assert.equal(
+    (await agentPromptsResponse.json()).status,
+    "live_prompt_catalog"
   );
 
   const agentWorkflowsResponse = await getAgentWorkflows();
@@ -1514,10 +1706,13 @@ async function main() {
   assert.match(llmsText, /Agent conformance profile/);
   assert.match(llmsText, /Agent completion profile/);
   assert.match(llmsText, /Agent evidence profile/);
+  assert.match(llmsText, /Agent execution profile/);
   assert.match(llmsText, /Agent human handoff profile/);
   assert.match(llmsText, /Agent monitoring profile/);
+  assert.match(llmsText, /Agent onboarding profile/);
   assert.match(llmsText, /Agent optimization profile/);
   assert.match(llmsText, /Agent payment profile/);
+  assert.match(llmsText, /Agent prompt catalog/);
   assert.match(llmsText, /Agent protocol profile JSON/);
   assert.match(llmsText, /Agent recovery profile/);
   assert.match(llmsText, /Agent readiness profile/);
@@ -1579,6 +1774,15 @@ async function main() {
     "AgentEvidenceProfile"
   );
 
+  const executionSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-execution.schema.json" }),
+  });
+  assert.equal(executionSchemaResponse.status, 200);
+  assert.equal(
+    (await executionSchemaResponse.json()).title,
+    "AgentExecutionProfile"
+  );
+
   const humanHandoffSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-human-handoffs.schema.json" }),
   });
@@ -1597,6 +1801,15 @@ async function main() {
     "AgentMonitoringProfile"
   );
 
+  const onboardingSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-onboarding.schema.json" }),
+  });
+  assert.equal(onboardingSchemaResponse.status, 200);
+  assert.equal(
+    (await onboardingSchemaResponse.json()).title,
+    "AgentOnboardingProfile"
+  );
+
   const optimizationSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-optimization.schema.json" }),
   });
@@ -1613,6 +1826,15 @@ async function main() {
   assert.equal(
     (await paymentSchemaResponse.json()).title,
     "AgentPaymentProfile"
+  );
+
+  const promptsSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-prompts.schema.json" }),
+  });
+  assert.equal(promptsSchemaResponse.status, 200);
+  assert.equal(
+    (await promptsSchemaResponse.json()).title,
+    "AgentPromptCatalog"
   );
 
   const workflowSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

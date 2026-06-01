@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-prompts.schema.json",
+  "title": "AgentPromptCatalog",
+  "description": "Machine-readable prompt catalog for safe agent drafting, applying, proof submission, monitoring, optimization, and recovery prompts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "prompts",
+    "outputContract",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_prompt_catalog"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "prompts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/prompt"
+      }
+    },
+    "outputContract": {
+      "$ref": "#/$defs/outputContract"
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "promptTruthObject",
+        "durableTruthObjects",
+        "promptCatalogIsNot",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "promptTruthObject": {
+          "type": "null"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "promptCatalogIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "actionId",
+        "title",
+        "defaultMode",
+        "mcpPromptName",
+        "useWhen",
+        "requiredContext",
+        "instructions",
+        "outputFields",
+        "forbiddenClaims",
+        "canonicalReads",
+        "canonicalWrites",
+        "humanGate"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defaultMode": {
+          "type": "string",
+          "enum": [
+            "draft_only",
+            "analysis_only"
+          ]
+        },
+        "mcpPromptName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredContext": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "instructions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forbiddenClaims": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "humanGate": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "durableWriteDefault",
+        "requiredForEveryPrompt",
+        "forbiddenFields"
+      ],
+      "properties": {
+        "durableWriteDefault": {
+          "const": false
+        },
+        "requiredForEveryPrompt": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forbiddenFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

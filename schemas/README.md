@@ -52,10 +52,13 @@ Recommended naming:
 - `json/agent-conformance.schema.json`
 - `json/agent-completion.schema.json`
 - `json/agent-evidence.schema.json`
+- `json/agent-execution.schema.json`
 - `json/agent-human-handoffs.schema.json`
 - `json/agent-monitoring.schema.json`
+- `json/agent-onboarding.schema.json`
 - `json/agent-optimization.schema.json`
 - `json/agent-payments.schema.json`
+- `json/agent-prompts.schema.json`
 - `json/agent-workflows.schema.json`
 - `json/agent-protocols.schema.json`
 - `json/agent-recovery.schema.json`

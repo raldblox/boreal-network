@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-execution.schema.json",
+  "title": "AgentExecutionProfile",
+  "description": "Machine-readable execution, Fulfillment, FulfillmentStep, runtime trust, direct-owner lane, and ephemeral signal boundary profile for agents completing Boreal work.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "executionLanes",
+    "runtimeSignalRules",
+    "stepGuidance",
+    "recoveryRules",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_execution_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "executionLanes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/executionLane"
+      }
+    },
+    "runtimeSignalRules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/runtimeSignalRule"
+      }
+    },
+    "stepGuidance": {
+      "$ref": "#/$defs/stepGuidance"
+    },
+    "recoveryRules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "executionTruthObjects",
+        "durableTruthObjects",
+        "executionProfileIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "executionTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "executionProfileIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "executionLane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "useWhen",
+        "requiredBeforeStart",
+        "canonicalReads",
+        "canonicalWrites",
+        "mustNotDo"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredBeforeStart": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mustNotDo": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runtimeSignalRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "signalKinds",
+        "rule"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signalKinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "stepGuidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "defaultSubworkObject",
+        "createNewRequestOnlyWhen",
+        "stepShouldCarry"
+      ],
+      "properties": {
+        "defaultSubworkObject": {
+          "const": "FulfillmentStep"
+        },
+        "createNewRequestOnlyWhen": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stepShouldCarry": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

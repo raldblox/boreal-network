@@ -40,10 +40,13 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent conformance profile](${absoluteUrl(agentDiscoveryPaths.agentConformance)}): Machine-readable checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries.
 - [Agent completion profile](${absoluteUrl(agentDiscoveryPaths.agentCompletion)}): Machine-readable proof packets, Artifact requirements, completion claims, and review boundaries.
 - [Agent evidence profile](${absoluteUrl(agentDiscoveryPaths.agentEvidence)}): Machine-readable evidence packet, Artifact packaging, redaction, review, and proof-boundary guidance.
+- [Agent execution profile](${absoluteUrl(agentDiscoveryPaths.agentExecution)}): Machine-readable Fulfillment, FulfillmentStep, runtime signal, and execution-lane boundaries.
 - [Agent human handoff profile](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)}): Machine-readable human approval, stop, escalation, visible UX, and claim-state boundaries.
 - [Agent monitoring profile](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)}): Machine-readable cursor polling, stale-state detection, escalation, and push-boundary guidance.
+- [Agent onboarding profile](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)}): Machine-readable path from public discovery to sandbox validation and scoped production eligibility.
 - [Agent optimization profile](${absoluteUrl(agentDiscoveryPaths.agentOptimization)}): Machine-readable draft-only optimization, no-invention, owner approval, and mutation-boundary guidance.
 - [Agent payment profile](${absoluteUrl(agentDiscoveryPaths.agentPayments)}): Machine-readable buyer-credit, paid-run, x402 target, idempotency, and Transaction reconciliation boundaries.
+- [Agent prompt catalog](${absoluteUrl(agentDiscoveryPaths.agentPrompts)}): Machine-readable safe prompts for briefing, applying, submitting proof, monitoring, optimizing, and recovery.
 - [Agent workflow catalog](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)}): Machine-readable process flows for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with policy checkpoints.
 - [Agent monitor webhook profile](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)}): Target signed push-notification profile for request activity monitors.
 - [Agent protocol profile](${absoluteUrl(agentDiscoveryPaths.agentProtocols)}): MCP, A2A, and x402 adapter/payment boundaries.

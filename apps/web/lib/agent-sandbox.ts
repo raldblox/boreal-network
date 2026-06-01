@@ -7,13 +7,16 @@ export const agentSandboxPaths = {
   conformance: "/agents/conformance.json",
   completion: "/agents/completion.json",
   evidence: "/agents/evidence.json",
+  execution: "/agents/execution.json",
   guide: "/agents/sandbox.md",
   humanHandoffs: "/agents/human-handoffs.json",
   manifest: "/agents/sandbox.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
   monitoring: "/agents/monitoring.json",
+  onboarding: "/agents/onboarding.json",
   optimization: "/agents/optimization.json",
   payments: "/agents/payments.json",
+  prompts: "/agents/prompts.json",
   protocols: "/agents/protocols.md",
   protocolsJson: "/agents/protocols.json",
   recovery: "/agents/recovery.json",
@@ -78,6 +81,10 @@ export function buildAgentSandboxManifest() {
         url: absoluteUrl(agentSandboxPaths.evidence),
       },
       {
+        label: "Execution profile",
+        url: absoluteUrl(agentSandboxPaths.execution),
+      },
+      {
         label: "Human handoff profile",
         url: absoluteUrl(agentSandboxPaths.humanHandoffs),
       },
@@ -88,6 +95,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Payment profile",
         url: absoluteUrl(agentSandboxPaths.payments),
+      },
+      {
+        label: "Prompt catalog",
+        url: absoluteUrl(agentSandboxPaths.prompts),
       },
       {
         label: "Workflow catalog",
@@ -120,6 +131,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Monitoring profile",
         url: absoluteUrl(agentSandboxPaths.monitoring),
+      },
+      {
+        label: "Onboarding profile",
+        url: absoluteUrl(agentSandboxPaths.onboarding),
       },
       {
         label: "Discovery index",

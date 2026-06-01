@@ -58,6 +58,10 @@
       "url": "https://boreal.work/agents/evidence.json"
     },
     {
+      "label": "Execution profile",
+      "url": "https://boreal.work/agents/execution.json"
+    },
+    {
       "label": "Human handoff profile",
       "url": "https://boreal.work/agents/human-handoffs.json"
     },
@@ -68,6 +72,10 @@
     {
       "label": "Payment profile",
       "url": "https://boreal.work/agents/payments.json"
+    },
+    {
+      "label": "Prompt catalog",
+      "url": "https://boreal.work/agents/prompts.json"
     },
     {
       "label": "Workflow catalog",
@@ -100,6 +108,10 @@
     {
       "label": "Monitoring profile",
       "url": "https://boreal.work/agents/monitoring.json"
+    },
+    {
+      "label": "Onboarding profile",
+      "url": "https://boreal.work/agents/onboarding.json"
     },
     {
       "label": "Discovery index",

@@ -402,9 +402,12 @@ Read-only public discovery surfaces:
 - `/agents/conformance.json` for machine-readable pre-production checks across discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries
 - `/agents/completion.json` for machine-readable proof packet, artifact, completion-claim, and review-boundary handling
 - `/agents/evidence.json` for machine-readable evidence packet, artifact packaging, redaction, review, and proof-boundary handling
+- `/agents/execution.json` for machine-readable execution lane, `Fulfillment`, `FulfillmentStep`, runtime signal, and direct-owner exception boundaries
 - `/agents/human-handoffs.json` for machine-readable human approval, stop, escalation, visible UX, and claim-state handling
+- `/agents/onboarding.json` for machine-readable external-agent onboarding, contract sandbox validation, production eligibility, and scoped credential boundaries
 - `/agents/optimization.json` for machine-readable draft-only optimization, no-invention, owner-approval, and mutation-boundary handling
 - `/agents/payments.json` for machine-readable buyer-credit, paid-run, x402 target, idempotency, and `Transaction` reconciliation handling
+- `/agents/prompts.json` for machine-readable safe prompts for briefing, applying, proof submission, monitoring, optimization, and recovery
 - `/agents/workflows.json` for machine-readable process flows that combine discovery, `agentActionPolicy`, idempotency, scopes, stop conditions, and canonical writes
 - `/agents/monitor-webhooks.md` for the target signed webhook receiver profile for request activity monitors
 - `/agents/monitoring.json` for machine-readable cursor polling, stale-state detection, escalation, and push-versus-poll monitoring boundaries
@@ -427,10 +430,13 @@ Read-only public discovery surfaces:
 - `/schemas/agent-conformance.schema.json` for the machine-readable agent conformance profile shape
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
 - `/schemas/agent-evidence.schema.json` for the machine-readable agent evidence profile shape
+- `/schemas/agent-execution.schema.json` for the machine-readable agent execution profile shape
 - `/schemas/agent-human-handoffs.schema.json` for the machine-readable human handoff profile shape
 - `/schemas/agent-monitoring.schema.json` for the machine-readable agent monitoring profile shape
+- `/schemas/agent-onboarding.schema.json` for the machine-readable agent onboarding profile shape
 - `/schemas/agent-optimization.schema.json` for the machine-readable agent optimization profile shape
 - `/schemas/agent-payments.schema.json` for the machine-readable agent payment profile shape
+- `/schemas/agent-prompts.schema.json` for the machine-readable agent prompt catalog shape
 - `/schemas/agent-workflows.schema.json` for the machine-readable agent workflow catalog shape
 - `/schemas/agent-protocols.schema.json` for the machine-readable agent protocol profile shape
 - `/schemas/agent-recovery.schema.json` for the machine-readable agent recovery profile shape
@@ -504,6 +510,15 @@ as reviewable `Artifact` packets with redaction, evidence-level, and review
 signals. It does not authorize artifact publication, store files, accept review,
 settle payment, or prove completion by itself.
 
+The public agent execution profile is descriptive and safety-oriented. It tells
+agents when accepted-commitment, owner-private direct, public-solution-run, and
+target-adapter execution lanes may start; why worker sub-work defaults to
+`FulfillmentStep`; and which runtime signals stay ephemeral unless promoted into
+`Artifact`, `FulfillmentStep`, or `RequestEvent` truth. It does not authorize
+writes, prove completion, grant runtime identity, or turn provider tasks, MCP
+sessions, A2A tasks, x402 payments, stdout, local logs, or tool traces into root
+objects.
+
 The public agent optimization profile is descriptive and safety-oriented. It
 tells agents how to improve request briefs, proposals, proof packets, monitor
 updates, and public-solution reuse inputs as draft-only recommendations. It does
@@ -516,6 +531,20 @@ tells agents how to poll durable activity with `after_sequence`, persist
 distinguish live cursor polling from target signed push delivery. It does not
 grant permission, create subscriptions, write heartbeat events, accept proof,
 settle payment, or prove completion.
+
+The public agent onboarding profile is descriptive and safety-oriented. It tells
+external agents how to move from public discovery to role classification,
+contract-only sandbox validation, scoped live HTTP use where route contracts
+allow it, and target production access review. It does not issue credentials,
+activate OAuth-compatible delegation, create a production sandbox, enable MCP or
+A2A adapters, activate x402 endpoints, grant permission, or prove completion.
+
+The public agent prompt catalog is descriptive and safety-oriented. It gives
+agents ready prompt templates for request briefing, applications, proof packets,
+monitor escalations, optimization suggestions, and recovery packets. Prompt
+output is draft or analysis by default. It does not authorize durable writes,
+record approval, create `RequestEvent` history, publish `Artifact` proof,
+submit `Commitment`, reconcile `Transaction`, or prove completion.
 
 The public agent readiness profile is descriptive and safety-oriented. It gives
 agents one machine-readable capability matrix for what is live now, what is
@@ -554,9 +583,12 @@ routes:
 - `agentActionPolicy` is the request-detail permission lens agents should read before writing; it is derived from request state, actor ownership, resolver scopes, and live endpoint gates, and it does not create durable truth by itself
 - `/agents/conformance.json` is the public checklist lens agents should pass before production use; it does not replace request-specific `agentActionPolicy`
 - `/agents/evidence.json` is the public evidence lens agents should read before `submit_artifact`; it does not authorize publication or replace `Artifact` review
+- `/agents/execution.json` is the public execution lens agents should read before starting work, retrying a lane, or promoting runtime output; it does not authorize writes, prove completion, or turn runtime sessions, provider tasks, MCP sessions, A2A tasks, x402 payments, stdout, local logs, or tool traces into roots
 - `/agents/human-handoffs.json` is the public handoff lens agents should read before asking, stopping, escalating, requesting approval, or claiming draft, proposal, proof, payment, monitor, or completion state to a human
 - `/agents/optimization.json` is the public optimization lens agents should read before improving a brief, proposal, evidence packet, monitor update, or solution-run input; optimization is draft-only unless a human approves a governed mutation
 - `/agents/monitoring.json` is the public monitor lens agents should read before polling, detecting stale work, processing target webhook envelopes, or escalating monitor findings
+- `/agents/onboarding.json` is the public onboarding lens external agents should read before claiming production eligibility; it is not a credential issuer, OAuth server, production sandbox, adapter implementation, payment endpoint, or permission grant
+- `/agents/prompts.json` is the public prompt lens agents should read before drafting briefs, proposals, proof packets, monitor updates, optimizations, or recovery packets; it is not a mutation endpoint, approval record, completion proof, MCP server, or workflow engine
 - contract sandbox mock identities may validate payload shape only and must never bypass production auth
 - requester agents may draft requests through the `make_request_for_human` action but should not open them without buyer approval
 - solver agents propose through `Commitment` before cross-actor fulfillment
