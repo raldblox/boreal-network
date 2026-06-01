@@ -16,7 +16,6 @@ import {
 import { useDataStream } from "./data-stream-provider";
 import { DocumentToolResult } from "./document";
 import { DocumentPreview } from "./document-preview";
-import { SparklesIcon } from "./icons";
 import { MessageActions } from "./message-actions";
 import { MessageReasoning } from "./message-reasoning";
 import { PreviewAttachment } from "./preview-attachment";
@@ -27,6 +26,7 @@ const PurePreviewMessage = ({
   message,
   vote,
   isLoading,
+  isRequestMode,
   setMessages: _setMessages,
   regenerate: _regenerate,
   isReadonly,
@@ -39,6 +39,7 @@ const PurePreviewMessage = ({
   message: ChatMessage;
   vote: Vote | undefined;
   isLoading: boolean;
+  isRequestMode: boolean;
   setMessages: UseChatHelpers<ChatMessage>["setMessages"];
   regenerate: UseChatHelpers<ChatMessage>["regenerate"];
   isReadonly: boolean;
@@ -55,6 +56,10 @@ const PurePreviewMessage = ({
   const isUser = message.role === "user";
   const isAssistant = message.role === "assistant";
   const isDraftRequest = requestStatus === "draft";
+
+  if (message.metadata?.requestBriefingSource?.hidden === true) {
+    return null;
+  }
 
   const hasAnyContent = message.parts?.some(
     (part) =>
@@ -167,19 +172,15 @@ const PurePreviewMessage = ({
     ) {
       const { toolCallId, state } = part;
       const isDraftRequestTool =
-        isDraftRequest &&
+        (isDraftRequest || isRequestMode) &&
         (type === "tool-createRequestBrief" ||
           type === "tool-updateRequestBrief" ||
           type === "tool-updateRequestConstraints" ||
           type === "tool-updateRequestBudgetTiming" ||
           type === "tool-updateRequestRouteSummary");
 
-      if (isDraftRequestTool && state === "output-available" && part.output) {
-        return null;
-      }
-
       if (isDraftRequestTool) {
-        return <DraftRequestPendingNote key={toolCallId} />;
+        return null;
       }
 
       const titleByType: Record<string, string> = {
@@ -406,16 +407,9 @@ const PurePreviewMessage = ({
     >
       <div
         className={cn(
-          isUser ? "flex flex-col items-end gap-2" : "flex items-start gap-3"
+          isUser ? "flex flex-col items-end gap-2" : "flex items-start"
         )}
       >
-        {isAssistant && (
-          <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/50">
-              <SparklesIcon size={13} />
-            </div>
-          </div>
-        )}
         {isAssistant ? (
           <div className="flex min-w-0 flex-1 flex-col gap-2">{content}</div>
         ) : (
@@ -426,19 +420,6 @@ const PurePreviewMessage = ({
   );
 };
 
-function DraftRequestPendingNote() {
-  return (
-    <div className="min-w-0 py-0.5">
-      <div className="text-[13px] font-medium leading-6 text-foreground">
-        Structuring the request
-      </div>
-      <div className="mt-0.5 max-w-[44rem] text-[13px] leading-6 text-muted-foreground">
-        Capturing the ask, ownership, and execution lane inside the request.
-      </div>
-    </div>
-  );
-}
-
 export const PreviewMessage = PurePreviewMessage;
 
 export const ThinkingMessage = () => {
@@ -448,13 +429,7 @@ export const ThinkingMessage = () => {
       data-role="assistant"
       data-testid="message-assistant-loading"
     >
-      <div className="flex items-start gap-3">
-        <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/50">
-            <SparklesIcon size={13} />
-          </div>
-        </div>
-
+      <div className="flex items-start">
         <div className="flex h-[calc(13px*1.65)] items-center text-[13px] leading-[1.65]">
           <Shimmer className="font-medium" duration={1}>
             Thinking...

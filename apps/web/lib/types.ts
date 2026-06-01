@@ -16,6 +16,13 @@ import type { Suggestion } from "./db/schema";
 
 export const messageMetadataSchema = z.object({
   createdAt: z.string(),
+  requestBriefingSource: z
+    .object({
+      hidden: z.boolean().optional(),
+      inputHash: z.string().optional(),
+      requestId: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type MessageMetadata = z.infer<typeof messageMetadataSchema>;

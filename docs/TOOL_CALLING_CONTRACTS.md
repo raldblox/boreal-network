@@ -197,16 +197,23 @@ Every mutation call should return:
 - Mutation tools must be idempotent where retries are possible.
 - Request-briefing mutation tools must keep updating the same draft `Request` instead of creating a second durable demand object.
 - Draft request mode and open request mode should not share one forced mutation policy.
+- Pre-draft request mode should not force `create_request_brief` on every fuzzy buyer turn.
+- Pre-draft request mode may answer conversationally and ask one focused briefing question before any request mutation when the brief is not ready.
+- Pre-draft request mode may persist private chat turns, but that persistence is not `RequestEvent` history and must not create planner, artifact, transaction, or fulfillment truth.
+- Web briefing-workspace submits are hidden briefing-source turns, not visible transcript rows; they must create or update the same draft `Request` and hide completed draft request tool chrome once the briefing form is visible.
+- `create_request_brief` should be called only when the brief is ready enough for useful draft plans or when the buyer explicitly asks to create the request draft.
 - Draft request mode may clarify before mutation when missing embodied, geographic, access, scheduling, or verification-critical fields materially change the safe route.
 - Open request room tools should prefer `Commitment`, `Artifact`, and `RequestEvent` writes over `brief` rewrites.
+- Owner support-chat turns inside an opened request may be persisted as chat transcript for continuity, but they must not become durable request activity unless a mutation tool or direct request endpoint writes canonical request truth.
+- Public responders must not receive owner-private preflight transcript as hidden model context by default.
 - `create_request_brief` and `update_request_brief` may carry explicit same-turn canonical facts such as budget or deadline so one intake turn does not drop structured demand fields.
 - `create_request_brief` and `update_request_brief` should prefer title plus body first and must not fabricate `brief.summary` only to satisfy a shape.
 - Request-briefing mutations should use top-level `seeking` for structured matching intent rather than relying on `brief.tags`.
 - Request-briefing, route-summary, and supply-management mutations that touch structured matching fields must use the canon-locked fingerprint enums documented in `docs/MATCHING_ENGINE.md`.
 - Unknown `outputKinds`, `supplyKinds`, `executionChannels`, route-family values, matching-mode values, role keys, or evidence-claim values must be rejected or normalized away before they reach the durable `Request` or `Supply`.
 - Request-briefing tools may accept loose model-facing string or string-list inputs for `outputKinds`, but only canon `outputKind` values may persist. Evidence-only values such as `written_report` must remain under verification requirements or evidence claims.
-- If the request briefing UI exposes a manual JSON draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
-- The editable request-input projection must stay limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
+- If the request briefing UI exposes a manual draft surface, tool mutations and `open_request` must normalize the latest draft-input projection before writing the durable `Request`.
+- The inline editable request-input projection must stay limited to buyer-authored `brief` fields, buyer-authored `brief.constraints`, `budget`, and `deadline`.
 - Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.
 - Planner-derived fields such as lead role, role slots, phase plans, execution profile, verification plan, and collapse-risk outputs must remain read-only and system-owned.
 - Planner-derived fields such as `leadRole`, `roleSlots`, `phases`, `executionProfile`, `verificationPlan`, `planCollapseRisk`, `clarificationNeeded`, `noMicrotaskExplosion`, `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` must remain canonical, read-only, and system-owned.

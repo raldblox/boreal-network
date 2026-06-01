@@ -45,8 +45,9 @@ import {
 } from "@/components/ai-elements/model-selector";
 import {
   type ChatModel,
-  chatModels,
+  composerChatModels,
   DEFAULT_CHAT_MODEL,
+  isComposerChatModelId,
   type ModelCapabilities,
 } from "@/lib/ai/models";
 import {
@@ -112,6 +113,22 @@ const DESKTOP_MODEL_PROVIDER = "codex-desktop";
 const chatUploadTimeoutMs = 60_000;
 const canceledUploadAbortReason = "chat-upload-canceled";
 const timedOutUploadAbortReason = "chat-upload-timeout";
+
+function normalizeBriefingSourceInput(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function createBriefingSourceInputHash(value: string) {
+  const normalized = normalizeBriefingSourceInput(value);
+  let hash = 0x811c9dc5;
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash ^= normalized.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  return `briefing:${(hash >>> 0).toString(16)}`;
+}
 
 type PendingAttachmentUpload = {
   abortController: AbortController;
@@ -572,10 +589,30 @@ function PureMultimodalInput({
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
   const [isSubmitPending, setIsSubmitPending] = useState(false);
+  const [lastSubmittedBriefingInput, setLastSubmittedBriefingInput] = useState<
+    string | null
+  >(null);
   const isOpenedRequest = Boolean(activeRequest && activeRequest.status !== "draft");
+  const isPreOpenBriefingComposer =
+    isRequestMode && !isOpenedRequest && !editingMessage;
   const isNewPage = pathname === "/" && searchParams.get("mode") === "new";
   const showNewModeControls = isNewPage && !activeRequest && !editingMessage;
   const showSubmitPending = isSubmitPending && status === "ready";
+  const normalizedBriefingInput = normalizeBriefingSourceInput(input);
+  const isBriefingBusy =
+    isPreOpenBriefingComposer &&
+    (status === "submitted" || status === "streaming" || showSubmitPending);
+  const isBriefingUnchanged =
+    isPreOpenBriefingComposer &&
+    attachments.length === 0 &&
+    normalizedBriefingInput.length > 0 &&
+    normalizedBriefingInput === lastSubmittedBriefingInput;
+  const isSubmitDisabled =
+    isBriefingBusy ||
+    isBriefingUnchanged ||
+    showSubmitPending ||
+    (!input.trim() && attachments.length === 0) ||
+    uploadQueue.length > 0;
   const activeUploadControllersRef = useRef(new Map<string, AbortController>());
   const uploadScopeRef = useRef(0);
   const pinnedWorkerPromptPlaceholder = getPinnedWorkerPromptPlaceholder(
@@ -610,9 +647,24 @@ function PureMultimodalInput({
     };
   }, [abortActiveUploads, chatId]);
 
+  useEffect(() => {
+    setLastSubmittedBriefingInput(null);
+  }, [chatId]);
+
+  useEffect(() => {
+    if (activeRequest?.status && activeRequest.status !== "draft") {
+      setLastSubmittedBriefingInput(null);
+    }
+  }, [activeRequest?.status]);
+
   const submitForm = useCallback(() => {
     const draftAttachments = attachments;
     const draftInput = input;
+    const normalizedDraftInput = normalizeBriefingSourceInput(draftInput);
+
+    if (isPreOpenBriefingComposer) {
+      setLastSubmittedBriefingInput(normalizedDraftInput);
+    }
 
     window.history.pushState(
       {},
@@ -640,10 +692,25 @@ function PureMultimodalInput({
               ]
             : []),
         ],
+        ...(isPreOpenBriefingComposer
+          ? {
+              metadata: {
+                createdAt: new Date().toISOString(),
+                requestBriefingSource: {
+                  hidden: true,
+                  inputHash: createBriefingSourceInputHash(draftInput),
+                  requestId: activeRequest?.id,
+                },
+              },
+            }
+          : {}),
       });
 
       void Promise.resolve(sendResult).catch(() => {
         setIsSubmitPending(false);
+        if (isPreOpenBriefingComposer) {
+          setLastSubmittedBriefingInput(null);
+        }
         setAttachments((currentAttachments) => {
           const currentUrls = new Set(
             currentAttachments.map((attachment) => attachment.url)
@@ -663,13 +730,20 @@ function PureMultimodalInput({
       });
     } catch {
       setIsSubmitPending(false);
+      if (isPreOpenBriefingComposer) {
+        setLastSubmittedBriefingInput(null);
+      }
       toast.error("Message failed to send. Try again.");
       return;
     }
 
     setAttachments([]);
-    setLocalStorageInput("");
-    setInput("");
+    if (!isPreOpenBriefingComposer) {
+      setLocalStorageInput("");
+      setInput("");
+    } else {
+      setLocalStorageInput(draftInput);
+    }
 
     if (width && width > 768) {
       textareaRef.current?.focus();
@@ -683,11 +757,16 @@ function PureMultimodalInput({
     setLocalStorageInput,
     width,
     chatId,
+    activeRequest?.id,
+    isPreOpenBriefingComposer,
   ]);
 
   useEffect(() => {
     if (status === "submitted" || status === "streaming" || status === "error") {
       setIsSubmitPending(false);
+    }
+    if (status === "error") {
+      setLastSubmittedBriefingInput(null);
     }
   }, [status]);
 
@@ -1121,6 +1200,9 @@ function PureMultimodalInput({
           if (!input.trim() && attachments.length === 0) {
             return;
           }
+          if (isSubmitDisabled) {
+            return;
+          }
           if (status === "ready" || status === "error") {
             setIsSubmitPending(true);
             void submitForm();
@@ -1206,6 +1288,7 @@ function PureMultimodalInput({
               : "min-h-16"
           )}
           data-testid="multimodal-input"
+          disabled={isBriefingBusy}
           onChange={handleInput}
           onKeyDown={(e) => {
             if (slashOpen) {
@@ -1281,18 +1364,14 @@ function PureMultimodalInput({
               <PromptInputSubmit
                 className={cn(
                   "h-7 w-7 rounded-xl transition-all duration-200",
-                  showSubmitPending
+                  isBriefingBusy || showSubmitPending
                     ? "bg-foreground text-background"
-                    : input.trim() || attachments.length > 0
+                    : !isSubmitDisabled
                     ? "bg-foreground text-background hover:opacity-85 active:scale-95"
                     : "bg-muted text-muted-foreground/25 cursor-not-allowed"
                 )}
                 data-testid="send-button"
-                disabled={
-                  showSubmitPending ||
-                  (!input.trim() && attachments.length === 0) ||
-                  uploadQueue.length > 0
-                }
+                disabled={isSubmitDisabled}
                 status={status}
                 variant="secondary"
               >
@@ -1500,7 +1579,13 @@ function PureModelSelectorCompact({
   const capabilities: Record<string, ModelCapabilities> | undefined =
     modelsData?.capabilities ?? modelsData;
   const dynamicModels: ChatModel[] | undefined = modelsData?.models;
-  const webModels = dynamicModels ?? chatModels;
+  const dynamicComposerModels = dynamicModels?.filter((model) =>
+    isComposerChatModelId(model.id)
+  );
+  const webModels =
+    dynamicComposerModels && dynamicComposerModels.length > 0
+      ? dynamicComposerModels
+      : composerChatModels;
   const [desktopRuntimeModels, setDesktopRuntimeModels] = useState<ChatModel[]>(
     [],
   );

@@ -25,7 +25,7 @@ import { getRequestHistoryPaginationKey } from "@/components/chat/sidebar-reques
 import { toast } from "@/components/chat/toast";
 import type { VisibilityType } from "@/components/chat/visibility-selector";
 import { useAutoResume } from "@/hooks/use-auto-resume";
-import { DEFAULT_CHAT_MODEL } from "@/lib/ai/models";
+import { DEFAULT_CHAT_MODEL, isComposerChatModelId } from "@/lib/ai/models";
 import {
   buildDesktopBridgeChatUrl,
   discoverDesktopRuntime,
@@ -33,7 +33,11 @@ import {
   isDesktopBridgeSupportedOrigin,
   readStoredDesktopBridgeUrl,
 } from "@/lib/desktop-runtime-bridge";
-import type { BorealRequestDraft, RequestActivityEntry } from "@/lib/request";
+import type {
+  BorealRequestDraft,
+  RequestActivityEntry,
+  RequestPatch,
+} from "@/lib/request";
 import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import type { ChatMessage } from "@/lib/types";
@@ -47,6 +51,11 @@ type ChatDataResponse = {
   isReadonly: boolean;
   request: BorealRequestDraft | null;
 };
+
+type RequestDraftUpdatePatch = Pick<
+  RequestPatch,
+  "brief" | "seeking" | "budget" | "deadline" | "routing"
+>;
 
 type ActiveChatContextValue = {
   chatId: string;
@@ -79,8 +88,12 @@ type ActiveChatContextValue = {
   }) => Promise<BorealRequestDraft | null>;
   saveRequestDraft: () => Promise<void>;
   openRequest: () => Promise<void>;
+  updateRequestDraft: (
+    patch: RequestDraftUpdatePatch
+  ) => Promise<BorealRequestDraft | null>;
   updateRequestPreferredSupply: (preferredSupplyId: string | null) => Promise<void>;
   retryBlockedFulfillment: () => Promise<void>;
+  createRoleplayDelivery: () => Promise<void>;
   resolveDeliveredFulfillment: () => Promise<void>;
 };
 
@@ -264,6 +277,9 @@ function extractChatId(pathname: string): string | null {
   return match ? match[1] : null;
 }
 
+const chatIdPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -272,7 +288,9 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const { mutate } = useSWRConfig();
 
   const chatIdFromUrl = extractChatId(pathname);
-  const isNewChat = !chatIdFromUrl;
+  const isRoutableChatId =
+    chatIdFromUrl !== null && chatIdPattern.test(chatIdFromUrl);
+  const isNewChat = !isRoutableChatId;
   const modeFromUrl = searchParams.get("mode");
   const newTypeFromUrl = searchParams.get("type");
   const requestModeFromUrl =
@@ -287,7 +305,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   }
   prevPathnameRef.current = pathname;
 
-  const chatId = chatIdFromUrl ?? newChatIdRef.current;
+  const chatId: string =
+    isRoutableChatId && chatIdFromUrl ? chatIdFromUrl : newChatIdRef.current;
 
   const [currentModelId, setCurrentModelId] = useState(DEFAULT_CHAT_MODEL);
   const [
@@ -788,18 +807,6 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [chatId, isNewChat, setMessages]);
 
-  const prevRequestStatusRef = useRef(activeRequest?.status ?? null);
-  useEffect(() => {
-    const previousStatus = prevRequestStatusRef.current;
-    const nextStatus = activeRequest?.status ?? null;
-
-    if (previousStatus === "draft" && nextStatus && nextStatus !== "draft") {
-      setMessages([]);
-    }
-
-    prevRequestStatusRef.current = nextStatus;
-  }, [activeRequest?.status, setMessages]);
-
   const prevRequestListSyncKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!activeRequest) {
@@ -828,7 +835,13 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         .find((row) => row.startsWith("chat-model="))
         ?.split("=")[1];
       if (cookieModel) {
-        setCurrentModelId(decodeURIComponent(cookieModel));
+        const decodedModel = decodeURIComponent(cookieModel);
+        const isSelectableComposerModel =
+          isComposerChatModelId(decodedModel) ||
+          isDesktopRuntimeModelId(decodedModel);
+        setCurrentModelId(
+          isSelectableComposerModel ? decodedModel : DEFAULT_CHAT_MODEL
+        );
       }
     }
   }, [chatData, isNewChat]);
@@ -907,7 +920,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       await mutate<ChatDataResponse>(
         chatDataKey,
         {
-          messages: [],
+          messages,
           visibility: nextRequest?.visibility ?? visibility,
           ownerUserId: chatData?.ownerUserId ?? null,
           viewerUserId: chatData?.viewerUserId ?? null,
@@ -931,7 +944,16 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       });
       return null;
     }
-  }, [chatData?.messages, chatData?.ownerUserId, chatData?.viewerUserId, chatDataKey, chatId, mutate, router, visibility]);
+  }, [
+    chatData?.ownerUserId,
+    chatData?.viewerUserId,
+    chatDataKey,
+    chatId,
+    messages,
+    mutate,
+    router,
+    visibility,
+  ]);
 
   const saveRequestDraft = useCallback(async () => {
     if (!activeRequest) {
@@ -966,7 +988,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         await mutate<ChatDataResponse>(
           chatDataKey,
           {
-            messages: [],
+            messages,
             visibility: data.request.visibility,
             ownerUserId: chatData?.ownerUserId ?? null,
             viewerUserId: chatData?.viewerUserId ?? null,
@@ -997,7 +1019,14 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
             : "Failed to save request draft.",
       });
     }
-  }, [activeRequest, chatData?.ownerUserId, chatData?.viewerUserId, chatDataKey, mutate, visibility]);
+  }, [
+    activeRequest,
+    chatData?.ownerUserId,
+    chatData?.viewerUserId,
+    chatDataKey,
+    messages,
+    mutate,
+  ]);
 
   const openRequest = useCallback(async () => {
     if (!activeRequest) {
@@ -1031,7 +1060,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
         await mutate<ChatDataResponse>(
           chatDataKey,
           {
-            messages: [],
+            messages,
             visibility: data.request.visibility,
             ownerUserId: chatData?.ownerUserId ?? null,
             viewerUserId: chatData?.viewerUserId ?? null,
@@ -1059,12 +1088,11 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     }
   }, [
     activeRequest,
-    chatData?.messages,
     chatData?.ownerUserId,
     chatData?.viewerUserId,
     chatDataKey,
+    messages,
     mutate,
-    visibility,
   ]);
 
   const updateRequestPreferredSupply = useCallback(
@@ -1122,6 +1150,58 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     ]
   );
 
+  const updateRequestDraft = useCallback(
+    async (patch: RequestDraftUpdatePatch) => {
+      if (!activeRequest) {
+        throw new Error("No active request is available.");
+      }
+
+      const response = await fetchWithErrorHandlers(
+        `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests/${activeRequest.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(patch),
+        }
+      );
+
+      const data = (await response.json()) as {
+        request: BorealRequestDraft | null;
+      };
+
+      if (data.request) {
+        await mutate<ChatDataResponse>(
+          chatDataKey,
+          {
+            messages,
+            visibility: data.request.visibility,
+            ownerUserId: chatData?.ownerUserId ?? null,
+            viewerUserId: chatData?.viewerUserId ?? null,
+            isReadonly,
+            request: data.request,
+          },
+          {
+            revalidate: false,
+          }
+        );
+      }
+
+      await mutate(unstable_serialize(getRequestHistoryPaginationKey));
+      return data.request;
+    },
+    [
+      activeRequest,
+      chatData?.ownerUserId,
+      chatData?.viewerUserId,
+      chatDataKey,
+      isReadonly,
+      messages,
+      mutate,
+    ]
+  );
+
   const retryBlockedFulfillment = useCallback(async () => {
     if (!activeRequest?.activeRefs.activeFulfillmentId) {
       throw new Error("No worker fulfillment is available to check.");
@@ -1156,6 +1236,195 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     requestActivityKey,
   ]);
 
+  const createRoleplayDelivery = useCallback(async () => {
+    if (!activeRequest) {
+      throw new Error("No active request is available.");
+    }
+
+    if (
+      activeRequest.status === "draft" ||
+      activeRequest.status === "completed" ||
+      activeRequest.status === "cancelled" ||
+      activeRequest.status === "failed"
+    ) {
+      throw new Error("This request cannot receive a roleplay delivery.");
+    }
+
+    if (activeRequest.status === "funding_required") {
+      throw new Error("Funding is required before this request can start fulfillment.");
+    }
+
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+    const requestUrl = `${basePath}/api/requests/${activeRequest.id}`;
+    const jsonHeaders = { "Content-Type": "application/json" };
+    let commitmentId = activeRequest.activeRefs.activeCommitmentId ?? null;
+
+    if (!commitmentId) {
+      const response = await fetchWithErrorHandlers(`${requestUrl}/commitments`, {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          idempotencyKey: generateUUID(),
+          kind: "proposal",
+          summary: "Roleplay worker will complete the request and attach proof for owner review.",
+          terms: {
+            fundingRequired: false,
+            amountMode: "none",
+            deliverableSummary:
+              "A mock proof package that demonstrates the full Boreal request lifecycle.",
+          },
+        }),
+      });
+      const data = (await response.json()) as { commitmentId: string };
+      commitmentId = data.commitmentId;
+    }
+
+    await fetchWithErrorHandlers(`${basePath}/api/commitments/${commitmentId}`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        action: "accept",
+        idempotencyKey: generateUUID(),
+      }),
+    });
+
+    let fulfillmentId = activeRequest.activeRefs.activeFulfillmentId ?? null;
+
+    if (!fulfillmentId) {
+      const response = await fetchWithErrorHandlers(`${requestUrl}/fulfillments`, {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          commitmentId,
+          idempotencyKey: generateUUID(),
+          initialStatus: "active",
+          summary:
+            "Roleplay fulfillment lane is executing the requested delivery with proof.",
+          lead: {
+            kind: "human",
+            id: activeRequest.ownerId,
+            displayName: "Roleplay worker",
+          },
+          metadata: {
+            roleplay: true,
+            createdFrom: "request_workroom_roleplay_delivery",
+          },
+        }),
+      });
+      const data = (await response.json()) as {
+        fulfillment: { id: string; status?: string };
+      };
+      fulfillmentId = data.fulfillment.id;
+    } else {
+      const fulfillmentResponse = await fetchWithErrorHandlers(
+        `${basePath}/api/fulfillments/${fulfillmentId}`
+      );
+      const fulfillmentData = (await fulfillmentResponse.json()) as {
+        fulfillment: { status: string };
+      };
+
+      if (fulfillmentData.fulfillment.status === "planned") {
+        await fetchWithErrorHandlers(`${basePath}/api/fulfillments/${fulfillmentId}`, {
+          method: "PATCH",
+          headers: jsonHeaders,
+          body: JSON.stringify({
+            idempotencyKey: generateUUID(),
+            status: "ready",
+            summary: "Roleplay fulfillment is ready to start.",
+          }),
+        });
+      }
+
+      if (
+        fulfillmentData.fulfillment.status === "planned" ||
+        fulfillmentData.fulfillment.status === "ready" ||
+        fulfillmentData.fulfillment.status === "blocked"
+      ) {
+        await fetchWithErrorHandlers(`${basePath}/api/fulfillments/${fulfillmentId}`, {
+          method: "PATCH",
+          headers: jsonHeaders,
+          body: JSON.stringify({
+            idempotencyKey: generateUUID(),
+            status: "active",
+            summary: "Roleplay fulfillment is actively completing the request.",
+          }),
+        });
+      }
+    }
+
+    const requiredEvidenceClaims =
+      activeRequest.derived.verificationPlan.requiredEvidenceClaims;
+    const evidenceClaims =
+      requiredEvidenceClaims.length > 0
+        ? requiredEvidenceClaims
+        : ["delivery_confirmation", "verification_note", "mock_handoff"];
+    const nowIso = new Date().toISOString();
+    const artifactResponse = await fetchWithErrorHandlers(
+      `${requestUrl}/artifacts`,
+      {
+        method: "POST",
+        headers: jsonHeaders,
+        body: JSON.stringify({
+          artifactKind: "delivery",
+          documentKind: "text",
+          title: "Mock delivery proof",
+          summary:
+            "Roleplay proof package attached so the owner can review and resolve the request.",
+          content: [
+            `# Mock delivery proof`,
+            "",
+            `Request: ${activeRequest.brief.title}`,
+            "",
+            "This is a roleplay artifact created from the workroom to exercise the full request lifecycle.",
+            "It should be replaced by real proof before production fulfillment is treated as complete.",
+            "",
+            `Evidence claims: ${evidenceClaims.join(", ")}`,
+            `Captured at: ${nowIso}`,
+          ].join("\n"),
+          fulfillmentId,
+          metadata: {
+            evidenceClaims,
+            captureTime: nowIso,
+            witness: {
+              actorId: activeRequest.ownerId,
+              name: "Roleplay owner",
+              note: "Mock proof attached from the workroom lifecycle action.",
+            },
+            captureIntegrity: {
+              method: "workroom_roleplay",
+              verified: true,
+              notes: "Roleplay artifact for frontend lifecycle validation.",
+            },
+          },
+          idempotencyKey: generateUUID(),
+        }),
+      }
+    );
+    const artifact = (await artifactResponse.json()) as { artifactId: string };
+
+    await fetchWithErrorHandlers(`${basePath}/api/fulfillments/${fulfillmentId}`, {
+      method: "PATCH",
+      headers: jsonHeaders,
+      body: JSON.stringify({
+        artifactIds: [artifact.artifactId],
+        idempotencyKey: generateUUID(),
+        status: "delivered",
+        summary: "Roleplay delivery is ready for owner review.",
+        metadata: {
+          roleplay: true,
+          deliveredFrom: "request_workroom_roleplay_delivery",
+        },
+      }),
+    });
+
+    if (requestActivityKey) {
+      await mutate(requestActivityKey);
+    }
+    await mutate(`${basePath}/api/fulfillments/${fulfillmentId}`);
+    await mutate(chatDataKey);
+    await mutate(unstable_serialize(getRequestHistoryPaginationKey));
+  }, [activeRequest, chatDataKey, mutate, requestActivityKey]);
+
   const value = useMemo<ActiveChatContextValue>(
     () => ({
       chatId,
@@ -1186,8 +1455,10 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       createRequest,
       saveRequestDraft,
       openRequest,
+      updateRequestDraft,
       updateRequestPreferredSupply,
       retryBlockedFulfillment,
+      createRoleplayDelivery,
       resolveDeliveredFulfillment: async () => {
         if (!activeRequest?.activeRefs.activeFulfillmentId) {
           throw new Error("No delivered fulfillment is available to resolve.");
@@ -1243,8 +1514,10 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       createRequest,
       saveRequestDraft,
       openRequest,
+      updateRequestDraft,
       updateRequestPreferredSupply,
       retryBlockedFulfillment,
+      createRoleplayDelivery,
       mutate,
       chatDataKey,
       requestActivityKey,

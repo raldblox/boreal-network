@@ -6,13 +6,13 @@ import type { Vote } from "@/lib/db/schema";
 import type {
   BorealRequestDraft,
   RequestActivityEntry,
+  RequestPatch,
   RequestStatus,
 } from "@/lib/request";
 import type { ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useDataStream } from "./data-stream-provider";
 import { Greeting } from "./greeting";
-import { SparklesIcon } from "./icons";
 import { PreviewMessage, ThinkingMessage } from "./message";
 import { RequestActivityMessage } from "./request-activity-timeline";
 import { RequestPlanPanel } from "./request-plan-panel";
@@ -40,6 +40,9 @@ type MessagesProps = {
   hideEmptyGreeting?: boolean;
   onApproveDraftPlan?: () => Promise<void>;
   isOpeningDraftPlan?: boolean;
+  onUpdateRequestDraft?: (
+    patch: Pick<RequestPatch, "brief" | "seeking" | "budget" | "deadline" | "routing">
+  ) => Promise<BorealRequestDraft | null>;
 };
 
 function PureMessages({
@@ -65,6 +68,7 @@ function PureMessages({
   hideEmptyGreeting = false,
   onApproveDraftPlan,
   isOpeningDraftPlan = false,
+  onUpdateRequestDraft,
 }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
@@ -78,6 +82,14 @@ function PureMessages({
   });
 
   useDataStream();
+
+  const visibleMessages = useMemo(
+    () =>
+      messages.filter(
+        (message) => message.metadata?.requestBriefingSource?.hidden !== true
+      ),
+    [messages]
+  );
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
@@ -98,16 +110,20 @@ function PureMessages({
             .find((timestamp) => timestamp > 0) ?? null
         : null;
 
-    const messageItems = messages.map((message, index) => ({
-      type: "message" as const,
-      id: message.id,
-      timestamp: Date.parse(message.metadata?.createdAt ?? "") || 0,
-      index,
-      message,
-    }))
+    const shouldFilterMessagesAfterOpen =
+      displayMode !== "chat" && requestOpenedTimestamp !== null;
+    const messageItems = visibleMessages
+      .map((message, index) => ({
+        type: "message" as const,
+        id: message.id,
+        timestamp: Date.parse(message.metadata?.createdAt ?? "") || 0,
+        index,
+        message,
+      }))
       .filter(
         (item) =>
-          requestOpenedTimestamp === null || item.timestamp >= requestOpenedTimestamp
+          !shouldFilterMessagesAfterOpen ||
+          item.timestamp >= requestOpenedTimestamp
       );
 
     const activityItems =
@@ -172,21 +188,28 @@ function PureMessages({
 
       return left.index - right.index;
     });
-  }, [activities, displayMode, messages, request, requestStatus, status]);
+  }, [activities, displayMode, request, requestStatus, status, visibleMessages]);
+
+  const lastRawMessage = messages.at(-1);
+  const lastVisibleMessage = visibleMessages.at(-1);
+  const isHiddenBriefingPending =
+    status === "submitted" &&
+    lastRawMessage?.metadata?.requestBriefingSource?.hidden === true;
 
   const showEmptyGreeting =
     !hideEmptyGreeting &&
     displayMode === "timeline" &&
-    messages.length === 0 &&
+    visibleMessages.length === 0 &&
     activities.length === 0 &&
     !(request && request.status === "draft") &&
+    !isHiddenBriefingPending &&
     !isLoading;
 
   const showEmptyActivityState =
     displayMode === "activity" && activities.length === 0 && !isLoading;
 
   const showEmptyChatState =
-    displayMode === "chat" && messages.length === 0 && !isLoading;
+    displayMode === "chat" && visibleMessages.length === 0 && !isLoading;
   return (
     <div className="relative flex-1 bg-background">
       {showEmptyGreeting && (
@@ -197,7 +220,9 @@ function PureMessages({
       <div
         className={cn(
           "absolute inset-0 touch-pan-y overflow-y-auto",
-          (displayMode === "chat" ? messages.length > 0 : timelineItems.length > 0)
+          (displayMode === "chat"
+            ? visibleMessages.length > 0
+            : timelineItems.length > 0)
             ? "bg-background"
             : "bg-transparent"
         )}
@@ -254,6 +279,7 @@ function PureMessages({
                 isOpeningDraftPlan={isOpeningDraftPlan}
                 key={item.id}
                 onApproveDraftPlan={onApproveDraftPlan}
+                onUpdateRequestDraft={onUpdateRequestDraft}
                 request={item.request}
               />
             ) : (
@@ -262,10 +288,11 @@ function PureMessages({
                 chatId={chatId}
                 isLoading={
                   status === "streaming" &&
-                  messages.length > 0 &&
-                  messages[messages.length - 1]?.id === item.message.id
+                  visibleMessages.length > 0 &&
+                  lastVisibleMessage?.id === item.message.id
                 }
                 isReadonly={isReadonly}
+                isRequestMode={isRequestMode}
                 key={item.id}
                 message={item.message}
                 onEdit={onEditMessage}
@@ -273,8 +300,8 @@ function PureMessages({
                 requestStatus={requestStatus}
                 requiresScrollPadding={
                   hasSentMessage &&
-                  messages.length > 0 &&
-                  messages[messages.length - 1]?.id === item.message.id
+                  visibleMessages.length > 0 &&
+                  lastVisibleMessage?.id === item.message.id
                 }
                 setMessages={setMessages}
                 vote={
@@ -286,7 +313,9 @@ function PureMessages({
             )
           )}
 
-          {status === "submitted" && messages.at(-1)?.role !== "assistant" && (
+          {status === "submitted" &&
+            !isHiddenBriefingPending &&
+            lastVisibleMessage?.role !== "assistant" && (
             <ThinkingMessage />
           )}
 
@@ -319,10 +348,14 @@ function DraftPlanMessage({
   request,
   onApproveDraftPlan,
   isOpeningDraftPlan,
+  onUpdateRequestDraft,
 }: {
   request: BorealRequestDraft;
   onApproveDraftPlan?: () => Promise<void>;
   isOpeningDraftPlan?: boolean;
+  onUpdateRequestDraft?: (
+    patch: Pick<RequestPatch, "brief" | "seeking" | "budget" | "deadline" | "routing">
+  ) => Promise<BorealRequestDraft | null>;
 }) {
   return (
     <div
@@ -330,16 +363,12 @@ function DraftPlanMessage({
       data-role="assistant"
       data-testid="draft-plan-message"
     >
-      <div className="animate-[fade-up_0.32s_cubic-bezier(0.22,1,0.36,1)] flex items-start gap-3">
-        <div className="flex h-[calc(13px*1.65)] shrink-0 items-center">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/50">
-            <SparklesIcon size={13} />
-          </div>
-        </div>
+      <div className="animate-[fade-up_0.32s_cubic-bezier(0.22,1,0.36,1)] flex items-start">
         <div className="min-w-0 flex-1">
           <RequestPlanPanel
             isOpeningRequest={isOpeningDraftPlan}
             onOpenRequest={onApproveDraftPlan}
+            onUpdateRequestDraft={onUpdateRequestDraft}
             request={request}
             scope="draft"
           />

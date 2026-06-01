@@ -14,8 +14,8 @@ import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
 import { entitlementsByUserType } from "@/lib/ai/entitlements";
 import {
-  allowedModelIds,
   chatModels,
+  composerAllowedModelIds,
   DEFAULT_CHAT_MODEL,
   getCapabilities,
 } from "@/lib/ai/models";
@@ -37,6 +37,7 @@ import { updateRequestBudgetTiming } from "@/lib/ai/tools/update-request-budget-
 import { updateRequestConstraints } from "@/lib/ai/tools/update-request-constraints";
 import { updateRequestRouteSummary } from "@/lib/ai/tools/update-request-route-summary";
 import { updateDocument } from "@/lib/ai/tools/update-document";
+import { chatDeleteQuerySchema } from "@/lib/chat-route-validation";
 import { isProductionEnvironment } from "@/lib/constants";
 import {
   createStreamId,
@@ -47,6 +48,7 @@ import {
   getRequestActivityByRequestId,
   getRequestByChatId,
   getSupplyById,
+  appendRequestEvent,
   saveChat,
   saveMessages,
   toRequestDraft,
@@ -57,7 +59,11 @@ import {
 import type { DBMessage } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
 import { checkIpRateLimit } from "@/lib/ratelimit";
-import { canRespondToRequest } from "@/lib/request-server";
+import { canUseRequestChatTranscript } from "@/lib/request-chat-access";
+import {
+  canRespondToRequest,
+  ensureRequestDraftForChat,
+} from "@/lib/request-server";
 import {
   createChatAttachmentDownload,
   getChatAttachmentUrlRejection,
@@ -125,9 +131,6 @@ const defaultToolNames = [
   | "requestSuggestions"
 >;
 
-const embodiedClarificationPattern =
-  /\bon[-\s]?site\b|\bsite visit\b|\bin person\b|\bin-person\b|\bfield inspection\b|\binspect(?:ion)?\b|\bpick[\s-]?up\b|\bdrop[\s-]?off\b|\bcourier\b|\bwitness(?:ed|ing)?\b|\bhandoff\b|\battend(?:ance)?\b|\binventory audit\b|\bcount inventory\b|\bphoto proof\b|\bvideo proof\b|\binstall(?:ation)? verification\b/i;
-
 function extractUserMessageText(message: ChatMessage | undefined): string {
   if (!message || message.role !== "user" || !Array.isArray(message.parts)) {
     return "";
@@ -135,14 +138,7 @@ function extractUserMessageText(message: ChatMessage | undefined): string {
 
   return message.parts
     .map((part) => {
-      if (
-        typeof part === "object" &&
-        part !== null &&
-        "type" in part &&
-        part.type === "text" &&
-        "text" in part &&
-        typeof part.text === "string"
-      ) {
+      if (part.type === "text" && typeof part.text === "string") {
         return part.text;
       }
 
@@ -208,10 +204,6 @@ function getIncomingAttachmentRejection({
   }
 
   return null;
-}
-
-function shouldAllowPreDraftClarification(text: string): boolean {
-  return embodiedClarificationPattern.test(text);
 }
 
 function toRequestSupplyContextSummary(
@@ -306,7 +298,7 @@ export async function POST(request: Request) {
       return new ChatbotError("unauthorized:chat").toResponse();
     }
 
-    const chatModel = allowedModelIds.has(selectedChatModel)
+    const chatModel = composerAllowedModelIds.has(selectedChatModel)
       ? selectedChatModel
       : DEFAULT_CHAT_MODEL;
 
@@ -333,14 +325,36 @@ export async function POST(request: Request) {
     const activeRequestRecord = noDbEvalMode
       ? null
       : await getRequestByChatId({ chatId: id });
-    const activeRequest = activeRequestRecord
+    let activeRequest = activeRequestRecord
       ? toRequestDraft(activeRequestRecord)
       : null;
+    const isRequestBriefingSourceTurn =
+      requestMode === true &&
+      message?.role === "user" &&
+      message.metadata?.requestBriefingSource?.hidden === true;
+    let didEnsureRequestDraft = false;
+
+    if (isRequestBriefingSourceTurn && !activeRequest && !noDbEvalMode) {
+      activeRequest = await ensureRequestDraftForChat({
+        chatId: id,
+        userId: session.user.id,
+        visibility: selectedVisibilityType,
+      });
+      didEnsureRequestDraft = true;
+    }
+
     const canUsePublicRequestRoom =
       activeRequest !== null &&
       canRespondToRequest({
         request: activeRequest,
         userId: session.user.id,
+      });
+    const canUseChatTranscript =
+      !isRequestBriefingSourceTurn &&
+      canUseRequestChatTranscript({
+        hasRequest: Boolean(activeRequest),
+        chatOwnerUserId: chat?.userId,
+        viewerUserId: session.user.id,
       });
     let messagesFromDb: DBMessage[] = [];
     let titlePromise: Promise<string> | null = null;
@@ -377,10 +391,14 @@ export async function POST(request: Request) {
       if (chat.userId !== session.user.id && !canUsePublicRequestRoom) {
         return new ChatbotError("forbidden:chat").toResponse();
       }
-      if (!activeRequest) {
+      if (canUseChatTranscript) {
         messagesFromDb = await getMessagesByChatId({ id });
       }
-    } else if (message?.role === "user" && !noDbEvalMode) {
+    } else if (
+      message?.role === "user" &&
+      !didEnsureRequestDraft &&
+      !noDbEvalMode
+    ) {
       await saveChat({
         id,
         userId: session.user.id,
@@ -439,8 +457,8 @@ export async function POST(request: Request) {
 
     if (
       message?.role === "user" &&
-      !activeRequest &&
-      !requestMode &&
+      canUseChatTranscript &&
+      !isRequestBriefingSourceTurn &&
       !noDbEvalMode
     ) {
       await saveMessages({
@@ -457,13 +475,49 @@ export async function POST(request: Request) {
       });
     }
 
+    if (
+      isRequestBriefingSourceTurn &&
+      activeRequest &&
+      message?.role === "user" &&
+      !noDbEvalMode
+    ) {
+      const sourceText = extractUserMessageText(message as ChatMessage).trim();
+      if (sourceText) {
+        const occurredAt = new Date();
+        await appendRequestEvent({
+          eventId: generateUUID(),
+          requestId: activeRequest.id,
+          aggregateType: "request",
+          aggregateId: activeRequest.id,
+          eventType: "request.updated",
+          actor: {
+            kind: "human",
+            id: session.user.id,
+          },
+          correlationId: message.id,
+          causationId: message.id,
+          idempotencyKey: `briefing-source:${message.id}`,
+          source: "api.chat.request_briefing_source",
+          payload: {
+            summary: "Buyer briefing source submitted.",
+            sourceKind: "briefing_source",
+            sourceText,
+            inputHash: message.metadata?.requestBriefingSource?.inputHash,
+          },
+          occurredAt,
+        });
+      }
+    }
+
     const isActiveRequestMode = activeRequest !== null;
     const isDraftRequestMode = activeRequest?.status === "draft";
     const isPreDraftRequestMode = requestMode === true && activeRequest === null;
     const isOpenRequestMode =
       activeRequest !== null && activeRequest.status !== "draft";
     const isOpenRequestOwner =
-      isOpenRequestMode && activeRequest.ownerId === session.user.id;
+      activeRequest !== null &&
+      activeRequest.status !== "draft" &&
+      activeRequest.ownerId === session.user.id;
     const requestRoomRole = isDraftRequestMode
       ? "draft_owner"
       : isOpenRequestOwner
@@ -514,8 +568,7 @@ export async function POST(request: Request) {
             : defaultToolNames;
     const requestToolChoice =
       supportsTools &&
-      (isPreDraftRequestMode || isDraftRequestMode) &&
-      !(isPreDraftRequestMode && shouldAllowPreDraftClarification(extractUserMessageText(message as ChatMessage)))
+      isDraftRequestMode
         ? "required"
         : undefined;
     const stopCondition =
@@ -636,7 +689,7 @@ export async function POST(request: Request) {
           return;
         }
 
-        if (activeRequest || requestMode) {
+        if (activeRequest && !canUseChatTranscript) {
           return;
         }
 
@@ -664,8 +717,19 @@ export async function POST(request: Request) {
             }
           }
         } else if (finishedMessages.length > 0) {
+          const existingMessageIds = new Set(
+            uiMessages.map((currentMessage) => currentMessage.id)
+          );
+          const newMessages = finishedMessages.filter(
+            (currentMessage) => !existingMessageIds.has(currentMessage.id)
+          );
+
+          if (newMessages.length === 0) {
+            return;
+          }
+
           await saveMessages({
-            messages: finishedMessages.map((currentMessage) => ({
+            messages: newMessages.map((currentMessage) => ({
               id: currentMessage.id,
               role: currentMessage.role,
               parts: currentMessage.parts,
@@ -736,26 +800,41 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
+  try {
+    const { searchParams } = new URL(request.url);
+    const parsedQuery = chatDeleteQuerySchema.safeParse({
+      id: searchParams.get("id"),
+    });
 
-  if (!id) {
-    return new ChatbotError("bad_request:api").toResponse();
+    if (!parsedQuery.success) {
+      return new ChatbotError(
+        "bad_request:api",
+        "Valid chat id is required."
+      ).toResponse();
+    }
+
+    const { id } = parsedQuery.data;
+    const session = await auth();
+
+    if (!session?.user) {
+      return new ChatbotError("unauthorized:chat").toResponse();
+    }
+
+    const chat = await getChatById({ id });
+
+    if (chat?.userId !== session.user.id) {
+      return new ChatbotError("forbidden:chat").toResponse();
+    }
+
+    const deletedChat = await deleteChatById({ id });
+
+    return Response.json(deletedChat, { status: 200 });
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      return error.toResponse();
+    }
+
+    console.error("Unhandled error in chat DELETE API:", error);
+    return new ChatbotError("offline:chat").toResponse();
   }
-
-  const session = await auth();
-
-  if (!session?.user) {
-    return new ChatbotError("unauthorized:chat").toResponse();
-  }
-
-  const chat = await getChatById({ id });
-
-  if (chat?.userId !== session.user.id) {
-    return new ChatbotError("forbidden:chat").toResponse();
-  }
-
-  const deletedChat = await deleteChatById({ id });
-
-  return Response.json(deletedChat, { status: 200 });
 }

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { chatAttachmentMimeTypes } from "@/lib/chat-attachment-policy";
+import { messageMetadataSchema } from "@/lib/types";
 
 const textPartSchema = z.object({
   type: z.enum(["text"]),
@@ -22,6 +23,7 @@ const partSchema = z.union([textPartSchema, filePartSchema]);
 
 const userMessageSchema = z.object({
   id: z.string().uuid(),
+  metadata: messageMetadataSchema.optional(),
   role: z.enum(["user"]),
   parts: z.array(partSchema),
 });

@@ -134,6 +134,7 @@ For the first web slice, `Request` create and update must support:
 - optional `preferredSupplyId` on create so one private request can be born with a selected worker already pinned
 - public-safe listing of `open` plus `public` requests for network or desktop pooling
 - public-safe solution projection reads over completed public requests with `activeRefs.acceptedArtifactId`; this is a Request projection, not a `Solution` root
+- public-safe request and solution projections include `agentActionAffordances` so agents can see request-bound inspect, apply, submit, monitor, run, and optimize actions without inferring next steps from UI copy
 - public-safe detail reads for one request by id
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze` inspection over public or owned scratch-chat user text messages
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs` execution that creates or reuses one private scratch chat, stores source chat/message provenance on the forked user message, runs the filled prompt, and does not create a `Request`, debit credits, or write `Transaction` truth in V1
@@ -145,13 +146,17 @@ For the first web slice, `Request` create and update must support:
 - request constraint updates
 - request budget and timing updates
 - request route-summary updates
+- owner-scoped `PATCH /api/requests/{id}` direct draft edits for buyer-authored fields only: `brief.title`, `brief.body`, `brief.summary`, buyer-authored `brief.constraints`, `budget`, and `deadline`
 - explicit transition from `draft` to `open`
 - `open_request` may asynchronously start one owner-private Boreal-managed worker lane when the request already has a pinned preferred supply
 - manual request-object editing only while the request stays in `draft`
 - full canonical request-object projection as read-only once the request leaves `draft`
 - public request pool reads must exclude owner-only draft fields and should expose a public-safe request projection instead
+- public request pool reads may expose action affordances, but those affordances must name auth and canonical writes explicitly and must not grant mutation authority by themselves
 - owner detail reads may include private routing control state while public projections must exclude it
-- request activity reads through `/requests/{id}/activity` so open request rooms can render durable timeline cards without replaying chat transcript
+- chat transcript reads through `GET /api/messages?chatId={chatId}` must require a valid UUID before database access, keep draft or private request envelopes owner-only, return the owner transcript only to authorized viewers, and avoid exposing owner-private request briefing history to public responders by default
+- request activity reads through `/requests/{id}/activity` so open request rooms can render durable timeline cards without replaying chat transcript; monitors may use `after_sequence` and `limit` to resume from a stable `RequestEvent.sequence` checkpoint
+- owner-scoped `POST /api/messages/trailing` for edit-resend cleanup before appending the replacement user turn; it requires a valid message UUID, deletes chat messages after the selected owned message, and does not create `RequestEvent` history
 - resolver runtimes should be able to write commitment and artifact activity through direct request resource endpoints instead of going through chat tool-calling only
 - resolver runtimes should authenticate through a Boreal-issued resolver token, not raw Codex credentials
 
@@ -381,6 +386,69 @@ derived from `Host`, `x-forwarded-host`, or `x-forwarded-proto` request headers.
 PayPal webhook and checkout routes may log provider diagnostics server-side, but
 responses to callers must stay generic and must not include upstream PayPal
 response bodies.
+
+## Agent-Native Access Profile
+
+Agent-facing contracts reuse the same canonical HTTP, schema, auth, and event
+layers instead of inventing a parallel agent ledger.
+
+Read-only public discovery surfaces:
+
+- `/llms.txt` for short public guidance and claim boundaries
+- `/agents/start.md` for practical agent onboarding
+- `/agents/actions.md` for contract-linked inspect, apply, submit, monitor, run, and optimize walkthroughs
+- `/agents/monitor-webhooks.md` for the target signed webhook receiver profile for request activity monitors
+- `/agents/protocols.md` for MCP, A2A, and x402 adapter/payment boundaries
+- `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, and payloads
+- `/agents/sandbox.json` for the machine-readable contract-only sandbox manifest
+- `/.well-known/agent-card.json` for public-safe A2A-style identity, capability, auth, and skill metadata
+- `/openapi.json` for the agent discovery OpenAPI index
+- `/openapi/request-briefing.yaml` for request briefing, request room, and solution-run HTTP contracts
+- `/openapi/supply-management.yaml` for supply management HTTP contracts
+- `/openapi/resolver-auth.yaml` for resolver approval and bearer-token HTTP contracts
+- `/openapi/payment-and-credit.yaml` for payment, buyer-credit, request-grant, and transaction HTTP contracts
+- `/schemas/*.schema.json` for canonical JSON Schema object shapes
+- `/schemas/agent-sandbox.schema.json` for the contract-only agent sandbox manifest shape
+- `/events/request-room.asyncapi.yaml` for durable request-room monitoring contracts
+
+The agent card and `/openapi.json` include the same action catalog for common
+agent intents: inspect public requests, apply to a request, submit an artifact,
+monitor activity, run a public solution, and optimize a request brief or plan.
+The catalog is descriptive and contract-linked. It labels whether an action is
+public read, live authenticated HTTP, or target direction, and it includes
+resolver scopes where live endpoints enforce them. It does not bypass endpoint
+authorization, idempotency, or canonical lifecycle rules.
+
+The sandbox surfaces are contract samples only.
+They do not create live objects, spend money, approve resolver access, or grant
+mutation authority.
+Mock bearer tokens, mock sessions, sample webhook secrets, and sample object ids
+from `/agents/sandbox.json` must not be accepted by production endpoints.
+`pnpm contracts:agent-sandbox` validates the checked
+`fixtures/agent/sandbox-manifest.sample.json` fixture against the public
+sandbox contract, required flow coverage, idempotency samples, cursor samples,
+webhook header samples, and canon-boundary rules.
+
+These are public inspection and contract-discovery routes.
+They do not create a new root object, and they do not make private drafts,
+private chats, owner-only fields, raw desktop transcripts, or resolver secrets
+public.
+
+Agent-facing write surfaces must preserve the same gates as human or resolver
+routes:
+
+- public inspection is read-only by default
+- `agentActionAffordances` are hints over existing governed endpoints, not separate permissions or a new workflow ledger
+- contract sandbox mock identities may validate payload shape only and must never bypass production auth
+- requester agents may draft requests but should not open them without buyer approval
+- solver agents propose through `Commitment` before cross-actor fulfillment
+- proof and delivery must attach through `Artifact`
+- monitoring should read durable activity without promoting every heartbeat into `RequestEvent`
+- monitor agents should persist `cursor.nextAfterSequence` from `/api/requests/{id}/activity` and send it back as `after_sequence` on the next poll
+- signed monitor webhooks, when implemented, must use `Boreal-Webhook-Id`, `Boreal-Webhook-Timestamp`, and `Boreal-Webhook-Signature` over the raw body, and receivers must deduplicate by delivery id before side effects
+- MCP tools, when implemented, must call the same governed mutations or enforce equivalent checks
+- A2A tasks, when implemented, map to request-bound operations and do not replace `Request`
+- x402 payments, when implemented, must reconcile into `Transaction` and must not imply completion by themselves
 
 ## Schema Discipline
 

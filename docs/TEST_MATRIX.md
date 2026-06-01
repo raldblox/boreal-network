@@ -16,6 +16,7 @@ Verify:
 - desktop-local ephemeral IPC envelopes keep stable lane, channel-kind, correlation, and source fields without pretending to be durable request events
 - supply schema and supply OpenAPI stay aligned on status, visibility, pricing mode, source kind, and binding shape
 - embodied-planning conventions stay aligned across request, supply, artifact, and eval surfaces when Boreal uses them
+- agent discovery documents, agent cards, OpenAPI exports, JSON Schema exports, and AsyncAPI exports point to the same canonical object and endpoint names
 
 ### Commercial canon tests
 
@@ -76,6 +77,37 @@ Verify:
 - raw runtime identity cannot be treated as Boreal request ownership without Boreal-issued resolver approval
 - peer or localhost realtime session auth cannot be treated as Boreal actor auth by itself
 - raw runtime or resolver identity cannot be treated as supply ownership by itself
+- external-agent scopes should grant the minimum required read or write capability and should not make anonymous public inspection equivalent to mutation authority
+
+### Agent-native readiness tests
+
+Verify:
+
+- a fresh agent can discover Boreal from `/llms.txt` and a public agent-start guide without private route knowledge
+- `/agents/actions.md` renders public-safe contract-linked walkthroughs for inspect, apply, submit, monitor, run, and optimize intents
+- `/agents/protocols.md` renders public-safe MCP, A2A, and x402 mapping rules and keeps each protocol below Boreal canonical object truth
+- `/agents/sandbox.md` and `/agents/sandbox.json` render a contract-only sandbox with deterministic mock identities, sample IDs, payloads, and canonical boundaries
+- `schemas/json/agent-sandbox.schema.json` and `fixtures/agent/sandbox-manifest.sample.json` stay parseable and aligned with the public sandbox contract
+- `pnpm contracts:agent-sandbox` validates sandbox fixture coverage for inspect, apply, submit, monitor, run, signed webhook, and optimize flows
+- sandbox mock credentials, mock sessions, sample webhook secrets, and sample object ids are never accepted as production mutation authority
+- `/.well-known/agent-card.json` exposes only public-safe identity, endpoint, capability, auth, and skill metadata
+- the public agent card and `/openapi.json` expose the same action catalog for inspect, apply, submit, monitor, run, and optimize intents
+- each catalog action names canonical reads, canonical writes, availability, auth boundary, standard contract links, and guardrails
+- public request projections expose request-level `agentActionAffordances` that map concrete request ids to inspect, apply, submit, monitor, run, and optimize affordances without exposing owner-only routing or granting mutation authority
+- public agent discovery links resolve to public-safe OpenAPI, JSON Schema, and AsyncAPI contracts
+- `apps/web/tests/contracts/agent-discovery.test.ts` covers the public agent card, start guide, action playbook, sandbox guide, sandbox manifest, action catalog, discovery index, allowlisted contract assets, and absence of obvious secret material in exported contracts
+- public request inspection remains anonymous-safe and excludes draft, private, owner-only routing, private transcript, and planner-internal fields
+- an authenticated requester agent can draft or update a request without opening it automatically
+- an authenticated solver agent can propose a commitment through the same request-bound commitment endpoint a human responder would use
+- an authenticated solver agent can publish artifacts only after commitment acceptance or owner-private direct authorization
+- an agent monitor can read durable request activity with `after_sequence`, persist `cursor.nextAfterSequence`, and resume from that stable checkpoint without promoting heartbeats into `RequestEvent`
+- cursor-resumed request activity reads return newer events in replay order; latest reads without `after_sequence` remain newest-first
+- signed monitor webhook profile helpers should sign and verify raw callback bodies with `Boreal-Webhook-*` headers, reject tampered bodies, and enforce timestamp tolerance
+- MCP tools, when implemented, enforce the same scopes, idempotency keys, and business gates as HTTP routes
+- A2A tasks, when implemented, map to Boreal request-bound operations without replacing `Request` as the durable root
+- A2A artifacts, when implemented, map to Boreal `Artifact` truth and preserve owner review requirements
+- x402-paid agent calls, when implemented, reconcile into Boreal `Transaction` truth and do not imply fulfillment completion by themselves
+- `standards/agent-protocol-profile.md` stays listed in `standards/README.md` and preserves the same MCP/A2A/x402 boundaries as public discovery
 
 ### Idempotency tests
 
@@ -138,8 +170,13 @@ Verify:
 - `pnpm contracts:reusable-prompts` covers deterministic reusable prompt analysis and free chat-fork fixture invariants
 - not every chat turn creates a durable request
 - entering `New request` mode alone does not create a durable request
-- the first send in `New request` mode creates one draft request instead of a second root object
-- selecting one supply from the supply hub may create one private draft request and pin `routing.preferredSupplyId` without auto-sending synthetic prompt text
+- fuzzy chat-only clarification sends in `New request` mode may save private chat history and ask one focused briefing question without creating a durable request
+- web briefing-workspace submits in `New request` mode create or update one draft request through hidden briefing-source turns instead of visible user bubbles or completed draft tool rows
+- pre-open briefing composer keeps the raw submitted prompt visible, disables while loading, and enables resubmission only after the prompt or attachments change
+- `New request` mode creates at most one draft request once the brief is ready enough for useful plans or the buyer explicitly asks to create it
+- preflight preview fields should be UI projections from chat history and must not create a `Request`, `RequestEvent`, `Artifact`, `Transaction`, planner output, or fulfillment truth
+- selecting one supply from the supply hub may pin preflight context without creating a durable request
+- an explicit create-from-supply action may create one private draft request and pin `routing.preferredSupplyId` without auto-sending synthetic prompt text
 - request creation with `preferredSupplyId` should return the draft with seeded `seeking` and worker-facing output defaults when those fields were still empty
 - owner-private preferred-supply draft seeding may also add truthful route-facing derived defaults such as candidate pool, route family, execution kind, payment mode, matching mode, and route summary
 - supply-started draft requests should not auto-open the raw request-object panel before the owner writes the worker prompt
@@ -158,9 +195,20 @@ Verify:
 - `save draft` and `open request` normalize the latest draft-input projection before the durable `Request` is written
 - draft request-input JSON accepts edits only for `visibility`, `brief`, `seeking`, `budget`, and `deadline`
 - draft request-input JSON should reject or ignore attempts to persist ids, status, routing, active refs, latest summary, timestamps, or planner-derived fields
+- inline draft briefing edits accept only buyer-authored `brief` fields, buyer-authored constraints such as location, time, and proof, plus `budget` and `deadline`
 - title plus body should be enough for `ready_to_open`; `brief.summary` should stay optional
 - one-turn request briefing should preserve explicitly stated budget or deadline in structured canonical fields instead of only embedding them in freeform brief text
 - request mode may ask clarifying questions before draft readiness when missing location, access, timing, or proof fields materially change embodied execution safety
+- request mode should ask one focused briefing question at a time before draft creation when the ask is fuzzy
+- draft creation should render an inline briefing or plan review in the chat timeline instead of leaving only completed tool-call UI
+- draft inline plan review should offer a compact stepper and optional flow review without replacing pre-open request mode with a planner dashboard
+- draft flow review should render `Request` plus one or more parallel `Plan` cards and must not show worker or delivery nodes before the request opens
+- editing a user chat message and resending should delete trailing owned messages, append the replacement prompt, show pending generation feedback, and avoid leaving the old assistant answer in the visible timeline
+- chat transcript and edit-resend cleanup endpoints should reject malformed chat or message ids before database access so bad client state is reported as API input failure instead of opaque database failure
+- chat transcript reads should keep draft or private request envelopes owner-only while allowing public opened request envelopes without the owner's private transcript
+- chat/message hot-path indexes should cover owner history, transcript load, edit-resend cleanup, and hourly quota counting before request chat volume can turn those routes into scan-heavy database failures
+- `Open request` should remain disabled until `readyForOpen` is true
+- draft-mode plans should not expose supply path, role candidates, workers, capability lanes, feasibility grids, ranking, or assignment projections to the primary buyer preflight surface
 - structured matching intent should land in top-level `seeking` rather than relying on generated `brief.tags`
 - selected or pinned supply should stay in `routing.preferredSupplyId` and must not be rewritten into fake buyer-authored brief text
 - preselected supply may narrow the likely route but must not imply a real match or assigned worker before matching, selection, or fulfillment attachment actually happened
@@ -169,12 +217,17 @@ Verify:
 - clearing pinned supply should remove only the preferred-supply route bias and must not leave stale direct-route hints in draft-derived state
 - owner-safe planner prompt context may include preferred-supply and bounded candidate-supply summaries after retrieval, while responder or public lanes must not inherit owner-private routing hints
 - open request rooms should not force every user message through draft brief mutation tools
+- owner support chat in an opened request should retain the private briefing transcript and continue as chat history without turning every turn into `RequestEvent` activity
+- public responders or outside viewers should not receive the owner's private preflight transcript through the open request chat context by default
 - public open request activity should be fetchable from a durable request activity endpoint
 - public open request detail should be fetchable by id through a direct request API surface
 - direct request commitment and artifact endpoints should create durable activity without going through the chat route
+- request activity reads should validate `after_sequence` and `limit`, cap the limit, and return a cursor envelope that agents can safely persist
+- request activity webhook receivers, when implemented, should deduplicate by delivery id and persist the same `cursor.nextAfterSequence` checkpoint used by polling monitors
 - direct request commitment and artifact endpoints should honor idempotency keys on retry
 - direct commitment accept endpoints should honor idempotency keys on retry
 - direct fulfillment create and update endpoints should honor idempotency keys on retry
+- owner-facing workroom actions should be able to roleplay a public request through commitment proposal, commitment acceptance, fulfillment creation, proof artifact publication, delivery, and owner acceptance without bypassing the canonical endpoints
 - direct fulfillment create should require an accepted commitment
 - direct fulfillment create may omit commitment only for owned private requests driven by the same owner through the desktop auto-resolution lane
 - direct fulfillment create with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows
@@ -218,6 +271,8 @@ Verify:
 - live-model benchmark scoring should not depend on a second judge LLM when exact contract or metric-based scoring already exists
 - auto-improve eval runs should produce sanitized audit bundles with raw Promptfoo output, command logs, config snapshots, git state, failure classification, and non-mutating recommendations before any prompt or model-default change is made
 - default nano chat routing should promote context-heavy request turns to `openai/gpt-5.4-mini` and preserve the fallback order `openai/o3-mini`, `openai/o4-mini`, `openai/gpt-5-mini`, `openai/gpt-4.1-nano` without changing the tool allowlist or mutation schemas
+- the chat composer OpenAI picker should expose only the evaluated chat rotation set and should not persist or submit stale unevaluated cookie-selected models
+- direct OpenAI should be the first provider attempt whenever `OPENAI_API_KEY` is configured, with Vercel Gateway retained only as the fallback provider route
 - model-routing eval output should record light, token-heavy, active-request-heavy, message-heavy, activity-heavy, explicitly requested rotation, and pinned-model cases without calling provider APIs
 - Promptfoo app-path evals should run a guest-auth/database preflight before `/api/chat` scoring so Neon/auth failures do not get misread as answer-quality regressions
 - Promptfoo no-DB eval fallback should require an explicit local env flag and header, skip durable writes, dry-run request-brief tool output, and label the run as prompt/tool scoring only rather than persistence or auth coverage
@@ -261,6 +316,7 @@ Verify:
 - planner outputs must preserve embodied, local-runtime, and verification-heavy work as first-class planning realities
 - plan-collapse detection should trigger clarification or block-and-escalate when required embodied work is being omitted
 - public request-pool projections should not expose the full planner-internal projection by default
+- public request-pool projections should include public-safe action affordances, with `run_public_solution` present only when completed public solution truth exists through `activeRefs.acceptedArtifactId`
 - the request plan panel should expose typed matching fingerprints plus `matchCandidates`, `leadRanking`, `roleMatches`, and `assignmentProposal` as read-only derived projections rather than editable buyer-authored fields
 
 ### Supply-management contract tests

@@ -78,6 +78,9 @@ Do not introduce investment, yield, dividend, or passive revenue-share event nam
 - failed
 - status_changed
 
+`request.updated` may include buyer-submitted briefing source text when the buyer explicitly submits it as request source context.
+It must not include provider prompts, hidden chain-of-thought, tool stdout, credentials, or other transient runtime internals.
+
 ### Participant events
 
 - joined
@@ -149,6 +152,8 @@ Credit-consuming solution runs should emit normal transaction and fulfillment ev
 ## Ordering Rules
 
 - Sequence must be monotonic within a request stream.
+- `sequence` is the stable checkpoint for request activity monitors; HTTP reads may resume with `after_sequence` without writing a heartbeat event.
+- Signed monitor webhook delivery is transport over the same durable event envelope; delivery ids, retry attempts, and receiver acknowledgements are not `RequestEvent` history by default.
 - Cross-request global ordering is not required.
 - Replays must not duplicate business effects.
 - Projections must treat duplicate events with the same idempotency key as no-ops.

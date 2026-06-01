@@ -105,8 +105,10 @@ export function ChatShell() {
     createRequest,
     saveRequestDraft,
     openRequest,
+    updateRequestDraft,
     updateRequestPreferredSupply,
     retryBlockedFulfillment,
+    createRoleplayDelivery,
     resolveDeliveredFulfillment,
   } = useActiveChat();
 
@@ -118,15 +120,20 @@ export function ChatShell() {
   const [isOpeningDraftRequest, setIsOpeningDraftRequest] = useState(false);
   const [isOpenRequestChatVisible, setIsOpenRequestChatVisible] = useState(false);
   const [openedRequestView, setOpenedRequestView] =
-    useState<WorkroomViewId>("monitor");
+    useState<WorkroomViewId>("tasks");
+  const [requestObjectViewerHostElement, setRequestObjectViewerHostElement] =
+    useState<HTMLDivElement | null>(null);
+  const [isRequestObjectViewerVisible, setIsRequestObjectViewerVisible] =
+    useState(false);
   const [isResolvingDeliveredRequest, setIsResolvingDeliveredRequest] =
     useState(false);
   const [isRetryingBlockedFulfillment, setIsRetryingBlockedFulfillment] =
     useState(false);
+  const [isCreatingRoleplayDelivery, setIsCreatingRoleplayDelivery] =
+    useState(false);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
   const { setArtifact } = useArtifact();
   const searchParams = useSearchParams();
-  const preferredSupplyIdFromUrl = searchParams.get("preferredSupplyId");
   const serviceFamilyKeyFromUrl = searchParams.get("serviceFamilyKey");
   const servicePlanKeyFromUrl = searchParams.get("servicePlanKey");
   const referenceRequestIdFromUrl = searchParams.get("referenceRequestId");
@@ -138,7 +145,6 @@ export function ChatShell() {
   const autoOpenedDeliveryArtifactRef = useRef<string | null>(null);
   const openRequestScrollRef = useRef<HTMLDivElement>(null);
   const suppressAutoOpenRequestRef = useRef<string | null>(null);
-  const supplyBootstrapRef = useRef<string | null>(null);
 
   const prevChatIdRef = useRef(chatId);
   useEffect(() => {
@@ -147,7 +153,6 @@ export function ChatShell() {
       autoOpenedRequestRef.current = null;
       autoOpenedDeliveryArtifactRef.current = null;
       suppressAutoOpenRequestRef.current = null;
-      supplyBootstrapRef.current = null;
       stopRef.current();
       setArtifact(initialArtifactData);
       setEditingMessage(null);
@@ -187,9 +192,16 @@ export function ChatShell() {
 
   useEffect(() => {
     if (isOpenedRequest) {
-      setOpenedRequestView("monitor");
+      setOpenedRequestView("tasks");
+      setIsRequestObjectViewerVisible(false);
     }
   }, [activeRequest?.id, activeRequest?.status, isOpenedRequest]);
+
+  useEffect(() => {
+    if (!isOpenedRequest || isArtifactVisible) {
+      setIsRequestObjectViewerVisible(false);
+    }
+  }, [isArtifactVisible, isOpenedRequest]);
 
   useEffect(() => {
     if (!isRequestMode || !activeRequest || activeRequest.status !== "draft") {
@@ -244,6 +256,7 @@ export function ChatShell() {
       return;
     }
 
+    setIsRequestObjectViewerVisible(false);
     setArtifact((currentArtifact) =>
       currentArtifact.isVisible &&
       currentArtifact.documentId === activeRequest.documentId
@@ -262,6 +275,24 @@ export function ChatShell() {
     );
   };
 
+  const closeArtifactForWorkObjectViewer = useCallback(() => {
+    setArtifact((currentArtifact) =>
+      currentArtifact.isVisible
+        ? {
+            ...currentArtifact,
+            isVisible: false,
+          }
+        : currentArtifact
+    );
+  }, [setArtifact]);
+
+  const handleOpenedRequestViewChange = useCallback((view: WorkroomViewId) => {
+    setOpenedRequestView(view);
+    if (view !== "monitor") {
+      setIsRequestObjectViewerVisible(false);
+    }
+  }, []);
+
   const handleCreateRequest = useCallback(async (options?: {
     preferredSupplyId?: string | null;
   }) => {
@@ -278,43 +309,6 @@ export function ChatShell() {
       setIsStartingRequest(false);
     }
   }, [createRequest]);
-
-  useEffect(() => {
-    if (
-      !isRequestMode ||
-      activeRequest ||
-      !preferredSupplyIdFromUrl ||
-      isStartingRequest
-    ) {
-      return;
-    }
-
-    const bootstrapKey = `${chatId}:${preferredSupplyIdFromUrl}`;
-    if (supplyBootstrapRef.current === bootstrapKey) {
-      return;
-    }
-
-    supplyBootstrapRef.current = bootstrapKey;
-
-    void handleCreateRequest({
-      preferredSupplyId: preferredSupplyIdFromUrl,
-    })
-      .then((createdRequest) => {
-        if (!createdRequest) {
-          supplyBootstrapRef.current = null;
-        }
-      })
-      .catch(() => {
-        supplyBootstrapRef.current = null;
-      });
-  }, [
-    activeRequest,
-    chatId,
-    handleCreateRequest,
-    isRequestMode,
-    isStartingRequest,
-    preferredSupplyIdFromUrl,
-  ]);
 
   useEffect(() => {
     if (!isRequestMode || activeRequest || input.trim().length > 0) {
@@ -402,6 +396,33 @@ export function ChatShell() {
     }
   }, [activeRequest?.activeRefs.activeFulfillmentId, retryBlockedFulfillment]);
 
+  const handleCreateRoleplayDelivery = useCallback(async () => {
+    if (!activeRequest) {
+      return;
+    }
+
+    setIsCreatingRoleplayDelivery(true);
+
+    try {
+      await createRoleplayDelivery();
+      toast({
+        type: "success",
+        description: "Mock delivery attached for owner review.",
+      });
+      setOpenedRequestView("tasks");
+    } catch (error) {
+      toast({
+        type: "error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to create mock delivery.",
+      });
+    } finally {
+      setIsCreatingRoleplayDelivery(false);
+    }
+  }, [activeRequest, createRoleplayDelivery]);
+
   const handleOpenRequest = async () => {
     setIsOpeningDraftRequest(true);
 
@@ -414,10 +435,12 @@ export function ChatShell() {
 
   const openedRequestViewOptions: Array<{ id: WorkroomViewId; label: string }> =
     [
+      { id: "tasks", label: "Tasks" },
       { id: "monitor", label: "Flow" },
       { id: "activity", label: "Activity" },
       { id: "artifacts", label: "Artifacts" },
     ];
+  const isPreflightBriefing = isRequestMode && !activeRequest;
   const isInitialComposerCentered =
     !activeRequest &&
     messages.length === 0 &&
@@ -428,24 +451,61 @@ export function ChatShell() {
   const initialComposerDescription = isRequestMode
     ? "Describe the work, done condition, constraints, budget, timing, and proof."
     : "Ask a question or start a request when the work needs execution, proof, and follow-through.";
+  const openedRequestActivityCount = activities.length;
+  const openedRequestArtifactCount = activities.filter((activity) =>
+    Boolean(activity.artifact)
+  ).length;
+  const showRequestObjectViewerShell =
+    isOpenedRequest && isRequestObjectViewerVisible && !isArtifactVisible;
+  const isShellViewerVisible =
+    isArtifactVisible || showRequestObjectViewerShell;
+  const isOpenedRequestFlowView =
+    isOpenedRequest && openedRequestView === "monitor";
 
   const openedRequestControls = isOpenedRequest ? (
     <div className="flex flex-wrap items-center gap-2">
       {openedRequestViewOptions.map((view) => (
-        <button
-          className={cn(
-            "rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            openedRequestView === view.id
-              ? "border-foreground/14 bg-foreground text-background"
-              : "border-border/60 bg-background/88 text-muted-foreground hover:text-foreground"
-          )}
-          aria-pressed={openedRequestView === view.id}
-          key={view.id}
-          onClick={() => setOpenedRequestView(view.id)}
-          type="button"
-        >
-          {view.label}
-        </button>
+        (() => {
+          const badgeCount =
+            view.id === "activity"
+              ? openedRequestActivityCount
+              : view.id === "artifacts"
+                ? openedRequestArtifactCount
+                : view.id === "tasks"
+                  ? activeRequest
+                    ? Math.max(activeRequest.derived.phases.length, 1)
+                    : 0
+                  : 0;
+
+          return (
+            <button
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                openedRequestView === view.id
+                  ? "border-foreground/14 bg-foreground text-background"
+                  : "border-border/60 bg-background/88 text-muted-foreground hover:text-foreground"
+              )}
+              aria-pressed={openedRequestView === view.id}
+              key={view.id}
+              onClick={() => handleOpenedRequestViewChange(view.id)}
+              type="button"
+            >
+              <span>{view.label}</span>
+              {badgeCount > 0 ? (
+                <span
+                  className={cn(
+                    "rounded-full px-1.5 py-0.5 text-[9px] leading-none tracking-normal",
+                    openedRequestView === view.id
+                      ? "bg-background/22 text-background"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {badgeCount > 99 ? "99+" : badgeCount}
+                </span>
+              ) : null}
+            </button>
+          );
+        })()
       ))}
     </div>
   ) : undefined;
@@ -456,7 +516,11 @@ export function ChatShell() {
         <div
           className={cn(
             "flex min-w-0 flex-col bg-transparent transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-            isArtifactVisible ? "w-[40%]" : "w-full"
+            isArtifactVisible
+              ? "w-[40%]"
+              : showRequestObjectViewerShell
+                ? "w-[62%]"
+                : "w-full"
           )}
         >
           <ChatHeader
@@ -473,7 +537,12 @@ export function ChatShell() {
           <div className={surfaceShellClassName} data-testid="chat-shell-surface">
             {isOpenedRequest && activeRequest ? (
               <div
-                className="min-h-0 flex-1 overflow-y-auto"
+                className={cn(
+                  "min-h-0 flex-1",
+                  isOpenedRequestFlowView
+                    ? "flex flex-col overflow-hidden"
+                    : "overflow-y-auto"
+                )}
                 ref={openRequestScrollRef}
               >
                 <RequestBriefingPanel
@@ -495,19 +564,25 @@ export function ChatShell() {
                   isReadonly={isReadonly}
                   isRetryingBlockedFulfillment={isRetryingBlockedFulfillment}
                   isResolvingDeliveredRequest={isResolvingDeliveredRequest}
+                  isCreatingRoleplayDelivery={isCreatingRoleplayDelivery}
                   onRetryBlockedFulfillment={handleRetryBlockedFulfillment}
                   onResolveDeliveredRequest={handleResolveDeliveredRequest}
-                  onSelectView={setOpenedRequestView}
+                  onCreateRoleplayDelivery={handleCreateRoleplayDelivery}
+                  onBeforeOpenWorkObjectViewer={closeArtifactForWorkObjectViewer}
+                  onSelectView={handleOpenedRequestViewChange}
                   onUpdatePreferredSupply={updateRequestPreferredSupply}
+                  onWorkObjectViewerOpenChange={setIsRequestObjectViewerVisible}
+                  isWorkObjectViewerSuppressed={isArtifactVisible}
                   request={activeRequest}
                   requestViewerUserId={requestViewerUserId}
                   scrollContainerRef={openRequestScrollRef}
                   selectedView={openedRequestView}
+                  workObjectViewerHost={requestObjectViewerHostElement}
                 />
               </div>
             ) : (
               <>
-                {activeRequest || !isNewPage ? (
+                {activeRequest && activeRequest.status !== "draft" ? (
                   <RequestBriefingPanel
                     isLoading={isLoading}
                     isReadonly={isReadonly}
@@ -531,12 +606,15 @@ export function ChatShell() {
                   isLoading={isLoading}
                   isReadonly={isReadonly}
                   isRequestMode={isRequestMode}
-                  hideEmptyGreeting={isInitialComposerCentered}
+                  hideEmptyGreeting={
+                    isInitialComposerCentered || isPreflightBriefing
+                  }
                   messages={messages}
                   request={activeRequest}
                   requestStatus={activeRequest?.status ?? null}
                   isOpeningDraftPlan={isOpeningDraftRequest}
                   onApproveDraftPlan={handleOpenRequest}
+                  onUpdateRequestDraft={updateRequestDraft}
                   onEditMessage={(msg) => {
                     const text = msg.parts
                       ?.filter((p) => p.type === "text")
@@ -630,9 +708,9 @@ export function ChatShell() {
                           setEditingMessage(null);
                           await submitEditedMessage({
                             message: msg,
+                            sendMessage,
                             text: input,
                             setMessages,
-                            regenerate,
                           });
                           setInput("");
                         }
@@ -656,6 +734,17 @@ export function ChatShell() {
             )}
           </div>
         </div>
+
+        {isOpenedRequest ? (
+          <div
+            aria-hidden={!showRequestObjectViewerShell}
+            className={cn(
+              "hidden h-dvh shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] md:flex",
+              showRequestObjectViewerShell ? "w-[38%]" : "w-0"
+            )}
+            ref={setRequestObjectViewerHostElement}
+          />
+        ) : null}
 
         <Artifact
           activeRequest={activeRequest}
@@ -761,9 +850,9 @@ export function ChatShell() {
                             setEditingMessage(null);
                             await submitEditedMessage({
                               message: msg,
+                              sendMessage,
                               text: input,
                               setMessages,
-                              regenerate,
                             });
                             setInput("");
                           }

@@ -66,16 +66,22 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
 2. Explicit request creation gate
    Stay chat-only until the owner or policy explicitly chooses to open a `Request`.
    In the web `New request` mode, entering the mode alone must not create a durable `Request`.
-   The first durable draft should be created only when the owner sends the first request brief turn or uses another explicit create action.
-   Selecting one owned supply from the web supply hub may count as that explicit create action for a private request, but it should pin `routing.preferredSupplyId`, seed request-side matching intent from that supply, and still avoid injecting synthetic brief text on the owner's behalf.
-   Optional request-briefing assist may restructure that first turn for clarity, but it must still end in exactly one `create_request_brief` mutation instead of a parallel hidden write path.
+   The first owner turn in `New request` mode may stay conversational when the ask is still fuzzy in a chat-only clarification lane.
+   In the web briefing workspace, composer submits are briefing-source turns: they create or update one draft `Request`, stay available to the model as request-owned source context, and must not render as visible user bubbles or completed tool-call rows.
+   Boreal should still ask one focused briefing question at a time when missing facts materially affect the request brief, done condition, constraints, proof, human or local execution, budget, or deadline.
+   Chat-only preflight messages may be saved as private chat history, but briefing-source turns should be hidden from the visible transcript and should not become planner, artifact, transaction, or fulfillment truth by themselves.
+   A non-mutating preflight preview may summarize captured facts from those chat turns for the buyer.
+   The first durable draft should be created only when the brief is ready enough to produce useful plans, the owner explicitly asks to create the request draft, or another explicit create action applies.
+   Selecting one owned supply from the web supply hub may pin preflight context without creating a `Request`.
+   If the buyer uses an explicit create-from-supply action, that may count as the create action for a private request, but it should pin `routing.preferredSupplyId`, seed request-side matching intent from that supply, and still avoid injecting synthetic brief text on the owner's behalf.
+   Optional request-briefing assist may restructure a ready brief for clarity, but it must still end in exactly one `create_request_brief` mutation instead of a parallel hidden write path.
 3. Request draft
    Produce a derived `RequestDraft`.
 4. Draft normalization
    Produce a derived `MatchSpec` with brief, output kinds, constraints, budget, urgency, and actor requirements.
-   In the web request-briefing surface, manual editing may touch only the draft-input projection.
-   That editable projection is limited to `visibility`, `brief`, `seeking`, `budget`, and `deadline`.
-   Ids, status, routing, active refs, latest summary, timestamps, and planner projections must remain read-only.
+   In the web request-briefing surface, manual editing may touch only buyer-authored draft-input fields.
+   The inline editable projection is limited to `brief.title`, `brief.body`, `brief.summary`, buyer-authored `brief.constraints` such as location, time, access, safety, and proof, plus `budget` and `deadline`.
+   Ids, status, routing, active refs, latest summary, timestamps, and planner projections must remain read-only in that inline edit surface.
    Before `save draft`, request-tool mutation, or `open request`, normalize that draft-input projection back into the same durable `Request`.
    If one user turn explicitly includes brief text plus budget or deadline, the request-brief mutation layer should preserve both the narrative brief and the structured canonical fields in the same write.
    Title and body are the first readiness-bearing brief fields. `brief.summary` is optional compression and should not be manufactured only to satisfy readiness.
@@ -97,6 +103,13 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
    When embodied or verification-heavy work is detected, also derive an `ExecutionProfile`, `EmbodiedConstraintSet`, `VerificationPlan`, and `PlanCollapseRisk` summary as read-only planning outputs before execution begins.
    The same read-only planner projection may also derive `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` so the request can show how close it is to executable truth without pretending matching or assignment already happened.
    Those planning outputs may project onto `Request.derived`, but they remain system-owned, rebuildable, and non-editable by the buyer.
+
+In buyer-facing draft preflight, the chat should not stop at a completed tool-call artifact.
+Once a draft `Request` exists, show an inline briefing or plan review surface in the chat timeline.
+Before the draft is ready to open, that surface should show captured brief facts, missing essentials, and the next question or disabled open state.
+When derived plan steps exist, show buyer-facing plan steps and proof or done criteria.
+The pre-open flow review should render only the `Request` card and one or more parallel `Plan` cards.
+Do not expose feasibility grids, supply paths, role candidates, worker lanes, delivery lanes, capability lanes, or assignment projections until the request has been opened into a workroom or route-selection surface.
 10. Team assembly
    Match optional collaborator slots only after a credible lead route exists, except bounded direct-tool routes.
    The lead-first matching pipeline and the current fingerprint catalog are documented in [MATCHING_ENGINE.md](MATCHING_ENGINE.md).
@@ -119,6 +132,14 @@ Open request room behavior should prefer:
 - `Commitment` for pricing, quotes, and formal proposals
 - `Artifact` for drafts, proof, files, and deliveries
 - `RequestEvent` for durable visible activity
+
+The owner may still have a support chat attached to the same chat thread.
+That support chat may preserve the private briefing transcript and continue
+Q&A after the request opens, but it remains chat history unless a tool or
+direct endpoint promotes a business-meaningful outcome into `Commitment`,
+`Artifact`, `Fulfillment`, `Transaction`, or `RequestEvent` truth.
+Public responders and outside viewers must not inherit the owner's private
+preflight transcript as request-room context by default.
 
 The open request room should behave like a monitored workroom, not a planner-first dashboard.
 It should optimize for current status, next action, ownership, blockers, proof, and resolution instead of exposing every planner-derived field with equal visual weight.
@@ -299,6 +320,7 @@ The first run implementation may generate an assistant reply inside the private 
 - `open` plus `private` requests remain owner-controlled or invite-only.
 - `open` plus `public` requests may enter the public request pool and be fetched by outside supply or Boreal desktop participants.
 - Public pool reads should expose a public-safe projection, not owner-only draft fields.
+- Public projections may include `agentActionAffordances`, but those affordances are derived hints over governed endpoints and do not become durable root state.
 
 ## Complexity Policy
 

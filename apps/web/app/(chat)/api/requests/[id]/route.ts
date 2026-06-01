@@ -4,18 +4,91 @@ import {
   toRequestDraft,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
-import { toPublicRequestPoolEntry } from "@/lib/request";
+import {
+  toPublicRequestPoolEntry,
+  type BorealRequestDraft,
+  type RequestPatch,
+} from "@/lib/request";
 import {
   getRequestActorContext,
   hasResolverScope,
 } from "@/lib/resolver-session";
-import { setRequestPreferredSupply } from "@/lib/request-server";
+import {
+  persistRequestPatch,
+  setRequestPreferredSupply,
+} from "@/lib/request-server";
 
-const patchRequestDetailSchema = z.object({
-  routing: z.object({
-    preferredSupplyId: z.string().uuid().nullable().optional(),
-  }),
+const requestBudgetPatchSchema = z.object({
+  mode: z.enum(["none", "fixed", "range", "open"]),
+  currency: z.string().optional(),
+  fixedAmount: z.number().nonnegative().optional(),
+  minAmount: z.number().nonnegative().optional(),
+  maxAmount: z.number().nonnegative().optional(),
+  notes: z.string().optional(),
 });
+
+const requestDeadlinePatchSchema = z.object({
+  targetAt: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+const patchRequestDetailSchema = z
+  .object({
+    brief: z
+      .object({
+        title: z.string().optional(),
+        summary: z.string().optional(),
+        body: z.string().optional(),
+        constraints: z.record(z.string(), z.unknown()).optional(),
+        outputKinds: z.array(z.string()).optional(),
+        tags: z.array(z.string()).optional(),
+      })
+      .strict()
+      .optional(),
+    seeking: z
+      .object({
+        actorKinds: z.array(z.string()).optional(),
+        supplyKinds: z.array(z.string()).optional(),
+        teamMode: z.string().optional(),
+        notes: z.string().optional(),
+      })
+      .strict()
+      .optional(),
+    budget: requestBudgetPatchSchema.nullable().optional(),
+    deadline: requestDeadlinePatchSchema.nullable().optional(),
+    routing: z
+      .object({
+        preferredSupplyId: z.string().uuid().nullable().optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .refine((body) => Object.keys(body).length > 0);
+
+function hasBuyerDraftPatch(body: z.infer<typeof patchRequestDetailSchema>) {
+  return (
+    body.brief !== undefined ||
+    body.seeking !== undefined ||
+    body.budget !== undefined ||
+    body.deadline !== undefined
+  );
+}
+
+function toBuyerRequestPatch(
+  body: z.infer<typeof patchRequestDetailSchema>
+): RequestPatch {
+  return {
+    ...(body.brief !== undefined
+      ? { brief: body.brief as RequestPatch["brief"] }
+      : {}),
+    ...(body.seeking !== undefined
+      ? { seeking: body.seeking as RequestPatch["seeking"] }
+      : {}),
+    ...(body.budget !== undefined ? { budget: body.budget } : {}),
+    ...(body.deadline !== undefined ? { deadline: body.deadline } : {}),
+  };
+}
 
 export async function GET(
   request: Request,
@@ -87,11 +160,49 @@ export async function PATCH(
   const { id } = await context.params;
 
   try {
-    const nextDraft = await setRequestPreferredSupply({
-      requestId: id,
-      userId: actor.userId,
-      preferredSupplyId: body.routing.preferredSupplyId ?? null,
-    });
+    const hasDraftPatch = hasBuyerDraftPatch(body);
+    const hasRoutingPatch = body.routing !== undefined;
+    let nextDraft: BorealRequestDraft | null = null;
+
+    if (hasDraftPatch) {
+      const existingRequest = await getRequestById({ id });
+      if (!existingRequest) {
+        return new ChatbotError("not_found:database").toResponse();
+      }
+
+      const currentDraft = toRequestDraft(existingRequest);
+      if (currentDraft.ownerId !== actor.userId) {
+        return new ChatbotError("forbidden:chat").toResponse();
+      }
+
+      if (currentDraft.status !== "draft") {
+        return new ChatbotError(
+          "bad_request:api",
+          "Direct request brief edits are only available for draft requests."
+        ).toResponse();
+      }
+
+      nextDraft = await persistRequestPatch({
+        requestId: id,
+        userId: actor.userId,
+        patch: toBuyerRequestPatch(body),
+      });
+    }
+
+    if (hasRoutingPatch) {
+      nextDraft = await setRequestPreferredSupply({
+        requestId: id,
+        userId: actor.userId,
+        preferredSupplyId: body.routing?.preferredSupplyId ?? null,
+      });
+    }
+
+    if (!nextDraft) {
+      return new ChatbotError(
+        "bad_request:api",
+        "No supported request update was provided."
+      ).toResponse();
+    }
 
     return Response.json({ request: nextDraft }, { status: 200 });
   } catch (error) {
@@ -112,9 +223,11 @@ export async function PATCH(
     if (
       error instanceof Error &&
       [
+        "Only draft requests can be opened",
         "Preferred supply is only available for private requests",
         "Supply does not belong to request owner",
         "Published supply required",
+        "Invalid request draft document",
       ].includes(error.message)
     ) {
       return new ChatbotError("bad_request:api", error.message).toResponse();

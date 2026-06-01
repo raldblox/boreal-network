@@ -12,6 +12,9 @@ A high-scoring match system that mutates too early is still failing.
 ### 1. Extraction evals
 
 Verify that a raw ask becomes the expected brief, optional structured `seeking`, constraints, output kinds, budget shape, and missing-field list.
+Verify that a fuzzy first turn in a chat-only `New request` clarification lane may remain conversational, save private chat history, and ask one focused briefing question without creating a durable `Request`.
+Verify that web briefing-workspace submits create or update one draft `Request`, remain hidden from the visible transcript, preserve the raw composer prompt, and expose missing brief fields in the briefing surface.
+Verify that preflight preview fields are derived from chat turns and do not become canonical planner or request truth.
 If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.
 Verify that pinned-supply routing context stays outside the buyer-authored brief and does not appear as synthetic prompt text when the request started from a supply selection.
 Verify that selected supply context remains in `routing.preferredSupplyId` or equivalent routing fields instead of being rewritten into buyer-authored brief text.
@@ -21,6 +24,11 @@ Verify that clearing pinned supply removes only that preferred-supply route bias
 Verify that pinned supply stays candidate-only in planner outputs until the current request truth actually supports that narrowed lead lane.
 Verify that requests implying onsite work, pickup or dropoff, field inspection, witnessed handoff, measurement, or other non-substitutable human execution surface those requirements instead of rewriting them as digital-only work.
 Verify that planner-derived role, phase, execution, and proof outputs do not leak back into the buyer-authored editable brief surface.
+Verify that a created draft renders an inline briefing or plan review instead of leaving the buyer at raw tool-call completion.
+Verify that draft plans omit worker, delivery, supply path, role-candidate, capability-lane, and assignment projections from the buyer-facing preflight surface.
+Verify that draft flow review renders only the `Request` plus one or more parallel `Plan` cards before the request opens.
+Verify that inline draft edits can change only buyer-authored brief fields, buyer-authored constraints, budget, and deadline while derived planner fields stay read-only.
+Verify that opened-request owner support chat can continue from private briefing history without exposing that transcript to public responders or converting every support turn into request activity.
 
 ### 2. Route and complexity evals
 
@@ -233,6 +241,8 @@ From the repo root:
   Validates payment, buyer-credit, commitment, artifact, and fulfillment mutation replay semantics: same key plus same input returns the same durable refs; same key plus changed input fails without new writes.
 - `pnpm contracts:solution-runs`
   Validates the v0 public-solution-run fixture: completed public source request, accepted source artifact, private run request, buyer-credit debit, and request-attached transaction truth.
+- `pnpm web:test:agent-discovery`
+  Validates the read-only agent discovery package: public agent card, start guide, OpenAPI discovery index, allowlisted OpenAPI/JSON Schema/AsyncAPI exports, and the `Request` root boundary.
 - `pnpm evals:request-processing:benchmark`
   Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
 - `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`
@@ -336,6 +346,8 @@ It verifies that:
 - direct rotation fallbacks preserve `openai/o3-mini`, `openai/o4-mini`, `openai/gpt-5-mini`, then `openai/gpt-4.1-nano`
 - explicitly requested rotation models start at the requested model instead of silently promoting
 - non-rotation pinned models stay unchanged
+- the chat composer OpenAI picker exposes only the evaluated rotation set and keeps unevaluated pinned models out of the user-facing selector
+- provider route order prefers direct OpenAI when `OPENAI_API_KEY` is configured and keeps Vercel Gateway as the fallback, not the first attempt
 
 ## Auto-Improve Audit Mode
 

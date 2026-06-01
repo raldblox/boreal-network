@@ -16,6 +16,7 @@ Use this note alongside:
 - [API_CONTRACTS.md](API_CONTRACTS.md)
 - [PRODUCT_POSITIONING.md](PRODUCT_POSITIONING.md)
 - [strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](strategy/REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
+- [strategy/REQUEST_WORKROOM_V2_UX_PLAN.md](strategy/REQUEST_WORKROOM_V2_UX_PLAN.md)
 
 ## 1. Core UX Reading
 
@@ -70,6 +71,7 @@ The first input surface should feel like:
 - describe the work
 - describe what done looks like
 - mention constraints when known
+- answer one useful briefing question at a time when the ask is still fuzzy
 
 It should not force the user to think in:
 
@@ -77,9 +79,15 @@ It should not force the user to think in:
 - role graphs
 - long setup forms
 - provider jargon
+- feasibility dashboards
+- worker assignment or supply routing before the request is open
 
 `New request` mode should stay calm and narrow.
 It should feel like opening a serious work thread, not configuring software.
+When the first ask is fuzzy, Boreal should brief the buyer before drafting the request.
+The preflight surface should show chat plus one compact brief card, not the whole planner.
+That card can show captured ask, done condition, constraints, proof, budget, deadline, human or local needs, missing essentials, and the next question.
+It is a preview from private chat history, not a durable object.
 
 ### Draft
 
@@ -130,6 +138,18 @@ The planner should not feel like:
 - auto-generated PM theater
 - fake microtask intelligence
 - a rigid hidden state machine
+- a worker marketplace before the request has been opened
+
+In draft preflight, the chat timeline should render an inline briefing result or plan review after a draft request exists.
+The buyer should see what Boreal captured, what is missing, and whether the request can be opened.
+In the web briefing workspace, submitting the composer should create or update the draft `Request` while keeping the raw prompt in the composer as source context, not as a visible chat bubble.
+The briefing surface should be the primary pre-open surface, highlight missing title and body fields, and hide completed draft request tool-call chrome once the briefing form is visible.
+Inline edits should be available for buyer-authored brief fields, constraints such as location, time, and proof, budget, and deadline; planner-derived fields stay read-only.
+When plan steps are available, draft plans should focus on how the request can be completed and proven.
+The draft inline plan review may offer a compact stepper and a flow-review toggle, but it should still stay inside the chat timeline instead of replacing pre-open request mode with a dashboard.
+The draft flow review should show only the `Request` plus one or more parallel `Plan` cards before the Request opens.
+Do not show supply path, role candidates, workers, delivery lanes, capability lanes, ranking, feasibility grids, or assignment projections in the primary buyer preflight surface.
+Those belong after the request opens or in advanced/debug context.
 
 ### Open Request Room
 
@@ -145,6 +165,11 @@ The room should shift to:
 - artifacts
 - proof
 - resolution
+
+The owner support chat should remain available as a continuation of the briefing conversation.
+It should feel like a right-side assistant for clarification, Q&A, and safe request-local guidance, not like the primary workroom.
+It may show the owner's private briefing transcript, but public responders should not see that transcript by default.
+Durable status, proof, commitments, fulfillment, artifacts, review, and settlement still belong in the main request room and adjacent canonical objects.
 
 The user should feel that the request is now live, routed, and operational.
 
@@ -231,6 +256,23 @@ A request should feel complete only when:
 - the required execution happened
 - the required evidence exists
 - the owner or accepted lane resolves it
+
+For local validation and buyer-facing demos, the opened workroom may expose an
+explicit roleplay delivery action.  That action must be clearly labeled as mock
+proof and must still write through the same durable sequence used by real
+cross-actor work:
+
+- `Commitment`
+- accepted `Commitment`
+- active `Fulfillment`
+- proof-bearing `Artifact`
+- delivered `Fulfillment`
+- owner acceptance
+
+The mock path is acceptable only when it improves lifecycle predictability and
+does not hide the distinction between roleplay proof and real fulfillment.
+It should leave the same activity, artifact, and review surfaces exercised by
+normal request work.
 
 ## 4. Worker and Execution Types The Planner Must Know
 

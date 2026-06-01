@@ -98,17 +98,18 @@ type PortablePhase = {
 };
 
 const draftFlowLayout = {
-  request: { x: 44, y: 132 },
-  plan: { x: 386, y: 132 },
-  worker: { x: 728, y: 132 },
-  delivery: { x: 1070, y: 132 },
+  request: { x: 44, y: 0 },
+  plan: { x: 430, y: 0 },
+  worker: { x: 770, y: 0 },
+  delivery: { x: 1110, y: 0 },
+  laneGapY: 236,
 } as const;
 
 const workroomFlowLayout = {
-  request: { x: 40, y: 0 },
-  phaseBase: { x: 372, y: 88 },
-  worker: { x: 738, y: 0 },
-  delivery: { x: 1092, y: 0 },
+  request: { x: 70, y: 0 },
+  phaseBase: { x: 510, y: 0 },
+  worker: { x: 950, y: 0 },
+  delivery: { x: 1390, y: 0 },
   laneGapY: 236,
 } as const;
 
@@ -116,6 +117,12 @@ export function buildDraftRequestFlowGraph(
   request: BorealRequestDraft
 ): RequestFlowGraph {
   const phases = getPortableDraftPhases(request);
+  const planNodes = phases.map((phase, index) =>
+    buildDraftPlanNode(request, phase, index, phases.length)
+  );
+  const requestY =
+    draftFlowLayout.plan.y +
+    (Math.max(planNodes.length - 1, 0) * draftFlowLayout.laneGapY) / 2;
   const nodes: RequestFlowNodeDescriptor[] = [
     {
       id: "request",
@@ -126,7 +133,7 @@ export function buildDraftRequestFlowGraph(
       laneLabel: "Your request",
       title: request.brief.title?.trim() || "Request draft",
       subtitle: request.derived.readiness.readyForOpen
-        ? "Ready to open"
+        ? "Ready to post"
         : "Drafting",
       summary: getDraftRequestSummary(request),
       chips: compactChips([
@@ -154,32 +161,18 @@ export function buildDraftRequestFlowGraph(
       ],
       position: {
         x: draftFlowLayout.request.x,
-        y: draftFlowLayout.request.y,
+        y: requestY,
       },
-      width: 292,
+      width: 320,
     },
-    buildDraftPlanNode(request, phases),
-    buildDraftWorkerNode(request),
-    buildDraftDeliveryNode(request),
+    ...planNodes,
   ];
 
-  const edges: RequestFlowEdgeDescriptor[] = [
-    {
-      id: "edge:request-plan",
+  const edges: RequestFlowEdgeDescriptor[] = planNodes.map((node) => ({
+      id: `edge:request-${node.id}`,
       source: "request",
-      target: "plan",
-    },
-    {
-      id: "edge:plan-worker",
-      source: "plan",
-      target: "worker",
-    },
-    {
-      id: "edge:worker-delivery",
-      source: "worker",
-      target: "delivery",
-    },
-  ];
+      target: node.id,
+  }));
 
   return {
     nodes,
@@ -319,55 +312,63 @@ function getDraftDeliverySummary(request: BorealRequestDraft) {
 
 function buildDraftPlanNode(
   request: BorealRequestDraft,
-  phases: PortablePhase[]
+  phase: PortablePhase,
+  index: number,
+  totalPhases: number
 ): RequestFlowNodeDescriptor {
   const needsClarification = request.derived.clarificationNeeded.required;
   const isEmbodied = request.derived.embodiedConstraintSet.requiresEmbodiedHandling;
-  const phaseCount = phases.filter(
-    (phase) => phase.phaseKey !== "planner_pending"
-  ).length;
+  const isPlannerPending = phase.phaseKey === "planner_pending";
+  const plannedPhaseCount = totalPhases - (isPlannerPending ? 1 : 0);
+  const proofLabels = phase.requiredEvidenceClaims.map(formatLabel);
+  const roleLabels = phase.roleKeys.map(formatLabel);
 
   return {
-    id: "plan",
+    id: `plan:${phase.phaseKey}:${index}`,
     kind: "phase",
     state: needsClarification
       ? "blocked"
       : request.derived.readiness.readyForOpen
         ? "done"
-        : "current",
+        : index === 0
+          ? "current"
+          : "pending",
     tone: needsClarification ? "amber" : "blue",
     stateLabel: needsClarification
       ? "needs input"
       : request.derived.readiness.readyForOpen
         ? "ready"
         : undefined,
-    laneLabel: "Path",
+    laneLabel: totalPhases > 1 ? `Plan ${index + 1}` : "Plan",
     title: needsClarification
       ? "Needs a few details"
-      : isEmbodied
-        ? "Local work is mapped"
-        : phaseCount > 1
-          ? `${phaseCount} steps to delivery`
-          : "Ready to carry out",
+      : phase.title?.trim() ||
+        (isEmbodied ? "Local work is mapped" : "Ready to carry out"),
     subtitle:
-      phaseCount > 0
-        ? `${phaseCount} planned ${phaseCount === 1 ? "step" : "steps"}`
+      plannedPhaseCount > 0
+        ? `${plannedPhaseCount} planned ${
+            plannedPhaseCount === 1 ? "step" : "steps"
+          }`
         : "Path forming",
-    summary: getDraftPlanSummary(request),
+    summary: phase.summary?.trim() || getDraftPlanSummary(request),
     chips: compactChips([
       isEmbodied ? "local work" : null,
-      request.derived.verificationPlan.requiredArtifactKinds.length > 0
-        ? "proof required"
-        : null,
+      proofLabels.length > 0 ? "proof required" : null,
+      roleLabels.length > 0 ? `${roleLabels.length} roles` : null,
       request.derived.noMicrotaskExplosion ? "bounded" : null,
     ]),
     details: [
       {
-        label: "Path phases",
-        value:
-          phases.length > 0
-            ? phases.map((phase) => phase.title)
-            : "No phase plan emitted yet.",
+        label: "Plan",
+        value: phase.summary?.trim() || getDraftPlanSummary(request),
+      },
+      {
+        label: "Roles",
+        value: roleLabels.length > 0 ? roleLabels : "No role lane required yet.",
+      },
+      {
+        label: "Proof",
+        value: proofLabels.length > 0 ? proofLabels : "No proof package required yet.",
       },
       {
         label: "Missing details",
@@ -377,8 +378,11 @@ function buildDraftPlanNode(
             : "No critical route gaps.",
       },
     ],
-    position: draftFlowLayout.plan,
-    width: 292,
+    position: {
+      x: draftFlowLayout.plan.x,
+      y: draftFlowLayout.plan.y + index * draftFlowLayout.laneGapY,
+    },
+    width: 340,
   };
 }
 
@@ -535,10 +539,7 @@ export function buildTrackedRequestFlowGraph({
     latestArtifact,
     artifactCount: activities.filter((activity) => Boolean(activity.artifact)).length,
   });
-  const centeredY =
-    workroomFlowLayout.phaseBase.y +
-    (Math.max(phases.length - 1, 0) * workroomFlowLayout.laneGapY) / 2 +
-    28;
+  const primaryNodeY = workroomFlowLayout.phaseBase.y;
 
   const nodes: RequestFlowNodeDescriptor[] = [
     {
@@ -585,9 +586,9 @@ export function buildTrackedRequestFlowGraph({
       ],
       position: {
         x: workroomFlowLayout.request.x,
-        y: centeredY,
+        y: primaryNodeY,
       },
-      width: 300,
+      width: 360,
     },
   ];
 
@@ -658,7 +659,7 @@ export function buildTrackedRequestFlowGraph({
         x: workroomFlowLayout.phaseBase.x,
         y: workroomFlowLayout.phaseBase.y + index * workroomFlowLayout.laneGapY,
       },
-      width: 320,
+      width: 360,
     });
 
     edges.push({
@@ -687,9 +688,9 @@ export function buildTrackedRequestFlowGraph({
     details: workerNode.details,
     position: {
       x: workroomFlowLayout.worker.x,
-      y: centeredY,
+      y: primaryNodeY,
     },
-    width: 300,
+    width: 360,
   });
   nodes.push({
     id: "delivery",
@@ -705,9 +706,9 @@ export function buildTrackedRequestFlowGraph({
     details: deliveryNode.details,
     position: {
       x: workroomFlowLayout.delivery.x,
-      y: centeredY,
+      y: primaryNodeY,
     },
-    width: 300,
+    width: 360,
   });
 
   edges.push({
@@ -905,11 +906,14 @@ function buildTrackedWorkerNode({
     return {
       state,
       stateLabel:
-        fulfillment.status === "delivered"
-          ? "delivered"
-          : request.status === "completed"
+        request.status === "completed"
             ? "completed"
-            : undefined,
+            : request.status === "delivered" ||
+                request.status === "waiting_for_owner" ||
+                fulfillment.status === "delivered" ||
+                fulfillment.status === "accepted"
+              ? "delivered"
+              : undefined,
       tone: getProcessNodeTone(state, "violet"),
       title,
       subtitle:
@@ -960,17 +964,33 @@ function buildTrackedWorkerNode({
   if (preferredTitle) {
     const matchesRequest =
       !preferredSupply || doesTrackedSupplyMatchRequest(request, preferredSupply);
-    const state =
-      desktopRuntimeState?.requestLaneReady === true ? "current" : "pending";
+    const state = derivePinnedRouteState({
+      requestStatus: request.status,
+      requestLaneReady: desktopRuntimeState?.requestLaneReady === true,
+    });
+    const isClosedOrDelivered = state === "done";
 
     return {
       state,
+      stateLabel:
+        request.status === "completed"
+          ? "completed"
+          : request.status === "delivered" ||
+              request.status === "waiting_for_owner"
+            ? "delivered"
+            : undefined,
       tone: getProcessNodeTone(state, "violet"),
       title: preferredTitle,
-      subtitle: matchesRequest ? "Preferred worker route" : "Pinned route needs review",
-      summary: matchesRequest
-        ? `${preferredTitle} is pinned for this request and will attach on the next private execution lane.`
-        : `${preferredTitle} is pinned, but it does not match this request's capability kinds.`,
+      subtitle: isClosedOrDelivered
+        ? "Work completed"
+        : matchesRequest
+          ? "Preferred worker route"
+          : "Pinned route needs review",
+      summary: isClosedOrDelivered
+        ? `${preferredTitle} is the worker route for the delivery already attached to this request.`
+        : matchesRequest
+          ? `${preferredTitle} is pinned for this request and will attach on the next private execution lane.`
+          : `${preferredTitle} is pinned, but it does not match this request's capability kinds.`,
       chips: compactChips([
         preferredSupply ? formatSupplyKinds(preferredSupply) : null,
         desktopRuntimeState?.requestLaneReady ? "desktop ready" : null,
@@ -1219,6 +1239,26 @@ function mapTrackedFulfillmentStatus(
   fulfillmentStatus: RequestFulfillment["status"],
   requestStatus: RequestStatus
 ): RequestFlowNodeState {
+  if (
+    requestStatus === "completed" ||
+    requestStatus === "delivered" ||
+    requestStatus === "waiting_for_owner"
+  ) {
+    if (fulfillmentStatus === "blocked") {
+      return "blocked";
+    }
+
+    if (fulfillmentStatus === "failed") {
+      return "failed";
+    }
+
+    if (fulfillmentStatus === "cancelled") {
+      return "cancelled";
+    }
+
+    return "done";
+  }
+
   switch (fulfillmentStatus) {
     case "accepted":
     case "delivered":
@@ -1235,6 +1275,27 @@ function mapTrackedFulfillmentStatus(
       return "cancelled";
     default:
       return deriveRequestLifecycleState(requestStatus);
+  }
+}
+
+function derivePinnedRouteState({
+  requestStatus,
+  requestLaneReady,
+}: {
+  requestStatus: RequestStatus;
+  requestLaneReady: boolean;
+}): RequestFlowNodeState {
+  switch (requestStatus) {
+    case "completed":
+    case "delivered":
+    case "waiting_for_owner":
+      return "done";
+    case "failed":
+      return "failed";
+    case "cancelled":
+      return "cancelled";
+    default:
+      return requestLaneReady ? "current" : "pending";
   }
 }
 

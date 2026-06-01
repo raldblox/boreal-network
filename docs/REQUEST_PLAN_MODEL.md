@@ -105,6 +105,33 @@ That is a product reading over the same canon:
 
 The Path Builder should show multiple possible ways forward without implying a public plan marketplace, community ranking, assignment, or completion before those states actually exist.
 
+## Conversational Preflight Boundary
+
+Before a durable draft exists, `New request` mode may still use a chat-only clarification lane for fuzzy asks.
+In the web briefing workspace, composer submits are briefing-source turns that create or update one draft `Request`, remain hidden from the visible transcript, and feed request-owned source context to the model.
+The buyer may describe a fuzzy ask and Boreal may ask one focused question at a time when missing facts would materially change the plan.
+Chat-only preflight turns may be persisted as private chat history, but briefing-source turns should not render as visible user bubbles or completed draft tool rows.
+
+A preflight preview may summarize:
+
+- captured ask
+- done condition
+- known constraints
+- proof needs
+- budget or deadline
+- human or local execution needs
+- missing essentials
+- next question
+- ready-to-draft state
+
+That preview is a UI projection over chat history, not a canonical object.
+
+Once a draft `Request` exists, buyer-facing draft mode should show an inline briefing or plan review surface in the chat timeline instead of exposing raw tool-call completion as the final state.
+If the draft is not ready to open, that surface should show captured facts, missing essentials, and the next question or disabled open state.
+If derived plan steps exist, draft-mode plans should stay limited to buyer-facing completion paths, steps, done criteria, and proof requirements.
+Draft flow review should render only the `Request` plus one or more parallel `Plan` cards before opening.
+Supply path, role candidates, worker lanes, delivery lanes, capability lanes, and assignment projections belong after the request opens or inside advanced owner/debug context.
+
 ## Current Implementation Audit
 
 Audit date: 2026-05-28.
@@ -125,8 +152,8 @@ The actual codebase already reflects the core Boreal plan model in these areas:
 - `apps/web/lib/ai/prompts.ts` instructs request-mode prompts to preserve embodied work, keep planner fields read-only, avoid fake assignment, and separate preflight from open request rooms.
 - `apps/web/app/(chat)/api/chat/route.ts` constrains active tools by mode: pre-draft request creation, draft updates, owner open-room tools, and responder open-room tools are different paths.
 - `apps/web/lib/ai/tools/create-request-brief.ts` and `apps/web/lib/ai/tools/request-briefing-shared.ts` write only request-owned input fields and explicit structured facts, including embodied constraints when stated.
-- `apps/web/lib/request-flow.ts` builds the visible `Request -> Plan -> Worker -> Delivery` graph from durable request state, not from a detached checklist.
-- `apps/web/components/chat/request-plan-panel.tsx` renders preflight planning as captured facts, missing details, lanes, phases, proof, and match state.
+- `apps/web/lib/request-flow.ts` builds the visible flow graph from durable request state; draft review is limited to `Request` plus `Plan` nodes while opened workrooms can add worker and delivery nodes.
+- `apps/web/components/chat/request-plan-panel.tsx` renders preflight planning as captured facts, missing details, buyer-facing plan steps, proof needs, and inline buyer-authored draft edits while keeping planner-derived fields read-only.
 - `apps/web/components/chat/request-tracker.tsx` renders the open request as a monitored workroom with route, worker, proof, retry, delivery, and acceptance surfaces.
 - `apps/web/components/request/request-board.tsx` and `apps/web/components/request/open-requests-hub.tsx` expose public requests with status, expected proof, next action, and free reading.
 - `apps/web/components/request/public-solution-preview.tsx` only labels public solution projections when a public request is completed and linked to an accepted artifact.

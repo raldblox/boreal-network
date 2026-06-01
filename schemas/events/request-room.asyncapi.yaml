@@ -7,10 +7,14 @@ info:
     These events describe request opening, commitment proposal and acceptance,
     fulfillment lifecycle activity, and artifact publication activity that can
     be replayed into request-room timeline cards and request root projections.
+    HTTP activity reads may resume from the request-local sequence checkpoint
+    as after_sequence without creating heartbeat events. The OpenAPI webhook
+    profile describes target signed push delivery for the same durable envelope;
+    it does not make transport retries or heartbeats durable events.
 defaultContentType: application/json
 channels:
   requests/{requestId}/events:
-    description: Durable event stream for one request room.
+    description: Durable event stream for one request room. Each envelope carries a request-local sequence that can be used as an activity checkpoint.
     parameters:
       requestId:
         description: Durable request identifier.
@@ -22,6 +26,7 @@ channels:
       message:
         oneOf:
           - $ref: '#/components/messages/RequestOpened'
+          - $ref: '#/components/messages/RequestUpdated'
           - $ref: '#/components/messages/CommitmentProposed'
           - $ref: '#/components/messages/CommitmentAccepted'
           - $ref: '#/components/messages/FulfillmentCreated'
@@ -50,6 +55,24 @@ components:
                 const: request.opened
               payload:
                 $ref: '#/components/schemas/RequestOpenedPayload'
+            required:
+              - aggregateType
+              - eventType
+              - payload
+    RequestUpdated:
+      name: request.updated
+      title: Request updated
+      payload:
+        allOf:
+          - $ref: '#/components/schemas/RequestEventEnvelope'
+          - type: object
+            properties:
+              aggregateType:
+                const: request
+              eventType:
+                const: request.updated
+              payload:
+                $ref: '#/components/schemas/RequestUpdatedPayload'
             required:
               - aggregateType
               - eventType
@@ -375,6 +398,22 @@ components:
         - summary
         - detail
         - requestStatus
+    RequestUpdatedPayload:
+      type: object
+      additionalProperties: false
+      properties:
+        summary:
+          type: string
+        sourceKind:
+          type: string
+          enum:
+            - briefing_source
+        sourceText:
+          type: string
+        inputHash:
+          type: string
+      required:
+        - summary
     CommitmentTerms:
       type: object
       additionalProperties: false
