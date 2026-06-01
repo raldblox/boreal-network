@@ -90,6 +90,10 @@
       "url": "https://boreal.work/agents/payments.json"
     },
     {
+      "label": "Production access packet example",
+      "url": "https://boreal.work/agents/production-access-packet.example.json"
+    },
+    {
       "label": "Prompt catalog",
       "url": "https://boreal.work/agents/prompts.json"
     },
@@ -132,6 +136,14 @@
     {
       "label": "Onboarding profile",
       "url": "https://boreal.work/agents/onboarding.json"
+    },
+    {
+      "label": "Opportunity discovery profile",
+      "url": "https://boreal.work/agents/opportunities.json"
+    },
+    {
+      "label": "Opportunity card examples",
+      "url": "https://boreal.work/agents/opportunity-cards.example.json"
     },
     {
       "label": "Discovery index",

@@ -42,6 +42,16 @@
       "observedStatus": "live_handoff_packet_examples"
     },
     {
+      "label": "Production access packet example",
+      "url": "https://boreal.work/agents/production-access-packet.example.json",
+      "observedStatus": "target_operator_review_packet_example"
+    },
+    {
+      "label": "Opportunity card examples",
+      "url": "https://boreal.work/agents/opportunity-cards.example.json",
+      "observedStatus": "live_opportunity_card_examples"
+    },
+    {
       "label": "Readiness profile",
       "url": "https://boreal.work/agents/readiness.json",
       "observedStatus": "live_readiness_profile"
@@ -165,7 +175,8 @@
       "passedChecks": [
         "respect_agent_action_policy",
         "require_explicit_human_approval",
-        "render_handoff_packet_examples"
+        "render_handoff_packet_examples",
+        "package_production_access_packet"
       ],
       "failedChecks": [],
       "notes": "The agent stops for owner approval and treats action affordances as hints, not permissions."
@@ -175,6 +186,7 @@
       "status": "passed",
       "passedChecks": [
         "draft_without_opening",
+        "rank_public_opportunity_cards",
         "commitment_before_cross_actor_fulfillment",
         "monitor_from_cursor"
       ],

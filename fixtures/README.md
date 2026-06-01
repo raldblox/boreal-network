@@ -15,6 +15,8 @@ Use fixtures here to prove that the canon can be read end to end without guessin
 - `agent/conformance-report.sample.json`
 - `agent/error-examples.sample.json`
 - `agent/human-handoff-packets.sample.json`
+- `agent/opportunity-cards.sample.json`
+- `agent/production-access-packet.sample.json`
 - `agent/protocol-adapter-samples.sample.json`
 
 Request-processing eval fixtures now also carry:

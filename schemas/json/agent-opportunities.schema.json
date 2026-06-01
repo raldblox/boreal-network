@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-opportunities.schema.json",
+  "title": "AgentOpportunityDiscoveryProfile",
+  "description": "Machine-readable read-only profile for agents discovering, scoring, and selecting Boreal request opportunities without treating fit rankings as permissions, assignments, or canonical writes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "publicDiscovery",
+    "opportunityCard",
+    "fitScoring",
+    "nextActionSelection",
+    "stopConditions",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_opportunity_discovery_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "publicDiscovery": {
+      "$ref": "#/$defs/publicDiscovery"
+    },
+    "opportunityCard": {
+      "$ref": "#/$defs/opportunityCard"
+    },
+    "fitScoring": {
+      "$ref": "#/$defs/fitScoring"
+    },
+    "nextActionSelection": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/nextActionRule"
+      }
+    },
+    "stopConditions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "publicDiscovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entrypoint",
+        "method",
+        "auth",
+        "reads",
+        "writes",
+        "requiredResponseFields",
+        "privacyRules"
+      ],
+      "properties": {
+        "entrypoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "auth": {
+          "const": "none_for_public_safe_reads"
+        },
+        "reads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "writes": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "requiredResponseFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "privacyRules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "opportunityCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "examplesUrl",
+        "schemaUrl",
+        "requiredFields",
+        "recommendedFields",
+        "mustNotInclude"
+      ],
+      "properties": {
+        "status": {
+          "const": "derived_read_only"
+        },
+        "examplesUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "schemaUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "requiredFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendedFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mustNotInclude": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "fitScoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "scoreRange",
+        "dimensions",
+        "rankingRules"
+      ],
+      "properties": {
+        "status": {
+          "const": "agent_local_read_only"
+        },
+        "scoreRange": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "max"
+          ],
+          "properties": {
+            "min": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            }
+          }
+        },
+        "dimensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/fitDimension"
+          }
+        },
+        "rankingRules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "fitDimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "weight",
+        "positiveSignals",
+        "negativeSignals"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weight": {
+          "type": "number"
+        },
+        "positiveSignals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "negativeSignals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "nextActionRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "when",
+        "actionId",
+        "requiresBeforeAction",
+        "canonicalWritesAfterAction"
+      ],
+      "properties": {
+        "when": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionId": {
+          "type": "string",
+          "enum": [
+            "inspect_public_requests",
+            "apply_to_request",
+            "submit_artifact",
+            "monitor_request",
+            "run_public_solution",
+            "optimize_request_brief"
+          ]
+        },
+        "requiresBeforeAction": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWritesAfterAction": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "opportunityProfileIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "opportunityProfileIsNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

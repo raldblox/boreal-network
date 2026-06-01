@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "packetKind": "agent_production_access_packet",
+  "status": "target_operator_review_packet_example",
+  "exampleOnly": true,
+  "notAcceptedByProduction": true,
+  "name": "Boreal Agent Production Access Packet Example",
+  "description": "Example-only packet an external agent can mirror when requesting scoped operator review for live Boreal HTTP use. This packet is not a credential, permission grant, human approval record, payment authorization, completion proof, or production sandbox.",
+  "sourceProfiles": [
+    {
+      "label": "Agent onboarding profile",
+      "url": "https://boreal.work/agents/onboarding.json",
+      "observedStatus": "live_onboarding_profile"
+    },
+    {
+      "label": "Agent access review profile",
+      "url": "https://boreal.work/agents/access-review.json",
+      "observedStatus": "live_access_review_profile"
+    },
+    {
+      "label": "Agent conformance profile",
+      "url": "https://boreal.work/agents/conformance.json",
+      "observedStatus": "live_conformance_profile"
+    },
+    {
+      "label": "Agent conformance report example",
+      "url": "https://boreal.work/agents/conformance-report.example.json",
+      "observedStatus": "agent_conformance_report"
+    },
+    {
+      "label": "Agent human handoff packet examples",
+      "url": "https://boreal.work/agents/human-handoff-packets.example.json",
+      "observedStatus": "live_handoff_packet_examples"
+    },
+    {
+      "label": "Agent error examples",
+      "url": "https://boreal.work/agents/error-examples.json",
+      "observedStatus": "live_error_example_pack"
+    },
+    {
+      "label": "Agent readiness profile",
+      "url": "https://boreal.work/agents/readiness.json",
+      "observedStatus": "live_readiness_profile"
+    }
+  ],
+  "applicant": {
+    "agentName": "Scoped Solver Monitor Agent",
+    "operatorName": "Example Agent Operator",
+    "operatorContact": "ops@example.invalid",
+    "agentCardUrl": "https://agent.example.invalid/.well-known/agent-card.json",
+    "representedActor": {
+      "kind": "supply_owner",
+      "reference": "example-supply-owner-account",
+      "authorizationEvidence": "The represented supply owner will approve every write-capable Request action through a Boreal account session or operator-confirmed pilot gate.",
+      "approvalBoundary": "The agent may propose Commitments, submit Artifacts, and monitor activity only for Requests where this represented actor is authorized by route policy."
+    }
+  },
+  "requestedAccess": {
+    "status": "operator_review_required",
+    "requestedScopes": [
+      "requests:read_public",
+      "commitments:propose",
+      "artifacts:publish",
+      "requests:read_activity"
+    ],
+    "intendedActions": [
+      "inspect_public_requests",
+      "apply_to_request",
+      "submit_artifact",
+      "monitor_request"
+    ],
+    "requestedRoutes": [
+      "GET /api/requests?scope=public",
+      "POST /api/requests/{id}/commitments",
+      "POST /api/requests/{id}/artifacts",
+      "GET /api/requests/{id}/activity"
+    ],
+    "requestedProtocolAdapters": [
+      "http"
+    ],
+    "environments": [
+      "live_http",
+      "contract_sandbox"
+    ],
+    "duration": "30 day low-volume pilot, renewed only after operator review.",
+    "rateLimitPlan": "Read public board at bounded intervals, submit at most 5 proposals and 10 artifacts per day, and stop on rate-limit, missing-scope, or blocked agentActionPolicy responses.",
+    "dataAccessJustification": "The agent needs public request reads and scoped request-bound write access only where the represented supply owner is eligible to apply or submit proof.",
+    "humanApprovalModel": "A represented human reviews every Commitment proposal, proof packet, payment-sensitive escalation, and completion claim before the agent acts or reports finality."
+  },
+  "sandboxEvidence": {
+    "manifestUrl": "https://boreal.work/agents/sandbox.json",
+    "validationCommand": "pnpm contracts:agent-sandbox",
+    "commandPassed": true,
+    "conformanceReportUrl": "https://boreal.work/agents/conformance-report.example.json",
+    "coveredReplayScenarios": [
+      "solver_apply_submit_monitor_replay",
+      "idempotent_recovery_replay"
+    ],
+    "coveredRequiredChecks": [
+      "load_agent_card",
+      "load_contract_assets",
+      "respect_agent_action_policy",
+      "require_explicit_human_approval",
+      "render_handoff_packet_examples",
+      "package_production_access_packet",
+      "commitment_before_cross_actor_fulfillment",
+      "monitor_from_cursor",
+      "problem_details_error_handling",
+      "contract_sandbox_only",
+      "target_protocols_stay_target"
+    ],
+    "fixturePaths": [
+      "fixtures/agent/sandbox-manifest.sample.json",
+      "fixtures/agent/conformance-report.sample.json",
+      "fixtures/agent/error-examples.sample.json",
+      "fixtures/agent/human-handoff-packets.sample.json",
+      "fixtures/agent/production-access-packet.sample.json"
+    ],
+    "productionEffects": false
+  },
+  "callbackAndWebhookBoundaries": {
+    "callbackUrls": [
+      "https://agent.example.invalid/boreal/callbacks/operator-review"
+    ],
+    "webhookReceiverPublicKey": "example-public-key-not-a-secret",
+    "signedWebhookProfileUrl": "https://boreal.work/agents/monitor-webhooks.md",
+    "deliveryExpectations": [
+      "Use signed push only after a live subscription contract exists.",
+      "Poll request activity with cursor.nextAfterSequence until signed push delivery is live.",
+      "Treat webhook delivery ids as transport ids, not RequestEvent truth."
+    ],
+    "notLiveClaims": [
+      "signed push subscription",
+      "production sandbox credential",
+      "OAuth-compatible delegated token",
+      "MCP server",
+      "A2A adapter",
+      "x402 endpoint"
+    ]
+  },
+  "dataHandling": {
+    "containsSecrets": false,
+    "storesPrivateData": true,
+    "retention": "Store request ids, artifact ids, idempotency keys, cursor checkpoints, and redacted packet summaries for 30 days; do not store raw session cookies or bearer tokens.",
+    "redactionPlan": "Redact private prompts, credentials, payment details, owner-only chat text, and unrelated personal data before public artifacts or review packets.",
+    "forbiddenMaterialAbsent": [
+      "session cookie",
+      "resolver bearer token",
+      "raw password",
+      "private key",
+      "webhook secret",
+      "wallet seed phrase",
+      "payment processor secret"
+    ]
+  },
+  "idempotencyAndRecoveryPlan": {
+    "idempotencyRequiredFor": [
+      "apply_to_request",
+      "submit_artifact",
+      "run_public_solution"
+    ],
+    "retryStrategy": "Retry uncertain writes only with the same idempotency key and identical semantic input after reading current Request, Commitment, Artifact, Transaction, and RequestEvent truth.",
+    "usesProblemDetails": true,
+    "stateVerificationReads": [
+      "GET /api/requests/{id}",
+      "GET /api/requests/{id}/activity?after_sequence={last_seen}",
+      "GET /api/requests/{id}/commitments",
+      "GET /api/requests/{id}/artifacts"
+    ]
+  },
+  "paymentAndSpendBoundary": {
+    "paymentAuthorityRequested": false,
+    "spendRequiresHumanApproval": true,
+    "transactionReconciliation": "This packet requests no spend authority. Any future paid run, funding, buyer-credit debit, or x402-capable endpoint must reconcile into Transaction truth and require explicit represented-human approval.",
+    "x402Status": "target_only",
+    "forbiddenRequests": [
+      "raw card details",
+      "wallet private keys",
+      "unbounded spend authority",
+      "payment settlement as completion proof",
+      "payment-agent credential before a live route contract exists"
+    ]
+  },
+  "protocolClaims": {
+    "httpBaseline": "live_where_route_contract_allows",
+    "mcp": "target_only",
+    "a2a": "target_only",
+    "x402": "target_only",
+    "oauthCompatibleDelegation": "target_only",
+    "signedPushDelivery": "target_only",
+    "targetClaimsNeedSeparateReview": true
+  },
+  "humanEscalation": {
+    "contact": "ops@example.invalid",
+    "responseWindow": "One business day for low-volume pilot blockers; immediate stop for payment, privacy, or duplicate mutation risk.",
+    "approvalPacketsUrl": "https://boreal.work/agents/human-handoff-packets.example.json",
+    "blockingQuestions": [
+      "Which represented human or supply account may the agent act for?",
+      "Which Request classes and geographies are in scope for the pilot?",
+      "Which proof packets may the agent submit without additional reviewer context?",
+      "Who receives urgent stop, revocation, payment, or privacy escalations?"
+    ]
+  },
+  "requestedDecision": {
+    "decisionRequested": "Review for approved_scoped_pilot after a real credential path exists; otherwise keep public-read only.",
+    "operatorShouldCheck": [
+      "requested scopes map one-to-one to intended actions",
+      "sandbox evidence covers every requested write class",
+      "human approval model blocks opening, funding, accepting, spending, and completion claims",
+      "idempotency and recovery plan prevents duplicate Commitment, Artifact, Transaction, and RequestEvent writes",
+      "protocol claims keep MCP, A2A, OAuth-compatible delegation, signed push, and x402 target-only"
+    ],
+    "acceptableOutcomes": [
+      "approved_public_read_only",
+      "approved_scoped_pilot",
+      "needs_more_evidence",
+      "rejected"
+    ]
+  },
+  "canonicalBoundary": {
+    "rootObject": "Request",
+    "durableTruthObjects": [
+      "Request",
+      "Commitment",
+      "Fulfillment",
+      "FulfillmentStep",
+      "Artifact",
+      "Transaction",
+      "RequestEvent"
+    ],
+    "packetIsNot": [
+      "production credential",
+      "permission grant",
+      "operator approval record",
+      "human approval record",
+      "payment authorization",
+      "completion proof",
+      "production sandbox",
+      "certification"
+    ],
+    "notRoots": [
+      "production access packet",
+      "scope request",
+      "credential request",
+      "callback URL",
+      "webhook public key",
+      "sandbox transcript",
+      "conformance report",
+      "MCP session",
+      "A2A task",
+      "x402 payload"
+    ],
+    "rules": [
+      "A production access packet is review input only; it does not create live authority.",
+      "Credential issuance, if any, must happen through a separate live auth path and still obey route scopes, request state, participant role, idempotency, and agentActionPolicy.",
+      "Every write, spend, approval, review, and completion claim still needs represented-human approval where the relevant profile requires it.",
+      "Target protocol claims need separate adapter contracts before production use."
+    ]
+  }
+}

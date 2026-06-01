@@ -49,8 +49,11 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent human handoff packet examples](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples)}): Checked renderable packets for draft approval, Commitment review, proof review, monitor escalation, and payment authorization.
 - [Agent monitoring profile](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)}): Machine-readable cursor polling, stale-state detection, escalation, and push-boundary guidance.
 - [Agent onboarding profile](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)}): Machine-readable path from public discovery to sandbox validation and scoped production eligibility.
+- [Agent opportunity card examples](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)}): Checked read-only examples for apply, monitor, run, and optimize opportunity recommendations.
+- [Agent opportunity discovery profile](${absoluteUrl(agentDiscoveryPaths.agentOpportunities)}): Machine-readable read-only guidance for ranking public request opportunities and choosing next actions without treating fit as permission or assignment.
 - [Agent optimization profile](${absoluteUrl(agentDiscoveryPaths.agentOptimization)}): Machine-readable draft-only optimization, no-invention, owner approval, and mutation-boundary guidance.
 - [Agent payment profile](${absoluteUrl(agentDiscoveryPaths.agentPayments)}): Machine-readable buyer-credit, paid-run, x402 target, idempotency, and Transaction reconciliation boundaries.
+- [Agent production access packet example](${absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample)}): Checked example packet for requesting scoped operator review; it is not a credential, permission grant, payment authorization, or completion proof.
 - [Agent prompt catalog](${absoluteUrl(agentDiscoveryPaths.agentPrompts)}): Machine-readable safe prompts for briefing, applying, submitting proof, monitoring, optimizing, and recovery.
 - [Agent workflow catalog](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)}): Machine-readable process flows for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with policy checkpoints.
 - [Agent monitor webhook profile](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)}): Target signed push-notification profile for request activity monitors.

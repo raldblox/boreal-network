@@ -99,12 +99,16 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/auth.json/route.ts`
 - `apps/web/app/agents/conformance.json/route.ts`
 - `apps/web/app/agents/conformance-report.example.json/route.ts`
+- `apps/web/app/agents/production-access-packet.example.json/route.ts`
 - `apps/web/app/agents/completion.json/route.ts`
 - `apps/web/app/agents/evidence.json/route.ts`
+- `apps/web/app/agents/error-examples.json/route.ts`
 - `apps/web/app/agents/execution.json/route.ts`
 - `apps/web/app/agents/human-handoffs.json/route.ts`
+- `apps/web/app/agents/human-handoff-packets.example.json/route.ts`
 - `apps/web/app/agents/monitoring.json/route.ts`
 - `apps/web/app/agents/onboarding.json/route.ts`
+- `apps/web/app/agents/opportunities.json/route.ts`
 - `apps/web/app/agents/optimization.json/route.ts`
 - `apps/web/app/agents/payments.json/route.ts`
 - `apps/web/app/agents/prompts.json/route.ts`
@@ -126,6 +130,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-sandbox.schema.json`
 - `schemas/json/agent-auth.schema.json`
 - `schemas/json/agent-conformance.schema.json`
+- `schemas/json/agent-conformance-report.schema.json`
+- `schemas/json/agent-production-access-packet.schema.json`
 - `schemas/json/agent-completion.schema.json`
 - `schemas/json/agent-evidence.schema.json`
 - `schemas/json/agent-error-examples.schema.json`
@@ -134,6 +140,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-human-handoff-packets.schema.json`
 - `schemas/json/agent-monitoring.schema.json`
 - `schemas/json/agent-onboarding.schema.json`
+- `schemas/json/agent-opportunities.schema.json`
 - `schemas/json/agent-optimization.schema.json`
 - `schemas/json/agent-payments.schema.json`
 - `schemas/json/agent-prompts.schema.json`
@@ -144,8 +151,10 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-readiness.schema.json`
 - `schemas/json/agent-tools.schema.json`
 - `fixtures/agent/sandbox-manifest.sample.json`
+- `fixtures/agent/conformance-report.sample.json`
 - `fixtures/agent/error-examples.sample.json`
 - `fixtures/agent/human-handoff-packets.sample.json`
+- `fixtures/agent/production-access-packet.sample.json`
 
 Today, the machine-readable baseline proves:
 
@@ -192,6 +201,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/auth.json` profile and `schemas/json/agent-auth.schema.json` give agents machine-readable actor classes, auth schemes, scopes, approval boundaries, idempotency requirements, and explicit non-grants without claiming OAuth-compatible external-agent auth is live
 - one public `/agents/conformance.json` profile and `schemas/json/agent-conformance.schema.json` give agent builders a machine-readable checklist for discovery, auth, human handoff, work actions, proof, payment, recovery, sandbox, and target protocol boundaries without certifying agents, granting permission, authorizing spend, or proving completion
 - one public `schemas/json/agent-conformance-report.schema.json` contract, `/agents/conformance-report.example.json` route, and `fixtures/agent/conformance-report.sample.json` fixture give agents a standard way to package sandbox replay results, requested scopes, target protocol claims, secret-handling posture, and human-review questions for operator review without creating credentials, certification, payment authorization, or completion proof
+- one public `/agents/production-access-packet.example.json` packet example, `schemas/json/agent-production-access-packet.schema.json`, and `fixtures/agent/production-access-packet.sample.json` give external agents a checked operator-review packet shape for represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, payment boundary, and target-protocol claims without issuing credentials, granting permission, creating a production sandbox, authorizing spend, or proving completion
 - one public `/agents/completion.json` profile and `schemas/json/agent-completion.schema.json` give agents machine-readable proof packet, artifact, fulfillment, review, payment, and event boundaries for draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims without treating chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, or payment settlement as completion truth by themselves
 - one public `/agents/evidence.json` profile and `schemas/json/agent-evidence.schema.json` give agents machine-readable evidence packet, `Artifact` packaging, redaction, evidence-level, review-signal, and retry-safety guidance without authorizing artifact publication, storing files, accepting review, settling payment, or proving completion by itself
 - one public `/agents/error-examples.json` example pack, `schemas/json/agent-error-examples.schema.json`, and `fixtures/agent/error-examples.sample.json` give agents RFC 9457-style problem examples for safe auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write recovery without turning HTTP errors into durable history, permission grants, payment authorization, or completion proof
@@ -200,6 +210,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/human-handoff-packets.example.json` packet set, `schemas/json/agent-human-handoff-packets.schema.json`, and `fixtures/agent/human-handoff-packets.sample.json` give agents renderable examples for draft approval, Commitment review, proof review, monitor escalation, and payment authorization without turning those packets into permission grants, approval records, payment authorizations, or completion proof
 - one public `/agents/monitoring.json` profile and `schemas/json/agent-monitoring.schema.json` give agents machine-readable cursor polling, stale-state detection, escalation trigger, and push-versus-poll boundaries without granting permission, creating subscriptions, writing heartbeat events, accepting proof, settling payment, or proving completion
 - one public `/agents/onboarding.json` profile and `schemas/json/agent-onboarding.schema.json` give external agents a machine-readable path from public discovery to role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness without issuing credentials or claiming OAuth, MCP, A2A, x402, or production sandbox support is live
+- one public `/agents/opportunities.json` profile and `schemas/json/agent-opportunities.schema.json` give agents a machine-readable read-only way to turn public request projections and `agentActionAffordances` into local opportunity cards, fit scores, and recommended next actions without granting permission, assigning supply, creating a match result, starting fulfillment, authorizing payment, or proving completion
 - one public `/agents/optimization.json` profile and `schemas/json/agent-optimization.schema.json` give agents machine-readable draft-only optimization surfaces for briefs, proposals, evidence packets, monitor updates, and public-solution reuse without inventing facts, overriding planner or policy fields, authorizing writes, implying owner approval, settling payment, or proving completion
 - one public `/agents/payments.json` profile and `schemas/json/agent-payments.schema.json` give agents machine-readable buyer-credit, request-funding, paid-run, idempotency, x402-target, reconciliation, and escalation boundaries without granting payment credentials, creating an `Order` root, or treating payment success as completion truth
 - one public `/agents/prompts.json` catalog and `schemas/json/agent-prompts.schema.json` give agents machine-readable prompt templates for briefing, applying, proof submission, monitoring, optimization, and recovery without treating prompt output as approval, mutation, proof, payment, or completion truth

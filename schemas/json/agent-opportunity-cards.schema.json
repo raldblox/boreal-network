@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-opportunity-cards.schema.json",
+  "title": "AgentOpportunityCardExamples",
+  "description": "Checked example card set for agents ranking public Boreal request opportunities and recommending next actions without creating permissions, assignments, matches, payments, or completion proof.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "sourceProfiles",
+    "cardContract",
+    "examples",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_opportunity_card_examples"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceProfiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "cardContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requiredFields",
+        "agentMustNot"
+      ],
+      "properties": {
+        "status": {
+          "const": "derived_read_only"
+        },
+        "requiredFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "agentMustNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "$ref": "#/$defs/opportunityCard"
+      }
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url",
+        "observedStatus"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "observedStatus": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "opportunityCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "requestId",
+        "requestTitle",
+        "requestVisibility",
+        "sourceProjection",
+        "fitScore",
+        "fitBand",
+        "fitReasons",
+        "blockingUnknowns",
+        "availableActionIds",
+        "recommendedNextAction",
+        "authBoundary",
+        "humanHandoff",
+        "canonicalReads",
+        "canonicalWritesIfActionTaken",
+        "notAuthority",
+        "example"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "const": "example_only"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestTitle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestVisibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "authorized_private"
+          ]
+        },
+        "sourceProjection": {
+          "type": "string",
+          "enum": [
+            "public_request_pool",
+            "request_detail_with_policy",
+            "public_solution_projection"
+          ]
+        },
+        "fitScore": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "fitBand": {
+          "type": "string",
+          "enum": [
+            "strong_fit",
+            "possible_fit",
+            "monitor_only",
+            "run_solution_candidate",
+            "optimize_only",
+            "do_not_apply"
+          ]
+        },
+        "fitReasons": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "blockingUnknowns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "availableActionIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/actionId"
+          }
+        },
+        "recommendedNextAction": {
+          "$ref": "#/$defs/actionId"
+        },
+        "authBoundary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "humanHandoff": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWritesIfActionTaken": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notAuthority": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "example": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "summaryForAgent",
+            "agentShouldDo",
+            "agentShouldNotDo",
+            "requiredBeforeMutation"
+          ],
+          "properties": {
+            "summaryForAgent": {
+              "type": "string",
+              "minLength": 1
+            },
+            "agentShouldDo": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "agentShouldNotDo": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "requiredBeforeMutation": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "actionId": {
+      "type": "string",
+      "enum": [
+        "inspect_public_requests",
+        "apply_to_request",
+        "submit_artifact",
+        "monitor_request",
+        "run_public_solution",
+        "optimize_request_brief"
+      ]
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "opportunityCardsAreNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "opportunityCardsAreNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

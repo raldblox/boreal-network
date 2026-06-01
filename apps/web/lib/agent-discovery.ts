@@ -54,8 +54,12 @@ export const agentDiscoveryPaths = {
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
   agentOnboarding: "/agents/onboarding.json",
+  agentOpportunityCardExamples: "/agents/opportunity-cards.example.json",
+  agentOpportunities: "/agents/opportunities.json",
   agentOptimization: "/agents/optimization.json",
   agentPayments: "/agents/payments.json",
+  agentProductionAccessPacketExample:
+    "/agents/production-access-packet.example.json",
   agentPrompts: "/agents/prompts.json",
   agentProtocolAdapterSamples: "/agents/protocol-adapter-samples.json",
   agentProtocols: "/agents/protocols.md",
@@ -422,6 +426,24 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable read-only opportunity discovery profile schema for agents ranking public requests and choosing next actions without treating rankings as permissions or assignments.",
+    routePath: "/schemas/agent-opportunities.schema.json",
+    sourcePath: "schemas/json/agent-opportunities.schema.json",
+    standard: "json_schema",
+    title: "Agent opportunity discovery profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Checked opportunity card example schema for agents rendering public request fit rankings without creating permission, assignment, payment, or completion truth.",
+    routePath: "/schemas/agent-opportunity-cards.schema.json",
+    sourcePath: "schemas/json/agent-opportunity-cards.schema.json",
+    standard: "json_schema",
+    title: "Agent opportunity card examples",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable conformance checklist schema for agents validating Boreal discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries.",
     routePath: "/schemas/agent-conformance.schema.json",
     sourcePath: "schemas/json/agent-conformance.schema.json",
@@ -436,6 +458,15 @@ export const jsonSchemaDiscoveryAssets = [
     sourcePath: "schemas/json/agent-conformance-report.schema.json",
     standard: "json_schema",
     title: "Agent conformance report",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Checked production access packet example schema for agents requesting scoped operator review without receiving credentials, permission, payment authority, or completion proof.",
+    routePath: "/schemas/agent-production-access-packet.schema.json",
+    sourcePath: "schemas/json/agent-production-access-packet.schema.json",
+    standard: "json_schema",
+    title: "Agent production access packet example",
   },
   {
     contentType: "application/schema+json; charset=utf-8",
@@ -623,8 +654,15 @@ export function buildAgentCard() {
     ),
     monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
     onboardingProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
+    opportunityCardExamplesUrl: absoluteUrl(
+      agentDiscoveryPaths.agentOpportunityCardExamples
+    ),
+    opportunityProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOpportunities),
     optimizationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOptimization),
     paymentProfileUrl: absoluteUrl(agentDiscoveryPaths.agentPayments),
+    productionAccessPacketExampleUrl: absoluteUrl(
+      agentDiscoveryPaths.agentProductionAccessPacketExample
+    ),
     promptCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentPrompts),
     protocolProfileUrl: absoluteUrl(agentDiscoveryPaths.agentProtocols),
     protocolProfileJsonUrl: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
@@ -735,6 +773,24 @@ export function buildAgentCard() {
       })),
       productionAccessFields:
         buildAgentOnboardingProfile().productionAccessPacket.requiredFields,
+      productionAccessPacketExampleUrl: absoluteUrl(
+        agentDiscoveryPaths.agentProductionAccessPacketExample
+      ),
+    },
+    opportunities: {
+      url: absoluteUrl(agentDiscoveryPaths.agentOpportunities),
+      cardExamplesUrl: absoluteUrl(
+        agentDiscoveryPaths.agentOpportunityCardExamples
+      ),
+      status: buildAgentOpportunityDiscoveryProfile().status,
+      entrypoint: buildAgentOpportunityDiscoveryProfile().publicDiscovery.entrypoint,
+      scoreDimensions:
+        buildAgentOpportunityDiscoveryProfile().fitScoring.dimensions.map(
+          (dimension) => dimension.id
+        ),
+      nextActions: buildAgentOpportunityDiscoveryProfile().nextActionSelection.map(
+        (rule) => rule.actionId
+      ),
     },
     optimization: {
       url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
@@ -925,8 +981,11 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent human handoff packet examples: [${agentDiscoveryPaths.agentHumanHandoffPacketExamples}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
 - Agent onboarding profile: [${agentDiscoveryPaths.agentOnboarding}](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)})
+- Agent opportunity card examples: [${agentDiscoveryPaths.agentOpportunityCardExamples}](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)})
+- Agent opportunity discovery profile: [${agentDiscoveryPaths.agentOpportunities}](${absoluteUrl(agentDiscoveryPaths.agentOpportunities)})
 - Agent optimization profile: [${agentDiscoveryPaths.agentOptimization}](${absoluteUrl(agentDiscoveryPaths.agentOptimization)})
 - Agent payment profile: [${agentDiscoveryPaths.agentPayments}](${absoluteUrl(agentDiscoveryPaths.agentPayments)})
+- Agent production access packet example: [${agentDiscoveryPaths.agentProductionAccessPacketExample}](${absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample)})
 - Agent prompt catalog: [${agentDiscoveryPaths.agentPrompts}](${absoluteUrl(agentDiscoveryPaths.agentPrompts)})
 - Agent workflow catalog: [${agentDiscoveryPaths.agentWorkflows}](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)})
 - Agent monitor webhook profile: [${agentDiscoveryPaths.agentMonitorWebhooks}](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)})
@@ -1019,6 +1078,24 @@ For deterministic external-agent onboarding, sandbox validation, and production 
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentOnboarding}
+\`\`\`
+
+For deterministic public opportunity discovery and fit ranking without mutation authority, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentOpportunities}
+\`\`\`
+
+For deterministic opportunity card examples covering apply, monitor, run, and optimize recommendations, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentOpportunityCardExamples}
+\`\`\`
+
+For a deterministic production access packet example to mirror during operator review, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentProductionAccessPacketExample}
 \`\`\`
 
 For deterministic tool invocation, preflight, HTTP fallback, and target MCP/A2A mapping, agents can read:
@@ -1301,6 +1378,26 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/production-access-packet.example.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary:
+            "Read Boreal's example external-agent production access packet.",
+          responses: {
+            "200": {
+              description:
+                "JSON example packet for requesting scoped operator review without receiving credentials, permission, payment authority, or completion proof.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentProductionAccessPacketExample",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/completion.json": {
         get: {
           tags: ["agent-discovery"],
@@ -1518,6 +1615,45 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentOnboardingProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/opportunities.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary:
+            "Read Boreal's machine-readable agent opportunity discovery profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for ranking public request opportunities and choosing request-bound next actions without permission, assignment, or mutation authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentOpportunityDiscoveryProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/opportunity-cards.example.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's example agent opportunity cards.",
+          responses: {
+            "200": {
+              description:
+                "JSON example card set for public request fit rankings and next-action recommendations without permission, assignment, payment, or completion authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentOpportunityCardExamples",
                   },
                 },
               },
@@ -1884,6 +2020,29 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentProductionAccessPacketExample: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "packetKind",
+            "status",
+            "exampleOnly",
+            "notAcceptedByProduction",
+            "requestedAccess",
+            "sandboxEvidence",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            packetKind: { const: "agent_production_access_packet" },
+            status: { const: "target_operator_review_packet_example" },
+            exampleOnly: { const: true },
+            notAcceptedByProduction: { const: true },
+            requestedAccess: { type: "object" },
+            sandboxEvidence: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentCompletionProfile: {
           type: "object",
           required: [
@@ -2075,6 +2234,50 @@ export function buildOpenApiDiscoveryIndex() {
               items: { type: "object" },
             },
             productionAccessPacket: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentOpportunityDiscoveryProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "publicDiscovery",
+            "opportunityCard",
+            "fitScoring",
+            "nextActionSelection",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_opportunity_discovery_profile" },
+            publicDiscovery: { type: "object" },
+            opportunityCard: { type: "object" },
+            fitScoring: { type: "object" },
+            nextActionSelection: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentOpportunityCardExamples: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "cardContract",
+            "examples",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_opportunity_card_examples" },
+            cardContract: { type: "object" },
+            examples: {
+              type: "array",
+              items: { type: "object" },
+            },
             canonicalBoundary: { type: "object" },
           },
         },
@@ -2319,6 +2522,25 @@ export function buildOpenApiDiscoveryIndex() {
       })),
       productionAccessFields:
         buildAgentOnboardingProfile().productionAccessPacket.requiredFields,
+      productionAccessPacketExampleUrl: absoluteUrl(
+        agentDiscoveryPaths.agentProductionAccessPacketExample
+      ),
+    },
+    "x-boreal-agent-opportunities": {
+      url: absoluteUrl(agentDiscoveryPaths.agentOpportunities),
+      cardExamplesUrl: absoluteUrl(
+        agentDiscoveryPaths.agentOpportunityCardExamples
+      ),
+      status: buildAgentOpportunityDiscoveryProfile().status,
+      entrypoint: buildAgentOpportunityDiscoveryProfile().publicDiscovery.entrypoint,
+      fitDimensions:
+        buildAgentOpportunityDiscoveryProfile().fitScoring.dimensions.map(
+          (dimension) => dimension.id
+        ),
+      nextActions:
+        buildAgentOpportunityDiscoveryProfile().nextActionSelection.map(
+          (rule) => rule.actionId
+        ),
     },
     "x-boreal-agent-payments": {
       url: absoluteUrl(agentDiscoveryPaths.agentPayments),
@@ -2840,6 +3062,14 @@ export function buildAgentConformanceProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample),
       },
       {
+        label: "Agent production access packet example",
+        url: absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
+      },
+      {
+        label: "Agent production access packet schema",
+        url: absoluteUrl("/schemas/agent-production-access-packet.schema.json"),
+      },
+      {
         label: "Agent error examples",
         url: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
       },
@@ -2969,6 +3199,18 @@ export function buildAgentConformanceProfile() {
               absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
             ],
           },
+          {
+            id: "package_production_access_packet",
+            required: true,
+            passWhen:
+              "The agent can package a production access request with represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, and target-protocol boundaries.",
+            failWhen:
+              "The agent treats the access packet as a credential, asks for broad write or spend authority, omits sandbox evidence, hides represented-human approval, or claims target adapters as live.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
+              absoluteUrl("/schemas/agent-production-access-packet.schema.json"),
+            ],
+          },
         ],
       },
       {
@@ -2989,6 +3231,18 @@ export function buildAgentConformanceProfile() {
             failWhen:
               "The agent opens, funds, routes, or mutates server-owned planner fields without explicit approval.",
             evidence: [absoluteUrl(agentDiscoveryPaths.agentActions)],
+          },
+          {
+            id: "rank_public_opportunity_cards",
+            required: true,
+            passWhen:
+              "The agent can turn public-safe Request projections into read-only opportunity cards with fit reasons, blocking unknowns, available actions, auth boundary, and canonical write effects if a governed action is later taken.",
+            failWhen:
+              "The agent treats a fit score, public board row, or recommended action as permission, assignment, accepted match, fulfillment start, payment authority, or completion proof.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentOpportunities),
+              absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples),
+            ],
           },
           {
             id: "commitment_before_cross_actor_fulfillment",
@@ -3190,6 +3444,14 @@ export function buildAgentAccessReviewProfile() {
       {
         label: "Agent conformance report schema",
         url: absoluteUrl("/schemas/agent-conformance-report.schema.json"),
+      },
+      {
+        label: "Agent production access packet example",
+        url: absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
+      },
+      {
+        label: "Agent production access packet schema",
+        url: absoluteUrl("/schemas/agent-production-access-packet.schema.json"),
       },
       {
         label: "Agent auth profile",
@@ -4369,6 +4631,295 @@ export function buildAgentHumanHandoffProfile() {
   };
 }
 
+export function buildAgentOpportunityDiscoveryProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_opportunity_discovery_profile",
+    name: "Boreal Agent Opportunity Discovery Profile",
+    description:
+      "Machine-readable read-only profile for agents discovering public Boreal request opportunities, ranking fit, and choosing request-bound next actions without treating rankings as permissions, assignments, or canonical writes.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Public request board API",
+        url: absoluteUrl(agentDiscoveryPaths.publicRequests),
+      },
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent recovery profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      },
+      {
+        label: "Agent readiness profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentReadiness),
+      },
+      {
+        label: "Agent opportunity discovery schema",
+        url: absoluteUrl("/schemas/agent-opportunities.schema.json"),
+      },
+      {
+        label: "Agent opportunity card examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples),
+      },
+      {
+        label: "Agent opportunity card schema",
+        url: absoluteUrl("/schemas/agent-opportunity-cards.schema.json"),
+      },
+    ],
+    publicDiscovery: {
+      entrypoint: absoluteUrl(agentDiscoveryPaths.publicRequests),
+      method: "GET",
+      auth: "none_for_public_safe_reads",
+      reads: ["Request", "Supply"],
+      writes: [],
+      requiredResponseFields: [
+        "requests[].id",
+        "requests[].title",
+        "requests[].status",
+        "requests[].visibility",
+        "requests[].summary",
+        "requests[].seeking",
+        "requests[].agentActionAffordances",
+      ],
+      privacyRules: [
+        "Read public-safe projections only.",
+        "Do not infer private draft, owner chat, resolver secret, payment source, or desktop runtime context from public fields.",
+        "Treat agentActionAffordances as hints to governed endpoints, not permissions.",
+        "Fetch request detail and agentActionPolicy before any write-capable action.",
+      ],
+    },
+    opportunityCard: {
+      status: "derived_read_only",
+      examplesUrl: absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples),
+      schemaUrl: absoluteUrl("/schemas/agent-opportunity-cards.schema.json"),
+      requiredFields: [
+        "requestId",
+        "requestTitle",
+        "publicUrl",
+        "fitScore",
+        "fitReasons",
+        "blockingUnknowns",
+        "availableActionIds",
+        "recommendedNextAction",
+        "authBoundary",
+        "canonicalReads",
+        "canonicalWritesIfActionTaken",
+      ],
+      recommendedFields: [
+        "deadlineOrTiming",
+        "budgetSignal",
+        "proofExpectation",
+        "requiredHumanDecision",
+        "idempotencyRequired",
+        "sourceAffordanceHref",
+        "lastObservedEventSequence",
+      ],
+      mustNotInclude: [
+        "private owner notes",
+        "private chat transcript",
+        "raw prompt internals",
+        "session cookie",
+        "resolver bearer token",
+        "payment credentials",
+        "unverified assignment claim",
+      ],
+    },
+    fitScoring: {
+      status: "agent_local_read_only",
+      scoreRange: {
+        min: 0,
+        max: 100,
+      },
+      dimensions: [
+        {
+          id: "capability_fit",
+          weight: 0.3,
+          positiveSignals: [
+            "Request seeking fields match the agent or represented Supply capability.",
+            "Required output kind and delivery channel are supported.",
+          ],
+          negativeSignals: [
+            "The request needs embodied work, jurisdictional expertise, or private access the agent cannot provide.",
+            "The agent would need to invent missing requirements to apply.",
+          ],
+        },
+        {
+          id: "proof_and_completion_fit",
+          weight: 0.2,
+          positiveSignals: [
+            "The agent can produce reviewable Artifact proof and explain completion boundaries.",
+            "The request's proof expectation is explicit enough to package evidence.",
+          ],
+          negativeSignals: [
+            "Completion would depend on chat output, tool success, runtime logs, or payment settlement alone.",
+            "Required proof is missing or cannot be safely redacted.",
+          ],
+        },
+        {
+          id: "commercial_and_timing_fit",
+          weight: 0.2,
+          positiveSignals: [
+            "Budget, deadline, and scope are compatible with the represented actor.",
+            "The agent can state proposal terms without broad assumptions.",
+          ],
+          negativeSignals: [
+            "Budget or timing is incompatible or omitted for a commitment proposal.",
+            "The agent would need unbounded spend authority or unmanaged payment access.",
+          ],
+        },
+        {
+          id: "authorization_fit",
+          weight: 0.2,
+          positiveSignals: [
+            "The public affordance points to an action the represented actor can request.",
+            "The needed scopes are narrow and covered by account session or approved resolver bearer paths.",
+          ],
+          negativeSignals: [
+            "The action is private, blocked, target-only, or missing agentActionPolicy allowance.",
+            "The agent only has anonymous public read access but wants to write.",
+          ],
+        },
+        {
+          id: "human_handoff_fit",
+          weight: 0.1,
+          positiveSignals: [
+            "The agent knows which human must approve, review, fund, or accept the next action.",
+            "The agent can render a handoff packet before risky or irreversible steps.",
+          ],
+          negativeSignals: [
+            "No represented human can approve opening, spending, accepting, or completion claims.",
+            "The agent cannot escalate stale, blocked, or ambiguous states.",
+          ],
+        },
+      ],
+      rankingRules: [
+        "Rank public requests by fit score, but keep the ranking as local analysis only.",
+        "Prefer requests with explicit proof expectations, clear scope, and available public or scoped actions.",
+        "Lower rank when missing details would force invention, unsafe access, broad permissions, or target-only adapters.",
+        "Do not imply assignment, proposal acceptance, funding, fulfillment start, or completion from a high fit score.",
+      ],
+    },
+    nextActionSelection: [
+      {
+        when: "The agent is only scouting public work or the fit score is below the application threshold.",
+        actionId: "inspect_public_requests",
+        requiresBeforeAction: ["public request projection"],
+        canonicalWritesAfterAction: [],
+      },
+      {
+        when: "The request is public or authorized, the represented actor can solve it, and agentActionPolicy allows proposal submission.",
+        actionId: "apply_to_request",
+        requiresBeforeAction: [
+          "request-detail agentActionPolicy",
+          "represented actor authorization",
+          "idempotency key where the endpoint supports it",
+          "human review of proposal terms when required",
+        ],
+        canonicalWritesAfterAction: ["Commitment", "RequestEvent"],
+      },
+      {
+        when: "A Commitment or direct-owner execution lane allows proof submission and the agent has reviewable output.",
+        actionId: "submit_artifact",
+        requiresBeforeAction: [
+          "accepted Commitment or allowed direct-owner lane",
+          "Artifact proof packet",
+          "redaction review",
+          "idempotency key where the endpoint supports it",
+        ],
+        canonicalWritesAfterAction: ["Artifact", "RequestEvent"],
+      },
+      {
+        when: "The represented human wants status, stale-state detection, or recovery guidance.",
+        actionId: "monitor_request",
+        requiresBeforeAction: [
+          "public activity access or scoped requests:read_activity",
+          "cursor.nextAfterSequence checkpoint",
+        ],
+        canonicalWritesAfterAction: [],
+      },
+      {
+        when: "The public request is completed, has an accepted reusable Artifact, and the buyer approves a paid or credit-consuming run.",
+        actionId: "run_public_solution",
+        requiresBeforeAction: [
+          "completed public source Request",
+          "accepted Artifact reference",
+          "buyer account session",
+          "explicit spend approval",
+          "idempotency key",
+        ],
+        canonicalWritesAfterAction: ["Request", "Transaction", "RequestEvent"],
+      },
+      {
+        when: "The request, proposal, proof packet, monitor update, or run input needs clearer wording but no durable mutation is approved.",
+        actionId: "optimize_request_brief",
+        requiresBeforeAction: [
+          "authorized read context",
+          "no-invention check",
+          "owner approval before any durable patch",
+        ],
+        canonicalWritesAfterAction: [],
+      },
+    ],
+    stopConditions: [
+      "The public projection lacks enough information to avoid inventing budget, deadline, deliverables, access, proof, or consent.",
+      "The desired action is private, blocked, target-only, or missing a represented human.",
+      "The agent cannot explain the canonical write object for the next action.",
+      "The agent would need raw credentials, private account data, payment secrets, or unmanaged spend authority.",
+      "The fit ranking depends on private context that is not present in the public Request projection.",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Supply",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      opportunityProfileIsNot: [
+        "permission grant",
+        "assignment",
+        "match result",
+        "accepted Commitment",
+        "fulfillment start",
+        "payment authorization",
+        "completion proof",
+      ],
+      notRoots: [
+        "opportunity card",
+        "fit score",
+        "ranked list",
+        "recommended action",
+        "agent-local cache",
+        "public board row",
+      ],
+      rules: [
+        "Opportunity discovery is read-only analysis over public-safe Request projections.",
+        "A high fit score does not authorize apply, submit, monitor, run, spend, or completion claims.",
+        "Use request-detail agentActionPolicy before write-capable actions.",
+        "Promote real business truth only through governed Request, Commitment, Fulfillment, Artifact, Transaction, and RequestEvent routes.",
+      ],
+    },
+  };
+}
+
 export function buildAgentOptimizationProfile() {
   return {
     schemaVersion: 1,
@@ -4830,8 +5381,16 @@ export function buildAgentOnboardingProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
       },
       {
+        label: "Agent production access packet example",
+        url: absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
+      },
+      {
         label: "Agent onboarding schema",
         url: absoluteUrl("/schemas/agent-onboarding.schema.json"),
+      },
+      {
+        label: "Agent production access packet schema",
+        url: absoluteUrl("/schemas/agent-production-access-packet.schema.json"),
       },
     ],
     standardReferences: [
@@ -4965,6 +5524,7 @@ export function buildAgentOnboardingProfile() {
           absoluteUrl(agentDiscoveryPaths.agentReadiness),
           absoluteUrl(agentDiscoveryPaths.agentConformance),
           absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+          absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
         ],
         passWhen:
           "The packet names requested scopes, represented actors, use cases, sandbox evidence, rate-limit needs, data handling, and escalation contacts.",
@@ -5027,6 +5587,10 @@ export function buildAgentOnboardingProfile() {
     ],
     productionAccessPacket: {
       status: "target_operator_review",
+      schemaUrl: absoluteUrl("/schemas/agent-production-access-packet.schema.json"),
+      exampleUrl: absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
+      fixturePath: "fixtures/agent/production-access-packet.sample.json",
+      packetKind: "agent_production_access_packet",
       requiredFields: [
         "agentName",
         "operatorContact",
@@ -8193,6 +8757,24 @@ export async function readAgentConformanceReportExample() {
     getFixturesRoot(),
     "agent",
     "conformance-report.sample.json"
+  );
+  return JSON.parse(await readFile(filePath, "utf8"));
+}
+
+export async function readAgentProductionAccessPacketExample() {
+  const filePath = path.join(
+    getFixturesRoot(),
+    "agent",
+    "production-access-packet.sample.json"
+  );
+  return JSON.parse(await readFile(filePath, "utf8"));
+}
+
+export async function readAgentOpportunityCardExamples() {
+  const filePath = path.join(
+    getFixturesRoot(),
+    "agent",
+    "opportunity-cards.sample.json"
   );
   return JSON.parse(await readFile(filePath, "utf8"));
 }

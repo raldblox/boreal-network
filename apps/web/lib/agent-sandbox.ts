@@ -18,8 +18,11 @@ export const agentSandboxPaths = {
   monitorWebhooks: "/agents/monitor-webhooks.md",
   monitoring: "/agents/monitoring.json",
   onboarding: "/agents/onboarding.json",
+  opportunityCardExamples: "/agents/opportunity-cards.example.json",
+  opportunities: "/agents/opportunities.json",
   optimization: "/agents/optimization.json",
   payments: "/agents/payments.json",
+  productionAccessPacketExample: "/agents/production-access-packet.example.json",
   prompts: "/agents/prompts.json",
   protocolAdapterSamples: "/agents/protocol-adapter-samples.json",
   protocols: "/agents/protocols.md",
@@ -118,6 +121,10 @@ export function buildAgentSandboxManifest() {
         url: absoluteUrl(agentSandboxPaths.payments),
       },
       {
+        label: "Production access packet example",
+        url: absoluteUrl(agentSandboxPaths.productionAccessPacketExample),
+      },
+      {
         label: "Prompt catalog",
         url: absoluteUrl(agentSandboxPaths.prompts),
       },
@@ -160,6 +167,14 @@ export function buildAgentSandboxManifest() {
       {
         label: "Onboarding profile",
         url: absoluteUrl(agentSandboxPaths.onboarding),
+      },
+      {
+        label: "Opportunity discovery profile",
+        url: absoluteUrl(agentSandboxPaths.opportunities),
+      },
+      {
+        label: "Opportunity card examples",
+        url: absoluteUrl(agentSandboxPaths.opportunityCardExamples),
       },
       {
         label: "Discovery index",

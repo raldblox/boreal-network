@@ -1,0 +1,605 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-production-access-packet.schema.json",
+  "title": "AgentProductionAccessPacketExample",
+  "description": "Checked example packet shape for agents requesting scoped Boreal production access review without issuing credentials, granting permission, approving spend, or proving completion.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "packetKind",
+    "status",
+    "exampleOnly",
+    "notAcceptedByProduction",
+    "name",
+    "description",
+    "sourceProfiles",
+    "applicant",
+    "requestedAccess",
+    "sandboxEvidence",
+    "callbackAndWebhookBoundaries",
+    "dataHandling",
+    "idempotencyAndRecoveryPlan",
+    "paymentAndSpendBoundary",
+    "protocolClaims",
+    "humanEscalation",
+    "requestedDecision",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "packetKind": {
+      "const": "agent_production_access_packet"
+    },
+    "status": {
+      "const": "target_operator_review_packet_example"
+    },
+    "exampleOnly": {
+      "const": true
+    },
+    "notAcceptedByProduction": {
+      "const": true
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceProfiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/profileLink"
+      }
+    },
+    "applicant": {
+      "$ref": "#/$defs/applicant"
+    },
+    "requestedAccess": {
+      "$ref": "#/$defs/requestedAccess"
+    },
+    "sandboxEvidence": {
+      "$ref": "#/$defs/sandboxEvidence"
+    },
+    "callbackAndWebhookBoundaries": {
+      "$ref": "#/$defs/callbackAndWebhookBoundaries"
+    },
+    "dataHandling": {
+      "$ref": "#/$defs/dataHandling"
+    },
+    "idempotencyAndRecoveryPlan": {
+      "$ref": "#/$defs/idempotencyAndRecoveryPlan"
+    },
+    "paymentAndSpendBoundary": {
+      "$ref": "#/$defs/paymentAndSpendBoundary"
+    },
+    "protocolClaims": {
+      "$ref": "#/$defs/protocolClaims"
+    },
+    "humanEscalation": {
+      "$ref": "#/$defs/humanEscalation"
+    },
+    "requestedDecision": {
+      "$ref": "#/$defs/requestedDecision"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "profileLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url",
+        "observedStatus"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "observedStatus": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "applicant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agentName",
+        "operatorName",
+        "operatorContact",
+        "agentCardUrl",
+        "representedActor"
+      ],
+      "properties": {
+        "agentName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operatorName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operatorContact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agentCardUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "representedActor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "reference",
+            "authorizationEvidence",
+            "approvalBoundary"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "human_buyer",
+                "human_solver",
+                "organization",
+                "supply_owner",
+                "mixed"
+              ]
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            },
+            "authorizationEvidence": {
+              "type": "string",
+              "minLength": 1
+            },
+            "approvalBoundary": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "requestedAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requestedScopes",
+        "intendedActions",
+        "requestedRoutes",
+        "requestedProtocolAdapters",
+        "environments",
+        "duration",
+        "rateLimitPlan",
+        "dataAccessJustification",
+        "humanApprovalModel"
+      ],
+      "properties": {
+        "status": {
+          "const": "operator_review_required"
+        },
+        "requestedScopes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "intendedActions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requestedRoutes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requestedProtocolAdapters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "http",
+              "mcp",
+              "a2a",
+              "x402",
+              "signed_push"
+            ]
+          }
+        },
+        "environments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "live_http",
+              "contract_sandbox",
+              "future_isolated_write_sandbox"
+            ]
+          }
+        },
+        "duration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rateLimitPlan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataAccessJustification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "humanApprovalModel": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sandboxEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifestUrl",
+        "validationCommand",
+        "commandPassed",
+        "conformanceReportUrl",
+        "coveredReplayScenarios",
+        "coveredRequiredChecks",
+        "fixturePaths",
+        "productionEffects"
+      ],
+      "properties": {
+        "manifestUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "validationCommand": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commandPassed": {
+          "type": "boolean"
+        },
+        "conformanceReportUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "coveredReplayScenarios": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "coveredRequiredChecks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "fixturePaths": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "productionEffects": {
+          "const": false
+        }
+      }
+    },
+    "callbackAndWebhookBoundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "callbackUrls",
+        "webhookReceiverPublicKey",
+        "signedWebhookProfileUrl",
+        "deliveryExpectations",
+        "notLiveClaims"
+      ],
+      "properties": {
+        "callbackUrls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "webhookReceiverPublicKey": {
+          "type": "string"
+        },
+        "signedWebhookProfileUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "deliveryExpectations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notLiveClaims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "dataHandling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "containsSecrets",
+        "storesPrivateData",
+        "retention",
+        "redactionPlan",
+        "forbiddenMaterialAbsent"
+      ],
+      "properties": {
+        "containsSecrets": {
+          "const": false
+        },
+        "storesPrivateData": {
+          "type": "boolean"
+        },
+        "retention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "redactionPlan": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forbiddenMaterialAbsent": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "idempotencyAndRecoveryPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "idempotencyRequiredFor",
+        "retryStrategy",
+        "usesProblemDetails",
+        "stateVerificationReads"
+      ],
+      "properties": {
+        "idempotencyRequiredFor": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "retryStrategy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "usesProblemDetails": {
+          "type": "boolean"
+        },
+        "stateVerificationReads": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "paymentAndSpendBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paymentAuthorityRequested",
+        "spendRequiresHumanApproval",
+        "transactionReconciliation",
+        "x402Status",
+        "forbiddenRequests"
+      ],
+      "properties": {
+        "paymentAuthorityRequested": {
+          "type": "boolean"
+        },
+        "spendRequiresHumanApproval": {
+          "type": "boolean"
+        },
+        "transactionReconciliation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "x402Status": {
+          "const": "target_only"
+        },
+        "forbiddenRequests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "protocolClaims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "httpBaseline",
+        "mcp",
+        "a2a",
+        "x402",
+        "oauthCompatibleDelegation",
+        "signedPushDelivery",
+        "targetClaimsNeedSeparateReview"
+      ],
+      "properties": {
+        "httpBaseline": {
+          "const": "live_where_route_contract_allows"
+        },
+        "mcp": {
+          "const": "target_only"
+        },
+        "a2a": {
+          "const": "target_only"
+        },
+        "x402": {
+          "const": "target_only"
+        },
+        "oauthCompatibleDelegation": {
+          "const": "target_only"
+        },
+        "signedPushDelivery": {
+          "const": "target_only"
+        },
+        "targetClaimsNeedSeparateReview": {
+          "const": true
+        }
+      }
+    },
+    "humanEscalation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contact",
+        "responseWindow",
+        "approvalPacketsUrl",
+        "blockingQuestions"
+      ],
+      "properties": {
+        "contact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "responseWindow": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvalPacketsUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "blockingQuestions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "requestedDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisionRequested",
+        "operatorShouldCheck",
+        "acceptableOutcomes"
+      ],
+      "properties": {
+        "decisionRequested": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operatorShouldCheck": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "acceptableOutcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "packetIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "packetIsNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

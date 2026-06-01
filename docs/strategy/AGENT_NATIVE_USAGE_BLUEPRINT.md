@@ -81,6 +81,7 @@ Current assets that agents can eventually build on:
 - A machine-readable auth profile exists through `/agents/auth.json` and `schemas/json/agent-auth.schema.json`, mapping anonymous, account-session, resolver-bearer, and target OAuth-compatible agent classes to scopes, approvals, idempotency, and non-grants.
 - A machine-readable conformance profile exists through `/agents/conformance.json` and `schemas/json/agent-conformance.schema.json`, mapping pre-production checks across discovery, auth, human handoff, work actions, proof, payment, recovery, sandbox, and target protocol boundaries.
 - A machine-readable conformance report contract exists through `schemas/json/agent-conformance-report.schema.json`, `/agents/conformance-report.example.json`, and `fixtures/agent/conformance-report.sample.json`, giving agents a standard way to package sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions.
+- A checked production access packet example exists through `/agents/production-access-packet.example.json`, `schemas/json/agent-production-access-packet.schema.json`, and `fixtures/agent/production-access-packet.sample.json`, giving agents a concrete operator-review package for represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, payment boundary, and target-protocol claims without granting access.
 - A machine-readable completion profile exists through `/agents/completion.json` and `schemas/json/agent-completion.schema.json`, mapping draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims to proof, Artifact, Fulfillment, Transaction, RequestEvent, and owner-review truth.
 - A machine-readable evidence profile exists through `/agents/evidence.json` and `schemas/json/agent-evidence.schema.json`, mapping evidence packets, artifact packaging, redaction rules, review signals, and retry-safe proof submission.
 - A machine-readable error example pack exists through `/agents/error-examples.json`, `schemas/json/agent-error-examples.schema.json`, and `fixtures/agent/error-examples.sample.json`, giving agents RFC 9457-style problem examples for auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write recovery.
@@ -89,6 +90,7 @@ Current assets that agents can eventually build on:
 - A checked human handoff packet example set exists through `/agents/human-handoff-packets.example.json`, `schemas/json/agent-human-handoff-packets.schema.json`, and `fixtures/agent/human-handoff-packets.sample.json`, giving agents renderable draft approval, Commitment review, proof review, monitor escalation, and payment authorization packets without making those packets approval records, payment authorizations, or completion proof.
 - A machine-readable monitoring profile exists through `/agents/monitoring.json` and `schemas/json/agent-monitoring.schema.json`, mapping cursor polling, stale-state detection, escalation triggers, webhook boundaries, and no-heartbeat-noise rules.
 - A machine-readable onboarding profile exists through `/agents/onboarding.json` and `schemas/json/agent-onboarding.schema.json`, mapping external-agent discovery, role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness.
+- A machine-readable opportunity discovery profile exists through `/agents/opportunities.json` and `schemas/json/agent-opportunities.schema.json`, mapping public request projections and `agentActionAffordances` into local opportunity cards, fit scoring, and next-action selection without granting permission or assignment.
 - A machine-readable optimization profile exists through `/agents/optimization.json` and `schemas/json/agent-optimization.schema.json`, mapping draft-only improvement surfaces, no-invention rules, owner-approval gates, and canonical mutation boundaries for agents optimizing briefs, proposals, evidence, monitors, and public-solution reuse.
 - A machine-readable payment profile exists through `/agents/payments.json` and `schemas/json/agent-payments.schema.json`, mapping buyer-credit, direct funding, paid solution runs, idempotency, x402 target boundaries, and `Transaction` reconciliation.
 - A machine-readable prompt catalog exists through `/agents/prompts.json` and `schemas/json/agent-prompts.schema.json`, mapping safe briefing, applying, proof submission, monitoring, optimization, and recovery prompts below durable truth.
@@ -326,6 +328,7 @@ Add these public surfaces:
 - `GET /agents/auth.json`
 - `GET /agents/conformance.json`
 - `GET /agents/conformance-report.example.json`
+- `GET /agents/production-access-packet.example.json`
 - `GET /agents/completion.json`
 - `GET /agents/evidence.json`
 - `GET /agents/error-examples.json`
@@ -333,6 +336,7 @@ Add these public surfaces:
 - `GET /agents/human-handoffs.json`
 - `GET /agents/monitoring.json`
 - `GET /agents/onboarding.json`
+- `GET /agents/opportunities.json`
 - `GET /agents/optimization.json`
 - `GET /agents/payments.json`
 - `GET /agents/prompts.json`
@@ -362,6 +366,7 @@ Add these public surfaces:
 - `GET /schemas/agent-auth.schema.json`
 - `GET /schemas/agent-conformance.schema.json`
 - `GET /schemas/agent-conformance-report.schema.json`
+- `GET /schemas/agent-production-access-packet.schema.json`
 - `GET /schemas/agent-completion.schema.json`
 - `GET /schemas/agent-evidence.schema.json`
 - `GET /schemas/agent-error-examples.schema.json`
@@ -370,6 +375,7 @@ Add these public surfaces:
 - `GET /schemas/agent-human-handoff-packets.schema.json`
 - `GET /schemas/agent-monitoring.schema.json`
 - `GET /schemas/agent-onboarding.schema.json`
+- `GET /schemas/agent-opportunities.schema.json`
 - `GET /schemas/agent-optimization.schema.json`
 - `GET /schemas/agent-payments.schema.json`
 - `GET /schemas/agent-prompts.schema.json`
@@ -809,6 +815,7 @@ Deliverables:
 - `/agents/conformance.json` - implemented as a public machine-readable checklist for discovery, auth, handoff, work actions, proof, payment, recovery, sandbox, and protocol boundaries before production use
 - `schemas/json/agent-conformance-report.schema.json` and `fixtures/agent/conformance-report.sample.json` - implemented as a public machine-readable report shape and sample for packaging sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions
 - `/agents/conformance-report.example.json` - implemented as the public fetchable conformance report example package
+- `/agents/production-access-packet.example.json`, `schemas/json/agent-production-access-packet.schema.json`, and `fixtures/agent/production-access-packet.sample.json` - implemented as a checked operator-review packet example for represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, payment boundary, and target-protocol claims
 - `/agents/completion.json` - implemented as a public machine-readable completion profile for proof packets, Artifact guidance, completion claims, and review boundaries
 - `/agents/evidence.json` - implemented as a public machine-readable evidence profile for proof packets, Artifact packaging, redaction, review signals, and retry-safe submission boundaries
 - `/agents/error-examples.json` - implemented as a public RFC 9457-style problem-details example pack for safe auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write recovery
@@ -816,6 +823,7 @@ Deliverables:
 - `/agents/human-handoffs.json` - implemented as a public machine-readable handoff profile for human approval moments, stop rules, escalation packets, visible UX patterns, and safe claim-state language
 - `/agents/monitoring.json` - implemented as a public machine-readable monitoring profile for cursor polling, stale-state detection, escalation triggers, and live-versus-target push delivery boundaries
 - `/agents/onboarding.json` - implemented as a public machine-readable onboarding profile for external-agent discovery, sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness
+- `/agents/opportunities.json` - implemented as a public read-only opportunity discovery profile for public request fit scoring, local opportunity cards, and next-action selection without permission, assignment, payment, or completion authority
 - `/agents/optimization.json` - implemented as a public machine-readable optimization profile for draft-only brief, proposal, evidence, monitor, and public-solution reuse improvements
 - `/agents/payments.json` - implemented as a public machine-readable payment profile for buyer-credit, request funding, paid solution runs, idempotency, x402 target boundaries, and `Transaction` reconciliation
 - `/agents/prompts.json` - implemented as a public machine-readable prompt catalog for briefing, applying, proof submission, monitoring, optimization, and recovery prompts
@@ -840,6 +848,7 @@ Deliverables:
 - machine-readable agent conformance profile - implemented as `/agents/conformance.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent conformance report schema - implemented as `/schemas/agent-conformance-report.schema.json`, linked from the conformance profile and public schema catalog
 - machine-readable agent conformance report example - implemented as `/agents/conformance-report.example.json`, linked from the conformance profile and `/openapi.json`
+- machine-readable production access packet example - implemented as `/agents/production-access-packet.example.json`, linked from onboarding, access review, conformance, `/llms.txt`, and `/openapi.json`
 - machine-readable agent completion profile - implemented as `/agents/completion.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent evidence profile - implemented as `/agents/evidence.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent error examples - implemented as `/agents/error-examples.json`, linked from the recovery profile and `/openapi.json`
@@ -848,6 +857,7 @@ Deliverables:
 - machine-readable agent human handoff packet examples - implemented as `/agents/human-handoff-packets.example.json`, linked from the human handoff profile and `/openapi.json`
 - machine-readable agent monitoring profile - implemented as `/agents/monitoring.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent onboarding profile - implemented as `/agents/onboarding.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent opportunity discovery profile - implemented as `/agents/opportunities.json`, linked from the agent card, start guide, `/llms.txt`, and `/openapi.json`
 - machine-readable agent optimization profile - implemented as `/agents/optimization.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent payment profile - implemented as `/agents/payments.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent prompt catalog - implemented as `/agents/prompts.json`, linked from the agent card and `/openapi.json`
@@ -861,6 +871,7 @@ Deliverables:
 - request-detail `agentActionPolicy` decisions for anonymous, session, and resolver actors - implemented in the request detail API as a derived policy envelope
 - agent sandbox fixture runner - implemented as `pnpm contracts:agent-sandbox`
 - conformance report fixture validation - implemented inside `pnpm contracts:agent-sandbox`
+- production access packet fixture validation - implemented inside `pnpm contracts:agent-sandbox`
 - error examples fixture validation - implemented inside `pnpm contracts:agent-sandbox`
 - human handoff packet fixture validation - implemented inside `pnpm contracts:agent-sandbox`
 - access review public contract validation - implemented inside `apps/web/tests/contracts/agent-discovery.test.ts`
@@ -879,17 +890,19 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent auth profile, resolver bearer and target OAuth boundaries, scope non-grants, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent access review profile, requested-scope review, low-volume pilot rate limit, revocation triggers, decision outcomes, non-credential boundary, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public conformance report example route, report kind, operator-review status, non-credential boundary, and OpenAPI index link.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public production access packet example route, packet kind, operator-review status, non-production boundary, target-protocol boundary, payment non-authority, onboarding link, OpenAPI path, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent completion profile, proof packet, Artifact and owner-review boundaries, non-completion truth list, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent error example pack, problem-details standard, unknown-write retry policy, payment Transaction read, public route, OpenAPI extension, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent execution profile, accepted-commitment lane, direct-owner exception, ephemeral runtime signal rules, `FulfillmentStep` default, non-root adapter boundary, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public human handoff packet example route, packet schema route, draft approval, proof review, monitor escalation, and non-approval-record boundary.
-- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent onboarding profile, contract sandbox validation stage, target OAuth-compatible external-agent path, production access packet fields, go-live checks, non-credential-issuer boundary, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent onboarding profile, contract sandbox validation stage, target OAuth-compatible external-agent path, production access packet fields, production packet example link, go-live checks, non-credential-issuer boundary, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent opportunity discovery profile, public request entrypoint, read-only affordance requirements, fit dimensions, next-action writes, non-permission boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent payment profile, free inspection boundary, account-session spend surfaces, idempotency, target x402 boundary, `Transaction` truth, non-root payment objects, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent prompt catalog, apply and submit prompt mappings, draft-only output contract, non-mutation boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent protocol adapter sample pack, MCP/A2A/x402 sample coverage, target-only status, non-permission boundary, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent readiness profile, live and target capability bands, standards map, agent UX flow, go/no-go checks, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent tool registry, HTTP invocation baseline, target MCP/A2A mappings, idempotency, optimization draft-only behavior, payment mutation boundaries, non-root tool objects, and public schema route.
-- `pnpm contracts:agent-sandbox` verifies the sandbox fixture, mock identity coverage, idempotency samples, cursor sample, signed-webhook sample, draft-only optimization sample, deterministic replay scenarios, conformance report fixture, and production-auth boundary.
+- `pnpm contracts:agent-sandbox` verifies the sandbox fixture, mock identity coverage, idempotency samples, cursor sample, signed-webhook sample, draft-only optimization sample, deterministic replay scenarios, conformance report fixture, production access packet fixture, and production-auth boundary.
 - `apps/web/tests/contracts/request-boundary.test.ts` verifies public request action affordances, keeps owner-only routing and planner internals out of public projections, and only exposes `run_public_solution` when completed public solution truth exists.
 
 ### Phase 2: Authenticated Agent Writes
@@ -984,6 +997,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can find the conformance profile and understand which discovery, auth, handoff, action, proof, payment, recovery, sandbox, and protocol checks it must pass before production use.
 - A fresh agent can find the conformance report schema and package sandbox replay results, requested scopes, protocol claims, secret-handling posture, and human-review questions without treating the report as a permission grant.
 - A fresh agent can fetch the conformance report example and mirror its shape without treating the example as a submission, approval, credential, or certification.
+- A fresh agent can fetch the production access packet example and mirror its represented-actor, minimal-scope, sandbox-evidence, rate-limit, human-escalation, data-handling, idempotency, payment-boundary, and target-protocol sections without treating the packet as production authority.
 - A fresh agent can find the completion profile and distinguish draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims.
 - A fresh agent can find the evidence profile and understand how to package proof, receipts, files, media, redaction statements, review signals, and bounded artifact claims.
 - A fresh agent can fetch error examples and handle auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write failures without treating problem responses as durable history or retry authority.
@@ -992,6 +1006,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can fetch human handoff packet examples and render draft approval, Commitment review, proof review, monitor escalation, and payment authorization cards without treating those cards as approval, spend authority, or completion proof.
 - A fresh agent can find the monitoring profile and distinguish live cursor polling, target signed push delivery, stale-state detection, and escalation triggers.
 - A fresh agent can find the onboarding profile and distinguish public discovery, contract-only sandbox validation, scoped live HTTP use, target production access review, target production sandbox credentials, and target protocol adapter readiness.
+- A fresh agent can find the opportunity discovery profile and rank public requests into local opportunity cards without treating fit scores, recommended actions, or public board rows as permission, assignment, payment authority, or completion proof.
 - A fresh agent can find sandbox replay scenarios for drafting a request, applying to a request, submitting proof, monitoring activity, running a public solution shape, and recovering from uncertain writes without treating those transcripts as production authority.
 - A fresh agent can find the optimization profile and distinguish draft-only improvement from owner-approved durable mutation.
 - A fresh agent can find the payment profile and distinguish free inspection, buyer-credit support ledger state, request-attached `Transaction` truth, live account-session spend authority, and target x402 activation.

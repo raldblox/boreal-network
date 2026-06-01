@@ -256,6 +256,10 @@
       "additionalProperties": false,
       "required": [
         "status",
+        "schemaUrl",
+        "exampleUrl",
+        "fixturePath",
+        "packetKind",
         "requiredFields",
         "optionalFields",
         "rejectWhen"
@@ -263,6 +267,21 @@
       "properties": {
         "status": {
           "const": "target_operator_review"
+        },
+        "schemaUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "exampleUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "fixturePath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "packetKind": {
+          "const": "agent_production_access_packet"
         },
         "requiredFields": {
           "type": "array",

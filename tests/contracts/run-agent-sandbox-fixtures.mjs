@@ -8,11 +8,15 @@ const manifestPath = "fixtures/agent/sandbox-manifest.sample.json";
 const conformanceReportPath = "fixtures/agent/conformance-report.sample.json";
 const errorExamplesPath = "fixtures/agent/error-examples.sample.json";
 const humanHandoffPacketsPath = "fixtures/agent/human-handoff-packets.sample.json";
+const opportunityCardsPath = "fixtures/agent/opportunity-cards.sample.json";
+const productionAccessPacketPath = "fixtures/agent/production-access-packet.sample.json";
 const protocolAdapterSamplesPath = "fixtures/agent/protocol-adapter-samples.sample.json";
 const schemaPath = "schemas/json/agent-sandbox.schema.json";
 const conformanceReportSchemaPath = "schemas/json/agent-conformance-report.schema.json";
 const errorExamplesSchemaPath = "schemas/json/agent-error-examples.schema.json";
 const humanHandoffPacketsSchemaPath = "schemas/json/agent-human-handoff-packets.schema.json";
+const opportunityCardsSchemaPath = "schemas/json/agent-opportunity-cards.schema.json";
+const productionAccessPacketSchemaPath = "schemas/json/agent-production-access-packet.schema.json";
 const protocolAdapterSamplesSchemaPath = "schemas/json/agent-protocol-adapter-samples.schema.json";
 const implementationPath = "apps/web/lib/agent-sandbox.ts";
 
@@ -54,6 +58,7 @@ const requiredResources = [
   "/agents/human-handoff-packets.example.json",
   "/agents/optimization.json",
   "/agents/payments.json",
+  "/agents/production-access-packet.example.json",
   "/agents/prompts.json",
   "/agents/workflows.json",
   "/agents/protocols.md",
@@ -65,6 +70,8 @@ const requiredResources = [
   "/agents/monitor-webhooks.md",
   "/agents/monitoring.json",
   "/agents/onboarding.json",
+  "/agents/opportunity-cards.example.json",
+  "/agents/opportunities.json",
   "/openapi.json",
   "/openapi/request-briefing.yaml",
   "/api/requests?scope=public"
@@ -147,6 +154,44 @@ function validateConformanceReportSchema(schema, errors) {
   );
 }
 
+function validateProductionAccessPacketSchema(schema, errors) {
+  assert(
+    schema.$schema === "https://json-schema.org/draft/2020-12/schema",
+    "agent production access packet schema must use JSON Schema draft 2020-12",
+    errors
+  );
+  assert(
+    schema.title === "AgentProductionAccessPacketExample",
+    "agent production access packet schema must be titled AgentProductionAccessPacketExample",
+    errors
+  );
+  assert(
+    schema.properties?.packetKind?.const === "agent_production_access_packet",
+    "agent production access packet schema must lock packetKind",
+    errors
+  );
+  assert(
+    schema.properties?.status?.const === "target_operator_review_packet_example",
+    "agent production access packet schema must lock target operator review example status",
+    errors
+  );
+  assert(
+    schema.properties?.notAcceptedByProduction?.const === true,
+    "agent production access packet schema must lock production acceptance to false",
+    errors
+  );
+  assert(
+    schema.$defs?.sandboxEvidence?.properties?.productionEffects?.const === false,
+    "agent production access packet schema must lock sandbox evidence production effects to false",
+    errors
+  );
+  assert(
+    schema.$defs?.protocolClaims?.properties?.mcp?.const === "target_only",
+    "agent production access packet schema must keep MCP target-only",
+    errors
+  );
+}
+
 function validateErrorExamplesSchema(schema, errors) {
   assert(
     schema.$schema === "https://json-schema.org/draft/2020-12/schema",
@@ -212,6 +257,29 @@ function validateHumanHandoffPacketsSchema(schema, errors) {
   assert(
     schema.$defs?.handoffPacket?.properties?.status?.const === "example_only",
     "agent human handoff packet schema must lock packet examples to example_only",
+    errors
+  );
+}
+
+function validateOpportunityCardsSchema(schema, errors) {
+  assert(
+    schema.$schema === "https://json-schema.org/draft/2020-12/schema",
+    "agent opportunity cards schema must use JSON Schema draft 2020-12",
+    errors
+  );
+  assert(
+    schema.title === "AgentOpportunityCardExamples",
+    "agent opportunity cards schema must be titled AgentOpportunityCardExamples",
+    errors
+  );
+  assert(
+    schema.properties?.status?.const === "live_opportunity_card_examples",
+    "agent opportunity cards schema must lock live example status",
+    errors
+  );
+  assert(
+    schema.$defs?.opportunityCard?.properties?.status?.const === "example_only",
+    "agent opportunity card examples must lock cards to example_only",
     errors
   );
 }
@@ -586,6 +654,95 @@ function validateConformanceReport(report, manifest, errors) {
   );
 }
 
+function validateProductionAccessPacket(packet, manifest, errors) {
+  const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
+  const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
+
+  assert(packet.schemaVersion === 1, "production access packet schemaVersion must be 1", errors);
+  assert(
+    packet.packetKind === "agent_production_access_packet",
+    "production access packet kind must be agent_production_access_packet",
+    errors
+  );
+  assert(
+    packet.status === "target_operator_review_packet_example",
+    "production access packet must be target operator review example",
+    errors
+  );
+  assert(packet.exampleOnly === true, "production access packet must be example only", errors);
+  assert(
+    packet.notAcceptedByProduction === true,
+    "production access packet must not be accepted by production",
+    errors
+  );
+  assert(
+    packet.requestedAccess?.status === "operator_review_required",
+    "production access packet must require operator review",
+    errors
+  );
+  assert(
+    packet.sandboxEvidence?.validationCommand === "pnpm contracts:agent-sandbox",
+    "production access packet must cite the sandbox validation command",
+    errors
+  );
+  assert(
+    packet.sandboxEvidence?.productionEffects === false,
+    "production access packet sandbox evidence must remain non-production",
+    errors
+  );
+  assert(
+    packet.dataHandling?.containsSecrets === false,
+    "production access packet must not contain secrets",
+    errors
+  );
+  assert(
+    packet.paymentAndSpendBoundary?.paymentAuthorityRequested === false,
+    "production access packet must not request payment authority",
+    errors
+  );
+  assert(
+    packet.paymentAndSpendBoundary?.x402Status === "target_only",
+    "production access packet must keep x402 target-only",
+    errors
+  );
+  assert(
+    packet.protocolClaims?.mcp === "target_only" &&
+      packet.protocolClaims?.a2a === "target_only" &&
+      packet.protocolClaims?.x402 === "target_only" &&
+      packet.protocolClaims?.oauthCompatibleDelegation === "target_only" &&
+      packet.protocolClaims?.signedPushDelivery === "target_only",
+    "production access packet must keep target protocols target-only",
+    errors
+  );
+  assert(packet.canonicalBoundary?.rootObject === "Request", "production access packet must keep Request as root", errors);
+
+  for (const action of packet.requestedAccess?.intendedActions ?? []) {
+    assert(flowIds.has(action), `production access action ${action} must reference a sandbox flow`, errors);
+  }
+
+  for (const objectName of packet.canonicalBoundary?.durableTruthObjects ?? []) {
+    assert(durableWrites.has(objectName), `production access durable truth ${objectName} must be canonical`, errors);
+  }
+
+  includesAll(
+    packet.sandboxEvidence?.coveredRequiredChecks,
+    ["package_production_access_packet", "contract_sandbox_only", "target_protocols_stay_target"],
+    "production access packet covered checks",
+    errors
+  );
+  includesAll(
+    packet.canonicalBoundary?.packetIsNot,
+    ["production credential", "permission grant", "payment authorization", "completion proof", "production sandbox"],
+    "production access packet non-authority list",
+    errors
+  );
+  assert(
+    (packet.canonicalBoundary?.notRoots ?? []).includes("production access packet"),
+    "production access packet must not be a root object",
+    errors
+  );
+}
+
 function validateErrorExamples(errorExamples, manifest, errors) {
   const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
   const recoveryRuleIds = new Set(
@@ -769,6 +926,92 @@ function validateHumanHandoffPackets(packets, manifest, errors) {
   );
 }
 
+function validateOpportunityCards(cards, manifest, errors) {
+  const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
+  const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
+  const cardIds = new Set((cards.examples ?? []).map((card) => card.id));
+
+  assert(cards.schemaVersion === 1, "opportunity card examples schemaVersion must be 1", errors);
+  assert(
+    cards.status === "live_opportunity_card_examples",
+    "opportunity card examples must have live example status",
+    errors
+  );
+  assert(cards.canonicalBoundary?.rootObject === "Request", "opportunity cards must keep Request as root", errors);
+  includesAll(
+    Array.from(cardIds),
+    [
+      "strong_fit_apply_card",
+      "monitor_only_card",
+      "run_solution_candidate_card",
+      "optimize_only_card"
+    ],
+    "opportunity card examples",
+    errors
+  );
+
+  for (const card of cards.examples ?? []) {
+    assert(card.status === "example_only", `${card.id} must be example_only`, errors);
+    assert(flowIds.has(card.recommendedNextAction), `${card.id} recommended action must reference a sandbox flow`, errors);
+    for (const action of card.availableActionIds ?? []) {
+      assert(flowIds.has(action), `${card.id} available action ${action} must reference a sandbox flow`, errors);
+    }
+    for (const write of card.canonicalWritesIfActionTaken ?? []) {
+      assert(durableWrites.has(write), `${card.id} write ${write} must be canonical`, errors);
+    }
+    assert(
+      (card.notAuthority ?? []).some((boundary) =>
+        /permission|assignment|payment|completion|fulfillment/i.test(boundary)
+      ),
+      `${card.id} must declare non-authority boundaries`,
+      errors
+    );
+    assert(
+      (card.example?.agentShouldNotDo ?? []).length > 0,
+      `${card.id} must tell agents what not to do`,
+      errors
+    );
+  }
+
+  assert(
+    (cards.examples ?? []).some(
+      (card) =>
+        card.recommendedNextAction === "apply_to_request" &&
+        (card.canonicalWritesIfActionTaken ?? []).includes("Commitment")
+    ),
+    "opportunity cards must include an apply example with Commitment write effect",
+    errors
+  );
+  assert(
+    (cards.examples ?? []).some(
+      (card) =>
+        card.recommendedNextAction === "run_public_solution" &&
+        (card.canonicalWritesIfActionTaken ?? []).includes("Transaction")
+    ),
+    "opportunity cards must include a solution-run example with Transaction write effect",
+    errors
+  );
+  assert(
+    (cards.examples ?? []).some(
+      (card) =>
+        card.recommendedNextAction === "monitor_request" &&
+        (card.canonicalWritesIfActionTaken ?? []).length === 0
+    ),
+    "opportunity cards must include a monitor-only no-write example",
+    errors
+  );
+  assert(
+    (cards.canonicalBoundary?.opportunityCardsAreNot ?? []).includes("permission grant"),
+    "opportunity cards must not grant permission",
+    errors
+  );
+  assert(
+    (cards.canonicalBoundary?.notRoots ?? []).includes("fit score"),
+    "opportunity fit scores must not be root objects",
+    errors
+  );
+}
+
 function validateProtocolAdapterSamples(samples, manifest, errors) {
   const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
   const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
@@ -841,11 +1084,15 @@ const schema = readJson(schemaPath);
 const conformanceReportSchema = readJson(conformanceReportSchemaPath);
 const errorExamplesSchema = readJson(errorExamplesSchemaPath);
 const humanHandoffPacketsSchema = readJson(humanHandoffPacketsSchemaPath);
+const opportunityCardsSchema = readJson(opportunityCardsSchemaPath);
+const productionAccessPacketSchema = readJson(productionAccessPacketSchemaPath);
 const protocolAdapterSamplesSchema = readJson(protocolAdapterSamplesSchemaPath);
 const manifest = readJson(manifestPath);
 const conformanceReport = readJson(conformanceReportPath);
 const errorExamples = readJson(errorExamplesPath);
 const humanHandoffPackets = readJson(humanHandoffPacketsPath);
+const opportunityCards = readJson(opportunityCardsPath);
+const productionAccessPacket = readJson(productionAccessPacketPath);
 const protocolAdapterSamples = readJson(protocolAdapterSamplesPath);
 const errors = [];
 
@@ -853,6 +1100,8 @@ validateSchema(schema, errors);
 validateConformanceReportSchema(conformanceReportSchema, errors);
 validateErrorExamplesSchema(errorExamplesSchema, errors);
 validateHumanHandoffPacketsSchema(humanHandoffPacketsSchema, errors);
+validateOpportunityCardsSchema(opportunityCardsSchema, errors);
+validateProductionAccessPacketSchema(productionAccessPacketSchema, errors);
 validateProtocolAdapterSamplesSchema(protocolAdapterSamplesSchema, errors);
 validateManifestShape(manifest, errors);
 validateMockIdentities(manifest, errors);
@@ -862,10 +1111,12 @@ validateCanonBoundary(manifest, errors);
 validateConformanceReport(conformanceReport, manifest, errors);
 validateErrorExamples(errorExamples, manifest, errors);
 validateHumanHandoffPackets(humanHandoffPackets, manifest, errors);
+validateOpportunityCards(opportunityCards, manifest, errors);
+validateProductionAccessPacket(productionAccessPacket, manifest, errors);
 validateProtocolAdapterSamples(protocolAdapterSamples, manifest, errors);
 validateImplementationAndDocs(manifest, errors);
 
-const serialized = JSON.stringify({ manifest, conformanceReport, errorExamples, humanHandoffPackets, protocolAdapterSamples });
+const serialized = JSON.stringify({ manifest, conformanceReport, errorExamples, humanHandoffPackets, opportunityCards, productionAccessPacket, protocolAdapterSamples });
 assert(!serialized.includes("PRIVATE KEY"), "sandbox manifest must not include private keys", errors);
 assert(!serialized.includes("BEGIN "), "sandbox manifest must not include PEM-like secrets", errors);
 
