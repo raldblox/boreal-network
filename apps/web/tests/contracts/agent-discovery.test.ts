@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {
   allAgentDiscoveryAssets,
+  buildAgentAccessReviewProfile,
   buildAgentActionCatalog,
   buildAgentActionsMarkdown,
   buildAgentAuthProfile,
@@ -39,6 +40,7 @@ import {
 } from "@/lib/request";
 import { GET as getAgentCard } from "@/app/.well-known/agent-card.json/route";
 import { GET as getAgentActions } from "@/app/agents/actions.md/route";
+import { GET as getAgentAccessReview } from "@/app/agents/access-review.json/route";
 import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
 import { GET as getAgentConformance } from "@/app/agents/conformance.json/route";
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
@@ -99,6 +101,10 @@ async function main() {
     true,
   );
   assert.equal(agentCard.toolRegistryUrl.endsWith("/agents/tools.json"), true);
+  assert.equal(
+    agentCard.accessReviewProfileUrl.endsWith("/agents/access-review.json"),
+    true,
+  );
   assert.equal(agentCard.authProfileUrl.endsWith("/agents/auth.json"), true);
   assert.equal(
     agentCard.conformanceProfileUrl.endsWith("/agents/conformance.json"),
@@ -134,6 +140,11 @@ async function main() {
   );
   assert.equal(agentCard.promptCatalogUrl.endsWith("/agents/prompts.json"), true);
   assert.equal(agentCard.authentication.profileUrl.endsWith("/agents/auth.json"), true);
+  assert.equal(agentCard.accessReview.status, "live_access_review_profile");
+  assert.equal(
+    agentCard.accessReview.decisionOutcomes.includes("approved_scoped_pilot"),
+    true,
+  );
   assert.equal(agentCard.auth.status, "live_auth_profile");
   assert.equal(agentCard.auth.liveActorClasses.includes("resolver_agent"), true);
   assert.equal(agentCard.conformance.status, "live_conformance_profile");
@@ -592,6 +603,22 @@ async function main() {
     true,
   );
   assert.equal(
+    conformanceProfile.reportContract.schemaUrl.endsWith(
+      "/schemas/agent-conformance-report.schema.json"
+    ),
+    true,
+  );
+  assert.equal(
+    conformanceProfile.reportContract.sampleFixturePath,
+    "fixtures/agent/conformance-report.sample.json",
+  );
+  assert.equal(
+    conformanceProfile.reportContract.reportIsNot.includes(
+      "production credential"
+    ),
+    true,
+  );
+  assert.equal(
     conformanceProfile.canonicalBoundary.conformanceProfileIsNot.includes(
       "certification"
     ),
@@ -792,6 +819,48 @@ async function main() {
   assert.equal(
     monitoringProfile.webhookBoundary.status,
     "target_signed_push_profile",
+  );
+
+  const accessReviewProfile = buildAgentAccessReviewProfile();
+  assert.equal(accessReviewProfile.status, "live_access_review_profile");
+  assert.equal(accessReviewProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    accessReviewProfile.reviewStages.some(
+      (stage) => stage.id === "scope_minimization_review"
+    ),
+    true,
+  );
+  assert.equal(
+    accessReviewProfile.scopePolicy.some(
+      (policy) =>
+        policy.scopeFamily === "proposal_and_artifact_write" &&
+        policy.requiresHuman
+    ),
+    true,
+  );
+  assert.equal(
+    accessReviewProfile.rateLimitPolicy.some(
+      (policy) => policy.id === "write_pilot_low_volume"
+    ),
+    true,
+  );
+  assert.equal(
+    accessReviewProfile.revocationPolicy.some(
+      (policy) => policy.id === "duplicate_or_spam_mutation"
+    ),
+    true,
+  );
+  assert.equal(
+    accessReviewProfile.decisionOutcomes.some(
+      (outcome) => outcome.id === "approved_scoped_pilot"
+    ),
+    true,
+  );
+  assert.equal(
+    accessReviewProfile.canonicalBoundary.accessReviewProfileIsNot.includes(
+      "credential issuer"
+    ),
+    true,
   );
 
   const onboardingProfile = buildAgentOnboardingProfile();
@@ -1019,10 +1088,42 @@ async function main() {
   assert.match(sandboxText, /cursor.nextAfterSequence/);
   assert.match(sandboxText, /Boreal-Webhook-Signature/);
   assert.match(sandboxText, /open_request without explicit buyer approval/);
+  assert.equal(
+    sandboxManifest.scenarios.some(
+      (scenario) =>
+        scenario.id === "solver_apply_submit_monitor_replay" &&
+        scenario.coveredActions.includes("apply_to_request") &&
+        scenario.coveredActions.includes("submit_artifact") &&
+        scenario.expectedTerminalState.claimState ===
+          "proof_submitted_waiting_for_owner_acceptance"
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.scenarios.some(
+      (scenario) =>
+        scenario.id === "public_solution_paid_run_shape_replay" &&
+        JSON.stringify(scenario.expectedTerminalState).includes(
+          '"sourceRequestMutated":false'
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.scenarios.some(
+      (scenario) =>
+        scenario.id === "idempotent_recovery_replay" &&
+        JSON.stringify(scenario.expectedTerminalState).includes(
+          '"duplicateDurableTruth":false'
+        )
+    ),
+    true,
+  );
 
   const sandboxGuide = buildAgentSandboxMarkdown();
   assert.match(sandboxGuide, /contract-only sandbox/);
   assert.match(sandboxGuide, /not accepted by production endpoints/);
+  assert.match(sandboxGuide, /Replay Scenarios/);
   assert.match(sandboxGuide, /Apply To A Request/);
   assert.match(sandboxGuide, /Submit Proof/);
 
@@ -1255,6 +1356,7 @@ async function main() {
   assert.match(startGuide, /GET \/api\/requests\?scope=public/);
   assert.match(startGuide, /agentActionAffordances/);
   assert.match(startGuide, /agentActionPolicy/);
+  assert.match(startGuide, /GET \/agents\/access-review\.json/);
   assert.match(startGuide, /GET \/agents\/auth\.json/);
   assert.match(startGuide, /GET \/agents\/conformance\.json/);
   assert.match(startGuide, /GET \/agents\/completion\.json/);
@@ -1272,6 +1374,7 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/readiness\.json/);
   assert.match(startGuide, /GET \/agents\/tools\.json/);
   assert.match(startGuide, /Agent action playbook/);
+  assert.match(startGuide, /Agent access review profile/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent Workflow Catalog/);
   assert.match(startGuide, /Optimize this/);
@@ -1298,6 +1401,7 @@ async function main() {
     Object.hasOwn(discoveryIndex.paths, "/.well-known/agent-card.json"),
     true,
   );
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/access-review.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/actions.md"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/auth.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/conformance.json"), true);
@@ -1350,8 +1454,20 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex["x-boreal-agent-access-review"].decisions.includes(
+      "approved_scoped_pilot"
+    ),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-agent-conformance"].checklists.some(
       (checklist) => checklist.id === "proof_payment_and_recovery"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-conformance"].reportSchemaUrl.endsWith(
+      "/schemas/agent-conformance-report.schema.json"
     ),
     true,
   );
@@ -1433,6 +1549,10 @@ async function main() {
     "schemas/json/request.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-access-review.schema.json")?.sourcePath,
+    "schemas/json/agent-access-review.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-sandbox.schema.json")?.sourcePath,
     "schemas/json/agent-sandbox.schema.json",
   );
@@ -1443,6 +1563,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-conformance.schema.json")?.sourcePath,
     "schemas/json/agent-conformance.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-conformance-report.schema.json")?.sourcePath,
+    "schemas/json/agent-conformance-report.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-completion.schema.json")?.sourcePath,
@@ -1564,6 +1688,13 @@ async function main() {
   assert.match(
     await agentActionsResponse.text(),
     /Boreal Agent Action Playbook/
+  );
+
+  const agentAccessReviewResponse = await getAgentAccessReview();
+  assert.equal(agentAccessReviewResponse.status, 200);
+  assert.equal(
+    (await agentAccessReviewResponse.json()).status,
+    "live_access_review_profile"
   );
 
   const agentAuthResponse = await getAgentAuth();
@@ -1695,15 +1826,25 @@ async function main() {
 
   const agentSandboxJsonResponse = await getAgentSandboxJson();
   assert.equal(agentSandboxJsonResponse.status, 200);
-  assert.equal((await agentSandboxJsonResponse.json()).mode, "contract_only");
+  const agentSandboxJson = await agentSandboxJsonResponse.json();
+  assert.equal(agentSandboxJson.mode, "contract_only");
+  assert.equal(
+    agentSandboxJson.scenarios.some(
+      (scenario: { id: string }) =>
+        scenario.id === "solver_apply_submit_monitor_replay"
+    ),
+    true,
+  );
 
   const llmsResponse = await getLlmsTxt();
   assert.equal(llmsResponse.status, 200);
   const llmsText = await llmsResponse.text();
   assert.match(llmsText, /Agent Discovery/);
+  assert.match(llmsText, /Agent access review profile/);
   assert.match(llmsText, /Agent action playbook/);
   assert.match(llmsText, /Agent auth profile/);
   assert.match(llmsText, /Agent conformance profile/);
+  assert.match(llmsText, /Agent conformance report schema/);
   assert.match(llmsText, /Agent completion profile/);
   assert.match(llmsText, /Agent evidence profile/);
   assert.match(llmsText, /Agent execution profile/);
@@ -1735,6 +1876,15 @@ async function main() {
   assert.equal(schemaResponse.status, 200);
   assert.equal((await schemaResponse.json()).title, "Request");
 
+  const accessReviewSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-access-review.schema.json" }),
+  });
+  assert.equal(accessReviewSchemaResponse.status, 200);
+  assert.equal(
+    (await accessReviewSchemaResponse.json()).title,
+    "AgentAccessReviewProfile"
+  );
+
   const sandboxSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-sandbox.schema.json" }),
   });
@@ -1754,6 +1904,18 @@ async function main() {
   assert.equal(
     (await conformanceSchemaResponse.json()).title,
     "AgentConformanceProfile"
+  );
+
+  const conformanceReportSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({ schema: "agent-conformance-report.schema.json" }),
+    }
+  );
+  assert.equal(conformanceReportSchemaResponse.status, 200);
+  assert.equal(
+    (await conformanceReportSchemaResponse.json()).title,
+    "AgentConformanceReport"
   );
 
   const completionSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

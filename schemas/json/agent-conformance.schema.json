@@ -11,6 +11,7 @@
     "name",
     "description",
     "resources",
+    "reportContract",
     "prerequisites",
     "checklists",
     "validationCommands",
@@ -37,6 +38,9 @@
       "items": {
         "$ref": "#/$defs/link"
       }
+    },
+    "reportContract": {
+      "$ref": "#/$defs/reportContract"
     },
     "prerequisites": {
       "type": "array",
@@ -122,6 +126,49 @@
         "url": {
           "type": "string",
           "format": "uri"
+        }
+      }
+    },
+    "reportContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "schemaUrl",
+        "sampleFixturePath",
+        "useFor",
+        "requiredSections",
+        "reportIsNot"
+      ],
+      "properties": {
+        "status": {
+          "const": "live_report_schema"
+        },
+        "schemaUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "sampleFixturePath": {
+          "type": "string",
+          "const": "fixtures/agent/conformance-report.sample.json"
+        },
+        "useFor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredSections": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reportIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

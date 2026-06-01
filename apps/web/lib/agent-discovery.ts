@@ -39,6 +39,7 @@ export type AgentActionDefinition = {
 };
 
 export const agentDiscoveryPaths = {
+  agentAccessReview: "/agents/access-review.json",
   agentAuth: "/agents/auth.json",
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
@@ -316,6 +317,15 @@ export const openApiDiscoveryAssets = [
 export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable operator-review policy schema for scoped external-agent production access, rate limits, revocation, and target adapter claims.",
+    routePath: "/schemas/agent-access-review.schema.json",
+    sourcePath: "schemas/json/agent-access-review.schema.json",
+    standard: "json_schema",
+    title: "Agent access review profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
     description: "Canonical Request object schema.",
     routePath: "/schemas/request.schema.json",
     sourcePath: "schemas/json/request.schema.json",
@@ -381,7 +391,7 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
-      "Contract-only agent sandbox manifest schema for deterministic mock identities, payloads, and flow samples.",
+      "Contract-only agent sandbox manifest schema for deterministic mock identities, payloads, flow samples, and replay scenarios.",
     routePath: "/schemas/agent-sandbox.schema.json",
     sourcePath: "schemas/json/agent-sandbox.schema.json",
     standard: "json_schema",
@@ -413,6 +423,15 @@ export const jsonSchemaDiscoveryAssets = [
     sourcePath: "schemas/json/agent-conformance.schema.json",
     standard: "json_schema",
     title: "Agent conformance profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable conformance report schema for agents packaging sandbox replay results, requested scopes, protocol claims, and human operator-review evidence.",
+    routePath: "/schemas/agent-conformance-report.schema.json",
+    sourcePath: "schemas/json/agent-conformance-report.schema.json",
+    standard: "json_schema",
+    title: "Agent conformance report",
   },
   {
     contentType: "application/schema+json; charset=utf-8",
@@ -560,6 +579,7 @@ export function buildAgentCard() {
     },
     url: absoluteUrl("/"),
     documentationUrl: absoluteUrl(agentDiscoveryPaths.agentStart),
+    accessReviewProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
     authProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
     conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
@@ -594,6 +614,17 @@ export function buildAgentCard() {
         "Sandbox mock credentials are contract samples only and are not accepted by production endpoints.",
         "OAuth-compatible external-agent auth is target direction, not a live claim in this card.",
       ],
+    },
+    accessReview: {
+      url: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
+      status: buildAgentAccessReviewProfile().status,
+      stages: buildAgentAccessReviewProfile().reviewStages.map((stage) => ({
+        id: stage.id,
+        status: stage.status,
+      })),
+      decisionOutcomes: buildAgentAccessReviewProfile().decisionOutcomes.map(
+        (outcome) => outcome.id
+      ),
     },
     auth: {
       url: absoluteUrl(agentDiscoveryPaths.agentAuth),
@@ -839,6 +870,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent card: [${agentDiscoveryPaths.agentCard}](${absoluteUrl(agentDiscoveryPaths.agentCard)})
 - Agent-readable overview: [${agentDiscoveryPaths.llms}](${absoluteUrl(agentDiscoveryPaths.llms)})
 - Agent action playbook: [${agentDiscoveryPaths.agentActions}](${absoluteUrl(agentDiscoveryPaths.agentActions)})
+- Agent access review profile: [${agentDiscoveryPaths.agentAccessReview}](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)})
 - Agent auth profile: [${agentDiscoveryPaths.agentAuth}](${absoluteUrl(agentDiscoveryPaths.agentAuth)})
 - Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
@@ -858,7 +890,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent readiness profile: [${agentDiscoveryPaths.agentReadiness}](${absoluteUrl(agentDiscoveryPaths.agentReadiness)})
 - Agent tool registry: [${agentDiscoveryPaths.agentTools}](${absoluteUrl(agentDiscoveryPaths.agentTools)})
 - Agent contract sandbox: [${agentDiscoveryPaths.agentSandboxGuide}](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)})
-- Agent sandbox manifest: [${agentDiscoveryPaths.agentSandboxManifest}](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)})
+- Agent sandbox manifest and replay scenarios: [${agentDiscoveryPaths.agentSandboxManifest}](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)})
 - OpenAPI discovery index: [${agentDiscoveryPaths.openApiIndex}](${absoluteUrl(agentDiscoveryPaths.openApiIndex)})
 - Public request board API: [${agentDiscoveryPaths.publicRequests}](${absoluteUrl(agentDiscoveryPaths.publicRequests)})
 
@@ -940,6 +972,12 @@ For deterministic auth, scope, approval, and write-boundary handling, agents can
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentAuth}
+\`\`\`
+
+For deterministic production access review, scope minimization, rate-limit, and revocation handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentAccessReview}
 \`\`\`
 
 For deterministic proof, completion-claim, artifact, and review-boundary handling, agents can read:
@@ -1110,6 +1148,25 @@ export function buildOpenApiDiscoveryIndex() {
                 "Markdown walkthrough for inspect, apply, submit, monitor, run, and optimize agent intents.",
               content: {
                 "text/markdown": { schema: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+      "/agents/access-review.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent access review profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for operator-reviewed external-agent access, scope minimization, rate limits, revocation, and target adapter claims.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentAccessReviewProfile",
+                  },
+                },
               },
             },
           },
@@ -1560,6 +1617,34 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentAccessReviewProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "reviewStages",
+            "scopePolicy",
+            "decisionOutcomes",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_access_review_profile" },
+            reviewStages: {
+              type: "array",
+              items: { type: "object" },
+            },
+            scopePolicy: {
+              type: "array",
+              items: { type: "object" },
+            },
+            decisionOutcomes: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentWorkflowCatalog: {
           type: "object",
           required: ["schemaVersion", "status", "workflows", "canonicalBoundary"],
@@ -1612,6 +1697,7 @@ export function buildOpenApiDiscoveryIndex() {
             "schemaVersion",
             "status",
             "checklists",
+            "reportContract",
             "canonicalBoundary",
           ],
           properties: {
@@ -1621,6 +1707,7 @@ export function buildOpenApiDiscoveryIndex() {
               type: "array",
               items: { type: "object" },
             },
+            reportContract: { type: "object" },
             canonicalBoundary: { type: "object" },
           },
         },
@@ -1913,9 +2000,21 @@ export function buildOpenApiDiscoveryIndex() {
         status: scope.status,
       })),
     },
+    "x-boreal-agent-access-review": {
+      url: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
+      status: buildAgentAccessReviewProfile().status,
+      stages: buildAgentAccessReviewProfile().reviewStages.map((stage) => ({
+        id: stage.id,
+        status: stage.status,
+      })),
+      decisions: buildAgentAccessReviewProfile().decisionOutcomes.map(
+        (decision) => decision.id
+      ),
+    },
     "x-boreal-agent-conformance": {
       url: absoluteUrl(agentDiscoveryPaths.agentConformance),
       status: buildAgentConformanceProfile().status,
+      reportSchemaUrl: buildAgentConformanceProfile().reportContract.schemaUrl,
       checklists: buildAgentConformanceProfile().checklists.map((checklist) => ({
         id: checklist.id,
         requiredChecks: checklist.checks.filter((check) => check.required).length,
@@ -2490,10 +2589,41 @@ export function buildAgentConformanceProfile() {
         url: absoluteUrl("/schemas/agent-conformance.schema.json"),
       },
       {
+        label: "Agent conformance report schema",
+        url: absoluteUrl("/schemas/agent-conformance-report.schema.json"),
+      },
+      {
         label: "OpenAPI discovery index",
         url: absoluteUrl(agentDiscoveryPaths.openApiIndex),
       },
     ],
+    reportContract: {
+      status: "live_report_schema",
+      schemaUrl: absoluteUrl("/schemas/agent-conformance-report.schema.json"),
+      sampleFixturePath: "fixtures/agent/conformance-report.sample.json",
+      useFor:
+        "Package sandbox replay results, requested production scopes, protocol claims, secret-handling posture, and human-review questions for operator review.",
+      requiredSections: [
+        "agent",
+        "sourceProfiles",
+        "requestedProductionAccess",
+        "sandboxValidation",
+        "replayScenarioResults",
+        "checklistResults",
+        "protocolClaims",
+        "secretHandling",
+        "humanReviewRequest",
+        "canonicalBoundary",
+      ],
+      reportIsNot: [
+        "production credential",
+        "permission grant",
+        "certification",
+        "human approval record",
+        "payment authorization",
+        "completion proof",
+      ],
+    },
     prerequisites: [
       "Read the public agent card, start guide, action playbook, OpenAPI index, JSON Schema exports, and AsyncAPI event contract.",
       "Run the contract-only sandbox fixture before any live mutation attempt.",
@@ -2749,6 +2879,254 @@ export function buildAgentConformanceProfile() {
         "A passing checklist does not prove a specific Request action is allowed; read request-detail agentActionPolicy for that.",
         "A passing checklist does not prove work is complete; use completion, artifact, fulfillment, and review truth.",
         "Use checked sandbox samples for shape validation before touching live Request, Commitment, Artifact, Transaction, or RequestEvent records.",
+      ],
+    },
+  };
+}
+
+export function buildAgentAccessReviewProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_access_review_profile",
+    name: "Boreal Agent Access Review Profile",
+    description:
+      "Machine-readable operator-review policy for scoped external-agent access. It tells agents how Boreal evaluates conformance reports, requested scopes, quotas, revocation, and target adapter claims without issuing credentials or granting permission.",
+    resources: [
+      {
+        label: "Agent onboarding profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
+      },
+      {
+        label: "Agent conformance profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentConformance),
+      },
+      {
+        label: "Agent conformance report schema",
+        url: absoluteUrl("/schemas/agent-conformance-report.schema.json"),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent access review schema",
+        url: absoluteUrl("/schemas/agent-access-review.schema.json"),
+      },
+    ],
+    reviewStages: [
+      {
+        order: 1,
+        id: "report_shape_review",
+        status: "live_policy_guidance",
+        reviewer: "operator",
+        passWhen:
+          "The conformance report follows the public schema, names the represented actor, requested scopes, replay results, protocol claims, secret handling, and human-review questions.",
+        rejectWhen:
+          "The report is missing sandbox replay evidence, contains secrets, or claims production permission from the report itself.",
+      },
+      {
+        order: 2,
+        id: "scope_minimization_review",
+        status: "live_policy_guidance",
+        reviewer: "operator and represented human",
+        passWhen:
+          "Requested scopes map one-to-one to intended actions, route contracts, represented actor, and request-detail policy needs.",
+        rejectWhen:
+          "The agent asks for broad write authority, payment authority, private activity reads, or owner-only mutation without a represented human and use case.",
+      },
+      {
+        order: 3,
+        id: "sandbox_or_pilot_decision",
+        status: "target_operator_workflow",
+        reviewer: "operator",
+        passWhen:
+          "The operator can approve a narrow sandbox or pilot lane with quotas, expiry, revocation triggers, and escalation contact.",
+        rejectWhen:
+          "The agent needs production credentials before abuse controls, rate limits, represented-human approval, or revocation paths exist.",
+      },
+      {
+        order: 4,
+        id: "target_adapter_review",
+        status: "target_operator_workflow",
+        reviewer: "operator",
+        passWhen:
+          "Any MCP, A2A, OAuth-compatible, push, or x402 request is labeled target-only until a live adapter contract exists.",
+        rejectWhen:
+          "The agent treats protocol profiles, sandbox transcripts, A2A tasks, MCP tools, or x402 payloads as live production authorization.",
+      },
+    ],
+    scopePolicy: [
+      {
+        scopeFamily: "public_read",
+        status: "live_where_route_contract_allows",
+        allowWhen: [
+          "The route contract is anonymous public read.",
+          "The agent reads public-safe request projections or public schemas only.",
+        ],
+        denyWhen: [
+          "The agent requests private drafts, owner-only fields, private chats, or resolver secrets without scoped auth.",
+        ],
+        requiresHuman: false,
+      },
+      {
+        scopeFamily: "proposal_and_artifact_write",
+        status: "live_where_route_contract_allows",
+        allowWhen: [
+          "The represented actor is authorized for the Request.",
+          "The route contract supports the scope.",
+          "The agentActionPolicy allows the action.",
+          "Sandbox replay evidence covers the write class.",
+        ],
+        denyWhen: [
+          "The agent cannot name the Request, represented actor, idempotency plan, or proof boundary.",
+          "The agent tries to bypass Commitment acceptance before cross-actor Fulfillment or Artifact truth.",
+        ],
+        requiresHuman: true,
+      },
+      {
+        scopeFamily: "payment_or_credit",
+        status: "live_where_route_contract_allows",
+        allowWhen: [
+          "The signed-in buyer or represented human approves one spend action.",
+          "The payment or credit route reconciles into Transaction truth.",
+          "The action uses idempotency and keeps payment separate from completion proof.",
+        ],
+        denyWhen: [
+          "The agent asks for unbounded spend authority.",
+          "The agent treats payment success as work completion.",
+          "The agent requests wallet private keys, raw processor secrets, or resolver bearer spend authority.",
+        ],
+        requiresHuman: true,
+      },
+      {
+        scopeFamily: "target_protocol_adapters",
+        status: "target_external_agent_auth",
+        allowWhen: [
+          "A live route contract exists for the adapter.",
+          "Adapter ids stay correlation ids below Request truth.",
+          "The same HTTP auth, policy, idempotency, proof, and payment gates are enforced.",
+        ],
+        denyWhen: [
+          "The agent asks to treat MCP, A2A, x402, OAuth delegation, or push subscriptions as live from descriptive profiles alone.",
+        ],
+        requiresHuman: true,
+      },
+    ],
+    rateLimitPolicy: [
+      {
+        id: "public_read_fair_use",
+        appliesTo: ["public_read"],
+        defaultMode: "bounded anonymous reads with no mutation authority",
+        escalateWhen:
+          "The agent scans aggressively, scrapes beyond public contract routes, or degrades public request-board availability.",
+      },
+      {
+        id: "write_pilot_low_volume",
+        appliesTo: ["proposal_and_artifact_write", "payment_or_credit"],
+        defaultMode: "operator-approved low-volume pilot with per-action idempotency and human escalation",
+        escalateWhen:
+          "The agent attempts repeated proposals, proof spam, broad activity reads, duplicate mutations, or payment retries.",
+      },
+      {
+        id: "target_adapter_rate_limits",
+        appliesTo: ["target_protocol_adapters"],
+        defaultMode: "not live until adapter-specific quota, abuse, and revocation controls exist",
+        escalateWhen:
+          "The agent claims adapter production readiness before an adapter contract and rate-limit plan exist.",
+      },
+    ],
+    revocationPolicy: [
+      {
+        id: "scope_misuse",
+        trigger:
+          "The agent uses a granted scope for a different action, represented actor, Request, or payment path than approved.",
+        action: "Revoke or pause access and require a new conformance report with corrected requested scopes.",
+      },
+      {
+        id: "duplicate_or_spam_mutation",
+        trigger:
+          "The agent creates duplicate commitments, artifacts, payments, solution runs, or noisy RequestEvent-like side effects.",
+        action: "Pause write scopes, inspect idempotency logs, and require recovery-profile remediation.",
+      },
+      {
+        id: "secret_or_private_data_leak",
+        trigger:
+          "The agent puts credentials, private chats, raw logs, payment secrets, or owner-only data into public artifacts or reports.",
+        action: "Revoke access immediately and require operator review before any future credential path.",
+      },
+      {
+        id: "target_adapter_overclaim",
+        trigger:
+          "The agent claims live MCP, A2A, x402, OAuth-compatible delegation, or push delivery without a live route contract.",
+        action: "Reject adapter access and require the readiness and protocol profiles to be corrected in the report.",
+      },
+    ],
+    decisionOutcomes: [
+      {
+        id: "approved_public_read_only",
+        meaning:
+          "The agent may use public reads and public contract resources only.",
+        credentialEffect: "No production credential is issued.",
+        agentMayClaim: ["public discovery compatible"],
+      },
+      {
+        id: "approved_scoped_pilot",
+        meaning:
+          "The agent may use a narrow operator-approved live or sandbox pilot lane for named scopes, actors, and routes.",
+        credentialEffect:
+          "Credential issuance is still handled by the relevant live auth path; this profile does not issue it.",
+        agentMayClaim: ["operator-reviewed for a scoped pilot after credential issuance"],
+      },
+      {
+        id: "needs_more_evidence",
+        meaning:
+          "The report is directionally acceptable but lacks replay coverage, scope detail, human approval, or abuse-control information.",
+        credentialEffect: "No credential is issued.",
+        agentMayClaim: ["access review pending more evidence"],
+      },
+      {
+        id: "rejected",
+        meaning:
+          "The access request violates scope, safety, proof, payment, privacy, or target-adapter boundaries.",
+        credentialEffect: "No credential is issued.",
+        agentMayClaim: ["not approved for production access"],
+      },
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      accessReviewProfileIsNot: [
+        "credential issuer",
+        "permission grant",
+        "certification",
+        "human approval record",
+        "payment authorization",
+        "completion proof",
+      ],
+      notRoots: [
+        "access review",
+        "scope request",
+        "quota",
+        "revocation note",
+        "conformance report",
+        "sandbox transcript",
+        "MCP session",
+        "A2A task",
+        "x402 payload",
+      ],
+      rules: [
+        "Access review explains how an operator should evaluate an agent; it does not create production credentials.",
+        "A granted credential must still be enforced by route auth, scopes, request state, participant role, idempotency, and agentActionPolicy.",
+        "Human approval is required for write, spend, review, and target-adapter decisions that affect a real Request.",
+        "Revocation and rate-limit policy must be in place before broad or automated write access.",
       ],
     },
   };

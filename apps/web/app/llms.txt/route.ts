@@ -36,8 +36,10 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 
 - [Agent start guide](${absoluteUrl(agentDiscoveryPaths.agentStart)}): What agents can inspect, what requires auth, and how canonical writes work.
 - [Agent action playbook](${absoluteUrl(agentDiscoveryPaths.agentActions)}): Contract-linked walkthroughs for inspect, make-request, apply, submit, monitor, run, and optimize intents.
+- [Agent access review profile](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)}): Machine-readable operator-review policy for scopes, quotas, revocation, decisions, and target-adapter claims.
 - [Agent auth profile](${absoluteUrl(agentDiscoveryPaths.agentAuth)}): Machine-readable actor classes, auth schemes, scopes, approvals, and write boundaries.
 - [Agent conformance profile](${absoluteUrl(agentDiscoveryPaths.agentConformance)}): Machine-readable checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries.
+- [Agent conformance report schema](${absoluteUrl("/schemas/agent-conformance-report.schema.json")}): Machine-readable report shape for sandbox replay evidence, requested scopes, protocol claims, and human review.
 - [Agent completion profile](${absoluteUrl(agentDiscoveryPaths.agentCompletion)}): Machine-readable proof packets, Artifact requirements, completion claims, and review boundaries.
 - [Agent evidence profile](${absoluteUrl(agentDiscoveryPaths.agentEvidence)}): Machine-readable evidence packet, Artifact packaging, redaction, review, and proof-boundary guidance.
 - [Agent execution profile](${absoluteUrl(agentDiscoveryPaths.agentExecution)}): Machine-readable Fulfillment, FulfillmentStep, runtime signal, and execution-lane boundaries.
@@ -55,7 +57,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent readiness profile](${absoluteUrl(agentDiscoveryPaths.agentReadiness)}): Machine-readable live-versus-target capability matrix, agent UX flow, and go/no-go checks.
 - [Agent tool registry](${absoluteUrl(agentDiscoveryPaths.agentTools)}): Machine-readable safe HTTP tool calls, target MCP/A2A mappings, preflight checks, and canonical write boundaries.
 - [Agent contract sandbox](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)}): Deterministic mock identities, payloads, and sample IDs for contract tests; mock credentials are not production auth.
-- [Agent sandbox manifest](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)}): Machine-readable contract-only sandbox profile.
+- [Agent sandbox manifest](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)}): Machine-readable contract-only sandbox profile with deterministic replay scenarios.
 - [Agent card](${absoluteUrl(agentDiscoveryPaths.agentCard)}): Public capability card for agent discovery.
 - [OpenAPI discovery index](${absoluteUrl(agentDiscoveryPaths.openApiIndex)}): Public index of agent-readable HTTP contract resources.
 - [Public requests API](${absoluteUrl(agentDiscoveryPaths.publicRequests)}): Public-safe request inspection endpoint.

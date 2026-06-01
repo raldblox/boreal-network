@@ -5,7 +5,9 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const manifestPath = "fixtures/agent/sandbox-manifest.sample.json";
+const conformanceReportPath = "fixtures/agent/conformance-report.sample.json";
 const schemaPath = "schemas/json/agent-sandbox.schema.json";
+const conformanceReportSchemaPath = "schemas/json/agent-conformance-report.schema.json";
 const implementationPath = "apps/web/lib/agent-sandbox.ts";
 
 const requiredFlows = new Map([
@@ -34,6 +36,7 @@ const requiredResources = [
   "/agents/start.md",
   "/agents/sandbox.md",
   "/agents/actions.md",
+  "/agents/access-review.json",
   "/agents/auth.json",
   "/agents/conformance.json",
   "/agents/completion.json",
@@ -104,6 +107,34 @@ function validateSchema(schema, errors) {
     errors
   );
   assert(schema.$defs?.flow?.properties?.productionWrite?.const === false, "flow schema must lock productionWrite to false", errors);
+}
+
+function validateConformanceReportSchema(schema, errors) {
+  assert(
+    schema.$schema === "https://json-schema.org/draft/2020-12/schema",
+    "agent conformance report schema must use JSON Schema draft 2020-12",
+    errors
+  );
+  assert(
+    schema.title === "AgentConformanceReport",
+    "agent conformance report schema must be titled AgentConformanceReport",
+    errors
+  );
+  assert(
+    schema.properties?.reportKind?.const === "agent_conformance_report",
+    "agent conformance report schema must lock reportKind",
+    errors
+  );
+  assert(
+    schema.$defs?.replayScenarioResult?.properties?.productionEffects?.const === false,
+    "agent conformance report schema must lock replay productionEffects to false",
+    errors
+  );
+  assert(
+    schema.$defs?.protocolClaims?.properties?.mcp?.const === "target_only",
+    "agent conformance report schema must keep MCP target-only",
+    errors
+  );
 }
 
 function validateManifestShape(manifest, errors) {
@@ -277,6 +308,110 @@ function validateFlows(manifest, errors) {
   assert(optimize?.sample?.output?.needsOwnerApproval === true, "optimize_request_brief must require owner approval", errors);
 }
 
+function validateScenarios(manifest, errors) {
+  const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
+  const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
+  const scenarios = manifest.scenarios ?? [];
+  const scenarioIds = scenarios.map((scenario) => scenario.id);
+
+  assert(scenarios.length >= 4, "manifest must include deterministic replay scenarios", errors);
+  assert(new Set(scenarioIds).size === scenarioIds.length, "scenario ids must be unique", errors);
+
+  for (const scenario of scenarios) {
+    assert(scenario.mode === "deterministic_replay", `${scenario.id} mode must be deterministic_replay`, errors);
+    assert(
+      scenario.notAcceptedByProduction === true,
+      `${scenario.id} must be marked notAcceptedByProduction`,
+      errors
+    );
+    assert(
+      Array.isArray(scenario.coveredActions) && scenario.coveredActions.length > 0,
+      `${scenario.id} must cover at least one action`,
+      errors
+    );
+    assert(
+      Array.isArray(scenario.steps) && scenario.steps.length > 0,
+      `${scenario.id} must include replay steps`,
+      errors
+    );
+    assert(
+      typeof scenario.expectedTerminalState?.claimState === "string",
+      `${scenario.id} must declare an expected terminal claimState`,
+      errors
+    );
+
+    for (const action of scenario.coveredActions ?? []) {
+      assert(flowIds.has(action), `${scenario.id} covered action ${action} must reference a manifest flow`, errors);
+    }
+
+    for (const write of scenario.expectedCanonicalWrites ?? []) {
+      assert(durableWrites.has(write), `${scenario.id} expected write ${write} must be a canonical durable write`, errors);
+    }
+
+    for (const step of scenario.steps ?? []) {
+      assert(flowIds.has(step.flowId), `${scenario.id}.${step.id} flowId must reference a manifest flow`, errors);
+      for (const write of step.writes ?? []) {
+        assert(durableWrites.has(write), `${scenario.id}.${step.id} write ${write} must be canonical`, errors);
+      }
+      if ((step.writes ?? []).length > 0 && step.kind !== "simulated_external_gate") {
+        assert(
+          step.idempotencyKey === null || /^00000000-0000-4000-8000-[0-9a-f]{12}$/i.test(step.idempotencyKey),
+          `${scenario.id}.${step.id} idempotencyKey must be null or a stable sandbox UUID`,
+          errors
+        );
+      }
+    }
+  }
+
+  const solverReplay = scenarios.find((scenario) => scenario.id === "solver_apply_submit_monitor_replay");
+  includesAll(
+    solverReplay?.coveredActions,
+    ["inspect_public_requests", "apply_to_request", "submit_artifact", "monitor_request"],
+    "solver replay covered actions",
+    errors
+  );
+  assert(
+    solverReplay?.expectedTerminalState?.claimState === "proof_submitted_waiting_for_owner_acceptance",
+    "solver replay must stop before claiming completion",
+    errors
+  );
+  assert(
+    solverReplay?.steps?.some(
+      (step) =>
+        step.kind === "simulated_external_gate" &&
+        (step.writes ?? []).includes("Fulfillment") &&
+        step.expected?.requiredBefore === "submit_artifact"
+    ),
+    "solver replay must model the accepted Commitment gate before Artifact proof",
+    errors
+  );
+
+  const paidRunReplay = scenarios.find((scenario) => scenario.id === "public_solution_paid_run_shape_replay");
+  assert(
+    paidRunReplay?.expectedTerminalState?.sourceRequestMutated === false,
+    "paid-run replay must not mutate the source Request",
+    errors
+  );
+  includesAll(
+    paidRunReplay?.expectedCanonicalWrites,
+    ["Request", "Transaction", "RequestEvent"],
+    "paid-run replay expected writes",
+    errors
+  );
+
+  const recoveryReplay = scenarios.find((scenario) => scenario.id === "idempotent_recovery_replay");
+  assert(
+    recoveryReplay?.steps?.some((step) => step.expected?.bodyMustMatchOriginal === true),
+    "recovery replay must require the retry body to match the original write",
+    errors
+  );
+  assert(
+    recoveryReplay?.expectedTerminalState?.duplicateDurableTruth === false,
+    "recovery replay must avoid duplicate durable truth",
+    errors
+  );
+}
+
 function validateCanonBoundary(manifest, errors) {
   const boundary = manifest.canonicalBoundary ?? {};
   assert(boundary.rootObject === "Request", "sandbox boundary must keep Request as root", errors);
@@ -294,10 +429,95 @@ function validateCanonBoundary(manifest, errors) {
   );
 }
 
+function validateConformanceReport(report, manifest, errors) {
+  const scenarioIds = new Set((manifest.scenarios ?? []).map((scenario) => scenario.id));
+  const checklistIds = new Set(
+    readText("apps/web/lib/agent-discovery.ts").match(/id: "([a-z_]+)"/g)?.map((match) =>
+      match.replace('id: "', "").replace('"', "")
+    ) ?? []
+  );
+  const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
+
+  assert(report.schemaVersion === 1, "conformance report schemaVersion must be 1", errors);
+  assert(
+    report.reportKind === "agent_conformance_report",
+    "conformance report kind must be agent_conformance_report",
+    errors
+  );
+  assert(
+    report.requestedProductionAccess?.status === "operator_review_required",
+    "conformance report must require operator review for production access",
+    errors
+  );
+  assert(
+    report.sandboxValidation?.validationCommand === "pnpm contracts:agent-sandbox",
+    "conformance report must cite the sandbox validation command",
+    errors
+  );
+  assert(
+    report.sandboxValidation?.notAcceptedByProduction === true,
+    "conformance report sandbox validation must remain non-production",
+    errors
+  );
+  assert(
+    report.secretHandling?.containsSecrets === false,
+    "conformance report must not contain secrets",
+    errors
+  );
+  assert(
+    report.protocolClaims?.mcp === "target_only" &&
+      report.protocolClaims?.a2a === "target_only" &&
+      report.protocolClaims?.x402 === "target_only" &&
+      report.protocolClaims?.oauthCompatibleDelegation === "target_only",
+    "conformance report must keep target protocol adapters target-only",
+    errors
+  );
+  assert(report.canonicalBoundary?.rootObject === "Request", "conformance report must keep Request as root", errors);
+
+  for (const result of report.replayScenarioResults ?? []) {
+    assert(scenarioIds.has(result.scenarioId), `report scenario ${result.scenarioId} must reference sandbox manifest`, errors);
+    assert(result.productionEffects === false, `${result.scenarioId} must not have production effects`, errors);
+    for (const write of result.observedWrites ?? []) {
+      assert(durableWrites.has(write), `${result.scenarioId} observed write ${write} must be canonical`, errors);
+    }
+  }
+
+  for (const scenarioId of scenarioIds) {
+    assert(
+      (report.replayScenarioResults ?? []).some((result) => result.scenarioId === scenarioId && result.status === "passed"),
+      `conformance report must include passed replay result for ${scenarioId}`,
+      errors
+    );
+  }
+
+  for (const result of report.checklistResults ?? []) {
+    assert(checklistIds.has(result.checklistId), `report checklist ${result.checklistId} must match conformance profile ids`, errors);
+    assert((result.failedChecks ?? []).length === 0, `report checklist ${result.checklistId} must not include failed checks`, errors);
+  }
+
+  assert(
+    (report.canonicalBoundary?.reportIsNot ?? []).includes("production credential"),
+    "conformance report must say it is not a production credential",
+    errors
+  );
+  assert(
+    (report.canonicalBoundary?.notRoots ?? []).includes("conformance report"),
+    "conformance report must not be a root object",
+    errors
+  );
+}
+
 function validateImplementationAndDocs(manifest, errors) {
   const implementation = readText(implementationPath);
   for (const flow of manifest.flows ?? []) {
     assert(implementation.includes(`id: "${flow.id}"`), `implementation must define flow ${flow.id}`, errors);
+  }
+  for (const scenario of manifest.scenarios ?? []) {
+    assert(
+      implementation.includes(`id: "${scenario.id}"`),
+      `implementation must define scenario ${scenario.id}`,
+      errors
+    );
   }
   for (const routePath of [
     "apps/web/app/agents/sandbox.md/route.ts",
@@ -314,17 +534,22 @@ function validateImplementationAndDocs(manifest, errors) {
 }
 
 const schema = readJson(schemaPath);
+const conformanceReportSchema = readJson(conformanceReportSchemaPath);
 const manifest = readJson(manifestPath);
+const conformanceReport = readJson(conformanceReportPath);
 const errors = [];
 
 validateSchema(schema, errors);
+validateConformanceReportSchema(conformanceReportSchema, errors);
 validateManifestShape(manifest, errors);
 validateMockIdentities(manifest, errors);
 validateFlows(manifest, errors);
+validateScenarios(manifest, errors);
 validateCanonBoundary(manifest, errors);
+validateConformanceReport(conformanceReport, manifest, errors);
 validateImplementationAndDocs(manifest, errors);
 
-const serialized = JSON.stringify(manifest);
+const serialized = JSON.stringify({ manifest, conformanceReport });
 assert(!serialized.includes("PRIVATE KEY"), "sandbox manifest must not include private keys", errors);
 assert(!serialized.includes("BEGIN "), "sandbox manifest must not include PEM-like secrets", errors);
 

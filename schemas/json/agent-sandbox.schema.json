@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://boreal.work/schemas/json/agent-sandbox.schema.json",
   "title": "AgentSandbox",
-  "description": "Public contract-only sandbox manifest for agents testing Boreal request-native action payloads without creating live work.",
+  "description": "Public contract-only sandbox manifest for agents testing Boreal request-native action payloads and replay scenarios without creating live work.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -23,6 +23,7 @@
     "resources",
     "mockIdentities",
     "flows",
+    "scenarios",
     "canonicalBoundary"
   ],
   "properties": {
@@ -147,6 +148,12 @@
         "$ref": "#/$defs/flow"
       }
     },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    },
     "canonicalBoundary": {
       "type": "object",
       "additionalProperties": false,
@@ -251,6 +258,130 @@
           "const": false
         },
         "sample": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "mode",
+        "description",
+        "actorPath",
+        "coveredActions",
+        "preconditions",
+        "steps",
+        "expectedCanonicalWrites",
+        "expectedTerminalState",
+        "notAcceptedByProduction"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "mode": {
+          "const": "deterministic_replay"
+        },
+        "description": {
+          "type": "string"
+        },
+        "actorPath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "coveredActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "preconditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scenarioStep"
+          }
+        },
+        "expectedCanonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expectedTerminalState": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "notAcceptedByProduction": {
+          "const": true
+        }
+      }
+    },
+    "scenarioStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "flowId",
+        "actor",
+        "kind",
+        "description",
+        "writes",
+        "idempotencyKey",
+        "expected"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "flowId": {
+          "type": "string"
+        },
+        "actor": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "read",
+            "draft",
+            "mutation_sample",
+            "simulated_external_gate",
+            "monitor",
+            "payment_shape",
+            "recovery"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "writes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "idempotencyKey": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expected": {
           "type": "object",
           "additionalProperties": true
         }

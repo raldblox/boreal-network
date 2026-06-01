@@ -398,6 +398,7 @@ Read-only public discovery surfaces:
 - `/llms.txt` for short public guidance and claim boundaries
 - `/agents/start.md` for practical agent onboarding
 - `/agents/actions.md` for contract-linked inspect, make-request, apply, submit, monitor, run, and optimize walkthroughs
+- `/agents/access-review.json` for machine-readable operator-review policy around requested scopes, quotas, revocation, decision outcomes, and target-adapter claims
 - `/agents/auth.json` for machine-readable actor class, auth scheme, scope, approval, and write-boundary handling
 - `/agents/conformance.json` for machine-readable pre-production checks across discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries
 - `/agents/completion.json` for machine-readable proof packet, artifact, completion-claim, and review-boundary handling
@@ -416,8 +417,8 @@ Read-only public discovery surfaces:
 - `/agents/recovery.json` for machine-readable auth failure, scope failure, idempotency conflict, rate limit, monitor cursor, fulfillment retry, payment uncertainty, and escalation handling
 - `/agents/readiness.json` for machine-readable live-versus-target capability bands, standard planes, agent UX flow, and go/no-go checks
 - `/agents/tools.json` for machine-readable safe tool invocation, preflight, HTTP fallback, target MCP/A2A mapping, idempotency, and canonical write boundaries
-- `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, and payloads
-- `/agents/sandbox.json` for the machine-readable contract-only sandbox manifest
+- `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, payloads, and replay scenarios
+- `/agents/sandbox.json` for the machine-readable contract-only sandbox manifest and deterministic replay catalog
 - `/.well-known/agent-card.json` for public-safe A2A-style identity, capability, auth, and skill metadata
 - `/openapi.json` for the agent discovery OpenAPI index
 - `/openapi/request-briefing.yaml` for request briefing, request room, and solution-run HTTP contracts
@@ -425,9 +426,11 @@ Read-only public discovery surfaces:
 - `/openapi/resolver-auth.yaml` for resolver approval and bearer-token HTTP contracts
 - `/openapi/payment-and-credit.yaml` for payment, buyer-credit, request-grant, and transaction HTTP contracts
 - `/schemas/*.schema.json` for canonical JSON Schema object shapes
+- `/schemas/agent-access-review.schema.json` for the machine-readable agent access review profile shape
 - `/schemas/agent-sandbox.schema.json` for the contract-only agent sandbox manifest shape
 - `/schemas/agent-auth.schema.json` for the machine-readable agent auth profile shape
 - `/schemas/agent-conformance.schema.json` for the machine-readable agent conformance profile shape
+- `/schemas/agent-conformance-report.schema.json` for the machine-readable agent conformance report shape used to package sandbox replay evidence and requested scopes for operator review
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
 - `/schemas/agent-evidence.schema.json` for the machine-readable agent evidence profile shape
 - `/schemas/agent-execution.schema.json` for the machine-readable agent execution profile shape
@@ -469,6 +472,13 @@ does not create a new identity root, grant production credentials, or override
 request state, actor ownership, participant role, endpoint policy, or lifecycle
 gates.
 
+The public agent access review profile is descriptive and safety-oriented. It
+tells external agents how operators should evaluate conformance reports,
+requested scopes, rate limits, revocation triggers, decision outcomes, and
+target protocol-adapter claims. It is not a credential issuer, permission
+grant, certification, human approval record, payment authorization, or
+completion proof.
+
 The public agent completion profile is descriptive and safety-oriented. It tells
 agents which proof packet, artifact, fulfillment, review, transaction, and event
 truth is required before they can say a draft is ready, a proposal was
@@ -497,6 +507,13 @@ auth and policy, require human approval, preserve proof and payment boundaries,
 use the sandbox correctly, and avoid overclaiming target protocol adapters. It
 is not certification, permission, production credentials, payment authorization,
 or completion proof.
+
+The public agent conformance report schema is descriptive and safety-oriented.
+It gives agents a standard way to package sandbox replay results, requested
+production scopes, target protocol claims, secret-handling posture, and blocking
+human-review questions. A report is operator-review input only. It is not a
+credential, certification, human approval record, payment authorization, or
+completion proof.
 
 The public agent human handoff profile is descriptive and safety-oriented. It
 tells agents when to ask a human, show a draft, request approval, stop, escalate,
@@ -568,7 +585,10 @@ from `/agents/sandbox.json` must not be accepted by production endpoints.
 `pnpm contracts:agent-sandbox` validates the checked
 `fixtures/agent/sandbox-manifest.sample.json` fixture against the public
 sandbox contract, required flow coverage, idempotency samples, cursor samples,
-webhook header samples, and canon-boundary rules.
+webhook header samples, deterministic replay scenarios, and canon-boundary
+rules. Replay scenarios may model process order across apply, accepted
+commitment, proof submission, monitoring, paid-run shape, and recovery, but they
+remain non-production transcripts and do not grant live write authority.
 
 These are public inspection and contract-discovery routes.
 They do not create a new root object, and they do not make private drafts,
@@ -581,7 +601,9 @@ routes:
 - public inspection is read-only by default
 - `agentActionAffordances` are hints over existing governed endpoints, not separate permissions or a new workflow ledger
 - `agentActionPolicy` is the request-detail permission lens agents should read before writing; it is derived from request state, actor ownership, resolver scopes, and live endpoint gates, and it does not create durable truth by itself
+- `/agents/access-review.json` is the public operator-review lens agents should read before requesting scoped pilot or production access; it does not issue credentials, grant permission, certify an agent, authorize spend, or make target adapters live
 - `/agents/conformance.json` is the public checklist lens agents should pass before production use; it does not replace request-specific `agentActionPolicy`
+- `/schemas/agent-conformance-report.schema.json` is the public report shape agents should use when attaching sandbox replay evidence to a production access request; it does not grant production access
 - `/agents/evidence.json` is the public evidence lens agents should read before `submit_artifact`; it does not authorize publication or replace `Artifact` review
 - `/agents/execution.json` is the public execution lens agents should read before starting work, retrying a lane, or promoting runtime output; it does not authorize writes, prove completion, or turn runtime sessions, provider tasks, MCP sessions, A2A tasks, x402 payments, stdout, local logs, or tool traces into roots
 - `/agents/human-handoffs.json` is the public handoff lens agents should read before asking, stopping, escalating, requesting approval, or claiming draft, proposal, proof, payment, monitor, or completion state to a human

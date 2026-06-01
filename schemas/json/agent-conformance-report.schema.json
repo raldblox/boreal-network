@@ -1,0 +1,432 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-conformance-report.schema.json",
+  "title": "AgentConformanceReport",
+  "description": "Machine-readable report an external agent can produce after running Boreal discovery, sandbox replay, safety, and production-access checks. The report is operator-review input only and does not grant production access.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reportKind",
+    "generatedAt",
+    "agent",
+    "sourceProfiles",
+    "requestedProductionAccess",
+    "sandboxValidation",
+    "replayScenarioResults",
+    "checklistResults",
+    "protocolClaims",
+    "secretHandling",
+    "humanReviewRequest",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "reportKind": {
+      "const": "agent_conformance_report"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agent": {
+      "$ref": "#/$defs/agent"
+    },
+    "sourceProfiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sourceProfile"
+      }
+    },
+    "requestedProductionAccess": {
+      "$ref": "#/$defs/requestedProductionAccess"
+    },
+    "sandboxValidation": {
+      "$ref": "#/$defs/sandboxValidation"
+    },
+    "replayScenarioResults": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/replayScenarioResult"
+      }
+    },
+    "checklistResults": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/checklistResult"
+      }
+    },
+    "protocolClaims": {
+      "$ref": "#/$defs/protocolClaims"
+    },
+    "secretHandling": {
+      "$ref": "#/$defs/secretHandling"
+    },
+    "humanReviewRequest": {
+      "$ref": "#/$defs/humanReviewRequest"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "operator",
+        "contact",
+        "representedActorKind",
+        "declaredUseCases"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contact": {
+          "type": "string",
+          "minLength": 1
+        },
+        "representedActorKind": {
+          "type": "string",
+          "enum": [
+            "requester_agent",
+            "solver_agent",
+            "monitor_agent",
+            "optimizer_agent",
+            "broker_agent",
+            "payment_agent",
+            "mixed"
+          ]
+        },
+        "declaredUseCases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "sourceProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url",
+        "observedStatus"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "observedStatus": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "requestedProductionAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requestedScopes",
+        "requestedActions",
+        "requestedProtocolAdapters",
+        "dataAccessJustification",
+        "rateLimitNeeds"
+      ],
+      "properties": {
+        "status": {
+          "const": "operator_review_required"
+        },
+        "requestedScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedProtocolAdapters": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "none",
+              "http",
+              "mcp",
+              "a2a",
+              "x402"
+            ]
+          }
+        },
+        "dataAccessJustification": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rateLimitNeeds": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "sandboxValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifestUrl",
+        "validationCommand",
+        "commandPassed",
+        "fixturePath",
+        "notAcceptedByProduction"
+      ],
+      "properties": {
+        "manifestUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "validationCommand": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commandPassed": {
+          "type": "boolean"
+        },
+        "fixturePath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notAcceptedByProduction": {
+          "const": true
+        }
+      }
+    },
+    "replayScenarioResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenarioId",
+        "status",
+        "coveredActions",
+        "observedWrites",
+        "idempotencyKeys",
+        "claimState",
+        "productionEffects"
+      ],
+      "properties": {
+        "scenarioId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "not_run"
+          ]
+        },
+        "coveredActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "observedWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "idempotencyKeys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "claimState": {
+          "type": "string",
+          "minLength": 1
+        },
+        "productionEffects": {
+          "const": false
+        }
+      }
+    },
+    "checklistResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checklistId",
+        "status",
+        "passedChecks",
+        "failedChecks",
+        "notes"
+      ],
+      "properties": {
+        "checklistId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "partial"
+          ]
+        },
+        "passedChecks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "failedChecks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "protocolClaims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "httpBaseline",
+        "mcp",
+        "a2a",
+        "x402",
+        "oauthCompatibleDelegation"
+      ],
+      "properties": {
+        "httpBaseline": {
+          "const": "live_where_route_contract_allows"
+        },
+        "mcp": {
+          "const": "target_only"
+        },
+        "a2a": {
+          "const": "target_only"
+        },
+        "x402": {
+          "const": "target_only"
+        },
+        "oauthCompatibleDelegation": {
+          "const": "target_only"
+        }
+      }
+    },
+    "secretHandling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "containsSecrets",
+        "redactedFields",
+        "forbiddenMaterialAbsent"
+      ],
+      "properties": {
+        "containsSecrets": {
+          "const": false
+        },
+        "redactedFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forbiddenMaterialAbsent": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "humanReviewRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestedDecision",
+        "reviewerShouldCheck",
+        "blockingQuestions"
+      ],
+      "properties": {
+        "requestedDecision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewerShouldCheck": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blockingQuestions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "reportIsNot",
+        "notRoots"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reportIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

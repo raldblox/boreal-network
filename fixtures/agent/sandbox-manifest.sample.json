@@ -42,6 +42,10 @@
       "url": "https://boreal.work/agents/actions.md"
     },
     {
+      "label": "Access review profile",
+      "url": "https://boreal.work/agents/access-review.json"
+    },
+    {
       "label": "Auth profile",
       "url": "https://boreal.work/agents/auth.json"
     },
@@ -421,6 +425,332 @@
           "durableWrite": false
         }
       }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "requester_draft_optimize_approval_replay",
+      "title": "Make and optimize a human-owned draft",
+      "mode": "deterministic_replay",
+      "description": "Replay the safe requester-agent path from a fuzzy human need to a private draft and draft-only optimization output.",
+      "actorPath": [
+        "sandbox-requester",
+        "human-owner"
+      ],
+      "coveredActions": [
+        "make_request_for_human",
+        "optimize_request_brief"
+      ],
+      "preconditions": [
+        "The human buyer has asked the agent to prepare a request draft.",
+        "No public request exists yet, and opening requires explicit human approval."
+      ],
+      "steps": [
+        {
+          "id": "create_private_draft",
+          "flowId": "make_request_for_human",
+          "actor": "sandbox-requester",
+          "kind": "mutation_sample",
+          "description": "Create a private draft Request sample and save buyer-authored brief fields only.",
+          "writes": [
+            "Request"
+          ],
+          "idempotencyKey": null,
+          "expected": {
+            "visibility": "private",
+            "stopBefore": "open_request"
+          }
+        },
+        {
+          "id": "draft_local_optimization",
+          "flowId": "optimize_request_brief",
+          "actor": "sandbox-requester",
+          "kind": "draft",
+          "description": "Return a suggested brief patch and missing questions without durable mutation.",
+          "writes": [],
+          "idempotencyKey": null,
+          "expected": {
+            "durableWrite": false,
+            "needsOwnerApproval": true
+          }
+        },
+        {
+          "id": "human_approval_gate",
+          "flowId": "make_request_for_human",
+          "actor": "human-owner",
+          "kind": "simulated_external_gate",
+          "description": "Stop until the human owner reviews the draft and explicitly chooses whether to open it.",
+          "writes": [],
+          "idempotencyKey": null,
+          "expected": {
+            "mayOpenRequest": false,
+            "reason": "Contract sandbox does not model live owner approval."
+          }
+        }
+      ],
+      "expectedCanonicalWrites": [
+        "Request"
+      ],
+      "expectedTerminalState": {
+        "claimState": "draft_ready",
+        "durableCompletion": false,
+        "publicVisibility": false
+      },
+      "notAcceptedByProduction": true
+    },
+    {
+      "id": "solver_apply_submit_monitor_replay",
+      "title": "Apply, submit proof, and monitor owner review",
+      "mode": "deterministic_replay",
+      "description": "Replay the solver-agent path from public inspection through Commitment proposal, accepted execution lane, Artifact proof, and cursor monitoring.",
+      "actorPath": [
+        "anonymous-public-scout",
+        "sandbox-solver-proposer",
+        "human-owner",
+        "sandbox-solver-publisher",
+        "sandbox-monitor"
+      ],
+      "coveredActions": [
+        "inspect_public_requests",
+        "apply_to_request",
+        "submit_artifact",
+        "monitor_request"
+      ],
+      "preconditions": [
+        "The target Request is public-safe to inspect.",
+        "The solver must not start cross-actor fulfillment until an accepted Commitment or direct-owner authorization exists."
+      ],
+      "steps": [
+        {
+          "id": "inspect_public_fit",
+          "flowId": "inspect_public_requests",
+          "actor": "anonymous-public-scout",
+          "kind": "read",
+          "description": "Read public request projections and agentActionAffordances before choosing a request.",
+          "writes": [],
+          "idempotencyKey": null,
+          "expected": {
+            "requiredField": "requests[].agentActionAffordances"
+          }
+        },
+        {
+          "id": "submit_commitment_proposal",
+          "flowId": "apply_to_request",
+          "actor": "sandbox-solver-proposer",
+          "kind": "mutation_sample",
+          "description": "Submit one Commitment proposal with scope, price, proof, and handoff terms.",
+          "writes": [
+            "Commitment",
+            "RequestEvent"
+          ],
+          "idempotencyKey": "00000000-0000-4000-8000-000000000101",
+          "expected": {
+            "duplicateCreates": false
+          }
+        },
+        {
+          "id": "accepted_commitment_gate",
+          "flowId": "apply_to_request",
+          "actor": "human-owner",
+          "kind": "simulated_external_gate",
+          "description": "Simulate the owner accepting the Commitment and creating an execution lane before proof submission.",
+          "writes": [
+            "Commitment",
+            "Fulfillment",
+            "RequestEvent"
+          ],
+          "idempotencyKey": null,
+          "expected": {
+            "requiredBefore": "submit_artifact"
+          }
+        },
+        {
+          "id": "publish_proof_artifact",
+          "flowId": "submit_artifact",
+          "actor": "sandbox-solver-publisher",
+          "kind": "mutation_sample",
+          "description": "Publish a reviewable Artifact attached to the accepted Fulfillment.",
+          "writes": [
+            "Artifact",
+            "RequestEvent"
+          ],
+          "idempotencyKey": "00000000-0000-4000-8000-000000000102",
+          "expected": {
+            "claimState": "proof_submitted",
+            "ownerAcceptanceRequired": true
+          }
+        },
+        {
+          "id": "resume_monitor_cursor",
+          "flowId": "monitor_request",
+          "actor": "sandbox-monitor",
+          "kind": "monitor",
+          "description": "Read activity with after_sequence and persist cursor.nextAfterSequence.",
+          "writes": [],
+          "idempotencyKey": null,
+          "expected": {
+            "cursorField": "cursor.nextAfterSequence"
+          }
+        }
+      ],
+      "expectedCanonicalWrites": [
+        "Commitment",
+        "Fulfillment",
+        "Artifact",
+        "RequestEvent"
+      ],
+      "expectedTerminalState": {
+        "claimState": "proof_submitted_waiting_for_owner_acceptance",
+        "durableCompletion": false,
+        "publicVisibility": true
+      },
+      "notAcceptedByProduction": true
+    },
+    {
+      "id": "public_solution_paid_run_shape_replay",
+      "title": "Run a public solution without mutating the source Request",
+      "mode": "deterministic_replay",
+      "description": "Replay the paid-run shape where public inspection stays free, execution creates a private run Request, and spend reconciles into Transaction truth.",
+      "actorPath": [
+        "anonymous-public-scout",
+        "sandbox-buyer",
+        "sandbox-monitor"
+      ],
+      "coveredActions": [
+        "inspect_public_requests",
+        "run_public_solution",
+        "monitor_request"
+      ],
+      "preconditions": [
+        "The source Request is completed, public, and has an accepted reusable Artifact.",
+        "The buyer has spend authority in production; this sandbox uses mock session labels only."
+      ],
+      "steps": [
+        {
+          "id": "inspect_source_solution",
+          "flowId": "inspect_public_requests",
+          "actor": "anonymous-public-scout",
+          "kind": "read",
+          "description": "Inspect the public solution projection without spending credits.",
+          "writes": [],
+          "idempotencyKey": null,
+          "expected": {
+            "inspectionCost": "free"
+          }
+        },
+        {
+          "id": "create_paid_run_shape",
+          "flowId": "run_public_solution",
+          "actor": "sandbox-buyer",
+          "kind": "payment_shape",
+          "description": "Create the sample paid-run shape that would produce private run Request and Transaction truth in production.",
+          "writes": [
+            "Request",
+            "Transaction",
+            "RequestEvent"
+          ],
+          "idempotencyKey": "00000000-0000-4000-8000-000000000103",
+          "expected": {
+            "sourceRequestMutated": false,
+            "duplicateCreates": false
+          }
+        },
+        {
+          "id": "monitor_run_transaction",
+          "flowId": "monitor_request",
+          "actor": "sandbox-monitor",
+          "kind": "monitor",
+          "description": "Monitor the run request and payment state before claiming execution started.",
+          "writes": [],
+          "idempotencyKey": null,
+          "expected": {
+            "requiredTruth": [
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      ],
+      "expectedCanonicalWrites": [
+        "Request",
+        "Transaction",
+        "RequestEvent"
+      ],
+      "expectedTerminalState": {
+        "claimState": "run_started_after_transaction_truth",
+        "durableCompletion": false,
+        "sourceRequestMutated": false
+      },
+      "notAcceptedByProduction": true
+    },
+    {
+      "id": "idempotent_recovery_replay",
+      "title": "Recover from an uncertain write without duplicate truth",
+      "mode": "deterministic_replay",
+      "description": "Replay the recovery path for an uncertain proposal or artifact write by reusing the same idempotency key, re-reading activity, and escalating only when state is still ambiguous.",
+      "actorPath": [
+        "sandbox-solver-proposer",
+        "sandbox-monitor"
+      ],
+      "coveredActions": [
+        "apply_to_request",
+        "monitor_request"
+      ],
+      "preconditions": [
+        "The agent lost the response after sending a write-like sample.",
+        "The agent still has the original request body and idempotency key."
+      ],
+      "steps": [
+        {
+          "id": "retry_same_semantic_write",
+          "flowId": "apply_to_request",
+          "actor": "sandbox-solver-proposer",
+          "kind": "recovery",
+          "description": "Retry the same proposal body with the same Idempotency-Key instead of creating a second proposal.",
+          "writes": [
+            "Commitment",
+            "RequestEvent"
+          ],
+          "idempotencyKey": "00000000-0000-4000-8000-000000000101",
+          "expected": {
+            "duplicateCreates": false,
+            "bodyMustMatchOriginal": true
+          }
+        },
+        {
+          "id": "reread_activity_after_retry",
+          "flowId": "monitor_request",
+          "actor": "sandbox-monitor",
+          "kind": "monitor",
+          "description": "Read request activity with the last known cursor before attempting any replacement mutation.",
+          "writes": [],
+          "idempotencyKey": null,
+          "expected": {
+            "inspectBeforeNewKey": true
+          }
+        },
+        {
+          "id": "escalate_if_commit_unknown",
+          "flowId": "monitor_request",
+          "actor": "sandbox-monitor",
+          "kind": "recovery",
+          "description": "Escalate to the human owner or operator if the agent still cannot prove whether durable truth committed.",
+          "writes": [],
+          "idempotencyKey": null,
+          "expected": {
+            "createReplacementMutation": false
+          }
+        }
+      ],
+      "expectedCanonicalWrites": [
+        "Commitment",
+        "RequestEvent"
+      ],
+      "expectedTerminalState": {
+        "claimState": "recovered_or_escalated_without_duplicate_mutation",
+        "duplicateDurableTruth": false
+      },
+      "notAcceptedByProduction": true
     }
   ],
   "canonicalBoundary": {

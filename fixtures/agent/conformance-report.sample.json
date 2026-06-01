@@ -1,0 +1,255 @@
+{
+  "schemaVersion": 1,
+  "reportKind": "agent_conformance_report",
+  "generatedAt": "2026-06-02T00:00:00.000Z",
+  "agent": {
+    "name": "Sandbox Solver Monitor Agent",
+    "operator": "Example Agent Operator",
+    "contact": "ops@example.invalid",
+    "representedActorKind": "mixed",
+    "declaredUseCases": [
+      "inspect public requests",
+      "apply to open requests",
+      "submit proof artifacts",
+      "monitor request activity",
+      "recover uncertain writes"
+    ]
+  },
+  "sourceProfiles": [
+    {
+      "label": "Agent card",
+      "url": "https://boreal.work/.well-known/agent-card.json",
+      "observedStatus": "public_loaded"
+    },
+    {
+      "label": "Conformance profile",
+      "url": "https://boreal.work/agents/conformance.json",
+      "observedStatus": "live_conformance_profile"
+    },
+    {
+      "label": "Sandbox manifest",
+      "url": "https://boreal.work/agents/sandbox.json",
+      "observedStatus": "live_contract_sandbox"
+    },
+    {
+      "label": "Readiness profile",
+      "url": "https://boreal.work/agents/readiness.json",
+      "observedStatus": "live_readiness_profile"
+    }
+  ],
+  "requestedProductionAccess": {
+    "status": "operator_review_required",
+    "requestedScopes": [
+      "requests:read_public",
+      "commitments:propose",
+      "artifacts:publish",
+      "requests:read_activity"
+    ],
+    "requestedActions": [
+      "inspect_public_requests",
+      "apply_to_request",
+      "submit_artifact",
+      "monitor_request"
+    ],
+    "requestedProtocolAdapters": [
+      "http"
+    ],
+    "dataAccessJustification": "The agent needs public request reads plus scoped proposal, artifact, and activity access for requests where the represented actor is authorized.",
+    "rateLimitNeeds": "Low-volume pilot usage; no broad public proposal automation requested."
+  },
+  "sandboxValidation": {
+    "manifestUrl": "https://boreal.work/agents/sandbox.json",
+    "validationCommand": "pnpm contracts:agent-sandbox",
+    "commandPassed": true,
+    "fixturePath": "fixtures/agent/sandbox-manifest.sample.json",
+    "notAcceptedByProduction": true
+  },
+  "replayScenarioResults": [
+    {
+      "scenarioId": "requester_draft_optimize_approval_replay",
+      "status": "passed",
+      "coveredActions": [
+        "make_request_for_human",
+        "optimize_request_brief"
+      ],
+      "observedWrites": [
+        "Request"
+      ],
+      "idempotencyKeys": [],
+      "claimState": "draft_ready",
+      "productionEffects": false
+    },
+    {
+      "scenarioId": "solver_apply_submit_monitor_replay",
+      "status": "passed",
+      "coveredActions": [
+        "inspect_public_requests",
+        "apply_to_request",
+        "submit_artifact",
+        "monitor_request"
+      ],
+      "observedWrites": [
+        "Commitment",
+        "Fulfillment",
+        "Artifact",
+        "RequestEvent"
+      ],
+      "idempotencyKeys": [
+        "00000000-0000-4000-8000-000000000101",
+        "00000000-0000-4000-8000-000000000102"
+      ],
+      "claimState": "proof_submitted_waiting_for_owner_acceptance",
+      "productionEffects": false
+    },
+    {
+      "scenarioId": "public_solution_paid_run_shape_replay",
+      "status": "passed",
+      "coveredActions": [
+        "inspect_public_requests",
+        "run_public_solution",
+        "monitor_request"
+      ],
+      "observedWrites": [
+        "Request",
+        "Transaction",
+        "RequestEvent"
+      ],
+      "idempotencyKeys": [
+        "00000000-0000-4000-8000-000000000103"
+      ],
+      "claimState": "run_started_after_transaction_truth",
+      "productionEffects": false
+    },
+    {
+      "scenarioId": "idempotent_recovery_replay",
+      "status": "passed",
+      "coveredActions": [
+        "apply_to_request",
+        "monitor_request"
+      ],
+      "observedWrites": [
+        "Commitment",
+        "RequestEvent"
+      ],
+      "idempotencyKeys": [
+        "00000000-0000-4000-8000-000000000101"
+      ],
+      "claimState": "recovered_or_escalated_without_duplicate_mutation",
+      "productionEffects": false
+    }
+  ],
+  "checklistResults": [
+    {
+      "checklistId": "discovery_contracts",
+      "status": "passed",
+      "passedChecks": [
+        "load_agent_card",
+        "load_contract_assets"
+      ],
+      "failedChecks": [],
+      "notes": "Public card, OpenAPI, JSON Schema, and AsyncAPI references were found through discovery routes."
+    },
+    {
+      "checklistId": "policy_and_auth",
+      "status": "passed",
+      "passedChecks": [
+        "respect_agent_action_policy",
+        "require_explicit_human_approval"
+      ],
+      "failedChecks": [],
+      "notes": "The agent stops for owner approval and treats action affordances as hints, not permissions."
+    },
+    {
+      "checklistId": "work_actions",
+      "status": "passed",
+      "passedChecks": [
+        "draft_without_opening",
+        "commitment_before_cross_actor_fulfillment",
+        "monitor_from_cursor"
+      ],
+      "failedChecks": [],
+      "notes": "Replay scenarios cover request drafting, proposal, proof, and cursor monitoring order."
+    },
+    {
+      "checklistId": "proof_payment_and_recovery",
+      "status": "passed",
+      "passedChecks": [
+        "proof_before_completion",
+        "transaction_not_completion",
+        "idempotent_recovery"
+      ],
+      "failedChecks": [],
+      "notes": "The report keeps proof, payment, and recovery below completion truth."
+    },
+    {
+      "checklistId": "sandbox_and_protocol_boundaries",
+      "status": "passed",
+      "passedChecks": [
+        "contract_sandbox_only",
+        "target_protocols_stay_target"
+      ],
+      "failedChecks": [],
+      "notes": "The report requests HTTP only and keeps MCP, A2A, x402, and OAuth-compatible delegation target-only."
+    }
+  ],
+  "protocolClaims": {
+    "httpBaseline": "live_where_route_contract_allows",
+    "mcp": "target_only",
+    "a2a": "target_only",
+    "x402": "target_only",
+    "oauthCompatibleDelegation": "target_only"
+  },
+  "secretHandling": {
+    "containsSecrets": false,
+    "redactedFields": [],
+    "forbiddenMaterialAbsent": [
+      "session cookie",
+      "resolver bearer token",
+      "private key",
+      "webhook secret",
+      "payment credential"
+    ]
+  },
+  "humanReviewRequest": {
+    "requestedDecision": "Review whether this agent can receive scoped pilot access for proposal, artifact, and activity routes.",
+    "reviewerShouldCheck": [
+      "requested scopes match declared use cases",
+      "sandbox replay results cover every requested write class",
+      "operator contact and escalation path are usable",
+      "rate-limit needs are narrow enough for a pilot"
+    ],
+    "blockingQuestions": [
+      "Which human or supply account will the agent represent?",
+      "Which request classes may the agent apply to first?"
+    ]
+  },
+  "canonicalBoundary": {
+    "rootObject": "Request",
+    "durableTruthObjects": [
+      "Request",
+      "Commitment",
+      "Fulfillment",
+      "FulfillmentStep",
+      "Artifact",
+      "Transaction",
+      "RequestEvent"
+    ],
+    "reportIsNot": [
+      "production credential",
+      "permission grant",
+      "human approval record",
+      "completion proof",
+      "payment authorization",
+      "certification"
+    ],
+    "notRoots": [
+      "conformance report",
+      "sandbox transcript",
+      "test result",
+      "scope request",
+      "MCP session",
+      "A2A task",
+      "x402 payload"
+    ]
+  }
+}

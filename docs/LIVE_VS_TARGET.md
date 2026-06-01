@@ -95,6 +95,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `pnpm-workspace.yaml`
 - `apps/web/package.json`
 - `apps/web/app/agents/start.md/route.ts`
+- `apps/web/app/agents/access-review.json/route.ts`
 - `apps/web/app/agents/auth.json/route.ts`
 - `apps/web/app/agents/conformance.json/route.ts`
 - `apps/web/app/agents/completion.json/route.ts`
@@ -119,6 +120,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/schemas/[schema]/route.ts`
 - `apps/web/app/events/[contract]/route.ts`
 - `apps/web/tests/contracts/agent-discovery.test.ts`
+- `schemas/json/agent-access-review.schema.json`
 - `schemas/json/agent-sandbox.schema.json`
 - `schemas/json/agent-auth.schema.json`
 - `schemas/json/agent-conformance.schema.json`
@@ -179,8 +181,10 @@ Today, the machine-readable baseline proves:
 - one public agent action catalog is exposed through the agent card and `/openapi.json`, mapping inspect, make-request, apply, submit, monitor, run, and optimize intents to canonical reads, writes, auth boundaries, standards, and contract links
 - one public `/agents/workflows.json` workflow catalog gives agents machine-readable process flows for scouting public work, making human-owned drafts, applying, submitting artifacts, monitoring activity, running public solutions, and optimizing without durable writes
 - one public `/agents/actions.md` playbook gives contract-linked walkthroughs and HTTP sketches for inspect, make-request, apply, submit, monitor, run, and optimize intents without creating a parallel agent ledger
+- one public `/agents/access-review.json` profile and `schemas/json/agent-access-review.schema.json` give external agents machine-readable operator-review policy for requested scopes, quotas, revocation triggers, decision outcomes, and target adapter claims without issuing credentials, granting permission, certifying agents, authorizing spend, or proving completion
 - one public `/agents/auth.json` profile and `schemas/json/agent-auth.schema.json` give agents machine-readable actor classes, auth schemes, scopes, approval boundaries, idempotency requirements, and explicit non-grants without claiming OAuth-compatible external-agent auth is live
 - one public `/agents/conformance.json` profile and `schemas/json/agent-conformance.schema.json` give agent builders a machine-readable checklist for discovery, auth, human handoff, work actions, proof, payment, recovery, sandbox, and target protocol boundaries without certifying agents, granting permission, authorizing spend, or proving completion
+- one public `schemas/json/agent-conformance-report.schema.json` contract and `fixtures/agent/conformance-report.sample.json` fixture give agents a standard way to package sandbox replay results, requested scopes, target protocol claims, secret-handling posture, and human-review questions for operator review without creating credentials, certification, payment authorization, or completion proof
 - one public `/agents/completion.json` profile and `schemas/json/agent-completion.schema.json` give agents machine-readable proof packet, artifact, fulfillment, review, payment, and event boundaries for draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims without treating chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, or payment settlement as completion truth by themselves
 - one public `/agents/evidence.json` profile and `schemas/json/agent-evidence.schema.json` give agents machine-readable evidence packet, `Artifact` packaging, redaction, evidence-level, review-signal, and retry-safety guidance without authorizing artifact publication, storing files, accepting review, settling payment, or proving completion by itself
 - one public `/agents/execution.json` profile and `schemas/json/agent-execution.schema.json` give agents machine-readable execution lane, `Fulfillment`, `FulfillmentStep`, direct-owner exception, runtime signal promotion, retry, and non-root adapter boundaries without authorizing writes, proving completion, or treating runtime sessions as request truth
@@ -196,7 +200,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/recovery.json` recovery profile and `schemas/json/agent-recovery.schema.json` give agents machine-readable handling for auth failure, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and human escalation without granting permission
 - one public `/agents/readiness.json` readiness profile and `schemas/json/agent-readiness.schema.json` give agents a machine-readable live-versus-target capability matrix, standards map, agent UX flow, go/no-go checks, current limitations, and next implementation priorities without granting credentials, proving completion, or making target adapters live
 - one public `/agents/tools.json` tool registry and `schemas/json/agent-tools.schema.json` map agent intents to safe HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, output truth, and canonical write boundaries without creating a separate tool runtime or making target adapters live
-- one public `/agents/sandbox.md` guide, `/agents/sandbox.json` manifest, `agent-sandbox` JSON Schema, deterministic fixture, and `pnpm contracts:agent-sandbox` runner give agents contract-only mock identities, sample IDs, payloads, idempotency keys, monitor cursors, and signed-webhook samples; mock credentials are not production auth and create no live objects
+- one public `/agents/sandbox.md` guide, `/agents/sandbox.json` manifest, `agent-sandbox` JSON Schema, deterministic fixture, and `pnpm contracts:agent-sandbox` runner give agents contract-only mock identities, sample IDs, payloads, idempotency keys, monitor cursors, signed-webhook samples, and replay scenarios for requester drafting, solver apply/submit/monitor, paid-run shape, and recovery; mock credentials are not production auth and create no live objects
 - public request projections now include `agentActionAffordances`, a derived request-level map of inspect, apply, submit, monitor, run, and optimize affordances with concrete endpoints, auth notes, idempotency requirements, and canonical read/write boundaries
 - request detail responses now include `agentActionPolicy`, a derived actor-specific map of inspect, apply, submit, monitor, run, and optimize decisions for anonymous, session, and resolver actors, including resolver missing-scope reporting and idempotency-gated action states
 - request, supply, payment, and resolver-auth OpenAPI exports now declare machine-readable auth boundaries: standard OpenAPI `security` requirements for anonymous, account-session, and resolver-bearer access where live routes support them, plus Boreal `x-boreal-required-scopes` extensions for resolver scope conditions
@@ -207,13 +211,13 @@ These are intended next layers, not fully modeled proof yet:
 
 - broader canonical event coverage under `schemas/events/`
 - broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
-- richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, payment/rate-limit-aware policy decisions, failure fixtures, and live external-agent auth beyond the first public action playbook, auth profile, contract-only sandbox runner, request-detail action policy, cursor polling lane, and webhook signature profile
-- richer conformance automation where external agents can submit signed sandbox transcripts or live dry-run evidence for operator review; the current profile is a public checklist only
+- richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, payment/rate-limit-aware policy decisions, failure fixtures, and live external-agent auth beyond the first public action playbook, auth profile, contract-only sandbox runner and replay scenarios, request-detail action policy, cursor polling lane, and webhook signature profile
+- richer conformance automation where external agents can submit signed sandbox transcripts or live dry-run evidence for operator review; the current profile plus report schema defines the evidence shape but does not process submissions
 - richer evidence automation with artifact scanning, checksum verification, private reviewer access, and proof scoring; the current evidence profile is packaging and review guidance only
 - richer execution automation with lane-specific worker dispatch, runtime admission, step updates, provider correlation, and isolated untrusted execution; the current execution profile is descriptive guidance over existing `Fulfillment` and `FulfillmentStep` truth
 - richer human handoff state in live request rooms, including persisted approval records, review prompts, and escalation inboxes; the current public handoff profile is descriptive guidance only
 - richer monitor automation with persisted subscriptions, delivery retries, receiver enrollment, SLA configuration, and monitor inboxes; the current monitoring profile is descriptive over live cursor polling plus target signed push delivery
-- richer onboarding automation with operator-reviewed production access packets, real production sandbox credentials, revocation, scope approval, abuse controls, and delegated external-agent auth; the current onboarding profile is descriptive guidance only
+- richer onboarding automation with operator-reviewed production access packets, real production sandbox credentials, revocation enforcement, scope approval, abuse controls, and delegated external-agent auth; the current onboarding and access-review profiles are descriptive guidance only
 - richer prompt automation with versioned prompt packs, prompt evals, locale variants, and signed prompt-pack distribution; the current prompt catalog is descriptive guidance only
 - richer optimization automation with owner-approved diff previews, semantic no-invention checks, and route-specific draft validators; the current optimization profile is descriptive guidance only
 - deeper readiness scoring that can compute route-specific live, blocked, and target states from request-detail `agentActionPolicy`, payment balance, rate-limit, participant lane, and proof-scoring evidence instead of relying only on the public capability matrix

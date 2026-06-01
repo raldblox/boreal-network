@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-access-review.schema.json",
+  "title": "AgentAccessReviewProfile",
+  "description": "Machine-readable operator-review policy for deciding whether an external agent may receive scoped Boreal production or sandbox access. This profile does not issue credentials or grant permissions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "reviewStages",
+    "scopePolicy",
+    "rateLimitPolicy",
+    "revocationPolicy",
+    "decisionOutcomes",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_access_review_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "reviewStages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/reviewStage"
+      }
+    },
+    "scopePolicy": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scopePolicy"
+      }
+    },
+    "rateLimitPolicy": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/rateLimitPolicy"
+      }
+    },
+    "revocationPolicy": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/revocationRule"
+      }
+    },
+    "decisionOutcomes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/decisionOutcome"
+      }
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "reviewStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "id",
+        "status",
+        "reviewer",
+        "passWhen",
+        "rejectWhen"
+      ],
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "live_policy_guidance",
+            "target_operator_workflow"
+          ]
+        },
+        "reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "passWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rejectWhen": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scopePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scopeFamily",
+        "status",
+        "allowWhen",
+        "denyWhen",
+        "requiresHuman"
+      ],
+      "properties": {
+        "scopeFamily": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "live_where_route_contract_allows",
+            "target_external_agent_auth",
+            "blocked"
+          ]
+        },
+        "allowWhen": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "denyWhen": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiresHuman": {
+          "type": "boolean"
+        }
+      }
+    },
+    "rateLimitPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "appliesTo",
+        "defaultMode",
+        "escalateWhen"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "appliesTo": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "defaultMode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "escalateWhen": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "revocationRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "trigger",
+        "action"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trigger": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "decisionOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "meaning",
+        "credentialEffect",
+        "agentMayClaim"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "meaning": {
+          "type": "string",
+          "minLength": 1
+        },
+        "credentialEffect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agentMayClaim": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "accessReviewProfileIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "accessReviewProfileIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

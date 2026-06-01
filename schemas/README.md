@@ -47,9 +47,11 @@ Recommended naming:
 - `json/transaction.schema.json`
 - `json/request-event.schema.json`
 - `json/artifact.schema.json`
+- `json/agent-access-review.schema.json`
 - `json/agent-sandbox.schema.json`
 - `json/agent-auth.schema.json`
 - `json/agent-conformance.schema.json`
+- `json/agent-conformance-report.schema.json`
 - `json/agent-completion.schema.json`
 - `json/agent-evidence.schema.json`
 - `json/agent-execution.schema.json`
@@ -79,3 +81,5 @@ Pending next machine-readable areas:
 ## Rule
 
 Do not let markdown be the only contract surface once machine-readable schema work begins.
+
+Agent sandbox replay scenarios live inside `json/agent-sandbox.schema.json` and must stay fixture-backed by `fixtures/agent/sandbox-manifest.sample.json`.
