@@ -50,6 +50,10 @@
       "url": "https://boreal.work/agents/completion.json"
     },
     {
+      "label": "Payment profile",
+      "url": "https://boreal.work/agents/payments.json"
+    },
+    {
       "label": "Workflow catalog",
       "url": "https://boreal.work/agents/workflows.json"
     },
@@ -64,6 +68,14 @@
     {
       "label": "Recovery profile",
       "url": "https://boreal.work/agents/recovery.json"
+    },
+    {
+      "label": "Readiness profile",
+      "url": "https://boreal.work/agents/readiness.json"
+    },
+    {
+      "label": "Tool registry",
+      "url": "https://boreal.work/agents/tools.json"
     },
     {
       "label": "Monitor webhook profile",

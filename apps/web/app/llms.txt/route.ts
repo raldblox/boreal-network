@@ -38,11 +38,14 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent action playbook](${absoluteUrl(agentDiscoveryPaths.agentActions)}): Contract-linked walkthroughs for inspect, make-request, apply, submit, monitor, run, and optimize intents.
 - [Agent auth profile](${absoluteUrl(agentDiscoveryPaths.agentAuth)}): Machine-readable actor classes, auth schemes, scopes, approvals, and write boundaries.
 - [Agent completion profile](${absoluteUrl(agentDiscoveryPaths.agentCompletion)}): Machine-readable proof packets, Artifact requirements, completion claims, and review boundaries.
+- [Agent payment profile](${absoluteUrl(agentDiscoveryPaths.agentPayments)}): Machine-readable buyer-credit, paid-run, x402 target, idempotency, and Transaction reconciliation boundaries.
 - [Agent workflow catalog](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)}): Machine-readable process flows for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with policy checkpoints.
 - [Agent monitor webhook profile](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)}): Target signed push-notification profile for request activity monitors.
 - [Agent protocol profile](${absoluteUrl(agentDiscoveryPaths.agentProtocols)}): MCP, A2A, and x402 adapter/payment boundaries.
 - [Agent protocol profile JSON](${absoluteUrl(agentDiscoveryPaths.agentProtocolsJson)}): Machine-readable MCP, A2A, and x402 mappings that keep adapters below Request truth.
 - [Agent recovery profile](${absoluteUrl(agentDiscoveryPaths.agentRecovery)}): Machine-readable auth, idempotency, retry, monitor, payment, and escalation rules.
+- [Agent readiness profile](${absoluteUrl(agentDiscoveryPaths.agentReadiness)}): Machine-readable live-versus-target capability matrix, agent UX flow, and go/no-go checks.
+- [Agent tool registry](${absoluteUrl(agentDiscoveryPaths.agentTools)}): Machine-readable safe HTTP tool calls, target MCP/A2A mappings, preflight checks, and canonical write boundaries.
 - [Agent contract sandbox](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)}): Deterministic mock identities, payloads, and sample IDs for contract tests; mock credentials are not production auth.
 - [Agent sandbox manifest](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)}): Machine-readable contract-only sandbox profile.
 - [Agent card](${absoluteUrl(agentDiscoveryPaths.agentCard)}): Public capability card for agent discovery.

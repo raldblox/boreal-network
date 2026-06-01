@@ -50,9 +50,12 @@ Recommended naming:
 - `json/agent-sandbox.schema.json`
 - `json/agent-auth.schema.json`
 - `json/agent-completion.schema.json`
+- `json/agent-payments.schema.json`
 - `json/agent-workflows.schema.json`
 - `json/agent-protocols.schema.json`
 - `json/agent-recovery.schema.json`
+- `json/agent-readiness.schema.json`
+- `json/agent-tools.schema.json`
 - `openapi/request-briefing.openapi.yaml`
 - `openapi/supply-management.openapi.yaml`
 - `openapi/resolver-auth.openapi.yaml`

@@ -78,8 +78,11 @@ Current assets that agents can eventually build on:
 - The peer workspace exists for future peer transport without replacing request truth.
 - A machine-readable auth profile exists through `/agents/auth.json` and `schemas/json/agent-auth.schema.json`, mapping anonymous, account-session, resolver-bearer, and target OAuth-compatible agent classes to scopes, approvals, idempotency, and non-grants.
 - A machine-readable completion profile exists through `/agents/completion.json` and `schemas/json/agent-completion.schema.json`, mapping draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims to proof, Artifact, Fulfillment, Transaction, RequestEvent, and owner-review truth.
+- A machine-readable payment profile exists through `/agents/payments.json` and `schemas/json/agent-payments.schema.json`, mapping buyer-credit, direct funding, paid solution runs, idempotency, x402 target boundaries, and `Transaction` reconciliation.
 - A machine-readable protocol profile exists through `/agents/protocols.json` and `schemas/json/agent-protocols.schema.json`, mapping MCP, A2A, and x402 adapter concepts below Boreal canonical truth.
 - A machine-readable recovery profile exists through `/agents/recovery.json` and `schemas/json/agent-recovery.schema.json`, mapping auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and escalation behavior for agents.
+- A machine-readable readiness profile exists through `/agents/readiness.json` and `schemas/json/agent-readiness.schema.json`, mapping live versus target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities.
+- A machine-readable tool registry exists through `/agents/tools.json` and `schemas/json/agent-tools.schema.json`, mapping agent intents to live HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, and canonical write boundaries.
 
 Current gaps to close before Boreal is truly agent-native:
 
@@ -91,15 +94,18 @@ Current gaps to close before Boreal is truly agent-native:
 - the first OpenAPI auth metadata pass now declares account-session, resolver-bearer, anonymous-public, provider-callback, and refresh-token body boundaries in the machine-readable contracts; OAuth-compatible external-agent authorization remains target direction
 - the first machine-readable auth profile now tells agents which actor class, auth scheme, scope, approval boundary, and idempotency rule applies before writes, but it does not create production credentials or make OAuth-compatible external-agent auth live
 - the first machine-readable completion profile now tells agents what proof and review truth is required before saying draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed, but deeper lane-specific proof scoring remains target direction
-- no MCP server profile for Boreal resources and mutation tools
+- the first machine-readable payment profile now tells agents when inspection is free, when account-session spend authority is required, which payment mutations need idempotency, how buyer credit and paid runs reconcile into `Transaction`, and why x402 remains target-only until explicit endpoint activation
+- no live MCP server for Boreal resources and mutation tools
 - no A2A adapter that maps A2A tasks/artifacts onto Boreal requests, fulfillments, and artifacts
-- no x402 or wallet-based execution payment profile in the canonical web app
+- no live x402 or wallet-based execution payment endpoint in the canonical web app
 - the first MCP/A2A/x402 boundary profile now exists, but implementation adapters are not live yet
 - the first machine-readable MCP/A2A/x402 protocol profile now exists, so agents can read adapter mappings, non-goals, implementation order, and canon boundaries without scraping markdown
 - the first machine-readable recovery profile now exists, so agents can handle failed writes, missing scopes, rate limits, blocked fulfillments, payment uncertainty, and stale monitor cursors without inventing parallel recovery state
+- the first machine-readable readiness profile now exists, so agents can distinguish live public reads, live authenticated HTTP contracts, contract-only sandbox flows, and target OAuth/MCP/A2A/x402 layers without overclaiming adapter availability
+- the first machine-readable tool registry now exists, so agents can map inspect, make draft, apply, submit, monitor, run, payment reconciliation, and optimization intents to safe HTTP calls while keeping MCP and A2A as target adapter mappings
 - the first contract-only sandbox and fixture runner exist, but no production sandbox credentials or isolated write sandbox exists for external agents yet
 - the first signed webhook/push-notification profile is documented for long-running agent monitoring, but subscription persistence and delivery are not live yet
-- the first machine-readable action catalog, public action playbook, auth profile, and completion profile now name inspect, make-request, apply, submit, monitor, run, and optimize auth and proof boundaries, but production sandbox credentials and live external-agent authorization are still needed
+- the first machine-readable action catalog, public action playbook, auth profile, completion profile, payment profile, and readiness profile now name inspect, make-request, apply, submit, monitor, run, optimize, spend, and recover boundaries, but production sandbox credentials and live external-agent authorization are still needed
 
 ## Agent Roles
 
@@ -294,11 +300,14 @@ Add these public surfaces:
 - `GET /agents/start.md`
 - `GET /agents/auth.json`
 - `GET /agents/completion.json`
+- `GET /agents/payments.json`
 - `GET /agents/workflows.json`
 - `GET /agents/sandbox.md`
 - `GET /agents/sandbox.json`
 - `GET /agents/protocols.json`
 - `GET /agents/recovery.json`
+- `GET /agents/readiness.json`
+- `GET /agents/tools.json`
 - `GET /.well-known/agent-card.json`
 - `GET /openapi.json`
 - `GET /openapi/request-briefing.json`
@@ -315,9 +324,12 @@ Add these public surfaces:
 - `GET /schemas/agent-sandbox.schema.json`
 - `GET /schemas/agent-auth.schema.json`
 - `GET /schemas/agent-completion.schema.json`
+- `GET /schemas/agent-payments.schema.json`
 - `GET /schemas/agent-workflows.schema.json`
 - `GET /schemas/agent-protocols.schema.json`
 - `GET /schemas/agent-recovery.schema.json`
+- `GET /schemas/agent-readiness.schema.json`
+- `GET /schemas/agent-tools.schema.json`
 
 The first agent-facing page should explain:
 
@@ -741,11 +753,14 @@ Deliverables:
 - `/agents/actions.md` - implemented as a public markdown action playbook for inspect, make-request, apply, submit, monitor, run, and optimize flows
 - `/agents/auth.json` - implemented as a public machine-readable auth profile for actor classes, auth schemes, scopes, approval boundaries, idempotency, and explicit non-grants
 - `/agents/completion.json` - implemented as a public machine-readable completion profile for proof packets, Artifact guidance, completion claims, and review boundaries
+- `/agents/payments.json` - implemented as a public machine-readable payment profile for buyer-credit, request funding, paid solution runs, idempotency, x402 target boundaries, and `Transaction` reconciliation
 - `/agents/workflows.json` - implemented as a public machine-readable workflow catalog for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with `agentActionPolicy` checkpoints
 - `/agents/monitor-webhooks.md` - implemented as a public target profile for signed request-activity monitor callbacks
 - `/agents/protocols.md` - implemented as a public MCP, A2A, and x402 boundary profile
 - `/agents/protocols.json` - implemented as a public machine-readable MCP, A2A, and x402 protocol profile with adapter mappings, non-goals, implementation order, and canon boundaries
 - `/agents/recovery.json` - implemented as a public machine-readable recovery profile for auth failures, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and escalation packets
+- `/agents/readiness.json` - implemented as a public machine-readable readiness profile for live-versus-target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities
+- `/agents/tools.json` - implemented as a public machine-readable tool registry for live HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, output truth, and canonical write boundaries
 - `/agents/sandbox.md` and `/agents/sandbox.json` - implemented as a public contract-only sandbox guide and manifest
 - `/.well-known/agent-card.json` - implemented as a public-safe JSON card in `apps/web`
 - public OpenAPI route or static export - implemented as `/openapi.json` plus allowlisted YAML contract exports
@@ -756,9 +771,12 @@ Deliverables:
 - machine-readable agent action catalog - implemented in the agent card and `/openapi.json` as `x-boreal-agent-actions`
 - machine-readable agent auth profile - implemented as `/agents/auth.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent completion profile - implemented as `/agents/completion.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent payment profile - implemented as `/agents/payments.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent workflow catalog - implemented as `/agents/workflows.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent protocol profile - implemented as `/agents/protocols.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent recovery profile - implemented as `/agents/recovery.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent readiness profile - implemented as `/agents/readiness.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent tool registry - implemented as `/agents/tools.json`, linked from the agent card and `/openapi.json`
 - request-level `agentActionAffordances` on public request projections - implemented in `toPublicRequestPoolEntry`
 - request-detail `agentActionPolicy` decisions for anonymous, session, and resolver actors - implemented in the request detail API as a derived policy envelope
 - agent sandbox fixture runner - implemented as `pnpm contracts:agent-sandbox`
@@ -776,6 +794,9 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the action playbook route and its live HTTP sketches for make-request, apply, submit, monitor, and run flows.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent auth profile, resolver bearer and target OAuth boundaries, scope non-grants, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent completion profile, proof packet, Artifact and owner-review boundaries, non-completion truth list, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent payment profile, free inspection boundary, account-session spend surfaces, idempotency, target x402 boundary, `Transaction` truth, non-root payment objects, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent readiness profile, live and target capability bands, standards map, agent UX flow, go/no-go checks, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent tool registry, HTTP invocation baseline, target MCP/A2A mappings, idempotency, optimization draft-only behavior, payment mutation boundaries, non-root tool objects, and public schema route.
 - `pnpm contracts:agent-sandbox` verifies the sandbox fixture, mock identity coverage, idempotency samples, cursor sample, signed-webhook sample, draft-only optimization sample, and production-auth boundary.
 - `apps/web/tests/contracts/request-boundary.test.ts` verifies public request action affordances, keeps owner-only routing and planner internals out of public projections, and only exposes `run_public_solution` when completed public solution truth exists.
 
@@ -802,7 +823,7 @@ Deliverables:
 
 - Boreal MCP server or gateway workspace
 - resource list for public requests, request details, schemas, activity, and artifacts - first profile listed in `/agents/protocols.md` and `standards/agent-protocol-profile.md`
-- tools for propose commitment, publish artifact, monitor request, run public solution - first profile listed in `/agents/protocols.md` and `standards/agent-protocol-profile.md`
+- tools for propose commitment, publish artifact, monitor request, run public solution, payment reconciliation, and draft optimization - first machine-readable registry is live in `/agents/tools.json`, while the live MCP server remains target
 - prompts for briefing, applying, submitting proof, and plan optimization - first profile listed in `/agents/protocols.md` and `standards/agent-protocol-profile.md`
 
 Acceptance:
@@ -829,15 +850,16 @@ Acceptance:
 
 Deliverables:
 
-- payment-agent guide
-- optional x402 payment challenge for selected paid execution endpoints
-- reconciliation into Boreal `Transaction`
+- payment-agent guide - first machine-readable profile is live in `/agents/payments.json`
+- optional x402 payment challenge for selected paid execution endpoints - target endpoint activation remains open
+- reconciliation into Boreal `Transaction` - first profile and payment OpenAPI contract require this boundary
 - no private wallet key handling inside Boreal web
 
 Acceptance:
 
-- an agent can pay for a run or paid capability without creating fake completion truth
-- every paid run reconciles with request-attached transaction truth
+- an account-session agent can pay for a live paid run through existing buyer-credit routes without creating fake completion truth
+- every paid run reconciles with request-attached transaction truth before the agent claims paid execution started
+- x402 remains target-only until a live endpoint is explicitly marked x402-capable
 
 ### Phase 6: Sandbox And Trust
 
@@ -865,6 +887,9 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can find OpenAPI, JSON Schema, and AsyncAPI contracts from public documentation.
 - A fresh agent can find the auth profile and distinguish anonymous reads, account sessions, resolver bearers, and target OAuth-compatible delegation.
 - A fresh agent can find the completion profile and distinguish draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims.
+- A fresh agent can find the payment profile and distinguish free inspection, buyer-credit support ledger state, request-attached `Transaction` truth, live account-session spend authority, and target x402 activation.
+- A fresh agent can find the readiness profile and distinguish live public reads, live authenticated HTTP contracts, contract-only sandbox flows, and target OAuth, MCP, A2A, and x402 layers.
+- A fresh agent can find the tool registry and map common agent intents to safe HTTP calls, target MCP tools, target A2A operations, required preflights, idempotency requirements, and canonical writes.
 - A fresh agent can inspect public requests without auth.
 - Draft and private requests are not exposed through public reads.
 - A scoped requester agent can create or update a draft request without opening it automatically.

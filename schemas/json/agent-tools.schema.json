@@ -1,0 +1,374 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-tools.schema.json",
+  "title": "AgentToolRegistry",
+  "description": "Machine-readable registry mapping Boreal agent intents to safe HTTP tools, target MCP tools, target A2A operations, preflight checks, idempotency, and canonical write boundaries.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "invocationRules",
+    "standardEnvelope",
+    "tools",
+    "adapterMappings",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_tool_registry"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "invocationRules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "standardEnvelope": {
+      "$ref": "#/$defs/standardEnvelope"
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/tool"
+      }
+    },
+    "adapterMappings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/adapterMapping"
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "policyObject",
+        "durableTruthObjects",
+        "toolRegistryIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "policyObject": {
+          "const": "agentActionPolicy"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "toolRegistryIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "standardEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestFields",
+        "responseFields",
+        "secretRules"
+      ],
+      "properties": {
+        "requestFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "responseFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "secretRules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "actionId",
+        "title",
+        "invocationKind",
+        "status",
+        "standardMappings",
+        "inputShape",
+        "preflight",
+        "auth",
+        "idempotencyRequired",
+        "canonicalReads",
+        "canonicalWrites",
+        "outputTruth",
+        "stopWhen"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "invocationKind": {
+          "type": "string",
+          "enum": [
+            "read",
+            "mutation",
+            "monitor",
+            "payment_mutation",
+            "draft_only"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "live_http_contract",
+            "target_profile"
+          ]
+        },
+        "standardMappings": {
+          "$ref": "#/$defs/standardMappings"
+        },
+        "inputShape": {
+          "$ref": "#/$defs/inputShape"
+        },
+        "preflight": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "auth": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotencyRequired": {
+          "type": "boolean"
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputTruth": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "stopWhen": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "standardMappings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "http",
+        "mcp",
+        "a2a"
+      ],
+      "properties": {
+        "http": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "method",
+            "href"
+          ],
+          "properties": {
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "href": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "mcp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "type",
+            "name"
+          ],
+          "properties": {
+            "status": {
+              "const": "target_adapter_mapping"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "resource",
+                "tool",
+                "prompt"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "a2a": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "operation"
+          ],
+          "properties": {
+            "status": {
+              "const": "target_adapter_mapping"
+            },
+            "operation": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "inputShape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "optional"
+      ],
+      "properties": {
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optional": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "adapterMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "standard",
+        "status",
+        "use"
+      ],
+      "properties": {
+        "standard": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "live_contract_export",
+            "live_contract_exports",
+            "live_schema_exports",
+            "target_adapter_mapping"
+          ]
+        },
+        "use": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-payments.schema.json",
+  "title": "AgentPaymentProfile",
+  "description": "Machine-readable payment, buyer-credit, paid-run, x402 target, idempotency, and Transaction reconciliation profile for Boreal agents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "paymentPrinciples",
+    "spendSurfaces",
+    "paymentRules",
+    "x402Boundary",
+    "reconciliationChecks",
+    "escalationPacket",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_payment_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "paymentPrinciples": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "spendSurfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/spendSurface"
+      }
+    },
+    "paymentRules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/paymentRule"
+      }
+    },
+    "x402Boundary": {
+      "$ref": "#/$defs/x402Boundary"
+    },
+    "reconciliationChecks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "escalationPacket": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "paymentTruthObject",
+        "supportLedgerObjects",
+        "notRoots",
+        "notCompletionTruth",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "paymentTruthObject": {
+          "const": "Transaction"
+        },
+        "supportLedgerObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notCompletionTruth": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "spendSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "intent",
+        "endpoints",
+        "auth",
+        "idempotencyRequired",
+        "canonicalReads",
+        "canonicalWrites",
+        "transactionEffect",
+        "agentMaySay",
+        "agentMustNotSay"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "live_public_read",
+            "live_account_session_http_contract",
+            "target_payment_profile"
+          ]
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "endpoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "auth": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotencyRequired": {
+          "type": "boolean"
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "transactionEffect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agentMaySay": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agentMustNotSay": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "paymentRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "appliesTo",
+        "rule",
+        "stopWhen"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "appliesTo": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stopWhen": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "x402Boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "useFor",
+        "liveToday",
+        "notLiveToday",
+        "requiredBeforeActivation"
+      ],
+      "properties": {
+        "status": {
+          "const": "target_payment_profile"
+        },
+        "useFor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "liveToday": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notLiveToday": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredBeforeActivation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

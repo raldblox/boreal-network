@@ -20,6 +20,26 @@ Daily fork quotas and token ceilings must be server-side and environment-control
 
 Runtime model routing, provider retry, and model fallback must reuse the same active tool allowlist, tool-choice policy, and mutation-tool schemas as the originally selected chat route. Fallback is capacity management, not a separate planner or policy lane.
 
+## Public Agent Tool Registry
+
+The public agent tool registry lives at:
+
+- `/agents/tools.json`
+- `schemas/json/agent-tools.schema.json`
+
+It is a descriptive registry for agents and future protocol adapters.
+It maps common intents such as inspect, make draft, apply, submit proof, monitor, run public solution, reconcile payment, and optimize draft into safe HTTP calls and target MCP or A2A names.
+
+Rules:
+
+- the registry does not grant permission
+- current live invocation is HTTP through the governed routes
+- MCP tool names are target adapter mappings until a live MCP server contract exists
+- A2A operations are target adapter mappings until a live A2A adapter exists
+- every write-capable tool must still read `agentActionPolicy` before mutation
+- every payment-capable tool must follow `/agents/payments.json`
+- tool success is not completion truth unless canonical request lifecycle, proof, and review truth support the claim
+
 ## Tool Layers
 
 ### Planner tools

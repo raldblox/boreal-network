@@ -7,10 +7,13 @@ import {
   buildAgentCard,
   buildAgentCompletionProfile,
   buildAgentMonitorWebhooksMarkdown,
+  buildAgentPaymentProfile,
   buildAgentProtocolProfile,
   buildAgentProtocolProfileMarkdown,
   buildAgentRecoveryProfile,
+  buildAgentReadinessProfile,
   buildAgentStartMarkdown,
+  buildAgentToolRegistry,
   buildAgentWorkflowCatalog,
   buildOpenApiDiscoveryIndex,
   findEventAsset,
@@ -31,12 +34,15 @@ import { GET as getAgentActions } from "@/app/agents/actions.md/route";
 import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
+import { GET as getAgentPayments } from "@/app/agents/payments.json/route";
 import { GET as getAgentProtocols } from "@/app/agents/protocols.md/route";
 import { GET as getAgentProtocolsJson } from "@/app/agents/protocols.json/route";
 import { GET as getAgentRecovery } from "@/app/agents/recovery.json/route";
+import { GET as getAgentReadiness } from "@/app/agents/readiness.json/route";
 import { GET as getAgentSandboxJson } from "@/app/agents/sandbox.json/route";
 import { GET as getAgentSandboxMd } from "@/app/agents/sandbox.md/route";
 import { GET as getAgentStart } from "@/app/agents/start.md/route";
+import { GET as getAgentTools } from "@/app/agents/tools.json/route";
 import { GET as getAgentWorkflows } from "@/app/agents/workflows.json/route";
 import { GET as getAsyncApiContract } from "@/app/events/[contract]/route";
 import { GET as getLlmsTxt } from "@/app/llms.txt/route";
@@ -72,9 +78,18 @@ async function main() {
     agentCard.recoveryProfileUrl.endsWith("/agents/recovery.json"),
     true,
   );
+  assert.equal(
+    agentCard.readinessProfileUrl.endsWith("/agents/readiness.json"),
+    true,
+  );
+  assert.equal(agentCard.toolRegistryUrl.endsWith("/agents/tools.json"), true);
   assert.equal(agentCard.authProfileUrl.endsWith("/agents/auth.json"), true);
   assert.equal(
     agentCard.completionProfileUrl.endsWith("/agents/completion.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.paymentProfileUrl.endsWith("/agents/payments.json"),
     true,
   );
   assert.equal(agentCard.authentication.profileUrl.endsWith("/agents/auth.json"), true);
@@ -83,6 +98,15 @@ async function main() {
   assert.equal(agentCard.completion.status, "live_completion_profile");
   assert.equal(
     agentCard.completion.rules.some((rule) => rule.claimState === "completed"),
+    true,
+  );
+  assert.equal(agentCard.payments.status, "live_payment_profile");
+  assert.equal(
+    agentCard.payments.spendSurfaces.some(
+      (surface) =>
+        surface.id === "public_solution_run" &&
+        surface.canonicalWrites.includes("Transaction")
+    ),
     true,
   );
   assert.equal(
@@ -102,6 +126,18 @@ async function main() {
     true,
   );
   assert.equal(agentCard.recovery.status, "live_recovery_profile");
+  assert.equal(agentCard.readiness.status, "live_readiness_profile");
+  assert.equal(agentCard.readiness.liveCapabilityCount >= 7, true);
+  assert.equal(agentCard.readiness.targetCapabilityCount >= 2, true);
+  assert.equal(agentCard.tools.status, "live_tool_registry");
+  assert.equal(
+    agentCard.tools.tools.some(
+      (tool) =>
+        tool.id === "boreal.artifacts.publish" &&
+        tool.canonicalWrites.includes("Artifact")
+    ),
+    true,
+  );
   assert.equal(
     agentCard.skills.some((skill) => skill.id === "inspect_public_requests"),
     true,
@@ -336,6 +372,57 @@ async function main() {
     true,
   );
 
+  const readinessProfile = buildAgentReadinessProfile();
+  assert.equal(readinessProfile.status, "live_readiness_profile");
+  assert.equal(readinessProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    readinessProfile.standardPlanes.some(
+      (plane) => plane.id === "http_contracts" && plane.standard === "OpenAPI 3.1"
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "submit_or_complete_work" &&
+        capability.actions.includes("submit_artifact") &&
+        capability.stopOrEscalateWhen.some((rule) =>
+          rule.includes("MCP")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "protocol_adapters" &&
+        capability.status === "target_adapter_profile"
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.agentUxFlow.some(
+      (stage) =>
+        stage.stage === "Check auth and policy" &&
+        stage.stopWhen.includes("missing scope")
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.goNoGoChecks.some(
+      (check) =>
+        check.id === "proof_completion_boundary" &&
+        check.failWhen.includes("payment settlement")
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.nextImplementationPriorities.some(
+      (priority) => priority.id === "production_agent_auth"
+    ),
+    true,
+  );
+
   const authProfile = buildAgentAuthProfile();
   assert.equal(authProfile.status, "live_auth_profile");
   assert.equal(authProfile.canonicalBoundary.rootObject, "Request");
@@ -432,6 +519,100 @@ async function main() {
     completionProfile.canonicalBoundary.notCompletionTruth.includes(
       "A2A task status alone"
     ),
+    true,
+  );
+
+  const paymentProfile = buildAgentPaymentProfile();
+  assert.equal(paymentProfile.status, "live_payment_profile");
+  assert.equal(paymentProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(paymentProfile.canonicalBoundary.paymentTruthObject, "Transaction");
+  assert.equal(
+    paymentProfile.spendSurfaces.some(
+      (surface) =>
+        surface.id === "public_solution_inspection" &&
+        surface.transactionEffect === "none" &&
+        surface.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    paymentProfile.spendSurfaces.some(
+      (surface) =>
+        surface.id === "public_solution_run" &&
+        surface.canonicalWrites.includes("Request") &&
+        surface.canonicalWrites.includes("Transaction") &&
+        surface.idempotencyRequired
+    ),
+    true,
+  );
+  assert.equal(
+    paymentProfile.paymentRules.some(
+      (rule) =>
+        rule.id === "payment_not_completion" &&
+        rule.rule.includes("never work completion")
+    ),
+    true,
+  );
+  assert.equal(paymentProfile.x402Boundary.status, "target_payment_profile");
+  assert.equal(
+    paymentProfile.x402Boundary.notLiveToday.includes(
+      "x402 challenge emission"
+    ),
+    true,
+  );
+  assert.equal(
+    paymentProfile.canonicalBoundary.notRoots.includes("Order"),
+    true,
+  );
+
+  const toolRegistry = buildAgentToolRegistry();
+  assert.equal(toolRegistry.status, "live_tool_registry");
+  assert.equal(toolRegistry.canonicalBoundary.rootObject, "Request");
+  assert.equal(toolRegistry.canonicalBoundary.policyObject, "agentActionPolicy");
+  assert.equal(
+    toolRegistry.invocationRules.some((rule) =>
+      rule.includes("agentActionPolicy")
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.commitments.propose" &&
+        tool.idempotencyRequired &&
+        tool.canonicalWrites.includes("Commitment") &&
+        tool.standardMappings.mcp.type === "tool"
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.solutions.run_public" &&
+        tool.invocationKind === "payment_mutation" &&
+        tool.canonicalWrites.includes("Transaction")
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.requests.optimize_brief" &&
+        tool.invocationKind === "draft_only" &&
+        tool.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.adapterMappings.some(
+      (mapping) =>
+        mapping.standard === "Model Context Protocol" &&
+        mapping.status === "target_adapter_mapping"
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.canonicalBoundary.notRoots.includes("MCP Tool"),
     true,
   );
 
@@ -708,9 +889,12 @@ async function main() {
   assert.match(startGuide, /agentActionPolicy/);
   assert.match(startGuide, /GET \/agents\/auth\.json/);
   assert.match(startGuide, /GET \/agents\/completion\.json/);
+  assert.match(startGuide, /GET \/agents\/payments\.json/);
   assert.match(startGuide, /GET \/agents\/workflows\.json/);
   assert.match(startGuide, /GET \/agents\/protocols\.json/);
   assert.match(startGuide, /GET \/agents\/recovery\.json/);
+  assert.match(startGuide, /GET \/agents\/readiness\.json/);
+  assert.match(startGuide, /GET \/agents\/tools\.json/);
   assert.match(startGuide, /Agent action playbook/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent Workflow Catalog/);
@@ -744,6 +928,7 @@ async function main() {
     Object.hasOwn(discoveryIndex.paths, "/agents/completion.json"),
     true,
   );
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/payments.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/workflows.json"),
     true,
@@ -755,6 +940,8 @@ async function main() {
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/protocols.md"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/protocols.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/recovery.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/readiness.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/tools.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/sandbox.md"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/sandbox.json"), true);
   assert.equal(
@@ -778,6 +965,24 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-completion"].rules.some(
       (rule) => rule.claimState === "completed"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-payments"].spendSurfaces.some(
+      (surface) => surface.id === "public_solution_run"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-readiness"].capabilityBands.some(
+      (capability) => capability.id === "protocol_adapters"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-tools"].tools.some(
+      (tool) => tool.id === "boreal.activity.monitor"
     ),
     true,
   );
@@ -807,6 +1012,10 @@ async function main() {
     "schemas/json/agent-completion.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-payments.schema.json")?.sourcePath,
+    "schemas/json/agent-payments.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-workflows.schema.json")?.sourcePath,
     "schemas/json/agent-workflows.schema.json",
   );
@@ -817,6 +1026,14 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-recovery.schema.json")?.sourcePath,
     "schemas/json/agent-recovery.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-readiness.schema.json")?.sourcePath,
+    "schemas/json/agent-readiness.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-tools.schema.json")?.sourcePath,
+    "schemas/json/agent-tools.schema.json",
   );
   assert.equal(
     findEventAsset("request-room.asyncapi.yaml")?.sourcePath,
@@ -895,6 +1112,13 @@ async function main() {
     "live_completion_profile"
   );
 
+  const agentPaymentsResponse = await getAgentPayments();
+  assert.equal(agentPaymentsResponse.status, 200);
+  assert.equal(
+    (await agentPaymentsResponse.json()).status,
+    "live_payment_profile"
+  );
+
   const agentWorkflowsResponse = await getAgentWorkflows();
   assert.equal(agentWorkflowsResponse.status, 200);
   assert.equal(
@@ -930,6 +1154,20 @@ async function main() {
     "live_recovery_profile"
   );
 
+  const agentReadinessResponse = await getAgentReadiness();
+  assert.equal(agentReadinessResponse.status, 200);
+  assert.equal(
+    (await agentReadinessResponse.json()).status,
+    "live_readiness_profile"
+  );
+
+  const agentToolsResponse = await getAgentTools();
+  assert.equal(agentToolsResponse.status, 200);
+  assert.equal(
+    (await agentToolsResponse.json()).status,
+    "live_tool_registry"
+  );
+
   const agentSandboxMdResponse = await getAgentSandboxMd();
   assert.equal(agentSandboxMdResponse.status, 200);
   assert.match(await agentSandboxMdResponse.text(), /Boreal Agent Sandbox/);
@@ -945,8 +1183,11 @@ async function main() {
   assert.match(llmsText, /Agent action playbook/);
   assert.match(llmsText, /Agent auth profile/);
   assert.match(llmsText, /Agent completion profile/);
+  assert.match(llmsText, /Agent payment profile/);
   assert.match(llmsText, /Agent protocol profile JSON/);
   assert.match(llmsText, /Agent recovery profile/);
+  assert.match(llmsText, /Agent readiness profile/);
+  assert.match(llmsText, /Agent tool registry/);
   assert.match(llmsText, /Agent contract sandbox/);
 
   const openApiIndexResponse = await getOpenApiIndex();
@@ -986,6 +1227,15 @@ async function main() {
     "AgentCompletionProfile"
   );
 
+  const paymentSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-payments.schema.json" }),
+  });
+  assert.equal(paymentSchemaResponse.status, 200);
+  assert.equal(
+    (await paymentSchemaResponse.json()).title,
+    "AgentPaymentProfile"
+  );
+
   const workflowSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-workflows.schema.json" }),
   });
@@ -1011,6 +1261,24 @@ async function main() {
   assert.equal(
     (await recoverySchemaResponse.json()).title,
     "AgentRecoveryProfile"
+  );
+
+  const readinessSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-readiness.schema.json" }),
+  });
+  assert.equal(readinessSchemaResponse.status, 200);
+  assert.equal(
+    (await readinessSchemaResponse.json()).title,
+    "AgentReadinessProfile"
+  );
+
+  const toolSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-tools.schema.json" }),
+  });
+  assert.equal(toolSchemaResponse.status, 200);
+  assert.equal(
+    (await toolSchemaResponse.json()).title,
+    "AgentToolRegistry"
   );
 
   const eventResponse = await getAsyncApiContract(new Request("http://boreal.test"), {

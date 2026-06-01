@@ -400,11 +400,14 @@ Read-only public discovery surfaces:
 - `/agents/actions.md` for contract-linked inspect, make-request, apply, submit, monitor, run, and optimize walkthroughs
 - `/agents/auth.json` for machine-readable actor class, auth scheme, scope, approval, and write-boundary handling
 - `/agents/completion.json` for machine-readable proof packet, artifact, completion-claim, and review-boundary handling
+- `/agents/payments.json` for machine-readable buyer-credit, paid-run, x402 target, idempotency, and `Transaction` reconciliation handling
 - `/agents/workflows.json` for machine-readable process flows that combine discovery, `agentActionPolicy`, idempotency, scopes, stop conditions, and canonical writes
 - `/agents/monitor-webhooks.md` for the target signed webhook receiver profile for request activity monitors
 - `/agents/protocols.md` for MCP, A2A, and x402 adapter/payment boundaries
 - `/agents/protocols.json` for machine-readable MCP, A2A, and x402 adapter mappings, non-goals, implementation order, and canon boundaries
 - `/agents/recovery.json` for machine-readable auth failure, scope failure, idempotency conflict, rate limit, monitor cursor, fulfillment retry, payment uncertainty, and escalation handling
+- `/agents/readiness.json` for machine-readable live-versus-target capability bands, standard planes, agent UX flow, and go/no-go checks
+- `/agents/tools.json` for machine-readable safe tool invocation, preflight, HTTP fallback, target MCP/A2A mapping, idempotency, and canonical write boundaries
 - `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, and payloads
 - `/agents/sandbox.json` for the machine-readable contract-only sandbox manifest
 - `/.well-known/agent-card.json` for public-safe A2A-style identity, capability, auth, and skill metadata
@@ -417,9 +420,12 @@ Read-only public discovery surfaces:
 - `/schemas/agent-sandbox.schema.json` for the contract-only agent sandbox manifest shape
 - `/schemas/agent-auth.schema.json` for the machine-readable agent auth profile shape
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
+- `/schemas/agent-payments.schema.json` for the machine-readable agent payment profile shape
 - `/schemas/agent-workflows.schema.json` for the machine-readable agent workflow catalog shape
 - `/schemas/agent-protocols.schema.json` for the machine-readable agent protocol profile shape
 - `/schemas/agent-recovery.schema.json` for the machine-readable agent recovery profile shape
+- `/schemas/agent-readiness.schema.json` for the machine-readable agent readiness profile shape
+- `/schemas/agent-tools.schema.json` for the machine-readable agent tool registry shape
 - `/events/request-room.asyncapi.yaml` for durable request-room monitoring contracts
 
 The agent card and `/openapi.json` include the same action catalog for common
@@ -455,10 +461,33 @@ complete. It does not grant permission, skip owner review, or make chat output,
 payment settlement, MCP tool success, A2A task status, provider callbacks, or
 runtime logs sufficient completion truth by themselves.
 
+The public agent payment profile is descriptive and safety-oriented. It tells
+agents which buyer-credit, direct-funding, public-solution-run, and x402-target
+boundaries apply before spending credits or money. Public solution inspection
+remains free, live spend mutations require account-session authority, request
+funding and paid runs must reconcile into request-attached `Transaction` truth,
+and x402 remains target-only until an endpoint is explicitly marked
+x402-capable. It does not grant payment credentials, settle funds, create an
+`Order` root, or make payment success completion truth.
+
 Agent-facing recovery guidance is descriptive and safety-oriented. It tells
 agents when to stop, retry with the same idempotency key, resume from a monitor
 cursor, inspect `Transaction` truth, or escalate to a human. It does not grant
 permission, create durable history, or replace endpoint authorization.
+
+The public agent readiness profile is descriptive and safety-oriented. It gives
+agents one machine-readable capability matrix for what is live now, what is
+target-only, which standards apply at each layer, the intended agent UX flow,
+and the go/no-go checks that must pass before write, payment, monitor, recovery,
+or completion claims. It does not grant credentials, enable MCP or A2A adapters,
+settle payment, or prove completion by itself.
+
+The public agent tool registry is descriptive and safety-oriented. It maps
+agent intents to current HTTP routes plus target MCP and A2A names, and it names
+the preflight, auth, idempotency, output-truth, and canonical write boundaries
+for each tool. It does not create a separate tool runtime, grant permission,
+make MCP or A2A adapters live, or let tool success replace `Request`,
+`Commitment`, `Fulfillment`, `Artifact`, `Transaction`, or `RequestEvent` truth.
 
 The sandbox surfaces are contract samples only.
 They do not create live objects, spend money, approve resolver access, or grant

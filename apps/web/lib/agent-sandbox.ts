@@ -8,11 +8,14 @@ export const agentSandboxPaths = {
   guide: "/agents/sandbox.md",
   manifest: "/agents/sandbox.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
+  payments: "/agents/payments.json",
   protocols: "/agents/protocols.md",
   protocolsJson: "/agents/protocols.json",
   recovery: "/agents/recovery.json",
+  readiness: "/agents/readiness.json",
   schema: "/schemas/agent-sandbox.schema.json",
   start: "/agents/start.md",
+  tools: "/agents/tools.json",
 } as const;
 
 export function buildAgentSandboxManifest() {
@@ -62,6 +65,10 @@ export function buildAgentSandboxManifest() {
         url: absoluteUrl(agentSandboxPaths.completion),
       },
       {
+        label: "Payment profile",
+        url: absoluteUrl(agentSandboxPaths.payments),
+      },
+      {
         label: "Workflow catalog",
         url: absoluteUrl("/agents/workflows.json"),
       },
@@ -76,6 +83,14 @@ export function buildAgentSandboxManifest() {
       {
         label: "Recovery profile",
         url: absoluteUrl(agentSandboxPaths.recovery),
+      },
+      {
+        label: "Readiness profile",
+        url: absoluteUrl(agentSandboxPaths.readiness),
+      },
+      {
+        label: "Tool registry",
+        url: absoluteUrl(agentSandboxPaths.tools),
       },
       {
         label: "Monitor webhook profile",
