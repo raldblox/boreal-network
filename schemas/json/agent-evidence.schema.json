@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-evidence.schema.json",
+  "title": "AgentEvidenceProfile",
+  "description": "Machine-readable evidence packet, artifact packaging, redaction, review, and proof-boundary profile for agents submitting work to Boreal.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "artifactPacket",
+    "evidenceLevels",
+    "artifactKindGuidance",
+    "redactionRules",
+    "submitChecklist",
+    "reviewSignals",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_evidence_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "artifactPacket": {
+      "$ref": "#/$defs/artifactPacket"
+    },
+    "evidenceLevels": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidenceLevel"
+      }
+    },
+    "artifactKindGuidance": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/artifactKindGuidance"
+      }
+    },
+    "redactionRules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "submitChecklist": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/check"
+      }
+    },
+    "reviewSignals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "evidenceTruthObject",
+        "durableTruthObjects",
+        "evidenceProfileIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "evidenceTruthObject": {
+          "const": "Artifact"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidenceProfileIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "artifactPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "purpose",
+        "requiredFor",
+        "requiredFields",
+        "optionalFields"
+      ],
+      "properties": {
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredFor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optionalFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evidenceLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "useWhen",
+        "enoughForCompletion",
+        "reviewerAction"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enoughForCompletion": {
+          "type": "boolean"
+        },
+        "reviewerAction": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "artifactKindGuidance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactKind",
+        "useFor",
+        "mustInclude",
+        "mustNotInclude"
+      ],
+      "properties": {
+        "artifactKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useFor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mustInclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mustNotInclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "passWhen",
+        "failWhen"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "passWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failWhen": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

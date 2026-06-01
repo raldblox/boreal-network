@@ -4,10 +4,15 @@ import { absoluteUrl } from "@/lib/seo";
 export const agentSandboxPaths = {
   actions: "/agents/actions.md",
   auth: "/agents/auth.json",
+  conformance: "/agents/conformance.json",
   completion: "/agents/completion.json",
+  evidence: "/agents/evidence.json",
   guide: "/agents/sandbox.md",
+  humanHandoffs: "/agents/human-handoffs.json",
   manifest: "/agents/sandbox.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
+  monitoring: "/agents/monitoring.json",
+  optimization: "/agents/optimization.json",
   payments: "/agents/payments.json",
   protocols: "/agents/protocols.md",
   protocolsJson: "/agents/protocols.json",
@@ -61,8 +66,24 @@ export function buildAgentSandboxManifest() {
         url: absoluteUrl(agentSandboxPaths.auth),
       },
       {
+        label: "Conformance profile",
+        url: absoluteUrl(agentSandboxPaths.conformance),
+      },
+      {
         label: "Completion profile",
         url: absoluteUrl(agentSandboxPaths.completion),
+      },
+      {
+        label: "Evidence profile",
+        url: absoluteUrl(agentSandboxPaths.evidence),
+      },
+      {
+        label: "Human handoff profile",
+        url: absoluteUrl(agentSandboxPaths.humanHandoffs),
+      },
+      {
+        label: "Optimization profile",
+        url: absoluteUrl(agentSandboxPaths.optimization),
       },
       {
         label: "Payment profile",
@@ -95,6 +116,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Monitor webhook profile",
         url: absoluteUrl(agentSandboxPaths.monitorWebhooks),
+      },
+      {
+        label: "Monitoring profile",
+        url: absoluteUrl(agentSandboxPaths.monitoring),
       },
       {
         label: "Discovery index",

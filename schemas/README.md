@@ -49,7 +49,12 @@ Recommended naming:
 - `json/artifact.schema.json`
 - `json/agent-sandbox.schema.json`
 - `json/agent-auth.schema.json`
+- `json/agent-conformance.schema.json`
 - `json/agent-completion.schema.json`
+- `json/agent-evidence.schema.json`
+- `json/agent-human-handoffs.schema.json`
+- `json/agent-monitoring.schema.json`
+- `json/agent-optimization.schema.json`
 - `json/agent-payments.schema.json`
 - `json/agent-workflows.schema.json`
 - `json/agent-protocols.schema.json`

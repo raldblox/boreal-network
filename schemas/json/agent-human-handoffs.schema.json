@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-human-handoffs.schema.json",
+  "title": "AgentHumanHandoffProfile",
+  "description": "Machine-readable human handoff, approval, escalation, and claim-state profile for human-first agents using Boreal request-native work contracts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "handoffMoments",
+    "humanApprovalGates",
+    "visibleUxPatterns",
+    "agentLanguage",
+    "escalationPacket",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_human_handoff_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "handoffMoments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/handoffMoment"
+      }
+    },
+    "humanApprovalGates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/humanApprovalGate"
+      }
+    },
+    "visibleUxPatterns": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/visibleUxPattern"
+      }
+    },
+    "agentLanguage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "say",
+        "mustNotSay"
+      ],
+      "properties": {
+        "say": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "mustNotSay": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "escalationPacket": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "handoffProfileIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "handoffProfileIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "handoffMoment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "trigger",
+        "representedHuman",
+        "agentShould",
+        "humanDecision",
+        "approvalRequired",
+        "canonicalReads",
+        "canonicalWrites",
+        "primaryProfiles",
+        "stopOrEscalateWhen"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trigger": {
+          "type": "string",
+          "minLength": 1
+        },
+        "representedHuman": {
+          "type": "string",
+          "enum": [
+            "buyer_or_owner",
+            "buyer_or_reviewer",
+            "buyer_or_funder",
+            "owner_solver_or_operator",
+            "any_human_participant"
+          ]
+        },
+        "agentShould": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "humanDecision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvalRequired": {
+          "type": "boolean"
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "primaryProfiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "stopOrEscalateWhen": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "humanApprovalGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "actionIds",
+        "requiredBefore",
+        "approvalSignal",
+        "requiredTruth",
+        "idempotency",
+        "primaryProfile"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredBefore": {
+          "type": "string",
+          "minLength": 1
+        },
+        "approvalSignal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredTruth": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "idempotency": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primaryProfile": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "visibleUxPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "useFor",
+        "notCanonicalObject",
+        "canonicalMappings"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useFor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notCanonicalObject": {
+          "const": true
+        },
+        "canonicalMappings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

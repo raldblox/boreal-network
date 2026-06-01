@@ -37,7 +37,12 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent start guide](${absoluteUrl(agentDiscoveryPaths.agentStart)}): What agents can inspect, what requires auth, and how canonical writes work.
 - [Agent action playbook](${absoluteUrl(agentDiscoveryPaths.agentActions)}): Contract-linked walkthroughs for inspect, make-request, apply, submit, monitor, run, and optimize intents.
 - [Agent auth profile](${absoluteUrl(agentDiscoveryPaths.agentAuth)}): Machine-readable actor classes, auth schemes, scopes, approvals, and write boundaries.
+- [Agent conformance profile](${absoluteUrl(agentDiscoveryPaths.agentConformance)}): Machine-readable checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries.
 - [Agent completion profile](${absoluteUrl(agentDiscoveryPaths.agentCompletion)}): Machine-readable proof packets, Artifact requirements, completion claims, and review boundaries.
+- [Agent evidence profile](${absoluteUrl(agentDiscoveryPaths.agentEvidence)}): Machine-readable evidence packet, Artifact packaging, redaction, review, and proof-boundary guidance.
+- [Agent human handoff profile](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)}): Machine-readable human approval, stop, escalation, visible UX, and claim-state boundaries.
+- [Agent monitoring profile](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)}): Machine-readable cursor polling, stale-state detection, escalation, and push-boundary guidance.
+- [Agent optimization profile](${absoluteUrl(agentDiscoveryPaths.agentOptimization)}): Machine-readable draft-only optimization, no-invention, owner approval, and mutation-boundary guidance.
 - [Agent payment profile](${absoluteUrl(agentDiscoveryPaths.agentPayments)}): Machine-readable buyer-credit, paid-run, x402 target, idempotency, and Transaction reconciliation boundaries.
 - [Agent workflow catalog](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)}): Machine-readable process flows for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with policy checkpoints.
 - [Agent monitor webhook profile](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)}): Target signed push-notification profile for request activity monitors.

@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-optimization.schema.json",
+  "title": "AgentOptimizationProfile",
+  "description": "Machine-readable draft-only optimization, owner-approval, mutation boundary, and no-invention profile for agents improving Boreal requests, proposals, proof packets, monitors, and solution reuse.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "optimizationSurfaces",
+    "outputContract",
+    "approvalAndMutationRules",
+    "noInventionRules",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_optimization_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "optimizationSurfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/optimizationSurface"
+      }
+    },
+    "outputContract": {
+      "$ref": "#/$defs/outputContract"
+    },
+    "approvalAndMutationRules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "noInventionRules": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "optimizationProfileIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optimizationProfileIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "optimizationSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "intent",
+        "defaultMode",
+        "reads",
+        "canonicalWrites",
+        "maySuggest",
+        "mustNotInvent",
+        "ownerApprovalRequiredFor",
+        "primaryActionId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defaultMode": {
+          "type": "string",
+          "enum": [
+            "draft_only",
+            "analysis_only"
+          ]
+        },
+        "reads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "maySuggest": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mustNotInvent": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ownerApprovalRequiredFor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "primaryActionId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "durableWriteDefault",
+        "requiredFields",
+        "forbiddenFields"
+      ],
+      "properties": {
+        "durableWriteDefault": {
+          "const": false
+        },
+        "requiredFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "forbiddenFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -46,8 +46,24 @@
       "url": "https://boreal.work/agents/auth.json"
     },
     {
+      "label": "Conformance profile",
+      "url": "https://boreal.work/agents/conformance.json"
+    },
+    {
       "label": "Completion profile",
       "url": "https://boreal.work/agents/completion.json"
+    },
+    {
+      "label": "Evidence profile",
+      "url": "https://boreal.work/agents/evidence.json"
+    },
+    {
+      "label": "Human handoff profile",
+      "url": "https://boreal.work/agents/human-handoffs.json"
+    },
+    {
+      "label": "Optimization profile",
+      "url": "https://boreal.work/agents/optimization.json"
     },
     {
       "label": "Payment profile",
@@ -80,6 +96,10 @@
     {
       "label": "Monitor webhook profile",
       "url": "https://boreal.work/agents/monitor-webhooks.md"
+    },
+    {
+      "label": "Monitoring profile",
+      "url": "https://boreal.work/agents/monitoring.json"
     },
     {
       "label": "Discovery index",

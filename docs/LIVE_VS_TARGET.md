@@ -96,10 +96,18 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/package.json`
 - `apps/web/app/agents/start.md/route.ts`
 - `apps/web/app/agents/auth.json/route.ts`
+- `apps/web/app/agents/conformance.json/route.ts`
 - `apps/web/app/agents/completion.json/route.ts`
+- `apps/web/app/agents/evidence.json/route.ts`
+- `apps/web/app/agents/human-handoffs.json/route.ts`
+- `apps/web/app/agents/monitoring.json/route.ts`
+- `apps/web/app/agents/optimization.json/route.ts`
+- `apps/web/app/agents/payments.json/route.ts`
 - `apps/web/app/agents/workflows.json/route.ts`
 - `apps/web/app/agents/protocols.json/route.ts`
 - `apps/web/app/agents/recovery.json/route.ts`
+- `apps/web/app/agents/readiness.json/route.ts`
+- `apps/web/app/agents/tools.json/route.ts`
 - `apps/web/app/agents/sandbox.md/route.ts`
 - `apps/web/app/agents/sandbox.json/route.ts`
 - `apps/web/app/.well-known/agent-card.json/route.ts`
@@ -110,10 +118,18 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/tests/contracts/agent-discovery.test.ts`
 - `schemas/json/agent-sandbox.schema.json`
 - `schemas/json/agent-auth.schema.json`
+- `schemas/json/agent-conformance.schema.json`
 - `schemas/json/agent-completion.schema.json`
+- `schemas/json/agent-evidence.schema.json`
+- `schemas/json/agent-human-handoffs.schema.json`
+- `schemas/json/agent-monitoring.schema.json`
+- `schemas/json/agent-optimization.schema.json`
+- `schemas/json/agent-payments.schema.json`
 - `schemas/json/agent-workflows.schema.json`
 - `schemas/json/agent-protocols.schema.json`
 - `schemas/json/agent-recovery.schema.json`
+- `schemas/json/agent-readiness.schema.json`
+- `schemas/json/agent-tools.schema.json`
 - `fixtures/agent/sandbox-manifest.sample.json`
 
 Today, the machine-readable baseline proves:
@@ -158,7 +174,12 @@ Today, the machine-readable baseline proves:
 - one public `/agents/workflows.json` workflow catalog gives agents machine-readable process flows for scouting public work, making human-owned drafts, applying, submitting artifacts, monitoring activity, running public solutions, and optimizing without durable writes
 - one public `/agents/actions.md` playbook gives contract-linked walkthroughs and HTTP sketches for inspect, make-request, apply, submit, monitor, run, and optimize intents without creating a parallel agent ledger
 - one public `/agents/auth.json` profile and `schemas/json/agent-auth.schema.json` give agents machine-readable actor classes, auth schemes, scopes, approval boundaries, idempotency requirements, and explicit non-grants without claiming OAuth-compatible external-agent auth is live
+- one public `/agents/conformance.json` profile and `schemas/json/agent-conformance.schema.json` give agent builders a machine-readable checklist for discovery, auth, human handoff, work actions, proof, payment, recovery, sandbox, and target protocol boundaries without certifying agents, granting permission, authorizing spend, or proving completion
 - one public `/agents/completion.json` profile and `schemas/json/agent-completion.schema.json` give agents machine-readable proof packet, artifact, fulfillment, review, payment, and event boundaries for draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims without treating chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, or payment settlement as completion truth by themselves
+- one public `/agents/evidence.json` profile and `schemas/json/agent-evidence.schema.json` give agents machine-readable evidence packet, `Artifact` packaging, redaction, evidence-level, review-signal, and retry-safety guidance without authorizing artifact publication, storing files, accepting review, settling payment, or proving completion by itself
+- one public `/agents/human-handoffs.json` profile and `schemas/json/agent-human-handoffs.schema.json` give agents machine-readable moments for asking humans, showing drafts, requesting approval, escalating stale or blocked work, and using precise claim-state language without granting permission, recording approval, authorizing spend, proving completion, or creating a new workflow engine
+- one public `/agents/monitoring.json` profile and `schemas/json/agent-monitoring.schema.json` give agents machine-readable cursor polling, stale-state detection, escalation trigger, and push-versus-poll boundaries without granting permission, creating subscriptions, writing heartbeat events, accepting proof, settling payment, or proving completion
+- one public `/agents/optimization.json` profile and `schemas/json/agent-optimization.schema.json` give agents machine-readable draft-only optimization surfaces for briefs, proposals, evidence packets, monitor updates, and public-solution reuse without inventing facts, overriding planner or policy fields, authorizing writes, implying owner approval, settling payment, or proving completion
 - one public `/agents/payments.json` profile and `schemas/json/agent-payments.schema.json` give agents machine-readable buyer-credit, request-funding, paid-run, idempotency, x402-target, reconciliation, and escalation boundaries without granting payment credentials, creating an `Order` root, or treating payment success as completion truth
 - one request activity endpoint can resume monitor reads with `after_sequence` and return `cursor.nextAfterSequence` without creating heartbeat `RequestEvent` records
 - one public `/agents/monitor-webhooks.md` profile and OpenAPI webhook schema define the target signed push-delivery envelope for monitor agents, while actual subscription persistence and delivery remain target direction
@@ -178,6 +199,11 @@ These are intended next layers, not fully modeled proof yet:
 - broader canonical event coverage under `schemas/events/`
 - broader canonical HTTP and webhook coverage under `schemas/openapi/`, especially around transaction lanes, richer participant surfaces, and resolver-session management views
 - richer write-capable agent onboarding with production sandbox credentials, signed subscription persistence and delivery, payment/rate-limit-aware policy decisions, failure fixtures, and live external-agent auth beyond the first public action playbook, auth profile, contract-only sandbox runner, request-detail action policy, cursor polling lane, and webhook signature profile
+- richer conformance automation where external agents can submit signed sandbox transcripts or live dry-run evidence for operator review; the current profile is a public checklist only
+- richer evidence automation with artifact scanning, checksum verification, private reviewer access, and proof scoring; the current evidence profile is packaging and review guidance only
+- richer human handoff state in live request rooms, including persisted approval records, review prompts, and escalation inboxes; the current public handoff profile is descriptive guidance only
+- richer monitor automation with persisted subscriptions, delivery retries, receiver enrollment, SLA configuration, and monitor inboxes; the current monitoring profile is descriptive over live cursor polling plus target signed push delivery
+- richer optimization automation with owner-approved diff previews, semantic no-invention checks, and route-specific draft validators; the current optimization profile is descriptive guidance only
 - deeper readiness scoring that can compute route-specific live, blocked, and target states from request-detail `agentActionPolicy`, payment balance, rate-limit, participant lane, and proof-scoring evidence instead of relying only on the public capability matrix
 - a live MCP server that exposes Boreal request resources, schema resources, and governed tools from the public agent tool registry without replacing HTTP contracts or using MCP for noisy runtime telemetry
 - an A2A adapter that maps A2A tasks, messages, streaming status, and artifacts onto Boreal `Request`, `Fulfillment`, `FulfillmentStep`, and `Artifact` truth without making A2A `Task` the root object

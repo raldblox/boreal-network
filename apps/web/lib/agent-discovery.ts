@@ -42,8 +42,14 @@ export const agentDiscoveryPaths = {
   agentAuth: "/agents/auth.json",
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
+  agentConformance: "/agents/conformance.json",
   agentCompletion: "/agents/completion.json",
+  agentEvidence: "/agents/evidence.json",
+  agentExecution: "/agents/execution.json",
+  agentHumanHandoffs: "/agents/human-handoffs.json",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
+  agentMonitoring: "/agents/monitoring.json",
+  agentOptimization: "/agents/optimization.json",
   agentPayments: "/agents/payments.json",
   agentProtocols: "/agents/protocols.md",
   agentProtocolsJson: "/agents/protocols.json",
@@ -400,6 +406,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable conformance checklist schema for agents validating Boreal discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries.",
+    routePath: "/schemas/agent-conformance.schema.json",
+    sourcePath: "schemas/json/agent-conformance.schema.json",
+    standard: "json_schema",
+    title: "Agent conformance profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable agent payment, buyer-credit, paid-run, x402 target, and Transaction reconciliation profile schema.",
     routePath: "/schemas/agent-payments.schema.json",
     sourcePath: "schemas/json/agent-payments.schema.json",
@@ -409,11 +424,56 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable human handoff, approval, escalation, and claim-state profile schema for human-first agent UX.",
+    routePath: "/schemas/agent-human-handoffs.schema.json",
+    sourcePath: "schemas/json/agent-human-handoffs.schema.json",
+    standard: "json_schema",
+    title: "Agent human handoff profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable agent completion, proof, artifact, and review-boundary profile schema.",
     routePath: "/schemas/agent-completion.schema.json",
     sourcePath: "schemas/json/agent-completion.schema.json",
     standard: "json_schema",
     title: "Agent completion profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable evidence packet, artifact packaging, redaction, review, and proof-boundary profile schema for agents submitting work.",
+    routePath: "/schemas/agent-evidence.schema.json",
+    sourcePath: "schemas/json/agent-evidence.schema.json",
+    standard: "json_schema",
+    title: "Agent evidence profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable execution, Fulfillment, FulfillmentStep, runtime trust, direct-owner lane, and ephemeral signal boundary profile schema for agents completing work.",
+    routePath: "/schemas/agent-execution.schema.json",
+    sourcePath: "schemas/json/agent-execution.schema.json",
+    standard: "json_schema",
+    title: "Agent execution profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable draft-only optimization, owner-approval, mutation boundary, and no-invention profile schema for agents improving Boreal requests, proposals, proof packets, monitors, and solution reuse.",
+    routePath: "/schemas/agent-optimization.schema.json",
+    sourcePath: "schemas/json/agent-optimization.schema.json",
+    standard: "json_schema",
+    title: "Agent optimization profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable cursor polling, stale-state detection, escalation, webhook-boundary, and no-heartbeat-noise monitoring profile schema for agents.",
+    routePath: "/schemas/agent-monitoring.schema.json",
+    sourcePath: "schemas/json/agent-monitoring.schema.json",
+    standard: "json_schema",
+    title: "Agent monitoring profile",
   },
   {
     contentType: "application/schema+json; charset=utf-8",
@@ -481,7 +541,13 @@ export function buildAgentCard() {
     url: absoluteUrl("/"),
     documentationUrl: absoluteUrl(agentDiscoveryPaths.agentStart),
     authProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
+    conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+    evidenceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentEvidence),
+    executionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentExecution),
+    humanHandoffProfileUrl: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+    monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+    optimizationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOptimization),
     paymentProfileUrl: absoluteUrl(agentDiscoveryPaths.agentPayments),
     protocolProfileUrl: absoluteUrl(agentDiscoveryPaths.agentProtocols),
     protocolProfileJsonUrl: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
@@ -514,6 +580,15 @@ export function buildAgentCard() {
         .actorClasses.filter((actorClass) => actorClass.status.startsWith("live"))
         .map((actorClass) => actorClass.id),
     },
+    conformance: {
+      url: absoluteUrl(agentDiscoveryPaths.agentConformance),
+      status: buildAgentConformanceProfile().status,
+      checklistCount: buildAgentConformanceProfile().checklists.length,
+      requiredCheckIds: buildAgentConformanceProfile().checklists
+        .flatMap((checklist) => checklist.checks)
+        .filter((check) => check.required)
+        .map((check) => check.id),
+    },
     completion: {
       url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
       status: buildAgentCompletionProfile().status,
@@ -522,6 +597,49 @@ export function buildAgentCard() {
         actionId: rule.actionId,
         claimState: rule.claimState,
       })),
+    },
+    evidence: {
+      url: absoluteUrl(agentDiscoveryPaths.agentEvidence),
+      status: buildAgentEvidenceProfile().status,
+      packetFields: buildAgentEvidenceProfile().artifactPacket.requiredFields,
+      reviewSignalCount: buildAgentEvidenceProfile().reviewSignals.length,
+    },
+    execution: {
+      url: absoluteUrl(agentDiscoveryPaths.agentExecution),
+      status: buildAgentExecutionProfile().status,
+      lanes: buildAgentExecutionProfile().executionLanes.map((lane) => ({
+        id: lane.id,
+        status: lane.status,
+        canonicalWrites: lane.canonicalWrites,
+      })),
+    },
+    humanHandoffs: {
+      url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      status: buildAgentHumanHandoffProfile().status,
+      moments: buildAgentHumanHandoffProfile().handoffMoments.map((moment) => ({
+        id: moment.id,
+        approvalRequired: moment.approvalRequired,
+        canonicalWrites: moment.canonicalWrites,
+      })),
+    },
+    monitoring: {
+      url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+      status: buildAgentMonitoringProfile().status,
+      liveMode: buildAgentMonitoringProfile().pollingBaseline.status,
+      escalationTriggers: buildAgentMonitoringProfile().escalationTriggers.map(
+        (trigger) => trigger.id
+      ),
+    },
+    optimization: {
+      url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
+      status: buildAgentOptimizationProfile().status,
+      surfaces: buildAgentOptimizationProfile().optimizationSurfaces.map(
+        (surface) => ({
+          id: surface.id,
+          defaultMode: surface.defaultMode,
+          canonicalWrites: surface.canonicalWrites,
+        })
+      ),
     },
     payments: {
       url: absoluteUrl(agentDiscoveryPaths.agentPayments),
@@ -681,7 +799,13 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent-readable overview: [${agentDiscoveryPaths.llms}](${absoluteUrl(agentDiscoveryPaths.llms)})
 - Agent action playbook: [${agentDiscoveryPaths.agentActions}](${absoluteUrl(agentDiscoveryPaths.agentActions)})
 - Agent auth profile: [${agentDiscoveryPaths.agentAuth}](${absoluteUrl(agentDiscoveryPaths.agentAuth)})
+- Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
+- Agent evidence profile: [${agentDiscoveryPaths.agentEvidence}](${absoluteUrl(agentDiscoveryPaths.agentEvidence)})
+- Agent execution profile: [${agentDiscoveryPaths.agentExecution}](${absoluteUrl(agentDiscoveryPaths.agentExecution)})
+- Agent human handoff profile: [${agentDiscoveryPaths.agentHumanHandoffs}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)})
+- Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
+- Agent optimization profile: [${agentDiscoveryPaths.agentOptimization}](${absoluteUrl(agentDiscoveryPaths.agentOptimization)})
 - Agent payment profile: [${agentDiscoveryPaths.agentPayments}](${absoluteUrl(agentDiscoveryPaths.agentPayments)})
 - Agent workflow catalog: [${agentDiscoveryPaths.agentWorkflows}](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)})
 - Agent monitor webhook profile: [${agentDiscoveryPaths.agentMonitorWebhooks}](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)})
@@ -733,10 +857,22 @@ For deterministic protocol adapter boundaries, agents can read:
 GET ${agentDiscoveryPaths.agentProtocolsJson}
 \`\`\`
 
+For deterministic conformance checks before production use, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentConformance}
+\`\`\`
+
 For deterministic failure, retry, monitor, and escalation handling, agents can read:
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentRecovery}
+\`\`\`
+
+For deterministic cursor polling, stale-state detection, and monitor escalation handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentMonitoring}
 \`\`\`
 
 For deterministic live-versus-target capability and agent UX flow handling, agents can read:
@@ -761,6 +897,30 @@ For deterministic proof, completion-claim, artifact, and review-boundary handlin
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentCompletion}
+\`\`\`
+
+For deterministic evidence packaging, redaction, and review packet handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentEvidence}
+\`\`\`
+
+For deterministic execution-lane, runtime, and FulfillmentStep boundaries, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentExecution}
+\`\`\`
+
+For deterministic human approval, stop, escalation, and claim-state handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentHumanHandoffs}
+\`\`\`
+
+For deterministic draft-only optimization, no-invention, and owner-approval handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentOptimization}
 \`\`\`
 
 For deterministic payment, buyer-credit, paid-run, and x402-target handling, agents can read:
@@ -820,6 +980,7 @@ ${eventLinks}
 - If you are cross-actor supply, use \`Commitment\` gates before fulfillment.
 - If you only have public access, read public-safe fields only.
 - If you need private data, request scoped authorization.
+- If you need human approval, show the exact Request, action, spend, proof, or claim-state decision before continuing.
 - If a tool call spends credits or money, payment truth must reconcile to \`Transaction\`.
 - If you are monitoring only, do not create durable events for heartbeats.
 
@@ -918,6 +1079,25 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/conformance.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent conformance profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries before production agent use.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentConformanceProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/completion.json": {
         get: {
           tags: ["agent-discovery"],
@@ -930,6 +1110,82 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentCompletionProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/evidence.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent evidence profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for evidence packets, Artifact packaging, redaction, review signals, and proof boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentEvidenceProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/execution.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent execution profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for Fulfillment, FulfillmentStep, runtime trust, direct-owner execution, public-solution runs, and ephemeral signal boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentExecutionProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/human-handoffs.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable human handoff profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for human approval moments, stop rules, escalation packets, visible UX patterns, and claim-state language.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentHumanHandoffProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/optimization.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent optimization profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for draft-only optimization, no-invention rules, approval gates, and mutation boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentOptimizationProfile",
                   },
                 },
               },
@@ -985,6 +1241,25 @@ export function buildOpenApiDiscoveryIndex() {
                 "Markdown profile for target signed request activity webhook delivery.",
               content: {
                 "text/markdown": { schema: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+      "/agents/monitoring.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent monitoring profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for cursor polling, stale-state detection, escalation packets, and target signed webhook boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentMonitoringProfile",
+                  },
+                },
               },
             },
           },
@@ -1238,6 +1513,24 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentConformanceProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "checklists",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_conformance_profile" },
+            checklists: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentCompletionProfile: {
           type: "object",
           required: [
@@ -1255,6 +1548,115 @@ export function buildOpenApiDiscoveryIndex() {
               items: { type: "object" },
             },
             proofPacket: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentEvidenceProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "artifactPacket",
+            "submitChecklist",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_evidence_profile" },
+            artifactPacket: { type: "object" },
+            submitChecklist: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentExecutionProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "executionLanes",
+            "runtimeSignalRules",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_execution_profile" },
+            executionLanes: {
+              type: "array",
+              items: { type: "object" },
+            },
+            runtimeSignalRules: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentHumanHandoffProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "handoffMoments",
+            "humanApprovalGates",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_human_handoff_profile" },
+            handoffMoments: {
+              type: "array",
+              items: { type: "object" },
+            },
+            humanApprovalGates: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentOptimizationProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "optimizationSurfaces",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_optimization_profile" },
+            optimizationSurfaces: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentMonitoringProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "pollingBaseline",
+            "cursorRules",
+            "escalationTriggers",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_monitoring_profile" },
+            pollingBaseline: { type: "object" },
+            cursorRules: {
+              type: "array",
+              items: { type: "object" },
+            },
+            escalationTriggers: {
+              type: "array",
+              items: { type: "object" },
+            },
             canonicalBoundary: { type: "object" },
           },
         },
@@ -1373,6 +1775,14 @@ export function buildOpenApiDiscoveryIndex() {
         status: scope.status,
       })),
     },
+    "x-boreal-agent-conformance": {
+      url: absoluteUrl(agentDiscoveryPaths.agentConformance),
+      status: buildAgentConformanceProfile().status,
+      checklists: buildAgentConformanceProfile().checklists.map((checklist) => ({
+        id: checklist.id,
+        requiredChecks: checklist.checks.filter((check) => check.required).length,
+      })),
+    },
     "x-boreal-agent-completion": {
       url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
       rules: buildAgentCompletionProfile().completionRules.map((rule) => ({
@@ -1380,6 +1790,47 @@ export function buildOpenApiDiscoveryIndex() {
         actionId: rule.actionId,
         claimState: rule.claimState,
       })),
+    },
+    "x-boreal-agent-evidence": {
+      url: absoluteUrl(agentDiscoveryPaths.agentEvidence),
+      status: buildAgentEvidenceProfile().status,
+      artifactKinds: buildAgentEvidenceProfile().artifactKindGuidance.map(
+        (guidance) => guidance.artifactKind
+      ),
+    },
+    "x-boreal-agent-execution": {
+      url: absoluteUrl(agentDiscoveryPaths.agentExecution),
+      status: buildAgentExecutionProfile().status,
+      lanes: buildAgentExecutionProfile().executionLanes.map((lane) => ({
+        id: lane.id,
+        status: lane.status,
+      })),
+    },
+    "x-boreal-agent-human-handoffs": {
+      url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      status: buildAgentHumanHandoffProfile().status,
+      moments: buildAgentHumanHandoffProfile().handoffMoments.map((moment) => ({
+        id: moment.id,
+        approvalRequired: moment.approvalRequired,
+      })),
+    },
+    "x-boreal-agent-optimization": {
+      url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
+      status: buildAgentOptimizationProfile().status,
+      surfaces: buildAgentOptimizationProfile().optimizationSurfaces.map(
+        (surface) => ({
+          id: surface.id,
+          defaultMode: surface.defaultMode,
+        })
+      ),
+    },
+    "x-boreal-agent-monitoring": {
+      url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+      status: buildAgentMonitoringProfile().status,
+      liveMode: buildAgentMonitoringProfile().pollingBaseline.status,
+      escalationTriggers: buildAgentMonitoringProfile().escalationTriggers.map(
+        (trigger) => trigger.id
+      ),
     },
     "x-boreal-agent-payments": {
       url: absoluteUrl(agentDiscoveryPaths.agentPayments),
@@ -1853,6 +2304,299 @@ export function buildAgentAuthProfile() {
   };
 }
 
+export function buildAgentConformanceProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_conformance_profile",
+    name: "Boreal Agent Conformance Profile",
+    description:
+      "Machine-readable checklist for agent builders validating that their Boreal integration can discover, draft, apply, submit proof, monitor, pay, recover, hand off to humans, and respect protocol boundaries before production use.",
+    resources: [
+      {
+        label: "Agent card",
+        url: absoluteUrl(agentDiscoveryPaths.agentCard),
+      },
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent sandbox manifest",
+        url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+      },
+      {
+        label: "Agent conformance schema",
+        url: absoluteUrl("/schemas/agent-conformance.schema.json"),
+      },
+      {
+        label: "OpenAPI discovery index",
+        url: absoluteUrl(agentDiscoveryPaths.openApiIndex),
+      },
+    ],
+    prerequisites: [
+      "Read the public agent card, start guide, action playbook, OpenAPI index, JSON Schema exports, and AsyncAPI event contract.",
+      "Run the contract-only sandbox fixture before any live mutation attempt.",
+      "Use a real Boreal account session or approved resolver bearer only after the represented human authorizes the action.",
+      "Treat MCP, A2A, OAuth-compatible external-agent auth, x402, and signed push delivery as target-only unless a live profile says otherwise.",
+    ],
+    checklists: [
+      {
+        id: "discovery_contracts",
+        title: "Discovery and contract loading",
+        intent: "A fresh agent can find Boreal and load public-safe contract truth without private route knowledge.",
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentCard),
+          absoluteUrl(agentDiscoveryPaths.agentStart),
+          absoluteUrl(agentDiscoveryPaths.openApiIndex),
+        ],
+        checks: [
+          {
+            id: "load_agent_card",
+            required: true,
+            passWhen:
+              "The agent loads /.well-known/agent-card.json and finds Request as the root boundary.",
+            failWhen:
+              "The agent starts from private UI routes or treats A2A Task, MCP session, chat transcript, runtime log, or x402 payload as root truth.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentCard),
+              absoluteUrl(agentDiscoveryPaths.llms),
+            ],
+          },
+          {
+            id: "load_contract_assets",
+            required: true,
+            passWhen:
+              "The agent can fetch OpenAPI, JSON Schema, and AsyncAPI assets through allowlisted public routes.",
+            failWhen:
+              "The agent guesses payload shape, scrapes private endpoints, or invents ad hoc machine-readable formats.",
+            evidence: [
+              absoluteUrl("/openapi/request-briefing.yaml"),
+              absoluteUrl("/schemas/request.schema.json"),
+              absoluteUrl("/events/request-room.asyncapi.yaml"),
+            ],
+          },
+        ],
+      },
+      {
+        id: "policy_and_auth",
+        title: "Auth, policy, and approval gates",
+        intent: "The agent can distinguish public inspection from write-capable account-session or resolver-scoped actions.",
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+        ],
+        checks: [
+          {
+            id: "respect_agent_action_policy",
+            required: true,
+            passWhen:
+              "Before writes, the agent reads request-detail agentActionPolicy and handles allowed, blocked, idempotency-gated, and target-only decisions.",
+            failWhen:
+              "The agent treats action affordances as permissions or ignores missing resolver scopes.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentAuth),
+              absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+            ],
+          },
+          {
+            id: "require_explicit_human_approval",
+            required: true,
+            passWhen:
+              "Opening, funding, accepting, spending, or claiming review-sensitive completion requires one explicit represented-human decision tied to one Request and action.",
+            failWhen:
+              "Approval is inferred from chat context, broad delegation, tool success, or a payment callback.",
+            evidence: [absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)],
+          },
+        ],
+      },
+      {
+        id: "work_actions",
+        title: "Make, apply, submit, monitor, run, and optimize actions",
+        intent: "The agent can use the documented action set without creating a parallel workflow or root object.",
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentActions),
+          absoluteUrl(agentDiscoveryPaths.agentTools),
+          absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+        ],
+        checks: [
+          {
+            id: "draft_without_opening",
+            required: true,
+            passWhen:
+              "A requester agent can create or save a private draft Request and stop before open_request unless the buyer approves.",
+            failWhen:
+              "The agent opens, funds, routes, or mutates server-owned planner fields without explicit approval.",
+            evidence: [absoluteUrl(agentDiscoveryPaths.agentActions)],
+          },
+          {
+            id: "commitment_before_cross_actor_fulfillment",
+            required: true,
+            passWhen:
+              "A solver agent proposes a Commitment and waits for owner acceptance before cross-actor Fulfillment truth starts.",
+            failWhen:
+              "The agent starts fulfillment because a proposal was submitted or an A2A task began.",
+            evidence: [
+              absoluteUrl("/schemas/commitment.schema.json"),
+              absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+            ],
+          },
+          {
+            id: "monitor_from_cursor",
+            required: true,
+            passWhen:
+              "A monitor agent persists cursor.nextAfterSequence and resumes with after_sequence without writing heartbeat RequestEvent noise.",
+            failWhen:
+              "The agent replays blind polling side effects or treats push delivery as live before subscription contracts exist.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentRecovery),
+              absoluteUrl("/events/request-room.asyncapi.yaml"),
+            ],
+          },
+        ],
+      },
+      {
+        id: "proof_payment_and_recovery",
+        title: "Proof, payment, and recovery boundaries",
+        intent: "The agent can avoid false completion, duplicate writes, and payment/completion collapse.",
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl(agentDiscoveryPaths.agentRecovery),
+        ],
+        checks: [
+          {
+            id: "proof_before_completion",
+            required: true,
+            passWhen:
+              "Completion claims are backed by Request lifecycle state, Fulfillment or Artifact truth, and owner-review history where required.",
+            failWhen:
+              "Generated text, MCP tool success, A2A status, provider callback, runtime log, or payment settlement is treated as completion by itself.",
+            evidence: [absoluteUrl(agentDiscoveryPaths.agentCompletion)],
+          },
+          {
+            id: "transaction_not_completion",
+            required: true,
+            passWhen:
+              "Credit or payment movement reconciles into Transaction and remains separate from delivery and completion claims.",
+            failWhen:
+              "The agent treats PayPal order, x402 payload, stablecoin hash, or credit debit as the work root or proof of completion.",
+            evidence: [absoluteUrl(agentDiscoveryPaths.agentPayments)],
+          },
+          {
+            id: "idempotent_recovery",
+            required: true,
+            passWhen:
+              "The agent retries uncertain writes only with the same idempotency key and same semantic input after inspecting current Request truth.",
+            failWhen:
+              "The agent blindly retries mutations, reuses an idempotency key for changed input, or forks a new Request for same-lane recovery.",
+            evidence: [absoluteUrl(agentDiscoveryPaths.agentRecovery)],
+          },
+        ],
+      },
+      {
+        id: "sandbox_and_protocol_boundaries",
+        title: "Sandbox and protocol adapter boundaries",
+        intent: "The agent can test shapes safely and avoid overclaiming target protocol layers.",
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+          absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+          absoluteUrl(agentDiscoveryPaths.agentReadiness),
+        ],
+        checks: [
+          {
+            id: "contract_sandbox_only",
+            required: true,
+            passWhen:
+              "The agent uses sandbox mock credentials, sample IDs, and sample payloads only for shape validation.",
+            failWhen:
+              "Sandbox credentials or sample IDs are sent to production as authority or live object ids.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+              absoluteUrl("/schemas/agent-sandbox.schema.json"),
+            ],
+          },
+          {
+            id: "target_protocols_stay_target",
+            required: true,
+            passWhen:
+              "MCP, A2A, x402, OAuth-compatible external-agent auth, and signed push delivery remain target-only until a live contract says otherwise.",
+            failWhen:
+              "The agent claims a live MCP server, A2A adapter, x402 endpoint, OAuth delegation, or push subscription from descriptive profiles alone.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+              absoluteUrl(agentDiscoveryPaths.agentReadiness),
+            ],
+          },
+        ],
+      },
+    ],
+    validationCommands: [
+      {
+        command: "pnpm web:test:agent-discovery",
+        proves:
+          "Public agent card, start guide, routes, schemas, OpenAPI index, profile links, and absence of obvious secret material.",
+      },
+      {
+        command: "pnpm contracts:agent-sandbox",
+        proves:
+          "Contract-only sandbox manifest, mock identity coverage, idempotency samples, cursor sample, signed-webhook sample, and public-surface alignment.",
+      },
+      {
+        command: "pnpm contracts:validate",
+        proves:
+          "JSON Schema, OpenAPI, AsyncAPI, and fixture parseability.",
+      },
+    ],
+    productionReadinessGates: [
+      "A production agent must have explicit represented-human authorization for every write-capable action.",
+      "A production agent must prove it can stop on blocked agentActionPolicy decisions and missing scopes.",
+      "A production agent must handle idempotency and unknown server failure without duplicate mutations.",
+      "A production agent must preserve proof, payment, and completion boundaries.",
+      "A production agent must not claim target adapters as live capability.",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      conformanceProfileIsNot: [
+        "certification",
+        "permission grant",
+        "production credential",
+        "human approval record",
+        "completion proof",
+        "payment authorization",
+      ],
+      notRoots: [
+        "conformance check",
+        "test result",
+        "agent capability claim",
+        "sandbox run",
+        "MCP session",
+        "A2A Task",
+        "x402 payload",
+        "runtime log",
+      ],
+      rules: [
+        "Conformance describes checks agents should pass before production use; it does not authorize any production write.",
+        "A passing checklist does not prove a specific Request action is allowed; read request-detail agentActionPolicy for that.",
+        "A passing checklist does not prove work is complete; use completion, artifact, fulfillment, and review truth.",
+        "Use checked sandbox samples for shape validation before touching live Request, Commitment, Artifact, Transaction, or RequestEvent records.",
+      ],
+    },
+  };
+}
+
 export function buildAgentCompletionProfile() {
   return {
     schemaVersion: 1,
@@ -2051,6 +2795,1173 @@ export function buildAgentCompletionProfile() {
         "Use Artifact for proof and delivery instead of inflating the Request root.",
         "Use Fulfillment and FulfillmentStep for execution state instead of spawning new Requests for sub-work.",
         "Only claim completed work when request lifecycle, proof, and review truth support that claim.",
+      ],
+    },
+  };
+}
+
+export function buildAgentEvidenceProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_evidence_profile",
+    name: "Boreal Agent Evidence Profile",
+    description:
+      "Machine-readable guidance for agents packaging delivery, proof, receipts, files, media, and review notes as Boreal Artifacts without leaking secrets or claiming completion too early.",
+    resources: [
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent completion profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent human handoff profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      },
+      {
+        label: "Agent recovery profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      },
+      {
+        label: "Artifact schema",
+        url: absoluteUrl("/schemas/artifact.schema.json"),
+      },
+      {
+        label: "Agent evidence schema",
+        url: absoluteUrl("/schemas/agent-evidence.schema.json"),
+      },
+    ],
+    artifactPacket: {
+      purpose:
+        "Give humans and monitors a reviewable packet for what was delivered, what evidence supports it, what remains uncertain, and which Request or Fulfillment lane it belongs to.",
+      requiredFor: ["submit_artifact", "proof_submitted_for_review", "work_completed"],
+      requiredFields: [
+        "requestId",
+        "artifactKind",
+        "documentKind",
+        "title",
+        "summary",
+        "content or externalReference",
+        "fulfillmentId when proof belongs to one active lane",
+        "evidenceClaims",
+        "redactionStatement",
+        "reviewRequest",
+      ],
+      optionalFields: [
+        "commitmentId",
+        "fulfillmentStepId",
+        "transactionId when evidence is a receipt",
+        "mediaRefs",
+        "checksums",
+        "reproductionSteps",
+        "knownLimitations",
+      ],
+    },
+    evidenceLevels: [
+      {
+        id: "summary_only",
+        useWhen:
+          "The artifact is a short handoff note or progress summary and no completion claim depends on it.",
+        enoughForCompletion: false,
+        reviewerAction: "Ask for stronger evidence before accepting completion.",
+      },
+      {
+        id: "reviewable_output",
+        useWhen:
+          "The artifact contains the actual file, media, link, document, patch, receipt, or delivery content a human can inspect.",
+        enoughForCompletion: false,
+        reviewerAction:
+          "Compare the output against acceptance criteria and proof requirements before accepting.",
+      },
+      {
+        id: "verifiable_proof_packet",
+        useWhen:
+          "The artifact includes output plus evidence claims, reproduction steps, before/after proof, receipts, signatures, location/time evidence, or other reviewable support.",
+        enoughForCompletion: true,
+        reviewerAction:
+          "Accept only if the Request lifecycle and review gate also support completion.",
+      },
+    ],
+    artifactKindGuidance: [
+      {
+        artifactKind: "delivery",
+        useFor: "Final output, file, link, generated asset, implementation handoff, or deliverable package.",
+        mustInclude: ["what changed", "where to inspect it", "acceptance criteria mapping"],
+        mustNotInclude: ["private keys", "raw account credentials", "unredacted private prompts"],
+      },
+      {
+        artifactKind: "evidence",
+        useFor: "Proof that a claimed action happened or can be reviewed.",
+        mustInclude: ["evidence claim", "source or observation method", "review boundary"],
+        mustNotInclude: ["unreviewable logs alone", "secret-bearing screenshots", "raw runtime traces"],
+      },
+      {
+        artifactKind: "receipt",
+        useFor: "Payment, credit, provider, or settlement-related proof.",
+        mustInclude: ["related Transaction id when available", "amount or provider reference summary", "settlement uncertainty if any"],
+        mustNotInclude: ["card numbers", "wallet private keys", "provider secret tokens"],
+      },
+      {
+        artifactKind: "handoff",
+        useFor: "Instructions for a human, operator, solver, or future agent to continue the same Request.",
+        mustInclude: ["current state", "next allowed actions", "known blockers"],
+        mustNotInclude: ["new root workflow ids", "implicit approval claims", "private scratchpad content"],
+      },
+    ],
+    redactionRules: [
+      "Never publish private keys, passwords, session cookies, bearer tokens, provider secrets, raw webhook secrets, or seed phrases.",
+      "Do not include raw private prompts, raw local runtime logs, or full chat transcripts unless a human explicitly reviews and promotes a safe summary.",
+      "For screenshots, blur unrelated accounts, private messages, exact addresses, payment instruments, and secret-bearing UI.",
+      "For provider task ids or payment references, include only the minimum identifier needed for audit and reconciliation.",
+      "If redaction weakens evidence quality, say what was redacted and what reviewer access would be needed to verify privately.",
+    ],
+    submitChecklist: [
+      {
+        id: "request_bound",
+        passWhen:
+          "The packet names one Request and, when applicable, the active Commitment, Fulfillment, FulfillmentStep, Transaction, or Artifact it supports.",
+        failWhen:
+          "The evidence is detached from Request truth or creates a new root workflow.",
+      },
+      {
+        id: "reviewable",
+        passWhen:
+          "A human reviewer can inspect the output or evidence without needing private scratchpad context.",
+        failWhen:
+          "The packet only says the agent completed the work or points to unreviewable runtime noise.",
+      },
+      {
+        id: "redacted",
+        passWhen:
+          "Secrets, private prompts, unrelated personal data, and provider credentials are absent or safely summarized.",
+        failWhen:
+          "The packet includes sensitive material that should stay private or ephemeral.",
+      },
+      {
+        id: "claim_bounded",
+        passWhen:
+          "The packet uses a bounded claim such as proof submitted, ready for review, receipt attached, or delivery candidate until review truth supports completion.",
+        failWhen:
+          "The packet claims completed because a tool, provider, payment, MCP, A2A, or runtime step succeeded.",
+      },
+      {
+        id: "retry_safe",
+        passWhen:
+          "If submission is retried, the same idempotency key is used only for the same artifact payload.",
+        failWhen:
+          "The agent resubmits changed evidence with an old idempotency key or duplicates Artifact truth after an uncertain failure.",
+      },
+    ],
+    reviewSignals: [
+      "acceptance criteria satisfied",
+      "required evidence claims present",
+      "owner or reviewer acceptance recorded where required",
+      "no payment/completion collapse",
+      "no raw secret exposure",
+      "same Request and Fulfillment lane preserved",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      evidenceTruthObject: "Artifact",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      evidenceProfileIsNot: [
+        "permission grant",
+        "artifact storage backend",
+        "review acceptance",
+        "completion proof by itself",
+        "payment settlement",
+      ],
+      notRoots: [
+        "evidence packet",
+        "file upload",
+        "screenshot",
+        "provider callback",
+        "tool trace",
+        "MCP tool result",
+        "A2A artifact",
+        "runtime log",
+      ],
+      rules: [
+        "Evidence guidance describes how to package proof; it does not authorize artifact publication.",
+        "Artifact is the durable evidence object; uploaded files, provider callbacks, and tool traces are inputs or attachments, not root objects.",
+        "Evidence can support completion only with the completion profile, lifecycle state, and review truth.",
+        "Payment receipts belong to Transaction reconciliation and do not prove work delivery by themselves.",
+      ],
+    },
+  };
+}
+
+export function buildAgentExecutionProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_execution_profile",
+    name: "Boreal Agent Execution Profile",
+    description:
+      "Machine-readable execution profile for agents and runtimes completing Boreal work through Fulfillment, FulfillmentStep, Artifact, and RequestEvent truth without turning runtime traces into the root object.",
+    resources: [
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent evidence profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentEvidence),
+      },
+      {
+        label: "Agent completion profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent recovery profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      },
+      {
+        label: "Agent execution schema",
+        url: absoluteUrl("/schemas/agent-execution.schema.json"),
+      },
+      {
+        label: "Fulfillment schema",
+        url: absoluteUrl("/schemas/fulfillment.schema.json"),
+      },
+    ],
+    executionLanes: [
+      {
+        id: "cross_actor_accepted_commitment",
+        status: "live_contract_boundary",
+        useWhen:
+          "A solver, represented human, or external supply is completing work for a public or cross-actor Request.",
+        requiredBeforeStart: [
+          "Request is authorized for this actor",
+          "Commitment is accepted or equivalent live route gate exists",
+          "agentActionPolicy allows the execution or artifact action",
+        ],
+        canonicalReads: ["Request", "Commitment", "Supply"],
+        canonicalWrites: ["Fulfillment", "FulfillmentStep", "Artifact", "RequestEvent"],
+        mustNotDo: [
+          "start cross-actor Fulfillment from a submitted proposal alone",
+          "create a new Request for worker sub-work by default",
+          "claim completion without Artifact and review truth",
+        ],
+      },
+      {
+        id: "owner_private_direct_runtime",
+        status: "live_narrow_exception",
+        useWhen:
+          "The same Boreal owner authorizes a private owned Request through a resolver-approved desktop or Boreal-managed worker lane.",
+        requiredBeforeStart: [
+          "Request is private and owner-scoped",
+          "runtime has Boreal-issued resolver approval or owner session authority",
+          "direct-owner lane is allowed by the live policy path",
+        ],
+        canonicalReads: ["Request", "Supply"],
+        canonicalWrites: ["Fulfillment", "FulfillmentStep", "Artifact", "RequestEvent"],
+        mustNotDo: [
+          "apply direct-owner assumptions to public or external work",
+          "treat raw desktop runtime identity as Boreal account identity",
+          "sync full local transcript as canonical history by default",
+        ],
+      },
+      {
+        id: "public_solution_run_execution",
+        status: "live_authenticated_http_contract",
+        useWhen:
+          "A buyer wants to run a completed public solution and the run consumes inference, provider, workflow, human review, or service capacity.",
+        requiredBeforeStart: [
+          "source Request is completed and public",
+          "accepted source Artifact exists",
+          "buyer account session authorizes spend where needed",
+          "private run Request and Transaction truth are created or reused by the live route",
+        ],
+        canonicalReads: ["Request", "Artifact", "Transaction"],
+        canonicalWrites: ["Request", "Transaction", "Fulfillment", "Artifact", "RequestEvent"],
+        mustNotDo: [
+          "mutate the completed source Request for private run context",
+          "debit credits for inspection alone",
+          "claim run completion from payment or provider task creation alone",
+        ],
+      },
+      {
+        id: "target_protocol_adapter_execution",
+        status: "target_adapter_profile",
+        useWhen:
+          "Future MCP, A2A, x402, peer, or gateway adapters drive execution through existing Boreal contracts.",
+        requiredBeforeStart: [
+          "adapter is documented as live",
+          "same auth, policy, idempotency, and completion rules as HTTP are enforced",
+          "adapter task ids are stored as correlation ids only",
+        ],
+        canonicalReads: ["Request", "Fulfillment", "Artifact", "Transaction", "RequestEvent"],
+        canonicalWrites: ["Fulfillment", "FulfillmentStep", "Artifact", "RequestEvent", "Transaction"],
+        mustNotDo: [
+          "treat MCP session or A2A Task as the Boreal root",
+          "use x402 settlement as work completion",
+          "turn high-frequency runtime telemetry into durable RequestEvent noise",
+        ],
+      },
+    ],
+    runtimeSignalRules: [
+      {
+        id: "ephemeral_by_default",
+        signalKinds: ["token delta", "stdout", "stderr", "heartbeat", "presence", "local runtime log", "tool trace"],
+        rule:
+          "Keep runtime signals ephemeral unless a human or governed route summarizes and promotes them into Artifact, FulfillmentStep, or RequestEvent truth.",
+      },
+      {
+        id: "step_when_business_relevant",
+        signalKinds: ["milestone reached", "provider task queued", "provider task failed", "retryable lane blocked"],
+        rule:
+          "Promote business-relevant execution progress into FulfillmentStep or RequestEvent only when it changes review, retry, proof, or payment decisions.",
+      },
+      {
+        id: "artifact_when_reviewable",
+        signalKinds: ["file", "media", "receipt", "delivery note", "proof packet"],
+        rule:
+          "Promote reviewable output through Artifact, following evidence and redaction rules.",
+      },
+    ],
+    stepGuidance: {
+      defaultSubworkObject: "FulfillmentStep",
+      createNewRequestOnlyWhen: [
+        "separate funding is needed",
+        "separate ownership is needed",
+        "separate market routing is needed",
+        "separate review boundary is needed",
+      ],
+      stepShouldCarry: [
+        "fulfillmentId",
+        "actor or runtime correlation id when safe",
+        "status",
+        "summary",
+        "retry metadata when recoverable",
+        "artifact references when reviewable output exists",
+      ],
+    },
+    recoveryRules: [
+      "Recoverable provider or storage failures should resume the same Fulfillment lane where supported.",
+      "Unknown write outcomes require state inspection before retry.",
+      "Retrying the same mutation requires the same idempotency key and same semantic input.",
+      "Blocked public or external lanes should escalate instead of falling back to owner-private desktop assumptions.",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      executionTruthObjects: ["Fulfillment", "FulfillmentStep"],
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      executionProfileIsNot: [
+        "permission grant",
+        "runtime identity",
+        "adapter implementation",
+        "completion proof",
+        "payment authorization",
+      ],
+      notRoots: [
+        "runtime",
+        "desktop thread",
+        "provider task",
+        "MCP session",
+        "A2A Task",
+        "x402 payment",
+        "stdout",
+        "local log",
+        "tool trace",
+      ],
+      rules: [
+        "Execution profile guidance does not authorize writes; read auth, policy, and route contracts first.",
+        "Fulfillment and FulfillmentStep are execution truth, but completion still needs Artifact and review truth where required.",
+        "Runtime identity, transport identity, and Boreal actor identity stay separate.",
+        "Worker sub-work defaults to FulfillmentStep, not a new Request.",
+      ],
+    },
+  };
+}
+
+export function buildAgentHumanHandoffProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_human_handoff_profile",
+    name: "Boreal Agent Human Handoff Profile",
+    description:
+      "Machine-readable agent UX contract for human-first Boreal usage: when agents ask, stop, show drafts, request approval, escalate, and claim state without bypassing Request truth.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent completion profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent payment profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentPayments),
+      },
+      {
+        label: "Agent recovery profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      },
+      {
+        label: "Agent tool registry",
+        url: absoluteUrl(agentDiscoveryPaths.agentTools),
+      },
+      {
+        label: "Agent human handoff schema",
+        url: absoluteUrl("/schemas/agent-human-handoffs.schema.json"),
+      },
+    ],
+    handoffMoments: [
+      {
+        id: "request_preflight_missing_details",
+        trigger:
+          "The human asks an agent to make or optimize a request, but outcome, constraints, proof, budget, timing, or access details are missing.",
+        representedHuman: "buyer_or_owner",
+        agentShould: [
+          "Ask the smallest set of focused questions needed to make the Request reviewable.",
+          "Show which details are required versus optional.",
+          "Keep suggestions draft-only until the human approves a governed mutation.",
+        ],
+        humanDecision:
+          "Answer missing questions, approve a draft patch, or stop the request creation attempt.",
+        approvalRequired: true,
+        canonicalReads: ["Request"],
+        canonicalWrites: [],
+        primaryProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+        ],
+        stopOrEscalateWhen: [
+          "The agent would invent budget, deadline, deliverables, constraints, or proof expectations.",
+          "The requested change would open, fund, or route a Request without explicit owner approval.",
+        ],
+      },
+      {
+        id: "draft_ready_for_buyer_review",
+        trigger:
+          "A draft Request or optimized brief is ready to show the human before opening, routing, or funding.",
+        representedHuman: "buyer_or_owner",
+        agentShould: [
+          "Present the draft Request summary, missing details, acceptance criteria, proof expectations, and visible risks.",
+          "Name the durable write that would happen next.",
+          "Ask for explicit approval before opening the Request or applying funding.",
+        ],
+        humanDecision:
+          "Approve save_draft, approve open_request where supported, request edits, or cancel.",
+        approvalRequired: true,
+        canonicalReads: ["Request", "RequestEvent"],
+        canonicalWrites: ["Request"],
+        primaryProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentTools),
+        ],
+        stopOrEscalateWhen: [
+          "The approval signal is ambiguous, inferred from chat context, or delegated to an unscoped agent.",
+          "The proposed draft mutates server-owned routing, lifecycle, planner, matcher, or policy fields.",
+        ],
+      },
+      {
+        id: "proposal_waiting_for_owner_review",
+        trigger:
+          "An agent or represented solver has prepared or submitted a Commitment proposal.",
+        representedHuman: "buyer_or_owner",
+        agentShould: [
+          "Show price, scope, deliverable, proof expectations, timeline, solver identity, and handoff constraints.",
+          "Wait for owner acceptance before cross-actor fulfillment starts.",
+          "Keep proposal success separate from fulfillment or completion.",
+        ],
+        humanDecision:
+          "Accept, reject, request clarification, or ask for a revised Commitment proposal.",
+        approvalRequired: true,
+        canonicalReads: ["Request", "Supply", "Commitment", "RequestEvent"],
+        canonicalWrites: ["Commitment", "RequestEvent"],
+        primaryProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+        ],
+        stopOrEscalateWhen: [
+          "The proposal lacks scope, price, proof duties, or identity needed for review.",
+          "The agent attempts to create Fulfillment truth before the accepted-commitment gate.",
+        ],
+      },
+      {
+        id: "proof_submitted_for_review",
+        trigger:
+          "A solver agent submits a delivery, receipt, evidence file, or proof artifact.",
+        representedHuman: "buyer_or_reviewer",
+        agentShould: [
+          "Show the Artifact summary, related Fulfillment lane, proof packet, known gaps, and review criteria.",
+          "Say proof submitted or waiting for review until the review gate resolves.",
+          "Keep raw prompts, secrets, and noisy runtime logs out of proof unless explicitly summarized and safe.",
+        ],
+        humanDecision:
+          "Accept artifact, reject artifact, request revision, request more proof, or keep monitoring.",
+        approvalRequired: true,
+        canonicalReads: ["Request", "Fulfillment", "FulfillmentStep", "Artifact", "RequestEvent"],
+        canonicalWrites: ["Artifact", "RequestEvent"],
+        primaryProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentRecovery),
+        ],
+        stopOrEscalateWhen: [
+          "The agent would claim completed from generated text, provider callback, tool success, A2A task status, payment settlement, or runtime log alone.",
+          "The proof packet is unreviewable, secret-bearing, missing required evidence, or detached from the Request.",
+        ],
+      },
+      {
+        id: "payment_authorization_required",
+        trigger:
+          "The next step may spend buyer credit, create a paid solution run, fund a Request, or activate future machine-payment capacity.",
+        representedHuman: "buyer_or_funder",
+        agentShould: [
+          "Show amount, currency, payment or credit source family, request id, idempotency key expectation, and Transaction reconciliation rule.",
+          "Ask the account-session human to authorize spend before the mutation.",
+          "Report payment state separately from work completion state.",
+        ],
+        humanDecision:
+          "Authorize spend, change amount or source, wait for settlement, or cancel the paid action.",
+        approvalRequired: true,
+        canonicalReads: ["Request", "Transaction", "Artifact"],
+        canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+        primaryProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl(agentDiscoveryPaths.agentRecovery),
+        ],
+        stopOrEscalateWhen: [
+          "The agent lacks account-session spend authority or a live payment-capable route.",
+          "Payment or buyer-credit state is uncertain and cannot be reconciled into Transaction truth.",
+        ],
+      },
+      {
+        id: "monitor_stale_or_blocked",
+        trigger:
+          "A monitor sees no new durable activity, blocked Fulfillment, failed payment, missing proof, or owner-review needs after its SLA.",
+        representedHuman: "owner_solver_or_operator",
+        agentShould: [
+          "Escalate with request id, last cursor, latest durable event, blocker, affected lane, and next allowed actions.",
+          "Continue from cursor.nextAfterSequence instead of writing heartbeat events.",
+          "Recommend retry only when recovery and idempotency rules allow it.",
+        ],
+        humanDecision:
+          "Retry same lane, provide access, approve revision, accept proof, reject proof, or pause work.",
+        approvalRequired: false,
+        canonicalReads: ["Request", "RequestEvent", "Fulfillment", "Artifact", "Transaction"],
+        canonicalWrites: [],
+        primaryProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentRecovery),
+          absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks),
+        ],
+        stopOrEscalateWhen: [
+          "The agent cannot prove whether a previous mutation committed.",
+          "The next action would duplicate side effects, fork a second Request, or hide a failed payment or missing proof.",
+        ],
+      },
+      {
+        id: "completion_claim_requires_review",
+        trigger:
+          "An agent wants to tell a human that a request, run, fulfillment lane, or submitted proof is done.",
+        representedHuman: "any_human_participant",
+        agentShould: [
+          "Map the claim to allowed states from the completion profile.",
+          "Use precise labels such as draft saved, proposal submitted, proof submitted, waiting for review, paid run created, or completed.",
+          "Cite the supporting Request, Fulfillment, Artifact, Transaction, and RequestEvent truth.",
+        ],
+        humanDecision:
+          "Accept the state label, ask for proof, request revision, or keep monitoring.",
+        approvalRequired: true,
+        canonicalReads: ["Request", "Commitment", "Fulfillment", "Artifact", "Transaction", "RequestEvent"],
+        canonicalWrites: [],
+        primaryProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentReadiness),
+        ],
+        stopOrEscalateWhen: [
+          "The evidence does not support the claim-state label.",
+          "The agent is collapsing payment, tool execution, provider callback, or chat output into completed work.",
+        ],
+      },
+    ],
+    humanApprovalGates: [
+      {
+        id: "open_or_fund_request",
+        actionIds: ["make_request_for_human", "run_public_solution"],
+        requiredBefore:
+          "Opening a buyer Request, applying request funding, or creating a paid public-solution run.",
+        approvalSignal:
+          "Explicit account-session human approval tied to one Request and one proposed action.",
+        requiredTruth: ["Request draft", "amount or funding source when spending", "agentActionPolicy decision"],
+        idempotency: "Required for paid run and funding mutations where the route contract requires it.",
+        primaryProfile: absoluteUrl(agentDiscoveryPaths.agentPayments),
+      },
+      {
+        id: "accept_commitment_before_cross_actor_fulfillment",
+        actionIds: ["apply_to_request"],
+        requiredBefore:
+          "Starting cross-actor fulfillment from a solver proposal.",
+        approvalSignal:
+          "Owner acceptance or another live route state that documents accepted Commitment truth.",
+        requiredTruth: ["Commitment", "RequestEvent", "owner approval"],
+        idempotency: "Use the same idempotency key only for the same proposal retry.",
+        primaryProfile: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        id: "accept_or_reject_artifact",
+        actionIds: ["submit_artifact", "monitor_request"],
+        requiredBefore:
+          "Claiming accepted delivery, completed work, or rejected proof.",
+        approvalSignal:
+          "Owner or reviewer decision attached to the Request or Artifact review flow.",
+        requiredTruth: ["Artifact", "Fulfillment", "RequestEvent", "completion profile claim rule"],
+        idempotency: "Artifact publication uses idempotency when the route requires it; review decisions must not be inferred.",
+        primaryProfile: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+    ],
+    visibleUxPatterns: [
+      {
+        id: "request_preflight",
+        label: "Request Preflight",
+        useFor:
+          "Show readiness, missing details, proof requirements, approval gates, and policy blockers before a durable action.",
+        notCanonicalObject: true,
+        canonicalMappings: ["Request", "agentActionPolicy", "RequestEvent"],
+      },
+      {
+        id: "dual_layer_room",
+        label: "Dual-Layer Room",
+        useFor:
+          "Keep human-readable collaboration visible while separating promoted durable truth from agent scratch work.",
+        notCanonicalObject: true,
+        canonicalMappings: ["Request", "Artifact", "RequestEvent"],
+      },
+      {
+        id: "proof_first_delivery",
+        label: "Proof-First Delivery",
+        useFor:
+          "Review artifacts, proof packet completeness, and acceptance criteria before completion claims.",
+        notCanonicalObject: true,
+        canonicalMappings: ["Artifact", "Fulfillment", "RequestEvent"],
+      },
+      {
+        id: "return_to_work_inbox",
+        label: "Return To Work Inbox",
+        useFor:
+          "Surface stale monitors, blocked lanes, revision needs, and human decisions without creating heartbeat events.",
+        notCanonicalObject: true,
+        canonicalMappings: ["RequestEvent", "Fulfillment", "Transaction"],
+      },
+    ],
+    agentLanguage: {
+      say: [
+        "I need your approval before I open or fund this Request.",
+        "This is a draft suggestion, not a durable change yet.",
+        "Proof has been submitted for review; completion still needs accepted Artifact or lifecycle truth.",
+        "Payment is reconciled separately from work completion.",
+        "Monitoring found a blocker; here is the last durable event and next allowed action.",
+      ],
+      mustNotSay: [
+        "I completed the Request because the tool call succeeded.",
+        "Payment succeeded, so the work is done.",
+        "The A2A task or MCP call is the Boreal work object.",
+        "I opened or funded the Request because approval was implied.",
+        "A chat transcript or runtime log is enough proof by itself.",
+      ],
+    },
+    escalationPacket: [
+      "requestId",
+      "represented human role",
+      "actionId",
+      "requested human decision",
+      "last known RequestEvent.sequence or cursor.nextAfterSequence",
+      "related Commitment, Fulfillment, Artifact, or Transaction ids",
+      "agentActionPolicy decision and missing scopes or approval",
+      "idempotency key when a mutation is involved",
+      "payment reference, provider task id, or webhook delivery id when relevant",
+      "clear next allowed actions and what the agent will not do without approval",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      handoffProfileIsNot: [
+        "permission grant",
+        "human approval record",
+        "completion proof",
+        "payment authorization",
+        "new workflow engine",
+      ],
+      notRoots: [
+        "human handoff card",
+        "approval prompt",
+        "notification",
+        "agent scratchpad",
+        "A2A Task",
+        "MCP Tool",
+        "runtime log",
+        "chat transcript",
+      ],
+      rules: [
+        "Human handoff guidance describes when to ask or stop; it does not authorize writes.",
+        "Explicit approval must be tied to one Request and one action before opening, funding, acceptance, or review-sensitive completion claims.",
+        "A visible UX pattern is a projection over canonical truth, not a canonical object.",
+        "Agents should use precise claim-state labels until Request, Fulfillment, Artifact, Transaction, and RequestEvent truth supports stronger claims.",
+        "Raw agent noise remains ephemeral unless explicitly summarized, reviewed, and promoted into canonical truth.",
+      ],
+    },
+  };
+}
+
+export function buildAgentOptimizationProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_optimization_profile",
+    name: "Boreal Agent Optimization Profile",
+    description:
+      "Machine-readable profile for agents improving request briefs, commitment proposals, evidence packets, monitor escalations, and public-solution reuse without inventing facts or mutating canon without owner approval.",
+    resources: [
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent tool registry",
+        url: absoluteUrl(agentDiscoveryPaths.agentTools),
+      },
+      {
+        label: "Agent human handoff profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      },
+      {
+        label: "Agent evidence profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentEvidence),
+      },
+      {
+        label: "Agent completion profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent optimization schema",
+        url: absoluteUrl("/schemas/agent-optimization.schema.json"),
+      },
+    ],
+    optimizationSurfaces: [
+      {
+        id: "request_brief_optimization",
+        intent: "Optimize this request brief",
+        defaultMode: "draft_only",
+        reads: ["Request", "RequestEvent", "Artifact"],
+        canonicalWrites: [],
+        maySuggest: [
+          "clearer summary",
+          "acceptance criteria",
+          "missing questions",
+          "proof expectations",
+          "constraints restatement",
+          "safe route hints",
+        ],
+        mustNotInvent: [
+          "budget",
+          "deadline",
+          "deliverables",
+          "actor identity",
+          "supply availability",
+          "payment authorization",
+          "proof already obtained",
+        ],
+        ownerApprovalRequiredFor:
+          "Any durable save_draft, open_request, funding, route, or policy-affecting mutation.",
+        primaryActionId: "optimize_request_brief",
+      },
+      {
+        id: "commitment_proposal_optimization",
+        intent: "Optimize this proposal before applying",
+        defaultMode: "draft_only",
+        reads: ["Request", "Supply", "Commitment"],
+        canonicalWrites: [],
+        maySuggest: [
+          "scope clarification",
+          "deliverable summary",
+          "proof duties",
+          "timeline risks",
+          "price explanation",
+          "handoff constraints",
+        ],
+        mustNotInvent: [
+          "solver capability",
+          "guaranteed acceptance",
+          "unapproved price",
+          "unverified credentials",
+          "fulfillment already started",
+        ],
+        ownerApprovalRequiredFor:
+          "Submitting or revising a Commitment proposal through a live mutation endpoint.",
+        primaryActionId: "apply_to_request",
+      },
+      {
+        id: "evidence_packet_optimization",
+        intent: "Optimize this proof packet",
+        defaultMode: "draft_only",
+        reads: ["Request", "Fulfillment", "Artifact", "RequestEvent"],
+        canonicalWrites: [],
+        maySuggest: [
+          "redaction improvements",
+          "reviewable proof summary",
+          "missing evidence claims",
+          "reproduction steps",
+          "known limitation wording",
+        ],
+        mustNotInvent: [
+          "evidence not present",
+          "owner acceptance",
+          "completion state",
+          "payment settlement",
+          "provider success",
+        ],
+        ownerApprovalRequiredFor:
+          "Publishing or replacing Artifact truth through submit_artifact.",
+        primaryActionId: "submit_artifact",
+      },
+      {
+        id: "monitor_escalation_optimization",
+        intent: "Optimize this monitor update",
+        defaultMode: "analysis_only",
+        reads: ["Request", "RequestEvent", "Fulfillment", "Artifact", "Transaction"],
+        canonicalWrites: [],
+        maySuggest: [
+          "stale lane summary",
+          "next allowed actions",
+          "human decision request",
+          "retry safety note",
+          "last cursor checkpoint",
+        ],
+        mustNotInvent: [
+          "new activity",
+          "successful retry",
+          "resolved blocker",
+          "payment reconciliation",
+          "review acceptance",
+        ],
+        ownerApprovalRequiredFor:
+          "Any retry, revision request, acceptance, rejection, payment, or write-like action.",
+        primaryActionId: "monitor_request",
+      },
+      {
+        id: "public_solution_reuse_optimization",
+        intent: "Optimize this public solution run",
+        defaultMode: "draft_only",
+        reads: ["Request", "Artifact", "Transaction"],
+        canonicalWrites: [],
+        maySuggest: [
+          "input mapping",
+          "customization summary",
+          "cost caveat",
+          "source artifact dependency",
+          "private run request framing",
+        ],
+        mustNotInvent: [
+          "accepted source artifact",
+          "buyer credit balance",
+          "spend approval",
+          "run completion",
+          "source Request mutation",
+        ],
+        ownerApprovalRequiredFor:
+          "Creating a paid private run Request or applying buyer credit.",
+        primaryActionId: "run_public_solution",
+      },
+    ],
+    outputContract: {
+      durableWriteDefault: false,
+      requiredFields: [
+        "surfaceId",
+        "requestId",
+        "suggestedPatch or suggestedText",
+        "missingDetails",
+        "assumptions",
+        "needsOwnerApproval",
+        "durableWrite=false unless an approved live mutation path is used",
+      ],
+      forbiddenFields: [
+        "server-owned planner fields as direct writes",
+        "agentActionPolicy overrides",
+        "payment authorization",
+        "completion acceptance",
+        "raw private prompts",
+        "secrets",
+      ],
+    },
+    approvalAndMutationRules: [
+      "Optimization output is draft-only by default.",
+      "A human owner must approve any durable mutation that changes Request, Commitment, Artifact, Transaction, Fulfillment, or RequestEvent truth.",
+      "Optimization may point to missing details but must not fill them with guesses.",
+      "If a live mutation route is used after approval, it must use the same auth, idempotency, and policy checks as non-optimized writes.",
+      "Optimizing public solution reuse must create or use a private run Request for paid execution; it must not mutate the completed source Request.",
+    ],
+    noInventionRules: [
+      "Do not invent budget, deadline, exact address, credentials, solver identity, or actor consent.",
+      "Do not convert a question into a fact.",
+      "Do not treat a recommended plan as an accepted Commitment.",
+      "Do not treat a cleaned-up proof packet as accepted delivery.",
+      "Do not treat payment readiness as completion readiness.",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      optimizationProfileIsNot: [
+        "permission grant",
+        "durable mutation",
+        "owner approval",
+        "planner override",
+        "completion proof",
+        "payment authorization",
+      ],
+      notRoots: [
+        "optimization draft",
+        "suggested patch",
+        "prompt rewrite",
+        "analysis note",
+        "MCP prompt",
+        "A2A message",
+        "tool trace",
+      ],
+      rules: [
+        "Optimization improves reviewability; it does not replace canonical mutation routes.",
+        "Use Request as the root and keep generated suggestions ephemeral until explicitly approved and saved.",
+        "If optimization changes meaning, approval and canon-aligned mutation are required.",
+        "Never write server-owned planner, matcher, lifecycle, payment, or policy fields from an optimization suggestion.",
+      ],
+    },
+  };
+}
+
+export function buildAgentMonitoringProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_monitoring_profile",
+    name: "Boreal Agent Monitoring Profile",
+    description:
+      "Machine-readable profile for agents monitoring Boreal Requests through cursor-safe activity reads, stale-state detection, target signed webhooks, and human escalation without creating heartbeat noise.",
+    resources: [
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Request activity AsyncAPI",
+        url: absoluteUrl("/events/request-room.asyncapi.yaml"),
+      },
+      {
+        label: "Agent monitor webhook profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks),
+      },
+      {
+        label: "Agent recovery profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      },
+      {
+        label: "Agent human handoff profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      },
+      {
+        label: "Agent monitoring schema",
+        url: absoluteUrl("/schemas/agent-monitoring.schema.json"),
+      },
+    ],
+    pollingBaseline: {
+      status: "live_cursor_polling",
+      method: "GET",
+      routeTemplate: "/api/requests/{id}/activity?after_sequence={last-seen-sequence}&limit={limit}",
+      cursorField: "cursor.nextAfterSequence",
+      ordering:
+        "Cursor-resumed reads return newer events in replay order. Latest reads without after_sequence may return newest-first projections.",
+      defaultLimit: 40,
+      canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction", "Fulfillment", "Commitment"],
+      canonicalWrites: [],
+    },
+    cursorRules: [
+      {
+        id: "persist_after_every_success",
+        rule:
+          "Persist cursor.nextAfterSequence after every successful activity read or signed webhook processing attempt.",
+        failWhen:
+          "The agent restarts from zero, replays side effects, or loses cursor state after seeing durable activity.",
+      },
+      {
+        id: "no_heartbeat_events",
+        rule:
+          "Keep monitor heartbeats and local timers outside RequestEvent history unless a governed route promotes a real business event.",
+        failWhen:
+          "The agent writes RequestEvent noise only to prove it is still watching.",
+      },
+      {
+        id: "verify_before_retry",
+        rule:
+          "After network, server, or webhook uncertainty, re-read request detail and activity before retrying any write-like action.",
+        failWhen:
+          "The agent retries commitment, artifact, fulfillment, transaction, or solution-run mutations without checking current state.",
+      },
+    ],
+    watchSignals: [
+      {
+        id: "new_commitment_or_proposal",
+        readFrom: ["RequestEvent", "Commitment"],
+        agentAction:
+          "Notify the owner or represented human that a proposal needs review, including scope, price, proof duties, and idempotency context.",
+        doNotClaim: ["fulfillment started", "work completed"],
+      },
+      {
+        id: "artifact_or_proof_submitted",
+        readFrom: ["RequestEvent", "Artifact", "Fulfillment"],
+        agentAction:
+          "Ask for review against the evidence profile and completion profile; keep state as proof submitted until accepted.",
+        doNotClaim: ["accepted delivery", "completed work"],
+      },
+      {
+        id: "payment_or_credit_changed",
+        readFrom: ["RequestEvent", "Transaction"],
+        agentAction:
+          "Reconcile payment state and report whether capacity, funding, or paid-run creation is available.",
+        doNotClaim: ["proof accepted", "work completed"],
+      },
+      {
+        id: "fulfillment_blocked_or_retryable",
+        readFrom: ["RequestEvent", "Fulfillment", "FulfillmentStep"],
+        agentAction:
+          "Escalate blocker details and recommend retry only when recovery rules allow same-lane retry.",
+        doNotClaim: ["new Request required by default", "failure is terminal by default"],
+      },
+      {
+        id: "no_new_activity",
+        readFrom: ["cursor.nextAfterSequence", "monitor local timer"],
+        agentAction:
+          "Escalate stale state with last cursor, latest durable event, expected next action, and human decision needed.",
+        doNotClaim: ["RequestEvent heartbeat", "implicit failure"],
+      },
+    ],
+    escalationTriggers: [
+      {
+        id: "owner_review_needed",
+        trigger:
+          "A Commitment, Artifact, proof packet, acceptance question, rejection question, funding request, or completion claim needs a human decision.",
+        escalationTarget: "request owner or reviewer",
+        packetFields: ["requestId", "actionId", "related object id", "last cursor", "requested decision"],
+      },
+      {
+        id: "missing_or_unreviewable_proof",
+        trigger:
+          "Artifact truth is missing, unreviewable, secret-bearing, detached from the Request, or weaker than the claimed state.",
+        escalationTarget: "solver or reviewer",
+        packetFields: ["requestId", "artifactId", "missing evidence claim", "redaction issue", "next allowed action"],
+      },
+      {
+        id: "payment_uncertain",
+        trigger:
+          "Credit, payment, x402, provider settlement, or request-funding state cannot be reconciled to Transaction truth.",
+        escalationTarget: "buyer, funder, or operator",
+        packetFields: ["requestId", "transactionId", "payment reference", "idempotency key", "last known state"],
+      },
+      {
+        id: "blocked_fulfillment",
+        trigger:
+          "A Fulfillment or FulfillmentStep is blocked, retryable, stale, or waiting on local runtime, provider, or human access.",
+        escalationTarget: "lane owner, solver, or operator",
+        packetFields: ["requestId", "fulfillmentId", "fulfillmentStepId", "provider task id", "retry safety note"],
+      },
+      {
+        id: "private_access_or_scope_missing",
+        trigger:
+          "The monitor cannot read private activity or required object detail because auth, ownership, or resolver scope is missing.",
+        escalationTarget: "represented human",
+        packetFields: ["requestId", "actor kind", "missing scopes", "requested access", "safe fallback"],
+      },
+    ],
+    webhookBoundary: {
+      status: "target_signed_push_profile",
+      liveBaseline:
+        "Cursor polling is live. Signed push delivery is documented as a target receiver profile until subscription persistence and delivery are live.",
+      headers: [
+        "Boreal-Webhook-Id",
+        "Boreal-Webhook-Timestamp",
+        "Boreal-Webhook-Signature",
+      ],
+      receiverRules: [
+        "Verify the raw body signature before parsing.",
+        "Reject stale timestamps outside the tolerance window.",
+        "Deduplicate by delivery id before side effects.",
+        "Persist cursor.nextAfterSequence after successful processing.",
+        "Confirm request authorization before notifying or mutating external systems.",
+      ],
+    },
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      monitoringProfileIsNot: [
+        "permission grant",
+        "subscription record",
+        "push delivery implementation",
+        "heartbeat event",
+        "completion proof",
+        "payment reconciliation",
+      ],
+      notRoots: [
+        "monitor loop",
+        "heartbeat",
+        "cursor checkpoint",
+        "webhook delivery",
+        "local timer",
+        "notification",
+        "A2A task status",
+        "MCP polling result",
+      ],
+      rules: [
+        "Monitoring reads durable truth and local cursor state; it does not create canonical history by itself.",
+        "Escalations should cite RequestEvent sequence, related object ids, and next allowed actions.",
+        "Do not claim completion, payment success, or proof acceptance from monitor timing alone.",
+        "Use recovery and handoff profiles before retrying or asking a human to decide.",
       ],
     },
   };
@@ -2922,6 +4833,10 @@ export function buildAgentReadinessProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
       },
       {
+        label: "Agent human handoff profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      },
+      {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
       },
@@ -3097,6 +5012,35 @@ export function buildAgentReadinessProfile() {
           absoluteUrl(agentDiscoveryPaths.agentWorkflows),
           absoluteUrl("/openapi/request-briefing.yaml"),
         ],
+      },
+      {
+        id: "human_handoff_agent_ux",
+        primaryAgentIntent: "Ask, stop, approve, escalate, or claim state safely",
+        status: "live_public_read",
+        actions: [
+          "make_request_for_human",
+          "apply_to_request",
+          "submit_artifact",
+          "monitor_request",
+          "run_public_solution",
+          "optimize_request_brief",
+        ],
+        standards: ["JSON Schema", "OpenAPI"],
+        availableNow: [
+          "Read machine-readable handoff moments before asking humans, showing drafts, requesting approval, escalating blockers, or claiming state.",
+          "Map visible UX patterns such as Request Preflight and Proof-First Delivery back to canonical Request, Artifact, Transaction, and RequestEvent truth.",
+          "Use precise labels such as draft saved, proposal submitted, proof submitted, waiting for review, paid run created, or completed.",
+        ],
+        requiresBeforeUse: [
+          "explicit human approval before opening, funding, acceptance, or review-sensitive completion claims",
+          "completion profile for proof and claim boundaries",
+          "payment profile for spend boundaries",
+        ],
+        stopOrEscalateWhen: [
+          "approval is implied rather than explicit",
+          "the agent would claim completion from tool success, payment settlement, provider callback, runtime log, or chat output alone",
+        ],
+        evidence: [absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)],
       },
       {
         id: "apply_to_request",
