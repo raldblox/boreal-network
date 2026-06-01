@@ -398,6 +398,7 @@ Read-only public discovery surfaces:
 - `/llms.txt` for short public guidance and claim boundaries
 - `/agents/start.md` for practical agent onboarding
 - `/agents/actions.md` for contract-linked inspect, make-request, apply, submit, monitor, run, and optimize walkthroughs
+- `/agents/actions/preflight` for validation-only action prerequisite checks before agents attempt governed Boreal routes
 - `/agents/access-review.json` for machine-readable operator-review policy around requested scopes, quotas, revocation, decision outcomes, and target-adapter claims
 - `/agents/auth.json` for machine-readable actor class, auth scheme, scope, approval, and write-boundary handling
 - `/agents/conformance.json` for machine-readable pre-production checks across discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries
@@ -405,6 +406,7 @@ Read-only public discovery surfaces:
 - `/agents/completion.json` for machine-readable proof packet, artifact, completion-claim, and review-boundary handling
 - `/agents/delegation.json` for machine-readable human-owned delegation, consent screen, scope, revocation, and per-action approval boundaries
 - `/agents/evidence.json` for machine-readable evidence packet, artifact packaging, redaction, review, and proof-boundary handling
+- `/agents/evidence/validate` for validation-only proof and delivery packet checks before governed Artifact submission
 - `/agents/error-examples.json` for RFC 9457-style problem examples covering auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write recovery
 - `/agents/execution.json` for machine-readable execution lane, `Fulfillment`, `FulfillmentStep`, runtime signal, and direct-owner exception boundaries
 - `/agents/human-handoffs.json` for machine-readable human approval, stop, escalation, visible UX, and claim-state handling
@@ -442,9 +444,11 @@ Read-only public discovery surfaces:
 - `/schemas/agent-conformance-report.schema.json` for the machine-readable agent conformance report shape used to package sandbox replay evidence and requested scopes for operator review
 - `/schemas/agent-production-access-packet.schema.json` for the checked production access packet example shape used as operator-review input
 - `/schemas/agent-intake-validation.schema.json` for the validation-only request and response envelope used to preflight conformance reports and production access packets
+- `/schemas/agent-action-preflight.schema.json` for the validation-only request and response envelope used to preflight action prerequisites
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
 - `/schemas/agent-delegation.schema.json` for the machine-readable human delegation profile shape
 - `/schemas/agent-evidence.schema.json` for the machine-readable agent evidence profile shape
+- `/schemas/agent-evidence-validation.schema.json` for the validation-only request and response envelope used to preflight evidence packets
 - `/schemas/agent-error-examples.schema.json` for the machine-readable agent error example shape
 - `/schemas/agent-execution.schema.json` for the machine-readable agent execution profile shape
 - `/schemas/agent-human-handoffs.schema.json` for the machine-readable human handoff profile shape
@@ -468,6 +472,8 @@ Read-only public discovery surfaces:
 Validation-only public agent surface:
 
 - `POST /agents/intake/validate` accepts either a conformance report or production access packet envelope and returns missing fields, warnings, next steps, and non-authority boundaries. It does not create a review submission, issue credentials, grant permission, approve spend, create a production sandbox, write `RequestEvent` truth, or prove completion.
+- `POST /agents/actions/preflight` accepts an action id plus visible request, represented-actor, approval, idempotency, scope, and payload-summary context, then returns action availability, canonical reads and writes, required contracts, entrypoints, missing requirements, warnings, and non-authority boundaries. It does not grant permission, record approval, issue credentials, authorize payment, publish artifacts, propose commitments, mutate requests, write `RequestEvent` truth, or prove completion.
+- `POST /agents/evidence/validate` accepts a proof, delivery, receipt, or handoff packet envelope and returns missing fields, warnings, next steps, and non-authority boundaries. It does not grant permission, publish an `Artifact`, store files, accept review, authorize payment, write `RequestEvent` truth, or prove completion.
 
 The agent card and `/openapi.json` include the same action catalog for common
 agent intents: inspect public requests, make a request draft for a human, apply
@@ -554,6 +560,23 @@ conformance reports and production access packets before a human or operator
 review. It is not a submission endpoint, credential issuer, permission grant,
 operator approval record, human approval record, production sandbox, payment
 authorization, certification, completion proof, or durable history write.
+
+The public agent action preflight endpoint is validation-only and
+safety-oriented. It gives agents immediate machine-readable feedback on
+action-specific prerequisites such as request id, represented actor, human
+approval, idempotency, resolver scopes, route contracts, and expected canonical
+writes before a real governed route is attempted. It is not an executor,
+credential issuer, permission grant, approval record, payment authorization,
+commitment proposal, artifact publication, request mutation, completion proof,
+or durable history write.
+
+The public agent evidence validation endpoint is validation-only and
+safety-oriented. It gives agents immediate machine-readable feedback on
+Artifact-candidate packet shape, redaction posture, bounded claim state,
+idempotency posture, review request, and secret-handling before a real
+`submit_artifact` route is attempted. It is not an artifact storage backend,
+permission grant, review acceptance, payment authorization, completion proof,
+or durable history write.
 
 The public agent delegation profile is descriptive and safety-oriented. It tells
 agents how a human can delegate one action through public read, account-session,
@@ -700,11 +723,13 @@ routes:
 - `/agents/production-access-packet.example.json` is the public packet example agents should mirror before requesting operator review; it does not submit the request, issue credentials, grant permission, authorize spend, create a production sandbox, or prove completion
 - `/agents/delegation.json` is the public human-delegation lens agents should read before requesting scopes, rendering consent screens, storing consent receipts, or explaining revocation; it does not issue credentials, grant permission, record approval, authorize spend, or bypass request-specific `agentActionPolicy`
 - `/agents/evidence.json` is the public evidence lens agents should read before `submit_artifact`; it does not authorize publication or replace `Artifact` review
+- `POST /agents/evidence/validate` is the public validation-only preflight agents may call before `submit_artifact`; it validates proof and delivery packet shape but does not grant permission, publish an `Artifact`, store files, accept review, authorize spend, write `RequestEvent` truth, or prove completion
 - `/agents/execution.json` is the public execution lens agents should read before starting work, retrying a lane, or promoting runtime output; it does not authorize writes, prove completion, or turn runtime sessions, provider tasks, MCP sessions, A2A tasks, x402 payments, stdout, local logs, or tool traces into roots
 - `/agents/human-handoffs.json` is the public handoff lens agents should read before asking, stopping, escalating, requesting approval, or claiming draft, proposal, proof, payment, monitor, or completion state to a human
 - `/agents/http.json` is the public HTTP lens agents should read before choosing a live route; it summarizes existing OpenAPI exports and does not create a new endpoint contract, grant permission, replace route auth, make target adapters live, or prove completion
 - `/agents/ux.json` is the public UX lens agents should read before rendering human-facing process state; it organizes existing profiles and route contracts without creating a workflow engine, permission grant, approval record, payment authorization, adapter, or completion proof
 - `POST /agents/intake/validate` is the public validation-only preflight agents may call before human or operator review; it validates conformance reports and production access packets but does not submit them, issue credentials, grant permission, record approval, authorize spend, create a production sandbox, write `RequestEvent` truth, or prove completion
+- `POST /agents/actions/preflight` is the public validation-only preflight agents may call before attempting apply, submit, monitor, run, or optimize actions; it validates visible prerequisites and returns canonical route guidance but does not grant permission, record approval, authorize spend, publish artifacts, propose commitments, mutate requests, write `RequestEvent` truth, or prove completion
 - `/agents/optimization.json` is the public optimization lens agents should read before improving a brief, proposal, evidence packet, monitor update, or solution-run input; optimization is draft-only unless a human approves a governed mutation
 - `/agents/monitoring.json` is the public monitor lens agents should read before polling, detecting stale work, processing target webhook envelopes, or escalating monitor findings
 - `/agents/onboarding.json` is the public onboarding lens external agents should read before claiming production eligibility; it is not a credential issuer, OAuth server, production sandbox, adapter implementation, payment endpoint, or permission grant

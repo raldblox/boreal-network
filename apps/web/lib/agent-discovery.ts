@@ -43,11 +43,13 @@ export const agentDiscoveryPaths = {
   agentAuth: "/agents/auth.json",
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
+  agentActionPreflight: "/agents/actions/preflight",
   agentConformance: "/agents/conformance.json",
   agentConformanceReportExample: "/agents/conformance-report.example.json",
   agentCompletion: "/agents/completion.json",
   agentDelegation: "/agents/delegation.json",
   agentEvidence: "/agents/evidence.json",
+  agentEvidenceValidation: "/agents/evidence/validate",
   agentErrorExamples: "/agents/error-examples.json",
   agentExecution: "/agents/execution.json",
   agentHumanHandoffs: "/agents/human-handoffs.json",
@@ -493,6 +495,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Validation-only request and response schema for checking action-specific prerequisites before agents attempt governed Boreal HTTP routes.",
+    routePath: "/schemas/agent-action-preflight.schema.json",
+    sourcePath: "schemas/json/agent-action-preflight.schema.json",
+    standard: "json_schema",
+    title: "Agent action preflight",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable agent payment, buyer-credit, paid-run, x402 target, and Transaction reconciliation profile schema.",
     routePath: "/schemas/agent-payments.schema.json",
     sourcePath: "schemas/json/agent-payments.schema.json",
@@ -552,6 +563,15 @@ export const jsonSchemaDiscoveryAssets = [
     sourcePath: "schemas/json/agent-evidence.schema.json",
     standard: "json_schema",
     title: "Agent evidence profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Validation-only request and response schema for checking agent evidence packets before governed Artifact submission.",
+    routePath: "/schemas/agent-evidence-validation.schema.json",
+    sourcePath: "schemas/json/agent-evidence-validation.schema.json",
+    standard: "json_schema",
+    title: "Agent evidence validation",
   },
   {
     contentType: "application/schema+json; charset=utf-8",
@@ -682,11 +702,13 @@ export function buildAgentCard() {
     url: absoluteUrl("/"),
     documentationUrl: absoluteUrl(agentDiscoveryPaths.agentStart),
     accessReviewProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
+    actionPreflightUrl: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
     authProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
     conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
     delegationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentDelegation),
     evidenceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentEvidence),
+    evidenceValidationUrl: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
     errorExamplesUrl: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
     executionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentExecution),
     humanHandoffProfileUrl: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
@@ -791,6 +813,27 @@ export function buildAgentCard() {
       status: buildAgentEvidenceProfile().status,
       packetFields: buildAgentEvidenceProfile().artifactPacket.requiredFields,
       reviewSignalCount: buildAgentEvidenceProfile().reviewSignals.length,
+    },
+    evidenceValidation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+      status: "live_validation_only",
+      acceptedArtifactKinds: ["delivery", "evidence", "receipt", "handoff"],
+      acceptedClaimStates: [
+        "proof_submitted",
+        "delivery_candidate",
+        "receipt_attached",
+        "handoff_note",
+      ],
+      schemaUrl: absoluteUrl("/schemas/agent-evidence-validation.schema.json"),
+      nonAuthority: [
+        "permission grant",
+        "artifact publication",
+        "file storage",
+        "review acceptance",
+        "completion proof",
+        "payment authorization",
+        "durable RequestEvent",
+      ],
     },
     errorExamples: {
       url: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
@@ -930,6 +973,24 @@ export function buildAgentCard() {
     defaultInputModes: ["application/json", "text/markdown"],
     defaultOutputModes: ["application/json", "text/markdown"],
     actions: buildAgentActionCatalog(),
+    actionPreflight: {
+      url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+      status: "live_validation_only",
+      acceptedActionIds: buildAgentActionCatalog().map((action) => action.id),
+      schemaUrl: absoluteUrl("/schemas/agent-action-preflight.schema.json"),
+      nonAuthority: [
+        "production credential",
+        "permission grant",
+        "human approval record",
+        "operator approval record",
+        "payment authorization",
+        "completion proof",
+        "artifact publication",
+        "commitment proposal",
+        "request mutation",
+        "durable RequestEvent",
+      ],
+    },
     protocols: buildAgentProtocolProfile().standards.map((standard) => ({
       id: standard.id,
       name: standard.name,
@@ -1075,6 +1136,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent card: [${agentDiscoveryPaths.agentCard}](${absoluteUrl(agentDiscoveryPaths.agentCard)})
 - Agent-readable overview: [${agentDiscoveryPaths.llms}](${absoluteUrl(agentDiscoveryPaths.llms)})
 - Agent action playbook: [${agentDiscoveryPaths.agentActions}](${absoluteUrl(agentDiscoveryPaths.agentActions)})
+- Agent action preflight endpoint: [${agentDiscoveryPaths.agentActionPreflight}](${absoluteUrl(agentDiscoveryPaths.agentActionPreflight)})
 - Agent access review profile: [${agentDiscoveryPaths.agentAccessReview}](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)})
 - Agent auth profile: [${agentDiscoveryPaths.agentAuth}](${absoluteUrl(agentDiscoveryPaths.agentAuth)})
 - Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
@@ -1082,6 +1144,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
 - Agent human delegation profile: [${agentDiscoveryPaths.agentDelegation}](${absoluteUrl(agentDiscoveryPaths.agentDelegation)})
 - Agent evidence profile: [${agentDiscoveryPaths.agentEvidence}](${absoluteUrl(agentDiscoveryPaths.agentEvidence)})
+- Agent evidence validation endpoint: [${agentDiscoveryPaths.agentEvidenceValidation}](${absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation)})
 - Agent error examples: [${agentDiscoveryPaths.agentErrorExamples}](${absoluteUrl(agentDiscoveryPaths.agentErrorExamples)})
 - Agent execution profile: [${agentDiscoveryPaths.agentExecution}](${absoluteUrl(agentDiscoveryPaths.agentExecution)})
 - Agent human handoff profile: [${agentDiscoveryPaths.agentHumanHandoffs}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)})
@@ -1135,6 +1198,29 @@ Public inspection must not expose private drafts, private chats, owner-only fiel
 Public request projections include \`agentActionAffordances\`: request-level hints for inspect, apply, submit, monitor, run, and optimize actions. These hints are not permissions. They point to governed endpoints and name auth, idempotency, and canonical write boundaries.
 
 Request detail reads include \`agentActionPolicy\`: an actor-specific derived policy envelope that tells the current anonymous, session, or resolver actor which request-bound actions are allowed, blocked, idempotency-gated, or target-only now.
+
+For validation-only preflight before attempting apply, submit, monitor, run, or optimize actions, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentActionPreflight}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "actionId": "apply_to_request",
+  "requestId": "req_public_design_001",
+  "representedActor": {
+    "kind": "resolver_agent",
+    "reference": "agent:example"
+  },
+  "hasHumanApproval": true,
+  "hasIdempotencyKey": true,
+  "requestedScopes": ["commitments:propose"],
+  "payloadSummary": "Commitment proposal for one public Request."
+}
+\`\`\`
+
+This endpoint returns prerequisite feedback only. It does not create a commitment, artifact, request mutation, approval record, permission grant, credential, payment authorization, completion proof, or durable \`RequestEvent\`.
 
 For deterministic process flow, agents can read:
 
@@ -1251,6 +1337,37 @@ For deterministic evidence packaging, redaction, and review packet handling, age
 \`\`\`http
 GET ${agentDiscoveryPaths.agentEvidence}
 \`\`\`
+
+For validation-only preflight of a proof or delivery packet before \`submit_artifact\`, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentEvidenceValidation}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "packet": {
+    "requestId": "req_public_design_001",
+    "artifactKind": "evidence",
+    "claimState": "proof_submitted",
+    "title": "Implementation proof packet",
+    "summary": "Reviewable summary of the delivered work and verification steps.",
+    "content": "What changed, where to inspect it, and what remains unverified.",
+    "fulfillmentId": "fulfillment_001",
+    "evidenceClaims": ["output attached", "tests passed"],
+    "redactionStatement": "No secrets, private prompts, or raw runtime logs are included.",
+    "reviewRequest": "Please review this Artifact candidate against the Request acceptance criteria.",
+    "hasIdempotencyKey": true,
+    "containsSecrets": false,
+    "rawRuntimeLogsIncluded": false,
+    "rawPromptTranscriptIncluded": false,
+    "paymentOnlyProof": false,
+    "claimsCompletion": false
+  }
+}
+\`\`\`
+
+This endpoint returns shape feedback only. It does not publish an \`Artifact\`, store files, accept review, authorize payment, prove completion, or create durable \`RequestEvent\` truth.
 
 For deterministic RFC 9457-style error and recovery examples, agents can read:
 
@@ -1432,6 +1549,49 @@ export function buildOpenApiDiscoveryIndex() {
                 "Markdown walkthrough for inspect, apply, submit, monitor, run, and optimize agent intents.",
               content: {
                 "text/markdown": { schema: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+      "/agents/actions/preflight": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Preflight an agent action before attempting a governed Boreal route.",
+          description:
+            "Validation-only action preflight. This endpoint does not grant permission, record approval, issue credentials, authorize payment, publish artifacts, propose commitments, mutate requests, prove completion, or create durable RequestEvent truth.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentActionPreflightRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Action prerequisites passed validation but no production authority or durable write was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentActionPreflightResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Action prerequisites failed validation or the action overclaimed authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentActionPreflightResult",
+                  },
+                },
               },
             },
           },
@@ -1627,6 +1787,49 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentEvidenceProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/evidence/validate": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Validate an agent evidence packet before governed Artifact submission.",
+          description:
+            "Validation-only evidence preflight. This endpoint does not grant permission, publish artifacts, store files, accept review, prove completion, authorize payment, or create durable RequestEvent truth.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentEvidenceValidationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Evidence packet shape passed validation but no Artifact, review acceptance, payment authorization, completion proof, or durable event was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentEvidenceValidationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Evidence packet shape failed validation or overclaimed proof authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentEvidenceValidationResult",
                   },
                 },
               },
@@ -2279,6 +2482,135 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentActionPreflightRequest: {
+          type: "object",
+          required: ["schemaVersion", "actionId"],
+          properties: {
+            schemaVersion: { const: 1 },
+            actionId: {
+              enum: [
+                "inspect_public_requests",
+                "make_request_for_human",
+                "apply_to_request",
+                "submit_artifact",
+                "monitor_request",
+                "run_public_solution",
+                "optimize_request_brief",
+              ],
+            },
+            requestId: { type: "string" },
+            representedActor: {
+              type: "object",
+              properties: {
+                kind: { type: "string" },
+                reference: { type: "string" },
+              },
+            },
+            intendedUse: { type: "string" },
+            hasHumanApproval: { type: "boolean" },
+            hasIdempotencyKey: { type: "boolean" },
+            requestedScopes: {
+              type: "array",
+              items: { type: "string" },
+            },
+            payloadSummary: { type: "string" },
+          },
+          additionalProperties: false,
+        },
+        AgentActionPreflightResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "actionId",
+            "acceptedActionIds",
+            "actionAvailability",
+            "requiredScopes",
+            "idempotencyRequired",
+            "humanApprovalRequired",
+            "canonicalReads",
+            "canonicalWrites",
+            "requiredContracts",
+            "entrypoints",
+            "missingRequirements",
+            "warnings",
+            "nextSteps",
+            "permissionGranted",
+            "approvalRecorded",
+            "credentialIssued",
+            "paymentAuthorized",
+            "completionProven",
+            "durableWriteCreated",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["preflight_passed", "preflight_failed"] },
+            actionId: { type: "string" },
+            acceptedActionIds: {
+              type: "array",
+              items: { type: "string" },
+            },
+            actionAvailability: {
+              enum: [
+                "live_public_read",
+                "live_authenticated_http_contract",
+                "target_profile",
+                "unknown",
+              ],
+            },
+            actionName: { type: ["string", "null"] },
+            requiredAuth: { type: ["string", "null"] },
+            requiredScopes: {
+              type: "array",
+              items: { type: "string" },
+            },
+            idempotencyRequired: { type: "boolean" },
+            humanApprovalRequired: { type: "boolean" },
+            representedActorRequired: { type: "boolean" },
+            requestIdRequired: { type: "boolean" },
+            payloadSummaryRecommended: { type: "boolean" },
+            canonicalReads: {
+              type: "array",
+              items: { type: "string" },
+            },
+            canonicalWrites: {
+              type: "array",
+              items: { type: "string" },
+            },
+            requiredContracts: {
+              type: "array",
+              items: { type: "string" },
+            },
+            entrypoints: {
+              type: "array",
+              items: { type: "string" },
+            },
+            standards: {
+              type: "array",
+              items: { type: "string" },
+            },
+            missingRequirements: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
+            },
+            permissionGranted: { const: false },
+            approvalRecorded: { const: false },
+            credentialIssued: { const: false },
+            paymentAuthorized: { const: false },
+            completionProven: { const: false },
+            durableWriteCreated: { const: false },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentIntakeValidationRequest: {
           type: "object",
           required: ["schemaVersion", "intakeKind", "payload"],
@@ -2449,6 +2781,116 @@ export function buildOpenApiDiscoveryIndex() {
             runtimeSignalRules: {
               type: "array",
               items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentEvidenceValidationRequest: {
+          type: "object",
+          required: ["schemaVersion", "packet"],
+          properties: {
+            schemaVersion: { const: 1 },
+            packet: {
+              type: "object",
+              required: [
+                "requestId",
+                "artifactKind",
+                "claimState",
+                "title",
+                "summary",
+                "evidenceClaims",
+                "redactionStatement",
+                "reviewRequest",
+                "hasIdempotencyKey",
+                "containsSecrets",
+                "rawRuntimeLogsIncluded",
+                "rawPromptTranscriptIncluded",
+                "paymentOnlyProof",
+                "claimsCompletion",
+              ],
+              properties: {
+                requestId: { type: "string" },
+                artifactKind: {
+                  enum: ["delivery", "evidence", "receipt", "handoff"],
+                },
+                claimState: {
+                  enum: [
+                    "proof_submitted",
+                    "delivery_candidate",
+                    "receipt_attached",
+                    "handoff_note",
+                  ],
+                },
+                title: { type: "string" },
+                summary: { type: "string" },
+                content: { type: "string" },
+                externalReference: { type: "string" },
+                fulfillmentId: { type: "string" },
+                commitmentId: { type: "string" },
+                transactionId: { type: "string" },
+                evidenceClaims: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                redactionStatement: { type: "string" },
+                reviewRequest: { type: "string" },
+                hasIdempotencyKey: { type: "boolean" },
+                containsSecrets: { type: "boolean" },
+                rawRuntimeLogsIncluded: { type: "boolean" },
+                rawPromptTranscriptIncluded: { type: "boolean" },
+                paymentOnlyProof: { type: "boolean" },
+                claimsCompletion: { type: "boolean" },
+              },
+            },
+          },
+          additionalProperties: false,
+        },
+        AgentEvidenceValidationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "acceptedArtifactKinds",
+            "acceptedClaimStates",
+            "artifactPublished",
+            "reviewAccepted",
+            "completionProven",
+            "paymentAuthorized",
+            "permissionGranted",
+            "durableWriteCreated",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["validation_passed", "validation_failed"] },
+            acceptedArtifactKinds: {
+              type: "array",
+              items: { type: "string" },
+            },
+            acceptedClaimStates: {
+              type: "array",
+              items: { type: "string" },
+            },
+            artifactPublished: { const: false },
+            reviewAccepted: { const: false },
+            completionProven: { const: false },
+            paymentAuthorized: { const: false },
+            permissionGranted: { const: false },
+            durableWriteCreated: { const: false },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
             },
             canonicalBoundary: { type: "object" },
           },
@@ -2806,6 +3248,24 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-contracts": contracts,
     "x-boreal-agent-actions": buildAgentActionCatalog(),
+    "x-boreal-agent-action-preflight": {
+      url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+      status: "live_validation_only",
+      acceptedActionIds: buildAgentActionCatalog().map((action) => action.id),
+      schemaUrl: absoluteUrl("/schemas/agent-action-preflight.schema.json"),
+      nonAuthority: [
+        "production credential",
+        "permission grant",
+        "human approval record",
+        "operator approval record",
+        "payment authorization",
+        "completion proof",
+        "artifact publication",
+        "commitment proposal",
+        "request mutation",
+        "durable RequestEvent",
+      ],
+    },
     "x-boreal-agent-auth": {
       url: absoluteUrl(agentDiscoveryPaths.agentAuth),
       schemes: buildAgentAuthProfile().authSchemes.map((scheme) => ({
@@ -2866,6 +3326,27 @@ export function buildOpenApiDiscoveryIndex() {
       artifactKinds: buildAgentEvidenceProfile().artifactKindGuidance.map(
         (guidance) => guidance.artifactKind
       ),
+    },
+    "x-boreal-agent-evidence-validation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+      status: "live_validation_only",
+      acceptedArtifactKinds: ["delivery", "evidence", "receipt", "handoff"],
+      acceptedClaimStates: [
+        "proof_submitted",
+        "delivery_candidate",
+        "receipt_attached",
+        "handoff_note",
+      ],
+      schemaUrl: absoluteUrl("/schemas/agent-evidence-validation.schema.json"),
+      nonAuthority: [
+        "permission grant",
+        "artifact publication",
+        "file storage",
+        "review acceptance",
+        "completion proof",
+        "payment authorization",
+        "durable RequestEvent",
+      ],
     },
     "x-boreal-agent-error-examples": {
       url: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
@@ -3088,6 +3569,10 @@ export function buildAgentAuthProfile() {
       {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent action preflight endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
       },
       {
         label: "Agent human delegation profile",
@@ -4623,6 +5108,10 @@ export function buildAgentCompletionProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentUx),
       },
       {
+        label: "Agent evidence validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+      },
+      {
         label: "Agent recovery profile",
         url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
       },
@@ -4824,6 +5313,10 @@ export function buildAgentEvidenceProfile() {
       {
         label: "Agent completion profile",
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent evidence validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
       },
       {
         label: "Agent human handoff profile",
@@ -5216,6 +5709,10 @@ export function buildAgentHumanHandoffProfile() {
       {
         label: "Agent action playbook",
         url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent action preflight endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
       },
       {
         label: "Agent auth profile",
@@ -5924,6 +6421,10 @@ export function buildAgentUxProfile() {
       {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent action preflight endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
       },
       {
         label: "Agent human delegation profile",
@@ -8599,6 +9100,10 @@ export function buildAgentReadinessProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
       },
       {
+        label: "Agent evidence validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+      },
+      {
         label: "Agent human handoff profile",
         url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
       },
@@ -8817,6 +9322,68 @@ export function buildAgentReadinessProfile() {
         evidence: [
           absoluteUrl(agentDiscoveryPaths.agentUx),
           absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+        ],
+      },
+      {
+        id: "action_preflight",
+        primaryAgentIntent: "Check whether an action is ready before using a real route",
+        status: "live_validation_only",
+        actions: [
+          "inspect_public_requests",
+          "make_request_for_human",
+          "apply_to_request",
+          "submit_artifact",
+          "monitor_request",
+          "run_public_solution",
+          "optimize_request_brief",
+        ],
+        standards: ["OpenAPI 3.1", "JSON Schema"],
+        availableNow: [
+          "Post an action id plus visible approval, idempotency, scope, represented-actor, and request context to receive missing requirements.",
+          "Read canonical reads, canonical writes, required contracts, entrypoints, and non-authority boundaries before attempting the real route.",
+          "Use the result as preflight evidence only; live request policy, auth, scope, payment, and proof gates still apply at execution time.",
+        ],
+        requiresBeforeUse: [
+          "schemaVersion=1",
+          "one accepted action id",
+          "requestId, represented actor, human approval, idempotency, and scopes when the chosen action requires them",
+        ],
+        stopOrEscalateWhen: [
+          "preflight reports missing requirements",
+          "approval, scope, payment, proof, or request access is uncertain",
+          "the agent treats preflight as a permission grant or durable write",
+        ],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+          absoluteUrl("/schemas/agent-action-preflight.schema.json"),
+        ],
+      },
+      {
+        id: "evidence_packet_validation",
+        primaryAgentIntent: "Check proof or delivery packet shape before submitting",
+        status: "live_validation_only",
+        actions: ["submit_artifact"],
+        standards: ["OpenAPI 3.1", "JSON Schema"],
+        availableNow: [
+          "Post an Artifact candidate packet with request id, artifact kind, claim state, reviewable content or reference, evidence claims, redaction statement, review request, and idempotency posture.",
+          "Receive missing fields, redaction warnings, claim-boundary warnings, and non-authority flags before attempting the real submit_artifact route.",
+          "Use the result as packet-shape evidence only; Artifact publication, owner review, payment reconciliation, and completion still require governed route and lifecycle truth.",
+        ],
+        requiresBeforeUse: [
+          "schemaVersion=1",
+          "one supported artifact kind",
+          "bounded claim state that is not completed",
+          "containsSecrets=false and no raw prompt or runtime log payloads",
+        ],
+        stopOrEscalateWhen: [
+          "the packet includes secrets, raw prompt transcript, raw runtime logs, payment-only proof, or completion claims",
+          "the evidence is not attached to one Request",
+          "the agent treats validation as Artifact publication or review acceptance",
+        ],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+          absoluteUrl("/schemas/agent-evidence-validation.schema.json"),
+          absoluteUrl(agentDiscoveryPaths.agentEvidence),
         ],
       },
       {

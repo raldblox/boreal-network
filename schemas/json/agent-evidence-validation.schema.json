@@ -1,0 +1,315 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-evidence-validation.schema.json",
+  "title": "AgentEvidenceValidation",
+  "description": "Validation-only request and response contract for checking agent evidence packets before governed Artifact submission. It does not grant permission, publish artifacts, store files, accept review, prove completion, authorize payment, or create durable RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "acceptedArtifactKinds",
+    "acceptedClaimStates",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "acceptedArtifactKinds": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifactKind"
+      }
+    },
+    "acceptedClaimStates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claimState"
+      }
+    },
+    "request": {
+      "$ref": "#/$defs/evidenceValidationRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/evidenceValidationResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "artifactKind": {
+      "enum": [
+        "delivery",
+        "evidence",
+        "receipt",
+        "handoff"
+      ]
+    },
+    "claimState": {
+      "enum": [
+        "proof_submitted",
+        "delivery_candidate",
+        "receipt_attached",
+        "handoff_note"
+      ]
+    },
+    "evidenceValidationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "packet"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "packet": {
+          "$ref": "#/$defs/evidencePacket"
+        }
+      }
+    },
+    "evidencePacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestId",
+        "artifactKind",
+        "claimState",
+        "title",
+        "summary",
+        "evidenceClaims",
+        "redactionStatement",
+        "reviewRequest",
+        "hasIdempotencyKey",
+        "containsSecrets",
+        "rawRuntimeLogsIncluded",
+        "rawPromptTranscriptIncluded",
+        "paymentOnlyProof",
+        "claimsCompletion"
+      ],
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactKind": {
+          "$ref": "#/$defs/artifactKind"
+        },
+        "claimState": {
+          "$ref": "#/$defs/claimState"
+        },
+        "documentKind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        },
+        "externalReference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fulfillmentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commitmentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fulfillmentStepId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transactionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceClaims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "redactionStatement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewRequest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hasIdempotencyKey": {
+          "type": "boolean"
+        },
+        "containsSecrets": {
+          "type": "boolean"
+        },
+        "rawRuntimeLogsIncluded": {
+          "type": "boolean"
+        },
+        "rawPromptTranscriptIncluded": {
+          "type": "boolean"
+        },
+        "paymentOnlyProof": {
+          "type": "boolean"
+        },
+        "claimsCompletion": {
+          "type": "boolean"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "content"
+          ]
+        },
+        {
+          "required": [
+            "externalReference"
+          ]
+        }
+      ]
+    },
+    "evidenceValidationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "acceptedArtifactKinds",
+        "acceptedClaimStates",
+        "artifactPublished",
+        "reviewAccepted",
+        "completionProven",
+        "paymentAuthorized",
+        "permissionGranted",
+        "durableWriteCreated",
+        "summary",
+        "missingFields",
+        "warnings",
+        "nextSteps",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "validation_passed",
+            "validation_failed"
+          ]
+        },
+        "acceptedArtifactKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactKind"
+          }
+        },
+        "acceptedClaimStates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/claimState"
+          }
+        },
+        "artifactPublished": {
+          "const": false
+        },
+        "reviewAccepted": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missingFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "evidenceTruthObject",
+        "validationIsNot",
+        "durableTruthObjects"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "evidenceTruthObject": {
+          "const": "Artifact"
+        },
+        "validationIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,12 +4,14 @@ import { absoluteUrl } from "@/lib/seo";
 export const agentSandboxPaths = {
   accessReview: "/agents/access-review.json",
   actions: "/agents/actions.md",
+  actionPreflight: "/agents/actions/preflight",
   auth: "/agents/auth.json",
   conformance: "/agents/conformance.json",
   conformanceReportExample: "/agents/conformance-report.example.json",
   completion: "/agents/completion.json",
   delegation: "/agents/delegation.json",
   evidence: "/agents/evidence.json",
+  evidenceValidation: "/agents/evidence/validate",
   errorExamples: "/agents/error-examples.json",
   execution: "/agents/execution.json",
   humanHandoffPacketExamples: "/agents/human-handoff-packets.example.json",
@@ -77,6 +79,10 @@ export function buildAgentSandboxManifest() {
       { label: "Sandbox guide", url: absoluteUrl(agentSandboxPaths.guide) },
       { label: "Action playbook", url: absoluteUrl(agentSandboxPaths.actions) },
       {
+        label: "Action preflight endpoint",
+        url: absoluteUrl(agentSandboxPaths.actionPreflight),
+      },
+      {
         label: "Access review profile",
         url: absoluteUrl(agentSandboxPaths.accessReview),
       },
@@ -103,6 +109,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Evidence profile",
         url: absoluteUrl(agentSandboxPaths.evidence),
+      },
+      {
+        label: "Evidence validation endpoint",
+        url: absoluteUrl(agentSandboxPaths.evidenceValidation),
       },
       {
         label: "Error examples",

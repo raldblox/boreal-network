@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-action-preflight.schema.json",
+  "title": "AgentActionPreflight",
+  "description": "Validation-only request and response contract for checking whether an agent action has the visible prerequisites needed before attempting a real governed Boreal route. It does not grant permission, record approval, issue credentials, authorize payment, publish artifacts, propose commitments, mutate requests, prove completion, or create durable RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "acceptedActionIds",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "acceptedActionIds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/actionId"
+      }
+    },
+    "request": {
+      "$ref": "#/$defs/preflightRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/preflightResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "actionId": {
+      "enum": [
+        "inspect_public_requests",
+        "make_request_for_human",
+        "apply_to_request",
+        "submit_artifact",
+        "monitor_request",
+        "run_public_solution",
+        "optimize_request_brief"
+      ]
+    },
+    "preflightRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "actionId"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "actionId": {
+          "$ref": "#/$defs/actionId"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "representedActor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "intendedUse": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hasHumanApproval": {
+          "type": "boolean"
+        },
+        "hasIdempotencyKey": {
+          "type": "boolean"
+        },
+        "requestedScopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "payloadSummary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "preflightResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "actionId",
+        "acceptedActionIds",
+        "actionAvailability",
+        "actionName",
+        "requiredAuth",
+        "requiredScopes",
+        "idempotencyRequired",
+        "humanApprovalRequired",
+        "representedActorRequired",
+        "requestIdRequired",
+        "payloadSummaryRecommended",
+        "canonicalReads",
+        "canonicalWrites",
+        "requiredContracts",
+        "entrypoints",
+        "standards",
+        "missingRequirements",
+        "warnings",
+        "nextSteps",
+        "permissionGranted",
+        "approvalRecorded",
+        "credentialIssued",
+        "paymentAuthorized",
+        "completionProven",
+        "durableWriteCreated",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "preflight_passed",
+            "preflight_failed"
+          ]
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptedActionIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/actionId"
+          }
+        },
+        "actionAvailability": {
+          "enum": [
+            "live_public_read",
+            "live_authenticated_http_contract",
+            "target_profile",
+            "unknown"
+          ]
+        },
+        "actionName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requiredAuth": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requiredScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "idempotencyRequired": {
+          "type": "boolean"
+        },
+        "humanApprovalRequired": {
+          "type": "boolean"
+        },
+        "representedActorRequired": {
+          "type": "boolean"
+        },
+        "requestIdRequired": {
+          "type": "boolean"
+        },
+        "payloadSummaryRecommended": {
+          "type": "boolean"
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredContracts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "entrypoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "standards": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missingRequirements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "approvalRecorded": {
+          "const": false
+        },
+        "credentialIssued": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "preflightIsNot",
+        "durableTruthObjects"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "preflightIsNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -56,6 +56,7 @@ Recommended naming:
 - `json/agent-production-access-packet.schema.json`
 - `json/agent-completion.schema.json`
 - `json/agent-evidence.schema.json`
+- `json/agent-evidence-validation.schema.json`
 - `json/agent-error-examples.schema.json`
 - `json/agent-execution.schema.json`
 - `json/agent-human-handoffs.schema.json`
@@ -63,6 +64,7 @@ Recommended naming:
 - `json/agent-http.schema.json`
 - `json/agent-ux.schema.json`
 - `json/agent-intake-validation.schema.json`
+- `json/agent-action-preflight.schema.json`
 - `json/agent-monitoring.schema.json`
 - `json/agent-onboarding.schema.json`
 - `json/agent-opportunity-cards.schema.json`

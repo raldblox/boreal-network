@@ -36,6 +36,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 
 - [Agent start guide](${absoluteUrl(agentDiscoveryPaths.agentStart)}): What agents can inspect, what requires auth, and how canonical writes work.
 - [Agent action playbook](${absoluteUrl(agentDiscoveryPaths.agentActions)}): Contract-linked walkthroughs for inspect, make-request, apply, submit, monitor, run, and optimize intents.
+- [Agent action preflight endpoint](${absoluteUrl(agentDiscoveryPaths.agentActionPreflight)}): Validation-only POST endpoint for action prerequisites before agents attempt governed Boreal routes.
 - [Agent access review profile](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)}): Machine-readable operator-review policy for scopes, quotas, revocation, decisions, and target-adapter claims.
 - [Agent auth profile](${absoluteUrl(agentDiscoveryPaths.agentAuth)}): Machine-readable actor classes, auth schemes, scopes, approvals, and write boundaries.
 - [Agent conformance profile](${absoluteUrl(agentDiscoveryPaths.agentConformance)}): Machine-readable checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries.
@@ -44,6 +45,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent completion profile](${absoluteUrl(agentDiscoveryPaths.agentCompletion)}): Machine-readable proof packets, Artifact requirements, completion claims, and review boundaries.
 - [Agent human delegation profile](${absoluteUrl(agentDiscoveryPaths.agentDelegation)}): Machine-readable consent, scoped authority, revocation, and per-action approval boundaries for human-owned agent usage.
 - [Agent evidence profile](${absoluteUrl(agentDiscoveryPaths.agentEvidence)}): Machine-readable evidence packet, Artifact packaging, redaction, review, and proof-boundary guidance.
+- [Agent evidence validation endpoint](${absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation)}): Validation-only POST endpoint for proof and delivery packets before governed Artifact submission.
 - [Agent error examples](${absoluteUrl(agentDiscoveryPaths.agentErrorExamples)}): RFC 9457-style problem examples for safe auth, scope, idempotency, rate-limit, payment, monitor, and unknown-write recovery.
 - [Agent execution profile](${absoluteUrl(agentDiscoveryPaths.agentExecution)}): Machine-readable Fulfillment, FulfillmentStep, runtime signal, and execution-lane boundaries.
 - [Agent human handoff profile](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)}): Machine-readable human approval, stop, escalation, visible UX, and claim-state boundaries.

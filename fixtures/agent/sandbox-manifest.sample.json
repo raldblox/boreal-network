@@ -42,6 +42,10 @@
       "url": "https://boreal.work/agents/actions.md"
     },
     {
+      "label": "Action preflight endpoint",
+      "url": "https://boreal.work/agents/actions/preflight"
+    },
+    {
       "label": "Access review profile",
       "url": "https://boreal.work/agents/access-review.json"
     },
@@ -68,6 +72,10 @@
     {
       "label": "Evidence profile",
       "url": "https://boreal.work/agents/evidence.json"
+    },
+    {
+      "label": "Evidence validation endpoint",
+      "url": "https://boreal.work/agents/evidence/validate"
     },
     {
       "label": "Error examples",

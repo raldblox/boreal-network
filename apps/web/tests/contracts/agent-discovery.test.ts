@@ -40,6 +40,8 @@ import {
   readAgentProtocolAdapterSamples,
   readDiscoveryAsset,
 } from "@/lib/agent-discovery";
+import { validateAgentActionPreflight } from "@/lib/agent-action-preflight";
+import { validateAgentEvidencePayload } from "@/lib/agent-evidence-validation";
 import { validateAgentIntakePayload } from "@/lib/agent-intake-validation";
 import {
   buildAgentSandboxManifest,
@@ -51,6 +53,7 @@ import {
 } from "@/lib/request";
 import { GET as getAgentCard } from "@/app/.well-known/agent-card.json/route";
 import { GET as getAgentActions } from "@/app/agents/actions.md/route";
+import { POST as postAgentActionPreflight } from "@/app/agents/actions/preflight/route";
 import { GET as getAgentAccessReview } from "@/app/agents/access-review.json/route";
 import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
 import { GET as getAgentConformance } from "@/app/agents/conformance.json/route";
@@ -58,6 +61,7 @@ import { GET as getAgentConformanceReportExample } from "@/app/agents/conformanc
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
 import { GET as getAgentDelegation } from "@/app/agents/delegation.json/route";
 import { GET as getAgentEvidence } from "@/app/agents/evidence.json/route";
+import { POST as postAgentEvidenceValidation } from "@/app/agents/evidence/validate/route";
 import { GET as getAgentErrorExamples } from "@/app/agents/error-examples.json/route";
 import { GET as getAgentExecution } from "@/app/agents/execution.json/route";
 import { GET as getAgentHumanHandoffPacketExamples } from "@/app/agents/human-handoff-packets.example.json/route";
@@ -145,6 +149,10 @@ async function main() {
     true,
   );
   assert.equal(
+    agentCard.evidenceValidationUrl.endsWith("/agents/evidence/validate"),
+    true,
+  );
+  assert.equal(
     agentCard.errorExamplesUrl.endsWith("/agents/error-examples.json"),
     true,
   );
@@ -162,6 +170,10 @@ async function main() {
   assert.equal(agentCard.uxProfileUrl.endsWith("/agents/ux.json"), true);
   assert.equal(
     agentCard.intakeValidationUrl.endsWith("/agents/intake/validate"),
+    true,
+  );
+  assert.equal(
+    agentCard.actionPreflightUrl.endsWith("/agents/actions/preflight"),
     true,
   );
   assert.equal(
@@ -271,6 +283,15 @@ async function main() {
     agentCard.intakeValidation.nonAuthority.includes("permission grant"),
     true,
   );
+  assert.equal(agentCard.actionPreflight.status, "live_validation_only");
+  assert.equal(
+    agentCard.actionPreflight.acceptedActionIds.includes("apply_to_request"),
+    true,
+  );
+  assert.equal(
+    agentCard.actionPreflight.nonAuthority.includes("request mutation"),
+    true,
+  );
   assert.equal(agentCard.opportunities.status, "live_opportunity_discovery_profile");
   assert.equal(
     agentCard.opportunities.cardExamplesUrl.endsWith(
@@ -304,6 +325,15 @@ async function main() {
   assert.equal(agentCard.evidence.status, "live_evidence_profile");
   assert.equal(agentCard.evidence.packetFields.includes("requestId"), true);
   assert.equal(agentCard.evidence.reviewSignalCount >= 5, true);
+  assert.equal(agentCard.evidenceValidation.status, "live_validation_only");
+  assert.equal(
+    agentCard.evidenceValidation.acceptedArtifactKinds.includes("delivery"),
+    true,
+  );
+  assert.equal(
+    agentCard.evidenceValidation.nonAuthority.includes("artifact publication"),
+    true,
+  );
   assert.equal(agentCard.errorExamples.status, "live_error_example_pack");
   assert.equal(
     agentCard.errorExamples.standard,
@@ -724,6 +754,28 @@ async function main() {
     true,
   );
   assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "action_preflight" &&
+        capability.status === "live_validation_only" &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/actions/preflight")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "evidence_packet_validation" &&
+        capability.status === "live_validation_only" &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/evidence/validate")
+        )
+    ),
+    true,
+  );
+  assert.equal(
     readinessProfile.agentUxFlow.some(
       (stage) =>
         stage.stage === "Check auth and policy" &&
@@ -953,6 +1005,12 @@ async function main() {
   assert.equal(completionProfile.status, "live_completion_profile");
   assert.equal(completionProfile.canonicalBoundary.rootObject, "Request");
   assert.equal(
+    completionProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/evidence/validate")
+    ),
+    true,
+  );
+  assert.equal(
     completionProfile.proofPacket.requiredFor.includes("submit_artifact"),
     true,
   );
@@ -1120,6 +1178,12 @@ async function main() {
   assert.equal(uxProfile.status, "live_agent_ux_profile");
   assert.equal(uxProfile.canonicalBoundary.rootObject, "Request");
   assert.equal(
+    uxProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/actions/preflight")
+    ),
+    true,
+  );
+  assert.equal(
     uxProfile.entrypoints.some(
       (entrypoint) =>
         entrypoint.id === "live_route_invocation" &&
@@ -1177,6 +1241,12 @@ async function main() {
   assert.equal(evidenceProfile.canonicalBoundary.rootObject, "Request");
   assert.equal(evidenceProfile.canonicalBoundary.evidenceTruthObject, "Artifact");
   assert.equal(
+    evidenceProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/evidence/validate")
+    ),
+    true,
+  );
+  assert.equal(
     evidenceProfile.artifactPacket.requiredFields.includes("redactionStatement"),
     true,
   );
@@ -1201,6 +1271,72 @@ async function main() {
         check.id === "claim_bounded" &&
         check.failWhen.includes("payment")
     ),
+    true,
+  );
+
+  const validEvidenceValidation = validateAgentEvidencePayload({
+    schemaVersion: 1,
+    packet: {
+      requestId: "req_public_design_001",
+      artifactKind: "evidence",
+      claimState: "proof_submitted",
+      title: "Implementation proof packet",
+      summary: "Reviewable summary and verification notes.",
+      content: "What changed, where to inspect it, and what remains unverified.",
+      fulfillmentId: "fulfillment_001",
+      evidenceClaims: ["output attached", "tests passed"],
+      redactionStatement: "No secrets, raw prompts, or runtime logs included.",
+      reviewRequest: "Review this Artifact candidate against acceptance criteria.",
+      hasIdempotencyKey: true,
+      containsSecrets: false,
+      rawRuntimeLogsIncluded: false,
+      rawPromptTranscriptIncluded: false,
+      paymentOnlyProof: false,
+      claimsCompletion: false,
+    },
+  });
+  assert.equal(validEvidenceValidation.status, "validation_passed");
+  assert.equal(validEvidenceValidation.artifactPublished, false);
+  assert.equal(validEvidenceValidation.reviewAccepted, false);
+  assert.equal(validEvidenceValidation.completionProven, false);
+  assert.equal(validEvidenceValidation.paymentAuthorized, false);
+  assert.equal(validEvidenceValidation.permissionGranted, false);
+  assert.equal(validEvidenceValidation.durableWriteCreated, false);
+  assert.equal(
+    validEvidenceValidation.canonicalBoundary.validationIsNot.includes(
+      "durable RequestEvent"
+    ),
+    true,
+  );
+
+  const failedEvidenceValidation = validateAgentEvidencePayload({
+    schemaVersion: 1,
+    packet: {
+      requestId: "req_public_design_001",
+      artifactKind: "evidence",
+      claimState: "completed",
+      title: "Done",
+      summary: "Tool finished.",
+      content: "Provider callback succeeded.",
+      evidenceClaims: [],
+      redactionStatement: "No redaction.",
+      reviewRequest: "Accept as complete.",
+      hasIdempotencyKey: false,
+      containsSecrets: true,
+      rawRuntimeLogsIncluded: true,
+      rawPromptTranscriptIncluded: true,
+      paymentOnlyProof: true,
+      claimsCompletion: true,
+    },
+  });
+  assert.equal(failedEvidenceValidation.status, "validation_failed");
+  assert.equal(failedEvidenceValidation.missingFields.includes("claimState"), true);
+  assert.equal(
+    failedEvidenceValidation.missingFields.includes("containsSecrets=false"),
+    true,
+  );
+  assert.equal(
+    failedEvidenceValidation.missingFields.includes("claimsCompletion=false"),
     true,
   );
 
@@ -1530,6 +1666,83 @@ async function main() {
     true,
   );
   assert.equal(malformedValidation.credentialsIssued, false);
+
+  const applyPreflight = validateAgentActionPreflight({
+    schemaVersion: 1,
+    actionId: "apply_to_request",
+    requestId: "req_public_design_001",
+    representedActor: {
+      kind: "resolver_agent",
+      reference: "agent:portfolio-builder",
+    },
+    hasHumanApproval: true,
+    hasIdempotencyKey: true,
+    requestedScopes: ["commitments:propose"],
+    payloadSummary: "Commitment proposal for one public request.",
+  });
+  assert.equal(applyPreflight.status, "preflight_passed");
+  assert.equal(
+    applyPreflight.actionAvailability,
+    "live_authenticated_http_contract",
+  );
+  assert.equal(applyPreflight.requiredScopes.includes("commitments:propose"), true);
+  assert.equal(applyPreflight.canonicalWrites.includes("Commitment"), true);
+  assert.equal(applyPreflight.permissionGranted, false);
+  assert.equal(applyPreflight.approvalRecorded, false);
+  assert.equal(applyPreflight.credentialIssued, false);
+  assert.equal(applyPreflight.paymentAuthorized, false);
+  assert.equal(applyPreflight.completionProven, false);
+  assert.equal(applyPreflight.durableWriteCreated, false);
+  assert.equal(
+    applyPreflight.canonicalBoundary.preflightIsNot.includes(
+      "durable RequestEvent"
+    ),
+    true,
+  );
+
+  const monitorPreflight = validateAgentActionPreflight({
+    schemaVersion: 1,
+    actionId: "monitor_request",
+    requestId: "req_public_design_001",
+  });
+  assert.equal(monitorPreflight.status, "preflight_passed");
+  assert.equal(monitorPreflight.canonicalReads.includes("RequestEvent"), true);
+  assert.equal(monitorPreflight.durableWriteCreated, false);
+  assert.equal(
+    monitorPreflight.warnings.some((warning) =>
+      warning.includes("requests:read_activity")
+    ),
+    true,
+  );
+
+  const missingApplyPreflight = validateAgentActionPreflight({
+    schemaVersion: 1,
+    actionId: "apply_to_request",
+    requestId: "req_public_design_001",
+  });
+  assert.equal(missingApplyPreflight.status, "preflight_failed");
+  assert.equal(
+    missingApplyPreflight.missingRequirements.includes(
+      "representedActor.reference"
+    ),
+    true,
+  );
+  assert.equal(
+    missingApplyPreflight.missingRequirements.includes(
+      "requestedScopes includes commitments:propose"
+    ),
+    true,
+  );
+  assert.equal(missingApplyPreflight.durableWriteCreated, false);
+
+  const unknownActionPreflight = validateAgentActionPreflight({
+    schemaVersion: 1,
+    actionId: "delete_request",
+  });
+  assert.equal(unknownActionPreflight.status, "preflight_failed");
+  assert.equal(unknownActionPreflight.actionAvailability, "unknown");
+  assert.equal(unknownActionPreflight.missingRequirements.includes("actionId"), true);
+
   assert.equal(
     onboardingProfile.goLiveChecks.some(
       (check) => check.id === "scope_minimization" && check.blocking
@@ -1772,6 +1985,18 @@ async function main() {
   assert.equal(sandboxManifest.canonicalBoundary.rootObject, "Request");
   assert.equal(
     sandboxManifest.schemaUrl.endsWith("/schemas/agent-sandbox.schema.json"),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.resources.some((resource) =>
+      resource.url.endsWith("/agents/actions/preflight")
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.resources.some((resource) =>
+      resource.url.endsWith("/agents/evidence/validate")
+    ),
     true,
   );
   assert.equal(
@@ -2069,12 +2294,14 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/completion\.json/);
   assert.match(startGuide, /GET \/agents\/delegation\.json/);
   assert.match(startGuide, /GET \/agents\/evidence\.json/);
+  assert.match(startGuide, /POST \/agents\/evidence\/validate/);
   assert.match(startGuide, /GET \/agents\/error-examples\.json/);
   assert.match(startGuide, /GET \/agents\/execution\.json/);
   assert.match(startGuide, /GET \/agents\/human-handoffs\.json/);
   assert.match(startGuide, /GET \/agents\/human-handoff-packets\.example\.json/);
   assert.match(startGuide, /GET \/agents\/http\.json/);
   assert.match(startGuide, /GET \/agents\/ux\.json/);
+  assert.match(startGuide, /POST \/agents\/actions\/preflight/);
   assert.match(startGuide, /POST \/agents\/intake\/validate/);
   assert.match(startGuide, /GET \/agents\/monitoring\.json/);
   assert.match(startGuide, /GET \/agents\/onboarding\.json/);
@@ -2093,9 +2320,11 @@ async function main() {
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent error examples/);
   assert.match(startGuide, /Agent human delegation profile/);
+  assert.match(startGuide, /Agent evidence validation endpoint/);
   assert.match(startGuide, /Agent human handoff packet examples/);
   assert.match(startGuide, /Agent HTTP reference profile/);
   assert.match(startGuide, /Agent UX profile/);
+  assert.match(startGuide, /Agent action preflight endpoint/);
   assert.match(startGuide, /Agent intake validation endpoint/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent production access packet example/);
@@ -2107,6 +2336,8 @@ async function main() {
   assert.match(startGuide, /If the request requires physical presence/);
   assert.match(startGuide, /MCP server support, A2A task adapters/);
   assert.match(startGuide, /does not create a review submission/);
+  assert.match(startGuide, /does not create a commitment/);
+  assert.match(startGuide, /does not publish an `Artifact`/);
 
   const discoveryIndex = buildOpenApiDiscoveryIndex();
   assert.equal(discoveryIndex.openapi, "3.1.0");
@@ -2129,6 +2360,10 @@ async function main() {
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/access-review.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/actions.md"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/actions/preflight"),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/auth.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/conformance.json"), true);
   assert.equal(
@@ -2141,6 +2376,10 @@ async function main() {
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/delegation.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/evidence.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/evidence/validate"),
+    true,
+  );
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/error-examples.json"),
     true,
@@ -2180,6 +2419,20 @@ async function main() {
     ),
     true,
   );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentActionPreflightResult"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentEvidenceValidationResult"
+    ),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/prompts.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/workflows.json"),
@@ -2209,6 +2462,30 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-protocols"].samplePackUrl.endsWith(
       "/agents/protocol-adapter-samples.json"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-action-preflight"].acceptedActionIds.includes(
+      "submit_artifact"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-action-preflight"].nonAuthority.includes(
+      "commitment proposal"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-evidence-validation"].acceptedClaimStates.includes(
+      "proof_submitted"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-evidence-validation"].nonAuthority.includes(
+      "artifact publication"
     ),
     true,
   );
@@ -2464,6 +2741,10 @@ async function main() {
     "schemas/json/agent-intake-validation.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-action-preflight.schema.json")?.sourcePath,
+    "schemas/json/agent-action-preflight.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-completion.schema.json")?.sourcePath,
     "schemas/json/agent-completion.schema.json",
   );
@@ -2474,6 +2755,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-evidence.schema.json")?.sourcePath,
     "schemas/json/agent-evidence.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-evidence-validation.schema.json")?.sourcePath,
+    "schemas/json/agent-evidence-validation.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-error-examples.schema.json")?.sourcePath,
@@ -2738,6 +3023,152 @@ async function main() {
     false,
   );
 
+  const actionPreflightResponse = await postAgentActionPreflight(
+    new Request("http://boreal.test/agents/actions/preflight", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        actionId: "apply_to_request",
+        requestId: "req_public_design_001",
+        representedActor: {
+          kind: "resolver_agent",
+          reference: "agent:portfolio-builder",
+        },
+        hasHumanApproval: true,
+        hasIdempotencyKey: true,
+        requestedScopes: ["commitments:propose"],
+        payloadSummary: "Commitment proposal for one public request.",
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(actionPreflightResponse.status, 200);
+  const actionPreflight = await actionPreflightResponse.json();
+  assert.equal(actionPreflight.status, "preflight_passed");
+  assert.equal(actionPreflight.permissionGranted, false);
+  assert.equal(actionPreflight.approvalRecorded, false);
+  assert.equal(actionPreflight.durableWriteCreated, false);
+
+  const failedActionPreflightResponse = await postAgentActionPreflight(
+    new Request("http://boreal.test/agents/actions/preflight", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        actionId: "submit_artifact",
+        requestId: "req_public_design_001",
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(failedActionPreflightResponse.status, 400);
+  const failedActionPreflight = await failedActionPreflightResponse.json();
+  assert.equal(failedActionPreflight.status, "preflight_failed");
+  assert.equal(
+    failedActionPreflight.missingRequirements.includes(
+      "requestedScopes includes artifacts:publish"
+    ),
+    true,
+  );
+  assert.equal(failedActionPreflight.paymentAuthorized, false);
+
+  const malformedActionPreflightResponse = await postAgentActionPreflight(
+    new Request("http://boreal.test/agents/actions/preflight", {
+      body: "{",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(malformedActionPreflightResponse.status, 400);
+  assert.equal(
+    (await malformedActionPreflightResponse.json()).completionProven,
+    false,
+  );
+
+  const evidenceValidationResponse = await postAgentEvidenceValidation(
+    new Request("http://boreal.test/agents/evidence/validate", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        packet: {
+          requestId: "req_public_design_001",
+          artifactKind: "delivery",
+          claimState: "delivery_candidate",
+          title: "Delivery packet",
+          summary: "Reviewable delivery and verification summary.",
+          externalReference: "https://example.com/delivery",
+          fulfillmentId: "fulfillment_001",
+          evidenceClaims: ["deliverable attached", "review steps included"],
+          redactionStatement: "No secrets or raw runtime logs included.",
+          reviewRequest: "Review this delivery candidate.",
+          hasIdempotencyKey: true,
+          containsSecrets: false,
+          rawRuntimeLogsIncluded: false,
+          rawPromptTranscriptIncluded: false,
+          paymentOnlyProof: false,
+          claimsCompletion: false,
+        },
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(evidenceValidationResponse.status, 200);
+  const evidenceValidation = await evidenceValidationResponse.json();
+  assert.equal(evidenceValidation.status, "validation_passed");
+  assert.equal(evidenceValidation.artifactPublished, false);
+  assert.equal(evidenceValidation.reviewAccepted, false);
+  assert.equal(evidenceValidation.durableWriteCreated, false);
+
+  const failedEvidenceValidationResponse = await postAgentEvidenceValidation(
+    new Request("http://boreal.test/agents/evidence/validate", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        packet: {
+          requestId: "req_public_design_001",
+          artifactKind: "receipt",
+          claimState: "completed",
+          title: "Payment receipt",
+          summary: "Payment succeeded.",
+          content: "Payment only.",
+          evidenceClaims: [],
+          redactionStatement: "No redaction.",
+          reviewRequest: "Mark complete.",
+          hasIdempotencyKey: false,
+          containsSecrets: true,
+          rawRuntimeLogsIncluded: true,
+          rawPromptTranscriptIncluded: true,
+          paymentOnlyProof: true,
+          claimsCompletion: true,
+        },
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(failedEvidenceValidationResponse.status, 400);
+  const failedEvidenceValidationRouteResult =
+    await failedEvidenceValidationResponse.json();
+  assert.equal(failedEvidenceValidationRouteResult.status, "validation_failed");
+  assert.equal(
+    failedEvidenceValidationRouteResult.missingFields.includes(
+      "paymentOnlyProof=false"
+    ),
+    true,
+  );
+  assert.equal(failedEvidenceValidationRouteResult.completionProven, false);
+
+  const malformedEvidenceValidationResponse = await postAgentEvidenceValidation(
+    new Request("http://boreal.test/agents/evidence/validate", {
+      body: "{",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(malformedEvidenceValidationResponse.status, 400);
+  assert.equal(
+    (await malformedEvidenceValidationResponse.json()).artifactPublished,
+    false,
+  );
+
   const agentEvidenceResponse = await getAgentEvidence();
   assert.equal(agentEvidenceResponse.status, 200);
   assert.equal(
@@ -2903,6 +3334,7 @@ async function main() {
   assert.match(llmsText, /Agent Discovery/);
   assert.match(llmsText, /Agent access review profile/);
   assert.match(llmsText, /Agent action playbook/);
+  assert.match(llmsText, /Agent action preflight endpoint/);
   assert.match(llmsText, /Agent auth profile/);
   assert.match(llmsText, /Agent conformance profile/);
   assert.match(llmsText, /Agent conformance report schema/);
@@ -2910,6 +3342,7 @@ async function main() {
   assert.match(llmsText, /Agent completion profile/);
   assert.match(llmsText, /Agent human delegation profile/);
   assert.match(llmsText, /Agent evidence profile/);
+  assert.match(llmsText, /Agent evidence validation endpoint/);
   assert.match(llmsText, /Agent error examples/);
   assert.match(llmsText, /Agent execution profile/);
   assert.match(llmsText, /Agent human handoff profile/);
@@ -3018,6 +3451,20 @@ async function main() {
     "AgentIntakeValidation"
   );
 
+  const actionPreflightSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-action-preflight.schema.json",
+      }),
+    }
+  );
+  assert.equal(actionPreflightSchemaResponse.status, 200);
+  assert.equal(
+    (await actionPreflightSchemaResponse.json()).title,
+    "AgentActionPreflight"
+  );
+
   const completionSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-completion.schema.json" }),
   });
@@ -3055,6 +3502,20 @@ async function main() {
   assert.equal(
     (await evidenceSchemaResponse.json()).title,
     "AgentEvidenceProfile"
+  );
+
+  const evidenceValidationSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-evidence-validation.schema.json",
+      }),
+    }
+  );
+  assert.equal(evidenceValidationSchemaResponse.status, 200);
+  assert.equal(
+    (await evidenceValidationSchemaResponse.json()).title,
+    "AgentEvidenceValidation"
   );
 
   const errorExamplesSchemaResponse = await getJsonSchema(
