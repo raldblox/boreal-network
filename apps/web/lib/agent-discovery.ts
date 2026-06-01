@@ -53,6 +53,7 @@ export const agentDiscoveryPaths = {
   agentHumanHandoffs: "/agents/human-handoffs.json",
   agentHumanHandoffPacketExamples: "/agents/human-handoff-packets.example.json",
   agentHttp: "/agents/http.json",
+  agentUx: "/agents/ux.json",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
   agentOnboarding: "/agents/onboarding.json",
@@ -509,6 +510,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable agent UX and process profile schema for human-first discovery, consent, action, monitoring, proof review, payment, and completion flows.",
+    routePath: "/schemas/agent-ux.schema.json",
+    sourcePath: "schemas/json/agent-ux.schema.json",
+    standard: "json_schema",
+    title: "Agent UX profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Checked human handoff packet example schema for agent-rendered approval, review, escalation, and payment handoff cards.",
     routePath: "/schemas/agent-human-handoff-packets.schema.json",
     sourcePath: "schemas/json/agent-human-handoff-packets.schema.json",
@@ -674,6 +684,7 @@ export function buildAgentCard() {
       agentDiscoveryPaths.agentHumanHandoffPacketExamples
     ),
     httpProfileUrl: absoluteUrl(agentDiscoveryPaths.agentHttp),
+    uxProfileUrl: absoluteUrl(agentDiscoveryPaths.agentUx),
     monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
     onboardingProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
     opportunityCardExamplesUrl: absoluteUrl(
@@ -807,6 +818,23 @@ export function buildAgentCard() {
       liveHttpIntents: buildAgentHttpProfile().intentToHttp
         .filter((intent) => intent.status === "live_http_contract")
         .map((intent) => intent.actionId),
+    },
+    ux: {
+      url: absoluteUrl(agentDiscoveryPaths.agentUx),
+      status: buildAgentUxProfile().status,
+      processStages: buildAgentUxProfile().processStages.map((stage) => ({
+        id: stage.id,
+        order: stage.order,
+        status: stage.status,
+        primaryActionIds: stage.primaryActionIds,
+      })),
+      interactionSurfaces: buildAgentUxProfile().interactionSurfaces.map(
+        (surface) => ({
+          id: surface.id,
+          status: surface.status,
+          canonicalWrites: surface.canonicalWrites,
+        })
+      ),
     },
     monitoring: {
       url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
@@ -1033,6 +1061,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent human handoff profile: [${agentDiscoveryPaths.agentHumanHandoffs}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)})
 - Agent human handoff packet examples: [${agentDiscoveryPaths.agentHumanHandoffPacketExamples}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples)})
 - Agent HTTP reference profile: [${agentDiscoveryPaths.agentHttp}](${absoluteUrl(agentDiscoveryPaths.agentHttp)})
+- Agent UX profile: [${agentDiscoveryPaths.agentUx}](${absoluteUrl(agentDiscoveryPaths.agentUx)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
 - Agent onboarding profile: [${agentDiscoveryPaths.agentOnboarding}](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)})
 - Agent opportunity card examples: [${agentDiscoveryPaths.agentOpportunityCardExamples}](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)})
@@ -1216,6 +1245,12 @@ For the current HTTP route baseline, including auth, scopes, idempotency, and ca
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentHttp}
+\`\`\`
+
+For the human-first process flow and agent UX surfaces, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentUx}
 \`\`\`
 
 For deterministic draft-only optimization, no-invention, and owner-approval handling, agents can read:
@@ -1609,6 +1644,25 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentHttpProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/ux.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable human-first agent UX profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for human-first agent process stages, visible UX surfaces, approval moments, claim labels, and canonical boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentUxProfile",
                   },
                 },
               },
@@ -2328,6 +2382,34 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentUxProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "processStages",
+            "interactionSurfaces",
+            "claimStateLabels",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_agent_ux_profile" },
+            processStages: {
+              type: "array",
+              items: { type: "object" },
+            },
+            interactionSurfaces: {
+              type: "array",
+              items: { type: "object" },
+            },
+            claimStateLabels: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentOptimizationProfile: {
           type: "object",
           required: [
@@ -2682,6 +2764,22 @@ export function buildOpenApiDiscoveryIndex() {
       liveHttpToolIds: buildAgentHttpProfile()
         .intentToHttp.filter((intent) => intent.status === "live_http_contract")
         .map((intent) => intent.toolId),
+    },
+    "x-boreal-agent-ux": {
+      url: absoluteUrl(agentDiscoveryPaths.agentUx),
+      status: buildAgentUxProfile().status,
+      processStages: buildAgentUxProfile().processStages.map((stage) => ({
+        id: stage.id,
+        order: stage.order,
+        primaryActionIds: stage.primaryActionIds,
+      })),
+      interactionSurfaces: buildAgentUxProfile().interactionSurfaces.map(
+        (surface) => ({
+          id: surface.id,
+          status: surface.status,
+        })
+      ),
+      nonAuthority: buildAgentUxProfile().canonicalBoundary.uxProfileIsNot,
     },
     "x-boreal-agent-optimization": {
       url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
@@ -3763,6 +3861,7 @@ export function buildAgentConformanceProfile() {
         requiredProfiles: [
           absoluteUrl(agentDiscoveryPaths.agentCard),
           absoluteUrl(agentDiscoveryPaths.agentStart),
+          absoluteUrl(agentDiscoveryPaths.agentUx),
           absoluteUrl(agentDiscoveryPaths.openApiIndex),
         ],
         checks: [
@@ -3789,6 +3888,19 @@ export function buildAgentConformanceProfile() {
               absoluteUrl("/openapi/request-briefing.yaml"),
               absoluteUrl("/schemas/request.schema.json"),
               absoluteUrl("/events/request-room.asyncapi.yaml"),
+            ],
+          },
+          {
+            id: "render_human_first_agent_ux",
+            required: true,
+            passWhen:
+              "The agent can render the discovery, consent, action, monitor, proof review, payment, optimization, and completion process from /agents/ux.json without inventing a new workflow engine.",
+            failWhen:
+              "The agent jumps from discovery to mutation, hides the human approval moment, or treats a UX card, prompt, task, tool result, payment, or runtime log as canonical completion truth.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentUx),
+              absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+              absoluteUrl(agentDiscoveryPaths.agentCompletion),
             ],
           },
         ],
@@ -4348,6 +4460,10 @@ export function buildAgentCompletionProfile() {
       {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent UX profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentUx),
       },
       {
         label: "Agent recovery profile",
@@ -5631,6 +5747,566 @@ export function buildAgentHttpProfile() {
         "HTTP success is transport success, not business completion.",
         "Every write-capable route must preserve canonical auth, idempotency, lifecycle, and human-approval gates.",
         "Promote business truth only through governed Request, Commitment, Fulfillment, Artifact, Transaction, and RequestEvent writes.",
+      ],
+    },
+  };
+}
+
+export function buildAgentUxProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_agent_ux_profile",
+    name: "Boreal Agent UX Profile",
+    description:
+      "Machine-readable human-first process contract for agents using Boreal to discover, make, apply to, complete, monitor, run, optimize, and recover work without creating parallel workflow truth.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent human delegation profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
+      },
+      {
+        label: "Agent human handoff profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      },
+      {
+        label: "Agent human handoff packet examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+      },
+      {
+        label: "Agent HTTP reference profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentHttp),
+      },
+      {
+        label: "Agent completion profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent UX schema",
+        url: absoluteUrl("/schemas/agent-ux.schema.json"),
+      },
+    ],
+    entrypoints: [
+      {
+        id: "public_agent_discovery",
+        label: "Find Boreal and load public-safe contracts",
+        status: "live_public_read",
+        standard: "llms.txt plus A2A-style agent card",
+        primaryUrl: absoluteUrl(agentDiscoveryPaths.llms),
+        fallbackUrls: [
+          absoluteUrl(agentDiscoveryPaths.agentCard),
+          absoluteUrl(agentDiscoveryPaths.agentStart),
+          absoluteUrl(agentDiscoveryPaths.openApiIndex),
+        ],
+        useWhen:
+          "A fresh agent needs to understand Boreal without private route knowledge.",
+      },
+      {
+        id: "human_owned_action",
+        label: "Ask a human before mutation, funding, acceptance, or completion claims",
+        status: "live_public_read",
+        standard: "JSON Schema profile plus explicit human decision",
+        primaryUrl: absoluteUrl(agentDiscoveryPaths.agentDelegation),
+        fallbackUrls: [
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+        ],
+        useWhen:
+          "The next step may write Request, Commitment, Artifact, Fulfillment, Transaction, or RequestEvent truth.",
+      },
+      {
+        id: "live_route_invocation",
+        label: "Use current HTTP contracts before target adapters",
+        status: "live_authenticated_http_contract",
+        standard: "OpenAPI 3.1 plus JSON Schema",
+        primaryUrl: absoluteUrl(agentDiscoveryPaths.agentHttp),
+        fallbackUrls: [
+          absoluteUrl("/openapi/request-briefing.yaml"),
+          absoluteUrl("/openapi/payment-and-credit.yaml"),
+          absoluteUrl(agentDiscoveryPaths.agentTools),
+        ],
+        useWhen:
+          "The agent has auth and a request-specific policy decision for a live HTTP action.",
+      },
+    ],
+    processStages: [
+      {
+        id: "discover",
+        order: 1,
+        title: "Discover Boreal",
+        status: "live_public_read",
+        userIntent: "What can this agent do with Boreal?",
+        agentGoal:
+          "Load public contracts, canonical object boundaries, and current live-versus-target claims before reading private routes.",
+        primaryActionIds: ["inspect_public_requests"],
+        readProfiles: [
+          absoluteUrl(agentDiscoveryPaths.llms),
+          absoluteUrl(agentDiscoveryPaths.agentCard),
+          absoluteUrl(agentDiscoveryPaths.agentStart),
+          absoluteUrl(agentDiscoveryPaths.agentReadiness),
+        ],
+        renderForHuman: [
+          "available public-safe intents",
+          "live versus target capability summary",
+          "Request as the durable root object",
+        ],
+        canonicalReads: ["Request", "Supply"],
+        canonicalWrites: [],
+        continueWhen: [
+          "the agent has a public request, public solution, or represented human intent to pursue",
+        ],
+        stopWhen: [
+          "the needed state is owner-only, private, or absent from public projections",
+        ],
+      },
+      {
+        id: "choose_next_action",
+        order: 2,
+        title: "Choose a safe next action",
+        status: "live_public_read",
+        userIntent: "Apply to this, monitor this, run this, or optimize this.",
+        agentGoal:
+          "Use request-level affordances and opportunity cards as hints, then read request-detail policy before any mutation.",
+        primaryActionIds: [
+          "apply_to_request",
+          "monitor_request",
+          "run_public_solution",
+          "optimize_request_brief",
+        ],
+        readProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentOpportunities),
+          absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples),
+          absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+        ],
+        renderForHuman: [
+          "why this request or solution is a fit",
+          "which actions are read-only versus write-capable",
+          "which scopes or human approvals are missing",
+        ],
+        canonicalReads: ["Request", "Supply"],
+        canonicalWrites: [],
+        continueWhen: ["agentActionPolicy permits or clearly explains the next action"],
+        stopWhen: [
+          "the action would treat a fit score, affordance, or opportunity card as permission",
+        ],
+      },
+      {
+        id: "make_or_optimize_request",
+        order: 3,
+        title: "Make or optimize a human-owned Request",
+        status: "live_authenticated_http_contract",
+        userIntent: "Create a request for me or optimize this brief.",
+        agentGoal:
+          "Prepare a private draft or draft-only improvement while keeping owner-authored fields separate from planner and policy fields.",
+        primaryActionIds: ["make_request_for_human", "optimize_request_brief"],
+        readProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentOptimization),
+          absoluteUrl(agentDiscoveryPaths.agentPrompts),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+        ],
+        renderForHuman: [
+          "draft brief",
+          "missing questions",
+          "suggested owner-approved patch",
+          "what will not be opened or funded without approval",
+        ],
+        canonicalReads: ["Request", "RequestEvent"],
+        canonicalWrites: ["Request"],
+        continueWhen: [
+          "the represented human approves the draft save or governed patch",
+        ],
+        stopWhen: [
+          "the agent would invent budget, deadline, proof expectations, access, or approval",
+        ],
+      },
+      {
+        id: "delegate_and_preflight",
+        order: 4,
+        title: "Collect delegation and preflight policy",
+        status: "live_public_read",
+        userIntent: "Let this agent act for me.",
+        agentGoal:
+          "Show the exact consent screen, scopes, expiry or revocation path, idempotency requirement, and non-authority boundaries before action.",
+        primaryActionIds: [
+          "make_request_for_human",
+          "apply_to_request",
+          "submit_artifact",
+          "run_public_solution",
+        ],
+        readProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentDelegation),
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentHttp),
+        ],
+        renderForHuman: [
+          "represented actor",
+          "requested scopes",
+          "canonical writes if approved",
+          "revocation route",
+          "idempotency key expectation",
+        ],
+        canonicalReads: ["Request", "RequestParticipant"],
+        canonicalWrites: [],
+        continueWhen: [
+          "the human decision and request-detail policy both allow the action",
+        ],
+        stopWhen: [
+          "the requested authority is broad, ambiguous, expired, missing scopes, or spend-capable without account-session approval",
+        ],
+      },
+      {
+        id: "apply_submit_and_execute",
+        order: 5,
+        title: "Apply, execute, and submit proof",
+        status: "live_authenticated_http_contract",
+        userIntent: "Apply to this or submit here.",
+        agentGoal:
+          "Propose Commitment, wait for the accepted execution gate, then publish reviewable Artifact proof without claiming completion early.",
+        primaryActionIds: ["apply_to_request", "submit_artifact"],
+        readProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentExecution),
+          absoluteUrl(agentDiscoveryPaths.agentEvidence),
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+        ],
+        renderForHuman: [
+          "Commitment terms",
+          "accepted execution lane",
+          "proof packet",
+          "review state label",
+        ],
+        canonicalReads: ["Request", "Supply", "Commitment", "Fulfillment"],
+        canonicalWrites: ["Commitment", "Artifact", "RequestEvent"],
+        continueWhen: [
+          "accepted Commitment or direct-owner authorization exists before execution-sensitive writes",
+        ],
+        stopWhen: [
+          "the agent would create Fulfillment truth before acceptance or claim completed from tool success alone",
+        ],
+      },
+      {
+        id: "monitor_recover_and_escalate",
+        order: 6,
+        title: "Monitor, recover, and escalate",
+        status: "live_public_read",
+        userIntent: "Monitor this work.",
+        agentGoal:
+          "Poll durable activity with cursors, recover from uncertain writes without duplicates, and escalate stale or blocked states to humans.",
+        primaryActionIds: ["monitor_request"],
+        readProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+          absoluteUrl(agentDiscoveryPaths.agentRecovery),
+          absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
+        ],
+        renderForHuman: [
+          "latest durable event",
+          "cursor.nextAfterSequence",
+          "blocker or stale-state reason",
+          "next allowed action",
+        ],
+        canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction"],
+        canonicalWrites: [],
+        continueWhen: [
+          "new durable activity appears or an allowed retry has the original idempotency key",
+        ],
+        stopWhen: [
+          "write outcome is uncertain, payment state cannot be reconciled, or a duplicate mutation would be created",
+        ],
+      },
+      {
+        id: "authorize_payment_or_run",
+        order: 7,
+        title: "Authorize payment or paid solution run",
+        status: "live_authenticated_http_contract",
+        userIntent: "Run this solution or pay for this call.",
+        agentGoal:
+          "Keep public inspection free, require account-session spend approval, and reconcile paid runs into Transaction truth.",
+        primaryActionIds: ["run_public_solution"],
+        readProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+        ],
+        renderForHuman: [
+          "amount and source family",
+          "source accepted Artifact",
+          "idempotency key",
+          "Transaction reconciliation status",
+        ],
+        canonicalReads: ["Request", "Artifact", "Transaction"],
+        canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+        continueWhen: [
+          "account-session human approved spend and Transaction truth exists for the run",
+        ],
+        stopWhen: [
+          "the agent only has resolver bearer auth, payment state is uncertain, or x402 is being treated as live without endpoint activation",
+        ],
+      },
+      {
+        id: "claim_review_or_completion",
+        order: 8,
+        title: "Claim review state or completion",
+        status: "live_public_read",
+        userIntent: "Is this done?",
+        agentGoal:
+          "Use precise claim labels backed by Request, Fulfillment, Artifact, Transaction, and RequestEvent truth.",
+        primaryActionIds: ["submit_artifact", "monitor_request"],
+        readProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+          absoluteUrl(agentDiscoveryPaths.agentEvidence),
+        ],
+        renderForHuman: [
+          "draft_ready, proposal_submitted, proof_submitted, waiting_for_owner_review, run_started, or completed",
+          "supporting canonical evidence",
+          "what is still missing",
+        ],
+        canonicalReads: [
+          "Request",
+          "Commitment",
+          "Fulfillment",
+          "Artifact",
+          "Transaction",
+          "RequestEvent",
+        ],
+        canonicalWrites: [],
+        continueWhen: ["the claim label is supported by current durable truth"],
+        stopWhen: [
+          "payment, chat output, runtime log, MCP tool success, A2A task status, provider callback, or HTTP 2xx is the only evidence",
+        ],
+      },
+    ],
+    interactionSurfaces: [
+      {
+        id: "agent_start_menu",
+        status: "live_public_read",
+        userFacingName: "Agent start menu",
+        purpose: "Show what the agent can safely inspect or attempt next.",
+        renderFrom: [
+          absoluteUrl(agentDiscoveryPaths.llms),
+          absoluteUrl(agentDiscoveryPaths.agentStart),
+          absoluteUrl(agentDiscoveryPaths.agentReadiness),
+        ],
+        canonicalReads: ["Request", "Supply"],
+        canonicalWrites: [],
+        humanDecisionRequired: false,
+      },
+      {
+        id: "opportunity_card",
+        status: "live_public_read",
+        userFacingName: "Opportunity card",
+        purpose:
+          "Explain fit, missing details, next actions, and non-authority boundaries for public requests or solutions.",
+        renderFrom: [
+          absoluteUrl(agentDiscoveryPaths.agentOpportunities),
+          absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples),
+        ],
+        canonicalReads: ["Request", "Supply", "Artifact"],
+        canonicalWrites: [],
+        humanDecisionRequired: false,
+      },
+      {
+        id: "consent_and_scope_sheet",
+        status: "live_public_read",
+        userFacingName: "Consent and scope sheet",
+        purpose:
+          "Show represented actor, requested scopes, canonical writes, expiry, and revocation before delegated action.",
+        renderFrom: [
+          absoluteUrl(agentDiscoveryPaths.agentDelegation),
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+        ],
+        canonicalReads: ["Request", "RequestParticipant"],
+        canonicalWrites: [],
+        humanDecisionRequired: true,
+      },
+      {
+        id: "proof_review_packet",
+        status: "live_public_read",
+        userFacingName: "Proof review packet",
+        purpose:
+          "Render proof, Artifact metadata, review criteria, and what is not enough for completion.",
+        renderFrom: [
+          absoluteUrl(agentDiscoveryPaths.agentEvidence),
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+        ],
+        canonicalReads: ["Request", "Fulfillment", "Artifact", "RequestEvent"],
+        canonicalWrites: [],
+        humanDecisionRequired: true,
+      },
+      {
+        id: "monitor_status_panel",
+        status: "live_public_read",
+        userFacingName: "Monitor status panel",
+        purpose:
+          "Show durable activity, cursor position, stale-state reason, and safe recovery options.",
+        renderFrom: [
+          absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+          absoluteUrl(agentDiscoveryPaths.agentRecovery),
+        ],
+        canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction"],
+        canonicalWrites: [],
+        humanDecisionRequired: false,
+      },
+      {
+        id: "payment_authorization_card",
+        status: "live_authenticated_http_contract",
+        userFacingName: "Payment authorization card",
+        purpose:
+          "Show amount, credit or payment source family, idempotency key, and Transaction reconciliation before spend.",
+        renderFrom: [
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+        ],
+        canonicalReads: ["Request", "Artifact", "Transaction"],
+        canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+        humanDecisionRequired: true,
+      },
+      {
+        id: "optimization_diff_preview",
+        status: "live_public_read",
+        userFacingName: "Optimization diff preview",
+        purpose:
+          "Show suggested brief, proposal, proof, monitor, or run-input improvements without durable mutation until owner approval.",
+        renderFrom: [
+          absoluteUrl(agentDiscoveryPaths.agentOptimization),
+          absoluteUrl(agentDiscoveryPaths.agentPrompts),
+        ],
+        canonicalReads: ["Request", "Artifact", "RequestEvent"],
+        canonicalWrites: [],
+        humanDecisionRequired: true,
+      },
+      {
+        id: "completion_claim_banner",
+        status: "live_public_read",
+        userFacingName: "Completion claim banner",
+        purpose:
+          "Label current state precisely and cite canonical evidence before saying work is completed.",
+        renderFrom: [
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+        ],
+        canonicalReads: [
+          "Request",
+          "Commitment",
+          "Fulfillment",
+          "Artifact",
+          "Transaction",
+          "RequestEvent",
+        ],
+        canonicalWrites: [],
+        humanDecisionRequired: true,
+      },
+    ],
+    humanFirstRules: [
+      {
+        id: "human_owns_intent",
+        rule:
+          "The represented human owns opening, funding, accepting, spending, and review-sensitive completion decisions.",
+        stopWhen:
+          "The approval signal is inferred from chat context, broad delegation, tool success, or payment state.",
+      },
+      {
+        id: "show_non_authority",
+        rule:
+          "Every visible UX card must say what the card is not when permission, payment, approval, or completion could be confused.",
+        stopWhen:
+          "A consent sheet, opportunity card, handoff packet, or completion banner looks like a grant or final proof by itself.",
+      },
+      {
+        id: "prefer_current_http",
+        rule:
+          "Live agent actions use current HTTP and OpenAPI contracts first; MCP, A2A, OAuth-compatible external-agent auth, x402, and signed push remain target-only until activated.",
+        stopWhen:
+          "The agent presents a target adapter sample as a live route, credential, or payment authority.",
+      },
+    ],
+    claimStateLabels: [
+      {
+        id: "draft_ready",
+        say: "Draft ready for review",
+        requiredTruth: ["private Request draft", "owner-visible brief"],
+        notEnough: ["prompt output", "local optimization suggestion"],
+      },
+      {
+        id: "proposal_submitted",
+        say: "Proposal submitted",
+        requiredTruth: ["Commitment", "RequestEvent"],
+        notEnough: ["proposal text in chat", "opportunity card"],
+      },
+      {
+        id: "proof_submitted",
+        say: "Proof submitted, waiting for review",
+        requiredTruth: ["Artifact", "RequestEvent"],
+        notEnough: ["runtime log", "provider callback", "tool success"],
+      },
+      {
+        id: "run_started",
+        say: "Paid run created",
+        requiredTruth: ["run Request", "Transaction", "RequestEvent"],
+        notEnough: ["payment intent", "x402 payload", "checkout redirect"],
+      },
+      {
+        id: "completed",
+        say: "Completed",
+        requiredTruth: [
+          "Request.status=completed",
+          "accepted Artifact",
+          "accepted Fulfillment or review closure",
+          "RequestEvent history",
+        ],
+        notEnough: [
+          "payment settlement",
+          "A2A task status",
+          "MCP tool success",
+          "HTTP 2xx",
+          "chat output",
+        ],
+      },
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Supply",
+        "RequestParticipant",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      uxProfileIsNot: [
+        "workflow engine",
+        "permission grant",
+        "human approval record",
+        "payment authorization",
+        "completion proof",
+        "credential issuer",
+        "MCP server",
+        "A2A adapter",
+        "x402 endpoint",
+      ],
+      notRoots: [
+        "UX card",
+        "consent sheet",
+        "handoff packet",
+        "fit score",
+        "completion banner",
+        "monitor panel",
+        "optimization diff",
+      ],
+      rules: [
+        "This profile organizes existing profiles and route contracts into a human-first process; it does not create new business truth.",
+        "Visible UX state must cite canonical Request-attached truth before claiming writes, payment, proof, or completion.",
+        "Every write-capable stage must pass auth, request-detail policy, idempotency, and explicit human approval gates where applicable.",
       ],
     },
   };
@@ -7770,6 +8446,10 @@ export function buildAgentReadinessProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
       },
       {
+        label: "Agent UX profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentUx),
+      },
+      {
         label: "Agent recovery profile",
         url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
       },
@@ -7973,7 +8653,10 @@ export function buildAgentReadinessProfile() {
           "approval is implied rather than explicit",
           "the agent would claim completion from tool success, payment settlement, provider callback, runtime log, or chat output alone",
         ],
-        evidence: [absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentUx),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+        ],
       },
       {
         id: "apply_to_request",

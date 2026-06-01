@@ -58,6 +58,7 @@ const requiredResources = [
   "/agents/human-handoffs.json",
   "/agents/human-handoff-packets.example.json",
   "/agents/http.json",
+  "/agents/ux.json",
   "/agents/optimization.json",
   "/agents/payments.json",
   "/agents/production-access-packet.example.json",

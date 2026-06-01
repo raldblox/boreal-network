@@ -55,6 +55,11 @@
       "label": "Readiness profile",
       "url": "https://boreal.work/agents/readiness.json",
       "observedStatus": "live_readiness_profile"
+    },
+    {
+      "label": "Agent UX profile",
+      "url": "https://boreal.work/agents/ux.json",
+      "observedStatus": "live_agent_ux_profile"
     }
   ],
   "requestedProductionAccess": {
@@ -164,7 +169,8 @@
       "status": "passed",
       "passedChecks": [
         "load_agent_card",
-        "load_contract_assets"
+        "load_contract_assets",
+        "render_human_first_agent_ux"
       ],
       "failedChecks": [],
       "notes": "Public card, OpenAPI, JSON Schema, and AsyncAPI references were found through discovery routes."

@@ -90,6 +90,7 @@ Current assets that agents can eventually build on:
 - A machine-readable human handoff profile exists through `/agents/human-handoffs.json` and `schemas/json/agent-human-handoffs.schema.json`, mapping human approval moments, stop rules, escalation packets, visible UX patterns, and safe claim-state language for first-user-human agent usage.
 - A checked human handoff packet example set exists through `/agents/human-handoff-packets.example.json`, `schemas/json/agent-human-handoff-packets.schema.json`, and `fixtures/agent/human-handoff-packets.sample.json`, giving agents renderable draft approval, Commitment review, proof review, monitor escalation, and payment authorization packets without making those packets approval records, payment authorizations, or completion proof.
 - A machine-readable HTTP reference profile exists through `/agents/http.json` and `schemas/json/agent-http.schema.json`, giving agents one current-route view over live HTTP/OpenAPI exports, route families, auth, scopes, idempotency, preflight order, non-HTTP fallbacks, and canonical writes.
+- A machine-readable agent UX profile exists through `/agents/ux.json` and `schemas/json/agent-ux.schema.json`, giving agents one human-first process map over discovery, consent, action, monitoring, proof review, payment authorization, optimization, and completion claims.
 - A machine-readable monitoring profile exists through `/agents/monitoring.json` and `schemas/json/agent-monitoring.schema.json`, mapping cursor polling, stale-state detection, escalation triggers, webhook boundaries, and no-heartbeat-noise rules.
 - A machine-readable onboarding profile exists through `/agents/onboarding.json` and `schemas/json/agent-onboarding.schema.json`, mapping external-agent discovery, role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness.
 - A machine-readable opportunity discovery profile exists through `/agents/opportunities.json` and `schemas/json/agent-opportunities.schema.json`, mapping public request projections and `agentActionAffordances` into local opportunity cards, fit scoring, and next-action selection without granting permission or assignment.
@@ -130,6 +131,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first machine-readable MCP/A2A/x402 protocol profile and target-only sample pack now exist, so agents can read adapter mappings, sample payloads, non-goals, implementation order, and canon boundaries without scraping markdown
 - the first machine-readable recovery profile now exists, so agents can handle failed writes, missing scopes, rate limits, blocked fulfillments, payment uncertainty, and stale monitor cursors without inventing parallel recovery state
 - the first machine-readable readiness profile now exists, so agents can distinguish live public reads, live authenticated HTTP contracts, contract-only sandbox flows, and target OAuth/MCP/A2A/x402 layers without overclaiming adapter availability
+- the first machine-readable agent UX profile now exists, so agents can render the human-first process order and visible surfaces without collapsing UX cards, prompts, payments, adapter tasks, or tool results into completion truth
 - the first machine-readable tool registry now exists, so agents can map inspect, make draft, apply, submit, monitor, run, payment reconciliation, and optimization intents to safe HTTP calls while keeping MCP and A2A as target adapter mappings
 - the first contract-only sandbox, replay scenarios, and fixture runner exist, but no production sandbox credentials or isolated write sandbox exists for external agents yet
 - the first signed webhook/push-notification profile is documented for long-running agent monitoring, but subscription persistence and delivery are not live yet
@@ -825,6 +827,7 @@ Deliverables:
 - `/agents/execution.json` - implemented as a public machine-readable execution profile for `Fulfillment` lanes, `FulfillmentStep` sub-work, direct-owner exceptions, runtime signal promotion, retry, and non-root adapter boundaries
 - `/agents/human-handoffs.json` - implemented as a public machine-readable handoff profile for human approval moments, stop rules, escalation packets, visible UX patterns, and safe claim-state language
 - `/agents/http.json` - implemented as a public machine-readable HTTP reference profile for current route families, OpenAPI sources, auth, scopes, idempotency, preflight order, non-HTTP fallbacks, and canonical write boundaries
+- `/agents/ux.json` - implemented as a public machine-readable agent UX profile for human-first discovery, consent, action, monitoring, proof review, payment authorization, optimization, and completion claim surfaces
 - `/agents/monitoring.json` - implemented as a public machine-readable monitoring profile for cursor polling, stale-state detection, escalation triggers, and live-versus-target push delivery boundaries
 - `/agents/onboarding.json` - implemented as a public machine-readable onboarding profile for external-agent discovery, sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness
 - `/agents/opportunities.json` - implemented as a public read-only opportunity discovery profile for public request fit scoring, local opportunity cards, and next-action selection without permission, assignment, payment, or completion authority
@@ -861,6 +864,7 @@ Deliverables:
 - machine-readable agent human handoff profile - implemented as `/agents/human-handoffs.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent human handoff packet examples - implemented as `/agents/human-handoff-packets.example.json`, linked from the human handoff profile and `/openapi.json`
 - machine-readable agent HTTP reference profile - implemented as `/agents/http.json`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, and `/openapi.json`
+- machine-readable agent UX profile - implemented as `/agents/ux.json`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, conformance profile, and `/openapi.json`
 - machine-readable agent monitoring profile - implemented as `/agents/monitoring.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent onboarding profile - implemented as `/agents/onboarding.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent opportunity discovery profile - implemented as `/agents/opportunities.json`, linked from the agent card, start guide, `/llms.txt`, and `/openapi.json`
@@ -890,6 +894,7 @@ Acceptance:
 - an agent can read a public Request projection and see concrete request-bound affordances for next actions instead of inferring them from UI labels
 - an agent can show a human an action-specific consent screen with required scopes, canonical writes, expiration or revocation path, and non-grants before requesting delegated authority
 - an agent can map live HTTP route families, auth schemes, scopes, idempotency requirements, OpenAPI sources, and non-HTTP fallbacks without treating the reference as a new API surface
+- an agent can render a human-first process surface for discovery, consent, action, monitoring, proof review, payment authorization, optimization, and completion claims without treating UX state as durable truth
 
 Current evidence:
 
@@ -902,6 +907,7 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent completion profile, proof packet, Artifact and owner-review boundaries, non-completion truth list, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent human delegation profile, live account-session and resolver-bearer modes, target OAuth boundary, action consent flows, revocation routes, non-grant boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent HTTP reference profile, OpenAPI source list, route families, idempotency-required HTTP intents, non-HTTP fallbacks, non-new-API boundary, OpenAPI extension, public route, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent UX profile, process stages, visible surfaces, human-first rules, completion-label evidence requirements, non-workflow-engine boundary, conformance check, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent error example pack, problem-details standard, unknown-write retry policy, payment Transaction read, public route, OpenAPI extension, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent execution profile, accepted-commitment lane, direct-owner exception, ephemeral runtime signal rules, `FulfillmentStep` default, non-root adapter boundary, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public human handoff packet example route, packet schema route, draft approval, proof review, monitor escalation, and non-approval-record boundary.
@@ -1012,6 +1018,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can find the completion profile and distinguish draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims.
 - A fresh agent can find the delegation profile and distinguish public read, account-session assisted use, resolver device delegation, target OAuth delegation, operator-reviewed pilot paths, consent screens, revocation, and per-action approval expiry without treating delegation as permission, spend authority, or completion truth.
 - A fresh agent can find the HTTP reference profile and map live route families, auth schemes, scopes, idempotency requirements, OpenAPI sources, canonical write boundaries, and non-HTTP fallbacks without treating it as a permission grant or new API surface.
+- A fresh agent can find the UX profile and render human-first process stages and visible surfaces for discovery, delegation, action, monitor, proof review, payment, optimization, and completion claims without treating UX state as approval, payment, permission, adapter, or completion proof.
 - A fresh agent can find the evidence profile and understand how to package proof, receipts, files, media, redaction statements, review signals, and bounded artifact claims.
 - A fresh agent can fetch error examples and handle auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write failures without treating problem responses as durable history or retry authority.
 - A fresh agent can find the execution profile and distinguish accepted-commitment execution, owner-private direct execution, public solution runs, target adapter execution, runtime signal promotion, retry, and `FulfillmentStep` sub-work boundaries.

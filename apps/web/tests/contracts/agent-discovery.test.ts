@@ -14,6 +14,7 @@ import {
   buildAgentExecutionProfile,
   buildAgentHumanHandoffProfile,
   buildAgentHttpProfile,
+  buildAgentUxProfile,
   buildAgentMonitoringProfile,
   buildAgentMonitorWebhooksMarkdown,
   buildAgentOnboardingProfile,
@@ -61,6 +62,7 @@ import { GET as getAgentExecution } from "@/app/agents/execution.json/route";
 import { GET as getAgentHumanHandoffPacketExamples } from "@/app/agents/human-handoff-packets.example.json/route";
 import { GET as getAgentHumanHandoffs } from "@/app/agents/human-handoffs.json/route";
 import { GET as getAgentHttp } from "@/app/agents/http.json/route";
+import { GET as getAgentUx } from "@/app/agents/ux.json/route";
 import { GET as getAgentMonitoring } from "@/app/agents/monitoring.json/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
 import { GET as getAgentOnboarding } from "@/app/agents/onboarding.json/route";
@@ -155,6 +157,7 @@ async function main() {
     true,
   );
   assert.equal(agentCard.httpProfileUrl.endsWith("/agents/http.json"), true);
+  assert.equal(agentCard.uxProfileUrl.endsWith("/agents/ux.json"), true);
   assert.equal(
     agentCard.monitoringProfileUrl.endsWith("/agents/monitoring.json"),
     true,
@@ -236,6 +239,23 @@ async function main() {
     true,
   );
   assert.equal(agentCard.http.liveHttpIntents.includes("apply_to_request"), true);
+  assert.equal(agentCard.ux.status, "live_agent_ux_profile");
+  assert.equal(
+    agentCard.ux.processStages.some(
+      (stage: { id: string; primaryActionIds: string[] }) =>
+        stage.id === "apply_submit_and_execute" &&
+        stage.primaryActionIds.includes("submit_artifact")
+    ),
+    true,
+  );
+  assert.equal(
+    agentCard.ux.interactionSurfaces.some(
+      (surface: { id: string; canonicalWrites: string[] }) =>
+        surface.id === "payment_authorization_card" &&
+        surface.canonicalWrites.includes("Transaction")
+    ),
+    true,
+  );
   assert.equal(agentCard.opportunities.status, "live_opportunity_discovery_profile");
   assert.equal(
     agentCard.opportunities.cardExamplesUrl.endsWith(
@@ -799,6 +819,17 @@ async function main() {
     conformanceProfile.checklists.some((checklist) =>
       checklist.checks.some(
         (check) =>
+          check.id === "render_human_first_agent_ux" &&
+          check.required &&
+          check.evidence.some((item) => item.endsWith("/agents/ux.json"))
+      )
+    ),
+    true,
+  );
+  assert.equal(
+    conformanceProfile.checklists.some((checklist) =>
+      checklist.checks.some(
+        (check) =>
           check.id === "scope_human_delegation" &&
           check.required &&
           check.evidence.some((item) => item.endsWith("/agents/delegation.json"))
@@ -1056,6 +1087,62 @@ async function main() {
   );
   assert.equal(
     httpProfile.canonicalBoundary.httpProfileIsNot.includes("new API surface"),
+    true,
+  );
+
+  const uxProfile = buildAgentUxProfile();
+  assert.equal(uxProfile.status, "live_agent_ux_profile");
+  assert.equal(uxProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    uxProfile.entrypoints.some(
+      (entrypoint) =>
+        entrypoint.id === "live_route_invocation" &&
+        entrypoint.primaryUrl.endsWith("/agents/http.json")
+    ),
+    true,
+  );
+  assert.equal(
+    uxProfile.processStages.some(
+      (stage) =>
+        stage.id === "delegate_and_preflight" &&
+        stage.primaryActionIds.includes("run_public_solution") &&
+        stage.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    uxProfile.processStages.some(
+      (stage) =>
+        stage.id === "apply_submit_and_execute" &&
+        stage.canonicalWrites.includes("Commitment") &&
+        stage.canonicalWrites.includes("Artifact")
+    ),
+    true,
+  );
+  assert.equal(
+    uxProfile.interactionSurfaces.some(
+      (surface) =>
+        surface.id === "completion_claim_banner" &&
+        surface.humanDecisionRequired &&
+        surface.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    uxProfile.humanFirstRules.some((rule) => rule.id === "human_owns_intent"),
+    true,
+  );
+  assert.equal(
+    uxProfile.claimStateLabels.some(
+      (label) =>
+        label.id === "completed" &&
+        label.notEnough.includes("HTTP 2xx") &&
+        label.requiredTruth.some((truth) => truth.includes("Request.status=completed"))
+    ),
+    true,
+  );
+  assert.equal(
+    uxProfile.canonicalBoundary.uxProfileIsNot.includes("workflow engine"),
     true,
   );
 
@@ -1918,6 +2005,7 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/human-handoffs\.json/);
   assert.match(startGuide, /GET \/agents\/human-handoff-packets\.example\.json/);
   assert.match(startGuide, /GET \/agents\/http\.json/);
+  assert.match(startGuide, /GET \/agents\/ux\.json/);
   assert.match(startGuide, /GET \/agents\/monitoring\.json/);
   assert.match(startGuide, /GET \/agents\/onboarding\.json/);
   assert.match(startGuide, /GET \/agents\/optimization\.json/);
@@ -1937,6 +2025,7 @@ async function main() {
   assert.match(startGuide, /Agent human delegation profile/);
   assert.match(startGuide, /Agent human handoff packet examples/);
   assert.match(startGuide, /Agent HTTP reference profile/);
+  assert.match(startGuide, /Agent UX profile/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent production access packet example/);
   assert.match(startGuide, /Agent opportunity card examples/);
@@ -1994,6 +2083,7 @@ async function main() {
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/http.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/ux.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/monitoring.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/onboarding.json"), true);
   assert.equal(
@@ -2114,6 +2204,24 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-http"].liveHttpToolIds.includes(
       "boreal.commitments.propose"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-ux"].processStages.some(
+      (stage: { id: string }) => stage.id === "monitor_recover_and_escalate"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-ux"].interactionSurfaces.some(
+      (surface: { id: string }) => surface.id === "consent_and_scope_sheet"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-ux"].nonAuthority.includes(
+      "workflow engine"
     ),
     true,
   );
@@ -2283,6 +2391,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-http.schema.json")?.sourcePath,
     "schemas/json/agent-http.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-ux.schema.json")?.sourcePath,
+    "schemas/json/agent-ux.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-monitoring.schema.json")?.sourcePath,
@@ -2469,6 +2581,13 @@ async function main() {
     "live_http_reference_profile"
   );
 
+  const agentUxResponse = await getAgentUx();
+  assert.equal(agentUxResponse.status, 200);
+  assert.equal(
+    (await agentUxResponse.json()).status,
+    "live_agent_ux_profile"
+  );
+
   const agentEvidenceResponse = await getAgentEvidence();
   assert.equal(agentEvidenceResponse.status, 200);
   assert.equal(
@@ -2646,6 +2765,7 @@ async function main() {
   assert.match(llmsText, /Agent human handoff profile/);
   assert.match(llmsText, /Agent human handoff packet examples/);
   assert.match(llmsText, /Agent HTTP reference profile/);
+  assert.match(llmsText, /Agent UX profile/);
   assert.match(llmsText, /Agent monitoring profile/);
   assert.match(llmsText, /Agent onboarding profile/);
   assert.match(llmsText, /Agent opportunity card examples/);
@@ -2756,6 +2876,12 @@ async function main() {
   });
   assert.equal(httpSchemaResponse.status, 200);
   assert.equal((await httpSchemaResponse.json()).title, "AgentHttpProfile");
+
+  const uxSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-ux.schema.json" }),
+  });
+  assert.equal(uxSchemaResponse.status, 200);
+  assert.equal((await uxSchemaResponse.json()).title, "AgentUxProfile");
 
   const evidenceSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-evidence.schema.json" }),

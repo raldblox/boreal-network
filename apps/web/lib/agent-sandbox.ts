@@ -17,6 +17,7 @@ export const agentSandboxPaths = {
   humanHandoffs: "/agents/human-handoffs.json",
   http: "/agents/http.json",
   manifest: "/agents/sandbox.json",
+  ux: "/agents/ux.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
   monitoring: "/agents/monitoring.json",
   onboarding: "/agents/onboarding.json",
@@ -121,6 +122,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "HTTP reference profile",
         url: absoluteUrl(agentSandboxPaths.http),
+      },
+      {
+        label: "Agent UX profile",
+        url: absoluteUrl(agentSandboxPaths.ux),
       },
       {
         label: "Optimization profile",

@@ -108,6 +108,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/human-handoffs.json/route.ts`
 - `apps/web/app/agents/human-handoff-packets.example.json/route.ts`
 - `apps/web/app/agents/http.json/route.ts`
+- `apps/web/app/agents/ux.json/route.ts`
 - `apps/web/app/agents/monitoring.json/route.ts`
 - `apps/web/app/agents/onboarding.json/route.ts`
 - `apps/web/app/agents/opportunities.json/route.ts`
@@ -142,6 +143,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-human-handoffs.schema.json`
 - `schemas/json/agent-human-handoff-packets.schema.json`
 - `schemas/json/agent-http.schema.json`
+- `schemas/json/agent-ux.schema.json`
 - `schemas/json/agent-monitoring.schema.json`
 - `schemas/json/agent-onboarding.schema.json`
 - `schemas/json/agent-opportunities.schema.json`
@@ -214,6 +216,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/human-handoffs.json` profile and `schemas/json/agent-human-handoffs.schema.json` give agents machine-readable moments for asking humans, showing drafts, requesting approval, escalating stale or blocked work, and using precise claim-state language without granting permission, recording approval, authorizing spend, proving completion, or creating a new workflow engine
 - one public `/agents/human-handoff-packets.example.json` packet set, `schemas/json/agent-human-handoff-packets.schema.json`, and `fixtures/agent/human-handoff-packets.sample.json` give agents renderable examples for draft approval, Commitment review, proof review, monitor escalation, and payment authorization without turning those packets into permission grants, approval records, payment authorizations, or completion proof
 - one public `/agents/http.json` profile and `schemas/json/agent-http.schema.json` give agents a unified current-route reference over live HTTP/OpenAPI exports, auth schemes, required scopes, idempotency, preflight order, non-HTTP fallbacks, and canonical reads or writes without creating a new API surface, granting permission, making MCP/A2A/x402 adapters live, or proving completion
+- one public `/agents/ux.json` profile and `schemas/json/agent-ux.schema.json` give agents a human-first process map for discovery, opportunity choice, request drafting, delegation, policy preflight, applying, proof submission, monitoring, recovery, payment authorization, optimization, and completion claims without creating a workflow engine, permission grant, approval record, payment authorization, credential issuer, adapter, or completion proof
 - one public `/agents/monitoring.json` profile and `schemas/json/agent-monitoring.schema.json` give agents machine-readable cursor polling, stale-state detection, escalation trigger, and push-versus-poll boundaries without granting permission, creating subscriptions, writing heartbeat events, accepting proof, settling payment, or proving completion
 - one public `/agents/onboarding.json` profile and `schemas/json/agent-onboarding.schema.json` give external agents a machine-readable path from public discovery to role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness without issuing credentials or claiming OAuth, MCP, A2A, x402, or production sandbox support is live
 - one public `/agents/opportunities.json` profile and `schemas/json/agent-opportunities.schema.json` give agents a machine-readable read-only way to turn public request projections and `agentActionAffordances` into local opportunity cards, fit scores, and recommended next actions without granting permission, assigning supply, creating a match result, starting fulfillment, authorizing payment, or proving completion

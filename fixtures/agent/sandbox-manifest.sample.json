@@ -90,6 +90,10 @@
       "url": "https://boreal.work/agents/http.json"
     },
     {
+      "label": "Agent UX profile",
+      "url": "https://boreal.work/agents/ux.json"
+    },
+    {
       "label": "Optimization profile",
       "url": "https://boreal.work/agents/optimization.json"
     },
