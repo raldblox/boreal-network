@@ -75,6 +75,7 @@ Recommended naming:
 - `json/agent-opportunity-cards.schema.json`
 - `json/agent-opportunities.schema.json`
 - `json/agent-optimization.schema.json`
+- `json/agent-optimization-preparation.schema.json`
 - `json/agent-payments.schema.json`
 - `json/agent-prompts.schema.json`
 - `json/agent-workflows.schema.json`

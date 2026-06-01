@@ -103,6 +103,7 @@ Current assets that agents can eventually build on:
 - A machine-readable onboarding profile exists through `/agents/onboarding.json` and `schemas/json/agent-onboarding.schema.json`, mapping external-agent discovery, role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness.
 - A machine-readable opportunity discovery profile exists through `/agents/opportunities.json` and `schemas/json/agent-opportunities.schema.json`, mapping public request projections and `agentActionAffordances` into local opportunity cards, fit scoring, and next-action selection without granting permission or assignment.
 - A machine-readable optimization profile exists through `/agents/optimization.json` and `schemas/json/agent-optimization.schema.json`, mapping draft-only improvement surfaces, no-invention rules, owner-approval gates, and canonical mutation boundaries for agents optimizing briefs, proposals, evidence, monitors, and public-solution reuse.
+- An optimization preparation endpoint exists through `POST /agents/optimization/prepare` and `schemas/json/agent-optimization-preparation.schema.json`, returning draft-only surface, no-invention, output-contract, owner-approval, and next-preflight guidance without generating content or creating durable authority.
 - A machine-readable payment profile exists through `/agents/payments.json` and `schemas/json/agent-payments.schema.json`, mapping buyer-credit, direct funding, paid solution runs, idempotency, x402 target boundaries, and `Transaction` reconciliation.
 - A machine-readable prompt catalog exists through `/agents/prompts.json` and `schemas/json/agent-prompts.schema.json`, mapping safe briefing, applying, proof submission, monitoring, optimization, and recovery prompts below durable truth.
 - A machine-readable protocol profile exists through `/agents/protocols.json` and `schemas/json/agent-protocols.schema.json`, mapping MCP, A2A, and x402 adapter concepts below Boreal canonical truth.
@@ -136,7 +137,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first validation-only monitor endpoint now lets agents check monitor plans before polling or target webhook receiver setup, but it does not read activity, create subscriptions, activate push delivery, authorize payment, or prove completion
 - the first validation-only sandbox replay endpoint now lets agents check sandbox transcripts before conformance or production-access review packets, but it does not create persisted operator-review submissions, issue credentials, create production sandboxes, authorize spend, or prove completion
 - the first machine-readable onboarding profile now tells external agents how to move from discovery to contract sandbox validation to scoped live HTTP use and target production access review, but real production sandbox credentials, delegated external-agent auth, revocation, and abuse controls remain target direction
-- the first machine-readable optimization profile now tells agents how to improve briefs, proposals, evidence packets, monitor updates, and public-solution run inputs without inventing facts or mutating durable truth without approval, but owner-approved diff previews and semantic validators remain target direction
+- the first machine-readable optimization profile and preparation endpoint now tell agents how to improve briefs, proposals, evidence packets, monitor updates, and public-solution run inputs without inventing facts or mutating durable truth without approval, but owner-approved diff previews and semantic validators remain target direction
 - the first machine-readable payment profile now tells agents when inspection is free, when account-session spend authority is required, which payment mutations need idempotency, how buyer credit and paid runs reconcile into `Transaction`, and why x402 remains target-only until explicit endpoint activation
 - the first machine-readable prompt catalog now gives agents ready prompt templates for briefing, applying, proof submission, monitoring, optimization, and recovery, but versioned prompt packs, prompt evals, and signed distribution remain target direction
 - no live MCP server for Boreal resources and mutation tools
@@ -369,6 +370,7 @@ Add these public surfaces:
 - `GET /agents/onboarding.json`
 - `GET /agents/opportunities.json`
 - `GET /agents/optimization.json`
+- `POST /agents/optimization/prepare`
 - `GET /agents/payments.json`
 - `GET /agents/prompts.json`
 - `GET /agents/workflows.json`
@@ -414,6 +416,7 @@ Add these public surfaces:
 - `GET /schemas/agent-onboarding.schema.json`
 - `GET /schemas/agent-opportunities.schema.json`
 - `GET /schemas/agent-optimization.schema.json`
+- `GET /schemas/agent-optimization-preparation.schema.json`
 - `GET /schemas/agent-payments.schema.json`
 - `GET /schemas/agent-prompts.schema.json`
 - `GET /schemas/agent-workflows.schema.json`
@@ -873,6 +876,7 @@ Deliverables:
 - `/agents/onboarding.json` - implemented as a public machine-readable onboarding profile for external-agent discovery, sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness
 - `/agents/opportunities.json` - implemented as a public read-only opportunity discovery profile for public request fit scoring, local opportunity cards, and next-action selection without permission, assignment, payment, or completion authority
 - `/agents/optimization.json` - implemented as a public machine-readable optimization profile for draft-only brief, proposal, evidence, monitor, and public-solution reuse improvements
+- `POST /agents/optimization/prepare` and `schemas/json/agent-optimization-preparation.schema.json` - implemented as plan-preparation for draft-only optimization surface, no-invention, output-contract, owner-approval, and next-preflight guidance without generating optimized content or creating durable authority
 - `/agents/payments.json` - implemented as a public machine-readable payment profile for buyer-credit, request funding, paid solution runs, idempotency, x402 target boundaries, and `Transaction` reconciliation
 - `/agents/prompts.json` - implemented as a public machine-readable prompt catalog for briefing, applying, proof submission, monitoring, optimization, and recovery prompts
 - `/agents/workflows.json` - implemented as a public machine-readable workflow catalog for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with `agentActionPolicy` checkpoints
@@ -917,6 +921,7 @@ Deliverables:
 - machine-readable agent onboarding profile - implemented as `/agents/onboarding.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent opportunity discovery profile - implemented as `/agents/opportunities.json`, linked from the agent card, start guide, `/llms.txt`, and `/openapi.json`
 - machine-readable agent optimization profile - implemented as `/agents/optimization.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent optimization preparation endpoint - implemented as `POST /agents/optimization/prepare`, linked from the agent card, optimization profile, start guide, `/llms.txt`, sandbox manifest, readiness profile, and `/openapi.json`
 - machine-readable agent payment profile - implemented as `/agents/payments.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent prompt catalog - implemented as `/agents/prompts.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent workflow catalog - implemented as `/agents/workflows.json`, linked from the agent card and `/openapi.json`
@@ -971,7 +976,7 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent prompt catalog, apply and submit prompt mappings, draft-only output contract, non-mutation boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent protocol adapter sample pack, MCP/A2A/x402 sample coverage, target-only status, non-permission boundary, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent readiness profile, live and target capability bands, standards map, agent UX flow, go/no-go checks, and public schema route.
-- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent tool registry, HTTP invocation baseline, target MCP/A2A mappings, idempotency, optimization draft-only behavior, payment mutation boundaries, non-root tool objects, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent tool registry, HTTP invocation baseline, target MCP/A2A mappings, idempotency, optimization draft-only behavior, optimization preparation pass/fail route behavior, payment mutation boundaries, non-root tool objects, and public schema route.
 - `pnpm contracts:agent-sandbox` verifies the sandbox fixture, mock identity coverage, idempotency samples, cursor sample, signed-webhook sample, draft-only optimization sample, deterministic replay scenarios, conformance report fixture, production access packet fixture, and production-auth boundary.
 - `apps/web/tests/contracts/request-boundary.test.ts` verifies public request action affordances, keeps owner-only routing and planner internals out of public projections, and only exposes `run_public_solution` when completed public solution truth exists.
 
@@ -1086,6 +1091,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can find the opportunity discovery profile and rank public requests into local opportunity cards without treating fit scores, recommended actions, or public board rows as permission, assignment, payment authority, or completion proof.
 - A fresh agent can find sandbox replay scenarios for drafting a request, applying to a request, submitting proof, monitoring activity, running a public solution shape, and recovering from uncertain writes without treating those transcripts as production authority.
 - A fresh agent can find the optimization profile and distinguish draft-only improvement from owner-approved durable mutation.
+- A fresh agent can call the optimization preparation endpoint before drafting suggestions and receive surface, no-invention, output-contract, owner-approval, and next-preflight guidance without treating it as mutation, approval, payment, completion, or durable history.
 - A fresh agent can find the payment profile and distinguish free inspection, buyer-credit support ledger state, request-attached `Transaction` truth, live account-session spend authority, and target x402 activation.
 - A fresh agent can find the prompt catalog and use briefing, applying, proof submission, monitoring, optimization, and recovery prompts without treating prompt output as mutation, approval, payment, proof, or completion truth.
 - A fresh agent can fetch protocol adapter samples and understand how MCP tool calls, A2A tasks or artifacts, and x402 payment payloads map to Boreal routes without becoming canonical roots or live adapters.

@@ -46,6 +46,7 @@ import { validateAgentIntakePayload } from "@/lib/agent-intake-validation";
 import { prepareAgentAccessReviewPayload } from "@/lib/agent-access-review-preparation";
 import { prepareAgentAuthPayload } from "@/lib/agent-auth-preparation";
 import { prepareAgentMonitoringPayload } from "@/lib/agent-monitoring-preparation";
+import { prepareAgentOptimizationPayload } from "@/lib/agent-optimization-preparation";
 import { validateAgentMonitoringPayload } from "@/lib/agent-monitoring-validation";
 import { validateAgentSandboxReplayPayload } from "@/lib/agent-sandbox-replay-validation";
 import {
@@ -84,6 +85,7 @@ import { GET as getAgentOnboarding } from "@/app/agents/onboarding.json/route";
 import { GET as getAgentOpportunityCardExamples } from "@/app/agents/opportunity-cards.example.json/route";
 import { GET as getAgentOpportunities } from "@/app/agents/opportunities.json/route";
 import { GET as getAgentOptimization } from "@/app/agents/optimization.json/route";
+import { POST as postAgentOptimizationPreparation } from "@/app/agents/optimization/prepare/route";
 import { GET as getAgentPayments } from "@/app/agents/payments.json/route";
 import { GET as getAgentProductionAccessPacketExample } from "@/app/agents/production-access-packet.example.json/route";
 import { GET as getAgentPrompts } from "@/app/agents/prompts.json/route";
@@ -226,6 +228,10 @@ async function main() {
   );
   assert.equal(
     agentCard.optimizationProfileUrl.endsWith("/agents/optimization.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.optimizationPrepareUrl.endsWith("/agents/optimization/prepare"),
     true,
   );
   assert.equal(
@@ -441,11 +447,27 @@ async function main() {
   );
   assert.equal(agentCard.optimization.status, "live_optimization_profile");
   assert.equal(
+    agentCard.optimization.preparationUrl.endsWith(
+      "/agents/optimization/prepare"
+    ),
+    true,
+  );
+  assert.equal(
     agentCard.optimization.surfaces.some(
       (surface) =>
         surface.id === "request_brief_optimization" &&
         surface.defaultMode === "draft_only" &&
         surface.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    agentCard.optimizationPreparation.status,
+    "live_plan_preparation_only",
+  );
+  assert.equal(
+    agentCard.optimizationPreparation.nonAuthority.includes(
+      "durable mutation"
     ),
     true,
   );
@@ -870,6 +892,23 @@ async function main() {
         ) &&
         capability.evidence.some((url) =>
           url.endsWith("/agents/monitoring/prepare")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/optimization/prepare")
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "optimization_plan_preparation" &&
+        capability.status === "live_plan_preparation_only" &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/optimization/prepare")
         )
     ),
     true,
@@ -2438,6 +2477,22 @@ async function main() {
   assert.equal(optimizationProfile.canonicalBoundary.rootObject, "Request");
   assert.equal(optimizationProfile.outputContract.durableWriteDefault, false);
   assert.equal(
+    optimizationProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/optimization/prepare")
+    ),
+    true,
+  );
+  assert.equal(
+    optimizationProfile.preparationEndpoint.path,
+    "/agents/optimization/prepare",
+  );
+  assert.equal(
+    optimizationProfile.preparationEndpoint.nonAuthority.includes(
+      "durable mutation"
+    ),
+    true,
+  );
+  assert.equal(
     optimizationProfile.optimizationSurfaces.some(
       (surface) =>
         surface.id === "evidence_packet_optimization" &&
@@ -2460,6 +2515,91 @@ async function main() {
     ),
     true,
   );
+
+  const optimizationPreparation = prepareAgentOptimizationPayload({
+    schemaVersion: 1,
+    preparationIntent: "optimize_without_writing",
+    surfaceId: "request_brief_optimization",
+    requestId: "req_public_design_001",
+    requestedOutputMode: "suggested_patch",
+    hasSourceContext: true,
+    willInventMissingFacts: false,
+    claimsDurableWrite: false,
+    claimsOwnerApproval: false,
+    claimsPolicyOverride: false,
+    claimsPermissionGrant: false,
+    claimsPaymentAuthority: false,
+    claimsCompletion: false,
+    containsSecrets: false,
+    rawPromptTranscriptIncluded: false,
+    rawRuntimeLogsIncluded: false,
+  });
+  assert.equal(optimizationPreparation.status, "optimization_plan_ready");
+  assert.equal(optimizationPreparation.optimizationPlan.defaultMode, "draft_only");
+  assert.equal(optimizationPreparation.optimizationPlan.canonicalWrites.length, 0);
+  assert.equal(optimizationPreparation.durableWriteCreated, false);
+  assert.equal(optimizationPreparation.requestMutated, false);
+  assert.equal(optimizationPreparation.ownerApprovalRecorded, false);
+  assert.equal(optimizationPreparation.completionProven, false);
+
+  const blockedOptimizationPreparation = prepareAgentOptimizationPayload({
+    schemaVersion: 1,
+    preparationIntent: "optimize_without_writing",
+    surfaceId: "unknown_surface",
+    requestId: "",
+    requestedOutputMode: "raw_mutation",
+    hasSourceContext: false,
+    willInventMissingFacts: true,
+    claimsDurableWrite: true,
+    claimsOwnerApproval: true,
+    claimsPolicyOverride: true,
+    claimsPermissionGrant: true,
+    claimsPaymentAuthority: true,
+    claimsCompletion: true,
+    containsSecrets: true,
+    rawPromptTranscriptIncluded: true,
+    rawRuntimeLogsIncluded: true,
+  });
+  assert.equal(
+    blockedOptimizationPreparation.status,
+    "optimization_plan_blocked",
+  );
+  assert.equal(
+    blockedOptimizationPreparation.missingFields.includes("surfaceId"),
+    true,
+  );
+  assert.equal(
+    blockedOptimizationPreparation.missingFields.includes("requestId"),
+    true,
+  );
+  assert.equal(
+    blockedOptimizationPreparation.missingFields.includes(
+      "hasSourceContext=true"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedOptimizationPreparation.missingFields.includes(
+      "willInventMissingFacts=false"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedOptimizationPreparation.missingFields.includes(
+      "claimsDurableWrite=false"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedOptimizationPreparation.missingFields.includes(
+      "requestedOutputMode"
+    ),
+    true,
+  );
+  assert.equal(blockedOptimizationPreparation.requestMutated, false);
+  assert.equal(blockedOptimizationPreparation.ownerApprovalRecorded, false);
+  assert.equal(blockedOptimizationPreparation.paymentAuthorized, false);
+  assert.equal(blockedOptimizationPreparation.completionProven, false);
 
   const paymentProfile = buildAgentPaymentProfile();
   assert.equal(paymentProfile.status, "live_payment_profile");
@@ -2627,6 +2767,12 @@ async function main() {
   assert.equal(
     sandboxManifest.resources.some((resource) =>
       resource.url.endsWith("/agents/monitoring/prepare")
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.resources.some((resource) =>
+      resource.url.endsWith("/agents/optimization/prepare")
     ),
     true,
   );
@@ -2945,6 +3091,7 @@ async function main() {
   assert.match(startGuide, /POST \/agents\/monitoring\/validate/);
   assert.match(startGuide, /GET \/agents\/onboarding\.json/);
   assert.match(startGuide, /GET \/agents\/optimization\.json/);
+  assert.match(startGuide, /POST \/agents\/optimization\/prepare/);
   assert.match(startGuide, /GET \/agents\/payments\.json/);
   assert.match(startGuide, /GET \/agents\/prompts\.json/);
   assert.match(startGuide, /GET \/agents\/workflows\.json/);
@@ -2979,6 +3126,9 @@ async function main() {
   assert.match(startGuide, /Agent production access packet example/);
   assert.match(startGuide, /Agent opportunity card examples/);
   assert.match(startGuide, /Agent opportunity discovery profile/);
+  assert.match(startGuide, /Agent optimization preparation endpoint/);
+  assert.match(startGuide, /no-invention rules/);
+  assert.match(startGuide, /owner-approval gate/);
   assert.match(startGuide, /Agent Workflow Catalog/);
   assert.match(startGuide, /Optimize this/);
   assert.match(startGuide, /`Request` is the durable root object/);
@@ -3069,6 +3219,10 @@ async function main() {
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/opportunities.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/optimization.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/optimization/prepare"),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/payments.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/production-access-packet.example.json"),
@@ -3124,6 +3278,13 @@ async function main() {
     Object.hasOwn(
       discoveryIndex.components.schemas,
       "AgentMonitoringPreparationResult"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentOptimizationPreparationResult"
     ),
     true,
   );
@@ -3453,6 +3614,22 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex["x-boreal-agent-optimization"].preparationUrl.endsWith(
+      "/agents/optimization/prepare"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-optimization-preparation"].status,
+    "live_plan_preparation_only",
+  );
+  assert.equal(
+    discoveryIndex[
+      "x-boreal-agent-optimization-preparation"
+    ].nonAuthority.includes("optimization engine"),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-agent-payments"].spendSurfaces.some(
       (surface) => surface.id === "public_solution_run"
     ),
@@ -3601,6 +3778,11 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-optimization.schema.json")?.sourcePath,
     "schemas/json/agent-optimization.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-optimization-preparation.schema.json")
+      ?.sourcePath,
+    "schemas/json/agent-optimization-preparation.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-payments.schema.json")?.sourcePath,
@@ -4433,6 +4615,111 @@ async function main() {
     "live_optimization_profile"
   );
 
+  const agentOptimizationPreparationResponse =
+    await postAgentOptimizationPreparation(
+      new Request("http://boreal.test/agents/optimization/prepare", {
+        body: JSON.stringify({
+          schemaVersion: 1,
+          preparationIntent: "optimize_without_writing",
+          surfaceId: "request_brief_optimization",
+          requestId: "req_public_design_001",
+          requestedOutputMode: "suggested_patch",
+          hasSourceContext: true,
+          willInventMissingFacts: false,
+          claimsDurableWrite: false,
+          claimsOwnerApproval: false,
+          claimsPolicyOverride: false,
+          claimsPermissionGrant: false,
+          claimsPaymentAuthority: false,
+          claimsCompletion: false,
+          containsSecrets: false,
+          rawPromptTranscriptIncluded: false,
+          rawRuntimeLogsIncluded: false,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(agentOptimizationPreparationResponse.status, 200);
+  const agentOptimizationPreparationRouteResult =
+    await agentOptimizationPreparationResponse.json();
+  assert.equal(
+    agentOptimizationPreparationRouteResult.status,
+    "optimization_plan_ready",
+  );
+  assert.equal(
+    agentOptimizationPreparationRouteResult.optimizationPlan.defaultMode,
+    "draft_only",
+  );
+  assert.equal(agentOptimizationPreparationRouteResult.requestMutated, false);
+  assert.equal(
+    agentOptimizationPreparationRouteResult.ownerApprovalRecorded,
+    false,
+  );
+  assert.equal(agentOptimizationPreparationRouteResult.paymentAuthorized, false);
+  assert.equal(agentOptimizationPreparationRouteResult.completionProven, false);
+
+  const failedAgentOptimizationPreparationResponse =
+    await postAgentOptimizationPreparation(
+      new Request("http://boreal.test/agents/optimization/prepare", {
+        body: JSON.stringify({
+          schemaVersion: 1,
+          preparationIntent: "optimize_without_writing",
+          surfaceId: "unknown_surface",
+          requestId: "",
+          requestedOutputMode: "raw_mutation",
+          hasSourceContext: false,
+          willInventMissingFacts: true,
+          claimsDurableWrite: true,
+          claimsOwnerApproval: true,
+          claimsPolicyOverride: true,
+          claimsPermissionGrant: true,
+          claimsPaymentAuthority: true,
+          claimsCompletion: true,
+          containsSecrets: true,
+          rawPromptTranscriptIncluded: true,
+          rawRuntimeLogsIncluded: true,
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(failedAgentOptimizationPreparationResponse.status, 400);
+  const failedAgentOptimizationPreparationRouteResult =
+    await failedAgentOptimizationPreparationResponse.json();
+  assert.equal(
+    failedAgentOptimizationPreparationRouteResult.status,
+    "optimization_plan_blocked",
+  );
+  assert.equal(failedAgentOptimizationPreparationRouteResult.requestMutated, false);
+  assert.equal(
+    failedAgentOptimizationPreparationRouteResult.ownerApprovalRecorded,
+    false,
+  );
+  assert.equal(
+    failedAgentOptimizationPreparationRouteResult.paymentAuthorized,
+    false,
+  );
+  assert.equal(
+    failedAgentOptimizationPreparationRouteResult.completionProven,
+    false,
+  );
+
+  const malformedAgentOptimizationPreparationResponse =
+    await postAgentOptimizationPreparation(
+      new Request("http://boreal.test/agents/optimization/prepare", {
+        body: "{",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(malformedAgentOptimizationPreparationResponse.status, 400);
+  assert.equal(
+    (await malformedAgentOptimizationPreparationResponse.json())
+      .durableWriteCreated,
+    false,
+  );
+
   const agentPaymentsResponse = await getAgentPayments();
   assert.equal(agentPaymentsResponse.status, 200);
   assert.equal(
@@ -4551,6 +4838,7 @@ async function main() {
   assert.match(llmsText, /Agent opportunity card examples/);
   assert.match(llmsText, /Agent opportunity discovery profile/);
   assert.match(llmsText, /Agent optimization profile/);
+  assert.match(llmsText, /Agent optimization preparation endpoint/);
   assert.match(llmsText, /Agent payment profile/);
   assert.match(llmsText, /Agent production access packet example/);
   assert.match(llmsText, /Agent prompt catalog/);
@@ -4871,6 +5159,20 @@ async function main() {
   assert.equal(
     (await optimizationSchemaResponse.json()).title,
     "AgentOptimizationProfile"
+  );
+
+  const optimizationPreparationSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-optimization-preparation.schema.json",
+      }),
+    }
+  );
+  assert.equal(optimizationPreparationSchemaResponse.status, 200);
+  assert.equal(
+    (await optimizationPreparationSchemaResponse.json()).title,
+    "AgentOptimizationPreparation",
   );
 
   const paymentSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

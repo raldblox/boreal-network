@@ -11,6 +11,7 @@
     "name",
     "description",
     "resources",
+    "preparationEndpoint",
     "optimizationSurfaces",
     "outputContract",
     "approvalAndMutationRules",
@@ -37,6 +38,9 @@
       "items": {
         "$ref": "#/$defs/link"
       }
+    },
+    "preparationEndpoint": {
+      "$ref": "#/$defs/preparationEndpoint"
     },
     "optimizationSurfaces": {
       "type": "array",
@@ -183,6 +187,59 @@
         "primaryActionId": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "preparationEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method",
+        "path",
+        "schemaUrl",
+        "returns",
+        "canonicalReads",
+        "canonicalWrites",
+        "nonAuthority"
+      ],
+      "properties": {
+        "status": {
+          "const": "live_plan_preparation_only"
+        },
+        "method": {
+          "const": "POST"
+        },
+        "path": {
+          "const": "/agents/optimization/prepare"
+        },
+        "schemaUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "returns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nonAuthority": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

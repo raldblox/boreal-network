@@ -66,6 +66,7 @@ const requiredResources = [
   "/agents/ux.json",
   "/agents/intake/validate",
   "/agents/optimization.json",
+  "/agents/optimization/prepare",
   "/agents/payments.json",
   "/agents/production-access-packet.example.json",
   "/agents/prompts.json",

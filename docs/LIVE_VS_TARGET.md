@@ -129,6 +129,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/onboarding.json/route.ts`
 - `apps/web/app/agents/opportunities.json/route.ts`
 - `apps/web/app/agents/optimization.json/route.ts`
+- `apps/web/app/agents/optimization/prepare/route.ts`
+- `apps/web/lib/agent-optimization-preparation.ts`
 - `apps/web/app/agents/payments.json/route.ts`
 - `apps/web/app/agents/prompts.json/route.ts`
 - `apps/web/app/agents/protocol-adapter-samples.json/route.ts`
@@ -172,6 +174,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-onboarding.schema.json`
 - `schemas/json/agent-opportunities.schema.json`
 - `schemas/json/agent-optimization.schema.json`
+- `schemas/json/agent-optimization-preparation.schema.json`
 - `schemas/json/agent-payments.schema.json`
 - `schemas/json/agent-prompts.schema.json`
 - `schemas/json/agent-workflows.schema.json`
@@ -252,6 +255,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/onboarding.json` profile and `schemas/json/agent-onboarding.schema.json` give external agents a machine-readable path from public discovery to role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness without issuing credentials or claiming OAuth, MCP, A2A, x402, or production sandbox support is live
 - one public `/agents/opportunities.json` profile and `schemas/json/agent-opportunities.schema.json` give agents a machine-readable read-only way to turn public request projections and `agentActionAffordances` into local opportunity cards, fit scores, and recommended next actions without granting permission, assigning supply, creating a match result, starting fulfillment, authorizing payment, or proving completion
 - one public `/agents/optimization.json` profile and `schemas/json/agent-optimization.schema.json` give agents machine-readable draft-only optimization surfaces for briefs, proposals, evidence packets, monitor updates, and public-solution reuse without inventing facts, overriding planner or policy fields, authorizing writes, implying owner approval, settling payment, or proving completion
+- one public `POST /agents/optimization/prepare` route and `schemas/json/agent-optimization-preparation.schema.json` give agents a draft-only optimization plan, output contract, no-invention boundary, owner-approval gate, and next preflight handoff before local suggestion drafting without generating content, mutating `Request`, submitting `Commitment`, publishing `Artifact`, starting `Fulfillment`, recording approval, granting permission, authorizing payment, proving completion, or writing durable history
 - one public `/agents/payments.json` profile and `schemas/json/agent-payments.schema.json` give agents machine-readable buyer-credit, request-funding, paid-run, idempotency, x402-target, reconciliation, and escalation boundaries without granting payment credentials, creating an `Order` root, or treating payment success as completion truth
 - one public `/agents/prompts.json` catalog and `schemas/json/agent-prompts.schema.json` give agents machine-readable prompt templates for briefing, applying, proof submission, monitoring, optimization, and recovery without treating prompt output as approval, mutation, proof, payment, or completion truth
 - one request activity endpoint can resume monitor reads with `after_sequence` and return `cursor.nextAfterSequence` without creating heartbeat `RequestEvent` records
@@ -281,7 +285,7 @@ These are intended next layers, not fully modeled proof yet:
 - richer monitor automation with persisted subscriptions, delivery retries, receiver enrollment, SLA configuration, and monitor inboxes; the current monitoring profile and validation endpoint are descriptive or preflight-only over live cursor polling plus target signed push delivery
 - richer onboarding automation with persisted operator-reviewed production access packets, real production sandbox credentials, revocation enforcement, scope approval, abuse controls, and delegated external-agent auth; the current onboarding, access-review, and handoff-preparation surfaces do not create live authority
 - richer prompt automation with versioned prompt packs, prompt evals, locale variants, and signed prompt-pack distribution; the current prompt catalog is descriptive guidance only
-- richer optimization automation with owner-approved diff previews, semantic no-invention checks, and route-specific draft validators; the current optimization profile is descriptive guidance only
+- richer optimization automation with owner-approved diff previews, semantic no-invention checks, and route-specific draft validators; the current optimization profile is descriptive guidance and the preparation route is plan-only before local draft suggestion output
 - deeper readiness scoring that can compute route-specific live, blocked, and target states from request-detail `agentActionPolicy`, payment balance, rate-limit, participant lane, and proof-scoring evidence instead of relying only on the public capability matrix
 - a live MCP server that exposes Boreal request resources, schema resources, and governed tools from the public agent tool registry without replacing HTTP contracts or using MCP for noisy runtime telemetry
 - an A2A adapter that maps A2A tasks, messages, streaming status, and artifacts onto Boreal `Request`, `Fulfillment`, `FulfillmentStep`, and `Artifact` truth without making A2A `Task` the root object

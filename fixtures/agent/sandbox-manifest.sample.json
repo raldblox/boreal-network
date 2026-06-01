@@ -122,6 +122,10 @@
       "url": "https://boreal.work/agents/optimization.json"
     },
     {
+      "label": "Optimization preparation endpoint",
+      "url": "https://boreal.work/agents/optimization/prepare"
+    },
+    {
       "label": "Payment profile",
       "url": "https://boreal.work/agents/payments.json"
     },

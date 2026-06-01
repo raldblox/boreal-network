@@ -31,6 +31,7 @@ export const agentSandboxPaths = {
   opportunityCardExamples: "/agents/opportunity-cards.example.json",
   opportunities: "/agents/opportunities.json",
   optimization: "/agents/optimization.json",
+  optimizationPrepare: "/agents/optimization/prepare",
   payments: "/agents/payments.json",
   productionAccessPacketExample: "/agents/production-access-packet.example.json",
   prompts: "/agents/prompts.json",
@@ -162,6 +163,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Optimization profile",
         url: absoluteUrl(agentSandboxPaths.optimization),
+      },
+      {
+        label: "Optimization preparation endpoint",
+        url: absoluteUrl(agentSandboxPaths.optimizationPrepare),
       },
       {
         label: "Payment profile",

@@ -1,0 +1,359 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-optimization-preparation.schema.json",
+  "title": "AgentOptimizationPreparation",
+  "description": "Plan-preparation request and response envelope for draft-only agent optimization of Boreal briefs, proposals, evidence packets, monitor updates, and public-solution reuse without durable mutation or authority claims.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/result"
+    }
+  ],
+  "$defs": {
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "preparationIntent",
+        "surfaceId",
+        "requestId",
+        "hasSourceContext",
+        "willInventMissingFacts",
+        "claimsDurableWrite",
+        "claimsOwnerApproval",
+        "claimsPolicyOverride",
+        "claimsPermissionGrant",
+        "claimsPaymentAuthority",
+        "claimsCompletion",
+        "containsSecrets",
+        "rawPromptTranscriptIncluded",
+        "rawRuntimeLogsIncluded"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "preparationIntent": {
+          "const": "optimize_without_writing"
+        },
+        "surfaceId": {
+          "type": "string",
+          "enum": [
+            "request_brief_optimization",
+            "commitment_proposal_optimization",
+            "evidence_packet_optimization",
+            "monitor_escalation_optimization",
+            "public_solution_reuse_optimization"
+          ]
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestedOutputMode": {
+          "type": "string",
+          "enum": [
+            "suggested_patch",
+            "suggested_text",
+            "missing_questions",
+            "analysis_note",
+            "owner_review_packet"
+          ]
+        },
+        "hasSourceContext": {
+          "const": true
+        },
+        "hasOwnerApproval": {
+          "type": "boolean"
+        },
+        "willInventMissingFacts": {
+          "const": false
+        },
+        "claimsDurableWrite": {
+          "const": false
+        },
+        "claimsOwnerApproval": {
+          "const": false
+        },
+        "claimsPolicyOverride": {
+          "const": false
+        },
+        "claimsPermissionGrant": {
+          "const": false
+        },
+        "claimsPaymentAuthority": {
+          "const": false
+        },
+        "claimsCompletion": {
+          "const": false
+        },
+        "containsSecrets": {
+          "const": false
+        },
+        "rawPromptTranscriptIncluded": {
+          "const": false
+        },
+        "rawRuntimeLogsIncluded": {
+          "const": false
+        },
+        "sourceSummary": {
+          "type": "string"
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "preparationIntent",
+        "surfaceId",
+        "requestId",
+        "acceptedSurfaceIds",
+        "requestedOutputMode",
+        "durableWriteCreated",
+        "requestMutated",
+        "commitmentSubmitted",
+        "artifactPublished",
+        "fulfillmentStarted",
+        "ownerApprovalRecorded",
+        "policyOverridden",
+        "permissionGranted",
+        "paymentAuthorized",
+        "completionProven",
+        "optimizationPlan",
+        "draftHandoff",
+        "missingFields",
+        "warnings",
+        "nextSteps",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "optimization_plan_ready",
+            "optimization_plan_blocked"
+          ]
+        },
+        "preparationIntent": {
+          "enum": [
+            "optimize_without_writing",
+            "unknown"
+          ]
+        },
+        "surfaceId": {
+          "type": "string"
+        },
+        "requestId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "acceptedSurfaceIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedOutputMode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "requestMutated": {
+          "const": false
+        },
+        "commitmentSubmitted": {
+          "const": false
+        },
+        "artifactPublished": {
+          "const": false
+        },
+        "fulfillmentStarted": {
+          "const": false
+        },
+        "ownerApprovalRecorded": {
+          "const": false
+        },
+        "policyOverridden": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "optimizationPlan": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "surfaceId",
+            "intent",
+            "defaultMode",
+            "primaryActionId",
+            "canonicalReads",
+            "canonicalWrites",
+            "maySuggest",
+            "mustNotInvent",
+            "ownerApprovalRequiredFor",
+            "outputContract",
+            "recommendedOutputMode",
+            "nextPreflightUrl",
+            "humanHandoffProfileUrl"
+          ],
+          "properties": {
+            "surfaceId": {
+              "type": "string"
+            },
+            "intent": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "defaultMode": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "primaryActionId": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "canonicalReads": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "canonicalWrites": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "maySuggest": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "mustNotInvent": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "ownerApprovalRequiredFor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "outputContract": {
+              "type": "object"
+            },
+            "recommendedOutputMode": {
+              "type": "string"
+            },
+            "nextPreflightUrl": {
+              "const": "/agents/actions/preflight"
+            },
+            "humanHandoffProfileUrl": {
+              "const": "/agents/human-handoffs.json"
+            }
+          }
+        },
+        "draftHandoff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "requiredContext",
+            "nextHumanActions"
+          ],
+          "properties": {
+            "kind": {
+              "const": "optimization_preparation_handoff"
+            },
+            "requiredContext": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "nextHumanActions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "missingFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalBoundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "rootObject",
+            "preparationIsNot",
+            "durableTruthObjects"
+          ],
+          "properties": {
+            "rootObject": {
+              "const": "Request"
+            },
+            "preparationIsNot": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "durableTruthObjects": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -70,6 +70,7 @@ export const agentDiscoveryPaths = {
   agentOpportunityCardExamples: "/agents/opportunity-cards.example.json",
   agentOpportunities: "/agents/opportunities.json",
   agentOptimization: "/agents/optimization.json",
+  agentOptimizationPrepare: "/agents/optimization/prepare",
   agentPayments: "/agents/payments.json",
   agentProductionAccessPacketExample:
     "/agents/production-access-packet.example.json",
@@ -638,6 +639,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Plan-preparation schema for draft-only agent optimization surfaces before producing suggested patches, text, questions, analysis, or owner-review packets.",
+    routePath: "/schemas/agent-optimization-preparation.schema.json",
+    sourcePath: "schemas/json/agent-optimization-preparation.schema.json",
+    standard: "json_schema",
+    title: "Agent optimization preparation",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable prompt catalog schema for safe agent drafting, applying, proof submission, monitoring, optimization, and recovery prompts.",
     routePath: "/schemas/agent-prompts.schema.json",
     sourcePath: "schemas/json/agent-prompts.schema.json",
@@ -783,6 +793,9 @@ export function buildAgentCard() {
     ),
     opportunityProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOpportunities),
     optimizationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOptimization),
+    optimizationPrepareUrl: absoluteUrl(
+      agentDiscoveryPaths.agentOptimizationPrepare
+    ),
     paymentProfileUrl: absoluteUrl(agentDiscoveryPaths.agentPayments),
     productionAccessPacketExampleUrl: absoluteUrl(
       agentDiscoveryPaths.agentProductionAccessPacketExample
@@ -1081,6 +1094,7 @@ export function buildAgentCard() {
     },
     optimization: {
       url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
       status: buildAgentOptimizationProfile().status,
       surfaces: buildAgentOptimizationProfile().optimizationSurfaces.map(
         (surface) => ({
@@ -1089,6 +1103,27 @@ export function buildAgentCard() {
           canonicalWrites: surface.canonicalWrites,
         })
       ),
+    },
+    optimizationPreparation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+      status: "live_plan_preparation_only",
+      schemaUrl: absoluteUrl(
+        "/schemas/agent-optimization-preparation.schema.json"
+      ),
+      nonAuthority: [
+        "optimization engine",
+        "durable mutation",
+        "owner approval record",
+        "planner override",
+        "policy override",
+        "permission grant",
+        "Artifact publication",
+        "Commitment submission",
+        "Fulfillment start",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
     },
     payments: {
       url: absoluteUrl(agentDiscoveryPaths.agentPayments),
@@ -1317,6 +1352,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent opportunity card examples: [${agentDiscoveryPaths.agentOpportunityCardExamples}](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)})
 - Agent opportunity discovery profile: [${agentDiscoveryPaths.agentOpportunities}](${absoluteUrl(agentDiscoveryPaths.agentOpportunities)})
 - Agent optimization profile: [${agentDiscoveryPaths.agentOptimization}](${absoluteUrl(agentDiscoveryPaths.agentOptimization)})
+- Agent optimization preparation endpoint: [${agentDiscoveryPaths.agentOptimizationPrepare}](${absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare)})
 - Agent payment profile: [${agentDiscoveryPaths.agentPayments}](${absoluteUrl(agentDiscoveryPaths.agentPayments)})
 - Agent production access packet example: [${agentDiscoveryPaths.agentProductionAccessPacketExample}](${absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample)})
 - Agent prompt catalog: [${agentDiscoveryPaths.agentPrompts}](${absoluteUrl(agentDiscoveryPaths.agentPrompts)})
@@ -1408,6 +1444,34 @@ Content-Type: application/json
 \`\`\`
 
 This endpoint returns the recommended auth scheme, required scopes, human approval requirement, request policy checkpoint, and idempotency posture. It does not issue credentials, grant permission, record approval, grant production access, authorize payment, prove completion, or create durable \`RequestEvent\` truth.
+
+For optimization planning before producing draft-only suggestions, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentOptimizationPrepare}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "preparationIntent": "optimize_without_writing",
+  "surfaceId": "request_brief_optimization",
+  "requestId": "req_public_design_001",
+  "requestedOutputMode": "suggested_patch",
+  "hasSourceContext": true,
+  "willInventMissingFacts": false,
+  "claimsDurableWrite": false,
+  "claimsOwnerApproval": false,
+  "claimsPolicyOverride": false,
+  "claimsPermissionGrant": false,
+  "claimsPaymentAuthority": false,
+  "claimsCompletion": false,
+  "containsSecrets": false,
+  "rawPromptTranscriptIncluded": false,
+  "rawRuntimeLogsIncluded": false
+}
+\`\`\`
+
+This endpoint returns the allowed optimization surface, no-invention rules, output contract, owner-approval gate, and next preflight link. It does not generate optimized content, mutate a Request, submit a Commitment, publish an Artifact, start Fulfillment, record owner approval, override policy, authorize payment, prove completion, or write durable \`RequestEvent\` truth.
 
 For deterministic process flow, agents can read:
 
@@ -2408,6 +2472,49 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentOptimizationProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/optimization/prepare": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Prepare draft-only optimization constraints before an agent produces suggestions.",
+          description:
+            "Plan-preparation only. This endpoint does not generate optimized content, mutate requests, submit commitments, publish artifacts, start fulfillment, record owner approval, override policy, grant permission, authorize payment, prove completion, or create durable RequestEvent truth.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentOptimizationPreparationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Optimization plan is ready; no durable mutation, authority, proof, payment, or content generation was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentOptimizationPreparationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Optimization plan is blocked by missing context, invalid surface, or overclaimed authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentOptimizationPreparationResult",
                   },
                 },
               },
@@ -3862,15 +3969,129 @@ export function buildOpenApiDiscoveryIndex() {
           required: [
             "schemaVersion",
             "status",
+            "preparationEndpoint",
             "optimizationSurfaces",
             "canonicalBoundary",
           ],
           properties: {
             schemaVersion: { const: 1 },
             status: { const: "live_optimization_profile" },
+            preparationEndpoint: { type: "object" },
             optimizationSurfaces: {
               type: "array",
               items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentOptimizationPreparationRequest: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "preparationIntent",
+            "surfaceId",
+            "requestId",
+            "hasSourceContext",
+            "willInventMissingFacts",
+            "claimsDurableWrite",
+            "claimsOwnerApproval",
+            "claimsPolicyOverride",
+            "claimsPermissionGrant",
+            "claimsPaymentAuthority",
+            "claimsCompletion",
+            "containsSecrets",
+            "rawPromptTranscriptIncluded",
+            "rawRuntimeLogsIncluded",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            preparationIntent: { const: "optimize_without_writing" },
+            surfaceId: { type: "string" },
+            requestId: { type: "string" },
+            requestedOutputMode: { type: "string" },
+            hasSourceContext: { const: true },
+            hasOwnerApproval: { type: "boolean" },
+            willInventMissingFacts: { const: false },
+            claimsDurableWrite: { const: false },
+            claimsOwnerApproval: { const: false },
+            claimsPolicyOverride: { const: false },
+            claimsPermissionGrant: { const: false },
+            claimsPaymentAuthority: { const: false },
+            claimsCompletion: { const: false },
+            containsSecrets: { const: false },
+            rawPromptTranscriptIncluded: { const: false },
+            rawRuntimeLogsIncluded: { const: false },
+            sourceSummary: { type: "string" },
+          },
+          additionalProperties: false,
+        },
+        AgentOptimizationPreparationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "preparationIntent",
+            "surfaceId",
+            "requestId",
+            "acceptedSurfaceIds",
+            "durableWriteCreated",
+            "requestMutated",
+            "commitmentSubmitted",
+            "artifactPublished",
+            "fulfillmentStarted",
+            "ownerApprovalRecorded",
+            "policyOverridden",
+            "permissionGranted",
+            "paymentAuthorized",
+            "completionProven",
+            "optimizationPlan",
+            "draftHandoff",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: {
+              enum: [
+                "optimization_plan_ready",
+                "optimization_plan_blocked",
+              ],
+            },
+            preparationIntent: {
+              enum: ["optimize_without_writing", "unknown"],
+            },
+            surfaceId: { type: "string" },
+            requestId: { type: ["string", "null"] },
+            acceptedSurfaceIds: {
+              type: "array",
+              items: { type: "string" },
+            },
+            requestedOutputMode: { type: ["string", "null"] },
+            durableWriteCreated: { const: false },
+            requestMutated: { const: false },
+            commitmentSubmitted: { const: false },
+            artifactPublished: { const: false },
+            fulfillmentStarted: { const: false },
+            ownerApprovalRecorded: { const: false },
+            policyOverridden: { const: false },
+            permissionGranted: { const: false },
+            paymentAuthorized: { const: false },
+            completionProven: { const: false },
+            optimizationPlan: { type: "object" },
+            draftHandoff: { type: "object" },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
             },
             canonicalBoundary: { type: "object" },
           },
@@ -4536,6 +4757,7 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-optimization": {
       url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
       status: buildAgentOptimizationProfile().status,
       surfaces: buildAgentOptimizationProfile().optimizationSurfaces.map(
         (surface) => ({
@@ -4543,6 +4765,27 @@ export function buildOpenApiDiscoveryIndex() {
           defaultMode: surface.defaultMode,
         })
       ),
+    },
+    "x-boreal-agent-optimization-preparation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+      status: "live_plan_preparation_only",
+      schemaUrl: absoluteUrl(
+        "/schemas/agent-optimization-preparation.schema.json"
+      ),
+      nonAuthority: [
+        "optimization engine",
+        "durable mutation",
+        "owner approval record",
+        "planner override",
+        "policy override",
+        "permission grant",
+        "Artifact publication",
+        "Commitment submission",
+        "Fulfillment start",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
     },
     "x-boreal-agent-monitoring": {
       url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
@@ -8498,10 +8741,48 @@ export function buildAgentOptimizationProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
       },
       {
+        label: "Agent optimization preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+      },
+      {
         label: "Agent optimization schema",
         url: absoluteUrl("/schemas/agent-optimization.schema.json"),
       },
+      {
+        label: "Agent optimization preparation schema",
+        url: absoluteUrl("/schemas/agent-optimization-preparation.schema.json"),
+      },
     ],
+    preparationEndpoint: {
+      status: "live_plan_preparation_only",
+      method: "POST",
+      path: agentDiscoveryPaths.agentOptimizationPrepare,
+      schemaUrl: absoluteUrl("/schemas/agent-optimization-preparation.schema.json"),
+      returns: [
+        "allowed optimization surface",
+        "canonical read boundary",
+        "no-invention constraints",
+        "draft output contract",
+        "owner approval gate",
+        "next action preflight link",
+      ],
+      canonicalReads: [],
+      canonicalWrites: [],
+      nonAuthority: [
+        "optimization engine",
+        "durable mutation",
+        "owner approval record",
+        "planner override",
+        "policy override",
+        "permission grant",
+        "Artifact publication",
+        "Commitment submission",
+        "Fulfillment start",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
+    },
     optimizationSurfaces: [
       {
         id: "request_brief_optimization",
@@ -10380,6 +10661,10 @@ export function buildAgentReadinessProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentUx),
       },
       {
+        label: "Agent optimization preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+      },
+      {
         label: "Agent monitoring preparation endpoint",
         url: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
       },
@@ -10560,6 +10845,7 @@ export function buildAgentReadinessProfile() {
         ],
         evidence: [
           absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
           absoluteUrl(agentDiscoveryPaths.agentWorkflows),
           absoluteUrl("/openapi/request-briefing.yaml"),
         ],
@@ -10656,6 +10942,34 @@ export function buildAgentReadinessProfile() {
           absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
           absoluteUrl("/schemas/agent-evidence-validation.schema.json"),
           absoluteUrl(agentDiscoveryPaths.agentEvidence),
+        ],
+      },
+      {
+        id: "optimization_plan_preparation",
+        primaryAgentIntent: "Optimize this without writing",
+        status: "live_plan_preparation_only",
+        actions: ["optimize_request_brief"],
+        standards: ["OpenAPI 3.1", "JSON Schema"],
+        availableNow: [
+          "Post a surface id, request id, source-context posture, no-invention assertions, and false authority claims before producing local suggestions.",
+          "Receive allowed optimization surface, canonical read boundary, no-invention constraints, draft output contract, owner-approval gate, and next action preflight link.",
+          "Use the result as draft-plan evidence only; optimized content, owner approval, permission, payment, completion, and durable writes still require separate governed truth.",
+        ],
+        requiresBeforeUse: [
+          "schemaVersion=1",
+          "one accepted optimization surface id",
+          "source Request context visible to the actor",
+          "no durable-write, owner-approval, policy-override, payment, or completion claims",
+        ],
+        stopOrEscalateWhen: [
+          "the agent would invent missing facts, budget, deadline, credentials, proof, payment, owner approval, or completion state",
+          "the output includes secrets, raw prompt transcripts, raw runtime logs, or server-owned planner and policy fields",
+          "the agent treats a suggestion as a mutation or approval record",
+        ],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+          absoluteUrl("/schemas/agent-optimization-preparation.schema.json"),
+          absoluteUrl(agentDiscoveryPaths.agentOptimization),
         ],
       },
       {
