@@ -402,6 +402,7 @@ Read-only public discovery surfaces:
 - `/agents/access-review.json` for machine-readable operator-review policy around requested scopes, quotas, revocation, decision outcomes, and target-adapter claims
 - `POST /agents/access-review/prepare` for manual operator-review handoff preparation after a production access packet passes validation
 - `/agents/auth.json` for machine-readable actor class, auth scheme, scope, approval, and write-boundary handling
+- `POST /agents/auth/prepare` for plan-preparation that returns the required auth scheme, scopes, human approval, request policy, and idempotency posture before live actions without issuing credentials or granting permission
 - `/agents/conformance.json` for machine-readable pre-production checks across discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries
 - `/agents/conformance-report.example.json` for a public example package that agents can mirror when submitting sandbox replay evidence, requested scopes, protocol claims, secret-handling posture, and human-review questions for operator review
 - `/agents/completion.json` for machine-readable proof packet, artifact, completion-claim, and review-boundary handling
@@ -422,6 +423,7 @@ Read-only public discovery surfaces:
 - `/agents/workflows.json` for machine-readable process flows that combine discovery, `agentActionPolicy`, idempotency, scopes, stop conditions, and canonical writes
 - `/agents/monitor-webhooks.md` for the target signed webhook receiver profile for request activity monitors
 - `/agents/monitoring.json` for machine-readable cursor polling, stale-state detection, escalation, and push-versus-poll monitoring boundaries
+- `POST /agents/monitoring/prepare` for plan-preparation that returns a cursor polling plan, escalation handoff context, and target webhook receiver boundary without reading activity or creating subscriptions
 - `POST /agents/monitoring/validate` for validation-only monitor plan, cursor checkpoint, private-access, escalation-trigger, and target signed-webhook receiver checks before polling or push setup
 - `/agents/protocols.md` for MCP, A2A, and x402 adapter/payment boundaries
 - `/agents/protocols.json` for machine-readable MCP, A2A, and x402 adapter mappings, non-goals, implementation order, and canon boundaries
@@ -445,6 +447,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-sandbox.schema.json` for the contract-only agent sandbox manifest shape
 - `/schemas/agent-sandbox-replay.schema.json` for the validation-only sandbox replay request and response shape
 - `/schemas/agent-auth.schema.json` for the machine-readable agent auth profile shape
+- `/schemas/agent-auth-preparation.schema.json` for the plan-preparation request and response envelope used to prepare action-specific auth, scope, approval, policy, and idempotency requirements
 - `/schemas/agent-conformance.schema.json` for the machine-readable agent conformance profile shape
 - `/schemas/agent-conformance-report.schema.json` for the machine-readable agent conformance report shape used to package sandbox replay evidence and requested scopes for operator review
 - `/schemas/agent-production-access-packet.schema.json` for the checked production access packet example shape used as operator-review input
@@ -461,6 +464,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-http.schema.json` for the machine-readable agent HTTP reference profile shape
 - `/schemas/agent-ux.schema.json` for the machine-readable agent UX profile shape
 - `/schemas/agent-monitoring.schema.json` for the machine-readable agent monitoring profile shape
+- `/schemas/agent-monitoring-preparation.schema.json` for the plan-preparation request and response envelope used to prepare cursor-safe monitor execution and escalation handoff
 - `/schemas/agent-monitoring-validation.schema.json` for the validation-only request and response envelope used to preflight monitor plans
 - `/schemas/agent-onboarding.schema.json` for the machine-readable agent onboarding profile shape
 - `/schemas/agent-opportunities.schema.json` for the machine-readable read-only agent opportunity discovery profile shape
@@ -475,13 +479,15 @@ Read-only public discovery surfaces:
 - `/schemas/agent-tools.schema.json` for the machine-readable agent tool registry shape
 - `/events/request-room.asyncapi.yaml` for durable request-room monitoring contracts
 
-Validation-only public agent surface:
+Validation and preparation public agent surface:
 
 - `POST /agents/intake/validate` accepts either a conformance report or production access packet envelope and returns missing fields, warnings, next steps, and non-authority boundaries. It does not create a review submission, issue credentials, grant permission, approve spend, create a production sandbox, write `RequestEvent` truth, or prove completion.
 - `POST /agents/actions/preflight` accepts an action id plus visible request, represented-actor, approval, idempotency, scope, and payload-summary context, then returns action availability, canonical reads and writes, required contracts, entrypoints, missing requirements, warnings, and non-authority boundaries. It does not grant permission, record approval, issue credentials, authorize payment, publish artifacts, propose commitments, mutate requests, write `RequestEvent` truth, or prove completion.
 - `POST /agents/access-review/prepare` accepts a production access packet plus explicit non-credential, no-secret, no-production-access assertions and returns a manual operator handoff checklist. It does not create a persistent review submission, issue credentials, grant permission, record approval, create a production sandbox, authorize payment, prove completion, or write durable `RequestEvent` truth.
+- `POST /agents/auth/prepare` accepts an action id plus requested auth scheme, scopes, human approval, policy-check, idempotency, no-secret, and non-credential assertions, then returns an action-specific auth plan. It does not issue credentials, grant permission, record human or operator approval, grant production access, authorize payment, prove completion, create durable writes, or override live endpoint policy.
 - `POST /agents/sandbox/replay` accepts contract-sandbox replay evidence and returns scenario, order, idempotency, terminal-state, canonical-write, and non-authority feedback. It does not accept production access, create a review submission, issue credentials, grant permission, create a production sandbox, authorize payment, prove completion, or write durable `RequestEvent` truth.
 - `POST /agents/evidence/validate` accepts a proof, delivery, receipt, or handoff packet envelope and returns missing fields, warnings, next steps, and non-authority boundaries. It does not grant permission, publish an `Artifact`, store files, accept review, authorize payment, write `RequestEvent` truth, or prove completion.
+- `POST /agents/monitoring/prepare` accepts a monitor plan plus explicit no-activity-read, no-subscription, no-push, no-heartbeat, no-completion, and no-durable-write assertions, then returns a cursor polling plan, escalation handoff context, and target webhook receiver boundary. It does not read request activity, create a subscription, activate push delivery, write heartbeat events, grant permission, authorize payment, write `RequestEvent` truth, or prove completion.
 - `POST /agents/monitoring/validate` accepts a monitor plan envelope and returns missing fields, warnings, next steps, accepted modes, accepted escalation triggers, and non-authority boundaries. It does not grant permission, read request activity, create a subscription, activate push delivery, write heartbeat events, authorize payment, write `RequestEvent` truth, or prove completion.
 
 The agent card and `/openapi.json` include the same action catalog for common
@@ -508,6 +514,13 @@ scopes, approval rules, idempotency expectations, and explicit non-grants. It
 does not create a new identity root, grant production credentials, or override
 request state, actor ownership, participant role, endpoint policy, or lifecycle
 gates.
+
+`POST /agents/auth/prepare` is the plan-preparation companion to the auth
+profile. It lets an agent check which live or target auth route, scope set,
+human approval, request policy, and idempotency posture is needed before a live
+action attempt. It is explicitly not a credential issuer, permission grant,
+human approval record, operator approval record, production access grant,
+payment authorization, completion proof, or durable write.
 
 The public agent access review profile is descriptive and safety-oriented. It
 tells external agents how operators should evaluate conformance reports,
@@ -754,6 +767,7 @@ routes:
 - `POST /agents/actions/preflight` is the public validation-only preflight agents may call before attempting apply, submit, monitor, run, or optimize actions; it validates visible prerequisites and returns canonical route guidance but does not grant permission, record approval, authorize spend, publish artifacts, propose commitments, mutate requests, write `RequestEvent` truth, or prove completion
 - `/agents/optimization.json` is the public optimization lens agents should read before improving a brief, proposal, evidence packet, monitor update, or solution-run input; optimization is draft-only unless a human approves a governed mutation
 - `/agents/monitoring.json` is the public monitor lens agents should read before polling, detecting stale work, processing target webhook envelopes, or escalating monitor findings
+- `POST /agents/monitoring/prepare` is the public plan-preparation endpoint agents may call before activity polling; it returns cursor polling and escalation handoff guidance but does not read activity, create subscriptions, activate push delivery, write `RequestEvent` truth, grant permission, authorize spend, or prove completion
 - `POST /agents/monitoring/validate` is the public validation-only preflight agents may call before polling or target signed-webhook receiver setup; it validates cursor, escalation, private-access, no-heartbeat, and no-completion posture but does not read activity, create subscriptions, activate push delivery, write `RequestEvent` truth, grant permission, authorize spend, or prove completion
 - `/agents/onboarding.json` is the public onboarding lens external agents should read before claiming production eligibility; it is not a credential issuer, OAuth server, production sandbox, adapter implementation, payment endpoint, or permission grant
 - `/agents/opportunities.json` is the public opportunity lens agents should read before ranking public requests or recommending apply, submit, monitor, run, or optimize actions; it is read-only analysis and does not grant permission, attach a match, assign supply, start fulfillment, authorize payment, or prove completion

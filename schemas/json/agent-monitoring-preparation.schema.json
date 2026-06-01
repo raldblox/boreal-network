@@ -1,0 +1,579 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-monitoring-preparation.schema.json",
+  "title": "AgentMonitoringPreparation",
+  "description": "Plan-preparation contract for agents preparing cursor-safe Request monitoring. It validates the monitor plan and returns a polling plan plus escalation handoff without reading activity, creating subscriptions, activating push delivery, writing heartbeat events, granting permission, authorizing payment, proving completion, or creating durable RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "request": {
+      "$ref": "#/$defs/preparationRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/preparationResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "monitorMode": {
+      "enum": [
+        "poll_cursor",
+        "signed_webhook_target"
+      ]
+    },
+    "escalationTrigger": {
+      "enum": [
+        "owner_review_needed",
+        "missing_or_unreviewable_proof",
+        "payment_uncertain",
+        "blocked_fulfillment",
+        "private_access_or_scope_missing",
+        "stale_activity"
+      ]
+    },
+    "preparationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "preparationIntent",
+        "preparationMode",
+        "claimsActivityRead",
+        "createsSubscription",
+        "activatesPushDelivery",
+        "createsHeartbeatEvents",
+        "claimsCompletion",
+        "claimsDurableWrite",
+        "monitor"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "preparationIntent": {
+          "const": "monitor_request"
+        },
+        "preparationMode": {
+          "const": "monitor_execution_plan"
+        },
+        "claimsActivityRead": {
+          "const": false
+        },
+        "createsSubscription": {
+          "const": false
+        },
+        "activatesPushDelivery": {
+          "const": false
+        },
+        "createsHeartbeatEvents": {
+          "const": false
+        },
+        "claimsCompletion": {
+          "const": false
+        },
+        "claimsDurableWrite": {
+          "const": false
+        },
+        "monitor": {
+          "$ref": "#/$defs/monitorPlan"
+        }
+      }
+    },
+    "monitorPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "requestId",
+        "storesCursor",
+        "createsHeartbeatEvents",
+        "claimsCompletion",
+        "includesPrivatePayloads",
+        "escalationTriggers"
+      ],
+      "properties": {
+        "mode": {
+          "$ref": "#/$defs/monitorMode"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "visibility": {
+          "enum": [
+            "public",
+            "private",
+            "unknown"
+          ]
+        },
+        "hasRequestAccess": {
+          "type": "boolean"
+        },
+        "requestedScopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cursor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "afterSequence": {
+              "type": "number",
+              "minimum": 0
+            },
+            "nextAfterSequence": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "poll": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "intervalSeconds": {
+              "type": "number",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "webhook": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "callbackUrl": {
+              "type": "string",
+              "minLength": 1
+            },
+            "signatureVersion": {
+              "const": "v1"
+            },
+            "timestampToleranceSeconds": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 300
+            },
+            "canVerifySignature": {
+              "type": "boolean"
+            }
+          }
+        },
+        "escalationTriggers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/escalationTrigger"
+          }
+        },
+        "storesCursor": {
+          "type": "boolean"
+        },
+        "createsHeartbeatEvents": {
+          "type": "boolean"
+        },
+        "claimsCompletion": {
+          "type": "boolean"
+        },
+        "includesPrivatePayloads": {
+          "type": "boolean"
+        }
+      }
+    },
+    "preparationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "preparationIntent",
+        "preparationMode",
+        "validationStatus",
+        "pollingReady",
+        "signedWebhookTargetReady",
+        "activityReadCreated",
+        "subscriptionPersisted",
+        "pushDeliveryActivated",
+        "heartbeatEventCreated",
+        "requestEventWritten",
+        "completionProven",
+        "paymentAuthorized",
+        "permissionGranted",
+        "durableWriteCreated",
+        "monitorSummary",
+        "cursorPollPlan",
+        "escalationHandoff",
+        "targetWebhookReceiver",
+        "missingFields",
+        "warnings",
+        "nextSteps",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "monitor_plan_ready",
+            "monitor_plan_blocked"
+          ]
+        },
+        "preparationIntent": {
+          "enum": [
+            "monitor_request",
+            "unknown"
+          ]
+        },
+        "preparationMode": {
+          "const": "monitor_execution_plan"
+        },
+        "validationStatus": {
+          "enum": [
+            "validation_passed",
+            "validation_failed"
+          ]
+        },
+        "pollingReady": {
+          "type": "boolean"
+        },
+        "signedWebhookTargetReady": {
+          "type": "boolean"
+        },
+        "activityReadCreated": {
+          "const": false
+        },
+        "subscriptionPersisted": {
+          "const": false
+        },
+        "pushDeliveryActivated": {
+          "const": false
+        },
+        "heartbeatEventCreated": {
+          "const": false
+        },
+        "requestEventWritten": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "monitorSummary": {
+          "$ref": "#/$defs/monitorSummary"
+        },
+        "cursorPollPlan": {
+          "$ref": "#/$defs/cursorPollPlan"
+        },
+        "escalationHandoff": {
+          "$ref": "#/$defs/escalationHandoff"
+        },
+        "targetWebhookReceiver": {
+          "$ref": "#/$defs/targetWebhookReceiver"
+        },
+        "missingFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "monitorSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "requestId",
+        "visibility",
+        "requestedScopes",
+        "escalationTriggers",
+        "cursorAfterSequence",
+        "pollIntervalSeconds",
+        "pollLimit",
+        "callbackUrl"
+      ],
+      "properties": {
+        "mode": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requestId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requestedScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "escalationTriggers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cursorAfterSequence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "pollIntervalSeconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "pollLimit": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 100
+        },
+        "callbackUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "cursorPollPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method",
+        "routeTemplate",
+        "query",
+        "cursorToPersist",
+        "minimumIntervalSeconds",
+        "recommendedIntervalSeconds",
+        "backoffOn",
+        "canonicalReads",
+        "canonicalWrites"
+      ],
+      "properties": {
+        "status": {
+          "const": "live_cursor_polling_baseline"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "routeTemplate": {
+          "const": "/api/requests/{requestId}/activity"
+        },
+        "query": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "after_sequence",
+            "limit"
+          ],
+          "properties": {
+            "after_sequence": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "limit": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "cursorToPersist": {
+          "const": "cursor.nextAfterSequence"
+        },
+        "minimumIntervalSeconds": {
+          "const": 30
+        },
+        "recommendedIntervalSeconds": {
+          "type": "number",
+          "minimum": 30
+        },
+        "backoffOn": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "RequestEvent",
+              "Artifact",
+              "Transaction",
+              "Fulfillment",
+              "Commitment"
+            ]
+          }
+        },
+        "canonicalWrites": {
+          "const": []
+        }
+      }
+    },
+    "escalationHandoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "triggers",
+        "requiredContext",
+        "nextHumanActions"
+      ],
+      "properties": {
+        "kind": {
+          "const": "monitor_escalation_handoff"
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredContext": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextHumanActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "targetWebhookReceiver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "profileUrl",
+        "subscriptionEndpointLive",
+        "deliveryWorkerLive",
+        "useFor"
+      ],
+      "properties": {
+        "status": {
+          "const": "target_receiver_shape_only"
+        },
+        "profileUrl": {
+          "const": "/agents/monitor-webhooks.md"
+        },
+        "subscriptionEndpointLive": {
+          "const": false
+        },
+        "deliveryWorkerLive": {
+          "const": false
+        },
+        "useFor": {
+          "type": "string"
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "activityTruthObject",
+        "preparationIsNot",
+        "durableTruthObjects"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "activityTruthObject": {
+          "const": "RequestEvent"
+        },
+        "preparationIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

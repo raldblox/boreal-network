@@ -45,6 +45,7 @@ export const agentDiscoveryPaths = {
   agentAccessReview: "/agents/access-review.json",
   agentAccessReviewPrepare: "/agents/access-review/prepare",
   agentAuth: "/agents/auth.json",
+  agentAuthPrepare: "/agents/auth/prepare",
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
   agentActionPreflight: "/agents/actions/preflight",
@@ -63,6 +64,7 @@ export const agentDiscoveryPaths = {
   agentIntakeValidation: "/agents/intake/validate",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
+  agentMonitoringPrepare: "/agents/monitoring/prepare",
   agentMonitoringValidation: "/agents/monitoring/validate",
   agentOnboarding: "/agents/onboarding.json",
   agentOpportunityCardExamples: "/agents/opportunity-cards.example.json",
@@ -456,6 +458,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Plan-preparation schema for determining agent auth scheme, scope, human approval, policy-check, and idempotency requirements before live Boreal actions.",
+    routePath: "/schemas/agent-auth-preparation.schema.json",
+    sourcePath: "schemas/json/agent-auth-preparation.schema.json",
+    standard: "json_schema",
+    title: "Agent auth preparation",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable human delegation profile for agent consent screens, scoped authority, revocation, and per-action approval without credential sharing or new business roots.",
     routePath: "/schemas/agent-delegation.schema.json",
     sourcePath: "schemas/json/agent-delegation.schema.json",
@@ -654,6 +665,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Plan-preparation schema for cursor-safe Request monitoring and escalation handoff without creating subscriptions, push delivery, heartbeat events, or durable writes.",
+    routePath: "/schemas/agent-monitoring-preparation.schema.json",
+    sourcePath: "schemas/json/agent-monitoring-preparation.schema.json",
+    standard: "json_schema",
+    title: "Agent monitoring preparation",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable onboarding profile schema for external agents moving from public discovery to contract sandbox validation and scoped production eligibility.",
     routePath: "/schemas/agent-onboarding.schema.json",
     sourcePath: "schemas/json/agent-onboarding.schema.json",
@@ -737,6 +757,7 @@ export function buildAgentCard() {
     accessReviewProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
     actionPreflightUrl: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
     authProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
+    authPrepareUrl: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
     conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
     delegationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentDelegation),
@@ -752,6 +773,7 @@ export function buildAgentCard() {
     uxProfileUrl: absoluteUrl(agentDiscoveryPaths.agentUx),
     intakeValidationUrl: absoluteUrl(agentDiscoveryPaths.agentIntakeValidation),
     monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+    monitoringPrepareUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
     monitoringValidationUrl: absoluteUrl(
       agentDiscoveryPaths.agentMonitoringValidation
     ),
@@ -809,10 +831,26 @@ export function buildAgentCard() {
     },
     auth: {
       url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
       status: buildAgentAuthProfile().status,
       liveActorClasses: buildAgentAuthProfile()
         .actorClasses.filter((actorClass) => actorClass.status.startsWith("live"))
         .map((actorClass) => actorClass.id),
+    },
+    authPreparation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+      status: "live_plan_preparation_only",
+      schemaUrl: absoluteUrl("/schemas/agent-auth-preparation.schema.json"),
+      nonAuthority: [
+        "credential issuer",
+        "permission grant",
+        "human approval record",
+        "operator approval record",
+        "production access grant",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
     },
     conformance: {
       url: absoluteUrl(agentDiscoveryPaths.agentConformance),
@@ -965,6 +1003,7 @@ export function buildAgentCard() {
     },
     monitoring: {
       url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
       validationUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
       status: buildAgentMonitoringProfile().status,
       liveMode: buildAgentMonitoringProfile().pollingBaseline.status,
@@ -994,6 +1033,22 @@ export function buildAgentCard() {
         "durable RequestEvent",
         "completion proof",
         "payment authorization",
+      ],
+    },
+    monitoringPreparation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+      status: "live_plan_preparation_only",
+      preparationMode: "monitor_execution_plan",
+      schemaUrl: absoluteUrl("/schemas/agent-monitoring-preparation.schema.json"),
+      nonAuthority: [
+        "request activity read",
+        "subscription record",
+        "push delivery implementation",
+        "heartbeat event",
+        "durable RequestEvent",
+        "permission grant",
+        "payment authorization",
+        "completion proof",
       ],
     },
     onboarding: {
@@ -1241,6 +1296,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent access review profile: [${agentDiscoveryPaths.agentAccessReview}](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)})
 - Agent access review preparation endpoint: [${agentDiscoveryPaths.agentAccessReviewPrepare}](${absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare)})
 - Agent auth profile: [${agentDiscoveryPaths.agentAuth}](${absoluteUrl(agentDiscoveryPaths.agentAuth)})
+- Agent auth preparation endpoint: [${agentDiscoveryPaths.agentAuthPrepare}](${absoluteUrl(agentDiscoveryPaths.agentAuthPrepare)})
 - Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
 - Agent conformance report example: [${agentDiscoveryPaths.agentConformanceReportExample}](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)})
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
@@ -1255,6 +1311,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent UX profile: [${agentDiscoveryPaths.agentUx}](${absoluteUrl(agentDiscoveryPaths.agentUx)})
 - Agent intake validation endpoint: [${agentDiscoveryPaths.agentIntakeValidation}](${absoluteUrl(agentDiscoveryPaths.agentIntakeValidation)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
+- Agent monitoring preparation endpoint: [${agentDiscoveryPaths.agentMonitoringPrepare}](${absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare)})
 - Agent monitoring validation endpoint: [${agentDiscoveryPaths.agentMonitoringValidation}](${absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation)})
 - Agent onboarding profile: [${agentDiscoveryPaths.agentOnboarding}](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)})
 - Agent opportunity card examples: [${agentDiscoveryPaths.agentOpportunityCardExamples}](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)})
@@ -1325,6 +1382,32 @@ Content-Type: application/json
 \`\`\`
 
 This endpoint returns prerequisite feedback only. It does not create a commitment, artifact, request mutation, approval record, permission grant, credential, payment authorization, completion proof, or durable \`RequestEvent\`.
+
+For auth planning before attempting an action, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentAuthPrepare}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "preparationIntent": "agent_auth_route",
+  "actionId": "apply_to_request",
+  "requestedAuthScheme": "resolver_bearer",
+  "requestedScopes": ["commitments:propose"],
+  "hasHumanApproval": true,
+  "hasRequestPolicyCheck": true,
+  "hasIdempotencyKey": true,
+  "notCredentialRequest": true,
+  "noSecretsIncluded": true,
+  "claimsCredentialIssued": false,
+  "claimsPermissionGranted": false,
+  "claimsProductionAccess": false,
+  "claimsPaymentAuthority": false
+}
+\`\`\`
+
+This endpoint returns the recommended auth scheme, required scopes, human approval requirement, request policy checkpoint, and idempotency posture. It does not issue credentials, grant permission, record approval, grant production access, authorize payment, prove completion, or create durable \`RequestEvent\` truth.
 
 For deterministic process flow, agents can read:
 
@@ -1476,6 +1559,46 @@ Content-Type: application/json
 \`\`\`
 
 This endpoint returns monitor-shape feedback only. It does not read request activity, create a subscription, activate push delivery, write heartbeat events, authorize payment, prove completion, grant permission, or create durable \`RequestEvent\` truth.
+
+For plan-preparation after the monitor shape is known, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentMonitoringPrepare}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "preparationIntent": "monitor_request",
+  "preparationMode": "monitor_execution_plan",
+  "claimsActivityRead": false,
+  "createsSubscription": false,
+  "activatesPushDelivery": false,
+  "createsHeartbeatEvents": false,
+  "claimsCompletion": false,
+  "claimsDurableWrite": false,
+  "monitor": {
+    "mode": "poll_cursor",
+    "requestId": "req_public_design_001",
+    "visibility": "public",
+    "hasRequestAccess": true,
+    "requestedScopes": [],
+    "cursor": {
+      "afterSequence": 0
+    },
+    "poll": {
+      "intervalSeconds": 60,
+      "limit": 40
+    },
+    "escalationTriggers": ["owner_review_needed", "stale_activity"],
+    "storesCursor": true,
+    "createsHeartbeatEvents": false,
+    "claimsCompletion": false,
+    "includesPrivatePayloads": false
+  }
+}
+\`\`\`
+
+This endpoint returns a cursor polling plan, escalation handoff context, and target webhook receiver boundary. It does not read activity, create a live monitor subscription, activate signed push delivery, write heartbeat events, grant permission, authorize payment, prove completion, or create durable \`RequestEvent\` truth.
 
 For deterministic live-versus-target capability and agent UX flow handling, agents can read:
 
@@ -1907,6 +2030,49 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentAuthProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/auth/prepare": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Prepare an agent auth route plan before attempting a Boreal action.",
+          description:
+            "Plan-preparation only. This endpoint returns required auth scheme, scopes, human approval, request policy, and idempotency posture, and does not issue credentials, grant permission, record approval, grant production access, authorize payment, prove completion, or create durable RequestEvent truth.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentAuthPreparationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Auth plan is ready; no credential, permission, approval, payment authorization, or durable write was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentAuthPreparationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Auth plan is blocked by missing fields, missing scopes, missing approval, or authority overclaims.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentAuthPreparationResult",
                   },
                 },
               },
@@ -2355,6 +2521,49 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentMonitoringValidationResult",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/monitoring/prepare": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Prepare a cursor-safe agent monitor plan and escalation handoff.",
+          description:
+            "Plan-preparation only. This endpoint validates monitor shape, returns a cursor polling plan and escalation handoff, and does not read request activity, create a subscription, activate push delivery, write heartbeat events, grant permission, authorize payment, prove completion, or create durable RequestEvent truth.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentMonitoringPreparationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Monitor plan is ready; no activity read, subscription, push delivery, permission grant, payment authorization, completion proof, or durable write was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentMonitoringPreparationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Monitor plan preparation is blocked by missing fields or authority overclaims.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentMonitoringPreparationResult",
                   },
                 },
               },
@@ -2861,6 +3070,7 @@ export function buildOpenApiDiscoveryIndex() {
             "actorClasses",
             "scopes",
             "actionAuthRequirements",
+            "preparationEndpoint",
             "canonicalBoundary",
           ],
           properties: {
@@ -2881,6 +3091,100 @@ export function buildOpenApiDiscoveryIndex() {
             actionAuthRequirements: {
               type: "array",
               items: { type: "object" },
+            },
+            preparationEndpoint: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentAuthPreparationRequest: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "preparationIntent",
+            "actionId",
+            "notCredentialRequest",
+            "noSecretsIncluded",
+            "claimsCredentialIssued",
+            "claimsPermissionGranted",
+            "claimsProductionAccess",
+            "claimsPaymentAuthority",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            preparationIntent: { const: "agent_auth_route" },
+            actionId: { type: "string" },
+            requestedAuthScheme: { type: "string" },
+            requestedScopes: {
+              type: "array",
+              items: { type: "string" },
+            },
+            hasHumanApproval: { type: "boolean" },
+            hasRequestPolicyCheck: { type: "boolean" },
+            hasIdempotencyKey: { type: "boolean" },
+            notCredentialRequest: { const: true },
+            noSecretsIncluded: { const: true },
+            claimsCredentialIssued: { const: false },
+            claimsPermissionGranted: { const: false },
+            claimsProductionAccess: { const: false },
+            claimsPaymentAuthority: { const: false },
+          },
+          additionalProperties: false,
+        },
+        AgentAuthPreparationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "preparationIntent",
+            "actionId",
+            "credentialIssued",
+            "permissionGranted",
+            "approvalRecorded",
+            "productionAccessGranted",
+            "paymentAuthorized",
+            "completionProven",
+            "durableWriteCreated",
+            "authPlan",
+            "humanHandoff",
+            "operatorReview",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["auth_plan_ready", "auth_plan_blocked"] },
+            preparationIntent: { enum: ["agent_auth_route", "unknown"] },
+            actionId: { type: "string" },
+            requestedAuthScheme: {
+              type: ["string", "null"],
+            },
+            acceptedActionIds: {
+              type: "array",
+              items: { type: "string" },
+            },
+            credentialIssued: { const: false },
+            permissionGranted: { const: false },
+            approvalRecorded: { const: false },
+            productionAccessGranted: { const: false },
+            paymentAuthorized: { const: false },
+            completionProven: { const: false },
+            durableWriteCreated: { const: false },
+            authPlan: { type: "object" },
+            humanHandoff: { type: "object" },
+            operatorReview: { type: "object" },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
             },
             canonicalBoundary: { type: "object" },
           },
@@ -3577,6 +3881,8 @@ export function buildOpenApiDiscoveryIndex() {
             "schemaVersion",
             "status",
             "pollingBaseline",
+            "validationEndpoint",
+            "preparationEndpoint",
             "cursorRules",
             "escalationTriggers",
             "canonicalBoundary",
@@ -3585,6 +3891,8 @@ export function buildOpenApiDiscoveryIndex() {
             schemaVersion: { const: 1 },
             status: { const: "live_monitoring_profile" },
             pollingBaseline: { type: "object" },
+            validationEndpoint: { type: "object" },
+            preparationEndpoint: { type: "object" },
             cursorRules: {
               type: "array",
               items: { type: "object" },
@@ -3684,6 +3992,100 @@ export function buildOpenApiDiscoveryIndex() {
             permissionGranted: { const: false },
             durableWriteCreated: { const: false },
             summary: { type: "string" },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentMonitoringPreparationRequest: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "preparationIntent",
+            "preparationMode",
+            "claimsActivityRead",
+            "createsSubscription",
+            "activatesPushDelivery",
+            "createsHeartbeatEvents",
+            "claimsCompletion",
+            "claimsDurableWrite",
+            "monitor",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            preparationIntent: { const: "monitor_request" },
+            preparationMode: { const: "monitor_execution_plan" },
+            claimsActivityRead: { const: false },
+            createsSubscription: { const: false },
+            activatesPushDelivery: { const: false },
+            createsHeartbeatEvents: { const: false },
+            claimsCompletion: { const: false },
+            claimsDurableWrite: { const: false },
+            monitor: { type: "object" },
+          },
+          additionalProperties: false,
+        },
+        AgentMonitoringPreparationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "preparationIntent",
+            "preparationMode",
+            "validationStatus",
+            "pollingReady",
+            "signedWebhookTargetReady",
+            "activityReadCreated",
+            "subscriptionPersisted",
+            "pushDeliveryActivated",
+            "heartbeatEventCreated",
+            "requestEventWritten",
+            "completionProven",
+            "paymentAuthorized",
+            "permissionGranted",
+            "durableWriteCreated",
+            "monitorSummary",
+            "cursorPollPlan",
+            "escalationHandoff",
+            "targetWebhookReceiver",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["monitor_plan_ready", "monitor_plan_blocked"] },
+            preparationIntent: { enum: ["monitor_request", "unknown"] },
+            preparationMode: { const: "monitor_execution_plan" },
+            validationStatus: {
+              enum: ["validation_passed", "validation_failed"],
+            },
+            pollingReady: { type: "boolean" },
+            signedWebhookTargetReady: { type: "boolean" },
+            activityReadCreated: { const: false },
+            subscriptionPersisted: { const: false },
+            pushDeliveryActivated: { const: false },
+            heartbeatEventCreated: { const: false },
+            requestEventWritten: { const: false },
+            completionProven: { const: false },
+            paymentAuthorized: { const: false },
+            permissionGranted: { const: false },
+            durableWriteCreated: { const: false },
+            monitorSummary: { type: "object" },
+            cursorPollPlan: { type: "object" },
+            escalationHandoff: { type: "object" },
+            targetWebhookReceiver: { type: "object" },
             missingFields: {
               type: "array",
               items: { type: "string" },
@@ -3948,6 +4350,7 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-auth": {
       url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
       schemes: buildAgentAuthProfile().authSchemes.map((scheme) => ({
         id: scheme.id,
         status: scheme.status,
@@ -3956,6 +4359,21 @@ export function buildOpenApiDiscoveryIndex() {
         id: scope.id,
         status: scope.status,
       })),
+    },
+    "x-boreal-agent-auth-preparation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+      status: "live_plan_preparation_only",
+      schemaUrl: absoluteUrl("/schemas/agent-auth-preparation.schema.json"),
+      nonAuthority: [
+        "credential issuer",
+        "permission grant",
+        "human approval record",
+        "operator approval record",
+        "production access grant",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
     },
     "x-boreal-agent-access-review": {
       url: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
@@ -4128,6 +4546,7 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-monitoring": {
       url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
       validationUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
       status: buildAgentMonitoringProfile().status,
       liveMode: buildAgentMonitoringProfile().pollingBaseline.status,
@@ -4156,6 +4575,22 @@ export function buildOpenApiDiscoveryIndex() {
         "durable RequestEvent",
         "completion proof",
         "payment authorization",
+      ],
+    },
+    "x-boreal-agent-monitoring-preparation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+      status: "live_plan_preparation_only",
+      preparationMode: "monitor_execution_plan",
+      schemaUrl: absoluteUrl("/schemas/agent-monitoring-preparation.schema.json"),
+      nonAuthority: [
+        "request activity read",
+        "subscription record",
+        "push delivery implementation",
+        "heartbeat event",
+        "durable RequestEvent",
+        "permission grant",
+        "payment authorization",
+        "completion proof",
       ],
     },
     "x-boreal-agent-onboarding": {
@@ -4296,6 +4731,10 @@ export function buildAgentAuthProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
       },
       {
+        label: "Agent auth preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+      },
+      {
         label: "Agent human delegation profile",
         url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
       },
@@ -4306,6 +4745,10 @@ export function buildAgentAuthProfile() {
       {
         label: "Agent auth schema",
         url: absoluteUrl("/schemas/agent-auth.schema.json"),
+      },
+      {
+        label: "Agent auth preparation schema",
+        url: absoluteUrl("/schemas/agent-auth-preparation.schema.json"),
       },
       {
         label: "Request OpenAPI",
@@ -4320,6 +4763,32 @@ export function buildAgentAuthProfile() {
         url: absoluteUrl("/openapi/payment-and-credit.yaml"),
       },
     ],
+    preparationEndpoint: {
+      status: "live_plan_preparation_only",
+      method: "POST",
+      path: agentDiscoveryPaths.agentAuthPrepare,
+      schemaUrl: absoluteUrl("/schemas/agent-auth-preparation.schema.json"),
+      returns: [
+        "recommended auth scheme",
+        "required scopes",
+        "missing scopes",
+        "human approval requirement",
+        "request policy checkpoint",
+        "idempotency requirement",
+      ],
+      canonicalReads: [],
+      canonicalWrites: [],
+      nonAuthority: [
+        "credential issuer",
+        "permission grant",
+        "human approval record",
+        "operator approval record",
+        "production access grant",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
+    },
     authSchemes: [
       {
         id: "none",
@@ -8252,6 +8721,10 @@ export function buildAgentMonitoringProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks),
       },
       {
+        label: "Agent monitoring preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+      },
+      {
         label: "Agent monitoring validation endpoint",
         url: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
       },
@@ -8266,6 +8739,10 @@ export function buildAgentMonitoringProfile() {
       {
         label: "Agent monitoring schema",
         url: absoluteUrl("/schemas/agent-monitoring.schema.json"),
+      },
+      {
+        label: "Agent monitoring preparation schema",
+        url: absoluteUrl("/schemas/agent-monitoring-preparation.schema.json"),
       },
     ],
     pollingBaseline: {
@@ -8293,6 +8770,29 @@ export function buildAgentMonitoringProfile() {
         "push delivery implementation",
         "heartbeat event",
         "durable RequestEvent",
+        "completion proof",
+      ],
+    },
+    preparationEndpoint: {
+      status: "live_plan_preparation_only",
+      method: "POST",
+      path: agentDiscoveryPaths.agentMonitoringPrepare,
+      schemaUrl: absoluteUrl("/schemas/agent-monitoring-preparation.schema.json"),
+      returns: [
+        "cursor polling plan",
+        "escalation handoff context",
+        "target webhook receiver boundary",
+      ],
+      canonicalReads: [],
+      canonicalWrites: [],
+      nonAuthority: [
+        "request activity read",
+        "subscription record",
+        "push delivery implementation",
+        "heartbeat event",
+        "durable RequestEvent",
+        "permission grant",
+        "payment authorization",
         "completion proof",
       ],
     },
@@ -9880,6 +10380,10 @@ export function buildAgentReadinessProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentUx),
       },
       {
+        label: "Agent monitoring preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+      },
+      {
         label: "Agent recovery profile",
         url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
       },
@@ -10157,13 +10661,13 @@ export function buildAgentReadinessProfile() {
       {
         id: "monitor_checkpoint_validation",
         primaryAgentIntent: "Check monitor cursor, escalation, and webhook receiver posture before watching work",
-        status: "live_validation_only",
+        status: "live_validation_and_plan_preparation",
         actions: ["monitor_request"],
         standards: ["OpenAPI 3.1", "JSON Schema", "AsyncAPI"],
         availableNow: [
           "Post a monitor plan with mode, request id, cursor storage posture, escalation triggers, private-access posture, and no-heartbeat/no-completion flags.",
-          "Receive missing fields, target webhook warnings, and non-authority flags before polling request activity or implementing target signed push receivers.",
-          "Use the result as monitor-shape evidence only; request activity reads, subscriptions, push delivery, permission grants, payments, and completion still require governed route truth.",
+          "Receive validation feedback, cursor polling plan, escalation handoff context, target webhook warnings, and non-authority flags before polling request activity.",
+          "Use the result as monitor-plan evidence only; request activity reads, subscriptions, push delivery, permission grants, payments, and completion still require governed route truth.",
         ],
         requiresBeforeUse: [
           "schemaVersion=1",
@@ -10178,7 +10682,9 @@ export function buildAgentReadinessProfile() {
         ],
         evidence: [
           absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+          absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
           absoluteUrl("/schemas/agent-monitoring-validation.schema.json"),
+          absoluteUrl("/schemas/agent-monitoring-preparation.schema.json"),
           absoluteUrl(agentDiscoveryPaths.agentMonitoring),
         ],
       },
@@ -10770,6 +11276,21 @@ export function buildAgentWorkflowCatalog() {
             canonicalWrites: ["Commitment", "RequestEvent"],
             continueWhen: ["The owner accepts the Commitment."],
             stopWhen: ["The proposal is rejected, expired, or superseded."],
+          }),
+          workflowStep({
+            id: "prepare_monitor_plan",
+            actionId: "monitor_request",
+            method: "POST",
+            href: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+            auth: "none for preparation; real activity read auth still applies",
+            canonicalReads: [],
+            canonicalWrites: [],
+            continueWhen: [
+              "The response returns monitor_plan_ready and a cursor polling plan.",
+            ],
+            stopWhen: [
+              "The response reports missing scope posture, cursor persistence, escalation triggers, or authority overclaims.",
+            ],
           }),
           workflowStep({
             id: "poll_activity",

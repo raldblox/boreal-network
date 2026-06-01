@@ -52,6 +52,7 @@ Recommended naming:
 - `json/agent-sandbox.schema.json`
 - `json/agent-sandbox-replay.schema.json`
 - `json/agent-auth.schema.json`
+- `json/agent-auth-preparation.schema.json`
 - `json/agent-conformance.schema.json`
 - `json/agent-conformance-report.schema.json`
 - `json/agent-delegation.schema.json`
@@ -68,6 +69,7 @@ Recommended naming:
 - `json/agent-intake-validation.schema.json`
 - `json/agent-action-preflight.schema.json`
 - `json/agent-monitoring.schema.json`
+- `json/agent-monitoring-preparation.schema.json`
 - `json/agent-monitoring-validation.schema.json`
 - `json/agent-onboarding.schema.json`
 - `json/agent-opportunity-cards.schema.json`

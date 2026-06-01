@@ -12,6 +12,8 @@
     "description",
     "resources",
     "pollingBaseline",
+    "validationEndpoint",
+    "preparationEndpoint",
     "cursorRules",
     "watchSignals",
     "escalationTriggers",
@@ -41,6 +43,12 @@
     },
     "pollingBaseline": {
       "$ref": "#/$defs/pollingBaseline"
+    },
+    "validationEndpoint": {
+      "$ref": "#/$defs/monitorEndpoint"
+    },
+    "preparationEndpoint": {
+      "$ref": "#/$defs/monitorEndpoint"
     },
     "cursorRules": {
       "type": "array",
@@ -166,6 +174,67 @@
           }
         },
         "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "monitorEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method",
+        "path",
+        "schemaUrl",
+        "canonicalReads",
+        "canonicalWrites",
+        "nonAuthority"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schemaUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "acceptedModes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "returns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nonAuthority": {
           "type": "array",
           "items": {
             "type": "string"

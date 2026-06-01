@@ -62,6 +62,10 @@
       "url": "https://boreal.work/agents/auth.json"
     },
     {
+      "label": "Auth preparation endpoint",
+      "url": "https://boreal.work/agents/auth/prepare"
+    },
+    {
       "label": "Conformance profile",
       "url": "https://boreal.work/agents/conformance.json"
     },
@@ -164,6 +168,10 @@
     {
       "label": "Monitoring profile",
       "url": "https://boreal.work/agents/monitoring.json"
+    },
+    {
+      "label": "Monitoring preparation endpoint",
+      "url": "https://boreal.work/agents/monitoring/prepare"
     },
     {
       "label": "Monitoring validation endpoint",

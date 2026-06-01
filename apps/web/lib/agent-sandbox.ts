@@ -7,6 +7,7 @@ export const agentSandboxPaths = {
   actions: "/agents/actions.md",
   actionPreflight: "/agents/actions/preflight",
   auth: "/agents/auth.json",
+  authPrepare: "/agents/auth/prepare",
   conformance: "/agents/conformance.json",
   conformanceReportExample: "/agents/conformance-report.example.json",
   completion: "/agents/completion.json",
@@ -24,6 +25,7 @@ export const agentSandboxPaths = {
   ux: "/agents/ux.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
   monitoring: "/agents/monitoring.json",
+  monitoringPrepare: "/agents/monitoring/prepare",
   monitoringValidation: "/agents/monitoring/validate",
   onboarding: "/agents/onboarding.json",
   opportunityCardExamples: "/agents/opportunity-cards.example.json",
@@ -100,6 +102,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Auth profile",
         url: absoluteUrl(agentSandboxPaths.auth),
+      },
+      {
+        label: "Auth preparation endpoint",
+        url: absoluteUrl(agentSandboxPaths.authPrepare),
       },
       {
         label: "Conformance profile",
@@ -204,6 +210,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Monitoring profile",
         url: absoluteUrl(agentSandboxPaths.monitoring),
+      },
+      {
+        label: "Monitoring preparation endpoint",
+        url: absoluteUrl(agentSandboxPaths.monitoringPrepare),
       },
       {
         label: "Monitoring validation endpoint",

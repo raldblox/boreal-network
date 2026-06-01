@@ -1,0 +1,391 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-auth-preparation.schema.json",
+  "title": "AgentAuthPreparation",
+  "description": "Plan-preparation contract for determining the auth scheme, scopes, human approval, request policy check, and idempotency posture an agent needs before attempting a Boreal action. It does not issue credentials, grant permission, record approval, grant production access, authorize payment, prove completion, or create durable RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "request": {
+      "$ref": "#/$defs/preparationRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/preparationResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "preparationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "preparationIntent",
+        "actionId",
+        "notCredentialRequest",
+        "noSecretsIncluded",
+        "claimsCredentialIssued",
+        "claimsPermissionGranted",
+        "claimsProductionAccess",
+        "claimsPaymentAuthority"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "preparationIntent": {
+          "const": "agent_auth_route"
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestedAuthScheme": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestedScopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "representedActor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "hasHumanApproval": {
+          "type": "boolean"
+        },
+        "hasRequestPolicyCheck": {
+          "type": "boolean"
+        },
+        "hasIdempotencyKey": {
+          "type": "boolean"
+        },
+        "notCredentialRequest": {
+          "const": true
+        },
+        "noSecretsIncluded": {
+          "const": true
+        },
+        "claimsCredentialIssued": {
+          "const": false
+        },
+        "claimsPermissionGranted": {
+          "const": false
+        },
+        "claimsProductionAccess": {
+          "const": false
+        },
+        "claimsPaymentAuthority": {
+          "const": false
+        }
+      }
+    },
+    "preparationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "preparationIntent",
+        "actionId",
+        "requestedAuthScheme",
+        "acceptedActionIds",
+        "credentialIssued",
+        "permissionGranted",
+        "approvalRecorded",
+        "productionAccessGranted",
+        "paymentAuthorized",
+        "completionProven",
+        "durableWriteCreated",
+        "authPlan",
+        "humanHandoff",
+        "operatorReview",
+        "missingFields",
+        "warnings",
+        "nextSteps",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "auth_plan_ready",
+            "auth_plan_blocked"
+          ]
+        },
+        "preparationIntent": {
+          "enum": [
+            "agent_auth_route",
+            "unknown"
+          ]
+        },
+        "actionId": {
+          "type": "string"
+        },
+        "requestedAuthScheme": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "acceptedActionIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "credentialIssued": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "approvalRecorded": {
+          "const": false
+        },
+        "productionAccessGranted": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "authPlan": {
+          "$ref": "#/$defs/authPlan"
+        },
+        "humanHandoff": {
+          "$ref": "#/$defs/humanHandoff"
+        },
+        "operatorReview": {
+          "$ref": "#/$defs/operatorReview"
+        },
+        "missingFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "authPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actionId",
+        "actionName",
+        "actionAvailability",
+        "recommendedAuthScheme",
+        "allowedAuthOptions",
+        "requiredScopes",
+        "missingScopes",
+        "humanApprovalRequired",
+        "hasHumanApproval",
+        "requestPolicyCheckRequired",
+        "hasRequestPolicyCheck",
+        "idempotencyRequired",
+        "hasIdempotencyKey",
+        "policyCheckpoint",
+        "canonicalWrites"
+      ],
+      "properties": {
+        "actionId": {
+          "type": "string"
+        },
+        "actionName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "actionAvailability": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "recommendedAuthScheme": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "allowedAuthOptions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missingScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "humanApprovalRequired": {
+          "type": "boolean"
+        },
+        "hasHumanApproval": {
+          "type": "boolean"
+        },
+        "requestPolicyCheckRequired": {
+          "type": "boolean"
+        },
+        "hasRequestPolicyCheck": {
+          "type": "boolean"
+        },
+        "idempotencyRequired": {
+          "type": "boolean"
+        },
+        "hasIdempotencyKey": {
+          "type": "boolean"
+        },
+        "policyCheckpoint": {
+          "type": "string"
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "humanHandoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requiredContext",
+        "nextHumanActions"
+      ],
+      "properties": {
+        "kind": {
+          "const": "auth_preparation_handoff"
+        },
+        "requiredContext": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextHumanActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "operatorReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requiredForProductionExternalAgent",
+        "accessReviewProfileUrl",
+        "accessReviewPreparationUrl",
+        "productionAccessPacketExampleUrl"
+      ],
+      "properties": {
+        "requiredForProductionExternalAgent": {
+          "type": "boolean"
+        },
+        "accessReviewProfileUrl": {
+          "const": "/agents/access-review.json"
+        },
+        "accessReviewPreparationUrl": {
+          "const": "/agents/access-review/prepare"
+        },
+        "productionAccessPacketExampleUrl": {
+          "const": "/agents/production-access-packet.example.json"
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "preparationIsNot",
+        "durableTruthObjects"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "preparationIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

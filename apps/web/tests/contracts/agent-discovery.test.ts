@@ -44,6 +44,8 @@ import { validateAgentActionPreflight } from "@/lib/agent-action-preflight";
 import { validateAgentEvidencePayload } from "@/lib/agent-evidence-validation";
 import { validateAgentIntakePayload } from "@/lib/agent-intake-validation";
 import { prepareAgentAccessReviewPayload } from "@/lib/agent-access-review-preparation";
+import { prepareAgentAuthPayload } from "@/lib/agent-auth-preparation";
+import { prepareAgentMonitoringPayload } from "@/lib/agent-monitoring-preparation";
 import { validateAgentMonitoringPayload } from "@/lib/agent-monitoring-validation";
 import { validateAgentSandboxReplayPayload } from "@/lib/agent-sandbox-replay-validation";
 import {
@@ -60,6 +62,7 @@ import { POST as postAgentActionPreflight } from "@/app/agents/actions/preflight
 import { GET as getAgentAccessReview } from "@/app/agents/access-review.json/route";
 import { POST as postAgentAccessReviewPreparation } from "@/app/agents/access-review/prepare/route";
 import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
+import { POST as postAgentAuthPreparation } from "@/app/agents/auth/prepare/route";
 import { GET as getAgentConformance } from "@/app/agents/conformance.json/route";
 import { GET as getAgentConformanceReportExample } from "@/app/agents/conformance-report.example.json/route";
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
@@ -74,6 +77,7 @@ import { GET as getAgentHttp } from "@/app/agents/http.json/route";
 import { GET as getAgentUx } from "@/app/agents/ux.json/route";
 import { POST as postAgentIntakeValidation } from "@/app/agents/intake/validate/route";
 import { GET as getAgentMonitoring } from "@/app/agents/monitoring.json/route";
+import { POST as postAgentMonitoringPreparation } from "@/app/agents/monitoring/prepare/route";
 import { POST as postAgentMonitoringValidation } from "@/app/agents/monitoring/validate/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
 import { GET as getAgentOnboarding } from "@/app/agents/onboarding.json/route";
@@ -147,6 +151,10 @@ async function main() {
   );
   assert.equal(agentCard.authProfileUrl.endsWith("/agents/auth.json"), true);
   assert.equal(
+    agentCard.authPrepareUrl.endsWith("/agents/auth/prepare"),
+    true,
+  );
+  assert.equal(
     agentCard.conformanceProfileUrl.endsWith("/agents/conformance.json"),
     true,
   );
@@ -192,6 +200,10 @@ async function main() {
   );
   assert.equal(
     agentCard.monitoringProfileUrl.endsWith("/agents/monitoring.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.monitoringPrepareUrl.endsWith("/agents/monitoring/prepare"),
     true,
   );
   assert.equal(
@@ -245,6 +257,18 @@ async function main() {
   );
   assert.equal(agentCard.auth.status, "live_auth_profile");
   assert.equal(agentCard.auth.liveActorClasses.includes("resolver_agent"), true);
+  assert.equal(
+    agentCard.auth.preparationUrl.endsWith("/agents/auth/prepare"),
+    true,
+  );
+  assert.equal(
+    agentCard.authPreparation.status,
+    "live_plan_preparation_only",
+  );
+  assert.equal(
+    agentCard.authPreparation.nonAuthority.includes("credential issuer"),
+    true,
+  );
   assert.equal(agentCard.conformance.status, "live_conformance_profile");
   assert.equal(agentCard.onboarding.status, "live_onboarding_profile");
   assert.equal(
@@ -331,6 +355,20 @@ async function main() {
     agentCard.sandboxReplayValidation.nonAuthority.includes(
       "production credential"
     ),
+    true,
+  );
+  assert.equal(
+    agentCard.monitoringPreparation.status,
+    "live_plan_preparation_only",
+  );
+  assert.equal(
+    agentCard.monitoringPreparation.nonAuthority.includes(
+      "request activity read"
+    ),
+    true,
+  );
+  assert.equal(
+    agentCard.monitoring.preparationUrl.endsWith("/agents/monitoring/prepare"),
     true,
   );
   assert.equal(agentCard.opportunities.status, "live_opportunity_discovery_profile");
@@ -826,9 +864,12 @@ async function main() {
     readinessProfile.capabilityBands.some(
       (capability) =>
         capability.id === "monitor_checkpoint_validation" &&
-        capability.status === "live_validation_only" &&
+        capability.status === "live_validation_and_plan_preparation" &&
         capability.evidence.some((url) =>
           url.endsWith("/agents/monitoring/validate")
+        ) &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/monitoring/prepare")
         )
     ),
     true,
@@ -908,6 +949,94 @@ async function main() {
     authProfile.secretHandling.some((rule) => rule.includes("Never place")),
     true,
   );
+  assert.equal(
+    authProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/auth/prepare")
+    ),
+    true,
+  );
+  assert.equal(authProfile.preparationEndpoint.path, "/agents/auth/prepare");
+  assert.equal(
+    authProfile.preparationEndpoint.nonAuthority.includes("permission grant"),
+    true,
+  );
+
+  const authPreparation = prepareAgentAuthPayload({
+    schemaVersion: 1,
+    preparationIntent: "agent_auth_route",
+    actionId: "apply_to_request",
+    requestedAuthScheme: "resolver_bearer",
+    requestedScopes: ["commitments:propose"],
+    hasHumanApproval: true,
+    hasRequestPolicyCheck: true,
+    hasIdempotencyKey: true,
+    notCredentialRequest: true,
+    noSecretsIncluded: true,
+    claimsCredentialIssued: false,
+    claimsPermissionGranted: false,
+    claimsProductionAccess: false,
+    claimsPaymentAuthority: false,
+  });
+  assert.equal(authPreparation.status, "auth_plan_ready");
+  assert.equal(
+    authPreparation.authPlan.recommendedAuthScheme,
+    "resolver_bearer",
+  );
+  assert.equal(authPreparation.authPlan.missingScopes.length, 0);
+  assert.equal(authPreparation.credentialIssued, false);
+  assert.equal(authPreparation.permissionGranted, false);
+  assert.equal(authPreparation.durableWriteCreated, false);
+  assert.equal(
+    authPreparation.operatorReview.requiredForProductionExternalAgent,
+    false,
+  );
+
+  const blockedAuthPreparation = prepareAgentAuthPayload({
+    schemaVersion: 1,
+    preparationIntent: "agent_auth_route",
+    actionId: "apply_to_request",
+    requestedAuthScheme: "external_oauth2",
+    requestedScopes: [],
+    hasHumanApproval: false,
+    hasRequestPolicyCheck: false,
+    hasIdempotencyKey: false,
+    notCredentialRequest: false,
+    noSecretsIncluded: false,
+    claimsCredentialIssued: true,
+    claimsPermissionGranted: true,
+    claimsProductionAccess: true,
+    claimsPaymentAuthority: true,
+  });
+  assert.equal(blockedAuthPreparation.status, "auth_plan_blocked");
+  assert.equal(
+    blockedAuthPreparation.missingFields.includes("notCredentialRequest=true"),
+    true,
+  );
+  assert.equal(
+    blockedAuthPreparation.missingFields.includes(
+      "requestedAuthScheme allowed for actionId"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedAuthPreparation.missingFields.includes(
+      "requestedScopes includes commitments:propose"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedAuthPreparation.missingFields.includes("hasHumanApproval=true"),
+    true,
+  );
+  assert.equal(
+    blockedAuthPreparation.missingFields.includes("hasRequestPolicyCheck=true"),
+    true,
+  );
+  assert.equal(
+    blockedAuthPreparation.missingFields.includes("hasIdempotencyKey=true"),
+    true,
+  );
+  assert.equal(blockedAuthPreparation.credentialIssued, false);
 
   const conformanceProfile = buildAgentConformanceProfile();
   assert.equal(conformanceProfile.status, "live_conformance_profile");
@@ -1539,8 +1668,24 @@ async function main() {
     true,
   );
   assert.equal(
+    monitoringProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/monitoring/prepare")
+    ),
+    true,
+  );
+  assert.equal(
     monitoringProfile.validationEndpoint.path,
     "/agents/monitoring/validate",
+  );
+  assert.equal(
+    monitoringProfile.preparationEndpoint.path,
+    "/agents/monitoring/prepare",
+  );
+  assert.equal(
+    monitoringProfile.preparationEndpoint.nonAuthority.includes(
+      "request activity read"
+    ),
+    true,
   );
   assert.equal(
     monitoringProfile.cursorRules.some(
@@ -1661,6 +1806,103 @@ async function main() {
     failedMonitorValidation.missingFields.includes("claimsCompletion=false"),
     true,
   );
+
+  const monitorPreparation = prepareAgentMonitoringPayload({
+    schemaVersion: 1,
+    preparationIntent: "monitor_request",
+    preparationMode: "monitor_execution_plan",
+    claimsActivityRead: false,
+    createsSubscription: false,
+    activatesPushDelivery: false,
+    createsHeartbeatEvents: false,
+    claimsCompletion: false,
+    claimsDurableWrite: false,
+    monitor: {
+      mode: "poll_cursor",
+      requestId: "req_public_design_001",
+      visibility: "public",
+      hasRequestAccess: true,
+      requestedScopes: [],
+      cursor: {
+        afterSequence: 0,
+      },
+      poll: {
+        intervalSeconds: 60,
+        limit: 40,
+      },
+      escalationTriggers: ["owner_review_needed", "stale_activity"],
+      storesCursor: true,
+      createsHeartbeatEvents: false,
+      claimsCompletion: false,
+      includesPrivatePayloads: false,
+    },
+  });
+  assert.equal(monitorPreparation.status, "monitor_plan_ready");
+  assert.equal(monitorPreparation.validationStatus, "validation_passed");
+  assert.equal(monitorPreparation.pollingReady, true);
+  assert.equal(monitorPreparation.activityReadCreated, false);
+  assert.equal(monitorPreparation.subscriptionPersisted, false);
+  assert.equal(monitorPreparation.pushDeliveryActivated, false);
+  assert.equal(monitorPreparation.requestEventWritten, false);
+  assert.equal(
+    monitorPreparation.cursorPollPlan.routeTemplate,
+    "/api/requests/{requestId}/activity",
+  );
+  assert.equal(monitorPreparation.cursorPollPlan.query.after_sequence, 0);
+  assert.equal(monitorPreparation.cursorPollPlan.query.limit, 40);
+  assert.equal(monitorPreparation.cursorPollPlan.canonicalWrites.length, 0);
+  assert.equal(
+    monitorPreparation.escalationHandoff.triggers.includes("stale_activity"),
+    true,
+  );
+  assert.equal(
+    monitorPreparation.targetWebhookReceiver.subscriptionEndpointLive,
+    false,
+  );
+
+  const blockedMonitorPreparation = prepareAgentMonitoringPayload({
+    schemaVersion: 1,
+    preparationIntent: "monitor_request",
+    preparationMode: "monitor_execution_plan",
+    claimsActivityRead: true,
+    createsSubscription: true,
+    activatesPushDelivery: true,
+    createsHeartbeatEvents: true,
+    claimsCompletion: true,
+    claimsDurableWrite: true,
+    monitor: {
+      mode: "poll_cursor",
+      requestId: "req_private_design_001",
+      visibility: "private",
+      requestedScopes: [],
+      cursor: {},
+      escalationTriggers: ["unknown_trigger"],
+      storesCursor: false,
+      createsHeartbeatEvents: true,
+      claimsCompletion: true,
+      includesPrivatePayloads: true,
+    },
+  });
+  assert.equal(blockedMonitorPreparation.status, "monitor_plan_blocked");
+  assert.equal(
+    blockedMonitorPreparation.missingFields.includes("claimsActivityRead=false"),
+    true,
+  );
+  assert.equal(
+    blockedMonitorPreparation.missingFields.includes("createsSubscription=false"),
+    true,
+  );
+  assert.equal(
+    blockedMonitorPreparation.missingFields.includes("monitor.storesCursor=true"),
+    true,
+  );
+  assert.equal(
+    blockedMonitorPreparation.missingFields.includes(
+      "monitor.cursor.afterSequence or cursor.nextAfterSequence"
+    ),
+    true,
+  );
+  assert.equal(blockedMonitorPreparation.permissionGranted, false);
 
   const accessReviewProfile = buildAgentAccessReviewProfile();
   assert.equal(accessReviewProfile.status, "live_access_review_profile");
@@ -2366,6 +2608,12 @@ async function main() {
   );
   assert.equal(
     sandboxManifest.resources.some((resource) =>
+      resource.url.endsWith("/agents/auth/prepare")
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.resources.some((resource) =>
       resource.url.endsWith("/agents/sandbox/replay")
     ),
     true,
@@ -2373,6 +2621,12 @@ async function main() {
   assert.equal(
     sandboxManifest.resources.some((resource) =>
       resource.url.endsWith("/agents/evidence/validate")
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.resources.some((resource) =>
+      resource.url.endsWith("/agents/monitoring/prepare")
     ),
     true,
   );
@@ -2672,6 +2926,7 @@ async function main() {
   assert.match(startGuide, /agentActionPolicy/);
   assert.match(startGuide, /GET \/agents\/access-review\.json/);
   assert.match(startGuide, /GET \/agents\/auth\.json/);
+  assert.match(startGuide, /POST \/agents\/auth\/prepare/);
   assert.match(startGuide, /GET \/agents\/conformance\.json/);
   assert.match(startGuide, /GET \/agents\/conformance-report\.example\.json/);
   assert.match(startGuide, /GET \/agents\/completion\.json/);
@@ -2699,9 +2954,12 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/readiness\.json/);
   assert.match(startGuide, /GET \/agents\/tools\.json/);
   assert.match(startGuide, /POST \/agents\/access-review\/prepare/);
+  assert.match(startGuide, /POST \/agents\/monitoring\/prepare/);
   assert.match(startGuide, /Agent action playbook/);
   assert.match(startGuide, /Agent access review profile/);
   assert.match(startGuide, /Agent access review preparation endpoint/);
+  assert.match(startGuide, /Agent auth preparation endpoint/);
+  assert.match(startGuide, /recommended auth scheme/);
   assert.match(startGuide, /Agent conformance report example/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent sandbox replay validation endpoint/);
@@ -2714,6 +2972,8 @@ async function main() {
   assert.match(startGuide, /Agent action preflight endpoint/);
   assert.match(startGuide, /Agent intake validation endpoint/);
   assert.match(startGuide, /manual handoff packet/);
+  assert.match(startGuide, /Agent monitoring preparation endpoint/);
+  assert.match(startGuide, /cursor polling plan/);
   assert.match(startGuide, /Agent monitoring validation endpoint/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent production access packet example/);
@@ -2759,6 +3019,10 @@ async function main() {
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/auth.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/auth/prepare"),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/conformance.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/conformance-report.example.json"),
@@ -2790,6 +3054,10 @@ async function main() {
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/http.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/ux.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/monitoring.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/monitoring/prepare"),
+    true,
+  );
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/monitoring/validate"),
     true,
@@ -2827,6 +3095,13 @@ async function main() {
   assert.equal(
     Object.hasOwn(
       discoveryIndex.components.schemas,
+      "AgentAuthPreparationResult"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
       "AgentActionPreflightResult"
     ),
     true,
@@ -2842,6 +3117,13 @@ async function main() {
     Object.hasOwn(
       discoveryIndex.components.schemas,
       "AgentMonitoringValidationResult"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentMonitoringPreparationResult"
     ),
     true,
   );
@@ -2937,6 +3219,22 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex["x-boreal-agent-monitoring"].preparationUrl.endsWith(
+      "/agents/monitoring/prepare"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-monitoring-preparation"].status,
+    "live_plan_preparation_only",
+  );
+  assert.equal(
+    discoveryIndex[
+      "x-boreal-agent-monitoring-preparation"
+    ].nonAuthority.includes("request activity read"),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-agent-recovery"].rules.some(
       (rule) => rule.id === "payment_or_credit_uncertain"
     ),
@@ -2945,6 +3243,22 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-auth"].schemes.some(
       (scheme) => scheme.id === "resolver_bearer"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-auth"].preparationUrl.endsWith(
+      "/agents/auth/prepare"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-auth-preparation"].status,
+    "live_plan_preparation_only",
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-auth-preparation"].nonAuthority.includes(
+      "credential issuer"
     ),
     true,
   );
@@ -3197,6 +3511,10 @@ async function main() {
     "schemas/json/agent-auth.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-auth-preparation.schema.json")?.sourcePath,
+    "schemas/json/agent-auth-preparation.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-conformance.schema.json")?.sourcePath,
     "schemas/json/agent-conformance.schema.json",
   );
@@ -3259,6 +3577,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-monitoring.schema.json")?.sourcePath,
     "schemas/json/agent-monitoring.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-monitoring-preparation.schema.json")?.sourcePath,
+    "schemas/json/agent-monitoring-preparation.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-monitoring-validation.schema.json")?.sourcePath,
@@ -3388,6 +3710,83 @@ async function main() {
   const agentAuthResponse = await getAgentAuth();
   assert.equal(agentAuthResponse.status, 200);
   assert.equal((await agentAuthResponse.json()).status, "live_auth_profile");
+
+  const authPreparationResponse = await postAgentAuthPreparation(
+    new Request("http://boreal.test/agents/auth/prepare", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        preparationIntent: "agent_auth_route",
+        actionId: "apply_to_request",
+        requestedAuthScheme: "resolver_bearer",
+        requestedScopes: ["commitments:propose"],
+        hasHumanApproval: true,
+        hasRequestPolicyCheck: true,
+        hasIdempotencyKey: true,
+        notCredentialRequest: true,
+        noSecretsIncluded: true,
+        claimsCredentialIssued: false,
+        claimsPermissionGranted: false,
+        claimsProductionAccess: false,
+        claimsPaymentAuthority: false,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(authPreparationResponse.status, 200);
+  const authPreparationRouteResult = await authPreparationResponse.json();
+  assert.equal(authPreparationRouteResult.status, "auth_plan_ready");
+  assert.equal(authPreparationRouteResult.credentialIssued, false);
+  assert.equal(authPreparationRouteResult.permissionGranted, false);
+  assert.equal(
+    authPreparationRouteResult.authPlan.recommendedAuthScheme,
+    "resolver_bearer",
+  );
+
+  const failedAuthPreparationResponse = await postAgentAuthPreparation(
+    new Request("http://boreal.test/agents/auth/prepare", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        preparationIntent: "agent_auth_route",
+        actionId: "apply_to_request",
+        requestedAuthScheme: "external_oauth2",
+        requestedScopes: [],
+        hasHumanApproval: false,
+        hasRequestPolicyCheck: false,
+        hasIdempotencyKey: false,
+        notCredentialRequest: false,
+        noSecretsIncluded: false,
+        claimsCredentialIssued: true,
+        claimsPermissionGranted: true,
+        claimsProductionAccess: true,
+        claimsPaymentAuthority: true,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(failedAuthPreparationResponse.status, 400);
+  const failedAuthPreparationRouteResult =
+    await failedAuthPreparationResponse.json();
+  assert.equal(
+    failedAuthPreparationRouteResult.status,
+    "auth_plan_blocked",
+  );
+  assert.equal(failedAuthPreparationRouteResult.credentialIssued, false);
+  assert.equal(failedAuthPreparationRouteResult.permissionGranted, false);
+
+  const malformedAuthPreparationResponse = await postAgentAuthPreparation(
+    new Request("http://boreal.test/agents/auth/prepare", {
+      body: "{",
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(malformedAuthPreparationResponse.status, 400);
+  assert.equal(
+    (await malformedAuthPreparationResponse.json()).productionAccessGranted,
+    false,
+  );
 
   const agentConformanceResponse = await getAgentConformance();
   assert.equal(agentConformanceResponse.status, 200);
@@ -3897,6 +4296,107 @@ async function main() {
     false,
   );
 
+  const monitorPreparationResponse = await postAgentMonitoringPreparation(
+    new Request("http://boreal.test/agents/monitoring/prepare", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        preparationIntent: "monitor_request",
+        preparationMode: "monitor_execution_plan",
+        claimsActivityRead: false,
+        createsSubscription: false,
+        activatesPushDelivery: false,
+        createsHeartbeatEvents: false,
+        claimsCompletion: false,
+        claimsDurableWrite: false,
+        monitor: {
+          mode: "poll_cursor",
+          requestId: "req_public_design_001",
+          visibility: "public",
+          hasRequestAccess: true,
+          requestedScopes: [],
+          cursor: {
+            afterSequence: 0,
+          },
+          poll: {
+            intervalSeconds: 60,
+            limit: 40,
+          },
+          escalationTriggers: ["owner_review_needed", "stale_activity"],
+          storesCursor: true,
+          createsHeartbeatEvents: false,
+          claimsCompletion: false,
+          includesPrivatePayloads: false,
+        },
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(monitorPreparationResponse.status, 200);
+  const monitorPreparationRouteResult =
+    await monitorPreparationResponse.json();
+  assert.equal(monitorPreparationRouteResult.status, "monitor_plan_ready");
+  assert.equal(monitorPreparationRouteResult.activityReadCreated, false);
+  assert.equal(monitorPreparationRouteResult.subscriptionPersisted, false);
+  assert.equal(monitorPreparationRouteResult.pushDeliveryActivated, false);
+  assert.equal(
+    monitorPreparationRouteResult.cursorPollPlan.cursorToPersist,
+    "cursor.nextAfterSequence",
+  );
+
+  const failedMonitorPreparationResponse = await postAgentMonitoringPreparation(
+    new Request("http://boreal.test/agents/monitoring/prepare", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        preparationIntent: "monitor_request",
+        preparationMode: "monitor_execution_plan",
+        claimsActivityRead: true,
+        createsSubscription: true,
+        activatesPushDelivery: true,
+        createsHeartbeatEvents: true,
+        claimsCompletion: true,
+        claimsDurableWrite: true,
+        monitor: {
+          mode: "poll_cursor",
+          requestId: "req_private_design_001",
+          visibility: "private",
+          requestedScopes: [],
+          cursor: {},
+          escalationTriggers: ["unknown_trigger"],
+          storesCursor: false,
+          createsHeartbeatEvents: true,
+          claimsCompletion: true,
+          includesPrivatePayloads: true,
+        },
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(failedMonitorPreparationResponse.status, 400);
+  const failedMonitorPreparationRouteResult =
+    await failedMonitorPreparationResponse.json();
+  assert.equal(
+    failedMonitorPreparationRouteResult.status,
+    "monitor_plan_blocked",
+  );
+  assert.equal(failedMonitorPreparationRouteResult.permissionGranted, false);
+  assert.equal(failedMonitorPreparationRouteResult.requestEventWritten, false);
+
+  const malformedMonitorPreparationResponse =
+    await postAgentMonitoringPreparation(
+      new Request("http://boreal.test/agents/monitoring/prepare", {
+        body: "{",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(malformedMonitorPreparationResponse.status, 400);
+  assert.equal(
+    (await malformedMonitorPreparationResponse.json()).subscriptionPersisted,
+    false,
+  );
+
   const agentMonitoringResponse = await getAgentMonitoring();
   assert.equal(agentMonitoringResponse.status, 200);
   assert.equal(
@@ -4029,6 +4529,7 @@ async function main() {
   assert.match(llmsText, /Agent action playbook/);
   assert.match(llmsText, /Agent action preflight endpoint/);
   assert.match(llmsText, /Agent auth profile/);
+  assert.match(llmsText, /Agent auth preparation endpoint/);
   assert.match(llmsText, /Agent conformance profile/);
   assert.match(llmsText, /Agent conformance report schema/);
   assert.match(llmsText, /Agent conformance report example/);
@@ -4044,6 +4545,7 @@ async function main() {
   assert.match(llmsText, /Agent UX profile/);
   assert.match(llmsText, /Agent intake validation endpoint/);
   assert.match(llmsText, /Agent monitoring profile/);
+  assert.match(llmsText, /Agent monitoring preparation endpoint/);
   assert.match(llmsText, /Agent monitoring validation endpoint/);
   assert.match(llmsText, /Agent onboarding profile/);
   assert.match(llmsText, /Agent opportunity card examples/);
@@ -4122,6 +4624,18 @@ async function main() {
   });
   assert.equal(authSchemaResponse.status, 200);
   assert.equal((await authSchemaResponse.json()).title, "AgentAuthProfile");
+
+  const authPreparationSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({ schema: "agent-auth-preparation.schema.json" }),
+    }
+  );
+  assert.equal(authPreparationSchemaResponse.status, 200);
+  assert.equal(
+    (await authPreparationSchemaResponse.json()).title,
+    "AgentAuthPreparation",
+  );
 
   const conformanceSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-conformance.schema.json" }),
@@ -4290,6 +4804,20 @@ async function main() {
   assert.equal(
     (await monitoringSchemaResponse.json()).title,
     "AgentMonitoringProfile"
+  );
+
+  const monitoringPreparationSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-monitoring-preparation.schema.json",
+      }),
+    }
+  );
+  assert.equal(monitoringPreparationSchemaResponse.status, 200);
+  assert.equal(
+    (await monitoringPreparationSchemaResponse.json()).title,
+    "AgentMonitoringPreparation",
   );
 
   const monitoringValidationSchemaResponse = await getJsonSchema(
