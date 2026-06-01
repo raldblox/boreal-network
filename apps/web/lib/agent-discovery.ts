@@ -43,6 +43,8 @@ export const agentDiscoveryPaths = {
   agentActions: "/agents/actions.md",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentProtocols: "/agents/protocols.md",
+  agentProtocolsJson: "/agents/protocols.json",
+  agentRecovery: "/agents/recovery.json",
   agentSandboxGuide: agentSandboxPaths.guide,
   agentSandboxManifest: agentSandboxPaths.manifest,
   agentStart: "/agents/start.md",
@@ -351,6 +353,22 @@ export const jsonSchemaDiscoveryAssets = [
     standard: "json_schema",
     title: "Agent workflow catalog",
   },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description: "Machine-readable MCP, A2A, and x402 protocol adapter profile schema.",
+    routePath: "/schemas/agent-protocols.schema.json",
+    sourcePath: "schemas/json/agent-protocols.schema.json",
+    standard: "json_schema",
+    title: "Agent protocol profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description: "Machine-readable agent recovery, retry, idempotency, and escalation profile schema.",
+    routePath: "/schemas/agent-recovery.schema.json",
+    sourcePath: "schemas/json/agent-recovery.schema.json",
+    standard: "json_schema",
+    title: "Agent recovery profile",
+  },
 ] as const satisfies readonly AgentDiscoveryAsset[];
 
 export const eventDiscoveryAssets = [
@@ -384,6 +402,8 @@ export function buildAgentCard() {
     url: absoluteUrl("/"),
     documentationUrl: absoluteUrl(agentDiscoveryPaths.agentStart),
     protocolProfileUrl: absoluteUrl(agentDiscoveryPaths.agentProtocols),
+    protocolProfileJsonUrl: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+    recoveryProfileUrl: absoluteUrl(agentDiscoveryPaths.agentRecovery),
     workflowCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
     sandboxUrl: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
     preferredTransport: "http",
@@ -405,6 +425,16 @@ export function buildAgentCard() {
     defaultInputModes: ["application/json", "text/markdown"],
     defaultOutputModes: ["application/json", "text/markdown"],
     actions: buildAgentActionCatalog(),
+    protocols: buildAgentProtocolProfile().standards.map((standard) => ({
+      id: standard.id,
+      name: standard.name,
+      status: standard.status,
+      role: standard.borealRole,
+    })),
+    recovery: {
+      url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      status: buildAgentRecoveryProfile().status,
+    },
     workflows: buildAgentWorkflowCatalog().workflows.map((workflow) => ({
       id: workflow.id,
       title: workflow.title,
@@ -512,6 +542,8 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent workflow catalog: [${agentDiscoveryPaths.agentWorkflows}](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)})
 - Agent monitor webhook profile: [${agentDiscoveryPaths.agentMonitorWebhooks}](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)})
 - Agent protocol profile: [${agentDiscoveryPaths.agentProtocols}](${absoluteUrl(agentDiscoveryPaths.agentProtocols)})
+- Agent protocol profile JSON: [${agentDiscoveryPaths.agentProtocolsJson}](${absoluteUrl(agentDiscoveryPaths.agentProtocolsJson)})
+- Agent recovery profile: [${agentDiscoveryPaths.agentRecovery}](${absoluteUrl(agentDiscoveryPaths.agentRecovery)})
 - Agent contract sandbox: [${agentDiscoveryPaths.agentSandboxGuide}](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)})
 - Agent sandbox manifest: [${agentDiscoveryPaths.agentSandboxManifest}](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)})
 - OpenAPI discovery index: [${agentDiscoveryPaths.openApiIndex}](${absoluteUrl(agentDiscoveryPaths.openApiIndex)})
@@ -547,6 +579,18 @@ For deterministic process flow, agents can read:
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentWorkflows}
+\`\`\`
+
+For deterministic protocol adapter boundaries, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentProtocolsJson}
+\`\`\`
+
+For deterministic failure, retry, monitor, and escalation handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentRecovery}
 \`\`\`
 
 ## Write-Capable Actions
@@ -727,6 +771,44 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/protocols.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent protocol profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for MCP, A2A, and x402 adapter/payment boundaries over Boreal Request truth.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentProtocolProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/recovery.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent recovery profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for safe auth, idempotency, retry, monitor, payment, and escalation handling.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentRecoveryProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/sandbox.md": {
         get: {
           tags: ["agent-discovery"],
@@ -851,10 +933,52 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentProtocolProfile: {
+          type: "object",
+          required: ["schemaVersion", "status", "standards", "canonicalBoundary"],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_protocol_profile" },
+            standards: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentRecoveryProfile: {
+          type: "object",
+          required: ["schemaVersion", "status", "recoveryRules", "canonicalBoundary"],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_recovery_profile" },
+            recoveryRules: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
       },
     },
     "x-boreal-contracts": contracts,
     "x-boreal-agent-actions": buildAgentActionCatalog(),
+    "x-boreal-agent-protocols": {
+      url: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+      standards: buildAgentProtocolProfile().standards.map((standard) => ({
+        id: standard.id,
+        name: standard.name,
+        status: standard.status,
+      })),
+    },
+    "x-boreal-agent-recovery": {
+      url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      rules: buildAgentRecoveryProfile().recoveryRules.map((rule) => ({
+        id: rule.id,
+        retryPolicy: rule.retryPolicy,
+        canonicalWritesAllowed: rule.canonicalWritesAllowed,
+      })),
+    },
     "x-boreal-agent-workflows": {
       url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
       workflows: buildAgentWorkflowCatalog().workflows.map((workflow) => ({
@@ -1372,6 +1496,532 @@ Receivers should reject callbacks when:
 
 Webhook delivery is transport. It does not create a new root object, and it does not replace \`Request\`, \`RequestEvent\`, \`Artifact\`, \`Commitment\`, \`Fulfillment\`, or \`Transaction\` truth.
 `;
+}
+
+export function buildAgentProtocolProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_protocol_profile",
+    name: "Boreal Agent Protocol Profile",
+    description:
+      "Machine-readable MCP, A2A, and x402 adapter boundaries for agents that use Boreal without replacing Request-native truth.",
+    resources: [
+      {
+        label: "Agent protocol markdown",
+        url: absoluteUrl(agentDiscoveryPaths.agentProtocols),
+      },
+      {
+        label: "Agent protocol schema",
+        url: absoluteUrl("/schemas/agent-protocols.schema.json"),
+      },
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Request OpenAPI",
+        url: absoluteUrl("/openapi/request-briefing.yaml"),
+      },
+      {
+        label: "Payment OpenAPI",
+        url: absoluteUrl("/openapi/payment-and-credit.yaml"),
+      },
+    ],
+    standards: [
+      {
+        id: "mcp",
+        name: "Model Context Protocol",
+        officialSpecUrl: "https://modelcontextprotocol.io/specification/2025-06-18",
+        status: "target_adapter_profile",
+        borealRole: "Capability and context plane for agent hosts.",
+        useFor: [
+          "stable resource reads",
+          "governed mutation tools",
+          "reusable prompts",
+          "schema and contract discovery inside agent hosts",
+        ],
+        doNotUseFor: [
+          "high-frequency token deltas",
+          "desktop heartbeats",
+          "raw runtime logs",
+          "durable request history",
+        ],
+        adapterMappings: [
+          {
+            externalConcept: "MCP Resource",
+            borealMapping:
+              "Public or authorized reads over Request, Supply, Artifact, activity, and schema resources.",
+            durableWrites: [],
+          },
+          {
+            externalConcept: "MCP Tool",
+            borealMapping:
+              "A governed wrapper around existing HTTP mutations such as propose commitment, publish artifact, monitor activity, or run public solution.",
+            durableWrites: ["Commitment", "Artifact", "Fulfillment", "Transaction"],
+          },
+          {
+            externalConcept: "MCP Prompt",
+            borealMapping:
+              "Reusable instruction template for request briefing, application, proof submission, monitoring, or optimization.",
+            durableWrites: [],
+          },
+        ],
+        resources: [
+          "boreal://requests/public",
+          "boreal://requests/{requestId}",
+          "boreal://requests/{requestId}/activity",
+          "boreal://requests/{requestId}/artifacts",
+          "boreal://schemas/request",
+          "boreal://schemas/artifact",
+        ],
+        tools: [
+          {
+            id: "search_public_requests",
+            actionId: "inspect_public_requests",
+            canonicalWrites: [],
+            auth: "none",
+          },
+          {
+            id: "propose_commitment",
+            actionId: "apply_to_request",
+            canonicalWrites: ["Commitment", "RequestEvent"],
+            auth: "Boreal account session or resolver bearer token with commitments:propose",
+          },
+          {
+            id: "publish_artifact",
+            actionId: "submit_artifact",
+            canonicalWrites: ["Artifact", "RequestEvent"],
+            auth: "Boreal account session or resolver bearer token with artifacts:publish",
+          },
+          {
+            id: "monitor_request",
+            actionId: "monitor_request",
+            canonicalWrites: [],
+            auth: "none for public activity; scoped auth for owner-private activity",
+          },
+          {
+            id: "run_public_solution",
+            actionId: "run_public_solution",
+            canonicalWrites: ["Request", "Transaction"],
+            auth: "Boreal account session",
+          },
+        ],
+        prompts: [
+          "brief_request",
+          "apply_to_request",
+          "submit_proof",
+          "optimize_plan",
+          "monitor_request",
+        ],
+      },
+      {
+        id: "a2a",
+        name: "Agent2Agent Protocol",
+        officialSpecUrl: "https://a2a-protocol.org/v0.3.0/specification/",
+        status: "target_adapter_profile",
+        borealRole: "External agent interoperability and task handoff.",
+        useFor: [
+          "agent card style discovery",
+          "external task handoff",
+          "artifact handoff",
+          "streaming or push status adapters",
+        ],
+        doNotUseFor: [
+          "replacing Request as the durable root",
+          "storing A2A task status as canonical lifecycle state without promotion",
+          "bypassing commitment or artifact gates",
+        ],
+        adapterMappings: [
+          {
+            externalConcept: "Agent Card",
+            borealMapping: "Public Boreal agent card plus protocol and workflow catalogs.",
+            durableWrites: [],
+          },
+          {
+            externalConcept: "Task",
+            borealMapping:
+              "Adapter correlation id for a request-bound operation; never the Boreal root object.",
+            durableWrites: [],
+          },
+          {
+            externalConcept: "Message",
+            borealMapping:
+              "Instruction, status context, or communication that must be promoted through governed routes before becoming durable truth.",
+            durableWrites: [],
+          },
+          {
+            externalConcept: "Artifact",
+            borealMapping:
+              "Boreal Artifact only after accepted as proof, delivery, receipt, file, media, signature, or output.",
+            durableWrites: ["Artifact", "RequestEvent"],
+          },
+          {
+            externalConcept: "Status update",
+            borealMapping:
+              "Ephemeral adapter progress by default; FulfillmentStep or RequestEvent only when promoted to durable business truth.",
+            durableWrites: ["FulfillmentStep", "RequestEvent"],
+          },
+        ],
+        resources: [],
+        tools: [
+          {
+            id: "a2a_apply_to_request",
+            actionId: "apply_to_request",
+            canonicalWrites: ["Commitment", "RequestEvent"],
+            auth: "scoped Boreal auth before adapter task mutation",
+          },
+          {
+            id: "a2a_submit_artifact",
+            actionId: "submit_artifact",
+            canonicalWrites: ["Artifact", "RequestEvent"],
+            auth: "scoped Boreal auth plus accepted lane or direct-owner authorization",
+          },
+          {
+            id: "a2a_monitor_request",
+            actionId: "monitor_request",
+            canonicalWrites: [],
+            auth: "public or scoped Boreal auth depending on request visibility",
+          },
+        ],
+        prompts: [],
+      },
+      {
+        id: "x402",
+        name: "x402",
+        officialSpecUrl: "https://docs.x402.org/",
+        status: "target_payment_profile",
+        borealRole: "Optional payment rail for paid calls, paid solution runs, or agent-paid capacity.",
+        useFor: [
+          "paid public solution run",
+          "paid external tool call",
+          "paid provider API call",
+          "paid artifact generation",
+          "agent-paid capability call",
+        ],
+        doNotUseFor: [
+          "proving fulfillment completion",
+          "replacing Transaction truth",
+          "mutating request status without governed writes",
+          "assuming facilitator network support without explicit configuration",
+        ],
+        adapterMappings: [
+          {
+            externalConcept: "402 Payment Required challenge",
+            borealMapping:
+              "Optional challenge only on endpoints explicitly marked x402-capable.",
+            durableWrites: [],
+          },
+          {
+            externalConcept: "Payment payload",
+            borealMapping:
+              "Provider/facilitator payload captured as payment metadata, not as business completion truth.",
+            durableWrites: [],
+          },
+          {
+            externalConcept: "Verification or settlement",
+            borealMapping:
+              "Reconcile successful verification or settlement into one Boreal Transaction.",
+            durableWrites: ["Transaction", "RequestEvent"],
+          },
+        ],
+        resources: [],
+        tools: [
+          {
+            id: "negotiate_paid_run",
+            actionId: "run_public_solution",
+            canonicalWrites: ["Transaction"],
+            auth: "buyer or payment agent auth plus explicit x402-capable endpoint",
+          },
+        ],
+        prompts: [],
+      },
+    ],
+    implementationOrder: [
+      "Keep HTTP, JSON Schema, AsyncAPI, and public discovery as the baseline.",
+      "Implement MCP as a gateway over existing contracts, not as a second backend.",
+      "Implement A2A as an adapter over request-bound operations.",
+      "Implement x402 only after the paid endpoint's Transaction reconciliation path is explicit.",
+      "Add sandbox credentials and fixtures before calling any adapter production-ready.",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Supply",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      adapterObjects: ["MCP Resource", "MCP Tool", "MCP Prompt", "A2A Task", "x402 payment payload"],
+      notRoots: [
+        "MCP session",
+        "MCP resource",
+        "MCP tool call",
+        "A2A task",
+        "A2A status update",
+        "x402 payment payload",
+        "webhook delivery attempt",
+        "chat transcript",
+        "runtime log",
+      ],
+      rules: [
+        "Read agentActionPolicy before protocol adapter writes.",
+        "Do not treat adapter ids as Request ids.",
+        "Do not persist noisy telemetry as RequestEvent history.",
+        "Do not let payment success imply fulfillment completion.",
+        "Promote external artifacts only through governed Artifact writes.",
+      ],
+    },
+  };
+}
+
+export function buildAgentRecoveryProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_recovery_profile",
+    name: "Boreal Agent Recovery Profile",
+    description:
+      "Machine-readable recovery and escalation rules for agents using Boreal request-native work contracts.",
+    resources: [
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Request OpenAPI",
+        url: absoluteUrl("/openapi/request-briefing.yaml"),
+      },
+      {
+        label: "Payment OpenAPI",
+        url: absoluteUrl("/openapi/payment-and-credit.yaml"),
+      },
+      {
+        label: "Request activity AsyncAPI",
+        url: absoluteUrl("/events/request-room.asyncapi.yaml"),
+      },
+      {
+        label: "Agent recovery schema",
+        url: absoluteUrl("/schemas/agent-recovery.schema.json"),
+      },
+    ],
+    standardProfiles: [
+      {
+        name: "HTTP status codes",
+        status: "live_route_behavior",
+        use: "Classify auth, forbidden, bad input, not found, rate-limit, and server failures before retrying.",
+      },
+      {
+        name: "Idempotency-Key",
+        status: "live_route_behavior",
+        use: "Replay mutation attempts only with the same UUID key when the endpoint supports or requires idempotency.",
+      },
+      {
+        name: "Retry-After",
+        status: "target_header_profile",
+        use: "Prefer server-provided delay hints when rate-limit routes expose them.",
+      },
+      {
+        name: "Problem Details",
+        status: "target_error_envelope",
+        use: "Future JSON error envelopes should be compatible with a standard problem-details shape while preserving Boreal error codes.",
+      },
+    ],
+    recoveryRules: [
+      {
+        id: "unauthenticated",
+        httpStatuses: [401],
+        borealSignals: ["unauthorized:chat", "unauthorized:auth"],
+        appliesTo: ["private request reads", "agent writes", "buyer-credit routes", "solution-run routes"],
+        meaning:
+          "The agent has no valid Boreal account session or approved resolver bearer token for this route.",
+        nextAction:
+          "Stop mutation attempts, acquire the correct account session or resolver approval, then re-read the request detail and agentActionPolicy.",
+        retryPolicy: "do_not_retry_until_auth_changes",
+        canonicalWritesAllowed: [],
+        escalation:
+          "Ask the represented human to sign in, approve resolver access, or choose an anonymous public inspection flow.",
+      },
+      {
+        id: "forbidden_or_missing_scope",
+        httpStatuses: [403],
+        borealSignals: ["forbidden:chat"],
+        appliesTo: ["owner-private reads", "resolver writes", "fulfillment or artifact writes"],
+        meaning:
+          "The actor is known but lacks ownership, participant role, lane authority, or required resolver scope.",
+        nextAction:
+          "Do not retry blindly. Re-read agentActionPolicy, inspect missingScopes when present, and request a narrower approved scope or human approval.",
+        retryPolicy: "do_not_retry_until_policy_changes",
+        canonicalWritesAllowed: [],
+        escalation:
+          "Escalate to the request owner or represented human when the needed action is blocked by ownership, scope, or lifecycle state.",
+      },
+      {
+        id: "invalid_payload_or_idempotency_conflict",
+        httpStatuses: [400, 409],
+        borealSignals: ["bad_request:api", "Idempotency-Key must be a UUID", "idempotency conflict"],
+        appliesTo: ["commitment create", "artifact publish", "fulfillment create", "solution run", "payment mutation"],
+        meaning:
+          "The request body is invalid, the idempotency key is malformed, or the same key was already used for a different semantic mutation.",
+        nextAction:
+          "Fix payload shape with the relevant OpenAPI schema. For same operation retry, reuse the same idempotency key; for a new semantic operation, generate a new UUID key.",
+        retryPolicy: "retry_only_after_payload_or_key_fix",
+        canonicalWritesAllowed: [],
+        escalation:
+          "Escalate when the agent cannot prove whether the prior mutation committed; inspect request activity before creating a replacement write.",
+      },
+      {
+        id: "rate_limited_or_quota_limited",
+        httpStatuses: [429, 400],
+        borealSignals: ["rate_limit:chat", "rate_limit:auth", "quota limit", "token limit"],
+        appliesTo: ["chat", "resolver device start", "reusable prompt runs", "provider-backed execution"],
+        meaning:
+          "The server rejected more work because of rate limits, quota windows, or token limits.",
+        nextAction:
+          "Back off. Prefer Retry-After when present; otherwise persist local retry state and avoid creating new durable RequestEvent noise.",
+        retryPolicy: "retry_after_delay_without_duplicate_mutation",
+        canonicalWritesAllowed: [],
+        escalation:
+          "Ask the human to reduce scope, wait for quota reset, top up where applicable, or choose a smaller request lane.",
+      },
+      {
+        id: "not_found_or_private",
+        httpStatuses: [404, 401, 403],
+        borealSignals: ["not_found:chat", "Request not found", "Source request or accepted artifact not found"],
+        appliesTo: ["request detail", "source solution reads", "artifact reads", "chat source prompts"],
+        meaning:
+          "The object is missing or intentionally hidden from this actor.",
+        nextAction:
+          "Do not infer private existence from error shape. Return to public discovery or ask the owner for access.",
+        retryPolicy: "do_not_retry_without_new_reference_or_access",
+        canonicalWritesAllowed: [],
+        escalation:
+          "Escalate only when the represented human expected access and can provide a correct id or authorization.",
+      },
+      {
+        id: "monitor_cursor_resume",
+        httpStatuses: [200, 400],
+        borealSignals: ["cursor.nextAfterSequence", "after_sequence"],
+        appliesTo: ["request activity monitor", "webhook receiver", "agent polling loop"],
+        meaning:
+          "Monitoring should resume from durable RequestEvent.sequence checkpoints instead of writing heartbeat events.",
+        nextAction:
+          "Persist cursor.nextAfterSequence after every successful poll and send it back as after_sequence on the next request. If the cursor is invalid, restart from latest read without creating events.",
+        retryPolicy: "resume_from_last_confirmed_cursor",
+        canonicalWritesAllowed: [],
+        escalation:
+          "Escalate stale requests when activity has not advanced past the agent's SLA or when proof, review, or payment state is missing.",
+      },
+      {
+        id: "blocked_fulfillment_or_retryable_provider_failure",
+        httpStatuses: [200, 400],
+        borealSignals: ["blocked fulfillment", "retryable provider handoff failure", "POST /api/fulfillments/{id}/retry"],
+        appliesTo: ["first-party worker lane", "desktop runtime lane", "provider handoff", "artifact storage handoff"],
+        meaning:
+          "The same Fulfillment lane should be retried or resumed when the failure is recoverable; agents should not fork a second Request or fake completion.",
+        nextAction:
+          "Use the existing retry endpoint or escalate to the lane owner. Preserve provider task ids, object ids, idempotency keys, and recovery metadata.",
+        retryPolicy: "retry_same_fulfillment_lane_when_supported",
+        canonicalWritesAllowed: ["Fulfillment", "FulfillmentStep", "Artifact", "RequestEvent"],
+        escalation:
+          "Escalate to a human operator when retry would duplicate side effects, when provider state is unknown, or when proof is incomplete.",
+      },
+      {
+        id: "payment_or_credit_uncertain",
+        httpStatuses: [200, 400, 402, 409],
+        borealSignals: ["buyer credit application is still settling", "payment verification failed", "x402 facilitator mismatch"],
+        appliesTo: ["buyer credit apply", "solution run", "direct request funding", "x402 target profile"],
+        meaning:
+          "Payment state must reconcile into Transaction before agents claim capacity, funding, or paid execution is available.",
+        nextAction:
+          "Inspect returned Transaction, buyer-credit ledger, or settlement metadata. Do not mark work complete because payment succeeded; fulfillment and artifact truth are separate.",
+        retryPolicy: "retry_only_with_transaction_reconciliation",
+        canonicalWritesAllowed: ["Transaction", "RequestEvent"],
+        escalation:
+          "Escalate when facilitator network, authorization, or settlement status is ambiguous. Do not blame wallet funding before checking facilitator behavior.",
+      },
+      {
+        id: "terminal_or_unknown_server_failure",
+        httpStatuses: [500, 502, 503, 504],
+        borealSignals: ["server_error", "provider failure", "storage failure", "unknown failure"],
+        appliesTo: ["all agent-callable routes"],
+        meaning:
+          "The agent cannot prove whether the attempted operation committed.",
+        nextAction:
+          "Stop duplicate mutation attempts until the agent re-reads request detail, request activity, and related object lists with the same idempotency key context.",
+        retryPolicy: "verify_state_before_retry",
+        canonicalWritesAllowed: [],
+        escalation:
+          "Escalate with route, request id, idempotency key, timestamp, provider refs, and last observed RequestEvent sequence.",
+      },
+    ],
+    idempotencyPolicy: {
+      header: "Idempotency-Key",
+      keyFormat: "uuid",
+      sameOperationRule:
+        "Reuse the same key when retrying the same semantic mutation after an uncertain network or server result.",
+      newOperationRule:
+        "Generate a new key only when the intended durable mutation is different.",
+      inspectBeforeRetry:
+        "Before retrying after an unknown failure, read request detail and activity to avoid duplicate Commitment, Artifact, Fulfillment, Transaction, or run Request truth.",
+      requiredFor: [
+        "apply_to_request",
+        "submit_artifact",
+        "create_fulfillment",
+        "update_fulfillment",
+        "retry_fulfillment",
+        "run_public_solution",
+        "buyer_credit_apply",
+        "payment_mutation",
+      ],
+    },
+    escalationPacket: [
+      "requestId",
+      "actionId",
+      "actor kind and public actor id, never raw secrets",
+      "route and HTTP method",
+      "status code and Boreal error code or message",
+      "idempotency key when used",
+      "last known RequestEvent.sequence or cursor.nextAfterSequence",
+      "related Commitment, Fulfillment, Artifact, or Transaction ids",
+      "provider task id, payment reference, or webhook delivery id when available",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      notRoots: [
+        "agentRecoveryProfile",
+        "HTTP error",
+        "retry attempt",
+        "rate-limit hit",
+        "webhook delivery attempt",
+        "provider error",
+        "x402 payment payload",
+        "local runtime log",
+      ],
+      rules: [
+        "Recovery guidance does not grant permission.",
+        "Read agentActionPolicy before retrying write actions.",
+        "Never create a new Request only to recover worker sub-work unless funding, ownership, routing, or review boundaries changed.",
+        "Do not write RequestEvent heartbeat noise for monitor retries.",
+        "Do not claim completion without Fulfillment and Artifact truth.",
+      ],
+    },
+  };
 }
 
 export function buildAgentProtocolProfileMarkdown() {

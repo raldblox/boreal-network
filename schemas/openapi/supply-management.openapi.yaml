@@ -9,6 +9,13 @@ paths:
   /api/supplies:
     get:
       summary: List owned supplies for the authenticated owner or an approved resolver runtime with `supplies:read_private`.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Account session or approved resolver runtime for owned supply list reads.
+      x-boreal-required-scopes:
+        resolver:
+          - supplies:read_private
       parameters:
         - in: query
           name: limit
@@ -49,6 +56,9 @@ paths:
                     type: boolean
     post:
       summary: Create an explicit draft Supply from one preset, or enable one Boreal-managed starter supply.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Resolver runtimes may read owned supply lists when scoped, but they do not create Supply rows through this route.
       requestBody:
         required: false
         content:
@@ -88,6 +98,9 @@ paths:
   /api/supplies/{id}:
     get:
       summary: Get one owned supply detail view.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only in the live route.
       parameters:
         - in: path
           name: id
@@ -110,6 +123,9 @@ paths:
                     $ref: "#/components/schemas/WebSupply"
     patch:
       summary: Update one owned supply or advance its lifecycle.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Supply lifecycle mutation is not resolver-bearer enabled in the live route.
       parameters:
         - in: path
           name: id
@@ -138,6 +154,9 @@ paths:
                     $ref: "#/components/schemas/WebSupply"
     delete:
       summary: Delete one owned draft or retired supply when no durable activity depends on it.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Supply deletion is not resolver-bearer enabled in the live route.
       parameters:
         - in: path
           name: id
@@ -159,6 +178,17 @@ paths:
                   supply:
                     $ref: "#/components/schemas/WebSupply"
 components:
+  securitySchemes:
+    BorealAccountSession:
+      type: apiKey
+      in: cookie
+      name: authjs.session-token
+      description: Browser account session managed by Auth.js. Deployments may use the secure cookie variant __Secure-authjs.session-token.
+    ResolverBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Boreal resolver access token
+      description: Boreal-issued resolver access token from resolver device approval. Operation extensions list resolver scopes when live routes enforce them.
   schemas:
     BorealSupplyKind:
       type: string

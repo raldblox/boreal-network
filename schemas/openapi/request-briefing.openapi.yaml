@@ -11,6 +11,15 @@ paths:
   /api/requests:
     get:
       summary: Get the active request draft for one chat thread or list public open requests.
+      security:
+        - {}
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Public request and public solution list reads are anonymous; chat-scoped draft and owner/private list reads require an account session or resolver bearer token.
+      x-boreal-required-scopes:
+        resolver:
+          - requests:read_private
+      x-boreal-scope-condition: Resolver scope is required only for owner/private reads, not for scope=public or scope=public_solutions.
       parameters:
         - in: query
           name: chatId
@@ -75,6 +84,9 @@ paths:
                         type: boolean
     post:
       summary: Create an explicit draft Request for one chat thread.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Resolver bearer tokens do not create browser chat draft requests through this route.
       requestBody:
         required: true
         content:
@@ -111,6 +123,9 @@ paths:
                     $ref: "#/components/schemas/WebRequestDraft"
     patch:
       summary: Save a draft Request projection or advance it into the canonical open state.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Opening a request still requires buyer-owned session approval.
       requestBody:
         required: true
         content:
@@ -155,6 +170,10 @@ paths:
   /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze:
     post:
       summary: Analyze one public or owned scratch-chat user message as a reusable prompt.
+      security:
+        - {}
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Public scratch-chat messages may be analyzed anonymously; private source chats require the owning account session.
       description: >
         Read-only deterministic analysis. The endpoint detects V1 variables such
         as bracketed examples and explicit placeholders, but does not create a
@@ -188,6 +207,9 @@ paths:
   /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs:
     post:
       summary: Create a private chat fork from one reusable scratch-chat prompt.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. This creates a private buyer chat fork and does not accept resolver bearer auth in the live route.
       description: >
         Validates required fields, creates or reuses one private scratch chat
         keyed by idempotency, stores source chat/message provenance on the
@@ -236,6 +258,15 @@ paths:
   /api/requests/{id}/activity:
     get:
       summary: Get recent or cursor-resumed activity for one request room.
+      security:
+        - {}
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Public request activity may be read anonymously; owner/private activity requires an account session or resolver bearer token.
+      x-boreal-required-scopes:
+        resolver:
+          - requests:read_activity
+      x-boreal-scope-condition: Resolver scope is required only for owner/private activity reads.
       description: >
         Without after_sequence this returns the latest durable activity in
         newest-first order. With after_sequence it returns events with a higher
@@ -284,6 +315,16 @@ paths:
   /api/requests/{id}:
     get:
       summary: Get one request detail view for an owner or public responder runtime.
+      security:
+        - {}
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Public-safe request detail may be read anonymously; owner-private detail requires account session or resolver bearer auth.
+      x-boreal-required-scopes:
+        resolver:
+          - requests:read_private
+      x-boreal-scope-condition: Resolver scope is required only for owner/private detail reads.
+      x-boreal-response-policy-field: agentActionPolicy
       parameters:
         - in: path
           name: id
@@ -300,6 +341,13 @@ paths:
                 $ref: "#/components/schemas/WebRequestDetailResponse"
     patch:
       summary: Set or clear one owner-scoped preferred supply on a private request.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Owner-scoped request routing mutation through account session or approved resolver runtime.
+      x-boreal-required-scopes:
+        resolver:
+          - requests:update_private
       parameters:
         - in: path
           name: id
@@ -329,6 +377,13 @@ paths:
   /api/requests/{id}/commitments:
     post:
       summary: Propose one durable commitment on an open request.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Authenticated responder or approved resolver runtime only.
+      x-boreal-required-scopes:
+        resolver:
+          - commitments:propose
       parameters:
         - in: path
           name: id
@@ -357,6 +412,13 @@ paths:
   /api/commitments/{id}:
     patch:
       summary: Accept one durable commitment as the request owner.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Request owner session or owner-approved resolver runtime only.
+      x-boreal-required-scopes:
+        resolver:
+          - commitments:accept
       parameters:
         - in: path
           name: id
@@ -386,6 +448,13 @@ paths:
   /api/requests/{id}/fulfillments:
     post:
       summary: Create one durable fulfillment lane from an accepted commitment.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Account session or approved resolver runtime. Public or cross-actor work still requires commitment gates.
+      x-boreal-required-scopes:
+        resolver:
+          - fulfillments:create
       parameters:
         - in: path
           name: id
@@ -421,6 +490,13 @@ paths:
   /api/requests/{id}/artifacts:
     post:
       summary: Publish one durable artifact on an open request.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Account session or approved resolver runtime with an authorized request or fulfillment role.
+      x-boreal-required-scopes:
+        resolver:
+          - artifacts:publish
       parameters:
         - in: path
           name: id
@@ -449,6 +525,15 @@ paths:
   /api/fulfillments/{id}:
     get:
       summary: Get one fulfillment detail view for an owner, participant, or public responder runtime.
+      security:
+        - {}
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Public fulfillment detail may be read anonymously; private owner or participant detail requires account session or resolver bearer auth.
+      x-boreal-required-scopes:
+        resolver:
+          - fulfillments:read
+      x-boreal-scope-condition: Resolver scope is required only for non-public fulfillment reads.
       parameters:
         - in: path
           name: id
@@ -471,6 +556,13 @@ paths:
                     $ref: "#/components/schemas/WebFulfillment"
     patch:
       summary: Update one durable fulfillment lane.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Account session or approved resolver runtime for the authorized fulfillment actor.
+      x-boreal-required-scopes:
+        resolver:
+          - fulfillments:update
       parameters:
         - in: path
           name: id
@@ -506,6 +598,13 @@ paths:
   /api/fulfillments/{id}/retry:
     post:
       summary: Resume one blocked Boreal-managed fulfillment lane from the same request lane.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Account session or approved resolver runtime for the authorized fulfillment actor.
+      x-boreal-required-scopes:
+        resolver:
+          - fulfillments:update
       parameters:
         - in: path
           name: id
@@ -581,6 +680,17 @@ webhooks:
         "400":
           description: Invalid payload, stale timestamp, invalid signature, or unauthorized monitor context.
 components:
+  securitySchemes:
+    BorealAccountSession:
+      type: apiKey
+      in: cookie
+      name: authjs.session-token
+      description: Browser account session managed by Auth.js. Deployments may use the secure cookie variant __Secure-authjs.session-token.
+    ResolverBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Boreal resolver access token
+      description: Boreal-issued resolver access token from resolver device approval. Operation extensions list resolver scopes when live routes enforce them.
   schemas:
     WebReusablePromptField:
       type: object

@@ -7,6 +7,8 @@ export const agentSandboxPaths = {
   manifest: "/agents/sandbox.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
   protocols: "/agents/protocols.md",
+  protocolsJson: "/agents/protocols.json",
+  recovery: "/agents/recovery.json",
   schema: "/schemas/agent-sandbox.schema.json",
   start: "/agents/start.md",
 } as const;
@@ -55,6 +57,14 @@ export function buildAgentSandboxManifest() {
       {
         label: "Protocol profile",
         url: absoluteUrl(agentSandboxPaths.protocols),
+      },
+      {
+        label: "Protocol profile JSON",
+        url: absoluteUrl(agentSandboxPaths.protocolsJson),
+      },
+      {
+        label: "Recovery profile",
+        url: absoluteUrl(agentSandboxPaths.recovery),
       },
       {
         label: "Monitor webhook profile",

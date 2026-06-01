@@ -76,6 +76,8 @@ Current assets that agents can eventually build on:
 - Request-room async event contracts exist under `schemas/events/`.
 - A contract-only agent sandbox exists through `/agents/sandbox.md`, `/agents/sandbox.json`, `schemas/json/agent-sandbox.schema.json`, `fixtures/agent/sandbox-manifest.sample.json`, and `pnpm contracts:agent-sandbox`.
 - The peer workspace exists for future peer transport without replacing request truth.
+- A machine-readable protocol profile exists through `/agents/protocols.json` and `schemas/json/agent-protocols.schema.json`, mapping MCP, A2A, and x402 adapter concepts below Boreal canonical truth.
+- A machine-readable recovery profile exists through `/agents/recovery.json` and `schemas/json/agent-recovery.schema.json`, mapping auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and escalation behavior for agents.
 
 Current gaps to close before Boreal is truly agent-native:
 
@@ -84,10 +86,13 @@ Current gaps to close before Boreal is truly agent-native:
 - the first public bundled OpenAPI index route is discovery-oriented and still points to existing YAML contracts rather than a complete merged API surface
 - the first public schema catalog is allowlisted and read-only, but no generated client package exists yet
 - the first request-detail `agentActionPolicy` compiler now accounts for public visibility, private ownership, resolver scopes, solution-run session requirements, and idempotency-gated actions; deeper rate-limit, payment-balance, lane-participant, and failure-mode policy remains target direction
+- the first OpenAPI auth metadata pass now declares account-session, resolver-bearer, anonymous-public, provider-callback, and refresh-token body boundaries in the machine-readable contracts; OAuth-compatible external-agent authorization remains target direction
 - no MCP server profile for Boreal resources and mutation tools
 - no A2A adapter that maps A2A tasks/artifacts onto Boreal requests, fulfillments, and artifacts
 - no x402 or wallet-based execution payment profile in the canonical web app
 - the first MCP/A2A/x402 boundary profile now exists, but implementation adapters are not live yet
+- the first machine-readable MCP/A2A/x402 protocol profile now exists, so agents can read adapter mappings, non-goals, implementation order, and canon boundaries without scraping markdown
+- the first machine-readable recovery profile now exists, so agents can handle failed writes, missing scopes, rate limits, blocked fulfillments, payment uncertainty, and stale monitor cursors without inventing parallel recovery state
 - the first contract-only sandbox and fixture runner exist, but no production sandbox credentials or isolated write sandbox exists for external agents yet
 - the first signed webhook/push-notification profile is documented for long-running agent monitoring, but subscription persistence and delivery are not live yet
 - the first machine-readable action catalog and public action playbook now name inspect, apply, submit, monitor, run, and optimize intents, but production sandbox credentials and full external-agent auth walkthroughs are still needed
@@ -283,8 +288,11 @@ Add these public surfaces:
 
 - `GET /llms.txt`
 - `GET /agents/start.md`
+- `GET /agents/workflows.json`
 - `GET /agents/sandbox.md`
 - `GET /agents/sandbox.json`
+- `GET /agents/protocols.json`
+- `GET /agents/recovery.json`
 - `GET /.well-known/agent-card.json`
 - `GET /openapi.json`
 - `GET /openapi/request-briefing.json`
@@ -299,6 +307,9 @@ Add these public surfaces:
 - `GET /schemas/transaction.schema.json`
 - `GET /schemas/request-event.schema.json`
 - `GET /schemas/agent-sandbox.schema.json`
+- `GET /schemas/agent-workflows.schema.json`
+- `GET /schemas/agent-protocols.schema.json`
+- `GET /schemas/agent-recovery.schema.json`
 
 The first agent-facing page should explain:
 
@@ -391,6 +402,11 @@ Use OpenAPI for stable HTTP endpoints:
 - public solution runs
 
 OpenAPI should be the source agents use when they need to call Boreal through HTTP.
+Each public OpenAPI export should expose auth in the contract itself: use standard
+operation-level `security` requirements for anonymous, `BorealAccountSession`,
+and `ResolverBearer` access, then use Boreal `x-boreal-*` extensions for
+conditions that OpenAPI does not model cleanly, such as resolver scopes that
+apply only to owner-private reads.
 
 ### JSON Schema
 
@@ -718,14 +734,19 @@ Deliverables:
 - `/agents/workflows.json` - implemented as a public machine-readable workflow catalog for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with `agentActionPolicy` checkpoints
 - `/agents/monitor-webhooks.md` - implemented as a public target profile for signed request-activity monitor callbacks
 - `/agents/protocols.md` - implemented as a public MCP, A2A, and x402 boundary profile
+- `/agents/protocols.json` - implemented as a public machine-readable MCP, A2A, and x402 protocol profile with adapter mappings, non-goals, implementation order, and canon boundaries
+- `/agents/recovery.json` - implemented as a public machine-readable recovery profile for auth failures, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and escalation packets
 - `/agents/sandbox.md` and `/agents/sandbox.json` - implemented as a public contract-only sandbox guide and manifest
 - `/.well-known/agent-card.json` - implemented as a public-safe JSON card in `apps/web`
 - public OpenAPI route or static export - implemented as `/openapi.json` plus allowlisted YAML contract exports
+- OpenAPI auth metadata for agent-callable routes - implemented for request, supply, payment, and resolver-auth exports with `security`, `BorealAccountSession`, `ResolverBearer`, and Boreal scope extensions where live routes support them
 - public JSON Schema route or static export - implemented as allowlisted `/schemas/*.schema.json` exports
 - public AsyncAPI route or static export - implemented as `/events/request-room.asyncapi.yaml`
 - richer `/llms.txt` links to all agent-readable resources - implemented through the shared discovery catalog
 - machine-readable agent action catalog - implemented in the agent card and `/openapi.json` as `x-boreal-agent-actions`
 - machine-readable agent workflow catalog - implemented as `/agents/workflows.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent protocol profile - implemented as `/agents/protocols.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent recovery profile - implemented as `/agents/recovery.json`, linked from the agent card and `/openapi.json`
 - request-level `agentActionAffordances` on public request projections - implemented in `toPublicRequestPoolEntry`
 - request-detail `agentActionPolicy` decisions for anonymous, session, and resolver actors - implemented in the request detail API as a derived policy envelope
 - agent sandbox fixture runner - implemented as `pnpm contracts:agent-sandbox`

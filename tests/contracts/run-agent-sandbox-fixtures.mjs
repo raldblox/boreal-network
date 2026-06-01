@@ -35,6 +35,8 @@ const requiredResources = [
   "/agents/actions.md",
   "/agents/workflows.json",
   "/agents/protocols.md",
+  "/agents/protocols.json",
+  "/agents/recovery.json",
   "/agents/monitor-webhooks.md",
   "/openapi.json",
   "/openapi/request-briefing.yaml",

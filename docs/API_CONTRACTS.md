@@ -401,6 +401,8 @@ Read-only public discovery surfaces:
 - `/agents/workflows.json` for machine-readable process flows that combine discovery, `agentActionPolicy`, idempotency, scopes, stop conditions, and canonical writes
 - `/agents/monitor-webhooks.md` for the target signed webhook receiver profile for request activity monitors
 - `/agents/protocols.md` for MCP, A2A, and x402 adapter/payment boundaries
+- `/agents/protocols.json` for machine-readable MCP, A2A, and x402 adapter mappings, non-goals, implementation order, and canon boundaries
+- `/agents/recovery.json` for machine-readable auth failure, scope failure, idempotency conflict, rate limit, monitor cursor, fulfillment retry, payment uncertainty, and escalation handling
 - `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, and payloads
 - `/agents/sandbox.json` for the machine-readable contract-only sandbox manifest
 - `/.well-known/agent-card.json` for public-safe A2A-style identity, capability, auth, and skill metadata
@@ -412,6 +414,8 @@ Read-only public discovery surfaces:
 - `/schemas/*.schema.json` for canonical JSON Schema object shapes
 - `/schemas/agent-sandbox.schema.json` for the contract-only agent sandbox manifest shape
 - `/schemas/agent-workflows.schema.json` for the machine-readable agent workflow catalog shape
+- `/schemas/agent-protocols.schema.json` for the machine-readable agent protocol profile shape
+- `/schemas/agent-recovery.schema.json` for the machine-readable agent recovery profile shape
 - `/events/request-room.asyncapi.yaml` for durable request-room monitoring contracts
 
 The agent card and `/openapi.json` include the same action catalog for common
@@ -421,6 +425,19 @@ The catalog is descriptive and contract-linked. It labels whether an action is
 public read, live authenticated HTTP, or target direction, and it includes
 resolver scopes where live endpoints enforce them. It does not bypass endpoint
 authorization, idempotency, or canonical lifecycle rules.
+
+Agent-facing OpenAPI contracts must expose auth metadata in the machine-readable
+contract, not only in prose. Live request, supply, and payment OpenAPI exports
+declare `BorealAccountSession` and, where supported, `ResolverBearer` security
+schemes. Operations use standard OpenAPI `security` requirements for anonymous,
+session, and bearer access, then use `x-boreal-required-scopes` and
+`x-boreal-auth-boundary` extensions to name route-specific resolver scopes and
+conditions such as owner-private reads versus public inspection.
+
+Agent-facing recovery guidance is descriptive and safety-oriented. It tells
+agents when to stop, retry with the same idempotency key, resume from a monitor
+cursor, inspect `Transaction` truth, or escalate to a human. It does not grant
+permission, create durable history, or replace endpoint authorization.
 
 The sandbox surfaces are contract samples only.
 They do not create live objects, spend money, approve resolver access, or grant

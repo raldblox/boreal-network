@@ -96,6 +96,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/package.json`
 - `apps/web/app/agents/start.md/route.ts`
 - `apps/web/app/agents/workflows.json/route.ts`
+- `apps/web/app/agents/protocols.json/route.ts`
+- `apps/web/app/agents/recovery.json/route.ts`
 - `apps/web/app/agents/sandbox.md/route.ts`
 - `apps/web/app/agents/sandbox.json/route.ts`
 - `apps/web/app/.well-known/agent-card.json/route.ts`
@@ -106,6 +108,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/tests/contracts/agent-discovery.test.ts`
 - `schemas/json/agent-sandbox.schema.json`
 - `schemas/json/agent-workflows.schema.json`
+- `schemas/json/agent-protocols.schema.json`
+- `schemas/json/agent-recovery.schema.json`
 - `fixtures/agent/sandbox-manifest.sample.json`
 
 Today, the machine-readable baseline proves:
@@ -151,10 +155,12 @@ Today, the machine-readable baseline proves:
 - one public `/agents/actions.md` playbook gives contract-linked walkthroughs and HTTP sketches for inspect, apply, submit, monitor, run, and optimize intents without creating a parallel agent ledger
 - one request activity endpoint can resume monitor reads with `after_sequence` and return `cursor.nextAfterSequence` without creating heartbeat `RequestEvent` records
 - one public `/agents/monitor-webhooks.md` profile and OpenAPI webhook schema define the target signed push-delivery envelope for monitor agents, while actual subscription persistence and delivery remain target direction
-- one public `/agents/protocols.md` profile and `standards/agent-protocol-profile.md` define MCP, A2A, and x402 adapter/payment boundaries without claiming live protocol adapters
+- one public `/agents/protocols.md` profile, `/agents/protocols.json` machine-readable protocol profile, `schemas/json/agent-protocols.schema.json`, and `standards/agent-protocol-profile.md` define MCP, A2A, and x402 adapter/payment boundaries without claiming live protocol adapters
+- one public `/agents/recovery.json` recovery profile and `schemas/json/agent-recovery.schema.json` give agents machine-readable handling for auth failure, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and human escalation without granting permission
 - one public `/agents/sandbox.md` guide, `/agents/sandbox.json` manifest, `agent-sandbox` JSON Schema, deterministic fixture, and `pnpm contracts:agent-sandbox` runner give agents contract-only mock identities, sample IDs, payloads, idempotency keys, monitor cursors, and signed-webhook samples; mock credentials are not production auth and create no live objects
 - public request projections now include `agentActionAffordances`, a derived request-level map of inspect, apply, submit, monitor, run, and optimize affordances with concrete endpoints, auth notes, idempotency requirements, and canonical read/write boundaries
 - request detail responses now include `agentActionPolicy`, a derived actor-specific map of inspect, apply, submit, monitor, run, and optimize decisions for anonymous, session, and resolver actors, including resolver missing-scope reporting and idempotency-gated action states
+- request, supply, payment, and resolver-auth OpenAPI exports now declare machine-readable auth boundaries: standard OpenAPI `security` requirements for anonymous, account-session, and resolver-bearer access where live routes support them, plus Boreal `x-boreal-required-scopes` extensions for resolver scope conditions
 
 ## Target Direction
 

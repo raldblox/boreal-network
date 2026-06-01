@@ -10,6 +10,9 @@ paths:
   /api/buyer-credits/account:
     get:
       summary: Read or create the authenticated account's first-party buyer credit account.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Resolver bearer tokens do not expose buyer-credit ledger state in the live route.
       responses:
         "200":
           description: Buyer credit account projection.
@@ -26,6 +29,9 @@ paths:
   /api/buyer-credits/ledger:
     get:
       summary: Read the authenticated account's buyer credit ledger entries.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Resolver bearer tokens do not expose buyer-credit ledger state in the live route.
       parameters:
         - in: query
           name: limit
@@ -56,6 +62,9 @@ paths:
   /api/buyer-credits/topups:
     post:
       summary: Create a pending first-party buyer credit top-up.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Buyer-credit top-up is account-owned support ledger truth, not resolver runtime authority.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -110,6 +119,9 @@ paths:
   /api/buyer-credits/apply:
     post:
       summary: Apply buyer credit to one owned Request.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Applying buyer credit writes request-attached Transaction truth and cannot be driven by resolver bearer auth in the live route.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -158,6 +170,9 @@ paths:
   /api/requests/{id}/solution-runs:
     post:
       summary: Create or reuse one private credit-metered run Request from a completed public solution.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Public solution runs create a private buyer Request and debit buyer credit; resolver bearer auth is intentionally blocked in the live route.
       description: >
         The path id is the completed public source Request. The endpoint creates
         or reuses one private run Request for the authenticated buyer, references
@@ -240,6 +255,9 @@ paths:
   /api/services/character-call-starter/checkout:
     post:
       summary: Create and fund the $1 Character Call Starter Request from first-party buyer credit.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Checkout composes Request, Supply, Fulfillment, Transaction, and buyer-credit ledger writes for the buyer.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -360,6 +378,9 @@ paths:
   /api/services/character-call-starter/session:
     post:
       summary: Launch one Runway realtime character session for an owned funded Character Call Starter request.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. The returned Runway realtime token is ephemeral and must not become durable Boreal truth.
       requestBody:
         required: true
         content:
@@ -427,6 +448,9 @@ paths:
   /api/paypal/create-order:
     post:
       summary: Create a PayPal Checkout order for first-party buyer credit top-up.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Creates a pending buyer-credit ledger entry before PayPal approval.
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
       requestBody:
@@ -476,6 +500,9 @@ paths:
   /api/paypal/capture:
     get:
       summary: Capture an approved PayPal order and settle the matching buyer-credit top-up.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Unauthenticated callers redirect to login before capture.
       parameters:
         - in: query
           name: token
@@ -494,6 +521,9 @@ paths:
   /api/paypal/webhook:
     post:
       summary: Verify and process PayPal payment webhooks for buyer-credit top-up settlement.
+      security:
+        - {}
+      x-boreal-auth-boundary: Provider callback route. It uses PayPal webhook signature verification, not Boreal account session or resolver bearer auth.
       requestBody:
         required: true
         content:
@@ -522,6 +552,13 @@ paths:
   /api/requests/{id}/transactions:
     get:
       summary: List request-attached transactions for one owned Request.
+      security:
+        - BorealAccountSession: []
+        - ResolverBearer: []
+      x-boreal-auth-boundary: Account session or approved resolver runtime for owned request transaction reads.
+      x-boreal-required-scopes:
+        resolver:
+          - requests:read_private
       parameters:
         - $ref: "#/components/parameters/RequestId"
       responses:
@@ -541,6 +578,9 @@ paths:
                       $ref: "#/components/schemas/RequestTransaction"
     post:
       summary: Record direct request funding from a processor or stablecoin source.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Direct request funding writes Transaction truth and is not resolver-bearer enabled in the live route.
       parameters:
         - $ref: "#/components/parameters/RequestId"
         - $ref: "#/components/parameters/IdempotencyKey"
@@ -601,6 +641,17 @@ paths:
                   transaction:
                     $ref: "#/components/schemas/RequestTransaction"
 components:
+  securitySchemes:
+    BorealAccountSession:
+      type: apiKey
+      in: cookie
+      name: authjs.session-token
+      description: Browser account session managed by Auth.js. Deployments may use the secure cookie variant __Secure-authjs.session-token.
+    ResolverBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: Boreal resolver access token
+      description: Boreal-issued resolver access token from resolver device approval. Operation extensions list resolver scopes when live routes enforce them.
   parameters:
     RequestId:
       in: path

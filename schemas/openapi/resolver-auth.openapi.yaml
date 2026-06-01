@@ -9,6 +9,9 @@ paths:
   /api/auth/resolver/device/start:
     post:
       summary: Start a device approval flow for one resolver runtime.
+      security:
+        - {}
+      x-boreal-auth-boundary: Unpaired resolver device-start is unauthenticated but must be rate-limited before pending resolver records are created.
       requestBody:
         required: true
         content:
@@ -27,6 +30,9 @@ paths:
   /api/auth/resolver/device/poll:
     post:
       summary: Poll one pending resolver device approval.
+      security:
+        - {}
+      x-boreal-auth-boundary: Poll authenticates by pending device code in the body until the human approves or the code expires.
       requestBody:
         required: true
         content:
@@ -49,6 +55,9 @@ paths:
   /api/auth/resolver/token/refresh:
     post:
       summary: Rotate one resolver refresh token into a new access and refresh pair.
+      security:
+        - {}
+      x-boreal-auth-boundary: Refresh authenticates by refresh token in the body, not by account session or access-token bearer auth.
       requestBody:
         required: true
         content:
@@ -65,6 +74,9 @@ paths:
   /api/auth/resolver/token/revoke:
     post:
       summary: Revoke one resolver session by refresh token.
+      security:
+        - {}
+      x-boreal-auth-boundary: Revoke authenticates by refresh token in the body, not by account session or access-token bearer auth.
       requestBody:
         required: true
         content:

@@ -49,6 +49,8 @@ Recommended naming:
 - `json/artifact.schema.json`
 - `json/agent-sandbox.schema.json`
 - `json/agent-workflows.schema.json`
+- `json/agent-protocols.schema.json`
+- `json/agent-recovery.schema.json`
 - `openapi/request-briefing.openapi.yaml`
 - `openapi/supply-management.openapi.yaml`
 - `openapi/resolver-auth.openapi.yaml`

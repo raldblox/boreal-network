@@ -5,7 +5,9 @@ import {
   buildAgentActionsMarkdown,
   buildAgentCard,
   buildAgentMonitorWebhooksMarkdown,
+  buildAgentProtocolProfile,
   buildAgentProtocolProfileMarkdown,
+  buildAgentRecoveryProfile,
   buildAgentStartMarkdown,
   buildAgentWorkflowCatalog,
   buildOpenApiDiscoveryIndex,
@@ -26,6 +28,8 @@ import { GET as getAgentCard } from "@/app/.well-known/agent-card.json/route";
 import { GET as getAgentActions } from "@/app/agents/actions.md/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
 import { GET as getAgentProtocols } from "@/app/agents/protocols.md/route";
+import { GET as getAgentProtocolsJson } from "@/app/agents/protocols.json/route";
+import { GET as getAgentRecovery } from "@/app/agents/recovery.json/route";
 import { GET as getAgentSandboxJson } from "@/app/agents/sandbox.json/route";
 import { GET as getAgentSandboxMd } from "@/app/agents/sandbox.md/route";
 import { GET as getAgentStart } from "@/app/agents/start.md/route";
@@ -57,6 +61,14 @@ async function main() {
     true,
   );
   assert.equal(
+    agentCard.protocolProfileJsonUrl.endsWith("/agents/protocols.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.recoveryProfileUrl.endsWith("/agents/recovery.json"),
+    true,
+  );
+  assert.equal(
     agentCard.workflows.some(
       (workflow) => workflow.id === "apply_complete_monitor"
     ),
@@ -66,6 +78,13 @@ async function main() {
     agentCard.authentication.schemes.includes("resolver_bearer"),
     true,
   );
+  assert.equal(
+    agentCard.protocols.some(
+      (protocol) => protocol.id === "mcp" && protocol.status === "target_adapter_profile"
+    ),
+    true,
+  );
+  assert.equal(agentCard.recovery.status, "live_recovery_profile");
   assert.equal(
     agentCard.skills.some((skill) => skill.id === "inspect_public_requests"),
     true,
@@ -215,6 +234,77 @@ async function main() {
   assert.match(protocolProfile, /MCP must not carry high-frequency token deltas/);
   assert.match(protocolProfile, /A2A task ids must be stored as adapter correlation ids/);
   assert.match(protocolProfile, /x402 verification\/settlement must reconcile into Boreal `Transaction`/);
+
+  const protocolProfileJson = buildAgentProtocolProfile();
+  assert.equal(protocolProfileJson.status, "live_protocol_profile");
+  assert.equal(protocolProfileJson.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    protocolProfileJson.canonicalBoundary.notRoots.includes("A2A task"),
+    true,
+  );
+  assert.equal(
+    protocolProfileJson.standards.some(
+      (standard) =>
+        standard.id === "mcp" &&
+        standard.officialSpecUrl.includes("modelcontextprotocol.io") &&
+        standard.tools.some((tool) => tool.id === "propose_commitment")
+    ),
+    true,
+  );
+  assert.equal(
+    protocolProfileJson.standards.some(
+      (standard) =>
+        standard.id === "a2a" &&
+        standard.adapterMappings.some(
+          (mapping) =>
+            mapping.externalConcept === "Task" &&
+            mapping.borealMapping.includes("never the Boreal root object")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    protocolProfileJson.standards.some(
+      (standard) =>
+        standard.id === "x402" &&
+        standard.adapterMappings.some((mapping) =>
+          mapping.durableWrites.includes("Transaction")
+        )
+    ),
+    true,
+  );
+
+  const recoveryProfile = buildAgentRecoveryProfile();
+  assert.equal(recoveryProfile.status, "live_recovery_profile");
+  assert.equal(recoveryProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    recoveryProfile.idempotencyPolicy.requiredFor.includes("run_public_solution"),
+    true,
+  );
+  assert.equal(
+    recoveryProfile.recoveryRules.some(
+      (rule) =>
+        rule.id === "forbidden_or_missing_scope" &&
+        rule.nextAction.includes("agentActionPolicy")
+    ),
+    true,
+  );
+  assert.equal(
+    recoveryProfile.recoveryRules.some(
+      (rule) =>
+        rule.id === "blocked_fulfillment_or_retryable_provider_failure" &&
+        rule.canonicalWritesAllowed.includes("Fulfillment")
+    ),
+    true,
+  );
+  assert.equal(
+    recoveryProfile.recoveryRules.some(
+      (rule) =>
+        rule.id === "payment_or_credit_uncertain" &&
+        rule.canonicalWritesAllowed.includes("Transaction")
+    ),
+    true,
+  );
 
   const sandboxManifest = buildAgentSandboxManifest();
   assert.equal(sandboxManifest.mode, "contract_only");
@@ -481,6 +571,8 @@ async function main() {
   assert.match(startGuide, /agentActionAffordances/);
   assert.match(startGuide, /agentActionPolicy/);
   assert.match(startGuide, /GET \/agents\/workflows\.json/);
+  assert.match(startGuide, /GET \/agents\/protocols\.json/);
+  assert.match(startGuide, /GET \/agents\/recovery\.json/);
   assert.match(startGuide, /Agent action playbook/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent Workflow Catalog/);
@@ -518,8 +610,22 @@ async function main() {
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/protocols.md"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/protocols.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/recovery.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/sandbox.md"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/sandbox.json"), true);
+  assert.equal(
+    discoveryIndex["x-boreal-agent-protocols"].standards.some(
+      (standard) => standard.id === "x402"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-recovery"].rules.some(
+      (rule) => rule.id === "payment_or_credit_uncertain"
+    ),
+    true,
+  );
 
   assert.equal(
     findOpenApiAsset("request-briefing.yaml")?.sourcePath,
@@ -542,10 +648,53 @@ async function main() {
     "schemas/json/agent-workflows.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-protocols.schema.json")?.sourcePath,
+    "schemas/json/agent-protocols.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-recovery.schema.json")?.sourcePath,
+    "schemas/json/agent-recovery.schema.json",
+  );
+  assert.equal(
     findEventAsset("request-room.asyncapi.yaml")?.sourcePath,
     "schemas/events/request-room.asyncapi.yaml",
   );
   assert.equal(findJsonSchemaAsset(".gitkeep"), undefined);
+
+  const requestOpenApiAsset = findOpenApiAsset("request-briefing.yaml");
+  assert.ok(requestOpenApiAsset);
+  const requestOpenApi = await readDiscoveryAsset(requestOpenApiAsset);
+  assert.match(requestOpenApi, /securitySchemes:/);
+  assert.match(requestOpenApi, /BorealAccountSession:/);
+  assert.match(requestOpenApi, /ResolverBearer:/);
+  assert.match(requestOpenApi, /x-boreal-required-scopes:/);
+  assert.match(requestOpenApi, /commitments:propose/);
+  assert.match(requestOpenApi, /artifacts:publish/);
+  assert.match(requestOpenApi, /x-boreal-response-policy-field: agentActionPolicy/);
+
+  const supplyOpenApiAsset = findOpenApiAsset("supply-management.yaml");
+  assert.ok(supplyOpenApiAsset);
+  const supplyOpenApi = await readDiscoveryAsset(supplyOpenApiAsset);
+  assert.match(supplyOpenApi, /securitySchemes:/);
+  assert.match(supplyOpenApi, /ResolverBearer:/);
+  assert.match(supplyOpenApi, /supplies:read_private/);
+
+  const paymentOpenApiAsset = findOpenApiAsset("payment-and-credit.yaml");
+  assert.ok(paymentOpenApiAsset);
+  const paymentOpenApi = await readDiscoveryAsset(paymentOpenApiAsset);
+  assert.match(paymentOpenApi, /securitySchemes:/);
+  assert.match(paymentOpenApi, /BorealAccountSession:/);
+  assert.match(paymentOpenApi, /ResolverBearer:/);
+  assert.match(paymentOpenApi, /\/api\/requests\/\{id\}\/solution-runs:/);
+  assert.match(paymentOpenApi, /requests:read_private/);
+
+  const resolverAuthOpenApiAsset = findOpenApiAsset("resolver-auth.yaml");
+  assert.ok(resolverAuthOpenApiAsset);
+  const resolverAuthOpenApi = await readDiscoveryAsset(
+    resolverAuthOpenApiAsset,
+  );
+  assert.match(resolverAuthOpenApi, /x-boreal-auth-boundary:/);
+  assert.match(resolverAuthOpenApi, /rate-limited before pending resolver records/);
 
   for (const asset of allAgentDiscoveryAssets) {
     const content = await readDiscoveryAsset(asset);
@@ -593,6 +742,20 @@ async function main() {
     /Boreal Agent Protocol Profile/
   );
 
+  const agentProtocolsJsonResponse = await getAgentProtocolsJson();
+  assert.equal(agentProtocolsJsonResponse.status, 200);
+  assert.equal(
+    (await agentProtocolsJsonResponse.json()).status,
+    "live_protocol_profile"
+  );
+
+  const agentRecoveryResponse = await getAgentRecovery();
+  assert.equal(agentRecoveryResponse.status, 200);
+  assert.equal(
+    (await agentRecoveryResponse.json()).status,
+    "live_recovery_profile"
+  );
+
   const agentSandboxMdResponse = await getAgentSandboxMd();
   assert.equal(agentSandboxMdResponse.status, 200);
   assert.match(await agentSandboxMdResponse.text(), /Boreal Agent Sandbox/);
@@ -606,6 +769,8 @@ async function main() {
   const llmsText = await llmsResponse.text();
   assert.match(llmsText, /Agent Discovery/);
   assert.match(llmsText, /Agent action playbook/);
+  assert.match(llmsText, /Agent protocol profile JSON/);
+  assert.match(llmsText, /Agent recovery profile/);
   assert.match(llmsText, /Agent contract sandbox/);
 
   const openApiIndexResponse = await getOpenApiIndex();
@@ -637,6 +802,24 @@ async function main() {
   assert.equal(
     (await workflowSchemaResponse.json()).title,
     "AgentWorkflowCatalog"
+  );
+
+  const protocolSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-protocols.schema.json" }),
+  });
+  assert.equal(protocolSchemaResponse.status, 200);
+  assert.equal(
+    (await protocolSchemaResponse.json()).title,
+    "AgentProtocolProfile"
+  );
+
+  const recoverySchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-recovery.schema.json" }),
+  });
+  assert.equal(recoverySchemaResponse.status, 200);
+  assert.equal(
+    (await recoverySchemaResponse.json()).title,
+    "AgentRecoveryProfile"
   );
 
   const eventResponse = await getAsyncApiContract(new Request("http://boreal.test"), {

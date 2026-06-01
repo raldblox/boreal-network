@@ -39,6 +39,8 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent workflow catalog](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)}): Machine-readable process flows for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with policy checkpoints.
 - [Agent monitor webhook profile](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)}): Target signed push-notification profile for request activity monitors.
 - [Agent protocol profile](${absoluteUrl(agentDiscoveryPaths.agentProtocols)}): MCP, A2A, and x402 adapter/payment boundaries.
+- [Agent protocol profile JSON](${absoluteUrl(agentDiscoveryPaths.agentProtocolsJson)}): Machine-readable MCP, A2A, and x402 mappings that keep adapters below Request truth.
+- [Agent recovery profile](${absoluteUrl(agentDiscoveryPaths.agentRecovery)}): Machine-readable auth, idempotency, retry, monitor, payment, and escalation rules.
 - [Agent contract sandbox](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)}): Deterministic mock identities, payloads, and sample IDs for contract tests; mock credentials are not production auth.
 - [Agent sandbox manifest](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)}): Machine-readable contract-only sandbox profile.
 - [Agent card](${absoluteUrl(agentDiscoveryPaths.agentCard)}): Public capability card for agent discovery.

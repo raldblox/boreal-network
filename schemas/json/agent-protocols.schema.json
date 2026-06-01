@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-protocols.schema.json",
+  "title": "AgentProtocolProfile",
+  "description": "Machine-readable MCP, A2A, and x402 adapter boundaries for Boreal agent usage.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "standards",
+    "implementationOrder",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_protocol_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "standards": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/standard"
+      }
+    },
+    "implementationOrder": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "adapterObjects",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "adapterObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "standard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "officialSpecUrl",
+        "status",
+        "borealRole",
+        "useFor",
+        "doNotUseFor",
+        "adapterMappings",
+        "resources",
+        "tools",
+        "prompts"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "mcp",
+            "a2a",
+            "x402"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "officialSpecUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "target_adapter_profile",
+            "target_payment_profile",
+            "live_adapter_profile"
+          ]
+        },
+        "borealRole": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useFor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "doNotUseFor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "adapterMappings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/adapterMapping"
+          }
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/toolMapping"
+          }
+        },
+        "prompts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "adapterMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "externalConcept",
+        "borealMapping",
+        "durableWrites"
+      ],
+      "properties": {
+        "externalConcept": {
+          "type": "string",
+          "minLength": 1
+        },
+        "borealMapping": {
+          "type": "string",
+          "minLength": 1
+        },
+        "durableWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "toolMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "actionId",
+        "canonicalWrites",
+        "auth"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "auth": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

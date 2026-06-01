@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-recovery.schema.json",
+  "title": "AgentRecoveryProfile",
+  "description": "Machine-readable recovery, retry, idempotency, monitoring, payment, and escalation rules for Boreal agents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "standardProfiles",
+    "recoveryRules",
+    "idempotencyPolicy",
+    "escalationPacket",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_recovery_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "standardProfiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/standardProfile"
+      }
+    },
+    "recoveryRules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/recoveryRule"
+      }
+    },
+    "idempotencyPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "header",
+        "keyFormat",
+        "sameOperationRule",
+        "newOperationRule",
+        "inspectBeforeRetry",
+        "requiredFor"
+      ],
+      "properties": {
+        "header": {
+          "const": "Idempotency-Key"
+        },
+        "keyFormat": {
+          "const": "uuid"
+        },
+        "sameOperationRule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "newOperationRule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inspectBeforeRetry": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredFor": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "escalationPacket": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "standardProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "status",
+        "use"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "live_route_behavior",
+            "target_header_profile",
+            "target_error_envelope"
+          ]
+        },
+        "use": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "recoveryRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "httpStatuses",
+        "borealSignals",
+        "appliesTo",
+        "meaning",
+        "nextAction",
+        "retryPolicy",
+        "canonicalWritesAllowed",
+        "escalation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "httpStatuses": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 599
+          }
+        },
+        "borealSignals": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "appliesTo": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "meaning": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nextAction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryPolicy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalWritesAllowed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "escalation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

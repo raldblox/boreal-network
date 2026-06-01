@@ -87,6 +87,8 @@ Verify:
 - `/agents/actions.md` renders public-safe contract-linked walkthroughs for inspect, apply, submit, monitor, run, and optimize intents
 - `/agents/workflows.json` renders a machine-readable workflow catalog that names policy checkpoints, required scopes, idempotency-required actions, stop conditions, completion signals, and canonical write boundaries
 - `/agents/protocols.md` renders public-safe MCP, A2A, and x402 mapping rules and keeps each protocol below Boreal canonical object truth
+- `/agents/protocols.json` renders a machine-readable protocol profile that names MCP, A2A, and x402 roles, official spec URLs, adapter mappings, non-goals, durable writes, implementation order, and canonical boundaries
+- `/agents/recovery.json` renders a machine-readable recovery profile that tells agents when to stop, retry with the same idempotency key, resume from cursor, inspect transaction truth, retry a blocked fulfillment lane, or escalate to a human
 - `/agents/sandbox.md` and `/agents/sandbox.json` render a contract-only sandbox with deterministic mock identities, sample IDs, payloads, and canonical boundaries
 - `schemas/json/agent-sandbox.schema.json` and `fixtures/agent/sandbox-manifest.sample.json` stay parseable and aligned with the public sandbox contract
 - `pnpm contracts:agent-sandbox` validates sandbox fixture coverage for inspect, apply, submit, monitor, run, signed webhook, and optimize flows
@@ -97,6 +99,7 @@ Verify:
 - each catalog action names canonical reads, canonical writes, availability, auth boundary, standard contract links, and guardrails
 - public request projections expose request-level `agentActionAffordances` that map concrete request ids to inspect, apply, submit, monitor, run, and optimize affordances without exposing owner-only routing or granting mutation authority
 - request detail reads expose request-level `agentActionPolicy` decisions that distinguish anonymous, session, and resolver actors; resolver decisions should report missing scopes instead of implying permission
+- public OpenAPI exports expose machine-readable `security` requirements, `BorealAccountSession`, `ResolverBearer`, `x-boreal-auth-boundary`, and `x-boreal-required-scopes` where live agent-facing routes enforce session or resolver gates
 - public agent discovery links resolve to public-safe OpenAPI, JSON Schema, and AsyncAPI contracts
 - `apps/web/tests/contracts/agent-discovery.test.ts` covers the public agent card, start guide, action playbook, sandbox guide, sandbox manifest, action catalog, discovery index, allowlisted contract assets, and absence of obvious secret material in exported contracts
 - public request inspection remains anonymous-safe and excludes draft, private, owner-only routing, private transcript, and planner-internal fields

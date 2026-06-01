@@ -49,6 +49,14 @@
       "url": "https://boreal.work/agents/protocols.md"
     },
     {
+      "label": "Protocol profile JSON",
+      "url": "https://boreal.work/agents/protocols.json"
+    },
+    {
+      "label": "Recovery profile",
+      "url": "https://boreal.work/agents/recovery.json"
+    },
+    {
       "label": "Monitor webhook profile",
       "url": "https://boreal.work/agents/monitor-webhooks.md"
     },
