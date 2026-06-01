@@ -46,11 +46,13 @@ export const agentDiscoveryPaths = {
   agentConformance: "/agents/conformance.json",
   agentConformanceReportExample: "/agents/conformance-report.example.json",
   agentCompletion: "/agents/completion.json",
+  agentDelegation: "/agents/delegation.json",
   agentEvidence: "/agents/evidence.json",
   agentErrorExamples: "/agents/error-examples.json",
   agentExecution: "/agents/execution.json",
   agentHumanHandoffs: "/agents/human-handoffs.json",
   agentHumanHandoffPacketExamples: "/agents/human-handoff-packets.example.json",
+  agentHttp: "/agents/http.json",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
   agentOnboarding: "/agents/onboarding.json",
@@ -426,6 +428,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable human delegation profile for agent consent screens, scoped authority, revocation, and per-action approval without credential sharing or new business roots.",
+    routePath: "/schemas/agent-delegation.schema.json",
+    sourcePath: "schemas/json/agent-delegation.schema.json",
+    standard: "json_schema",
+    title: "Agent human delegation profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable read-only opportunity discovery profile schema for agents ranking public requests and choosing next actions without treating rankings as permissions or assignments.",
     routePath: "/schemas/agent-opportunities.schema.json",
     sourcePath: "schemas/json/agent-opportunities.schema.json",
@@ -485,6 +496,15 @@ export const jsonSchemaDiscoveryAssets = [
     sourcePath: "schemas/json/agent-human-handoffs.schema.json",
     standard: "json_schema",
     title: "Agent human handoff profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable unified HTTP reference schema for current agent-callable Boreal routes, auth, scopes, idempotency, and canonical write boundaries.",
+    routePath: "/schemas/agent-http.schema.json",
+    sourcePath: "schemas/json/agent-http.schema.json",
+    standard: "json_schema",
+    title: "Agent HTTP reference profile",
   },
   {
     contentType: "application/schema+json; charset=utf-8",
@@ -645,6 +665,7 @@ export function buildAgentCard() {
     authProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
     conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+    delegationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentDelegation),
     evidenceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentEvidence),
     errorExamplesUrl: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
     executionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentExecution),
@@ -652,6 +673,7 @@ export function buildAgentCard() {
     humanHandoffPacketExamplesUrl: absoluteUrl(
       agentDiscoveryPaths.agentHumanHandoffPacketExamples
     ),
+    httpProfileUrl: absoluteUrl(agentDiscoveryPaths.agentHttp),
     monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
     onboardingProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
     opportunityCardExamplesUrl: absoluteUrl(
@@ -724,6 +746,24 @@ export function buildAgentCard() {
         claimState: rule.claimState,
       })),
     },
+    delegation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
+      status: buildAgentDelegationProfile().status,
+      liveModes: buildAgentDelegationProfile()
+        .delegationModes.filter((mode) => mode.status.startsWith("live"))
+        .map((mode) => mode.id),
+      consentFlows: buildAgentDelegationProfile().humanConsentFlows.map(
+        (flow) => ({
+          id: flow.id,
+          actionId: flow.actionId,
+          requiredScopes: flow.requiredScopes,
+          canonicalWritesIfApproved: flow.canonicalWritesIfApproved,
+        })
+      ),
+      revocationRoutes: buildAgentDelegationProfile().revocation.liveRoutes.map(
+        (route) => route.path
+      ),
+    },
     evidence: {
       url: absoluteUrl(agentDiscoveryPaths.agentEvidence),
       status: buildAgentEvidenceProfile().status,
@@ -755,6 +795,18 @@ export function buildAgentCard() {
         approvalRequired: moment.approvalRequired,
         canonicalWrites: moment.canonicalWrites,
       })),
+    },
+    http: {
+      url: absoluteUrl(agentDiscoveryPaths.agentHttp),
+      status: buildAgentHttpProfile().status,
+      routeFamilies: buildAgentHttpProfile().routeFamilies.map((family) => ({
+        id: family.id,
+        sourceOpenApi: family.sourceOpenApi,
+        routeCount: family.routes.length,
+      })),
+      liveHttpIntents: buildAgentHttpProfile().intentToHttp
+        .filter((intent) => intent.status === "live_http_contract")
+        .map((intent) => intent.actionId),
     },
     monitoring: {
       url: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
@@ -974,11 +1026,13 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
 - Agent conformance report example: [${agentDiscoveryPaths.agentConformanceReportExample}](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)})
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
+- Agent human delegation profile: [${agentDiscoveryPaths.agentDelegation}](${absoluteUrl(agentDiscoveryPaths.agentDelegation)})
 - Agent evidence profile: [${agentDiscoveryPaths.agentEvidence}](${absoluteUrl(agentDiscoveryPaths.agentEvidence)})
 - Agent error examples: [${agentDiscoveryPaths.agentErrorExamples}](${absoluteUrl(agentDiscoveryPaths.agentErrorExamples)})
 - Agent execution profile: [${agentDiscoveryPaths.agentExecution}](${absoluteUrl(agentDiscoveryPaths.agentExecution)})
 - Agent human handoff profile: [${agentDiscoveryPaths.agentHumanHandoffs}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)})
 - Agent human handoff packet examples: [${agentDiscoveryPaths.agentHumanHandoffPacketExamples}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples)})
+- Agent HTTP reference profile: [${agentDiscoveryPaths.agentHttp}](${absoluteUrl(agentDiscoveryPaths.agentHttp)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
 - Agent onboarding profile: [${agentDiscoveryPaths.agentOnboarding}](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)})
 - Agent opportunity card examples: [${agentDiscoveryPaths.agentOpportunityCardExamples}](${absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples)})
@@ -1104,6 +1158,12 @@ For deterministic tool invocation, preflight, HTTP fallback, and target MCP/A2A 
 GET ${agentDiscoveryPaths.agentTools}
 \`\`\`
 
+For deterministic human-owned delegation, consent, scope minimization, and revocation handling, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentDelegation}
+\`\`\`
+
 For deterministic auth, scope, approval, and write-boundary handling, agents can read:
 
 \`\`\`http
@@ -1150,6 +1210,12 @@ For deterministic renderable handoff packet examples, agents can read:
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentHumanHandoffPacketExamples}
+\`\`\`
+
+For the current HTTP route baseline, including auth, scopes, idempotency, and canonical write boundaries, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentHttp}
 \`\`\`
 
 For deterministic draft-only optimization, no-invention, and owner-approval handling, agents can read:
@@ -1417,6 +1483,25 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/delegation.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable human delegation profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for human-owned agent delegation modes, consent screens, scoped authority, revocation, and per-action approval boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentDelegationProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/evidence.json": {
         get: {
           tags: ["agent-discovery"],
@@ -1505,6 +1590,25 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentHumanHandoffPacketExamples",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/http.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent HTTP reference profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON profile for current agent-callable HTTP routes, OpenAPI sources, auth schemes, scopes, idempotency, and canonical write boundaries.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentHttpProfile",
                   },
                 },
               },
@@ -2063,6 +2167,33 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentDelegationProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "delegationModes",
+            "humanConsentFlows",
+            "consentReceipt",
+            "revocation",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_human_delegation_profile" },
+            delegationModes: {
+              type: "array",
+              items: { type: "object" },
+            },
+            humanConsentFlows: {
+              type: "array",
+              items: { type: "object" },
+            },
+            consentReceipt: { type: "object" },
+            revocation: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentEvidenceProfile: {
           type: "object",
           required: [
@@ -2163,6 +2294,34 @@ export function buildOpenApiDiscoveryIndex() {
             status: { const: "live_handoff_packet_examples" },
             packetContract: { type: "object" },
             examples: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentHttpProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "contractSources",
+            "routeFamilies",
+            "intentToHttp",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_http_reference_profile" },
+            contractSources: {
+              type: "array",
+              items: { type: "object" },
+            },
+            routeFamilies: {
+              type: "array",
+              items: { type: "object" },
+            },
+            intentToHttp: {
               type: "array",
               items: { type: "object" },
             },
@@ -2464,6 +2623,19 @@ export function buildOpenApiDiscoveryIndex() {
         claimState: rule.claimState,
       })),
     },
+    "x-boreal-agent-delegation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
+      status: buildAgentDelegationProfile().status,
+      liveModes: buildAgentDelegationProfile()
+        .delegationModes.filter((mode) => mode.status.startsWith("live"))
+        .map((mode) => mode.id),
+      consentFlowIds: buildAgentDelegationProfile().humanConsentFlows.map(
+        (flow) => flow.id
+      ),
+      revocationRoutes: buildAgentDelegationProfile().revocation.liveRoutes.map(
+        (route) => route.path
+      ),
+    },
     "x-boreal-agent-evidence": {
       url: absoluteUrl(agentDiscoveryPaths.agentEvidence),
       status: buildAgentEvidenceProfile().status,
@@ -2494,6 +2666,22 @@ export function buildOpenApiDiscoveryIndex() {
         id: moment.id,
         approvalRequired: moment.approvalRequired,
       })),
+    },
+    "x-boreal-agent-http": {
+      url: absoluteUrl(agentDiscoveryPaths.agentHttp),
+      status: buildAgentHttpProfile().status,
+      contractSources: buildAgentHttpProfile().contractSources.map((source) => ({
+        id: source.id,
+        url: source.url,
+      })),
+      routeFamilies: buildAgentHttpProfile().routeFamilies.map((family) => ({
+        id: family.id,
+        status: family.status,
+        routeCount: family.routes.length,
+      })),
+      liveHttpToolIds: buildAgentHttpProfile()
+        .intentToHttp.filter((intent) => intent.status === "live_http_contract")
+        .map((intent) => intent.toolId),
     },
     "x-boreal-agent-optimization": {
       url: absoluteUrl(agentDiscoveryPaths.agentOptimization),
@@ -2645,6 +2833,10 @@ export function buildAgentAuthProfile() {
       {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent human delegation profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
       },
       {
         label: "Agent recovery profile",
@@ -3025,6 +3217,453 @@ export function buildAgentAuthProfile() {
   };
 }
 
+export function buildAgentDelegationProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_human_delegation_profile",
+    name: "Boreal Agent Human Delegation Profile",
+    description:
+      "Machine-readable human-first delegation profile for agents acting through Boreal account sessions, approved resolver bearers, or target OAuth-compatible grants without credential sharing or new business roots.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent human handoff profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      },
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent access review profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
+      },
+      {
+        label: "Agent delegation schema",
+        url: absoluteUrl("/schemas/agent-delegation.schema.json"),
+      },
+      {
+        label: "Resolver auth OpenAPI",
+        url: absoluteUrl("/openapi/resolver-auth.yaml"),
+      },
+      {
+        label: "Request OpenAPI",
+        url: absoluteUrl("/openapi/request-briefing.yaml"),
+      },
+    ],
+    delegationModes: [
+      {
+        id: "public_scout_no_delegation",
+        status: "live_public_read",
+        standard: "HTTP public GET",
+        credentialKind: "none",
+        humanConsentRequired: false,
+        useFor: [
+          "public request inspection",
+          "public opportunity ranking",
+          "contract and schema discovery",
+        ],
+        notFor: [
+          "private request reads",
+          "draft mutation",
+          "Commitment proposals",
+          "Artifact publication",
+          "payment or credit actions",
+        ],
+        secretsSharedWithAgent: false,
+        productionWriteCapability: false,
+      },
+      {
+        id: "account_session_assisted",
+        status: "live_account_session",
+        standard: "HTTP cookie session",
+        credentialKind: "browser_session_cookie",
+        humanConsentRequired: true,
+        useFor: [
+          "human-present request drafting",
+          "owner review decisions",
+          "buyer-credit or paid-run actions where a route requires account-session authority",
+        ],
+        notFor: [
+          "sharing raw cookies with third-party agents",
+          "silent background mutation after the human leaves",
+          "bypassing request-specific approval questions",
+        ],
+        secretsSharedWithAgent: false,
+        productionWriteCapability: true,
+      },
+      {
+        id: "resolver_device_delegation",
+        status: "live_resolver_bearer",
+        standard: "OAuth 2.0 device-style resolver approval",
+        credentialKind: "scoped_bearer_token",
+        humanConsentRequired: true,
+        useFor: [
+          "approved runtime or desktop-bound agents",
+          "scoped activity monitoring",
+          "scoped Commitment proposal or Artifact publication where endpoint policy allows it",
+        ],
+        notFor: [
+          "unapproved external-agent production use",
+          "payment actions that require a human account session",
+          "granting broader scopes than the represented human approved",
+        ],
+        secretsSharedWithAgent: true,
+        productionWriteCapability: true,
+      },
+      {
+        id: "external_oauth2_delegation",
+        status: "target_external_agent_auth",
+        standard: "OAuth 2.0 authorization code with PKCE",
+        credentialKind: "oauth_access_token",
+        humanConsentRequired: true,
+        useFor: [
+          "future third-party agent delegation",
+          "future organization-scoped integrations",
+          "future marketplace agent write access",
+        ],
+        notFor: [
+          "current production write claims",
+          "raw password sharing",
+          "treating OAuth grants as Request, Commitment, Fulfillment, Artifact, Transaction, or RequestEvent truth",
+        ],
+        secretsSharedWithAgent: true,
+        productionWriteCapability: false,
+      },
+      {
+        id: "operator_reviewed_pilot",
+        status: "target_operator_review",
+        standard: "Boreal operator review plus conformance evidence",
+        credentialKind: "operator_issued_scope",
+        humanConsentRequired: true,
+        useFor: [
+          "future low-volume external-agent pilots",
+          "future production sandbox access",
+          "future monitored third-party write access",
+        ],
+        notFor: [
+          "self-issued production credentials",
+          "payment authority",
+          "claims that MCP, A2A, or x402 adapters are live",
+        ],
+        secretsSharedWithAgent: true,
+        productionWriteCapability: false,
+      },
+    ],
+    humanConsentFlows: [
+      {
+        id: "delegate_request_drafting",
+        actionId: "make_request_for_human",
+        representedHuman: "buyer_or_owner",
+        promptTitle: "Let this agent draft a Request",
+        decisionQuestion:
+          "Do you want this agent to create or update one private draft Request for your review?",
+        requiredScopes: ["requests:create", "requests:update_draft"],
+        authOptions: ["boreal_account_session"],
+        requiredBeforeAgentMayDo: [
+          "capture buyer-authored brief fields only",
+          "show missing details and proof expectations",
+          "ask before opening or funding",
+        ],
+        visibleToHuman: [
+          "Request title, summary, body, budget, deadline, proof expectations, and missing details",
+          "fields the agent may edit",
+          "fields the agent may not edit",
+        ],
+        canonicalReads: ["Request"],
+        canonicalWritesIfApproved: ["Request"],
+        approvalExpiresWhen: [
+          "the draft opens",
+          "the human changes the requested action",
+          "the agent needs to fund, route, or publish the Request",
+        ],
+        revocationPath: "account session logout or route-level cancellation",
+        stopWhen: [
+          "approval is inferred from prior chat instead of explicit consent",
+          "the agent wants to mutate server-owned planner, matcher, lifecycle, routing, or policy fields",
+        ],
+      },
+      {
+        id: "delegate_application",
+        actionId: "apply_to_request",
+        representedHuman: "solver_or_supply_owner",
+        promptTitle: "Let this agent apply to a Request",
+        decisionQuestion:
+          "Do you want this agent to submit one Commitment proposal with these terms?",
+        requiredScopes: ["commitments:propose"],
+        authOptions: ["boreal_account_session", "resolver_bearer"],
+        requiredBeforeAgentMayDo: [
+          "read request-detail agentActionPolicy",
+          "show proposal scope, price, proof duties, timeline, and solver identity",
+          "include an idempotency key where the endpoint requires it",
+        ],
+        visibleToHuman: [
+          "target Request",
+          "represented Supply or solver",
+          "proposal terms",
+          "canonical writes if submitted",
+        ],
+        canonicalReads: ["Request", "Supply"],
+        canonicalWritesIfApproved: ["Commitment", "RequestEvent"],
+        approvalExpiresWhen: [
+          "the Request closes or changes materially",
+          "the proposal terms change",
+          "the requested solver identity changes",
+        ],
+        revocationPath: "/api/auth/resolver/token/revoke",
+        stopWhen: [
+          "the request is no longer open or agentActionPolicy blocks applying",
+          "the agent treats proposal submission as acceptance, fulfillment start, or completion",
+        ],
+      },
+      {
+        id: "delegate_proof_submission",
+        actionId: "submit_artifact",
+        representedHuman: "solver_or_request_owner",
+        promptTitle: "Let this agent submit proof",
+        decisionQuestion:
+          "Do you want this agent to publish this Artifact as proof or delivery on the authorized Request lane?",
+        requiredScopes: ["artifacts:publish"],
+        authOptions: ["boreal_account_session", "resolver_bearer"],
+        requiredBeforeAgentMayDo: [
+          "prove accepted Commitment or direct-owner authorization",
+          "show Artifact title, summary, content reference, redaction posture, and proof claims",
+          "include an idempotency key where the endpoint requires it",
+        ],
+        visibleToHuman: [
+          "target Request and Fulfillment lane",
+          "Artifact payload summary",
+          "redaction and secret-handling statement",
+          "completion claim state after submission",
+        ],
+        canonicalReads: ["Request", "Commitment", "Fulfillment"],
+        canonicalWritesIfApproved: ["Artifact", "RequestEvent"],
+        approvalExpiresWhen: [
+          "the Fulfillment lane changes",
+          "the Artifact payload changes",
+          "the owner rejects the proof path",
+        ],
+        revocationPath: "/api/auth/resolver/token/revoke",
+        stopWhen: [
+          "the proof packet includes secrets, raw prompts, or unreviewable runtime logs",
+          "the agent wants to claim completion before owner review or accepted Artifact truth",
+        ],
+      },
+      {
+        id: "delegate_monitoring",
+        actionId: "monitor_request",
+        representedHuman: "owner_solver_or_operator",
+        promptTitle: "Let this agent monitor Request activity",
+        decisionQuestion:
+          "Do you want this agent to read activity and alert you on blockers from the latest cursor?",
+        requiredScopes: ["requests:read_activity"],
+        authOptions: ["none for public activity", "boreal_account_session", "resolver_bearer"],
+        requiredBeforeAgentMayDo: [
+          "persist cursor.nextAfterSequence outside RequestEvent history",
+          "show what activity is public versus scoped",
+          "define stale-state and escalation thresholds",
+        ],
+        visibleToHuman: [
+          "target Request",
+          "last observed RequestEvent sequence",
+          "alert thresholds",
+          "next allowed actions the agent may recommend",
+        ],
+        canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction"],
+        canonicalWritesIfApproved: [],
+        approvalExpiresWhen: [
+          "the human revokes monitoring",
+          "the agent needs to write, retry, spend, accept, reject, or claim completion",
+        ],
+        revocationPath: "/api/auth/resolver/token/revoke",
+        stopWhen: [
+          "the agent would write heartbeat events",
+          "the agent cannot prove whether a previous mutation committed",
+        ],
+      },
+      {
+        id: "delegate_paid_run",
+        actionId: "run_public_solution",
+        representedHuman: "buyer_or_funder",
+        promptTitle: "Authorize this paid solution run",
+        decisionQuestion:
+          "Do you approve this paid or credit-consuming run with this source Artifact, amount, and idempotency key?",
+        requiredScopes: ["solution_runs:create", "transactions:read"],
+        authOptions: ["boreal_account_session"],
+        requiredBeforeAgentMayDo: [
+          "show source Request and accepted Artifact",
+          "show amount, currency, credit or payment source family, and idempotency key",
+          "state that payment truth and work completion are separate",
+        ],
+        visibleToHuman: [
+          "source public solution",
+          "new private run Request shape",
+          "spend amount and Transaction reconciliation rule",
+          "what completion will require after the run starts",
+        ],
+        canonicalReads: ["Request", "Artifact", "Transaction"],
+        canonicalWritesIfApproved: ["Request", "Transaction", "RequestEvent"],
+        approvalExpiresWhen: [
+          "the amount changes",
+          "the source Artifact changes",
+          "the payment or credit source changes",
+        ],
+        revocationPath: "account session logout or payment route cancellation",
+        stopWhen: [
+          "the agent lacks account-session spend authority",
+          "payment state is uncertain and cannot be reconciled into Transaction truth",
+        ],
+      },
+      {
+        id: "delegate_optimization_review",
+        actionId: "optimize_request_brief",
+        representedHuman: "buyer_owner_solver_or_operator",
+        promptTitle: "Let this agent suggest improvements",
+        decisionQuestion:
+          "Do you want this agent to produce a draft-only optimization for review before any durable mutation?",
+        requiredScopes: ["requests:read_private", "requests:update_draft"],
+        authOptions: ["boreal_account_session", "target_resolver_token"],
+        requiredBeforeAgentMayDo: [
+          "read only authorized context",
+          "label output as draft-only",
+          "separate suggested patch from durable mutation",
+        ],
+        visibleToHuman: [
+          "current text or proof packet",
+          "suggested patch",
+          "facts preserved",
+          "missing questions",
+        ],
+        canonicalReads: ["Request", "Artifact", "RequestEvent"],
+        canonicalWritesIfApproved: [],
+        approvalExpiresWhen: [
+          "the underlying Request or Artifact changes",
+          "the human asks for a durable patch",
+          "the agent needs broader private context",
+        ],
+        revocationPath: "drop local draft and revoke private read scope",
+        stopWhen: [
+          "the agent would invent budget, deadline, deliverables, proof, or access",
+          "the agent wants to save changes without owner approval",
+        ],
+      },
+    ],
+    consentReceipt: {
+      status: "support_record_not_business_truth",
+      requiredFields: [
+        "representedHumanId",
+        "agentOrRuntimeId",
+        "delegationModeId",
+        "actionId",
+        "requestId when request-specific",
+        "approved scopes",
+        "expiresAt or revocation condition",
+        "idempotency key when the approved action mutates",
+      ],
+      mustInclude: [
+        "scope minimization",
+        "visible human decision",
+        "canonical writes if approved",
+        "what the agent will not do",
+        "revocation path",
+      ],
+      mustNotInclude: [
+        "raw password",
+        "session cookie",
+        "private key",
+        "payment credentials",
+        "private chat transcript unless explicitly approved and redacted",
+      ],
+    },
+    revocation: {
+      liveRoutes: [
+        {
+          id: "resolver_token_revoke",
+          status: "live_resolver_bearer",
+          method: "POST",
+          path: "/api/auth/resolver/token/revoke",
+          useFor: "Revoke an approved resolver bearer token.",
+        },
+        {
+          id: "account_session_logout",
+          status: "live_account_session",
+          method: "POST",
+          path: "/api/auth/signout",
+          useFor: "End a human browser session rather than sharing it with an agent.",
+        },
+      ],
+      targetRoutes: [
+        {
+          id: "oauth_token_revocation",
+          status: "target_external_agent_auth",
+          method: "POST",
+          path: "/oauth/revoke",
+          useFor: "Future OAuth-compatible external-agent token revocation.",
+        },
+      ],
+      rules: [
+        "Revocation stops future calls; it does not erase already-recorded Request, Commitment, Artifact, Transaction, or RequestEvent truth.",
+        "Agents must re-read request-detail agentActionPolicy after revocation, scope changes, or stale monitor recovery.",
+        "A revoked token must not be treated as a failed Request or failed Fulfillment.",
+      ],
+    },
+    policyBoundary: {
+      status: "derived_per_request",
+      requiredCheckpoint: "agentActionPolicy",
+      rules: [
+        "Delegation only narrows who may attempt a route; request-specific policy still decides whether the action is allowed now.",
+        "A broad scope cannot override Request visibility, participant role, lifecycle state, Commitment gates, Artifact review gates, or payment authority.",
+        "Every write-capable delegated action must still use the route contract and idempotency rule for that endpoint.",
+      ],
+    },
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Supply",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      delegationProfileIsNot: [
+        "credential issuer",
+        "permission grant",
+        "human approval record",
+        "payment authorization",
+        "accepted Commitment",
+        "Fulfillment start",
+        "Artifact proof",
+        "completion proof",
+      ],
+      notRoots: [
+        "delegation profile",
+        "consent screen",
+        "scope string",
+        "OAuth grant",
+        "resolver bearer token",
+        "session cookie",
+        "revocation receipt",
+      ],
+      rules: [
+        "Human delegation is an access boundary, not a new work object.",
+        "Do not store raw credentials, bearer tokens, or payment secrets in RequestEvent, Artifact, public profiles, or sandbox fixtures.",
+        "Consent must be tied to one represented human, one agent or runtime, scoped actions, and an expiration or revocation path.",
+        "Promote business truth only through governed Request, Commitment, Fulfillment, Artifact, Transaction, and RequestEvent routes.",
+      ],
+    },
+  };
+}
+
 export function buildAgentConformanceProfile() {
   return {
     schemaVersion: 1,
@@ -3160,6 +3799,7 @@ export function buildAgentConformanceProfile() {
         intent: "The agent can distinguish public inspection from write-capable account-session or resolver-scoped actions.",
         requiredProfiles: [
           absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentDelegation),
           absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
           absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
         ],
@@ -3174,6 +3814,18 @@ export function buildAgentConformanceProfile() {
             evidence: [
               absoluteUrl(agentDiscoveryPaths.agentAuth),
               absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+            ],
+          },
+          {
+            id: "scope_human_delegation",
+            required: true,
+            passWhen:
+              "The agent can show a human consent screen for the exact action, requested scopes, canonical writes, expiry or revocation path, and what it will not do.",
+            failWhen:
+              "The agent shares raw credentials, treats broad delegation as action approval, skips revocation, or stores auth secrets in RequestEvent, Artifact, public profiles, or sandbox fixtures.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentDelegation),
+              absoluteUrl(agentDiscoveryPaths.agentAuth),
             ],
           },
           {
@@ -4297,6 +4949,10 @@ export function buildAgentHumanHandoffProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentAuth),
       },
       {
+        label: "Agent human delegation profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
+      },
+      {
         label: "Agent completion profile",
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
       },
@@ -4626,6 +5282,355 @@ export function buildAgentHumanHandoffProfile() {
         "A visible UX pattern is a projection over canonical truth, not a canonical object.",
         "Agents should use precise claim-state labels until Request, Fulfillment, Artifact, Transaction, and RequestEvent truth supports stronger claims.",
         "Raw agent noise remains ephemeral unless explicitly summarized, reviewed, and promoted into canonical truth.",
+      ],
+    },
+  };
+}
+
+export function buildAgentHttpProfile() {
+  const toolRegistry = buildAgentToolRegistry();
+  const httpTools = toolRegistry.tools.filter(
+    (tool) => tool.standardMappings.http.method !== "LOCAL_DRAFT"
+  );
+
+  return {
+    schemaVersion: 1,
+    status: "live_http_reference_profile",
+    name: "Boreal Agent HTTP Reference Profile",
+    description:
+      "Machine-readable reference for the current HTTP routes agents should use before any MCP, A2A, x402, or OAuth-compatible adapter is live. It unifies route families, auth, scopes, idempotency, and canonical read/write boundaries without creating a new API surface.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent action playbook",
+        url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent tool registry",
+        url: absoluteUrl(agentDiscoveryPaths.agentTools),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent delegation profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
+      },
+      {
+        label: "Agent recovery profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      },
+      {
+        label: "Agent HTTP schema",
+        url: absoluteUrl("/schemas/agent-http.schema.json"),
+      },
+      {
+        label: "Request OpenAPI",
+        url: absoluteUrl("/openapi/request-briefing.yaml"),
+      },
+      {
+        label: "Payment OpenAPI",
+        url: absoluteUrl("/openapi/payment-and-credit.yaml"),
+      },
+      {
+        label: "Resolver auth OpenAPI",
+        url: absoluteUrl("/openapi/resolver-auth.yaml"),
+      },
+    ],
+    contractSources: [
+      {
+        id: "request_briefing",
+        status: "live_openapi_export",
+        url: absoluteUrl("/openapi/request-briefing.yaml"),
+        covers: [
+          "/api/requests",
+          "/api/requests/{id}",
+          "/api/requests/{id}/activity",
+          "/api/requests/{id}/commitments",
+          "/api/commitments/{id}",
+          "/api/requests/{id}/artifacts",
+        ],
+      },
+      {
+        id: "payment_and_credit",
+        status: "live_openapi_export",
+        url: absoluteUrl("/openapi/payment-and-credit.yaml"),
+        covers: [
+          "/api/requests/{id}/solution-runs",
+          "/api/requests/{id}/transactions",
+          "/api/buyer-credits/account",
+          "/api/buyer-credits/ledger",
+        ],
+      },
+      {
+        id: "resolver_auth",
+        status: "live_openapi_export",
+        url: absoluteUrl("/openapi/resolver-auth.yaml"),
+        covers: [
+          "/api/auth/resolver/device/start",
+          "/api/auth/resolver/device/poll",
+          "/api/auth/resolver/token/refresh",
+          "/api/auth/resolver/token/revoke",
+        ],
+      },
+      {
+        id: "supply_management",
+        status: "live_openapi_export",
+        url: absoluteUrl("/openapi/supply-management.yaml"),
+        covers: ["/api/supplies", "/api/supplies/{id}"],
+      },
+    ],
+    requestConventions: {
+      baseUrl: absoluteUrl("/"),
+      contentTypes: ["application/json", "text/markdown where route declares markdown"],
+      authSchemes: [
+        "none for public-safe GET routes",
+        "BorealAccountSession for human account-session routes",
+        "ResolverBearer for approved scoped resolver routes",
+      ],
+      requiredHeaders: [
+        "Content-Type: application/json on JSON mutations",
+        "Idempotency-Key on idempotency-required mutation routes",
+        "Authorization: Bearer <token> only for resolver bearer routes",
+      ],
+      standardErrors: [
+        "RFC 9457 Problem Details shape where available",
+        "Boreal problem-code extensions described by /agents/error-examples.json",
+      ],
+      preflightOrder: [
+        "Fetch /llms.txt or /.well-known/agent-card.json.",
+        "Fetch /agents/http.json, /agents/auth.json, and /agents/workflows.json.",
+        "Fetch the relevant OpenAPI export and JSON Schema.",
+        "Read request detail and agentActionPolicy before writes.",
+        "Ask the represented human through /agents/delegation.json and /agents/human-handoffs.json when approval is needed.",
+        "Use the route-specific idempotency rule for write-capable calls.",
+      ],
+    },
+    routeFamilies: [
+      {
+        id: "public_discovery",
+        status: "live_public_read",
+        sourceOpenApi: absoluteUrl("/openapi/request-briefing.yaml"),
+        routes: [
+          {
+            method: "GET",
+            path: "/api/requests?scope=public",
+            actionIds: ["inspect_public_requests"],
+            auth: "none",
+            requiredScopes: [],
+            idempotencyRequired: false,
+            canonicalReads: ["Request", "Supply"],
+            canonicalWrites: [],
+          },
+          {
+            method: "GET",
+            path: "/api/requests/{id}",
+            actionIds: ["inspect_public_requests"],
+            auth: "none for public-safe detail or scoped auth for private detail",
+            requiredScopes: ["requests:read_public", "requests:read_private when private"],
+            idempotencyRequired: false,
+            canonicalReads: ["Request", "RequestParticipant"],
+            canonicalWrites: [],
+          },
+        ],
+      },
+      {
+        id: "request_work",
+        status: "live_authenticated_http_contract",
+        sourceOpenApi: absoluteUrl("/openapi/request-briefing.yaml"),
+        routes: [
+          {
+            method: "POST",
+            path: "/api/requests",
+            actionIds: ["make_request_for_human"],
+            auth: "BorealAccountSession",
+            requiredScopes: ["requests:create"],
+            idempotencyRequired: false,
+            canonicalReads: ["Request"],
+            canonicalWrites: ["Request"],
+          },
+          {
+            method: "PATCH",
+            path: "/api/requests/{id}",
+            actionIds: ["make_request_for_human", "optimize_request_brief_with_owner_approval"],
+            auth: "BorealAccountSession",
+            requiredScopes: ["requests:update_draft"],
+            idempotencyRequired: false,
+            canonicalReads: ["Request"],
+            canonicalWrites: ["Request"],
+          },
+          {
+            method: "POST",
+            path: "/api/requests/{id}/commitments",
+            actionIds: ["apply_to_request"],
+            auth: "BorealAccountSession or ResolverBearer",
+            requiredScopes: ["commitments:propose"],
+            idempotencyRequired: true,
+            canonicalReads: ["Request", "Supply"],
+            canonicalWrites: ["Commitment", "RequestEvent"],
+          },
+          {
+            method: "POST",
+            path: "/api/requests/{id}/artifacts",
+            actionIds: ["submit_artifact"],
+            auth: "BorealAccountSession or ResolverBearer",
+            requiredScopes: ["artifacts:publish"],
+            idempotencyRequired: true,
+            canonicalReads: ["Request", "Commitment", "Fulfillment"],
+            canonicalWrites: ["Artifact", "RequestEvent"],
+          },
+          {
+            method: "GET",
+            path: "/api/requests/{id}/activity?after_sequence={cursor}&limit={limit}",
+            actionIds: ["monitor_request"],
+            auth: "none for public activity or ResolverBearer for private activity",
+            requiredScopes: ["requests:read_activity when private"],
+            idempotencyRequired: false,
+            canonicalReads: ["RequestEvent", "Artifact", "Transaction"],
+            canonicalWrites: [],
+          },
+        ],
+      },
+      {
+        id: "payment_and_runs",
+        status: "live_authenticated_http_contract",
+        sourceOpenApi: absoluteUrl("/openapi/payment-and-credit.yaml"),
+        routes: [
+          {
+            method: "POST",
+            path: "/api/requests/{id}/solution-runs",
+            actionIds: ["run_public_solution"],
+            auth: "BorealAccountSession",
+            requiredScopes: ["solution_runs:create", "transactions:read"],
+            idempotencyRequired: true,
+            canonicalReads: ["Request", "Artifact", "Transaction"],
+            canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+          },
+          {
+            method: "GET",
+            path: "/api/requests/{id}/transactions",
+            actionIds: ["payment_or_credit_reconciliation", "monitor_request"],
+            auth: "BorealAccountSession or ResolverBearer where authorized",
+            requiredScopes: ["transactions:read"],
+            idempotencyRequired: false,
+            canonicalReads: ["Transaction"],
+            canonicalWrites: [],
+          },
+          {
+            method: "GET",
+            path: "/api/buyer-credits/ledger",
+            actionIds: ["payment_or_credit_reconciliation"],
+            auth: "BorealAccountSession",
+            requiredScopes: ["transactions:read"],
+            idempotencyRequired: false,
+            canonicalReads: ["Transaction"],
+            canonicalWrites: [],
+          },
+        ],
+      },
+      {
+        id: "resolver_authorization",
+        status: "live_authenticated_http_contract",
+        sourceOpenApi: absoluteUrl("/openapi/resolver-auth.yaml"),
+        routes: [
+          {
+            method: "POST",
+            path: "/api/auth/resolver/device/start",
+            actionIds: ["request_resolver_delegation"],
+            auth: "BorealAccountSession",
+            requiredScopes: [],
+            idempotencyRequired: false,
+            canonicalReads: [],
+            canonicalWrites: [],
+          },
+          {
+            method: "POST",
+            path: "/api/auth/resolver/token/revoke",
+            actionIds: ["revoke_resolver_delegation"],
+            auth: "BorealAccountSession or ResolverBearer depending on route contract",
+            requiredScopes: [],
+            idempotencyRequired: false,
+            canonicalReads: [],
+            canonicalWrites: [],
+          },
+        ],
+      },
+    ],
+    intentToHttp: httpTools.map((tool) => ({
+      actionId: tool.actionId,
+      toolId: tool.id,
+      status: tool.status,
+      method: tool.standardMappings.http.method,
+      href: tool.standardMappings.http.href,
+      auth: tool.auth,
+      idempotencyRequired: tool.idempotencyRequired,
+      canonicalReads: tool.canonicalReads,
+      canonicalWrites: tool.canonicalWrites,
+      preflight: tool.preflight,
+      stopWhen: tool.stopWhen,
+    })),
+    nonHttpIntentFallbacks: [
+      {
+        actionId: "optimize_request_brief",
+        status: "draft_only_or_owner_approved_patch",
+        reason:
+          "Optimization may be local draft analysis until the human approves a governed Request patch route.",
+        profileUrl: absoluteUrl(agentDiscoveryPaths.agentOptimization),
+      },
+      {
+        actionId: "signed_monitor_webhook",
+        status: "target_push_delivery",
+        reason:
+          "Cursor polling is the live monitor baseline; signed push delivery remains target until subscription persistence and delivery are live.",
+        profileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks),
+      },
+    ],
+    safetyRules: [
+      "Do not call private UI routes as public agent API.",
+      "Do not use target MCP, A2A, x402, or OAuth mappings as live HTTP authority.",
+      "Do not infer permission from agentActionAffordances; read agentActionPolicy before writes.",
+      "Do not send mock sandbox credentials or sample ids to production routes.",
+      "Do not claim completion from a 2xx HTTP response unless completion, artifact, fulfillment, review, payment, and event truth supports it.",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Supply",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      httpProfileIsNot: [
+        "new API surface",
+        "permission grant",
+        "credential issuer",
+        "human approval record",
+        "MCP server",
+        "A2A adapter",
+        "x402 endpoint",
+        "completion proof",
+      ],
+      notRoots: [
+        "HTTP route",
+        "OpenAPI operation",
+        "problem detail",
+        "idempotency key",
+        "agent HTTP profile",
+        "tool response",
+      ],
+      rules: [
+        "This profile summarizes existing route contracts; OpenAPI files remain the HTTP contract source.",
+        "HTTP success is transport success, not business completion.",
+        "Every write-capable route must preserve canonical auth, idempotency, lifecycle, and human-approval gates.",
+        "Promote business truth only through governed Request, Commitment, Fulfillment, Artifact, Transaction, and RequestEvent writes.",
       ],
     },
   };
@@ -5363,6 +6368,10 @@ export function buildAgentOnboardingProfile() {
       {
         label: "Agent auth profile",
         url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent human delegation profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
       },
       {
         label: "Agent conformance profile",

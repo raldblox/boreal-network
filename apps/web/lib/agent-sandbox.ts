@@ -8,12 +8,14 @@ export const agentSandboxPaths = {
   conformance: "/agents/conformance.json",
   conformanceReportExample: "/agents/conformance-report.example.json",
   completion: "/agents/completion.json",
+  delegation: "/agents/delegation.json",
   evidence: "/agents/evidence.json",
   errorExamples: "/agents/error-examples.json",
   execution: "/agents/execution.json",
   humanHandoffPacketExamples: "/agents/human-handoff-packets.example.json",
   guide: "/agents/sandbox.md",
   humanHandoffs: "/agents/human-handoffs.json",
+  http: "/agents/http.json",
   manifest: "/agents/sandbox.json",
   monitorWebhooks: "/agents/monitor-webhooks.md",
   monitoring: "/agents/monitoring.json",
@@ -93,6 +95,10 @@ export function buildAgentSandboxManifest() {
         url: absoluteUrl(agentSandboxPaths.completion),
       },
       {
+        label: "Human delegation profile",
+        url: absoluteUrl(agentSandboxPaths.delegation),
+      },
+      {
         label: "Evidence profile",
         url: absoluteUrl(agentSandboxPaths.evidence),
       },
@@ -111,6 +117,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Human handoff packet examples",
         url: absoluteUrl(agentSandboxPaths.humanHandoffPacketExamples),
+      },
+      {
+        label: "HTTP reference profile",
+        url: absoluteUrl(agentSandboxPaths.http),
       },
       {
         label: "Optimization profile",

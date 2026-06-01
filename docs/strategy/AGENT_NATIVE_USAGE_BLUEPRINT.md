@@ -83,11 +83,13 @@ Current assets that agents can eventually build on:
 - A machine-readable conformance report contract exists through `schemas/json/agent-conformance-report.schema.json`, `/agents/conformance-report.example.json`, and `fixtures/agent/conformance-report.sample.json`, giving agents a standard way to package sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions.
 - A checked production access packet example exists through `/agents/production-access-packet.example.json`, `schemas/json/agent-production-access-packet.schema.json`, and `fixtures/agent/production-access-packet.sample.json`, giving agents a concrete operator-review package for represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, payment boundary, and target-protocol claims without granting access.
 - A machine-readable completion profile exists through `/agents/completion.json` and `schemas/json/agent-completion.schema.json`, mapping draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims to proof, Artifact, Fulfillment, Transaction, RequestEvent, and owner-review truth.
+- A machine-readable delegation profile exists through `/agents/delegation.json` and `schemas/json/agent-delegation.schema.json`, mapping human consent screens, scopes, account-session use, resolver bearer delegation, target OAuth, revocation, and per-action approval expiry.
 - A machine-readable evidence profile exists through `/agents/evidence.json` and `schemas/json/agent-evidence.schema.json`, mapping evidence packets, artifact packaging, redaction rules, review signals, and retry-safe proof submission.
 - A machine-readable error example pack exists through `/agents/error-examples.json`, `schemas/json/agent-error-examples.schema.json`, and `fixtures/agent/error-examples.sample.json`, giving agents RFC 9457-style problem examples for auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write recovery.
 - A machine-readable execution profile exists through `/agents/execution.json` and `schemas/json/agent-execution.schema.json`, mapping execution lanes, `Fulfillment`, `FulfillmentStep`, direct-owner exceptions, runtime signal promotion, retry, and non-root adapter boundaries.
 - A machine-readable human handoff profile exists through `/agents/human-handoffs.json` and `schemas/json/agent-human-handoffs.schema.json`, mapping human approval moments, stop rules, escalation packets, visible UX patterns, and safe claim-state language for first-user-human agent usage.
 - A checked human handoff packet example set exists through `/agents/human-handoff-packets.example.json`, `schemas/json/agent-human-handoff-packets.schema.json`, and `fixtures/agent/human-handoff-packets.sample.json`, giving agents renderable draft approval, Commitment review, proof review, monitor escalation, and payment authorization packets without making those packets approval records, payment authorizations, or completion proof.
+- A machine-readable HTTP reference profile exists through `/agents/http.json` and `schemas/json/agent-http.schema.json`, giving agents one current-route view over live HTTP/OpenAPI exports, route families, auth, scopes, idempotency, preflight order, non-HTTP fallbacks, and canonical writes.
 - A machine-readable monitoring profile exists through `/agents/monitoring.json` and `schemas/json/agent-monitoring.schema.json`, mapping cursor polling, stale-state detection, escalation triggers, webhook boundaries, and no-heartbeat-noise rules.
 - A machine-readable onboarding profile exists through `/agents/onboarding.json` and `schemas/json/agent-onboarding.schema.json`, mapping external-agent discovery, role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness.
 - A machine-readable opportunity discovery profile exists through `/agents/opportunities.json` and `schemas/json/agent-opportunities.schema.json`, mapping public request projections and `agentActionAffordances` into local opportunity cards, fit scoring, and next-action selection without granting permission or assignment.
@@ -817,10 +819,12 @@ Deliverables:
 - `/agents/conformance-report.example.json` - implemented as the public fetchable conformance report example package
 - `/agents/production-access-packet.example.json`, `schemas/json/agent-production-access-packet.schema.json`, and `fixtures/agent/production-access-packet.sample.json` - implemented as a checked operator-review packet example for represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, payment boundary, and target-protocol claims
 - `/agents/completion.json` - implemented as a public machine-readable completion profile for proof packets, Artifact guidance, completion claims, and review boundaries
+- `/agents/delegation.json` - implemented as a public machine-readable human delegation profile for consent screens, scope minimization, account-session use, resolver bearer delegation, target OAuth, revocation, and per-action approval expiry
 - `/agents/evidence.json` - implemented as a public machine-readable evidence profile for proof packets, Artifact packaging, redaction, review signals, and retry-safe submission boundaries
 - `/agents/error-examples.json` - implemented as a public RFC 9457-style problem-details example pack for safe auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write recovery
 - `/agents/execution.json` - implemented as a public machine-readable execution profile for `Fulfillment` lanes, `FulfillmentStep` sub-work, direct-owner exceptions, runtime signal promotion, retry, and non-root adapter boundaries
 - `/agents/human-handoffs.json` - implemented as a public machine-readable handoff profile for human approval moments, stop rules, escalation packets, visible UX patterns, and safe claim-state language
+- `/agents/http.json` - implemented as a public machine-readable HTTP reference profile for current route families, OpenAPI sources, auth, scopes, idempotency, preflight order, non-HTTP fallbacks, and canonical write boundaries
 - `/agents/monitoring.json` - implemented as a public machine-readable monitoring profile for cursor polling, stale-state detection, escalation triggers, and live-versus-target push delivery boundaries
 - `/agents/onboarding.json` - implemented as a public machine-readable onboarding profile for external-agent discovery, sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness
 - `/agents/opportunities.json` - implemented as a public read-only opportunity discovery profile for public request fit scoring, local opportunity cards, and next-action selection without permission, assignment, payment, or completion authority
@@ -850,11 +854,13 @@ Deliverables:
 - machine-readable agent conformance report example - implemented as `/agents/conformance-report.example.json`, linked from the conformance profile and `/openapi.json`
 - machine-readable production access packet example - implemented as `/agents/production-access-packet.example.json`, linked from onboarding, access review, conformance, `/llms.txt`, and `/openapi.json`
 - machine-readable agent completion profile - implemented as `/agents/completion.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent human delegation profile - implemented as `/agents/delegation.json`, linked from the agent card, auth profile, start guide, `/llms.txt`, and `/openapi.json`
 - machine-readable agent evidence profile - implemented as `/agents/evidence.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent error examples - implemented as `/agents/error-examples.json`, linked from the recovery profile and `/openapi.json`
 - machine-readable agent execution profile - implemented as `/agents/execution.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent human handoff profile - implemented as `/agents/human-handoffs.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent human handoff packet examples - implemented as `/agents/human-handoff-packets.example.json`, linked from the human handoff profile and `/openapi.json`
+- machine-readable agent HTTP reference profile - implemented as `/agents/http.json`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, and `/openapi.json`
 - machine-readable agent monitoring profile - implemented as `/agents/monitoring.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent onboarding profile - implemented as `/agents/onboarding.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent opportunity discovery profile - implemented as `/agents/opportunities.json`, linked from the agent card, start guide, `/llms.txt`, and `/openapi.json`
@@ -882,6 +888,8 @@ Acceptance:
 - draft/private requests remain hidden
 - an agent can identify the canonical read/write object for inspect, make-request, apply, submit, monitor, run, and optimize intents without inventing a parallel workflow
 - an agent can read a public Request projection and see concrete request-bound affordances for next actions instead of inferring them from UI labels
+- an agent can show a human an action-specific consent screen with required scopes, canonical writes, expiration or revocation path, and non-grants before requesting delegated authority
+- an agent can map live HTTP route families, auth schemes, scopes, idempotency requirements, OpenAPI sources, and non-HTTP fallbacks without treating the reference as a new API surface
 
 Current evidence:
 
@@ -892,6 +900,8 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public conformance report example route, report kind, operator-review status, non-credential boundary, and OpenAPI index link.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public production access packet example route, packet kind, operator-review status, non-production boundary, target-protocol boundary, payment non-authority, onboarding link, OpenAPI path, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent completion profile, proof packet, Artifact and owner-review boundaries, non-completion truth list, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent human delegation profile, live account-session and resolver-bearer modes, target OAuth boundary, action consent flows, revocation routes, non-grant boundary, OpenAPI extension, public route, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent HTTP reference profile, OpenAPI source list, route families, idempotency-required HTTP intents, non-HTTP fallbacks, non-new-API boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent error example pack, problem-details standard, unknown-write retry policy, payment Transaction read, public route, OpenAPI extension, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent execution profile, accepted-commitment lane, direct-owner exception, ephemeral runtime signal rules, `FulfillmentStep` default, non-root adapter boundary, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public human handoff packet example route, packet schema route, draft approval, proof review, monitor escalation, and non-approval-record boundary.
@@ -913,6 +923,7 @@ Deliverables:
 - resolver-token expansion only where runtime approval is the right identity boundary
 - idempotency requirements on all agent write endpoints
 - auth profile for actor class, scope, approval, and non-grant handling - first machine-readable profile is live in `/agents/auth.json`; live external-agent OAuth remains target
+- human delegation profile for consent screens, scope minimization, revocation, and per-action approval expiry - first machine-readable profile is live in `/agents/delegation.json`; persisted consent receipts and external OAuth authorization remain target
 - "apply to request" guide - first public contract-linked sketch is live in `/agents/actions.md`; sandbox-auth walkthrough remains target
 - "submit proof" guide - first public contract-linked sketch is live in `/agents/actions.md`; sandbox-auth walkthrough remains target
 - "monitor request" guide - first public contract-linked sketch is live in `/agents/actions.md`; `after_sequence` cursor polling and signed receiver profile are live, while subscription persistence and delivery remain target
@@ -999,6 +1010,8 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can fetch the conformance report example and mirror its shape without treating the example as a submission, approval, credential, or certification.
 - A fresh agent can fetch the production access packet example and mirror its represented-actor, minimal-scope, sandbox-evidence, rate-limit, human-escalation, data-handling, idempotency, payment-boundary, and target-protocol sections without treating the packet as production authority.
 - A fresh agent can find the completion profile and distinguish draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims.
+- A fresh agent can find the delegation profile and distinguish public read, account-session assisted use, resolver device delegation, target OAuth delegation, operator-reviewed pilot paths, consent screens, revocation, and per-action approval expiry without treating delegation as permission, spend authority, or completion truth.
+- A fresh agent can find the HTTP reference profile and map live route families, auth schemes, scopes, idempotency requirements, OpenAPI sources, canonical write boundaries, and non-HTTP fallbacks without treating it as a permission grant or new API surface.
 - A fresh agent can find the evidence profile and understand how to package proof, receipts, files, media, redaction statements, review signals, and bounded artifact claims.
 - A fresh agent can fetch error examples and handle auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write failures without treating problem responses as durable history or retry authority.
 - A fresh agent can find the execution profile and distinguish accepted-commitment execution, owner-private direct execution, public solution runs, target adapter execution, runtime signal promotion, retry, and `FulfillmentStep` sub-work boundaries.

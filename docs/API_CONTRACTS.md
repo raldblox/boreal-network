@@ -403,11 +403,13 @@ Read-only public discovery surfaces:
 - `/agents/conformance.json` for machine-readable pre-production checks across discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries
 - `/agents/conformance-report.example.json` for a public example package that agents can mirror when submitting sandbox replay evidence, requested scopes, protocol claims, secret-handling posture, and human-review questions for operator review
 - `/agents/completion.json` for machine-readable proof packet, artifact, completion-claim, and review-boundary handling
+- `/agents/delegation.json` for machine-readable human-owned delegation, consent screen, scope, revocation, and per-action approval boundaries
 - `/agents/evidence.json` for machine-readable evidence packet, artifact packaging, redaction, review, and proof-boundary handling
 - `/agents/error-examples.json` for RFC 9457-style problem examples covering auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write recovery
 - `/agents/execution.json` for machine-readable execution lane, `Fulfillment`, `FulfillmentStep`, runtime signal, and direct-owner exception boundaries
 - `/agents/human-handoffs.json` for machine-readable human approval, stop, escalation, visible UX, and claim-state handling
 - `/agents/human-handoff-packets.example.json` for checked renderable packet examples covering draft approval, Commitment review, proof review, monitor escalation, and payment authorization
+- `/agents/http.json` for a unified machine-readable HTTP reference over current agent-callable routes, OpenAPI sources, auth, scopes, idempotency, and canonical writes
 - `/agents/onboarding.json` for machine-readable external-agent onboarding, contract sandbox validation, production eligibility, and scoped credential boundaries
 - `/agents/optimization.json` for machine-readable draft-only optimization, no-invention, owner-approval, and mutation-boundary handling
 - `/agents/payments.json` for machine-readable buyer-credit, paid-run, x402 target, idempotency, and `Transaction` reconciliation handling
@@ -439,11 +441,13 @@ Read-only public discovery surfaces:
 - `/schemas/agent-conformance-report.schema.json` for the machine-readable agent conformance report shape used to package sandbox replay evidence and requested scopes for operator review
 - `/schemas/agent-production-access-packet.schema.json` for the checked production access packet example shape used as operator-review input
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
+- `/schemas/agent-delegation.schema.json` for the machine-readable human delegation profile shape
 - `/schemas/agent-evidence.schema.json` for the machine-readable agent evidence profile shape
 - `/schemas/agent-error-examples.schema.json` for the machine-readable agent error example shape
 - `/schemas/agent-execution.schema.json` for the machine-readable agent execution profile shape
 - `/schemas/agent-human-handoffs.schema.json` for the machine-readable human handoff profile shape
 - `/schemas/agent-human-handoff-packets.schema.json` for the checked human handoff packet example shape
+- `/schemas/agent-http.schema.json` for the machine-readable agent HTTP reference profile shape
 - `/schemas/agent-monitoring.schema.json` for the machine-readable agent monitoring profile shape
 - `/schemas/agent-onboarding.schema.json` for the machine-readable agent onboarding profile shape
 - `/schemas/agent-opportunities.schema.json` for the machine-readable read-only agent opportunity discovery profile shape
@@ -537,6 +541,15 @@ is not a credential, permission grant, operator approval record, human approval
 record, payment authorization, production sandbox, certification, or completion
 proof.
 
+The public agent delegation profile is descriptive and safety-oriented. It tells
+agents how a human can delegate one action through public read, account-session,
+resolver-bearer, target OAuth, or operator-reviewed pilot paths without sharing
+raw credentials. It names consent screen fields, required scopes, revocation
+paths, policy checkpoints, and canonical writes if the human approves. It is not
+a credential issuer, permission grant, human approval record, payment
+authorization, accepted Commitment, Fulfillment start, Artifact proof, or
+completion proof.
+
 The public agent human handoff profile is descriptive and safety-oriented. It
 tells agents when to ask a human, show a draft, request approval, stop, escalate,
 or use precise claim-state language for draft, proposal, proof, payment,
@@ -550,6 +563,14 @@ respond to a stale monitor, or authorize spend. They are not permission grants,
 approval records, payment authorizations, production credentials, or completion
 proof, and they must always point back to the governed route, review, payment,
 or event path that owns the durable action.
+
+The public agent HTTP reference profile is descriptive and safety-oriented. It
+gives agents one machine-readable current-route view over the live HTTP baseline
+using existing OpenAPI exports as the contract source. It summarizes route
+families, auth schemes, required scopes, idempotency requirements, preflight
+order, and canonical reads or writes. It is not a new API surface, permission
+grant, credential issuer, MCP server, A2A adapter, x402 endpoint, human approval
+record, or completion proof.
 
 The public agent evidence profile is descriptive and safety-oriented. It tells
 agents how to package delivery, proof, receipts, files, media, and handoff notes
@@ -656,9 +677,11 @@ routes:
 - `/schemas/agent-conformance-report.schema.json` is the public report shape agents should use when attaching sandbox replay evidence to a production access request; it does not grant production access
 - `/agents/conformance-report.example.json` is a sample package agents can copy structurally, not a submission endpoint, credential, approval record, or certification
 - `/agents/production-access-packet.example.json` is the public packet example agents should mirror before requesting operator review; it does not submit the request, issue credentials, grant permission, authorize spend, create a production sandbox, or prove completion
+- `/agents/delegation.json` is the public human-delegation lens agents should read before requesting scopes, rendering consent screens, storing consent receipts, or explaining revocation; it does not issue credentials, grant permission, record approval, authorize spend, or bypass request-specific `agentActionPolicy`
 - `/agents/evidence.json` is the public evidence lens agents should read before `submit_artifact`; it does not authorize publication or replace `Artifact` review
 - `/agents/execution.json` is the public execution lens agents should read before starting work, retrying a lane, or promoting runtime output; it does not authorize writes, prove completion, or turn runtime sessions, provider tasks, MCP sessions, A2A tasks, x402 payments, stdout, local logs, or tool traces into roots
 - `/agents/human-handoffs.json` is the public handoff lens agents should read before asking, stopping, escalating, requesting approval, or claiming draft, proposal, proof, payment, monitor, or completion state to a human
+- `/agents/http.json` is the public HTTP lens agents should read before choosing a live route; it summarizes existing OpenAPI exports and does not create a new endpoint contract, grant permission, replace route auth, make target adapters live, or prove completion
 - `/agents/optimization.json` is the public optimization lens agents should read before improving a brief, proposal, evidence packet, monitor update, or solution-run input; optimization is draft-only unless a human approves a governed mutation
 - `/agents/monitoring.json` is the public monitor lens agents should read before polling, detecting stale work, processing target webhook envelopes, or escalating monitor findings
 - `/agents/onboarding.json` is the public onboarding lens external agents should read before claiming production eligibility; it is not a credential issuer, OAuth server, production sandbox, adapter implementation, payment endpoint, or permission grant

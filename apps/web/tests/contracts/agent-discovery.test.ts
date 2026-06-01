@@ -8,10 +8,12 @@ import {
   buildAgentCard,
   buildAgentConformanceProfile,
   buildAgentCompletionProfile,
+  buildAgentDelegationProfile,
   buildAgentEvidenceProfile,
   buildAgentRecoveryProfile,
   buildAgentExecutionProfile,
   buildAgentHumanHandoffProfile,
+  buildAgentHttpProfile,
   buildAgentMonitoringProfile,
   buildAgentMonitorWebhooksMarkdown,
   buildAgentOnboardingProfile,
@@ -52,11 +54,13 @@ import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
 import { GET as getAgentConformance } from "@/app/agents/conformance.json/route";
 import { GET as getAgentConformanceReportExample } from "@/app/agents/conformance-report.example.json/route";
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
+import { GET as getAgentDelegation } from "@/app/agents/delegation.json/route";
 import { GET as getAgentEvidence } from "@/app/agents/evidence.json/route";
 import { GET as getAgentErrorExamples } from "@/app/agents/error-examples.json/route";
 import { GET as getAgentExecution } from "@/app/agents/execution.json/route";
 import { GET as getAgentHumanHandoffPacketExamples } from "@/app/agents/human-handoff-packets.example.json/route";
 import { GET as getAgentHumanHandoffs } from "@/app/agents/human-handoffs.json/route";
+import { GET as getAgentHttp } from "@/app/agents/http.json/route";
 import { GET as getAgentMonitoring } from "@/app/agents/monitoring.json/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
 import { GET as getAgentOnboarding } from "@/app/agents/onboarding.json/route";
@@ -129,6 +133,10 @@ async function main() {
     true,
   );
   assert.equal(
+    agentCard.delegationProfileUrl.endsWith("/agents/delegation.json"),
+    true,
+  );
+  assert.equal(
     agentCard.evidenceProfileUrl.endsWith("/agents/evidence.json"),
     true,
   );
@@ -146,6 +154,7 @@ async function main() {
     ),
     true,
   );
+  assert.equal(agentCard.httpProfileUrl.endsWith("/agents/http.json"), true);
   assert.equal(
     agentCard.monitoringProfileUrl.endsWith("/agents/monitoring.json"),
     true,
@@ -199,6 +208,34 @@ async function main() {
     ),
     true,
   );
+  assert.equal(agentCard.delegation.status, "live_human_delegation_profile");
+  assert.equal(
+    agentCard.delegation.liveModes.includes("account_session_assisted"),
+    true,
+  );
+  assert.equal(
+    agentCard.delegation.consentFlows.some(
+      (flow: { actionId: string; requiredScopes: string[] }) =>
+        flow.actionId === "apply_to_request" &&
+        flow.requiredScopes.includes("commitments:propose")
+    ),
+    true,
+  );
+  assert.equal(
+    agentCard.delegation.revocationRoutes.includes(
+      "/api/auth/resolver/token/revoke"
+    ),
+    true,
+  );
+  assert.equal(agentCard.http.status, "live_http_reference_profile");
+  assert.equal(
+    agentCard.http.routeFamilies.some(
+      (family: { id: string; routeCount: number }) =>
+        family.id === "request_work" && family.routeCount >= 5
+    ),
+    true,
+  );
+  assert.equal(agentCard.http.liveHttpIntents.includes("apply_to_request"), true);
   assert.equal(agentCard.opportunities.status, "live_opportunity_discovery_profile");
   assert.equal(
     agentCard.opportunities.cardExamplesUrl.endsWith(
@@ -762,6 +799,17 @@ async function main() {
     conformanceProfile.checklists.some((checklist) =>
       checklist.checks.some(
         (check) =>
+          check.id === "scope_human_delegation" &&
+          check.required &&
+          check.evidence.some((item) => item.endsWith("/agents/delegation.json"))
+      )
+    ),
+    true,
+  );
+  assert.equal(
+    conformanceProfile.checklists.some((checklist) =>
+      checklist.checks.some(
+        (check) =>
           check.id === "package_production_access_packet" &&
           check.required &&
           check.evidence.some((item) =>
@@ -887,6 +935,127 @@ async function main() {
     completionProfile.canonicalBoundary.notCompletionTruth.includes(
       "A2A task status alone"
     ),
+    true,
+  );
+
+  const delegationProfile = buildAgentDelegationProfile();
+  assert.equal(delegationProfile.status, "live_human_delegation_profile");
+  assert.equal(delegationProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    delegationProfile.delegationModes.some(
+      (mode) =>
+        mode.id === "account_session_assisted" &&
+        mode.status === "live_account_session" &&
+        mode.secretsSharedWithAgent === false
+    ),
+    true,
+  );
+  assert.equal(
+    delegationProfile.delegationModes.some(
+      (mode) =>
+        mode.id === "resolver_device_delegation" &&
+        mode.status === "live_resolver_bearer" &&
+        mode.credentialKind === "scoped_bearer_token"
+    ),
+    true,
+  );
+  assert.equal(
+    delegationProfile.delegationModes.some(
+      (mode) =>
+        mode.id === "external_oauth2_delegation" &&
+        mode.status === "target_external_agent_auth"
+    ),
+    true,
+  );
+  assert.equal(
+    delegationProfile.humanConsentFlows.some(
+      (flow) =>
+        flow.id === "delegate_application" &&
+        flow.actionId === "apply_to_request" &&
+        flow.requiredScopes.includes("commitments:propose") &&
+        flow.canonicalWritesIfApproved.includes("Commitment")
+    ),
+    true,
+  );
+  assert.equal(
+    delegationProfile.humanConsentFlows.some(
+      (flow) =>
+        flow.id === "delegate_paid_run" &&
+        flow.actionId === "run_public_solution" &&
+        flow.authOptions.includes("boreal_account_session") &&
+        flow.canonicalWritesIfApproved.includes("Transaction")
+    ),
+    true,
+  );
+  assert.equal(
+    delegationProfile.revocation.liveRoutes.some(
+      (route) => route.path === "/api/auth/resolver/token/revoke"
+    ),
+    true,
+  );
+  assert.equal(
+    delegationProfile.consentReceipt.mustNotInclude.includes("session cookie"),
+    true,
+  );
+  assert.equal(
+    delegationProfile.canonicalBoundary.delegationProfileIsNot.includes(
+      "permission grant"
+    ),
+    true,
+  );
+
+  const httpProfile = buildAgentHttpProfile();
+  assert.equal(httpProfile.status, "live_http_reference_profile");
+  assert.equal(httpProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    httpProfile.contractSources.some(
+      (source) =>
+        source.id === "request_briefing" &&
+        source.url.endsWith("/openapi/request-briefing.yaml")
+    ),
+    true,
+  );
+  assert.equal(
+    httpProfile.routeFamilies.some(
+      (family) =>
+        family.id === "request_work" &&
+        family.routes.some(
+          (route) =>
+            route.path === "/api/requests/{id}/commitments" &&
+            route.idempotencyRequired &&
+            route.canonicalWrites.includes("Commitment")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    httpProfile.routeFamilies.some(
+      (family) =>
+        family.id === "payment_and_runs" &&
+        family.routes.some(
+          (route) =>
+            route.path === "/api/requests/{id}/solution-runs" &&
+            route.canonicalWrites.includes("Transaction")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    httpProfile.intentToHttp.some(
+      (intent) =>
+        intent.toolId === "boreal.commitments.propose" &&
+        intent.idempotencyRequired
+    ),
+    true,
+  );
+  assert.equal(
+    httpProfile.nonHttpIntentFallbacks.some(
+      (fallback) => fallback.actionId === "optimize_request_brief"
+    ),
+    true,
+  );
+  assert.equal(
+    httpProfile.canonicalBoundary.httpProfileIsNot.includes("new API surface"),
     true,
   );
 
@@ -1742,11 +1911,13 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/conformance\.json/);
   assert.match(startGuide, /GET \/agents\/conformance-report\.example\.json/);
   assert.match(startGuide, /GET \/agents\/completion\.json/);
+  assert.match(startGuide, /GET \/agents\/delegation\.json/);
   assert.match(startGuide, /GET \/agents\/evidence\.json/);
   assert.match(startGuide, /GET \/agents\/error-examples\.json/);
   assert.match(startGuide, /GET \/agents\/execution\.json/);
   assert.match(startGuide, /GET \/agents\/human-handoffs\.json/);
   assert.match(startGuide, /GET \/agents\/human-handoff-packets\.example\.json/);
+  assert.match(startGuide, /GET \/agents\/http\.json/);
   assert.match(startGuide, /GET \/agents\/monitoring\.json/);
   assert.match(startGuide, /GET \/agents\/onboarding\.json/);
   assert.match(startGuide, /GET \/agents\/optimization\.json/);
@@ -1763,7 +1934,9 @@ async function main() {
   assert.match(startGuide, /Agent conformance report example/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent error examples/);
+  assert.match(startGuide, /Agent human delegation profile/);
   assert.match(startGuide, /Agent human handoff packet examples/);
+  assert.match(startGuide, /Agent HTTP reference profile/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent production access packet example/);
   assert.match(startGuide, /Agent opportunity card examples/);
@@ -1805,6 +1978,7 @@ async function main() {
     Object.hasOwn(discoveryIndex.paths, "/agents/completion.json"),
     true,
   );
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/delegation.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/evidence.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/error-examples.json"),
@@ -1819,6 +1993,7 @@ async function main() {
     Object.hasOwn(discoveryIndex.paths, "/agents/human-handoff-packets.example.json"),
     true,
   );
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/http.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/monitoring.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/onboarding.json"), true);
   assert.equal(
@@ -1903,6 +2078,42 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-completion"].rules.some(
       (rule) => rule.claimState === "completed"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-delegation"].liveModes.includes(
+      "account_session_assisted"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-delegation"].consentFlowIds.includes(
+      "delegate_paid_run"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-delegation"].revocationRoutes.includes(
+      "/api/auth/resolver/token/revoke"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-http"].contractSources.some(
+      (source: { id: string }) => source.id === "request_briefing"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-http"].routeFamilies.some(
+      (family: { id: string }) => family.id === "request_work"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-http"].liveHttpToolIds.includes(
+      "boreal.commitments.propose"
     ),
     true,
   );
@@ -2046,6 +2257,10 @@ async function main() {
     "schemas/json/agent-completion.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-delegation.schema.json")?.sourcePath,
+    "schemas/json/agent-delegation.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-evidence.schema.json")?.sourcePath,
     "schemas/json/agent-evidence.schema.json",
   );
@@ -2064,6 +2279,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-human-handoff-packets.schema.json")?.sourcePath,
     "schemas/json/agent-human-handoff-packets.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-http.schema.json")?.sourcePath,
+    "schemas/json/agent-http.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-monitoring.schema.json")?.sourcePath,
@@ -2236,6 +2455,20 @@ async function main() {
     "live_completion_profile"
   );
 
+  const agentDelegationResponse = await getAgentDelegation();
+  assert.equal(agentDelegationResponse.status, 200);
+  assert.equal(
+    (await agentDelegationResponse.json()).status,
+    "live_human_delegation_profile"
+  );
+
+  const agentHttpResponse = await getAgentHttp();
+  assert.equal(agentHttpResponse.status, 200);
+  assert.equal(
+    (await agentHttpResponse.json()).status,
+    "live_http_reference_profile"
+  );
+
   const agentEvidenceResponse = await getAgentEvidence();
   assert.equal(agentEvidenceResponse.status, 200);
   assert.equal(
@@ -2406,11 +2639,13 @@ async function main() {
   assert.match(llmsText, /Agent conformance report schema/);
   assert.match(llmsText, /Agent conformance report example/);
   assert.match(llmsText, /Agent completion profile/);
+  assert.match(llmsText, /Agent human delegation profile/);
   assert.match(llmsText, /Agent evidence profile/);
   assert.match(llmsText, /Agent error examples/);
   assert.match(llmsText, /Agent execution profile/);
   assert.match(llmsText, /Agent human handoff profile/);
   assert.match(llmsText, /Agent human handoff packet examples/);
+  assert.match(llmsText, /Agent HTTP reference profile/);
   assert.match(llmsText, /Agent monitoring profile/);
   assert.match(llmsText, /Agent onboarding profile/);
   assert.match(llmsText, /Agent opportunity card examples/);
@@ -2506,6 +2741,21 @@ async function main() {
     (await completionSchemaResponse.json()).title,
     "AgentCompletionProfile"
   );
+
+  const delegationSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-delegation.schema.json" }),
+  });
+  assert.equal(delegationSchemaResponse.status, 200);
+  assert.equal(
+    (await delegationSchemaResponse.json()).title,
+    "AgentDelegationProfile"
+  );
+
+  const httpSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-http.schema.json" }),
+  });
+  assert.equal(httpSchemaResponse.status, 200);
+  assert.equal((await httpSchemaResponse.json()).title, "AgentHttpProfile");
 
   const evidenceSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-evidence.schema.json" }),

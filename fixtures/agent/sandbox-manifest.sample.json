@@ -62,6 +62,10 @@
       "url": "https://boreal.work/agents/completion.json"
     },
     {
+      "label": "Human delegation profile",
+      "url": "https://boreal.work/agents/delegation.json"
+    },
+    {
       "label": "Evidence profile",
       "url": "https://boreal.work/agents/evidence.json"
     },
@@ -80,6 +84,10 @@
     {
       "label": "Human handoff packet examples",
       "url": "https://boreal.work/agents/human-handoff-packets.example.json"
+    },
+    {
+      "label": "HTTP reference profile",
+      "url": "https://boreal.work/agents/http.json"
     },
     {
       "label": "Optimization profile",
