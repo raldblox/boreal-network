@@ -47,6 +47,11 @@ Recommended naming:
 - `json/transaction.schema.json`
 - `json/request-event.schema.json`
 - `json/artifact.schema.json`
+- `json/agent-sandbox.schema.json`
+- `json/agent-workflows.schema.json`
+- `openapi/request-briefing.openapi.yaml`
+- `openapi/supply-management.openapi.yaml`
+- `openapi/resolver-auth.openapi.yaml`
 - `openapi/payment-and-credit.openapi.yaml`
 - `events/request-room.asyncapi.yaml`
 

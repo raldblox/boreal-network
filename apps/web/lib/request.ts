@@ -32,6 +32,7 @@ import {
   type RequestOutcomeClaim,
   type RequestRoleMatch,
 } from "./request-planner";
+import type { ResolverScope } from "./resolver";
 
 export type RequestVisibility = "private" | "public";
 export type RequestActorKind = BorealActorKind;
@@ -624,6 +625,61 @@ export type RequestAgentActionAffordanceSet = {
   };
   roleHint: "public_request" | "public_solution";
   actions: RequestAgentActionAffordance[];
+};
+
+export type RequestAgentActionPolicyActor =
+  | {
+      kind: "anonymous";
+    }
+  | {
+      kind: "session";
+      userId: string;
+    }
+  | {
+      kind: "resolver";
+      userId: string;
+      scopes: readonly ResolverScope[];
+    };
+
+export type RequestAgentActionPolicyDecisionState =
+  | "allowed"
+  | "allowed_with_idempotency"
+  | "blocked"
+  | "target_only";
+
+export type RequestAgentActionPolicyDecision = Pick<
+  RequestAgentActionAffordance,
+  | "id"
+  | "intent"
+  | "label"
+  | "method"
+  | "href"
+  | "canonicalReads"
+  | "canonicalWrites"
+  | "idempotencyRequired"
+> & {
+  state: RequestAgentActionPolicyDecisionState;
+  reason: string;
+  requiredScopes: ResolverScope[];
+  missingScopes: ResolverScope[];
+};
+
+export type RequestAgentActionPolicy = {
+  schemaVersion: 1;
+  subject: {
+    type: "Request";
+    id: string;
+    status: RequestStatus;
+    visibility: RequestVisibility;
+  };
+  actor: {
+    kind: RequestAgentActionPolicyActor["kind"];
+    isOwner: boolean;
+    userId?: string;
+    scopes?: ResolverScope[];
+  };
+  roleHint: "private_request" | "public_request" | "public_solution";
+  decisions: RequestAgentActionPolicyDecision[];
 };
 
 export type EditableRequestDocument = {
@@ -1227,11 +1283,77 @@ export function buildRequestAgentActionAffordances(
     "activeRefs" | "id" | "status" | "visibility"
   >
 ): RequestAgentActionAffordanceSet {
-  const requestHref = `/api/requests/${request.id}`;
   const roleHint = hasPublicSolutionProjectionTruth(request)
     ? "public_solution"
     : "public_request";
-  const actions: RequestAgentActionAffordance[] = [
+  const actions = buildRequestAgentActionTemplates(request).filter(
+    (action) =>
+      (action.id !== "apply_to_request" || request.status === "open") &&
+      (action.id !== "run_public_solution" ||
+        hasPublicSolutionProjectionTruth(request))
+  );
+
+  return {
+    schemaVersion: 1,
+    subject: {
+      type: "Request",
+      id: request.id,
+      status: request.status,
+      visibility: "public",
+    },
+    roleHint,
+    actions,
+  };
+}
+
+export function buildRequestAgentActionPolicy({
+  actor,
+  request,
+}: {
+  actor: RequestAgentActionPolicyActor;
+  request: Pick<
+    BorealRequestDraft,
+    "activeRefs" | "id" | "ownerId" | "status" | "visibility"
+  >;
+}): RequestAgentActionPolicy {
+  const isOwner =
+    actor.kind !== "anonymous" && actor.userId === request.ownerId;
+  const roleHint = hasPublicSolutionProjectionTruth(request)
+    ? "public_solution"
+    : request.visibility === "public"
+      ? "public_request"
+      : "private_request";
+
+  return {
+    schemaVersion: 1,
+    subject: {
+      type: "Request",
+      id: request.id,
+      status: request.status,
+      visibility: request.visibility,
+    },
+    actor: {
+      kind: actor.kind,
+      isOwner,
+      ...(actor.kind !== "anonymous" ? { userId: actor.userId } : {}),
+      ...(actor.kind === "resolver" ? { scopes: [...actor.scopes] } : {}),
+    },
+    roleHint,
+    decisions: buildRequestAgentActionTemplates(request).map((action) =>
+      buildRequestAgentActionPolicyDecision({ action, actor, isOwner, request })
+    ),
+  };
+}
+
+function buildRequestAgentActionTemplates(
+  request: Pick<
+    BorealRequestDraft | PublicRequestPoolEntry,
+    "activeRefs" | "id" | "status" | "visibility"
+  >
+): RequestAgentActionAffordance[] {
+  const requestHref = `/api/requests/${request.id}`;
+
+  return [
     {
       id: "inspect_public_requests",
       intent: "What can I solve?",
@@ -1258,10 +1380,7 @@ export function buildRequestAgentActionAffordances(
       idempotencyRequired: false,
       reason: "Monitors can resume from cursor.nextAfterSequence without writing heartbeat events.",
     },
-  ];
-
-  if (request.status === "open") {
-    actions.push({
+    {
       id: "apply_to_request",
       intent: "Apply to this",
       label: "Propose commitment",
@@ -1272,30 +1391,27 @@ export function buildRequestAgentActionAffordances(
       canonicalReads: ["Request", "Supply"],
       canonicalWrites: ["Commitment", "RequestEvent"],
       idempotencyRequired: true,
-      reason: "Open public requests can receive commitment proposals through the request-bound endpoint.",
-    });
-  }
-
-  actions.push({
-    id: "submit_artifact",
-    intent: "Submit here",
-    label: "Submit proof artifact",
-    method: "POST",
-    href: `${requestHref}/artifacts`,
-    availability:
-      request.activeRefs.activeCommitmentId || request.activeRefs.activeFulfillmentId
-        ? "available_with_auth"
-        : "requires_authorization",
-    auth: "Boreal account session or resolver bearer token with artifacts:publish scope",
-    canonicalReads: ["Request", "Commitment", "Fulfillment"],
-    canonicalWrites: ["Artifact", "RequestEvent"],
-    idempotencyRequired: true,
-    reason:
-      "Proof must attach as an Artifact after commitment acceptance or direct-owner authorization; public projection alone is not mutation authority.",
-  });
-
-  if (hasPublicSolutionProjectionTruth(request)) {
-    actions.push({
+      reason: "Open requests can receive commitment proposals through the request-bound endpoint.",
+    },
+    {
+      id: "submit_artifact",
+      intent: "Submit here",
+      label: "Submit proof artifact",
+      method: "POST",
+      href: `${requestHref}/artifacts`,
+      availability:
+        request.activeRefs.activeCommitmentId ||
+        request.activeRefs.activeFulfillmentId
+          ? "available_with_auth"
+          : "requires_authorization",
+      auth: "Boreal account session or resolver bearer token with artifacts:publish scope",
+      canonicalReads: ["Request", "Commitment", "Fulfillment"],
+      canonicalWrites: ["Artifact", "RequestEvent"],
+      idempotencyRequired: true,
+      reason:
+        "Proof must attach as an Artifact after commitment acceptance or direct-owner authorization; public projection alone is not mutation authority.",
+    },
+    {
       id: "run_public_solution",
       intent: "Run this solution",
       label: "Run public solution",
@@ -1307,34 +1423,287 @@ export function buildRequestAgentActionAffordances(
       canonicalWrites: ["Request", "Transaction", "RequestEvent"],
       idempotencyRequired: true,
       reason: "Completed public requests with an accepted artifact can be reused by creating a private run Request.",
-    });
-  }
+    },
+    {
+      id: "optimize_request_brief",
+      intent: "Optimize this",
+      label: "Suggest request improvements",
+      method: "LOCAL_DRAFT",
+      href: `${requestHref}#draft-only-optimization`,
+      availability: "target_profile",
+      auth: "authorized request context; owner approval required for durable mutation",
+      canonicalReads: ["Request", "Artifact", "RequestEvent"],
+      canonicalWrites: [],
+      idempotencyRequired: false,
+      reason: "Optimization is advisory unless the owner approves a governed mutation path.",
+    },
+  ];
+}
 
-  actions.push({
-    id: "optimize_request_brief",
-    intent: "Optimize this",
-    label: "Suggest request improvements",
-    method: "LOCAL_DRAFT",
-    href: `${requestHref}#draft-only-optimization`,
-    availability: "target_profile",
-    auth: "authorized request context; owner approval required for durable mutation",
-    canonicalReads: ["Request", "Artifact", "RequestEvent"],
-    canonicalWrites: [],
-    idempotencyRequired: false,
-    reason: "Optimization is advisory unless the owner approves a governed mutation path.",
+function buildRequestAgentActionPolicyDecision({
+  action,
+  actor,
+  isOwner,
+  request,
+}: {
+  action: RequestAgentActionAffordance;
+  actor: RequestAgentActionPolicyActor;
+  isOwner: boolean;
+  request: Pick<
+    BorealRequestDraft | PublicRequestPoolEntry,
+    "activeRefs" | "id" | "status" | "visibility"
+  >;
+}): RequestAgentActionPolicyDecision {
+  const publicReadable = canReadPublicRequestProjection(request);
+  const base = {
+    id: action.id,
+    intent: action.intent,
+    label: action.label,
+    method: action.method,
+    href: action.href,
+    canonicalReads: action.canonicalReads,
+    canonicalWrites: action.canonicalWrites,
+    idempotencyRequired: action.idempotencyRequired,
+  };
+  const decide = ({
+    missingScopes = [],
+    reason,
+    requiredScopes = [],
+    state,
+  }: Pick<RequestAgentActionPolicyDecision, "reason" | "state"> &
+    Partial<
+      Pick<
+        RequestAgentActionPolicyDecision,
+        "missingScopes" | "requiredScopes"
+      >
+    >): RequestAgentActionPolicyDecision => ({
+    ...base,
+    state,
+    reason,
+    requiredScopes,
+    missingScopes,
   });
 
-  return {
-    schemaVersion: 1,
-    subject: {
-      type: "Request",
-      id: request.id,
-      status: request.status,
-      visibility: "public",
-    },
-    roleHint,
-    actions,
-  };
+  switch (action.id) {
+    case "inspect_public_requests": {
+      const requiredScopes =
+        actor.kind === "resolver" && isOwner
+          ? (["requests:read_private"] satisfies ResolverScope[])
+          : [];
+      const missingScopes = getMissingResolverScopes(actor, requiredScopes);
+
+      if (missingScopes.length > 0) {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason:
+            "Owner-scoped resolver detail reads require requests:read_private.",
+        });
+      }
+
+      if (publicReadable || isOwner) {
+        return decide({
+          state: "allowed",
+          requiredScopes,
+          missingScopes,
+          reason:
+            publicReadable && !isOwner
+              ? "Public-safe request detail is readable without mutation authority."
+              : "The actor owns this request and can read the detail projection.",
+        });
+      }
+
+      return decide({
+        state: "blocked",
+        reason: "Private or draft request detail is limited to the request owner.",
+      });
+    }
+
+    case "monitor_request": {
+      const requiredScopes =
+        actor.kind === "resolver" && isOwner
+          ? (["requests:read_activity"] satisfies ResolverScope[])
+          : [];
+      const missingScopes = getMissingResolverScopes(actor, requiredScopes);
+
+      if (missingScopes.length > 0) {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason:
+            "Owner-scoped resolver activity reads require requests:read_activity.",
+        });
+      }
+
+      if (publicReadable || isOwner) {
+        return decide({
+          state: "allowed",
+          requiredScopes,
+          missingScopes,
+          reason:
+            "The actor can poll durable RequestEvent-backed activity with a stable cursor.",
+        });
+      }
+
+      return decide({
+        state: "blocked",
+        reason: "Request activity is public-readable only after the request is public and not a draft.",
+      });
+    }
+
+    case "apply_to_request": {
+      const requiredScopes =
+        actor.kind === "resolver"
+          ? (["commitments:propose"] satisfies ResolverScope[])
+          : [];
+      const missingScopes = getMissingResolverScopes(actor, requiredScopes);
+
+      if (request.status !== "open") {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason: "Commitment proposals are accepted only while the request is open.",
+        });
+      }
+
+      if (actor.kind === "anonymous") {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason: "Applying to a request requires an authenticated session or resolver token.",
+        });
+      }
+
+      if (missingScopes.length > 0) {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason: "Resolver commitment proposals require commitments:propose.",
+        });
+      }
+
+      if (publicReadable || isOwner) {
+        return decide({
+          state: "allowed_with_idempotency",
+          requiredScopes,
+          missingScopes,
+          reason:
+            "The actor can propose a Commitment through the request-bound endpoint with an idempotency key.",
+        });
+      }
+
+      return decide({
+        state: "blocked",
+        requiredScopes,
+        missingScopes,
+        reason: "Private requests are not open to cross-actor commitment proposals.",
+      });
+    }
+
+    case "submit_artifact": {
+      const requiredScopes =
+        actor.kind === "resolver"
+          ? (["artifacts:publish"] satisfies ResolverScope[])
+          : [];
+      const missingScopes = getMissingResolverScopes(actor, requiredScopes);
+
+      if (request.status === "draft") {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason: "Artifacts attach after a request leaves draft state.",
+        });
+      }
+
+      if (actor.kind === "anonymous") {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason: "Publishing an Artifact requires an authenticated session or resolver token.",
+        });
+      }
+
+      if (missingScopes.length > 0) {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason: "Resolver artifact publication requires artifacts:publish.",
+        });
+      }
+
+      if (
+        !isOwner &&
+        !request.activeRefs.activeCommitmentId &&
+        !request.activeRefs.activeFulfillmentId
+      ) {
+        return decide({
+          state: "blocked",
+          requiredScopes,
+          missingScopes,
+          reason:
+            "Non-owner artifact publication needs an accepted commitment or active fulfillment lane reference.",
+        });
+      }
+
+      if (publicReadable || isOwner) {
+        return decide({
+          state: "allowed_with_idempotency",
+          requiredScopes,
+          missingScopes,
+          reason:
+            "The actor can publish request-bound Artifact records; execution-proof payloads remain lane-gated by the artifact body and server checks.",
+        });
+      }
+
+      return decide({
+        state: "blocked",
+        requiredScopes,
+        missingScopes,
+        reason: "Private request artifact publication is limited to the owner or an authorized lane actor.",
+      });
+    }
+
+    case "run_public_solution": {
+      if (!hasPublicSolutionProjectionTruth(request)) {
+        return decide({
+          state: "blocked",
+          reason:
+            "Public solution runs require a completed public source request with an accepted artifact.",
+        });
+      }
+
+      if (actor.kind === "session") {
+        return decide({
+          state: "allowed_with_idempotency",
+          reason:
+            "A signed-in buyer session can create a private run Request; payment or credit checks still execute inside the endpoint.",
+        });
+      }
+
+      return decide({
+        state: "blocked",
+        reason:
+          actor.kind === "resolver"
+            ? "Public solution runs currently require a buyer account session, not resolver bearer auth."
+            : "Public solution runs require buyer authentication and payment or credit authority.",
+      });
+    }
+
+    case "optimize_request_brief":
+      return decide({
+        state: "target_only",
+        reason:
+          "Optimization is advisory in this profile; durable request mutations still require owner approval through governed endpoints.",
+      });
+  }
 }
 
 export function hasPublicSolutionProjectionTruth(
@@ -1348,6 +1717,23 @@ export function hasPublicSolutionProjectionTruth(
     request.status === "completed" &&
     Boolean(request.activeRefs.acceptedArtifactId)
   );
+}
+
+function canReadPublicRequestProjection(
+  request: Pick<BorealRequestDraft | PublicRequestPoolEntry, "status" | "visibility">
+) {
+  return request.visibility === "public" && request.status !== "draft";
+}
+
+function getMissingResolverScopes(
+  actor: RequestAgentActionPolicyActor,
+  requiredScopes: ResolverScope[]
+) {
+  if (actor.kind !== "resolver") {
+    return [];
+  }
+
+  return requiredScopes.filter((scope) => !actor.scopes.includes(scope));
 }
 
 export function renderEditableRequestDocumentJson(

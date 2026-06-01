@@ -85,6 +85,7 @@ Verify:
 
 - a fresh agent can discover Boreal from `/llms.txt` and a public agent-start guide without private route knowledge
 - `/agents/actions.md` renders public-safe contract-linked walkthroughs for inspect, apply, submit, monitor, run, and optimize intents
+- `/agents/workflows.json` renders a machine-readable workflow catalog that names policy checkpoints, required scopes, idempotency-required actions, stop conditions, completion signals, and canonical write boundaries
 - `/agents/protocols.md` renders public-safe MCP, A2A, and x402 mapping rules and keeps each protocol below Boreal canonical object truth
 - `/agents/sandbox.md` and `/agents/sandbox.json` render a contract-only sandbox with deterministic mock identities, sample IDs, payloads, and canonical boundaries
 - `schemas/json/agent-sandbox.schema.json` and `fixtures/agent/sandbox-manifest.sample.json` stay parseable and aligned with the public sandbox contract
@@ -92,8 +93,10 @@ Verify:
 - sandbox mock credentials, mock sessions, sample webhook secrets, and sample object ids are never accepted as production mutation authority
 - `/.well-known/agent-card.json` exposes only public-safe identity, endpoint, capability, auth, and skill metadata
 - the public agent card and `/openapi.json` expose the same action catalog for inspect, apply, submit, monitor, run, and optimize intents
+- the public agent card and `/openapi.json` link to the workflow catalog and keep workflows below `Request` truth
 - each catalog action names canonical reads, canonical writes, availability, auth boundary, standard contract links, and guardrails
 - public request projections expose request-level `agentActionAffordances` that map concrete request ids to inspect, apply, submit, monitor, run, and optimize affordances without exposing owner-only routing or granting mutation authority
+- request detail reads expose request-level `agentActionPolicy` decisions that distinguish anonymous, session, and resolver actors; resolver decisions should report missing scopes instead of implying permission
 - public agent discovery links resolve to public-safe OpenAPI, JSON Schema, and AsyncAPI contracts
 - `apps/web/tests/contracts/agent-discovery.test.ts` covers the public agent card, start guide, action playbook, sandbox guide, sandbox manifest, action catalog, discovery index, allowlisted contract assets, and absence of obvious secret material in exported contracts
 - public request inspection remains anonymous-safe and excludes draft, private, owner-only routing, private transcript, and planner-internal fields

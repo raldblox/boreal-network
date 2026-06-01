@@ -5,8 +5,8 @@ info:
   description: >
     First web-facing request surface for explicit Request draft creation,
     request-brief mutations, public-safe listing of open public requests,
-    public solution projections, and per-request agent action affordances inside
-    apps/web.
+    public solution projections, per-request agent action affordances, and
+    actor-specific request action policy inside apps/web.
 paths:
   /api/requests:
     get:
@@ -293,7 +293,7 @@ paths:
             format: uuid
       responses:
         "200":
-          description: Owner-full request detail or public-safe request detail.
+          description: Owner-full request detail or public-safe request detail plus actor-specific agent action policy.
           content:
             application/json:
               schema:
@@ -776,11 +776,170 @@ components:
       additionalProperties: false
       required:
         - request
+        - agentActionPolicy
       properties:
         request:
           oneOf:
             - $ref: "#/components/schemas/WebRequestDraft"
             - $ref: "#/components/schemas/WebPublicRequest"
+        agentActionPolicy:
+          $ref: "#/components/schemas/WebRequestAgentActionPolicy"
+    WebRequestAgentActionPolicy:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - subject
+        - actor
+        - roleHint
+        - decisions
+      properties:
+        schemaVersion:
+          type: integer
+          enum:
+            - 1
+        subject:
+          type: object
+          additionalProperties: false
+          required:
+            - type
+            - id
+            - status
+            - visibility
+          properties:
+            type:
+              type: string
+              enum:
+                - Request
+            id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum:
+                - draft
+                - open
+                - funding_required
+                - funded
+                - in_progress
+                - waiting_for_owner
+                - delivered
+                - completed
+                - cancelled
+                - failed
+            visibility:
+              type: string
+              enum:
+                - private
+                - public
+        actor:
+          type: object
+          additionalProperties: false
+          required:
+            - kind
+            - isOwner
+          properties:
+            kind:
+              type: string
+              enum:
+                - anonymous
+                - session
+                - resolver
+            isOwner:
+              type: boolean
+            userId:
+              type: string
+            scopes:
+              type: array
+              items:
+                type: string
+                enum:
+                  - requests:read_public
+                  - requests:read_private
+                  - requests:read_activity
+                  - requests:update_private
+                  - supplies:read_private
+                  - commitments:propose
+                  - commitments:accept
+                  - artifacts:publish
+                  - fulfillments:read
+                  - fulfillments:create
+                  - fulfillments:update
+        roleHint:
+          type: string
+          enum:
+            - private_request
+            - public_request
+            - public_solution
+        decisions:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebRequestAgentActionPolicyDecision"
+    WebRequestAgentActionPolicyDecision:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - intent
+        - label
+        - method
+        - href
+        - state
+        - reason
+        - requiredScopes
+        - missingScopes
+        - canonicalReads
+        - canonicalWrites
+        - idempotencyRequired
+      properties:
+        id:
+          type: string
+          enum:
+            - inspect_public_requests
+            - apply_to_request
+            - submit_artifact
+            - monitor_request
+            - run_public_solution
+            - optimize_request_brief
+        intent:
+          type: string
+        label:
+          type: string
+        method:
+          type: string
+          enum:
+            - GET
+            - POST
+            - LOCAL_DRAFT
+        href:
+          type: string
+        state:
+          type: string
+          enum:
+            - allowed
+            - allowed_with_idempotency
+            - blocked
+            - target_only
+        reason:
+          type: string
+        requiredScopes:
+          type: array
+          items:
+            type: string
+        missingScopes:
+          type: array
+          items:
+            type: string
+        canonicalReads:
+          type: array
+          items:
+            type: string
+        canonicalWrites:
+          type: array
+          items:
+            type: string
+        idempotencyRequired:
+          type: boolean
     WebRequestActiveRefs:
       type: object
       additionalProperties: false

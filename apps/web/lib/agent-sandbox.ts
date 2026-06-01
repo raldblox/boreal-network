@@ -49,6 +49,10 @@ export function buildAgentSandboxManifest() {
       { label: "Sandbox guide", url: absoluteUrl(agentSandboxPaths.guide) },
       { label: "Action playbook", url: absoluteUrl(agentSandboxPaths.actions) },
       {
+        label: "Workflow catalog",
+        url: absoluteUrl("/agents/workflows.json"),
+      },
+      {
         label: "Protocol profile",
         url: absoluteUrl(agentSandboxPaths.protocols),
       },

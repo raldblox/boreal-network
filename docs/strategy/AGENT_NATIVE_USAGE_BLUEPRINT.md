@@ -65,6 +65,7 @@ Current assets that agents can eventually build on:
 - Public request reads exist through `GET /api/requests?scope=public`.
 - Public solution projections exist over completed public requests with accepted artifacts.
 - Public request projections include request-level `agentActionAffordances` for inspect, apply, submit, monitor, run, and optimize affordances.
+- The public workflow catalog exists at `/agents/workflows.json` so agents can follow deterministic process flows with policy checkpoints, scopes, idempotency, stop conditions, and completion signals.
 - Request detail, activity, commitment, fulfillment, artifact, transaction, and solution-run routes exist under `apps/web/app/(chat)/api/requests`.
 - Resolver auth exists under `apps/web/app/(auth)/api/auth/resolver`.
 - Resolver bearer auth can separate runtime identity from Boreal account identity.
@@ -82,7 +83,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first stable agent card is public-safe, but not yet backed by a live A2A task adapter
 - the first public bundled OpenAPI index route is discovery-oriented and still points to existing YAML contracts rather than a complete merged API surface
 - the first public schema catalog is allowlisted and read-only, but no generated client package exists yet
-- the first request-level action affordances exist on public projections, but there is no personalized per-actor policy compiler that accounts for private auth, ownership, resolver approval, rate limits, or payment state yet
+- the first request-detail `agentActionPolicy` compiler now accounts for public visibility, private ownership, resolver scopes, solution-run session requirements, and idempotency-gated actions; deeper rate-limit, payment-balance, lane-participant, and failure-mode policy remains target direction
 - no MCP server profile for Boreal resources and mutation tools
 - no A2A adapter that maps A2A tasks/artifacts onto Boreal requests, fulfillments, and artifacts
 - no x402 or wallet-based execution payment profile in the canonical web app
@@ -714,6 +715,7 @@ Deliverables:
 
 - `/agents/start.md` - implemented as a public markdown route in `apps/web`
 - `/agents/actions.md` - implemented as a public markdown action playbook for inspect, apply, submit, monitor, run, and optimize flows
+- `/agents/workflows.json` - implemented as a public machine-readable workflow catalog for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with `agentActionPolicy` checkpoints
 - `/agents/monitor-webhooks.md` - implemented as a public target profile for signed request-activity monitor callbacks
 - `/agents/protocols.md` - implemented as a public MCP, A2A, and x402 boundary profile
 - `/agents/sandbox.md` and `/agents/sandbox.json` - implemented as a public contract-only sandbox guide and manifest
@@ -723,7 +725,9 @@ Deliverables:
 - public AsyncAPI route or static export - implemented as `/events/request-room.asyncapi.yaml`
 - richer `/llms.txt` links to all agent-readable resources - implemented through the shared discovery catalog
 - machine-readable agent action catalog - implemented in the agent card and `/openapi.json` as `x-boreal-agent-actions`
+- machine-readable agent workflow catalog - implemented as `/agents/workflows.json`, linked from the agent card and `/openapi.json`
 - request-level `agentActionAffordances` on public request projections - implemented in `toPublicRequestPoolEntry`
+- request-detail `agentActionPolicy` decisions for anonymous, session, and resolver actors - implemented in the request detail API as a derived policy envelope
 - agent sandbox fixture runner - implemented as `pnpm contracts:agent-sandbox`
 
 Acceptance:

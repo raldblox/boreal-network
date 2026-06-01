@@ -36,6 +36,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 
 - [Agent start guide](${absoluteUrl(agentDiscoveryPaths.agentStart)}): What agents can inspect, what requires auth, and how canonical writes work.
 - [Agent action playbook](${absoluteUrl(agentDiscoveryPaths.agentActions)}): Contract-linked walkthroughs for inspect, apply, submit, monitor, run, and optimize intents.
+- [Agent workflow catalog](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)}): Machine-readable process flows for scouting, making drafts, applying, submitting, monitoring, running, and optimizing with policy checkpoints.
 - [Agent monitor webhook profile](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)}): Target signed push-notification profile for request activity monitors.
 - [Agent protocol profile](${absoluteUrl(agentDiscoveryPaths.agentProtocols)}): MCP, A2A, and x402 adapter/payment boundaries.
 - [Agent contract sandbox](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)}): Deterministic mock identities, payloads, and sample IDs for contract tests; mock credentials are not production auth.

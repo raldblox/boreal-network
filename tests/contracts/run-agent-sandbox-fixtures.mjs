@@ -33,6 +33,7 @@ const requiredResources = [
   "/agents/start.md",
   "/agents/sandbox.md",
   "/agents/actions.md",
+  "/agents/workflows.json",
   "/agents/protocols.md",
   "/agents/monitor-webhooks.md",
   "/openapi.json",

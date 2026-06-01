@@ -5,8 +5,10 @@ import {
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 import {
+  buildRequestAgentActionPolicy,
   toPublicRequestPoolEntry,
   type BorealRequestDraft,
+  type RequestAgentActionPolicyActor,
   type RequestPatch,
 } from "@/lib/request";
 import {
@@ -90,6 +92,27 @@ function toBuyerRequestPatch(
   };
 }
 
+function toRequestAgentActionPolicyActor(
+  actor: Awaited<ReturnType<typeof getRequestActorContext>>
+): RequestAgentActionPolicyActor {
+  if (!actor) {
+    return { kind: "anonymous" };
+  }
+
+  if (actor.kind === "resolver") {
+    return {
+      kind: "resolver",
+      userId: actor.userId,
+      scopes: actor.scopes,
+    };
+  }
+
+  return {
+    kind: "session",
+    userId: actor.userId,
+  };
+}
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -126,6 +149,10 @@ export async function GET(
       request: isOwner
         ? requestDraft
         : toPublicRequestPoolEntry(requestDraft),
+      agentActionPolicy: buildRequestAgentActionPolicy({
+        actor: toRequestAgentActionPolicyActor(actor),
+        request: requestDraft,
+      }),
     },
     { status: 200 }
   );

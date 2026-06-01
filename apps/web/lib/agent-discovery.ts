@@ -46,6 +46,7 @@ export const agentDiscoveryPaths = {
   agentSandboxGuide: agentSandboxPaths.guide,
   agentSandboxManifest: agentSandboxPaths.manifest,
   agentStart: "/agents/start.md",
+  agentWorkflows: "/agents/workflows.json",
   llms: "/llms.txt",
   openApiIndex: "/openapi.json",
   publicRequests: "/api/requests?scope=public",
@@ -342,6 +343,14 @@ export const jsonSchemaDiscoveryAssets = [
     standard: "json_schema",
     title: "Agent sandbox",
   },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description: "Machine-readable agent workflow catalog schema.",
+    routePath: "/schemas/agent-workflows.schema.json",
+    sourcePath: "schemas/json/agent-workflows.schema.json",
+    standard: "json_schema",
+    title: "Agent workflow catalog",
+  },
 ] as const satisfies readonly AgentDiscoveryAsset[];
 
 export const eventDiscoveryAssets = [
@@ -375,6 +384,7 @@ export function buildAgentCard() {
     url: absoluteUrl("/"),
     documentationUrl: absoluteUrl(agentDiscoveryPaths.agentStart),
     protocolProfileUrl: absoluteUrl(agentDiscoveryPaths.agentProtocols),
+    workflowCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
     sandboxUrl: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
     preferredTransport: "http",
     capabilities: {
@@ -395,6 +405,13 @@ export function buildAgentCard() {
     defaultInputModes: ["application/json", "text/markdown"],
     defaultOutputModes: ["application/json", "text/markdown"],
     actions: buildAgentActionCatalog(),
+    workflows: buildAgentWorkflowCatalog().workflows.map((workflow) => ({
+      id: workflow.id,
+      title: workflow.title,
+      role: workflow.role,
+      status: workflow.status,
+      policyCheckpoint: workflow.policyCheckpoint.responseField,
+    })),
     skills: [
       {
         id: "inspect_public_requests",
@@ -492,6 +509,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent card: [${agentDiscoveryPaths.agentCard}](${absoluteUrl(agentDiscoveryPaths.agentCard)})
 - Agent-readable overview: [${agentDiscoveryPaths.llms}](${absoluteUrl(agentDiscoveryPaths.llms)})
 - Agent action playbook: [${agentDiscoveryPaths.agentActions}](${absoluteUrl(agentDiscoveryPaths.agentActions)})
+- Agent workflow catalog: [${agentDiscoveryPaths.agentWorkflows}](${absoluteUrl(agentDiscoveryPaths.agentWorkflows)})
 - Agent monitor webhook profile: [${agentDiscoveryPaths.agentMonitorWebhooks}](${absoluteUrl(agentDiscoveryPaths.agentMonitorWebhooks)})
 - Agent protocol profile: [${agentDiscoveryPaths.agentProtocols}](${absoluteUrl(agentDiscoveryPaths.agentProtocols)})
 - Agent contract sandbox: [${agentDiscoveryPaths.agentSandboxGuide}](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)})
@@ -522,6 +540,14 @@ GET ${agentDiscoveryPaths.publicRequests}
 Public inspection must not expose private drafts, private chats, owner-only fields, resolver secrets, local desktop transcripts, or raw prompt internals.
 
 Public request projections include \`agentActionAffordances\`: request-level hints for inspect, apply, submit, monitor, run, and optimize actions. These hints are not permissions. They point to governed endpoints and name auth, idempotency, and canonical write boundaries.
+
+Request detail reads include \`agentActionPolicy\`: an actor-specific derived policy envelope that tells the current anonymous, session, or resolver actor which request-bound actions are allowed, blocked, idempotency-gated, or target-only now.
+
+For deterministic process flow, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentWorkflows}
+\`\`\`
 
 ## Write-Capable Actions
 
@@ -647,6 +673,25 @@ export function buildOpenApiDiscoveryIndex() {
                 "Markdown walkthrough for inspect, apply, submit, monitor, run, and optimize agent intents.",
               content: {
                 "text/markdown": { schema: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+      "/agents/workflows.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent workflow catalog.",
+          responses: {
+            "200": {
+              description:
+                "JSON workflow catalog for inspect, policy, apply, submit, monitor, run, and optimize flows.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentWorkflowCatalog",
+                  },
+                },
               },
             },
           },
@@ -793,10 +838,31 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentWorkflowCatalog: {
+          type: "object",
+          required: ["schemaVersion", "status", "workflows", "canonicalBoundary"],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_workflow_catalog" },
+            workflows: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
       },
     },
     "x-boreal-contracts": contracts,
     "x-boreal-agent-actions": buildAgentActionCatalog(),
+    "x-boreal-agent-workflows": {
+      url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      workflows: buildAgentWorkflowCatalog().workflows.map((workflow) => ({
+        id: workflow.id,
+        title: workflow.title,
+        status: workflow.status,
+      })),
+    },
     "x-boreal-boundary": {
       rootObject: "Request",
       publicInspection: "free",
@@ -814,6 +880,359 @@ export function buildAgentActionCatalog() {
     entrypoints: action.entrypoints.map(absoluteTemplateUrl),
     guideUrl: absoluteUrl(action.guidePath),
   }));
+}
+
+export function buildAgentWorkflowCatalog() {
+  return {
+    schemaVersion: 1,
+    status: "live_workflow_catalog",
+    name: "Boreal Agent Workflow Catalog",
+    description:
+      "Machine-readable process flows for agents that inspect, make, complete, monitor, run, or optimize Boreal work through Request-native contracts.",
+    policyRule:
+      "Before any write, read the request detail response and follow agentActionPolicy decisions. agentActionAffordances are discovery hints, not permission grants.",
+    resources: [
+      { label: "Agent start guide", url: absoluteUrl(agentDiscoveryPaths.agentStart) },
+      { label: "Agent action playbook", url: absoluteUrl(agentDiscoveryPaths.agentActions) },
+      {
+        label: "Agent contract sandbox",
+        url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+      },
+      { label: "Request OpenAPI", url: absoluteUrl("/openapi/request-briefing.yaml") },
+      {
+        label: "Workflow catalog schema",
+        url: absoluteUrl("/schemas/agent-workflows.schema.json"),
+      },
+    ],
+    workflows: [
+      {
+        id: "scout_public_work",
+        title: "Scout public work",
+        role: "scout",
+        status: "live_public_read",
+        summary:
+          "Find public requests or public solutions without creating durable writes.",
+        policyCheckpoint: workflowPolicyCheckpoint(false),
+        steps: [
+          workflowStep({
+            id: "read_public_pool",
+            actionId: "inspect_public_requests",
+            method: "GET",
+            href: absoluteUrl(agentDiscoveryPaths.publicRequests),
+            auth: "none",
+            canonicalReads: ["Request", "Supply"],
+            canonicalWrites: [],
+            continueWhen: [
+              "A candidate request matches the agent or represented supply capability.",
+            ],
+            stopWhen: [
+              "The request is private, draft-only, or missing public-safe detail needed for fit assessment.",
+            ],
+          }),
+          workflowStep({
+            id: "read_request_policy",
+            actionId: "inspect_public_requests",
+            method: "GET",
+            href: absoluteTemplateUrl("/api/requests/{id}"),
+            auth: "none for public-safe request detail",
+            canonicalReads: ["Request"],
+            canonicalWrites: [],
+            continueWhen: [
+              "agentActionPolicy allows inspect or monitor for the current actor.",
+            ],
+            stopWhen: ["agentActionPolicy blocks the needed next action."],
+          }),
+        ],
+        completionSignals: [
+          "Candidate request ids with fit, missing details, and safe next action.",
+        ],
+        idempotencyRequiredFor: [],
+        requiredResolverScopes: [],
+        forbiddenMoves: [
+          "Do not write Commitment, Artifact, Fulfillment, or Transaction while scouting.",
+        ],
+      },
+      {
+        id: "apply_complete_monitor",
+        title: "Apply, complete, and monitor request work",
+        role: "solver",
+        status: "live_authenticated_http_contract",
+        summary:
+          "Use request detail policy, commitment, artifact, and activity endpoints to complete authorized work.",
+        policyCheckpoint: workflowPolicyCheckpoint(true),
+        steps: [
+          workflowStep({
+            id: "inspect_candidate",
+            actionId: "inspect_public_requests",
+            method: "GET",
+            href: absoluteTemplateUrl("/api/requests/{id}"),
+            auth: "public or scoped",
+            canonicalReads: ["Request", "Supply"],
+            canonicalWrites: [],
+            continueWhen: [
+              "The request is open and agentActionPolicy marks apply_to_request allowed_with_idempotency.",
+            ],
+            stopWhen: [
+              "The actor lacks required resolver scope or the request is no longer open.",
+            ],
+          }),
+          workflowStep({
+            id: "propose_commitment",
+            actionId: "apply_to_request",
+            method: "POST",
+            href: absoluteTemplateUrl("/api/requests/{id}/commitments"),
+            auth: "session or resolver bearer with commitments:propose",
+            canonicalReads: ["Request", "Supply"],
+            canonicalWrites: ["Commitment", "RequestEvent"],
+            continueWhen: ["The owner accepts the Commitment."],
+            stopWhen: ["The proposal is rejected, expired, or superseded."],
+          }),
+          workflowStep({
+            id: "poll_activity",
+            actionId: "monitor_request",
+            method: "GET",
+            href: absoluteTemplateUrl(
+              "/api/requests/{id}/activity?after_sequence={cursor}&limit=40"
+            ),
+            auth: "public or resolver bearer with requests:read_activity for owner-private activity",
+            canonicalReads: ["RequestEvent", "Artifact", "Transaction"],
+            canonicalWrites: [],
+            continueWhen: [
+              "cursor.nextAfterSequence advances or owner approval arrives.",
+            ],
+            stopWhen: [
+              "The request is cancelled, failed, or the actor loses authorization.",
+            ],
+          }),
+          workflowStep({
+            id: "submit_artifact",
+            actionId: "submit_artifact",
+            method: "POST",
+            href: absoluteTemplateUrl("/api/requests/{id}/artifacts"),
+            auth: "session or resolver bearer with artifacts:publish",
+            canonicalReads: ["Request", "Commitment", "Fulfillment"],
+            canonicalWrites: ["Artifact", "RequestEvent"],
+            continueWhen: ["The Artifact is accepted for review or delivery."],
+            stopWhen: [
+              "The actor is not the owner, accepted commitment actor, or fulfillment lane actor.",
+            ],
+          }),
+        ],
+        completionSignals: [
+          "Commitment exists before cross-actor fulfillment.",
+          "Artifact exists as proof or delivery.",
+          "Monitor cursor is persisted outside durable RequestEvent history.",
+        ],
+        idempotencyRequiredFor: ["apply_to_request", "submit_artifact"],
+        requiredResolverScopes: [
+          "commitments:propose",
+          "artifacts:publish",
+          "requests:read_activity",
+        ],
+        forbiddenMoves: [
+          "Do not bypass Commitment gates for public or cross-actor work.",
+          "Do not attach fake proof or raw private runtime logs as Artifact truth.",
+        ],
+      },
+      {
+        id: "make_request_for_human",
+        title: "Make a request draft for a human",
+        role: "requester",
+        status: "live_session_http_contract",
+        summary:
+          "Create or update a private draft Request for a signed-in human without opening it automatically.",
+        policyCheckpoint: workflowPolicyCheckpoint(true),
+        steps: [
+          workflowStep({
+            id: "create_draft",
+            actionId: "optimize_request_brief",
+            method: "POST",
+            href: absoluteUrl("/api/requests"),
+            auth: "Boreal account session",
+            canonicalReads: ["Request"],
+            canonicalWrites: ["Request"],
+            continueWhen: ["A draft Request exists and remains owner-controlled."],
+            stopWhen: [
+              "No human-owned chat context exists or the actor is not an account session.",
+            ],
+          }),
+          workflowStep({
+            id: "save_draft",
+            actionId: "optimize_request_brief",
+            method: "PATCH",
+            href: absoluteTemplateUrl("/api/requests/{id}"),
+            auth: "Boreal account session",
+            canonicalReads: ["Request"],
+            canonicalWrites: ["Request"],
+            continueWhen: [
+              "The draft is ready for human review or explicitly ready_to_open.",
+            ],
+            stopWhen: [
+              "The mutation touches server-owned fields or would open without human approval.",
+            ],
+          }),
+        ],
+        completionSignals: [
+          "Draft request exists.",
+          "Owner can review missing details, budget, deadline, proof, and route before opening.",
+        ],
+        idempotencyRequiredFor: [],
+        requiredResolverScopes: [],
+        forbiddenMoves: [
+          "Do not open a human buyer's request without explicit buyer approval.",
+          "Do not mutate server-owned planner, matcher, or lifecycle fields directly.",
+        ],
+      },
+      {
+        id: "run_public_solution",
+        title: "Run a public solution",
+        role: "buyer",
+        status: "live_authenticated_http_contract",
+        summary:
+          "Turn a completed public request with an accepted artifact into a private run Request when execution consumes credits or paid capacity.",
+        policyCheckpoint: workflowPolicyCheckpoint(true),
+        steps: [
+          workflowStep({
+            id: "inspect_solution",
+            actionId: "inspect_public_requests",
+            method: "GET",
+            href: absoluteTemplateUrl("/api/requests/{id}"),
+            auth: "none for public-safe fields",
+            canonicalReads: ["Request", "Artifact"],
+            canonicalWrites: [],
+            continueWhen: [
+              "The source request is completed, public, and has activeRefs.acceptedArtifactId.",
+            ],
+            stopWhen: ["The source is not a public solution projection."],
+          }),
+          workflowStep({
+            id: "create_run_request",
+            actionId: "run_public_solution",
+            method: "POST",
+            href: absoluteTemplateUrl("/api/requests/{id}/solution-runs"),
+            auth: "Boreal account session with payment or buyer-credit authority",
+            canonicalReads: ["Request", "Artifact"],
+            canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+            continueWhen: [
+              "The run Request, buyer-credit debit, and request Transaction return in the response.",
+            ],
+            stopWhen: [
+              "The buyer lacks credit, payment authority, or an idempotency key.",
+            ],
+          }),
+        ],
+        completionSignals: [
+          "A private run Request references the accepted source Artifact.",
+          "Payment truth is recorded as buyer-credit and request-attached Transaction truth.",
+        ],
+        idempotencyRequiredFor: ["run_public_solution"],
+        requiredResolverScopes: [],
+        forbiddenMoves: [
+          "Do not debit credits for public inspection.",
+          "Do not mutate the completed source request as if it were the run request.",
+        ],
+      },
+      {
+        id: "optimize_without_writing",
+        title: "Optimize without writing",
+        role: "optimizer",
+        status: "target_profile",
+        summary:
+          "Suggest improvements to a request brief, plan, or proof path while keeping durable mutation under owner approval.",
+        policyCheckpoint: workflowPolicyCheckpoint(false),
+        steps: [
+          workflowStep({
+            id: "read_context",
+            actionId: "optimize_request_brief",
+            method: "LOCAL_DRAFT",
+            href: "agent-local:optimize-request-brief",
+            auth: "authorized request context",
+            canonicalReads: ["Request", "Artifact", "RequestEvent"],
+            canonicalWrites: [],
+            continueWhen: [
+              "The suggestion can be expressed as a local draft, missing question, or owner-review note.",
+            ],
+            stopWhen: [
+              "The suggestion requires a durable mutation the actor cannot authorize.",
+            ],
+          }),
+        ],
+        completionSignals: [
+          "Suggested changes are local, reviewable, and explicitly marked non-durable.",
+        ],
+        idempotencyRequiredFor: [],
+        requiredResolverScopes: [],
+        forbiddenMoves: [
+          "Do not change owner-authored fields or lifecycle state without owner approval.",
+        ],
+      },
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      policyObject: "agentActionPolicy",
+      durableWrites: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      notRoots: [
+        "workflow catalog",
+        "agentActionPolicy",
+        "MCP session",
+        "A2A task",
+        "x402 payment payload",
+        "monitor cursor",
+        "local optimization draft",
+      ],
+    },
+  } as const;
+}
+
+function workflowPolicyCheckpoint(requiredBeforeWrite: boolean) {
+  return {
+    method: "GET",
+    href: absoluteTemplateUrl("/api/requests/{id}"),
+    responseField: "agentActionPolicy",
+    requiredBeforeWrite,
+  };
+}
+
+function workflowStep({
+  actionId,
+  auth,
+  canonicalReads,
+  canonicalWrites,
+  continueWhen,
+  href,
+  id,
+  method,
+  stopWhen,
+}: {
+  actionId: string;
+  auth: string;
+  canonicalReads: readonly string[];
+  canonicalWrites: readonly string[];
+  continueWhen: readonly string[];
+  href: string;
+  id: string;
+  method: string;
+  stopWhen: readonly string[];
+}) {
+  return {
+    id,
+    actionId,
+    method,
+    href,
+    auth,
+    canonicalReads,
+    canonicalWrites,
+    continueWhen,
+    stopWhen,
+  };
 }
 
 export function buildAgentActionsMarkdown() {
@@ -839,6 +1258,7 @@ Use it after reading [${agentDiscoveryPaths.agentStart}](${absoluteUrl(agentDisc
 - Use \`Transaction\` for payment or credit truth.
 - Keep MCP, A2A, and x402 as adapter or payment profiles over Boreal truth.
 - Do not mutate owner-authored request briefs unless the owner explicitly authorizes that mutation.
+- Read \`agentActionPolicy\` from request detail before attempting writes; \`agentActionAffordances\` are discovery hints, not permission grants.
 
 ## Action Index
 

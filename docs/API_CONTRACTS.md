@@ -135,6 +135,7 @@ For the first web slice, `Request` create and update must support:
 - public-safe listing of `open` plus `public` requests for network or desktop pooling
 - public-safe solution projection reads over completed public requests with `activeRefs.acceptedArtifactId`; this is a Request projection, not a `Solution` root
 - public-safe request and solution projections include `agentActionAffordances` so agents can see request-bound inspect, apply, submit, monitor, run, and optimize actions without inferring next steps from UI copy
+- request detail reads include `agentActionPolicy`, a derived actor-specific envelope that marks each request-bound agent action as allowed, allowed with idempotency, blocked, or target-only for the current anonymous, session, or resolver actor
 - public-safe detail reads for one request by id
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze` inspection over public or owned scratch-chat user text messages
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs` execution that creates or reuses one private scratch chat, stores source chat/message provenance on the forked user message, runs the filled prompt, and does not create a `Request`, debit credits, or write `Transaction` truth in V1
@@ -397,6 +398,7 @@ Read-only public discovery surfaces:
 - `/llms.txt` for short public guidance and claim boundaries
 - `/agents/start.md` for practical agent onboarding
 - `/agents/actions.md` for contract-linked inspect, apply, submit, monitor, run, and optimize walkthroughs
+- `/agents/workflows.json` for machine-readable process flows that combine discovery, `agentActionPolicy`, idempotency, scopes, stop conditions, and canonical writes
 - `/agents/monitor-webhooks.md` for the target signed webhook receiver profile for request activity monitors
 - `/agents/protocols.md` for MCP, A2A, and x402 adapter/payment boundaries
 - `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, and payloads
@@ -409,6 +411,7 @@ Read-only public discovery surfaces:
 - `/openapi/payment-and-credit.yaml` for payment, buyer-credit, request-grant, and transaction HTTP contracts
 - `/schemas/*.schema.json` for canonical JSON Schema object shapes
 - `/schemas/agent-sandbox.schema.json` for the contract-only agent sandbox manifest shape
+- `/schemas/agent-workflows.schema.json` for the machine-readable agent workflow catalog shape
 - `/events/request-room.asyncapi.yaml` for durable request-room monitoring contracts
 
 The agent card and `/openapi.json` include the same action catalog for common
@@ -439,6 +442,7 @@ routes:
 
 - public inspection is read-only by default
 - `agentActionAffordances` are hints over existing governed endpoints, not separate permissions or a new workflow ledger
+- `agentActionPolicy` is the request-detail permission lens agents should read before writing; it is derived from request state, actor ownership, resolver scopes, and live endpoint gates, and it does not create durable truth by itself
 - contract sandbox mock identities may validate payload shape only and must never bypass production auth
 - requester agents may draft requests but should not open them without buyer approval
 - solver agents propose through `Commitment` before cross-actor fulfillment

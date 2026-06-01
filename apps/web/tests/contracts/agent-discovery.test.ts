@@ -7,6 +7,7 @@ import {
   buildAgentMonitorWebhooksMarkdown,
   buildAgentProtocolProfileMarkdown,
   buildAgentStartMarkdown,
+  buildAgentWorkflowCatalog,
   buildOpenApiDiscoveryIndex,
   findEventAsset,
   findJsonSchemaAsset,
@@ -17,7 +18,10 @@ import {
   buildAgentSandboxManifest,
   buildAgentSandboxMarkdown,
 } from "@/lib/agent-sandbox";
-import { buildRequestAgentActionAffordances } from "@/lib/request";
+import {
+  buildRequestAgentActionAffordances,
+  buildRequestAgentActionPolicy,
+} from "@/lib/request";
 import { GET as getAgentCard } from "@/app/.well-known/agent-card.json/route";
 import { GET as getAgentActions } from "@/app/agents/actions.md/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
@@ -25,6 +29,7 @@ import { GET as getAgentProtocols } from "@/app/agents/protocols.md/route";
 import { GET as getAgentSandboxJson } from "@/app/agents/sandbox.json/route";
 import { GET as getAgentSandboxMd } from "@/app/agents/sandbox.md/route";
 import { GET as getAgentStart } from "@/app/agents/start.md/route";
+import { GET as getAgentWorkflows } from "@/app/agents/workflows.json/route";
 import { GET as getAsyncApiContract } from "@/app/events/[contract]/route";
 import { GET as getLlmsTxt } from "@/app/llms.txt/route";
 import { GET as getOpenApiContract } from "@/app/openapi/[contract]/route";
@@ -47,6 +52,16 @@ async function main() {
   assert.equal(agentCard.xBorealBoundary.notRoots.includes("A2A Task"), true);
   assert.equal(agentCard.capabilities.contractSandbox, true);
   assert.equal(agentCard.sandboxUrl.endsWith("/agents/sandbox.json"), true);
+  assert.equal(
+    agentCard.workflowCatalogUrl.endsWith("/agents/workflows.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.workflows.some(
+      (workflow) => workflow.id === "apply_complete_monitor"
+    ),
+    true,
+  );
   assert.equal(
     agentCard.authentication.schemes.includes("resolver_bearer"),
     true,
@@ -241,6 +256,48 @@ async function main() {
   assert.match(sandboxGuide, /Apply To A Request/);
   assert.match(sandboxGuide, /Submit Proof/);
 
+  const workflowCatalog = buildAgentWorkflowCatalog();
+  assert.equal(workflowCatalog.status, "live_workflow_catalog");
+  assert.equal(workflowCatalog.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    workflowCatalog.canonicalBoundary.notRoots.includes("agentActionPolicy"),
+    true,
+  );
+  assert.equal(
+    workflowCatalog.policyRule.includes("agentActionPolicy"),
+    true,
+  );
+  assert.equal(
+    workflowCatalog.workflows.some(
+      (workflow) =>
+        workflow.id === "apply_complete_monitor" &&
+        workflow.policyCheckpoint.requiredBeforeWrite &&
+        workflow.requiredResolverScopes.includes("commitments:propose") &&
+        workflow.idempotencyRequiredFor.includes("submit_artifact")
+    ),
+    true,
+  );
+  assert.equal(
+    workflowCatalog.workflows.some(
+      (workflow) =>
+        workflow.id === "make_request_for_human" &&
+        workflow.forbiddenMoves.some((move) =>
+          move.includes("without explicit buyer approval")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    workflowCatalog.workflows.some(
+      (workflow) =>
+        workflow.id === "run_public_solution" &&
+        workflow.forbiddenMoves.some((move) =>
+          move.includes("Do not debit credits for public inspection")
+        )
+    ),
+    true,
+  );
+
   const publicRequestAffordances = buildRequestAgentActionAffordances({
     activeRefs: {},
     id: "00000000-0000-4000-8000-000000000201",
@@ -297,9 +354,133 @@ async function main() {
     true,
   );
 
+  const anonymousPublicPolicy = buildRequestAgentActionPolicy({
+    actor: { kind: "anonymous" },
+    request: {
+      activeRefs: {},
+      id: "00000000-0000-4000-8000-000000000204",
+      ownerId: "owner-user",
+      status: "open",
+      visibility: "public",
+    },
+  });
+  assert.equal(anonymousPublicPolicy.actor.kind, "anonymous");
+  assert.equal(
+    anonymousPublicPolicy.decisions.find(
+      (decision) => decision.id === "inspect_public_requests"
+    )?.state,
+    "allowed",
+  );
+  assert.equal(
+    anonymousPublicPolicy.decisions.find(
+      (decision) => decision.id === "monitor_request"
+    )?.state,
+    "allowed",
+  );
+  assert.equal(
+    anonymousPublicPolicy.decisions.find(
+      (decision) => decision.id === "apply_to_request"
+    )?.state,
+    "blocked",
+  );
+
+  const resolverApplyPolicy = buildRequestAgentActionPolicy({
+    actor: {
+      kind: "resolver",
+      userId: "solver-user",
+      scopes: ["commitments:propose"],
+    },
+    request: {
+      activeRefs: {},
+      id: "00000000-0000-4000-8000-000000000205",
+      ownerId: "owner-user",
+      status: "open",
+      visibility: "public",
+    },
+  });
+  const resolverApplyDecision = resolverApplyPolicy.decisions.find(
+    (decision) => decision.id === "apply_to_request"
+  );
+  assert.equal(resolverApplyDecision?.state, "allowed_with_idempotency");
+  assert.equal(
+    resolverApplyDecision?.requiredScopes.includes("commitments:propose"),
+    true,
+  );
+  assert.deepEqual(resolverApplyDecision?.missingScopes, []);
+
+  const resolverMissingScopePolicy = buildRequestAgentActionPolicy({
+    actor: {
+      kind: "resolver",
+      userId: "solver-user",
+      scopes: [],
+    },
+    request: {
+      activeRefs: {},
+      id: "00000000-0000-4000-8000-000000000206",
+      ownerId: "owner-user",
+      status: "open",
+      visibility: "public",
+    },
+  });
+  const missingScopeApplyDecision = resolverMissingScopePolicy.decisions.find(
+    (decision) => decision.id === "apply_to_request"
+  );
+  assert.equal(missingScopeApplyDecision?.state, "blocked");
+  assert.deepEqual(missingScopeApplyDecision?.missingScopes, [
+    "commitments:propose",
+  ]);
+
+  const sessionSolutionPolicy = buildRequestAgentActionPolicy({
+    actor: {
+      kind: "session",
+      userId: "buyer-user",
+    },
+    request: {
+      activeRefs: {
+        acceptedArtifactId: "00000000-0000-4000-8000-000000000207",
+      },
+      id: "00000000-0000-4000-8000-000000000208",
+      ownerId: "owner-user",
+      status: "completed",
+      visibility: "public",
+    },
+  });
+  assert.equal(sessionSolutionPolicy.roleHint, "public_solution");
+  assert.equal(
+    sessionSolutionPolicy.decisions.find(
+      (decision) => decision.id === "run_public_solution"
+    )?.state,
+    "allowed_with_idempotency",
+  );
+
+  const resolverSolutionPolicy = buildRequestAgentActionPolicy({
+    actor: {
+      kind: "resolver",
+      userId: "buyer-user",
+      scopes: ["requests:read_public"],
+    },
+    request: {
+      activeRefs: {
+        acceptedArtifactId: "00000000-0000-4000-8000-000000000209",
+      },
+      id: "00000000-0000-4000-8000-000000000210",
+      ownerId: "owner-user",
+      status: "completed",
+      visibility: "public",
+    },
+  });
+  assert.equal(
+    resolverSolutionPolicy.decisions.find(
+      (decision) => decision.id === "run_public_solution"
+    )?.state,
+    "blocked",
+  );
+
   const startGuide = buildAgentStartMarkdown();
   assert.match(startGuide, /GET \/api\/requests\?scope=public/);
   assert.match(startGuide, /agentActionAffordances/);
+  assert.match(startGuide, /agentActionPolicy/);
+  assert.match(startGuide, /GET \/agents\/workflows\.json/);
   assert.match(startGuide, /Agent action playbook/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent Workflow Catalog/);
@@ -329,6 +510,10 @@ async function main() {
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/actions.md"), true);
   assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/workflows.json"),
+    true,
+  );
+  assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/monitor-webhooks.md"),
     true,
   );
@@ -351,6 +536,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-sandbox.schema.json")?.sourcePath,
     "schemas/json/agent-sandbox.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-workflows.schema.json")?.sourcePath,
+    "schemas/json/agent-workflows.schema.json",
   );
   assert.equal(
     findEventAsset("request-room.asyncapi.yaml")?.sourcePath,
@@ -381,6 +570,13 @@ async function main() {
   assert.match(
     await agentActionsResponse.text(),
     /Boreal Agent Action Playbook/
+  );
+
+  const agentWorkflowsResponse = await getAgentWorkflows();
+  assert.equal(agentWorkflowsResponse.status, 200);
+  assert.equal(
+    (await agentWorkflowsResponse.json()).status,
+    "live_workflow_catalog"
   );
 
   const agentMonitorWebhooksResponse = await getAgentMonitorWebhooks();
@@ -433,6 +629,15 @@ async function main() {
   });
   assert.equal(sandboxSchemaResponse.status, 200);
   assert.equal((await sandboxSchemaResponse.json()).title, "AgentSandbox");
+
+  const workflowSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-workflows.schema.json" }),
+  });
+  assert.equal(workflowSchemaResponse.status, 200);
+  assert.equal(
+    (await workflowSchemaResponse.json()).title,
+    "AgentWorkflowCatalog"
+  );
 
   const eventResponse = await getAsyncApiContract(new Request("http://boreal.test"), {
     params: Promise.resolve({ contract: "request-room.asyncapi.yaml" }),

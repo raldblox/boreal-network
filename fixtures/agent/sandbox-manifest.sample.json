@@ -41,6 +41,10 @@
       "url": "https://boreal.work/agents/actions.md"
     },
     {
+      "label": "Workflow catalog",
+      "url": "https://boreal.work/agents/workflows.json"
+    },
+    {
       "label": "Protocol profile",
       "url": "https://boreal.work/agents/protocols.md"
     },
