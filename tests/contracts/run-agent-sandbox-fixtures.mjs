@@ -6,9 +6,13 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 
 const manifestPath = "fixtures/agent/sandbox-manifest.sample.json";
 const conformanceReportPath = "fixtures/agent/conformance-report.sample.json";
+const errorExamplesPath = "fixtures/agent/error-examples.sample.json";
+const humanHandoffPacketsPath = "fixtures/agent/human-handoff-packets.sample.json";
 const protocolAdapterSamplesPath = "fixtures/agent/protocol-adapter-samples.sample.json";
 const schemaPath = "schemas/json/agent-sandbox.schema.json";
 const conformanceReportSchemaPath = "schemas/json/agent-conformance-report.schema.json";
+const errorExamplesSchemaPath = "schemas/json/agent-error-examples.schema.json";
+const humanHandoffPacketsSchemaPath = "schemas/json/agent-human-handoff-packets.schema.json";
 const protocolAdapterSamplesSchemaPath = "schemas/json/agent-protocol-adapter-samples.schema.json";
 const implementationPath = "apps/web/lib/agent-sandbox.ts";
 
@@ -44,8 +48,10 @@ const requiredResources = [
   "/agents/conformance-report.example.json",
   "/agents/completion.json",
   "/agents/evidence.json",
+  "/agents/error-examples.json",
   "/agents/execution.json",
   "/agents/human-handoffs.json",
+  "/agents/human-handoff-packets.example.json",
   "/agents/optimization.json",
   "/agents/payments.json",
   "/agents/prompts.json",
@@ -141,6 +147,29 @@ function validateConformanceReportSchema(schema, errors) {
   );
 }
 
+function validateErrorExamplesSchema(schema, errors) {
+  assert(
+    schema.$schema === "https://json-schema.org/draft/2020-12/schema",
+    "agent error examples schema must use JSON Schema draft 2020-12",
+    errors
+  );
+  assert(
+    schema.title === "AgentErrorExamples",
+    "agent error examples schema must be titled AgentErrorExamples",
+    errors
+  );
+  assert(
+    schema.properties?.status?.const === "live_error_example_pack",
+    "agent error examples schema must lock live example status",
+    errors
+  );
+  assert(
+    schema.$defs?.errorExample?.properties?.contentType?.const === "application/problem+json",
+    "agent error examples schema must lock RFC 9457 problem content type",
+    errors
+  );
+}
+
 function validateProtocolAdapterSamplesSchema(schema, errors) {
   assert(
     schema.$schema === "https://json-schema.org/draft/2020-12/schema",
@@ -160,6 +189,29 @@ function validateProtocolAdapterSamplesSchema(schema, errors) {
   assert(
     schema.$defs?.sample?.properties?.notAcceptedByProduction?.const === true,
     "agent protocol adapter samples schema must lock production acceptance to false",
+    errors
+  );
+}
+
+function validateHumanHandoffPacketsSchema(schema, errors) {
+  assert(
+    schema.$schema === "https://json-schema.org/draft/2020-12/schema",
+    "agent human handoff packet schema must use JSON Schema draft 2020-12",
+    errors
+  );
+  assert(
+    schema.title === "AgentHumanHandoffPacketExamples",
+    "agent human handoff packet schema must be titled AgentHumanHandoffPacketExamples",
+    errors
+  );
+  assert(
+    schema.properties?.status?.const === "live_handoff_packet_examples",
+    "agent human handoff packet schema must lock live example status",
+    errors
+  );
+  assert(
+    schema.$defs?.handoffPacket?.properties?.status?.const === "example_only",
+    "agent human handoff packet schema must lock packet examples to example_only",
     errors
   );
 }
@@ -534,6 +586,189 @@ function validateConformanceReport(report, manifest, errors) {
   );
 }
 
+function validateErrorExamples(errorExamples, manifest, errors) {
+  const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
+  const recoveryRuleIds = new Set(
+    readText("apps/web/lib/agent-discovery.ts").match(/id: "([a-z_]+)"/g)?.map((match) =>
+      match.replace('id: "', "").replace('"', "")
+    ) ?? []
+  );
+  const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
+  const exampleIds = new Set((errorExamples.examples ?? []).map((example) => example.id));
+
+  assert(errorExamples.schemaVersion === 1, "error examples schemaVersion must be 1", errors);
+  assert(
+    errorExamples.status === "live_error_example_pack",
+    "error examples must use live example status",
+    errors
+  );
+  assert(
+    errorExamples.standard?.contentType === "application/problem+json",
+    "error examples must use application/problem+json",
+    errors
+  );
+  assert(errorExamples.canonicalBoundary?.rootObject === "Request", "error examples must keep Request as root", errors);
+  includesAll(
+    Array.from(exampleIds),
+    [
+      "missing_scope_commitment_proposal",
+      "artifact_idempotency_conflict",
+      "monitor_rate_limited",
+      "private_request_not_visible",
+      "blocked_fulfillment_retry_needed",
+      "payment_uncertain_solution_run",
+      "unknown_write_result_after_timeout"
+    ],
+    "agent error examples",
+    errors
+  );
+
+  for (const example of errorExamples.examples ?? []) {
+    assert(recoveryRuleIds.has(example.recoveryRuleId), `${example.id} recoveryRuleId must reference recovery profile`, errors);
+    assert(example.contentType === "application/problem+json", `${example.id} contentType must be problem+json`, errors);
+    assert(example.problem?.status === example.httpStatus, `${example.id} problem status must match httpStatus`, errors);
+    assert(example.problem?.type?.startsWith("https://boreal.work/problems/agent/"), `${example.id} must use a stable Boreal problem type URI`, errors);
+    assert(
+      example.problem?.requestId === "00000000-0000-4000-8000-000000000001" ||
+        example.id === "private_request_not_visible",
+      `${example.id} must use the stable sandbox request id unless demonstrating private/not-found`,
+      errors
+    );
+    for (const actionId of example.actionIds ?? []) {
+      assert(flowIds.has(actionId), `${example.id} action ${actionId} must reference a sandbox flow`, errors);
+    }
+    for (const write of example.canonicalWritesAllowed ?? []) {
+      assert(durableWrites.has(write), `${example.id} write ${write} must be canonical`, errors);
+    }
+    assert(
+      (example.notAuthority ?? []).some((boundary) =>
+        /permission|approval|completion|payment|RequestEvent|Artifact|Commitment/i.test(boundary)
+      ),
+      `${example.id} must declare non-authority boundaries`,
+      errors
+    );
+  }
+
+  assert(
+    (errorExamples.examples ?? []).some(
+      (example) =>
+        example.recoveryRuleId === "terminal_or_unknown_server_failure" &&
+        example.retryPolicy === "verify_state_before_retry"
+    ),
+    "error examples must include unknown write verification before retry",
+    errors
+  );
+  assert(
+    (errorExamples.examples ?? []).some(
+      (example) =>
+        example.recoveryRuleId === "payment_or_credit_uncertain" &&
+        (example.canonicalReadsBeforeRetry ?? []).includes("Transaction")
+    ),
+    "error examples must include payment uncertainty Transaction read",
+    errors
+  );
+  assert(
+    (errorExamples.canonicalBoundary?.problemExamplesAreNot ?? []).includes("durable history"),
+    "error examples must not be durable history",
+    errors
+  );
+  assert(
+    (errorExamples.canonicalBoundary?.notRoots ?? []).includes("HTTP problem"),
+    "error examples must keep HTTP problems out of root truth",
+    errors
+  );
+}
+
+function validateHumanHandoffPackets(packets, manifest, errors) {
+  const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
+  const handoffMomentIds = new Set(
+    readText("apps/web/lib/agent-discovery.ts").match(/id: "([a-z_]+)"/g)?.map((match) =>
+      match.replace('id: "', "").replace('"', "")
+    ) ?? []
+  );
+  const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
+  const packetIds = new Set((packets.examples ?? []).map((packet) => packet.id));
+
+  assert(packets.schemaVersion === 1, "human handoff packets schemaVersion must be 1", errors);
+  assert(
+    packets.status === "live_handoff_packet_examples",
+    "human handoff packets must use live example status",
+    errors
+  );
+  assert(
+    packets.canonicalBoundary?.rootObject === "Request",
+    "human handoff packets must keep Request as root",
+    errors
+  );
+  includesAll(
+    Array.from(packetIds),
+    [
+      "request_draft_approval_packet",
+      "commitment_owner_review_packet",
+      "proof_review_packet",
+      "monitor_escalation_packet",
+      "payment_authorization_packet"
+    ],
+    "human handoff packet examples",
+    errors
+  );
+
+  for (const packet of packets.examples ?? []) {
+    assert(packet.status === "example_only", `${packet.id} must be example_only`, errors);
+    assert(flowIds.has(packet.actionId), `${packet.id} actionId must reference a sandbox flow`, errors);
+    assert(
+      handoffMomentIds.has(packet.handoffMomentId),
+      `${packet.id} handoffMomentId must reference the human handoff profile`,
+      errors
+    );
+    assert(
+      packet.example?.requestId === "00000000-0000-4000-8000-000000000001",
+      `${packet.id} must use the stable sandbox request id`,
+      errors
+    );
+    assert(
+      (packet.notAuthority ?? []).some((boundary) =>
+        /approval|permission|completion|payment/i.test(boundary)
+      ),
+      `${packet.id} must declare non-authority boundaries`,
+      errors
+    );
+    assert(
+      (packet.example?.agentWillNotDo ?? []).length > 0,
+      `${packet.id} must tell the human what the agent will not do`,
+      errors
+    );
+    for (const write of packet.canonicalWritesIfApproved ?? []) {
+      assert(durableWrites.has(write), `${packet.id} write ${write} must be canonical`, errors);
+    }
+  }
+
+  assert(
+    (packets.examples ?? []).some(
+      (packet) => packet.approvalRequired === true && packet.actionId === "run_public_solution"
+    ),
+    "human handoff packets must include explicit payment authorization example",
+    errors
+  );
+  assert(
+    (packets.examples ?? []).some(
+      (packet) => packet.approvalRequired === false && packet.actionId === "monitor_request"
+    ),
+    "human handoff packets must include monitor escalation example",
+    errors
+  );
+  assert(
+    (packets.canonicalBoundary?.handoffPacketsAreNot ?? []).includes("human approval record"),
+    "human handoff packets must not be approval records",
+    errors
+  );
+  assert(
+    (packets.canonicalBoundary?.notRoots ?? []).includes("handoff packet"),
+    "human handoff packets must not be root objects",
+    errors
+  );
+}
+
 function validateProtocolAdapterSamples(samples, manifest, errors) {
   const flowIds = new Set((manifest.flows ?? []).map((flow) => flow.id));
   const durableWrites = new Set(manifest.canonicalBoundary?.durableWrites ?? []);
@@ -604,14 +839,20 @@ function validateImplementationAndDocs(manifest, errors) {
 
 const schema = readJson(schemaPath);
 const conformanceReportSchema = readJson(conformanceReportSchemaPath);
+const errorExamplesSchema = readJson(errorExamplesSchemaPath);
+const humanHandoffPacketsSchema = readJson(humanHandoffPacketsSchemaPath);
 const protocolAdapterSamplesSchema = readJson(protocolAdapterSamplesSchemaPath);
 const manifest = readJson(manifestPath);
 const conformanceReport = readJson(conformanceReportPath);
+const errorExamples = readJson(errorExamplesPath);
+const humanHandoffPackets = readJson(humanHandoffPacketsPath);
 const protocolAdapterSamples = readJson(protocolAdapterSamplesPath);
 const errors = [];
 
 validateSchema(schema, errors);
 validateConformanceReportSchema(conformanceReportSchema, errors);
+validateErrorExamplesSchema(errorExamplesSchema, errors);
+validateHumanHandoffPacketsSchema(humanHandoffPacketsSchema, errors);
 validateProtocolAdapterSamplesSchema(protocolAdapterSamplesSchema, errors);
 validateManifestShape(manifest, errors);
 validateMockIdentities(manifest, errors);
@@ -619,10 +860,12 @@ validateFlows(manifest, errors);
 validateScenarios(manifest, errors);
 validateCanonBoundary(manifest, errors);
 validateConformanceReport(conformanceReport, manifest, errors);
+validateErrorExamples(errorExamples, manifest, errors);
+validateHumanHandoffPackets(humanHandoffPackets, manifest, errors);
 validateProtocolAdapterSamples(protocolAdapterSamples, manifest, errors);
 validateImplementationAndDocs(manifest, errors);
 
-const serialized = JSON.stringify({ manifest, conformanceReport, protocolAdapterSamples });
+const serialized = JSON.stringify({ manifest, conformanceReport, errorExamples, humanHandoffPackets, protocolAdapterSamples });
 assert(!serialized.includes("PRIVATE KEY"), "sandbox manifest must not include private keys", errors);
 assert(!serialized.includes("BEGIN "), "sandbox manifest must not include PEM-like secrets", errors);
 

@@ -9,6 +9,7 @@ import {
   buildAgentConformanceProfile,
   buildAgentCompletionProfile,
   buildAgentEvidenceProfile,
+  buildAgentRecoveryProfile,
   buildAgentExecutionProfile,
   buildAgentHumanHandoffProfile,
   buildAgentMonitoringProfile,
@@ -19,7 +20,6 @@ import {
   buildAgentPromptCatalog,
   buildAgentProtocolProfile,
   buildAgentProtocolProfileMarkdown,
-  buildAgentRecoveryProfile,
   buildAgentReadinessProfile,
   buildAgentStartMarkdown,
   buildAgentToolRegistry,
@@ -29,6 +29,8 @@ import {
   findJsonSchemaAsset,
   findOpenApiAsset,
   readAgentConformanceReportExample,
+  readAgentErrorExamples,
+  readAgentHumanHandoffPacketExamples,
   readAgentProtocolAdapterSamples,
   readDiscoveryAsset,
 } from "@/lib/agent-discovery";
@@ -48,7 +50,9 @@ import { GET as getAgentConformance } from "@/app/agents/conformance.json/route"
 import { GET as getAgentConformanceReportExample } from "@/app/agents/conformance-report.example.json/route";
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
 import { GET as getAgentEvidence } from "@/app/agents/evidence.json/route";
+import { GET as getAgentErrorExamples } from "@/app/agents/error-examples.json/route";
 import { GET as getAgentExecution } from "@/app/agents/execution.json/route";
+import { GET as getAgentHumanHandoffPacketExamples } from "@/app/agents/human-handoff-packets.example.json/route";
 import { GET as getAgentHumanHandoffs } from "@/app/agents/human-handoffs.json/route";
 import { GET as getAgentMonitoring } from "@/app/agents/monitoring.json/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
@@ -123,7 +127,17 @@ async function main() {
     true,
   );
   assert.equal(
+    agentCard.errorExamplesUrl.endsWith("/agents/error-examples.json"),
+    true,
+  );
+  assert.equal(
     agentCard.humanHandoffProfileUrl.endsWith("/agents/human-handoffs.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.humanHandoffPacketExamplesUrl.endsWith(
+      "/agents/human-handoff-packets.example.json"
+    ),
     true,
   );
   assert.equal(
@@ -175,7 +189,18 @@ async function main() {
   assert.equal(agentCard.evidence.status, "live_evidence_profile");
   assert.equal(agentCard.evidence.packetFields.includes("requestId"), true);
   assert.equal(agentCard.evidence.reviewSignalCount >= 5, true);
+  assert.equal(agentCard.errorExamples.status, "live_error_example_pack");
+  assert.equal(
+    agentCard.errorExamples.standard,
+    "RFC 9457 Problem Details for HTTP APIs",
+  );
   assert.equal(agentCard.humanHandoffs.status, "live_human_handoff_profile");
+  assert.equal(
+    agentCard.humanHandoffs.packetExamplesUrl.endsWith(
+      "/agents/human-handoff-packets.example.json"
+    ),
+    true,
+  );
   assert.equal(
     agentCard.humanHandoffs.moments.some(
       (moment) =>
@@ -478,6 +503,20 @@ async function main() {
   assert.equal(recoveryProfile.status, "live_recovery_profile");
   assert.equal(recoveryProfile.canonicalBoundary.rootObject, "Request");
   assert.equal(
+    recoveryProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/error-examples.json")
+    ),
+    true,
+  );
+  assert.equal(
+    recoveryProfile.standardProfiles.some(
+      (profile) =>
+        profile.name === "Problem Details" &&
+        profile.status === "live_example_profile"
+    ),
+    true,
+  );
+  assert.equal(
     recoveryProfile.idempotencyPolicy.requiredFor.includes("run_public_solution"),
     true,
   );
@@ -502,6 +541,30 @@ async function main() {
       (rule) =>
         rule.id === "payment_or_credit_uncertain" &&
         rule.canonicalWritesAllowed.includes("Transaction")
+    ),
+    true,
+  );
+
+  const errorExamples = await readAgentErrorExamples();
+  assert.equal(errorExamples.status, "live_error_example_pack");
+  assert.equal(errorExamples.canonicalBoundary.rootObject, "Request");
+  assert.equal(errorExamples.standard.contentType, "application/problem+json");
+  assert.equal(
+    errorExamples.examples.some(
+      (example: { recoveryRuleId: string; retryPolicy: string }) =>
+        example.recoveryRuleId === "terminal_or_unknown_server_failure" &&
+        example.retryPolicy === "verify_state_before_retry"
+    ),
+    true,
+  );
+  assert.equal(
+    errorExamples.examples.some(
+      (example: {
+        recoveryRuleId: string;
+        canonicalReadsBeforeRetry: string[];
+      }) =>
+        example.recoveryRuleId === "payment_or_credit_uncertain" &&
+        example.canonicalReadsBeforeRetry.includes("Transaction")
     ),
     true,
   );
@@ -619,7 +682,36 @@ async function main() {
         checklist.id === "policy_and_auth" &&
         checklist.requiredProfiles.some((profile) =>
           profile.endsWith("/agents/human-handoffs.json")
+        ) &&
+        checklist.requiredProfiles.some((profile) =>
+          profile.endsWith("/agents/human-handoff-packets.example.json")
         )
+    ),
+    true,
+  );
+  assert.equal(
+    conformanceProfile.checklists.some((checklist) =>
+      checklist.checks.some(
+        (check) =>
+          check.id === "problem_details_error_handling" &&
+          check.required &&
+          check.evidence.some((item) =>
+            item.endsWith("/agents/error-examples.json")
+          )
+      )
+    ),
+    true,
+  );
+  assert.equal(
+    conformanceProfile.checklists.some((checklist) =>
+      checklist.checks.some(
+        (check) =>
+          check.id === "render_handoff_packet_examples" &&
+          check.required &&
+          check.evidence.some((item) =>
+            item.endsWith("/agents/human-handoff-packets.example.json")
+          )
+      )
     ),
     true,
   );
@@ -848,6 +940,41 @@ async function main() {
   assert.equal(
     humanHandoffProfile.agentLanguage.mustNotSay.some((line) =>
       line.includes("Payment succeeded")
+    ),
+    true,
+  );
+
+  const humanHandoffPackets = await readAgentHumanHandoffPacketExamples();
+  assert.equal(humanHandoffPackets.status, "live_handoff_packet_examples");
+  assert.equal(humanHandoffPackets.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    humanHandoffPackets.examples.some(
+      (packet: { id: string; actionId: string; approvalRequired: boolean }) =>
+        packet.id === "request_draft_approval_packet" &&
+        packet.actionId === "make_request_for_human" &&
+        packet.approvalRequired
+    ),
+    true,
+  );
+  assert.equal(
+    humanHandoffPackets.examples.some(
+      (packet: { id: string; actionId: string; claimState: string }) =>
+        packet.id === "proof_review_packet" &&
+        packet.actionId === "submit_artifact" &&
+        packet.claimState === "proof_submitted_waiting_for_owner_acceptance"
+    ),
+    true,
+  );
+  assert.equal(
+    humanHandoffPackets.examples.some(
+      (packet: { actionId: string; approvalRequired: boolean }) =>
+        packet.actionId === "monitor_request" && !packet.approvalRequired
+    ),
+    true,
+  );
+  assert.equal(
+    humanHandoffPackets.canonicalBoundary.handoffPacketsAreNot.includes(
+      "human approval record"
     ),
     true,
   );
@@ -1420,8 +1547,10 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/conformance-report\.example\.json/);
   assert.match(startGuide, /GET \/agents\/completion\.json/);
   assert.match(startGuide, /GET \/agents\/evidence\.json/);
+  assert.match(startGuide, /GET \/agents\/error-examples\.json/);
   assert.match(startGuide, /GET \/agents\/execution\.json/);
   assert.match(startGuide, /GET \/agents\/human-handoffs\.json/);
+  assert.match(startGuide, /GET \/agents\/human-handoff-packets\.example\.json/);
   assert.match(startGuide, /GET \/agents\/monitoring\.json/);
   assert.match(startGuide, /GET \/agents\/onboarding\.json/);
   assert.match(startGuide, /GET \/agents\/optimization\.json/);
@@ -1437,6 +1566,8 @@ async function main() {
   assert.match(startGuide, /Agent access review profile/);
   assert.match(startGuide, /Agent conformance report example/);
   assert.match(startGuide, /Agent contract sandbox/);
+  assert.match(startGuide, /Agent error examples/);
+  assert.match(startGuide, /Agent human handoff packet examples/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent Workflow Catalog/);
   assert.match(startGuide, /Optimize this/);
@@ -1476,9 +1607,17 @@ async function main() {
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/evidence.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/error-examples.json"),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/execution.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/human-handoffs.json"),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/human-handoff-packets.example.json"),
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/monitoring.json"), true);
@@ -1564,6 +1703,16 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex["x-boreal-agent-error-examples"].standard,
+    "RFC 9457 Problem Details for HTTP APIs",
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-recovery"].errorExamplesUrl.endsWith(
+      "/agents/error-examples.json"
+    ),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-agent-execution"].lanes.some(
       (lane) => lane.id === "cross_actor_accepted_commitment"
     ),
@@ -1572,6 +1721,12 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-human-handoffs"].moments.some(
       (moment) => moment.id === "completion_claim_requires_review"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-human-handoffs"].packetExamplesUrl.endsWith(
+      "/agents/human-handoff-packets.example.json"
     ),
     true,
   );
@@ -1659,12 +1814,20 @@ async function main() {
     "schemas/json/agent-evidence.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-error-examples.schema.json")?.sourcePath,
+    "schemas/json/agent-error-examples.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-execution.schema.json")?.sourcePath,
     "schemas/json/agent-execution.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-human-handoffs.schema.json")?.sourcePath,
     "schemas/json/agent-human-handoffs.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-human-handoff-packets.schema.json")?.sourcePath,
+    "schemas/json/agent-human-handoff-packets.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-monitoring.schema.json")?.sourcePath,
@@ -1822,6 +1985,13 @@ async function main() {
     "live_evidence_profile"
   );
 
+  const agentErrorExamplesResponse = await getAgentErrorExamples();
+  assert.equal(agentErrorExamplesResponse.status, 200);
+  assert.equal(
+    (await agentErrorExamplesResponse.json()).status,
+    "live_error_example_pack"
+  );
+
   const agentExecutionResponse = await getAgentExecution();
   assert.equal(agentExecutionResponse.status, 200);
   assert.equal(
@@ -1834,6 +2004,14 @@ async function main() {
   assert.equal(
     (await agentHumanHandoffsResponse.json()).status,
     "live_human_handoff_profile"
+  );
+
+  const agentHumanHandoffPacketExamplesResponse =
+    await getAgentHumanHandoffPacketExamples();
+  assert.equal(agentHumanHandoffPacketExamplesResponse.status, 200);
+  assert.equal(
+    (await agentHumanHandoffPacketExamplesResponse.json()).status,
+    "live_handoff_packet_examples"
   );
 
   const agentMonitoringResponse = await getAgentMonitoring();
@@ -1956,8 +2134,10 @@ async function main() {
   assert.match(llmsText, /Agent conformance report example/);
   assert.match(llmsText, /Agent completion profile/);
   assert.match(llmsText, /Agent evidence profile/);
+  assert.match(llmsText, /Agent error examples/);
   assert.match(llmsText, /Agent execution profile/);
   assert.match(llmsText, /Agent human handoff profile/);
+  assert.match(llmsText, /Agent human handoff packet examples/);
   assert.match(llmsText, /Agent monitoring profile/);
   assert.match(llmsText, /Agent onboarding profile/);
   assert.match(llmsText, /Agent optimization profile/);
@@ -2046,6 +2226,18 @@ async function main() {
     "AgentEvidenceProfile"
   );
 
+  const errorExamplesSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({ schema: "agent-error-examples.schema.json" }),
+    }
+  );
+  assert.equal(errorExamplesSchemaResponse.status, 200);
+  assert.equal(
+    (await errorExamplesSchemaResponse.json()).title,
+    "AgentErrorExamples"
+  );
+
   const executionSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-execution.schema.json" }),
   });
@@ -2062,6 +2254,20 @@ async function main() {
   assert.equal(
     (await humanHandoffSchemaResponse.json()).title,
     "AgentHumanHandoffProfile"
+  );
+
+  const humanHandoffPacketsSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-human-handoff-packets.schema.json",
+      }),
+    }
+  );
+  assert.equal(humanHandoffPacketsSchemaResponse.status, 200);
+  assert.equal(
+    (await humanHandoffPacketsSchemaResponse.json()).title,
+    "AgentHumanHandoffPacketExamples"
   );
 
   const monitoringSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

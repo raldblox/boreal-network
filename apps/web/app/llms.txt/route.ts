@@ -43,8 +43,10 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent conformance report example](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)}): Submit-ready example package for operator review; it is not a credential, permission grant, or certification.
 - [Agent completion profile](${absoluteUrl(agentDiscoveryPaths.agentCompletion)}): Machine-readable proof packets, Artifact requirements, completion claims, and review boundaries.
 - [Agent evidence profile](${absoluteUrl(agentDiscoveryPaths.agentEvidence)}): Machine-readable evidence packet, Artifact packaging, redaction, review, and proof-boundary guidance.
+- [Agent error examples](${absoluteUrl(agentDiscoveryPaths.agentErrorExamples)}): RFC 9457-style problem examples for safe auth, scope, idempotency, rate-limit, payment, monitor, and unknown-write recovery.
 - [Agent execution profile](${absoluteUrl(agentDiscoveryPaths.agentExecution)}): Machine-readable Fulfillment, FulfillmentStep, runtime signal, and execution-lane boundaries.
 - [Agent human handoff profile](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)}): Machine-readable human approval, stop, escalation, visible UX, and claim-state boundaries.
+- [Agent human handoff packet examples](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples)}): Checked renderable packets for draft approval, Commitment review, proof review, monitor escalation, and payment authorization.
 - [Agent monitoring profile](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)}): Machine-readable cursor polling, stale-state detection, escalation, and push-boundary guidance.
 - [Agent onboarding profile](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)}): Machine-readable path from public discovery to sandbox validation and scoped production eligibility.
 - [Agent optimization profile](${absoluteUrl(agentDiscoveryPaths.agentOptimization)}): Machine-readable draft-only optimization, no-invention, owner approval, and mutation-boundary guidance.

@@ -1,0 +1,450 @@
+{
+  "schemaVersion": 1,
+  "status": "live_handoff_packet_examples",
+  "name": "Boreal Agent Human Handoff Packet Examples",
+  "description": "Concrete example packets agents can render when a human needs to approve, review, fund, retry, or interpret state on a Boreal Request.",
+  "sourceProfiles": [
+    {
+      "label": "Agent human handoff profile",
+      "url": "https://boreal.work/agents/human-handoffs.json"
+    },
+    {
+      "label": "Agent workflow catalog",
+      "url": "https://boreal.work/agents/workflows.json"
+    },
+    {
+      "label": "Agent completion profile",
+      "url": "https://boreal.work/agents/completion.json"
+    },
+    {
+      "label": "Agent payment profile",
+      "url": "https://boreal.work/agents/payments.json"
+    },
+    {
+      "label": "Agent recovery profile",
+      "url": "https://boreal.work/agents/recovery.json"
+    }
+  ],
+  "packetContract": {
+    "requiredFields": [
+      "requestId",
+      "represented human role",
+      "actionId",
+      "handoffMomentId",
+      "claimState",
+      "latest durable truth",
+      "decision question",
+      "allowed human decisions",
+      "what the agent will not do without approval"
+    ],
+    "humanDecisionMustBe": [
+      "explicit",
+      "tied to one Request",
+      "tied to one proposed next action",
+      "separate from payment settlement, tool success, and completion claims"
+    ],
+    "agentMustNot": [
+      "infer approval from silence or prior chat context",
+      "open, fund, accept, reject, or claim completion from an example packet alone",
+      "treat a handoff packet as a credential, approval record, payment authorization, or Artifact proof"
+    ]
+  },
+  "examples": [
+    {
+      "id": "request_draft_approval_packet",
+      "actionId": "make_request_for_human",
+      "handoffMomentId": "draft_ready_for_buyer_review",
+      "representedHuman": "buyer_or_owner",
+      "claimState": "draft_ready_for_review",
+      "status": "example_only",
+      "userFacingTitle": "Review this Request draft before it opens",
+      "userFacingSummary": "I prepared a private draft Request from your instructions. Opening it would make the request active, so I need your explicit approval first.",
+      "decisionQuestion": "Do you want me to save this draft, edit it, open it when the route allows, or cancel?",
+      "allowedHumanDecisions": [
+        "save_draft",
+        "request_edits",
+        "open_request_when_route_allows",
+        "cancel"
+      ],
+      "visibleEvidence": [
+        {
+          "label": "Draft Request",
+          "sourceObject": "Request",
+          "value": "Private draft with title, summary, scope, acceptance criteria, and proof expectations."
+        },
+        {
+          "label": "Policy gate",
+          "sourceObject": "agentActionPolicy",
+          "value": "Opening or routing requires explicit owner approval."
+        }
+      ],
+      "canonicalReads": [
+        "Request"
+      ],
+      "canonicalWritesIfApproved": [
+        "Request"
+      ],
+      "approvalRequired": true,
+      "stopRules": [
+        "Stop if approval is implied instead of explicit.",
+        "Stop if the agent would invent budget, deadline, deliverables, or constraints.",
+        "Stop if the proposed mutation touches server-owned planner, matcher, routing, lifecycle, or policy fields."
+      ],
+      "notAuthority": [
+        "permission grant",
+        "open request record",
+        "funding approval",
+        "completion proof"
+      ],
+      "example": {
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actorSummary": "Requester agent acting for the human buyer.",
+        "latestKnownTruth": [
+          "A private draft Request exists.",
+          "No public opening, funding, Commitment, Fulfillment, Artifact, Transaction, or owner-review event exists yet."
+        ],
+        "proposedNextStep": "Save the reviewed draft fields or open the Request only if the human chooses that specific action.",
+        "humanDecisionOptions": [
+          "Save draft",
+          "Edit draft",
+          "Open Request",
+          "Cancel"
+        ],
+        "agentWillNotDo": [
+          "I will not open or fund the Request unless you choose that exact action.",
+          "I will not rewrite server-owned fields.",
+          "I will not claim the draft is completed work."
+        ]
+      }
+    },
+    {
+      "id": "commitment_owner_review_packet",
+      "actionId": "apply_to_request",
+      "handoffMomentId": "proposal_waiting_for_owner_review",
+      "representedHuman": "buyer_or_owner",
+      "claimState": "proposal_submitted_waiting_for_owner_review",
+      "status": "example_only",
+      "userFacingTitle": "Review this Commitment proposal",
+      "userFacingSummary": "A solver proposal is ready for owner review. Accepting it is separate from fulfillment start and completion.",
+      "decisionQuestion": "Do you want to accept this Commitment, reject it, ask a question, or request a revised proposal?",
+      "allowedHumanDecisions": [
+        "accept_commitment",
+        "reject_commitment",
+        "request_clarification",
+        "request_revision"
+      ],
+      "visibleEvidence": [
+        {
+          "label": "Request",
+          "sourceObject": "Request",
+          "value": "Open public Request with scope and proof expectations."
+        },
+        {
+          "label": "Proposal",
+          "sourceObject": "Commitment",
+          "value": "Fixed-price proposal with deliverable summary, price, and handoff terms."
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "Supply",
+        "Commitment",
+        "RequestEvent"
+      ],
+      "canonicalWritesIfApproved": [
+        "Commitment",
+        "RequestEvent"
+      ],
+      "approvalRequired": true,
+      "stopRules": [
+        "Stop if the proposal lacks scope, price, proof duties, or solver identity needed for review.",
+        "Stop if the agent tries to create Fulfillment truth before accepted Commitment truth.",
+        "Stop if the agent treats proposal submission as completed work."
+      ],
+      "notAuthority": [
+        "accepted Commitment",
+        "Fulfillment start",
+        "Artifact proof",
+        "completion proof"
+      ],
+      "example": {
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actorSummary": "Solver agent or represented human solver applying to a buyer-owned Request.",
+        "latestKnownTruth": [
+          "The Request is inspectable by the represented actor.",
+          "A Commitment proposal may be submitted or pending review.",
+          "No cross-actor Fulfillment should start until the owner accepts the Commitment."
+        ],
+        "proposedNextStep": "Owner reviews the Commitment proposal and chooses accept, reject, clarify, or revise.",
+        "humanDecisionOptions": [
+          "Accept Commitment",
+          "Reject Commitment",
+          "Ask clarification",
+          "Request revision"
+        ],
+        "agentWillNotDo": [
+          "I will not start Fulfillment from proposal submission alone.",
+          "I will not change the buyer-authored Request brief.",
+          "I will not claim the proposal proves delivery."
+        ]
+      }
+    },
+    {
+      "id": "proof_review_packet",
+      "actionId": "submit_artifact",
+      "handoffMomentId": "proof_submitted_for_review",
+      "representedHuman": "buyer_or_reviewer",
+      "claimState": "proof_submitted_waiting_for_owner_acceptance",
+      "status": "example_only",
+      "userFacingTitle": "Review submitted proof",
+      "userFacingSummary": "An Artifact was submitted as proof or delivery. It needs review before anyone can say the request is complete.",
+      "decisionQuestion": "Do you accept this Artifact, reject it, request revision, request more proof, or keep monitoring?",
+      "allowedHumanDecisions": [
+        "accept_artifact",
+        "reject_artifact",
+        "request_revision",
+        "request_more_proof",
+        "keep_monitoring"
+      ],
+      "visibleEvidence": [
+        {
+          "label": "Artifact",
+          "sourceObject": "Artifact",
+          "value": "Evidence Artifact with title, summary, content reference, and redaction statement."
+        },
+        {
+          "label": "Fulfillment lane",
+          "sourceObject": "Fulfillment",
+          "value": "Accepted lane context or direct-owner authorization that allowed proof submission."
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "RequestEvent"
+      ],
+      "canonicalWritesIfApproved": [
+        "Artifact",
+        "RequestEvent"
+      ],
+      "approvalRequired": true,
+      "stopRules": [
+        "Stop if the proof packet is unreviewable or detached from the Request.",
+        "Stop if raw prompts, secrets, private keys, or noisy runtime logs would be exposed.",
+        "Stop if the agent would claim completed from tool success, payment settlement, provider callback, MCP call, A2A task status, or generated text alone."
+      ],
+      "notAuthority": [
+        "accepted delivery",
+        "completion proof",
+        "payment authorization",
+        "Request closure"
+      ],
+      "example": {
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actorSummary": "Proof-publishing solver agent asking the buyer or reviewer to inspect the submitted Artifact.",
+        "latestKnownTruth": [
+          "An Artifact has been submitted.",
+          "The Request is waiting for owner or reviewer acceptance.",
+          "Payment state, if any, is separate from proof acceptance."
+        ],
+        "proposedNextStep": "Reviewer accepts, rejects, asks for revision, asks for more proof, or keeps monitoring.",
+        "humanDecisionOptions": [
+          "Accept Artifact",
+          "Reject Artifact",
+          "Request revision",
+          "Request more proof",
+          "Keep monitoring"
+        ],
+        "agentWillNotDo": [
+          "I will not say the Request is complete until accepted proof or lifecycle truth supports that label.",
+          "I will not expose secrets as proof.",
+          "I will not treat payment settlement as proof."
+        ]
+      }
+    },
+    {
+      "id": "monitor_escalation_packet",
+      "actionId": "monitor_request",
+      "handoffMomentId": "monitor_stale_or_blocked",
+      "representedHuman": "owner_solver_or_operator",
+      "claimState": "blocked_or_stale_needs_human_decision",
+      "status": "example_only",
+      "userFacingTitle": "Monitoring found a blocker",
+      "userFacingSummary": "The monitor did not see the expected durable progress. It is escalating with the last known cursor, blocker, and next allowed actions.",
+      "decisionQuestion": "Should I retry the same lane, provide missing access, request a revision, accept proof, reject proof, or pause work?",
+      "allowedHumanDecisions": [
+        "retry_same_lane",
+        "provide_access",
+        "request_revision",
+        "accept_proof",
+        "reject_proof",
+        "pause"
+      ],
+      "visibleEvidence": [
+        {
+          "label": "Cursor",
+          "sourceObject": "RequestEvent",
+          "value": "Last seen cursor.nextAfterSequence is 14."
+        },
+        {
+          "label": "Blocker",
+          "sourceObject": "Fulfillment",
+          "value": "Fulfillment is blocked or provider state is uncertain."
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "RequestEvent",
+        "Fulfillment",
+        "Artifact",
+        "Transaction"
+      ],
+      "canonicalWritesIfApproved": [],
+      "approvalRequired": false,
+      "stopRules": [
+        "Stop duplicate mutation attempts until current durable state is re-read.",
+        "Stop if retry would duplicate side effects.",
+        "Stop if the agent cannot prove whether the previous mutation committed."
+      ],
+      "notAuthority": [
+        "heartbeat event",
+        "retry authorization",
+        "completion proof",
+        "new Request"
+      ],
+      "example": {
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actorSummary": "Monitor agent acting for an owner, solver, or operator.",
+        "latestKnownTruth": [
+          "RequestEvent cursor is at sequence 14.",
+          "No newer Artifact acceptance or payment reconciliation was observed.",
+          "The same Fulfillment lane should be retried or escalated instead of forking a new Request."
+        ],
+        "proposedNextStep": "Choose a safe recovery action based on current durable state.",
+        "humanDecisionOptions": [
+          "Retry same lane",
+          "Provide access",
+          "Request revision",
+          "Accept proof",
+          "Reject proof",
+          "Pause"
+        ],
+        "agentWillNotDo": [
+          "I will not write heartbeat RequestEvents.",
+          "I will not retry without checking idempotency and latest durable state.",
+          "I will not create a new Request for recoverable sub-work."
+        ]
+      }
+    },
+    {
+      "id": "payment_authorization_packet",
+      "actionId": "run_public_solution",
+      "handoffMomentId": "payment_authorization_required",
+      "representedHuman": "buyer_or_funder",
+      "claimState": "payment_authorization_required",
+      "status": "example_only",
+      "userFacingTitle": "Authorize spend before running this solution",
+      "userFacingSummary": "The next action may spend buyer credit or paid capacity. Payment approval is separate from execution and completion.",
+      "decisionQuestion": "Do you authorize this amount for this Request, choose another payment source, wait, or cancel?",
+      "allowedHumanDecisions": [
+        "authorize_spend",
+        "change_payment_source",
+        "wait_for_settlement",
+        "cancel"
+      ],
+      "visibleEvidence": [
+        {
+          "label": "Source Request",
+          "sourceObject": "Request",
+          "value": "Completed public solution source that will not be mutated by the buyer run."
+        },
+        {
+          "label": "Payment rule",
+          "sourceObject": "Transaction",
+          "value": "Spend must reconcile into Transaction truth before paid execution is claimed."
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "Artifact",
+        "Transaction"
+      ],
+      "canonicalWritesIfApproved": [
+        "Request",
+        "Transaction",
+        "RequestEvent"
+      ],
+      "approvalRequired": true,
+      "stopRules": [
+        "Stop if account-session spend authority is missing.",
+        "Stop if payment or buyer-credit state cannot be reconciled into Transaction truth.",
+        "Stop if the agent would treat x402 payload, wallet state, or settlement alone as completion proof."
+      ],
+      "notAuthority": [
+        "payment authorization",
+        "Transaction record",
+        "paid execution proof",
+        "completion proof"
+      ],
+      "example": {
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actorSummary": "Buyer agent asking the account-session human to authorize one paid solution run.",
+        "latestKnownTruth": [
+          "The source Request and accepted Artifact can be inspected.",
+          "No private run Request or Transaction exists until the spend action is approved and committed.",
+          "Payment success would not prove delivery or completion."
+        ],
+        "proposedNextStep": "Authorize one idempotency-keyed solution run or cancel before any paid mutation.",
+        "humanDecisionOptions": [
+          "Authorize spend",
+          "Change payment source",
+          "Wait for settlement",
+          "Cancel"
+        ],
+        "agentWillNotDo": [
+          "I will not spend without account-session approval.",
+          "I will not mutate the public source Request.",
+          "I will not claim completion from payment reconciliation."
+        ]
+      }
+    }
+  ],
+  "canonicalBoundary": {
+    "rootObject": "Request",
+    "durableTruthObjects": [
+      "Request",
+      "Commitment",
+      "Fulfillment",
+      "FulfillmentStep",
+      "Artifact",
+      "Transaction",
+      "RequestEvent"
+    ],
+    "handoffPacketsAreNot": [
+      "permission grant",
+      "human approval record",
+      "payment authorization",
+      "completion proof",
+      "production credential",
+      "durable root object"
+    ],
+    "notRoots": [
+      "handoff packet",
+      "approval prompt",
+      "notification card",
+      "agent scratchpad",
+      "MCP tool result",
+      "A2A task",
+      "x402 payload",
+      "runtime log"
+    ],
+    "rules": [
+      "A handoff packet is a renderable explanation and decision request, not a canonical object.",
+      "Explicit human approval must still be captured by the governed route, event, review, or payment path that owns the action.",
+      "Agents should cite latest durable truth and the next allowed action instead of asking broad approval.",
+      "Packets must preserve payment, proof, fulfillment, and completion as separate state labels."
+    ]
+  }
+}

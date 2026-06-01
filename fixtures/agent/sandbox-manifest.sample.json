@@ -66,12 +66,20 @@
       "url": "https://boreal.work/agents/evidence.json"
     },
     {
+      "label": "Error examples",
+      "url": "https://boreal.work/agents/error-examples.json"
+    },
+    {
       "label": "Execution profile",
       "url": "https://boreal.work/agents/execution.json"
     },
     {
       "label": "Human handoff profile",
       "url": "https://boreal.work/agents/human-handoffs.json"
+    },
+    {
+      "label": "Human handoff packet examples",
+      "url": "https://boreal.work/agents/human-handoff-packets.example.json"
     },
     {
       "label": "Optimization profile",

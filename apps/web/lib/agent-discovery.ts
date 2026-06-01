@@ -47,8 +47,10 @@ export const agentDiscoveryPaths = {
   agentConformanceReportExample: "/agents/conformance-report.example.json",
   agentCompletion: "/agents/completion.json",
   agentEvidence: "/agents/evidence.json",
+  agentErrorExamples: "/agents/error-examples.json",
   agentExecution: "/agents/execution.json",
   agentHumanHandoffs: "/agents/human-handoffs.json",
+  agentHumanHandoffPacketExamples: "/agents/human-handoff-packets.example.json",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
   agentOnboarding: "/agents/onboarding.json",
@@ -456,6 +458,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Checked human handoff packet example schema for agent-rendered approval, review, escalation, and payment handoff cards.",
+    routePath: "/schemas/agent-human-handoff-packets.schema.json",
+    sourcePath: "schemas/json/agent-human-handoff-packets.schema.json",
+    standard: "json_schema",
+    title: "Agent human handoff packet examples",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable agent completion, proof, artifact, and review-boundary profile schema.",
     routePath: "/schemas/agent-completion.schema.json",
     sourcePath: "schemas/json/agent-completion.schema.json",
@@ -470,6 +481,15 @@ export const jsonSchemaDiscoveryAssets = [
     sourcePath: "schemas/json/agent-evidence.schema.json",
     standard: "json_schema",
     title: "Agent evidence profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable RFC 9457-style problem-details example pack schema for safe agent error recovery.",
+    routePath: "/schemas/agent-error-examples.schema.json",
+    sourcePath: "schemas/json/agent-error-examples.schema.json",
+    standard: "json_schema",
+    title: "Agent error examples",
   },
   {
     contentType: "application/schema+json; charset=utf-8",
@@ -595,8 +615,12 @@ export function buildAgentCard() {
     conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
     evidenceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentEvidence),
+    errorExamplesUrl: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
     executionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentExecution),
     humanHandoffProfileUrl: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+    humanHandoffPacketExamplesUrl: absoluteUrl(
+      agentDiscoveryPaths.agentHumanHandoffPacketExamples
+    ),
     monitoringProfileUrl: absoluteUrl(agentDiscoveryPaths.agentMonitoring),
     onboardingProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
     optimizationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentOptimization),
@@ -668,6 +692,11 @@ export function buildAgentCard() {
       packetFields: buildAgentEvidenceProfile().artifactPacket.requiredFields,
       reviewSignalCount: buildAgentEvidenceProfile().reviewSignals.length,
     },
+    errorExamples: {
+      url: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
+      status: "live_error_example_pack",
+      standard: "RFC 9457 Problem Details for HTTP APIs",
+    },
     execution: {
       url: absoluteUrl(agentDiscoveryPaths.agentExecution),
       status: buildAgentExecutionProfile().status,
@@ -679,6 +708,9 @@ export function buildAgentCard() {
     },
     humanHandoffs: {
       url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      packetExamplesUrl: absoluteUrl(
+        agentDiscoveryPaths.agentHumanHandoffPacketExamples
+      ),
       status: buildAgentHumanHandoffProfile().status,
       moments: buildAgentHumanHandoffProfile().handoffMoments.map((moment) => ({
         id: moment.id,
@@ -887,8 +919,10 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent conformance report example: [${agentDiscoveryPaths.agentConformanceReportExample}](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)})
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
 - Agent evidence profile: [${agentDiscoveryPaths.agentEvidence}](${absoluteUrl(agentDiscoveryPaths.agentEvidence)})
+- Agent error examples: [${agentDiscoveryPaths.agentErrorExamples}](${absoluteUrl(agentDiscoveryPaths.agentErrorExamples)})
 - Agent execution profile: [${agentDiscoveryPaths.agentExecution}](${absoluteUrl(agentDiscoveryPaths.agentExecution)})
 - Agent human handoff profile: [${agentDiscoveryPaths.agentHumanHandoffs}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)})
+- Agent human handoff packet examples: [${agentDiscoveryPaths.agentHumanHandoffPacketExamples}](${absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
 - Agent onboarding profile: [${agentDiscoveryPaths.agentOnboarding}](${absoluteUrl(agentDiscoveryPaths.agentOnboarding)})
 - Agent optimization profile: [${agentDiscoveryPaths.agentOptimization}](${absoluteUrl(agentDiscoveryPaths.agentOptimization)})
@@ -1017,6 +1051,12 @@ For deterministic evidence packaging, redaction, and review packet handling, age
 GET ${agentDiscoveryPaths.agentEvidence}
 \`\`\`
 
+For deterministic RFC 9457-style error and recovery examples, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentErrorExamples}
+\`\`\`
+
 For deterministic execution-lane, runtime, and FulfillmentStep boundaries, agents can read:
 
 \`\`\`http
@@ -1027,6 +1067,12 @@ For deterministic human approval, stop, escalation, and claim-state handling, ag
 
 \`\`\`http
 GET ${agentDiscoveryPaths.agentHumanHandoffs}
+\`\`\`
+
+For deterministic renderable handoff packet examples, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentHumanHandoffPacketExamples}
 \`\`\`
 
 For deterministic draft-only optimization, no-invention, and owner-approval handling, agents can read:
@@ -1293,6 +1339,25 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/error-examples.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent error examples.",
+          responses: {
+            "200": {
+              description:
+                "JSON example pack for RFC 9457-style problem-details responses and safe agent recovery from auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write failures.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentErrorExamples",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/execution.json": {
         get: {
           tags: ["agent-discovery"],
@@ -1324,6 +1389,25 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentHumanHandoffProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/human-handoff-packets.example.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's example human handoff packet set.",
+          responses: {
+            "200": {
+              description:
+                "JSON example packet set for agent-rendered human draft approval, Commitment review, proof review, monitor escalation, and payment authorization handoffs.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentHumanHandoffPacketExamples",
                   },
                 },
               },
@@ -1840,6 +1924,26 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentErrorExamples: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "standard",
+            "examples",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_error_example_pack" },
+            standard: { type: "object" },
+            examples: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentExecutionProfile: {
           type: "object",
           required: [
@@ -1880,6 +1984,26 @@ export function buildOpenApiDiscoveryIndex() {
               items: { type: "object" },
             },
             humanApprovalGates: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentHumanHandoffPacketExamples: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "packetContract",
+            "examples",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_handoff_packet_examples" },
+            packetContract: { type: "object" },
+            examples: {
               type: "array",
               items: { type: "object" },
             },
@@ -2144,6 +2268,11 @@ export function buildOpenApiDiscoveryIndex() {
         (guidance) => guidance.artifactKind
       ),
     },
+    "x-boreal-agent-error-examples": {
+      url: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
+      status: "live_error_example_pack",
+      standard: "RFC 9457 Problem Details for HTTP APIs",
+    },
     "x-boreal-agent-execution": {
       url: absoluteUrl(agentDiscoveryPaths.agentExecution),
       status: buildAgentExecutionProfile().status,
@@ -2154,6 +2283,9 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-human-handoffs": {
       url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+      packetExamplesUrl: absoluteUrl(
+        agentDiscoveryPaths.agentHumanHandoffPacketExamples
+      ),
       status: buildAgentHumanHandoffProfile().status,
       moments: buildAgentHumanHandoffProfile().handoffMoments.map((moment) => ({
         id: moment.id,
@@ -2217,6 +2349,7 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-recovery": {
       url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
+      errorExamplesUrl: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
       rules: buildAgentRecoveryProfile().recoveryRules.map((rule) => ({
         id: rule.id,
         retryPolicy: rule.retryPolicy,
@@ -2707,6 +2840,14 @@ export function buildAgentConformanceProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample),
       },
       {
+        label: "Agent error examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
+      },
+      {
+        label: "Agent human handoff packet examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+      },
+      {
         label: "OpenAPI discovery index",
         url: absoluteUrl(agentDiscoveryPaths.openApiIndex),
       },
@@ -2790,6 +2931,7 @@ export function buildAgentConformanceProfile() {
         requiredProfiles: [
           absoluteUrl(agentDiscoveryPaths.agentAuth),
           absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
         ],
         checks: [
           {
@@ -2811,7 +2953,21 @@ export function buildAgentConformanceProfile() {
               "Opening, funding, accepting, spending, or claiming review-sensitive completion requires one explicit represented-human decision tied to one Request and action.",
             failWhen:
               "Approval is inferred from chat context, broad delegation, tool success, or a payment callback.",
-            evidence: [absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs)],
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+              absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+            ],
+          },
+          {
+            id: "render_handoff_packet_examples",
+            required: true,
+            passWhen:
+              "The agent can render draft approval, Commitment review, proof review, monitor escalation, and payment authorization packet examples while preserving their non-authority boundary.",
+            failWhen:
+              "The agent treats a handoff packet as a permission grant, approval record, payment authorization, production credential, or completion proof.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+            ],
           },
         ],
       },
@@ -2868,6 +3024,7 @@ export function buildAgentConformanceProfile() {
           absoluteUrl(agentDiscoveryPaths.agentCompletion),
           absoluteUrl(agentDiscoveryPaths.agentPayments),
           absoluteUrl(agentDiscoveryPaths.agentRecovery),
+          absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
         ],
         checks: [
           {
@@ -2895,7 +3052,22 @@ export function buildAgentConformanceProfile() {
               "The agent retries uncertain writes only with the same idempotency key and same semantic input after inspecting current Request truth.",
             failWhen:
               "The agent blindly retries mutations, reuses an idempotency key for changed input, or forks a new Request for same-lane recovery.",
-            evidence: [absoluteUrl(agentDiscoveryPaths.agentRecovery)],
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentRecovery),
+              absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
+            ],
+          },
+          {
+            id: "problem_details_error_handling",
+            required: true,
+            passWhen:
+              "The agent can parse a standard problem-details envelope, preserve Boreal problem codes as extensions, and map the error to a recovery rule before retrying.",
+            failWhen:
+              "The agent treats HTTP errors as durable Request truth, retries blindly, exposes secrets, or collapses payment failure into completion state.",
+            evidence: [
+              absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
+              absoluteUrl(agentDiscoveryPaths.agentRecovery),
+            ],
           },
         ],
       },
@@ -3881,6 +4053,14 @@ export function buildAgentHumanHandoffProfile() {
       {
         label: "Agent human handoff schema",
         url: absoluteUrl("/schemas/agent-human-handoffs.schema.json"),
+      },
+      {
+        label: "Agent human handoff packet examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+      },
+      {
+        label: "Agent human handoff packet schema",
+        url: absoluteUrl("/schemas/agent-human-handoff-packets.schema.json"),
       },
     ],
     handoffMoments: [
@@ -7466,6 +7646,14 @@ export function buildAgentRecoveryProfile() {
         url: absoluteUrl("/events/request-room.asyncapi.yaml"),
       },
       {
+        label: "Agent error examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
+      },
+      {
+        label: "Agent error examples schema",
+        url: absoluteUrl("/schemas/agent-error-examples.schema.json"),
+      },
+      {
         label: "Agent recovery schema",
         url: absoluteUrl("/schemas/agent-recovery.schema.json"),
       },
@@ -7488,8 +7676,8 @@ export function buildAgentRecoveryProfile() {
       },
       {
         name: "Problem Details",
-        status: "target_error_envelope",
-        use: "Future JSON error envelopes should be compatible with a standard problem-details shape while preserving Boreal error codes.",
+        status: "live_example_profile",
+        use: "JSON error examples use RFC 9457-style problem-details shape while preserving Boreal error codes as extension fields.",
       },
     ],
     recoveryRules: [
@@ -8009,11 +8197,29 @@ export async function readAgentConformanceReportExample() {
   return JSON.parse(await readFile(filePath, "utf8"));
 }
 
+export async function readAgentErrorExamples() {
+  const filePath = path.join(
+    getFixturesRoot(),
+    "agent",
+    "error-examples.sample.json"
+  );
+  return JSON.parse(await readFile(filePath, "utf8"));
+}
+
 export async function readAgentProtocolAdapterSamples() {
   const filePath = path.join(
     getFixturesRoot(),
     "agent",
     "protocol-adapter-samples.sample.json"
+  );
+  return JSON.parse(await readFile(filePath, "utf8"));
+}
+
+export async function readAgentHumanHandoffPacketExamples() {
+  const filePath = path.join(
+    getFixturesRoot(),
+    "agent",
+    "human-handoff-packets.sample.json"
   );
   return JSON.parse(await readFile(filePath, "utf8"));
 }

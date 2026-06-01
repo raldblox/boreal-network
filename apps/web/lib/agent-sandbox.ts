@@ -9,7 +9,9 @@ export const agentSandboxPaths = {
   conformanceReportExample: "/agents/conformance-report.example.json",
   completion: "/agents/completion.json",
   evidence: "/agents/evidence.json",
+  errorExamples: "/agents/error-examples.json",
   execution: "/agents/execution.json",
+  humanHandoffPacketExamples: "/agents/human-handoff-packets.example.json",
   guide: "/agents/sandbox.md",
   humanHandoffs: "/agents/human-handoffs.json",
   manifest: "/agents/sandbox.json",
@@ -92,12 +94,20 @@ export function buildAgentSandboxManifest() {
         url: absoluteUrl(agentSandboxPaths.evidence),
       },
       {
+        label: "Error examples",
+        url: absoluteUrl(agentSandboxPaths.errorExamples),
+      },
+      {
         label: "Execution profile",
         url: absoluteUrl(agentSandboxPaths.execution),
       },
       {
         label: "Human handoff profile",
         url: absoluteUrl(agentSandboxPaths.humanHandoffs),
+      },
+      {
+        label: "Human handoff packet examples",
+        url: absoluteUrl(agentSandboxPaths.humanHandoffPacketExamples),
       },
       {
         label: "Optimization profile",

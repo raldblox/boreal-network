@@ -1,0 +1,355 @@
+{
+  "schemaVersion": 1,
+  "status": "live_error_example_pack",
+  "name": "Boreal Agent Error Examples",
+  "description": "RFC 9457-style problem details examples for agents recovering safely from Boreal auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write failures.",
+  "standard": {
+    "name": "RFC 9457 Problem Details for HTTP APIs",
+    "officialSpecUrl": "https://datatracker.ietf.org/doc/rfc9457/",
+    "contentType": "application/problem+json"
+  },
+  "sourceProfiles": [
+    {
+      "label": "Agent recovery profile",
+      "url": "https://boreal.work/agents/recovery.json"
+    },
+    {
+      "label": "Agent auth profile",
+      "url": "https://boreal.work/agents/auth.json"
+    },
+    {
+      "label": "Agent payment profile",
+      "url": "https://boreal.work/agents/payments.json"
+    },
+    {
+      "label": "Agent monitoring profile",
+      "url": "https://boreal.work/agents/monitoring.json"
+    },
+    {
+      "label": "Request OpenAPI",
+      "url": "https://boreal.work/openapi/request-briefing.yaml"
+    }
+  ],
+  "examples": [
+    {
+      "id": "missing_scope_commitment_proposal",
+      "recoveryRuleId": "forbidden_or_missing_scope",
+      "actionIds": [
+        "apply_to_request"
+      ],
+      "httpStatus": 403,
+      "contentType": "application/problem+json",
+      "problem": {
+        "type": "https://boreal.work/problems/agent/missing-scope",
+        "title": "Missing required resolver scope",
+        "status": 403,
+        "detail": "The represented resolver token cannot propose a Commitment for this Request.",
+        "instance": "/api/requests/00000000-0000-4000-8000-000000000001/commitments",
+        "borealCode": "forbidden:missing_scope",
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actionId": "apply_to_request",
+        "missingScopes": [
+          "commitments:propose"
+        ],
+        "lastEventSequence": 14
+      },
+      "agentNextAction": "Stop the write attempt, re-read agentActionPolicy, and ask the represented human for narrower approved scope or owner review.",
+      "retryPolicy": "do_not_retry_until_policy_changes",
+      "canonicalReadsBeforeRetry": [
+        "Request",
+        "RequestEvent"
+      ],
+      "canonicalWritesAllowed": [],
+      "escalateWhen": [
+        "The represented human expected this agent to propose Commitments.",
+        "The agent cannot determine which scope or owner role is missing."
+      ],
+      "notAuthority": [
+        "permission grant",
+        "Commitment",
+        "RequestEvent",
+        "human approval record"
+      ]
+    },
+    {
+      "id": "artifact_idempotency_conflict",
+      "recoveryRuleId": "invalid_payload_or_idempotency_conflict",
+      "actionIds": [
+        "submit_artifact"
+      ],
+      "httpStatus": 409,
+      "contentType": "application/problem+json",
+      "problem": {
+        "type": "https://boreal.work/problems/agent/idempotency-conflict",
+        "title": "Idempotency key conflict",
+        "status": 409,
+        "detail": "The Idempotency-Key was already used for a different Artifact publication body.",
+        "instance": "/api/requests/00000000-0000-4000-8000-000000000001/artifacts",
+        "borealCode": "conflict:idempotency_key_reused_for_different_operation",
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actionId": "submit_artifact",
+        "idempotencyKey": "00000000-0000-4000-8000-000000000102",
+        "lastEventSequence": 14
+      },
+      "agentNextAction": "Do not mutate again blindly. Re-read request activity and artifacts. Reuse the same key only if retrying the identical semantic operation.",
+      "retryPolicy": "retry_only_after_payload_or_key_fix",
+      "canonicalReadsBeforeRetry": [
+        "Request",
+        "RequestEvent",
+        "Artifact"
+      ],
+      "canonicalWritesAllowed": [],
+      "escalateWhen": [
+        "The agent cannot prove whether the previous Artifact committed.",
+        "The intended proof changed after the first mutation attempt."
+      ],
+      "notAuthority": [
+        "Artifact",
+        "completion proof",
+        "new idempotency grant",
+        "RequestEvent"
+      ]
+    },
+    {
+      "id": "monitor_rate_limited",
+      "recoveryRuleId": "rate_limited_or_quota_limited",
+      "actionIds": [
+        "monitor_request"
+      ],
+      "httpStatus": 429,
+      "contentType": "application/problem+json",
+      "problem": {
+        "type": "https://boreal.work/problems/agent/rate-limited",
+        "title": "Monitor polling rate limited",
+        "status": 429,
+        "detail": "The monitor should wait before polling this Request again.",
+        "instance": "/api/requests/00000000-0000-4000-8000-000000000001/activity",
+        "borealCode": "rate_limit:request_activity",
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actionId": "monitor_request",
+        "retryAfterSeconds": 60,
+        "lastEventSequence": 14
+      },
+      "agentNextAction": "Back off for the indicated delay, persist cursor.nextAfterSequence locally, and avoid writing heartbeat RequestEvents.",
+      "retryPolicy": "retry_after_delay_without_duplicate_mutation",
+      "canonicalReadsBeforeRetry": [
+        "RequestEvent"
+      ],
+      "canonicalWritesAllowed": [],
+      "escalateWhen": [
+        "The Request is stale beyond the human-facing SLA.",
+        "The agent is asked to keep polling faster than the route allows."
+      ],
+      "notAuthority": [
+        "subscription",
+        "RequestEvent heartbeat",
+        "durable monitor checkpoint",
+        "completion proof"
+      ]
+    },
+    {
+      "id": "private_request_not_visible",
+      "recoveryRuleId": "not_found_or_private",
+      "actionIds": [
+        "inspect_public_requests",
+        "monitor_request"
+      ],
+      "httpStatus": 404,
+      "contentType": "application/problem+json",
+      "problem": {
+        "type": "https://boreal.work/problems/agent/not-found-or-private",
+        "title": "Request not found",
+        "status": 404,
+        "detail": "The Request does not exist or is not visible to this actor.",
+        "instance": "/api/requests/00000000-0000-4000-8000-000000000404",
+        "borealCode": "not_found_or_private:request",
+        "requestId": "00000000-0000-4000-8000-000000000404",
+        "actionId": "monitor_request"
+      },
+      "agentNextAction": "Do not infer private existence from this error. Return to public discovery or ask the represented human for the correct id and access.",
+      "retryPolicy": "do_not_retry_without_new_reference_or_access",
+      "canonicalReadsBeforeRetry": [
+        "Request"
+      ],
+      "canonicalWritesAllowed": [],
+      "escalateWhen": [
+        "The represented human expected access to this exact Request.",
+        "The agent only has a screenshot, stale link, or guessed id."
+      ],
+      "notAuthority": [
+        "visibility proof",
+        "access grant",
+        "RequestEvent",
+        "private Request disclosure"
+      ]
+    },
+    {
+      "id": "blocked_fulfillment_retry_needed",
+      "recoveryRuleId": "blocked_fulfillment_or_retryable_provider_failure",
+      "actionIds": [
+        "submit_artifact",
+        "monitor_request"
+      ],
+      "httpStatus": 400,
+      "contentType": "application/problem+json",
+      "problem": {
+        "type": "https://boreal.work/problems/agent/blocked-fulfillment",
+        "title": "Fulfillment lane is blocked",
+        "status": 400,
+        "detail": "The same Fulfillment lane needs retry or human operator attention before proof can be accepted.",
+        "instance": "/api/fulfillments/00000000-0000-4000-8000-000000000301/retry",
+        "borealCode": "blocked:fulfillment_retry_required",
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actionId": "submit_artifact",
+        "lastEventSequence": 14,
+        "relatedObjectIds": [
+          "Fulfillment:00000000-0000-4000-8000-000000000301"
+        ]
+      },
+      "agentNextAction": "Preserve the same Fulfillment lane, provider task id, and recovery metadata; escalate before creating replacement work.",
+      "retryPolicy": "retry_same_fulfillment_lane_when_supported",
+      "canonicalReadsBeforeRetry": [
+        "Request",
+        "Fulfillment",
+        "FulfillmentStep",
+        "RequestEvent"
+      ],
+      "canonicalWritesAllowed": [
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "RequestEvent"
+      ],
+      "escalateWhen": [
+        "Retry would duplicate provider side effects.",
+        "Provider state is unknown.",
+        "Required proof is incomplete."
+      ],
+      "notAuthority": [
+        "new Request",
+        "completion proof",
+        "accepted Artifact",
+        "payment authorization"
+      ]
+    },
+    {
+      "id": "payment_uncertain_solution_run",
+      "recoveryRuleId": "payment_or_credit_uncertain",
+      "actionIds": [
+        "run_public_solution"
+      ],
+      "httpStatus": 402,
+      "contentType": "application/problem+json",
+      "problem": {
+        "type": "https://boreal.work/problems/agent/payment-uncertain",
+        "title": "Payment state needs reconciliation",
+        "status": 402,
+        "detail": "The paid solution run cannot be claimed until Transaction truth reconciles.",
+        "instance": "/api/requests/00000000-0000-4000-8000-000000000001/solution-runs",
+        "borealCode": "payment:transaction_reconciliation_required",
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actionId": "run_public_solution",
+        "idempotencyKey": "00000000-0000-4000-8000-000000000103",
+        "lastEventSequence": 14
+      },
+      "agentNextAction": "Inspect Transaction or buyer-credit state before retrying or claiming paid execution. Keep payment separate from completion.",
+      "retryPolicy": "retry_only_with_transaction_reconciliation",
+      "canonicalReadsBeforeRetry": [
+        "Request",
+        "Artifact",
+        "Transaction",
+        "RequestEvent"
+      ],
+      "canonicalWritesAllowed": [
+        "Transaction",
+        "RequestEvent"
+      ],
+      "escalateWhen": [
+        "Facilitator, payment source, credit ledger, or settlement state is ambiguous.",
+        "The human expected a paid run but no Transaction can be found."
+      ],
+      "notAuthority": [
+        "payment authorization",
+        "paid execution proof",
+        "completion proof",
+        "source Request mutation"
+      ]
+    },
+    {
+      "id": "unknown_write_result_after_timeout",
+      "recoveryRuleId": "terminal_or_unknown_server_failure",
+      "actionIds": [
+        "apply_to_request",
+        "submit_artifact"
+      ],
+      "httpStatus": 503,
+      "contentType": "application/problem+json",
+      "problem": {
+        "type": "https://boreal.work/problems/agent/unknown-write-result",
+        "title": "Write result is unknown",
+        "status": 503,
+        "detail": "The agent cannot prove whether the attempted mutation committed.",
+        "instance": "/api/requests/00000000-0000-4000-8000-000000000001/commitments",
+        "borealCode": "server_error:unknown_write_result",
+        "requestId": "00000000-0000-4000-8000-000000000001",
+        "actionId": "apply_to_request",
+        "idempotencyKey": "00000000-0000-4000-8000-000000000101",
+        "lastEventSequence": 14
+      },
+      "agentNextAction": "Stop duplicate mutation attempts until request detail, activity, and related object lists prove whether the write landed.",
+      "retryPolicy": "verify_state_before_retry",
+      "canonicalReadsBeforeRetry": [
+        "Request",
+        "Commitment",
+        "Artifact",
+        "RequestEvent"
+      ],
+      "canonicalWritesAllowed": [],
+      "escalateWhen": [
+        "The agent cannot determine whether the idempotency key committed.",
+        "A retry could create duplicate Commitment, Artifact, Fulfillment, Transaction, or RequestEvent truth."
+      ],
+      "notAuthority": [
+        "retry authorization",
+        "Commitment",
+        "Artifact",
+        "completion proof"
+      ]
+    }
+  ],
+  "canonicalBoundary": {
+    "rootObject": "Request",
+    "durableTruthObjects": [
+      "Request",
+      "Commitment",
+      "Fulfillment",
+      "FulfillmentStep",
+      "Artifact",
+      "Transaction",
+      "RequestEvent"
+    ],
+    "problemExamplesAreNot": [
+      "permission grant",
+      "human approval record",
+      "payment authorization",
+      "completion proof",
+      "durable history",
+      "production credential"
+    ],
+    "notRoots": [
+      "HTTP problem",
+      "error example",
+      "retry attempt",
+      "rate-limit response",
+      "provider error",
+      "x402 payload",
+      "webhook delivery attempt"
+    ],
+    "rules": [
+      "Problem details help classify failure and recovery; they are not canonical business truth.",
+      "Agents must inspect durable Request, RequestEvent, Artifact, Fulfillment, Commitment, and Transaction truth before retrying uncertain writes.",
+      "Problem details must not include secrets, raw bearer tokens, session cookies, payment credentials, private keys, or prompt internals.",
+      "A failed or uncertain payment must never be treated as work completion."
+    ]
+  }
+}

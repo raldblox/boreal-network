@@ -404,8 +404,10 @@ Read-only public discovery surfaces:
 - `/agents/conformance-report.example.json` for a public example package that agents can mirror when submitting sandbox replay evidence, requested scopes, protocol claims, secret-handling posture, and human-review questions for operator review
 - `/agents/completion.json` for machine-readable proof packet, artifact, completion-claim, and review-boundary handling
 - `/agents/evidence.json` for machine-readable evidence packet, artifact packaging, redaction, review, and proof-boundary handling
+- `/agents/error-examples.json` for RFC 9457-style problem examples covering auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write recovery
 - `/agents/execution.json` for machine-readable execution lane, `Fulfillment`, `FulfillmentStep`, runtime signal, and direct-owner exception boundaries
 - `/agents/human-handoffs.json` for machine-readable human approval, stop, escalation, visible UX, and claim-state handling
+- `/agents/human-handoff-packets.example.json` for checked renderable packet examples covering draft approval, Commitment review, proof review, monitor escalation, and payment authorization
 - `/agents/onboarding.json` for machine-readable external-agent onboarding, contract sandbox validation, production eligibility, and scoped credential boundaries
 - `/agents/optimization.json` for machine-readable draft-only optimization, no-invention, owner-approval, and mutation-boundary handling
 - `/agents/payments.json` for machine-readable buyer-credit, paid-run, x402 target, idempotency, and `Transaction` reconciliation handling
@@ -435,8 +437,10 @@ Read-only public discovery surfaces:
 - `/schemas/agent-conformance-report.schema.json` for the machine-readable agent conformance report shape used to package sandbox replay evidence and requested scopes for operator review
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
 - `/schemas/agent-evidence.schema.json` for the machine-readable agent evidence profile shape
+- `/schemas/agent-error-examples.schema.json` for the machine-readable agent error example shape
 - `/schemas/agent-execution.schema.json` for the machine-readable agent execution profile shape
 - `/schemas/agent-human-handoffs.schema.json` for the machine-readable human handoff profile shape
+- `/schemas/agent-human-handoff-packets.schema.json` for the checked human handoff packet example shape
 - `/schemas/agent-monitoring.schema.json` for the machine-readable agent monitoring profile shape
 - `/schemas/agent-onboarding.schema.json` for the machine-readable agent onboarding profile shape
 - `/schemas/agent-optimization.schema.json` for the machine-readable agent optimization profile shape
@@ -527,11 +531,26 @@ or use precise claim-state language for draft, proposal, proof, payment,
 monitor, and completion moments. It does not grant permission, record approval,
 authorize spend, prove completion, or create a new workflow engine.
 
+The public agent human handoff packet examples are descriptive and
+safety-oriented. They give agents a concrete renderable shape for asking a
+human to approve a draft, review a Commitment proposal, review submitted proof,
+respond to a stale monitor, or authorize spend. They are not permission grants,
+approval records, payment authorizations, production credentials, or completion
+proof, and they must always point back to the governed route, review, payment,
+or event path that owns the durable action.
+
 The public agent evidence profile is descriptive and safety-oriented. It tells
 agents how to package delivery, proof, receipts, files, media, and handoff notes
 as reviewable `Artifact` packets with redaction, evidence-level, and review
 signals. It does not authorize artifact publication, store files, accept review,
 settle payment, or prove completion by itself.
+
+The public agent error examples are descriptive and safety-oriented. They use a
+standard problem-details shape with Boreal extensions so agents can classify
+auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and
+unknown-write failures before retrying or escalating. They are not durable
+history, permission grants, human approval records, payment authorizations,
+production credentials, or completion proof.
 
 The public agent execution profile is descriptive and safety-oriented. It tells
 agents when accepted-commitment, owner-private direct, public-solution-run, and

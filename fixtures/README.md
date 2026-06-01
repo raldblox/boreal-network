@@ -9,6 +9,14 @@ Use fixtures here to prove that the canon can be read end to end without guessin
 - `request/golden-external-ai-automation-thread.json`
 - `request/eval-complex-human-planning-and-match.json`
 
+## Agent Contract Fixtures
+
+- `agent/sandbox-manifest.sample.json`
+- `agent/conformance-report.sample.json`
+- `agent/error-examples.sample.json`
+- `agent/human-handoff-packets.sample.json`
+- `agent/protocol-adapter-samples.sample.json`
+
 Request-processing eval fixtures now also carry:
 
 - one runnable `requestPatch`

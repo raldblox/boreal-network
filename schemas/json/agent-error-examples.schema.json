@@ -1,0 +1,289 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-error-examples.schema.json",
+  "title": "AgentErrorExamples",
+  "description": "RFC 9457-style problem-details example pack for Boreal agents handling auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write failures safely.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "standard",
+    "sourceProfiles",
+    "examples",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_error_example_pack"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "standard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "officialSpecUrl",
+        "contentType"
+      ],
+      "properties": {
+        "name": {
+          "const": "RFC 9457 Problem Details for HTTP APIs"
+        },
+        "officialSpecUrl": {
+          "const": "https://datatracker.ietf.org/doc/rfc9457/"
+        },
+        "contentType": {
+          "const": "application/problem+json"
+        }
+      }
+    },
+    "sourceProfiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "examples": {
+      "type": "array",
+      "minItems": 7,
+      "items": {
+        "$ref": "#/$defs/errorExample"
+      }
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "errorExample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "recoveryRuleId",
+        "actionIds",
+        "httpStatus",
+        "contentType",
+        "problem",
+        "agentNextAction",
+        "retryPolicy",
+        "canonicalReadsBeforeRetry",
+        "canonicalWritesAllowed",
+        "escalateWhen",
+        "notAuthority"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recoveryRuleId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "httpStatus": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "contentType": {
+          "const": "application/problem+json"
+        },
+        "problem": {
+          "$ref": "#/$defs/problemDetails"
+        },
+        "agentNextAction": {
+          "type": "string",
+          "minLength": 1
+        },
+        "retryPolicy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalReadsBeforeRetry": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWritesAllowed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "escalateWhen": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "notAuthority": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "problemDetails": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "title",
+        "status",
+        "detail",
+        "instance",
+        "borealCode",
+        "requestId",
+        "actionId"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "format": "uri"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "detail": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instance": {
+          "type": "string",
+          "minLength": 1
+        },
+        "borealCode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missingScopes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "retryAfterSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastEventSequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "relatedObjectIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "problemExamplesAreNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "problemExamplesAreNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

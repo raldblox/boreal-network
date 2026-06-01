@@ -32,6 +32,16 @@
       "observedStatus": "live_contract_sandbox"
     },
     {
+      "label": "Error examples",
+      "url": "https://boreal.work/agents/error-examples.json",
+      "observedStatus": "live_error_example_pack"
+    },
+    {
+      "label": "Human handoff packet examples",
+      "url": "https://boreal.work/agents/human-handoff-packets.example.json",
+      "observedStatus": "live_handoff_packet_examples"
+    },
+    {
       "label": "Readiness profile",
       "url": "https://boreal.work/agents/readiness.json",
       "observedStatus": "live_readiness_profile"
@@ -154,7 +164,8 @@
       "status": "passed",
       "passedChecks": [
         "respect_agent_action_policy",
-        "require_explicit_human_approval"
+        "require_explicit_human_approval",
+        "render_handoff_packet_examples"
       ],
       "failedChecks": [],
       "notes": "The agent stops for owner approval and treats action affordances as hints, not permissions."
@@ -176,7 +187,8 @@
       "passedChecks": [
         "proof_before_completion",
         "transaction_not_completion",
-        "idempotent_recovery"
+        "idempotent_recovery",
+        "problem_details_error_handling"
       ],
       "failedChecks": [],
       "notes": "The report keeps proof, payment, and recovery below completion truth."

@@ -128,8 +128,10 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-conformance.schema.json`
 - `schemas/json/agent-completion.schema.json`
 - `schemas/json/agent-evidence.schema.json`
+- `schemas/json/agent-error-examples.schema.json`
 - `schemas/json/agent-execution.schema.json`
 - `schemas/json/agent-human-handoffs.schema.json`
+- `schemas/json/agent-human-handoff-packets.schema.json`
 - `schemas/json/agent-monitoring.schema.json`
 - `schemas/json/agent-onboarding.schema.json`
 - `schemas/json/agent-optimization.schema.json`
@@ -142,6 +144,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-readiness.schema.json`
 - `schemas/json/agent-tools.schema.json`
 - `fixtures/agent/sandbox-manifest.sample.json`
+- `fixtures/agent/error-examples.sample.json`
+- `fixtures/agent/human-handoff-packets.sample.json`
 
 Today, the machine-readable baseline proves:
 
@@ -190,8 +194,10 @@ Today, the machine-readable baseline proves:
 - one public `schemas/json/agent-conformance-report.schema.json` contract, `/agents/conformance-report.example.json` route, and `fixtures/agent/conformance-report.sample.json` fixture give agents a standard way to package sandbox replay results, requested scopes, target protocol claims, secret-handling posture, and human-review questions for operator review without creating credentials, certification, payment authorization, or completion proof
 - one public `/agents/completion.json` profile and `schemas/json/agent-completion.schema.json` give agents machine-readable proof packet, artifact, fulfillment, review, payment, and event boundaries for draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims without treating chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, or payment settlement as completion truth by themselves
 - one public `/agents/evidence.json` profile and `schemas/json/agent-evidence.schema.json` give agents machine-readable evidence packet, `Artifact` packaging, redaction, evidence-level, review-signal, and retry-safety guidance without authorizing artifact publication, storing files, accepting review, settling payment, or proving completion by itself
+- one public `/agents/error-examples.json` example pack, `schemas/json/agent-error-examples.schema.json`, and `fixtures/agent/error-examples.sample.json` give agents RFC 9457-style problem examples for safe auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write recovery without turning HTTP errors into durable history, permission grants, payment authorization, or completion proof
 - one public `/agents/execution.json` profile and `schemas/json/agent-execution.schema.json` give agents machine-readable execution lane, `Fulfillment`, `FulfillmentStep`, direct-owner exception, runtime signal promotion, retry, and non-root adapter boundaries without authorizing writes, proving completion, or treating runtime sessions as request truth
 - one public `/agents/human-handoffs.json` profile and `schemas/json/agent-human-handoffs.schema.json` give agents machine-readable moments for asking humans, showing drafts, requesting approval, escalating stale or blocked work, and using precise claim-state language without granting permission, recording approval, authorizing spend, proving completion, or creating a new workflow engine
+- one public `/agents/human-handoff-packets.example.json` packet set, `schemas/json/agent-human-handoff-packets.schema.json`, and `fixtures/agent/human-handoff-packets.sample.json` give agents renderable examples for draft approval, Commitment review, proof review, monitor escalation, and payment authorization without turning those packets into permission grants, approval records, payment authorizations, or completion proof
 - one public `/agents/monitoring.json` profile and `schemas/json/agent-monitoring.schema.json` give agents machine-readable cursor polling, stale-state detection, escalation trigger, and push-versus-poll boundaries without granting permission, creating subscriptions, writing heartbeat events, accepting proof, settling payment, or proving completion
 - one public `/agents/onboarding.json` profile and `schemas/json/agent-onboarding.schema.json` give external agents a machine-readable path from public discovery to role classification, contract sandbox validation, scoped live HTTP use, target production access review, and target protocol adapter readiness without issuing credentials or claiming OAuth, MCP, A2A, x402, or production sandbox support is live
 - one public `/agents/optimization.json` profile and `schemas/json/agent-optimization.schema.json` give agents machine-readable draft-only optimization surfaces for briefs, proposals, evidence packets, monitor updates, and public-solution reuse without inventing facts, overriding planner or policy fields, authorizing writes, implying owner approval, settling payment, or proving completion
@@ -219,7 +225,7 @@ These are intended next layers, not fully modeled proof yet:
 - richer conformance automation where external agents can submit signed sandbox transcripts or live dry-run evidence for operator review; the current profile, report schema, and example route define the evidence shape but do not process submissions
 - richer evidence automation with artifact scanning, checksum verification, private reviewer access, and proof scoring; the current evidence profile is packaging and review guidance only
 - richer execution automation with lane-specific worker dispatch, runtime admission, step updates, provider correlation, and isolated untrusted execution; the current execution profile is descriptive guidance over existing `Fulfillment` and `FulfillmentStep` truth
-- richer human handoff state in live request rooms, including persisted approval records, review prompts, and escalation inboxes; the current public handoff profile is descriptive guidance only
+- richer human handoff state in live request rooms, including persisted approval records, review prompts, and escalation inboxes; the current public handoff profile and packet examples are descriptive guidance only
 - richer monitor automation with persisted subscriptions, delivery retries, receiver enrollment, SLA configuration, and monitor inboxes; the current monitoring profile is descriptive over live cursor polling plus target signed push delivery
 - richer onboarding automation with operator-reviewed production access packets, real production sandbox credentials, revocation enforcement, scope approval, abuse controls, and delegated external-agent auth; the current onboarding and access-review profiles are descriptive guidance only
 - richer prompt automation with versioned prompt packs, prompt evals, locale variants, and signed prompt-pack distribution; the current prompt catalog is descriptive guidance only
