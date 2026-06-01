@@ -43,6 +43,7 @@ import {
 import { validateAgentActionPreflight } from "@/lib/agent-action-preflight";
 import { validateAgentEvidencePayload } from "@/lib/agent-evidence-validation";
 import { validateAgentIntakePayload } from "@/lib/agent-intake-validation";
+import { prepareAgentAccessReviewPayload } from "@/lib/agent-access-review-preparation";
 import { validateAgentMonitoringPayload } from "@/lib/agent-monitoring-validation";
 import { validateAgentSandboxReplayPayload } from "@/lib/agent-sandbox-replay-validation";
 import {
@@ -57,6 +58,7 @@ import { GET as getAgentCard } from "@/app/.well-known/agent-card.json/route";
 import { GET as getAgentActions } from "@/app/agents/actions.md/route";
 import { POST as postAgentActionPreflight } from "@/app/agents/actions/preflight/route";
 import { GET as getAgentAccessReview } from "@/app/agents/access-review.json/route";
+import { POST as postAgentAccessReviewPreparation } from "@/app/agents/access-review/prepare/route";
 import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
 import { GET as getAgentConformance } from "@/app/agents/conformance.json/route";
 import { GET as getAgentConformanceReportExample } from "@/app/agents/conformance-report.example.json/route";
@@ -137,6 +139,10 @@ async function main() {
   assert.equal(agentCard.toolRegistryUrl.endsWith("/agents/tools.json"), true);
   assert.equal(
     agentCard.accessReviewProfileUrl.endsWith("/agents/access-review.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.accessReviewPrepareUrl.endsWith("/agents/access-review/prepare"),
     true,
   );
   assert.equal(agentCard.authProfileUrl.endsWith("/agents/auth.json"), true);
@@ -225,6 +231,16 @@ async function main() {
   assert.equal(agentCard.accessReview.status, "live_access_review_profile");
   assert.equal(
     agentCard.accessReview.decisionOutcomes.includes("approved_scoped_pilot"),
+    true,
+  );
+  assert.equal(
+    agentCard.accessReviewPreparation.status,
+    "live_handoff_preparation_only",
+  );
+  assert.equal(
+    agentCard.accessReviewPreparation.nonAuthority.includes(
+      "review submission"
+    ),
     true,
   );
   assert.equal(agentCard.auth.status, "live_auth_profile");
@@ -742,6 +758,12 @@ async function main() {
   const readinessProfile = buildAgentReadinessProfile();
   assert.equal(readinessProfile.status, "live_readiness_profile");
   assert.equal(readinessProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    readinessProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/access-review/prepare")
+    ),
+    true,
+  );
   assert.equal(
     readinessProfile.standardPlanes.some(
       (plane) => plane.id === "http_contracts" && plane.standard === "OpenAPI 3.1"
@@ -1682,6 +1704,12 @@ async function main() {
     true,
   );
   assert.equal(
+    accessReviewProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/access-review/prepare")
+    ),
+    true,
+  );
+  assert.equal(
     accessReviewProfile.canonicalBoundary.accessReviewProfileIsNot.includes(
       "credential issuer"
     ),
@@ -1722,6 +1750,12 @@ async function main() {
   assert.equal(
     onboardingProfile.productionAccessPacket.exampleUrl.endsWith(
       "/agents/production-access-packet.example.json"
+    ),
+    true,
+  );
+  assert.equal(
+    onboardingProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/access-review/prepare")
     ),
     true,
   );
@@ -1796,6 +1830,76 @@ async function main() {
   assert.equal(productionAccessValidation.status, "validation_passed");
   assert.equal(productionAccessValidation.reviewSubmissionCreated, false);
   assert.equal(productionAccessValidation.acceptedByProduction, false);
+
+  const accessReviewPreparation = prepareAgentAccessReviewPayload({
+    schemaVersion: 1,
+    submissionIntent: "production_access_review",
+    submissionMode: "manual_operator_review_handoff",
+    operatorReviewRequired: true,
+    notCredentialRequest: true,
+    noSecretsIncluded: true,
+    claimsProductionAccess: false,
+    claimsProductionSandbox: false,
+    productionAccessPacket,
+  });
+  assert.equal(accessReviewPreparation.status, "handoff_packet_ready");
+  assert.equal(
+    accessReviewPreparation.intakeValidationStatus,
+    "validation_passed",
+  );
+  assert.equal(accessReviewPreparation.reviewSubmissionCreated, false);
+  assert.equal(accessReviewPreparation.credentialsIssued, false);
+  assert.equal(accessReviewPreparation.productionSandboxCreated, false);
+  assert.equal(accessReviewPreparation.durableWriteCreated, false);
+  assert.equal(
+    accessReviewPreparation.operatorHandoff.decisionOptions.includes(
+      "approved_scoped_pilot"
+    ),
+    true,
+  );
+  assert.equal(
+    accessReviewPreparation.packetSummary.requestedScopes.includes(
+      "commitments:propose"
+    ),
+    true,
+  );
+
+  const blockedAccessReviewPreparation = prepareAgentAccessReviewPayload({
+    schemaVersion: 1,
+    submissionIntent: "production_access_review",
+    submissionMode: "manual_operator_review_handoff",
+    operatorReviewRequired: true,
+    notCredentialRequest: false,
+    noSecretsIncluded: false,
+    claimsProductionAccess: true,
+    claimsProductionSandbox: true,
+    productionAccessPacket: {},
+  });
+  assert.equal(blockedAccessReviewPreparation.status, "handoff_blocked");
+  assert.equal(
+    blockedAccessReviewPreparation.missingFields.includes(
+      "notCredentialRequest=true"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedAccessReviewPreparation.missingFields.includes(
+      "noSecretsIncluded=true"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedAccessReviewPreparation.missingFields.includes(
+      "claimsProductionAccess=false"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedAccessReviewPreparation.missingFields.includes(
+      "productionAccessPacket.packetKind=agent_production_access_packet"
+    ),
+    true,
+  );
 
   const malformedValidation = validateAgentIntakePayload({
     schemaVersion: 1,
@@ -2594,8 +2698,10 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/recovery\.json/);
   assert.match(startGuide, /GET \/agents\/readiness\.json/);
   assert.match(startGuide, /GET \/agents\/tools\.json/);
+  assert.match(startGuide, /POST \/agents\/access-review\/prepare/);
   assert.match(startGuide, /Agent action playbook/);
   assert.match(startGuide, /Agent access review profile/);
+  assert.match(startGuide, /Agent access review preparation endpoint/);
   assert.match(startGuide, /Agent conformance report example/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent sandbox replay validation endpoint/);
@@ -2607,6 +2713,7 @@ async function main() {
   assert.match(startGuide, /Agent UX profile/);
   assert.match(startGuide, /Agent action preflight endpoint/);
   assert.match(startGuide, /Agent intake validation endpoint/);
+  assert.match(startGuide, /manual handoff packet/);
   assert.match(startGuide, /Agent monitoring validation endpoint/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent production access packet example/);
@@ -2642,6 +2749,10 @@ async function main() {
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/access-review.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/access-review/prepare"),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/actions.md"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/actions/preflight"),
@@ -2703,6 +2814,13 @@ async function main() {
     Object.hasOwn(
       discoveryIndex.components.schemas,
       "AgentIntakeValidationResult"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentAccessReviewPreparationResult"
     ),
     true,
   );
@@ -2834,6 +2952,22 @@ async function main() {
     discoveryIndex["x-boreal-agent-access-review"].decisions.includes(
       "approved_scoped_pilot"
     ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-access-review"].preparationUrl.endsWith(
+      "/agents/access-review/prepare"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-access-review-preparation"].status,
+    "live_handoff_preparation_only",
+  );
+  assert.equal(
+    discoveryIndex[
+      "x-boreal-agent-access-review-preparation"
+    ].nonAuthority.includes("review submission"),
     true,
   );
   assert.equal(
@@ -3044,6 +3178,11 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-access-review.schema.json")?.sourcePath,
     "schemas/json/agent-access-review.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-access-review-preparation.schema.json")
+      ?.sourcePath,
+    "schemas/json/agent-access-review-preparation.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-sandbox.schema.json")?.sourcePath,
@@ -3357,6 +3496,77 @@ async function main() {
   assert.equal(malformedIntakeValidationResponse.status, 400);
   assert.equal(
     (await malformedIntakeValidationResponse.json()).credentialsIssued,
+    false,
+  );
+
+  const accessReviewPreparationResponse = await postAgentAccessReviewPreparation(
+    new Request("http://boreal.test/agents/access-review/prepare", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        submissionIntent: "production_access_review",
+        submissionMode: "manual_operator_review_handoff",
+        operatorReviewRequired: true,
+        notCredentialRequest: true,
+        noSecretsIncluded: true,
+        claimsProductionAccess: false,
+        claimsProductionSandbox: false,
+        productionAccessPacket,
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(accessReviewPreparationResponse.status, 200);
+  const accessReviewPreparationRouteResult =
+    await accessReviewPreparationResponse.json();
+  assert.equal(
+    accessReviewPreparationRouteResult.status,
+    "handoff_packet_ready",
+  );
+  assert.equal(
+    accessReviewPreparationRouteResult.reviewSubmissionCreated,
+    false,
+  );
+  assert.equal(accessReviewPreparationRouteResult.credentialsIssued, false);
+
+  const failedAccessReviewPreparationResponse =
+    await postAgentAccessReviewPreparation(
+      new Request("http://boreal.test/agents/access-review/prepare", {
+        body: JSON.stringify({
+          schemaVersion: 1,
+          submissionIntent: "production_access_review",
+          submissionMode: "manual_operator_review_handoff",
+          operatorReviewRequired: true,
+          notCredentialRequest: false,
+          noSecretsIncluded: false,
+          claimsProductionAccess: true,
+          claimsProductionSandbox: true,
+          productionAccessPacket: {},
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(failedAccessReviewPreparationResponse.status, 400);
+  const failedAccessReviewPreparationRouteResult =
+    await failedAccessReviewPreparationResponse.json();
+  assert.equal(
+    failedAccessReviewPreparationRouteResult.status,
+    "handoff_blocked",
+  );
+  assert.equal(failedAccessReviewPreparationRouteResult.permissionGranted, false);
+
+  const malformedAccessReviewPreparationResponse =
+    await postAgentAccessReviewPreparation(
+      new Request("http://boreal.test/agents/access-review/prepare", {
+        body: "{",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(malformedAccessReviewPreparationResponse.status, 400);
+  assert.equal(
+    (await malformedAccessReviewPreparationResponse.json()).credentialsIssued,
     false,
   );
 
@@ -3815,6 +4025,7 @@ async function main() {
   const llmsText = await llmsResponse.text();
   assert.match(llmsText, /Agent Discovery/);
   assert.match(llmsText, /Agent access review profile/);
+  assert.match(llmsText, /Agent access review preparation endpoint/);
   assert.match(llmsText, /Agent action playbook/);
   assert.match(llmsText, /Agent action preflight endpoint/);
   assert.match(llmsText, /Agent auth profile/);
@@ -3872,6 +4083,20 @@ async function main() {
   assert.equal(
     (await accessReviewSchemaResponse.json()).title,
     "AgentAccessReviewProfile"
+  );
+
+  const accessReviewPreparationSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-access-review-preparation.schema.json",
+      }),
+    }
+  );
+  assert.equal(accessReviewPreparationSchemaResponse.status, 200);
+  assert.equal(
+    (await accessReviewPreparationSchemaResponse.json()).title,
+    "AgentAccessReviewPreparation",
   );
 
   const sandboxSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

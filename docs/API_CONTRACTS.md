@@ -400,6 +400,7 @@ Read-only public discovery surfaces:
 - `/agents/actions.md` for contract-linked inspect, make-request, apply, submit, monitor, run, and optimize walkthroughs
 - `/agents/actions/preflight` for validation-only action prerequisite checks before agents attempt governed Boreal routes
 - `/agents/access-review.json` for machine-readable operator-review policy around requested scopes, quotas, revocation, decision outcomes, and target-adapter claims
+- `POST /agents/access-review/prepare` for manual operator-review handoff preparation after a production access packet passes validation
 - `/agents/auth.json` for machine-readable actor class, auth scheme, scope, approval, and write-boundary handling
 - `/agents/conformance.json` for machine-readable pre-production checks across discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries
 - `/agents/conformance-report.example.json` for a public example package that agents can mirror when submitting sandbox replay evidence, requested scopes, protocol claims, secret-handling posture, and human-review questions for operator review
@@ -440,6 +441,7 @@ Read-only public discovery surfaces:
 - `/openapi/payment-and-credit.yaml` for payment, buyer-credit, request-grant, and transaction HTTP contracts
 - `/schemas/*.schema.json` for canonical JSON Schema object shapes
 - `/schemas/agent-access-review.schema.json` for the machine-readable agent access review profile shape
+- `/schemas/agent-access-review-preparation.schema.json` for the validation and handoff contract used to prepare production access packets for manual operator review
 - `/schemas/agent-sandbox.schema.json` for the contract-only agent sandbox manifest shape
 - `/schemas/agent-sandbox-replay.schema.json` for the validation-only sandbox replay request and response shape
 - `/schemas/agent-auth.schema.json` for the machine-readable agent auth profile shape
@@ -477,6 +479,7 @@ Validation-only public agent surface:
 
 - `POST /agents/intake/validate` accepts either a conformance report or production access packet envelope and returns missing fields, warnings, next steps, and non-authority boundaries. It does not create a review submission, issue credentials, grant permission, approve spend, create a production sandbox, write `RequestEvent` truth, or prove completion.
 - `POST /agents/actions/preflight` accepts an action id plus visible request, represented-actor, approval, idempotency, scope, and payload-summary context, then returns action availability, canonical reads and writes, required contracts, entrypoints, missing requirements, warnings, and non-authority boundaries. It does not grant permission, record approval, issue credentials, authorize payment, publish artifacts, propose commitments, mutate requests, write `RequestEvent` truth, or prove completion.
+- `POST /agents/access-review/prepare` accepts a production access packet plus explicit non-credential, no-secret, no-production-access assertions and returns a manual operator handoff checklist. It does not create a persistent review submission, issue credentials, grant permission, record approval, create a production sandbox, authorize payment, prove completion, or write durable `RequestEvent` truth.
 - `POST /agents/sandbox/replay` accepts contract-sandbox replay evidence and returns scenario, order, idempotency, terminal-state, canonical-write, and non-authority feedback. It does not accept production access, create a review submission, issue credentials, grant permission, create a production sandbox, authorize payment, prove completion, or write durable `RequestEvent` truth.
 - `POST /agents/evidence/validate` accepts a proof, delivery, receipt, or handoff packet envelope and returns missing fields, warnings, next steps, and non-authority boundaries. It does not grant permission, publish an `Artifact`, store files, accept review, authorize payment, write `RequestEvent` truth, or prove completion.
 - `POST /agents/monitoring/validate` accepts a monitor plan envelope and returns missing fields, warnings, next steps, accepted modes, accepted escalation triggers, and non-authority boundaries. It does not grant permission, read request activity, create a subscription, activate push delivery, write heartbeat events, authorize payment, write `RequestEvent` truth, or prove completion.
@@ -735,6 +738,7 @@ routes:
 - `agentActionAffordances` are hints over existing governed endpoints, not separate permissions or a new workflow ledger
 - `agentActionPolicy` is the request-detail permission lens agents should read before writing; it is derived from request state, actor ownership, resolver scopes, and live endpoint gates, and it does not create durable truth by itself
 - `/agents/access-review.json` is the public operator-review lens agents should read before requesting scoped pilot or production access; it does not issue credentials, grant permission, certify an agent, authorize spend, or make target adapters live
+- `POST /agents/access-review/prepare` is the public manual-handoff preparation endpoint agents may call after packet validation; it prepares operator checks and required attachments but does not submit or persist review state, issue credentials, grant permission, record approval, create a production sandbox, authorize spend, write `RequestEvent` truth, or prove completion
 - `/agents/conformance.json` is the public checklist lens agents should pass before production use; it does not replace request-specific `agentActionPolicy`
 - `/schemas/agent-conformance-report.schema.json` is the public report shape agents should use when attaching sandbox replay evidence to a production access request; it does not grant production access
 - `/agents/conformance-report.example.json` is a sample package agents can copy structurally, not a submission endpoint, credential, approval record, or certification

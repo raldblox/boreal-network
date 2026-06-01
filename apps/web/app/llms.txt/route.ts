@@ -38,6 +38,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent action playbook](${absoluteUrl(agentDiscoveryPaths.agentActions)}): Contract-linked walkthroughs for inspect, make-request, apply, submit, monitor, run, and optimize intents.
 - [Agent action preflight endpoint](${absoluteUrl(agentDiscoveryPaths.agentActionPreflight)}): Validation-only POST endpoint for action prerequisites before agents attempt governed Boreal routes.
 - [Agent access review profile](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)}): Machine-readable operator-review policy for scopes, quotas, revocation, decisions, and target-adapter claims.
+- [Agent access review preparation endpoint](${absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare)}): Manual operator-review handoff preparation for production access packets; it does not issue credentials or submit durable approval records.
 - [Agent auth profile](${absoluteUrl(agentDiscoveryPaths.agentAuth)}): Machine-readable actor classes, auth schemes, scopes, approvals, and write boundaries.
 - [Agent conformance profile](${absoluteUrl(agentDiscoveryPaths.agentConformance)}): Machine-readable checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol boundaries.
 - [Agent conformance report schema](${absoluteUrl("/schemas/agent-conformance-report.schema.json")}): Machine-readable report shape for sandbox replay evidence, requested scopes, protocol claims, and human review.

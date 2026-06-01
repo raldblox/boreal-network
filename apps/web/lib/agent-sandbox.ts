@@ -3,6 +3,7 @@ import { absoluteUrl } from "@/lib/seo";
 
 export const agentSandboxPaths = {
   accessReview: "/agents/access-review.json",
+  accessReviewPrepare: "/agents/access-review/prepare",
   actions: "/agents/actions.md",
   actionPreflight: "/agents/actions/preflight",
   auth: "/agents/auth.json",
@@ -91,6 +92,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Access review profile",
         url: absoluteUrl(agentSandboxPaths.accessReview),
+      },
+      {
+        label: "Access review preparation endpoint",
+        url: absoluteUrl(agentSandboxPaths.accessReviewPrepare),
       },
       {
         label: "Auth profile",

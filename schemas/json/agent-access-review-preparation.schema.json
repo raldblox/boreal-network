@@ -1,0 +1,334 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-access-review-preparation.schema.json",
+  "title": "AgentAccessReviewPreparation",
+  "description": "Validation and handoff contract for preparing external-agent production access packets for manual operator review. It does not submit a review record, issue credentials, grant permission, create a production sandbox, authorize payment, prove completion, or create durable RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "request": {
+      "$ref": "#/$defs/preparationRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/preparationResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "preparationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "submissionIntent",
+        "submissionMode",
+        "operatorReviewRequired",
+        "notCredentialRequest",
+        "noSecretsIncluded",
+        "claimsProductionAccess",
+        "claimsProductionSandbox",
+        "productionAccessPacket"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "submissionIntent": {
+          "const": "production_access_review"
+        },
+        "submissionMode": {
+          "const": "manual_operator_review_handoff"
+        },
+        "operatorReviewRequired": {
+          "const": true
+        },
+        "notCredentialRequest": {
+          "const": true
+        },
+        "noSecretsIncluded": {
+          "const": true
+        },
+        "claimsProductionAccess": {
+          "const": false
+        },
+        "claimsProductionSandbox": {
+          "const": false
+        },
+        "productionAccessPacket": {
+          "type": "object",
+          "description": "An AgentProductionAccessPacketExample-shaped packet prepared for manual operator review."
+        }
+      }
+    },
+    "preparationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "submissionIntent",
+        "submissionMode",
+        "intakeValidationStatus",
+        "acceptedByProduction",
+        "reviewSubmissionCreated",
+        "credentialsIssued",
+        "permissionGranted",
+        "productionSandboxCreated",
+        "paymentAuthorized",
+        "completionProven",
+        "durableWriteCreated",
+        "packetSummary",
+        "operatorHandoff",
+        "missingFields",
+        "warnings",
+        "nextSteps",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "handoff_packet_ready",
+            "handoff_blocked"
+          ]
+        },
+        "submissionIntent": {
+          "enum": [
+            "production_access_review",
+            "unknown"
+          ]
+        },
+        "submissionMode": {
+          "const": "manual_operator_review_handoff"
+        },
+        "intakeValidationStatus": {
+          "enum": [
+            "validation_passed",
+            "validation_failed"
+          ]
+        },
+        "acceptedByProduction": {
+          "const": false
+        },
+        "reviewSubmissionCreated": {
+          "const": false
+        },
+        "credentialsIssued": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "productionSandboxCreated": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "packetSummary": {
+          "$ref": "#/$defs/packetSummary"
+        },
+        "operatorHandoff": {
+          "$ref": "#/$defs/operatorHandoff"
+        },
+        "missingFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "packetSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packetName",
+        "agentName",
+        "operatorContact",
+        "representedActorReference",
+        "requestedScopes",
+        "intendedActions",
+        "requestedRoutes",
+        "requestedProtocolAdapters",
+        "targetOnlyClaims"
+      ],
+      "properties": {
+        "packetName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "agentName": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "operatorContact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "representedActorReference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requestedScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "intendedActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedRoutes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requestedProtocolAdapters": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "targetOnlyClaims": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "operatorHandoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "subject",
+        "requiredAttachments",
+        "operatorChecks",
+        "decisionOptions",
+        "nextHumanActions"
+      ],
+      "properties": {
+        "kind": {
+          "const": "agent_access_review_handoff"
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredAttachments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "operatorChecks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "decisionOptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "approved_public_read_only",
+              "approved_scoped_pilot",
+              "needs_more_evidence",
+              "rejected"
+            ]
+          }
+        },
+        "nextHumanActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "preparationIsNot",
+        "durableTruthObjects"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "preparationIsNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

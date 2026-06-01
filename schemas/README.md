@@ -48,6 +48,7 @@ Recommended naming:
 - `json/request-event.schema.json`
 - `json/artifact.schema.json`
 - `json/agent-access-review.schema.json`
+- `json/agent-access-review-preparation.schema.json`
 - `json/agent-sandbox.schema.json`
 - `json/agent-sandbox-replay.schema.json`
 - `json/agent-auth.schema.json`

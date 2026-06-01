@@ -79,6 +79,7 @@ Current assets that agents can eventually build on:
 - A validation-only sandbox replay endpoint exists through `POST /agents/sandbox/replay` and `schemas/json/agent-sandbox-replay.schema.json`, checking replay scenario id, step order, idempotency, terminal state, canonical writes, and non-authority boundaries before conformance or production-access review packets.
 - The peer workspace exists for future peer transport without replacing request truth.
 - A machine-readable access review profile exists through `/agents/access-review.json` and `schemas/json/agent-access-review.schema.json`, mapping conformance-report review, scope minimization, sandbox or pilot decisions, target adapter review, rate limits, revocation triggers, and decision outcomes.
+- A manual operator-review handoff preparation endpoint exists through `POST /agents/access-review/prepare` and `schemas/json/agent-access-review-preparation.schema.json`, turning validated production access packets into operator checks, required attachments, decision options, and next human actions without creating credentials or live authority.
 - A machine-readable auth profile exists through `/agents/auth.json` and `schemas/json/agent-auth.schema.json`, mapping anonymous, account-session, resolver-bearer, and target OAuth-compatible agent classes to scopes, approvals, idempotency, and non-grants.
 - A machine-readable conformance profile exists through `/agents/conformance.json` and `schemas/json/agent-conformance.schema.json`, mapping pre-production checks across discovery, auth, human handoff, work actions, proof, payment, recovery, sandbox, and target protocol boundaries.
 - A machine-readable conformance report contract exists through `schemas/json/agent-conformance-report.schema.json`, `/agents/conformance-report.example.json`, and `fixtures/agent/conformance-report.sample.json`, giving agents a standard way to package sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions.
@@ -117,6 +118,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first request-detail `agentActionPolicy` compiler now accounts for public visibility, private ownership, resolver scopes, solution-run session requirements, and idempotency-gated actions; deeper rate-limit, payment-balance, lane-participant, and failure-mode policy remains target direction
 - the first OpenAPI auth metadata pass now declares account-session, resolver-bearer, anonymous-public, provider-callback, and refresh-token body boundaries in the machine-readable contracts; OAuth-compatible external-agent authorization remains target direction
 - the first machine-readable access review profile now tells agents how Boreal operators should evaluate conformance reports, requested scopes, rate limits, revocation triggers, decision outcomes, and target adapter claims, but it does not issue credentials, grant permission, certify agents, authorize spend, or make protocol adapters live
+- the first access-review preparation endpoint now tells agents what to hand a Boreal operator and which checks must pass, but it does not persist submissions, issue credentials, grant permission, create production sandboxes, or prove completion
 - the first machine-readable auth profile now tells agents which actor class, auth scheme, scope, approval boundary, and idempotency rule applies before writes, but it does not create production credentials or make OAuth-compatible external-agent auth live
 - the first machine-readable conformance profile now gives agent builders a checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol behavior, and the first conformance report schema plus public example route now gives them an operator-review evidence packet shape; neither certifies agents nor grants production access
 - the first validation-only intake endpoint now gives agents immediate feedback on conformance reports and production access packets, but it does not create persisted operator-review submissions, issue credentials, grant permission, authorize spend, create production sandboxes, or prove completion
@@ -343,6 +345,7 @@ Add these public surfaces:
 - `GET /llms.txt`
 - `GET /agents/start.md`
 - `GET /agents/access-review.json`
+- `POST /agents/access-review/prepare`
 - `GET /agents/auth.json`
 - `GET /agents/conformance.json`
 - `GET /agents/conformance-report.example.json`
@@ -385,6 +388,7 @@ Add these public surfaces:
 - `GET /schemas/transaction.schema.json`
 - `GET /schemas/request-event.schema.json`
 - `GET /schemas/agent-access-review.schema.json`
+- `GET /schemas/agent-access-review-preparation.schema.json`
 - `GET /schemas/agent-sandbox.schema.json`
 - `GET /schemas/agent-sandbox-replay.schema.json`
 - `GET /schemas/agent-auth.schema.json`
@@ -837,6 +841,7 @@ Deliverables:
 - `/agents/start.md` - implemented as a public markdown route in `apps/web`
 - `/agents/actions.md` - implemented as a public markdown action playbook for inspect, make-request, apply, submit, monitor, run, and optimize flows
 - `/agents/access-review.json` - implemented as a public machine-readable operator-review profile for requested scopes, rate limits, revocation triggers, decision outcomes, and target adapter claims
+- `POST /agents/access-review/prepare` and `schemas/json/agent-access-review-preparation.schema.json` - implemented as manual operator-review handoff preparation for validated production access packets without persistence, credentials, permissions, or production sandbox creation
 - `/agents/auth.json` - implemented as a public machine-readable auth profile for actor classes, auth schemes, scopes, approval boundaries, idempotency, and explicit non-grants
 - `/agents/conformance.json` - implemented as a public machine-readable checklist for discovery, auth, handoff, work actions, proof, payment, recovery, sandbox, and protocol boundaries before production use
 - `schemas/json/agent-conformance-report.schema.json` and `fixtures/agent/conformance-report.sample.json` - implemented as a public machine-readable report shape and sample for packaging sandbox replay evidence, requested scopes, target protocol claims, secret-handling posture, and human-review questions
@@ -879,6 +884,7 @@ Deliverables:
 - richer `/llms.txt` links to all agent-readable resources - implemented through the shared discovery catalog
 - machine-readable agent action catalog - implemented in the agent card and `/openapi.json` as `x-boreal-agent-actions`
 - machine-readable agent access review profile - implemented as `/agents/access-review.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent access review handoff preparation endpoint - implemented as `POST /agents/access-review/prepare`, linked from the agent card, access review profile, onboarding, readiness profile, `/llms.txt`, sandbox manifest, and `/openapi.json`
 - machine-readable agent auth profile - implemented as `/agents/auth.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent conformance profile - implemented as `/agents/conformance.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent conformance report schema - implemented as `/schemas/agent-conformance-report.schema.json`, linked from the conformance profile and public schema catalog

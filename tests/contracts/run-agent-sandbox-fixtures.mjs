@@ -49,6 +49,7 @@ const requiredResources = [
   "/agents/actions.md",
   "/agents/actions/preflight",
   "/agents/access-review.json",
+  "/agents/access-review/prepare",
   "/agents/auth.json",
   "/agents/conformance.json",
   "/agents/conformance-report.example.json",

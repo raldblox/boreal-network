@@ -54,6 +54,10 @@
       "url": "https://boreal.work/agents/access-review.json"
     },
     {
+      "label": "Access review preparation endpoint",
+      "url": "https://boreal.work/agents/access-review/prepare"
+    },
+    {
       "label": "Auth profile",
       "url": "https://boreal.work/agents/auth.json"
     },

@@ -43,6 +43,7 @@ export type AgentActionDefinition = {
 
 export const agentDiscoveryPaths = {
   agentAccessReview: "/agents/access-review.json",
+  agentAccessReviewPrepare: "/agents/access-review/prepare",
   agentAuth: "/agents/auth.json",
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
@@ -342,6 +343,15 @@ export const jsonSchemaDiscoveryAssets = [
     sourcePath: "schemas/json/agent-access-review.schema.json",
     standard: "json_schema",
     title: "Agent access review profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Validation and handoff schema for preparing external-agent production access packets for manual operator review without creating credentials or authority.",
+    routePath: "/schemas/agent-access-review-preparation.schema.json",
+    sourcePath: "schemas/json/agent-access-review-preparation.schema.json",
+    standard: "json_schema",
+    title: "Agent access review preparation",
   },
   {
     contentType: "application/schema+json; charset=utf-8",
@@ -762,6 +772,9 @@ export function buildAgentCard() {
     readinessProfileUrl: absoluteUrl(agentDiscoveryPaths.agentReadiness),
     toolRegistryUrl: absoluteUrl(agentDiscoveryPaths.agentTools),
     workflowCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+    accessReviewPrepareUrl: absoluteUrl(
+      agentDiscoveryPaths.agentAccessReviewPrepare
+    ),
     sandboxUrl: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
     sandboxReplayValidationUrl: absoluteUrl(
       agentDiscoveryPaths.agentSandboxReplayValidation
@@ -932,6 +945,22 @@ export function buildAgentCard() {
         "payment authorization",
         "completion proof",
         "production sandbox",
+      ],
+    },
+    accessReviewPreparation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare),
+      status: "live_handoff_preparation_only",
+      submissionMode: "manual_operator_review_handoff",
+      schemaUrl: absoluteUrl("/schemas/agent-access-review-preparation.schema.json"),
+      nonAuthority: [
+        "production credential",
+        "production access grant",
+        "operator approval record",
+        "review submission",
+        "production sandbox",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
       ],
     },
     monitoring: {
@@ -1210,6 +1239,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent action playbook: [${agentDiscoveryPaths.agentActions}](${absoluteUrl(agentDiscoveryPaths.agentActions)})
 - Agent action preflight endpoint: [${agentDiscoveryPaths.agentActionPreflight}](${absoluteUrl(agentDiscoveryPaths.agentActionPreflight)})
 - Agent access review profile: [${agentDiscoveryPaths.agentAccessReview}](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)})
+- Agent access review preparation endpoint: [${agentDiscoveryPaths.agentAccessReviewPrepare}](${absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare)})
 - Agent auth profile: [${agentDiscoveryPaths.agentAuth}](${absoluteUrl(agentDiscoveryPaths.agentAuth)})
 - Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
 - Agent conformance report example: [${agentDiscoveryPaths.agentConformanceReportExample}](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)})
@@ -1484,6 +1514,29 @@ POST ${agentDiscoveryPaths.agentIntakeValidation}
 \`\`\`
 
 This endpoint returns shape feedback only. It does not create a review submission, issue credentials, grant permission, approve spend, create a production sandbox, or prove completion.
+
+For manual operator-review handoff preparation after a production access packet passes validation, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentAccessReviewPrepare}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "submissionIntent": "production_access_review",
+  "submissionMode": "manual_operator_review_handoff",
+  "operatorReviewRequired": true,
+  "notCredentialRequest": true,
+  "noSecretsIncluded": true,
+  "claimsProductionAccess": false,
+  "claimsProductionSandbox": false,
+  "productionAccessPacket": {
+    "...": "AgentProductionAccessPacketExample-shaped object"
+  }
+}
+\`\`\`
+
+This endpoint returns a manual handoff packet and operator checklist only. It does not submit a persistent review record, issue credentials, grant permission, record approval, create a production sandbox, authorize payment, prove completion, or create durable \`RequestEvent\` truth.
 
 For deterministic tool invocation, preflight, HTTP fallback, and target MCP/A2A mapping, agents can read:
 
@@ -1792,6 +1845,49 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentAccessReviewProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/access-review/prepare": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Prepare a production access packet for manual operator-review handoff.",
+          description:
+            "Handoff-preparation only. This endpoint validates an access packet, builds an operator checklist, and does not create a persistent review submission, issue credentials, grant permission, authorize payment, create a production sandbox, prove completion, or create durable RequestEvent truth.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentAccessReviewPreparationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Manual operator handoff packet is ready; no production authority or durable write was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentAccessReviewPreparationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Manual operator handoff is blocked by missing fields or authority overclaims.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentAccessReviewPreparationResult",
                   },
                 },
               },
@@ -3049,6 +3145,94 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentAccessReviewPreparationRequest: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "submissionIntent",
+            "submissionMode",
+            "operatorReviewRequired",
+            "notCredentialRequest",
+            "noSecretsIncluded",
+            "claimsProductionAccess",
+            "claimsProductionSandbox",
+            "productionAccessPacket",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            submissionIntent: { const: "production_access_review" },
+            submissionMode: { const: "manual_operator_review_handoff" },
+            operatorReviewRequired: { const: true },
+            notCredentialRequest: { const: true },
+            noSecretsIncluded: { const: true },
+            claimsProductionAccess: { const: false },
+            claimsProductionSandbox: { const: false },
+            productionAccessPacket: {
+              type: "object",
+              description:
+                "AgentProductionAccessPacketExample-shaped object.",
+            },
+          },
+          additionalProperties: false,
+        },
+        AgentAccessReviewPreparationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "submissionIntent",
+            "submissionMode",
+            "intakeValidationStatus",
+            "acceptedByProduction",
+            "reviewSubmissionCreated",
+            "credentialsIssued",
+            "permissionGranted",
+            "productionSandboxCreated",
+            "paymentAuthorized",
+            "completionProven",
+            "durableWriteCreated",
+            "packetSummary",
+            "operatorHandoff",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["handoff_packet_ready", "handoff_blocked"] },
+            submissionIntent: {
+              enum: ["production_access_review", "unknown"],
+            },
+            submissionMode: { const: "manual_operator_review_handoff" },
+            intakeValidationStatus: {
+              enum: ["validation_passed", "validation_failed"],
+            },
+            acceptedByProduction: { const: false },
+            reviewSubmissionCreated: { const: false },
+            credentialsIssued: { const: false },
+            permissionGranted: { const: false },
+            productionSandboxCreated: { const: false },
+            paymentAuthorized: { const: false },
+            completionProven: { const: false },
+            durableWriteCreated: { const: false },
+            packetSummary: { type: "object" },
+            operatorHandoff: { type: "object" },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentCompletionProfile: {
           type: "object",
           required: [
@@ -3775,6 +3959,7 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-access-review": {
       url: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare),
       status: buildAgentAccessReviewProfile().status,
       stages: buildAgentAccessReviewProfile().reviewStages.map((stage) => ({
         id: stage.id,
@@ -3783,6 +3968,22 @@ export function buildOpenApiDiscoveryIndex() {
       decisions: buildAgentAccessReviewProfile().decisionOutcomes.map(
         (decision) => decision.id
       ),
+    },
+    "x-boreal-agent-access-review-preparation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare),
+      status: "live_handoff_preparation_only",
+      submissionMode: "manual_operator_review_handoff",
+      schemaUrl: absoluteUrl("/schemas/agent-access-review-preparation.schema.json"),
+      nonAuthority: [
+        "production credential",
+        "production access grant",
+        "operator approval record",
+        "review submission",
+        "production sandbox",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
     },
     "x-boreal-agent-conformance": {
       url: absoluteUrl(agentDiscoveryPaths.agentConformance),
@@ -4969,8 +5170,16 @@ export function buildAgentConformanceProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
       },
       {
+        label: "Agent access review preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare),
+      },
+      {
         label: "Agent production access packet schema",
         url: absoluteUrl("/schemas/agent-production-access-packet.schema.json"),
+      },
+      {
+        label: "Agent access review preparation schema",
+        url: absoluteUrl("/schemas/agent-access-review-preparation.schema.json"),
       },
       {
         label: "Agent error examples",
@@ -5378,6 +5587,10 @@ export function buildAgentAccessReviewProfile() {
       {
         label: "Agent production access packet example",
         url: absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
+      },
+      {
+        label: "Agent access review preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare),
       },
       {
         label: "Agent production access packet schema",
@@ -8277,6 +8490,10 @@ export function buildAgentOnboardingProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
       },
       {
+        label: "Agent access review preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare),
+      },
+      {
         label: "Agent onboarding schema",
         url: absoluteUrl("/schemas/agent-onboarding.schema.json"),
       },
@@ -9677,6 +9894,10 @@ export function buildAgentReadinessProfile() {
       {
         label: "Agent onboarding profile",
         url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
+      },
+      {
+        label: "Agent access review preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare),
       },
       {
         label: "Agent readiness schema",
