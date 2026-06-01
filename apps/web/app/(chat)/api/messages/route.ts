@@ -1,5 +1,4 @@
 import { auth } from "@/app/(auth)/auth";
-import { connection } from "next/server";
 import { chatMessagesQuerySchema } from "@/lib/chat-route-validation";
 import {
   getChatById,
@@ -15,21 +14,19 @@ import {
 import { convertToUIMessages } from "@/lib/utils";
 
 export async function GET(httpRequest: Request) {
-  await connection();
+  const { searchParams } = new URL(httpRequest.url);
+  const parsedQuery = chatMessagesQuerySchema.safeParse({
+    chatId: searchParams.get("chatId"),
+  });
+
+  if (!parsedQuery.success) {
+    return new ChatbotError(
+      "bad_request:api",
+      "Valid chatId is required."
+    ).toResponse();
+  }
 
   try {
-    const { searchParams } = new URL(httpRequest.url);
-    const parsedQuery = chatMessagesQuerySchema.safeParse({
-      chatId: searchParams.get("chatId"),
-    });
-
-    if (!parsedQuery.success) {
-      return new ChatbotError(
-        "bad_request:api",
-        "Valid chatId is required."
-      ).toResponse();
-    }
-
     const { chatId } = parsedQuery.data;
 
     const [session, chat, requestDraft] = await Promise.all([
