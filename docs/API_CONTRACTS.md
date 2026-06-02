@@ -431,6 +431,7 @@ Read-only public discovery surfaces:
 - `POST /agents/monitoring/validate` for validation-only monitor plan, cursor checkpoint, private-access, escalation-trigger, and target signed-webhook receiver checks before polling or push setup
 - `/agents/protocols.md` for MCP, A2A, and x402 adapter/payment boundaries
 - `/agents/protocols.json` for machine-readable MCP, A2A, and x402 adapter mappings, non-goals, implementation order, and canon boundaries
+- `/agents/standards.json` for a machine-readable standards matrix covering Boreal's live and target use of OpenAPI, JSON Schema, AsyncAPI, OAuth, MCP, A2A, x402, `llms.txt`, and RFC 9457 problem details
 - `/agents/opportunities.json` for machine-readable read-only public request opportunity discovery, local fit ranking, and next-action selection without granting permission, assignment, payment authority, or completion proof
 - `/agents/protocol-adapter-samples.json` for target-only MCP, A2A, and x402 sample payloads mapped to Boreal HTTP contracts, scopes, idempotency, and canonical writes
 - `/agents/recovery.json` for machine-readable auth failure, scope failure, idempotency conflict, rate limit, monitor cursor, fulfillment retry, payment uncertainty, and escalation handling
@@ -481,6 +482,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-prompts.schema.json` for the machine-readable agent prompt catalog shape
 - `/schemas/agent-workflows.schema.json` for the machine-readable agent workflow catalog shape
 - `/schemas/agent-protocols.schema.json` for the machine-readable agent protocol profile shape
+- `/schemas/agent-standards.schema.json` for the machine-readable agent standards matrix shape
 - `/schemas/agent-protocol-adapter-samples.schema.json` for the target-only agent protocol adapter sample pack shape
 - `/schemas/agent-recovery.schema.json` for the machine-readable agent recovery profile shape
 - `/schemas/agent-readiness.schema.json` for the machine-readable agent readiness profile shape
@@ -526,6 +528,13 @@ client kit into human-visible steps. It is not a workflow engine, permission
 grant, credential issuer, human or operator approval record, payment
 authorization, completion proof, generated SDK package, MCP server, A2A
 adapter, x402 endpoint, or durable truth object.
+
+The public agent standards profile at `/agents/standards.json` is a descriptive
+matrix of external standards and Boreal artifact versions. It tells agents which
+standards are live contract surfaces and which are target adapter or payment
+profiles. It is not an adapter implementation, permission grant, credential
+issuer, approval record, payment authorization, completion proof, generated SDK
+package, workflow engine, or durable truth object.
 
 Agent-facing OpenAPI contracts must expose auth metadata in the machine-readable
 contract, not only in prose. Live request, supply, and payment OpenAPI exports

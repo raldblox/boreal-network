@@ -184,6 +184,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-prompts.schema.json`
 - `schemas/json/agent-workflows.schema.json`
 - `schemas/json/agent-protocols.schema.json`
+- `schemas/json/agent-standards.schema.json`
 - `schemas/json/agent-protocol-adapter-samples.schema.json`
 - `schemas/json/agent-recovery.schema.json`
 - `schemas/json/agent-readiness.schema.json`
@@ -269,6 +270,7 @@ Today, the machine-readable baseline proves:
 - one request activity endpoint can resume monitor reads with `after_sequence` and return `cursor.nextAfterSequence` without creating heartbeat `RequestEvent` records
 - one public `/agents/monitor-webhooks.md` profile and OpenAPI webhook schema define the target signed push-delivery envelope for monitor agents, while actual subscription persistence and delivery remain target direction
 - one public `/agents/protocols.md` profile, `/agents/protocols.json` machine-readable protocol profile, `schemas/json/agent-protocols.schema.json`, and `standards/agent-protocol-profile.md` define MCP, A2A, and x402 adapter/payment boundaries without claiming live protocol adapters
+- one public `/agents/standards.json` profile and `schemas/json/agent-standards.schema.json` give agents a machine-readable standards matrix over Boreal's live OpenAPI, JSON Schema, AsyncAPI, `llms.txt`, A2A-style agent-card, resolver-bearer, and RFC 9457 surfaces plus target MCP, A2A, OAuth delegation, and x402 boundaries without becoming an adapter implementation, permission grant, payment authority, completion proof, or durable truth
 - decision `0024-agent-protocol-gateway-topology` accepts `apps/web` as the public discovery and HTTP contract source while future live MCP/A2A adapters should run behind a gateway over existing contracts, not as a second backend or durable truth layer
 - one public `/agents/protocol-adapter-samples.json` sample pack, `schemas/json/agent-protocol-adapter-samples.schema.json`, and `fixtures/agent/protocol-adapter-samples.sample.json` show target-only MCP tool, A2A task or artifact, and x402 payment-shape payload mappings without granting permission, authorizing payment, proving completion, or making adapters live
 - one public `/agents/recovery.json` recovery profile and `schemas/json/agent-recovery.schema.json` give agents machine-readable handling for auth failure, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and human escalation without granting permission

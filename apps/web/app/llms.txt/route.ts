@@ -74,6 +74,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent protocol profile](${absoluteUrl(agentDiscoveryPaths.agentProtocols)}): MCP, A2A, and x402 adapter/payment boundaries.
 - [Agent protocol profile JSON](${absoluteUrl(agentDiscoveryPaths.agentProtocolsJson)}): Machine-readable MCP, A2A, and x402 mappings that keep adapters below Request truth.
 - [Agent protocol adapter samples](${absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples)}): Target-only MCP, A2A, and x402 sample payloads mapped to Boreal HTTP contracts and canonical writes.
+- [Agent standards profile](${absoluteUrl(agentDiscoveryPaths.agentStandards)}): Machine-readable standards matrix for OpenAPI, JSON Schema, AsyncAPI, OAuth, MCP, A2A, x402, llms.txt, and error recovery.
 - [Agent recovery profile](${absoluteUrl(agentDiscoveryPaths.agentRecovery)}): Machine-readable auth, idempotency, retry, monitor, payment, and escalation rules.
 - [Agent readiness profile](${absoluteUrl(agentDiscoveryPaths.agentReadiness)}): Machine-readable live-versus-target capability matrix, agent UX flow, and go/no-go checks.
 - [Agent tool registry](${absoluteUrl(agentDiscoveryPaths.agentTools)}): Machine-readable safe HTTP tool calls, validation/preparation tools, target MCP/A2A mappings, preflight checks, and canonical write boundaries.

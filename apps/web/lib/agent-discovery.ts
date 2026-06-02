@@ -87,6 +87,7 @@ export const agentDiscoveryPaths = {
   agentSandboxManifest: agentSandboxPaths.manifest,
   agentSandboxReplayValidation: "/agents/sandbox/replay",
   agentStart: "/agents/start.md",
+  agentStandards: "/agents/standards.json",
   agentTools: "/agents/tools.json",
   agentWorkflows: "/agents/workflows.json",
   llms: "/llms.txt",
@@ -739,6 +740,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable standards matrix for Boreal agent discovery, contracts, auth, monitoring, protocols, payment, and error recovery.",
+    routePath: "/schemas/agent-standards.schema.json",
+    sourcePath: "schemas/json/agent-standards.schema.json",
+    standard: "json_schema",
+    title: "Agent standards profile",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable target-only MCP, A2A, and x402 sample payload pack schema.",
     routePath: "/schemas/agent-protocol-adapter-samples.schema.json",
     sourcePath: "schemas/json/agent-protocol-adapter-samples.schema.json",
@@ -840,6 +850,7 @@ export function buildAgentCard() {
     protocolProfileJsonUrl: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
     recoveryProfileUrl: absoluteUrl(agentDiscoveryPaths.agentRecovery),
     readinessProfileUrl: absoluteUrl(agentDiscoveryPaths.agentReadiness),
+    standardsProfileUrl: absoluteUrl(agentDiscoveryPaths.agentStandards),
     toolRegistryUrl: absoluteUrl(agentDiscoveryPaths.agentTools),
     workflowCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
     accessReviewPrepareUrl: absoluteUrl(
@@ -1275,6 +1286,19 @@ export function buildAgentCard() {
       status: standard.status,
       role: standard.borealRole,
     })),
+    standards: {
+      url: absoluteUrl(agentDiscoveryPaths.agentStandards),
+      status: buildAgentStandardsProfile().status,
+      liveStandardIds: buildAgentStandardsProfile().standards
+        .filter((standard) => standard.status.startsWith("live"))
+        .map((standard) => standard.id),
+      targetStandardIds: buildAgentStandardsProfile().standards
+        .filter((standard) => standard.status.startsWith("target"))
+        .map((standard) => standard.id),
+      resolutionOrder: buildAgentStandardsProfile().resolutionOrder.map(
+        (step) => step.id
+      ),
+    },
     recovery: {
       url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
       status: buildAgentRecoveryProfile().status,
@@ -1451,6 +1475,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent protocol profile: [${agentDiscoveryPaths.agentProtocols}](${absoluteUrl(agentDiscoveryPaths.agentProtocols)})
 - Agent protocol profile JSON: [${agentDiscoveryPaths.agentProtocolsJson}](${absoluteUrl(agentDiscoveryPaths.agentProtocolsJson)})
 - Agent protocol adapter samples: [${agentDiscoveryPaths.agentProtocolAdapterSamples}](${absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples)})
+- Agent standards profile: [${agentDiscoveryPaths.agentStandards}](${absoluteUrl(agentDiscoveryPaths.agentStandards)})
 - Agent recovery profile: [${agentDiscoveryPaths.agentRecovery}](${absoluteUrl(agentDiscoveryPaths.agentRecovery)})
 - Agent readiness profile: [${agentDiscoveryPaths.agentReadiness}](${absoluteUrl(agentDiscoveryPaths.agentReadiness)})
 - Agent tool registry: [${agentDiscoveryPaths.agentTools}](${absoluteUrl(agentDiscoveryPaths.agentTools)})
@@ -2992,6 +3017,25 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentProtocolProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/standards.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's machine-readable agent standards profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON standards matrix for Boreal agent discovery, contracts, auth, monitoring, protocols, payment, and error recovery.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentStandardsProfile",
                   },
                 },
               },
@@ -4815,6 +4859,29 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentStandardsProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "standards",
+            "resolutionOrder",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_standards_profile" },
+            standards: {
+              type: "array",
+              items: { type: "object" },
+            },
+            resolutionOrder: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentProtocolAdapterSamples: {
           type: "object",
           required: [
@@ -5346,6 +5413,21 @@ export function buildOpenApiDiscoveryIndex() {
         name: standard.name,
         status: standard.status,
       })),
+    },
+    "x-boreal-agent-standards": {
+      url: absoluteUrl(agentDiscoveryPaths.agentStandards),
+      status: buildAgentStandardsProfile().status,
+      standards: buildAgentStandardsProfile().standards.map((standard) => ({
+        id: standard.id,
+        name: standard.name,
+        status: standard.status,
+        borealUse: standard.borealUse,
+      })),
+      resolutionOrder: buildAgentStandardsProfile().resolutionOrder.map(
+        (step) => step.id
+      ),
+      nonAuthority:
+        buildAgentStandardsProfile().canonicalBoundary.standardsProfileIsNot,
     },
     "x-boreal-agent-recovery": {
       url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
@@ -10626,7 +10708,7 @@ export function buildAgentOnboardingProfile() {
       {
         id: "mcp",
         standard: "Model Context Protocol",
-        officialSpecUrl: "https://modelcontextprotocol.io/specification/2025-06-18",
+        officialSpecUrl: "https://modelcontextprotocol.io/specification/latest",
         borealUse:
           "Target capability and context adapter over Boreal HTTP contracts, not a noisy runtime telemetry lane.",
       },
@@ -11429,6 +11511,10 @@ export function buildAgentClientKitProfile() {
       {
         label: "Agent journey profile",
         url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
+      },
+      {
+        label: "Agent standards profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentStandards),
       },
       {
         label: "Agent readiness profile",
@@ -12598,6 +12684,435 @@ export function buildAgentToolRegistry() {
   };
 }
 
+export function buildAgentStandardsProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_standards_profile",
+    name: "Boreal Agent Standards Profile",
+    description:
+      "Machine-readable standards matrix for agents using Boreal discovery, contracts, auth, monitoring, protocol adapters, payment, and error recovery without confusing standards support with authority.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent client kit",
+        url: absoluteUrl(agentDiscoveryPaths.agentClientKit),
+      },
+      {
+        label: "Agent protocol profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+      },
+      {
+        label: "Agent readiness profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentReadiness),
+      },
+      {
+        label: "OpenAPI discovery index",
+        url: absoluteUrl(agentDiscoveryPaths.openApiIndex),
+      },
+      {
+        label: "Agent standards schema",
+        url: absoluteUrl("/schemas/agent-standards.schema.json"),
+      },
+    ],
+    standards: [
+      {
+        id: "openapi_3_1",
+        name: "OpenAPI Specification 3.1",
+        category: "http_contract",
+        status: "live_contract_standard",
+        officialReferences: [
+          {
+            label: "OpenAPI Specification",
+            url: "https://spec.openapis.org/oas/latest.html",
+          },
+        ],
+        borealUse:
+          "Defines Boreal HTTP and webhook contracts that agents can inspect before making request-bound reads or writes.",
+        currentBorealArtifacts: [
+          absoluteUrl(agentDiscoveryPaths.openApiIndex),
+          absoluteUrl("/openapi/request-briefing.yaml"),
+          absoluteUrl("/openapi/supply-management.yaml"),
+          absoluteUrl("/openapi/resolver-auth.yaml"),
+          absoluteUrl("/openapi/payment-and-credit.yaml"),
+        ],
+        currentArtifactVersions: ["3.1.0"],
+        agentUse: [
+          "Generate typed HTTP clients.",
+          "Read route auth, scope, idempotency, and payload boundaries.",
+          "Confirm whether an action is public read, account-session, resolver-bearer, provider-callback, or target-only.",
+        ],
+        doNotUseFor: [
+          "permission grant",
+          "human approval record",
+          "payment authorization",
+          "completion proof",
+          "new API surface outside the exported contracts",
+        ],
+      },
+      {
+        id: "json_schema_2020_12",
+        name: "JSON Schema Draft 2020-12",
+        category: "object_and_payload_contract",
+        status: "live_contract_standard",
+        officialReferences: [
+          {
+            label: "JSON Schema Core",
+            url: "https://json-schema.org/draft/2020-12/json-schema-core.html",
+          },
+          {
+            label: "JSON Schema Validation",
+            url: "https://json-schema.org/draft/2020-12/json-schema-validation.html",
+          },
+        ],
+        borealUse:
+          "Defines canonical object, profile, validation, preparation, sandbox, and sample payload shapes.",
+        currentBorealArtifacts: [
+          absoluteUrl("/schemas/request.schema.json"),
+          absoluteUrl("/schemas/supply.schema.json"),
+          absoluteUrl("/schemas/agent-client-kit.schema.json"),
+          absoluteUrl("/schemas/agent-journeys.schema.json"),
+          absoluteUrl("/schemas/agent-standards.schema.json"),
+        ],
+        currentArtifactVersions: ["2020-12"],
+        agentUse: [
+          "Validate objects before presenting or submitting them.",
+          "Generate local types for Request, Supply, Commitment, Fulfillment, Artifact, Transaction, RequestEvent, and agent profiles.",
+          "Keep validation and preparation outputs below durable truth until a governed route writes a canonical object.",
+        ],
+        doNotUseFor: [
+          "root-object invention",
+          "lifecycle transition authority",
+          "credential issuance",
+          "payment authorization",
+          "completion proof",
+        ],
+      },
+      {
+        id: "asyncapi_2_6",
+        name: "AsyncAPI 2.6",
+        category: "durable_activity_monitoring",
+        status: "live_monitoring_contract",
+        officialReferences: [
+          {
+            label: "AsyncAPI 2.6.0 Specification",
+            url: "https://www.asyncapi.com/docs/reference/specification/v2.6.0",
+          },
+        ],
+        borealUse:
+          "Defines the current durable request-room activity contract that agents use for cursor-safe monitoring.",
+        currentBorealArtifacts: [
+          absoluteUrl("/events/request-room.asyncapi.yaml"),
+        ],
+        currentArtifactVersions: ["2.6.0"],
+        agentUse: [
+          "Monitor RequestEvent-derived activity without reading private transcript history.",
+          "Persist after_sequence cursors and resume polling safely.",
+          "Distinguish durable Request activity from local heartbeats, desktop telemetry, and webhook delivery attempts.",
+        ],
+        doNotUseFor: [
+          "subscription creation",
+          "push delivery activation",
+          "heartbeat RequestEvent writes",
+          "completion proof",
+          "payment settlement",
+        ],
+      },
+      {
+        id: "llms_txt",
+        name: "llms.txt",
+        category: "public_agent_discovery",
+        status: "live_public_discovery_convention",
+        officialReferences: [
+          {
+            label: "llms.txt",
+            url: "https://llmstxt.org/",
+          },
+        ],
+        borealUse:
+          "Gives agents a short public entrypoint to Boreal discovery links, claim boundaries, and canonical object language.",
+        currentBorealArtifacts: [absoluteUrl(agentDiscoveryPaths.llms)],
+        currentArtifactVersions: ["convention"],
+        agentUse: [
+          "Start discovery without private route knowledge.",
+          "Find the agent card, start guide, schemas, OpenAPI, AsyncAPI, profiles, sandbox, and live-versus-target boundaries.",
+        ],
+        doNotUseFor: [
+          "crawler guarantee",
+          "permission grant",
+          "private data access",
+          "write authorization",
+          "adapter activation",
+        ],
+      },
+      {
+        id: "a2a_agent_card_0_3",
+        name: "Agent2Agent Agent Card discovery",
+        category: "agent_identity_and_interop",
+        status: "live_discovery_metadata_target_adapter",
+        officialReferences: [
+          {
+            label: "A2A Agent Discovery",
+            url: "https://a2a-protocol.org/v0.3.0/topics/agent-discovery/",
+          },
+        ],
+        borealUse:
+          "Exposes public-safe Boreal identity, capabilities, auth notes, and profile links through an A2A-style agent card while keeping A2A task execution target-only.",
+        currentBorealArtifacts: [
+          absoluteUrl(agentDiscoveryPaths.agentCard),
+          absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples),
+        ],
+        currentArtifactVersions: ["0.3.0 card metadata"],
+        agentUse: [
+          "Discover Boreal as an agent-usable network.",
+          "Read skills, auth boundaries, profiles, and preferred transport before invoking HTTP contracts.",
+          "Map future A2A tasks and artifacts only through the protocol profile and adapter samples.",
+        ],
+        doNotUseFor: [
+          "live A2A task adapter claim",
+          "A2A Task as Request root",
+          "artifact acceptance",
+          "owner review acceptance",
+          "completion proof",
+        ],
+      },
+      {
+        id: "oauth_2_and_bearer",
+        name: "OAuth 2.0 and Bearer Token usage",
+        category: "delegated_auth",
+        status: "live_resolver_bearer_target_external_delegation",
+        officialReferences: [
+          {
+            label: "OAuth 2.0 Authorization Framework",
+            url: "https://datatracker.ietf.org/doc/html/rfc6749",
+          },
+          {
+            label: "OAuth 2.0 Bearer Token Usage",
+            url: "https://datatracker.ietf.org/doc/html/rfc6750",
+          },
+        ],
+        borealUse:
+          "Guides scoped auth boundaries for account sessions, Boreal-issued resolver bearer tokens, and target external-agent delegation.",
+        currentBorealArtifacts: [
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentDelegation),
+          absoluteUrl("/openapi/resolver-auth.yaml"),
+        ],
+        currentArtifactVersions: ["resolver bearer live", "external OAuth target"],
+        agentUse: [
+          "Separate anonymous public reads from account-session and resolver-bearer writes.",
+          "Request the minimum scopes needed for apply, submit, monitor, run, payment, or recovery actions.",
+          "Prepare consent and revocation UX without issuing credentials from descriptive profiles.",
+        ],
+        doNotUseFor: [
+          "raw user credential collection",
+          "implicit permission from public affordances",
+          "operator approval record",
+          "payment authorization",
+          "production access grant",
+        ],
+      },
+      {
+        id: "mcp_latest",
+        name: "Model Context Protocol",
+        category: "agent_context_and_tool_gateway",
+        status: "target_adapter_standard",
+        officialReferences: [
+          {
+            label: "Model Context Protocol Specification",
+            url: "https://modelcontextprotocol.io/specification/latest",
+          },
+        ],
+        borealUse:
+          "Defines the target shape for future Boreal resources, prompts, and governed tools over existing HTTP contracts.",
+        currentBorealArtifacts: [
+          absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+          absoluteUrl(agentDiscoveryPaths.agentTools),
+          absoluteUrl(agentDiscoveryPaths.agentPrompts),
+          absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples),
+        ],
+        currentArtifactVersions: ["target profile only"],
+        agentUse: [
+          "Plan future resources for Request, Supply, schemas, and profiles.",
+          "Plan future tools that call existing Boreal HTTP routes with the same auth, idempotency, policy, and completion boundaries.",
+          "Keep MCP prompts below durable truth until a governed route writes a canonical object.",
+        ],
+        doNotUseFor: [
+          "live MCP server claim",
+          "second backend",
+          "noisy realtime telemetry",
+          "MCP session as Request root",
+          "tool success as completion proof",
+        ],
+      },
+      {
+        id: "x402",
+        name: "x402",
+        category: "agent_payment_rail",
+        status: "target_payment_standard",
+        officialReferences: [
+          {
+            label: "x402 Documentation",
+            url: "https://docs.x402.org/",
+          },
+        ],
+        borealUse:
+          "Defines a target payment rail for selected paid calls or solution runs, with every settlement reconciled into Boreal Transaction truth.",
+        currentBorealArtifacts: [
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+          absoluteUrl("/openapi/payment-and-credit.yaml"),
+        ],
+        currentArtifactVersions: ["target profile only"],
+        agentUse: [
+          "Understand that live spend currently requires Boreal account-session payment routes where supported.",
+          "Treat x402 challenge emission, verification, facilitator handling, wallet spend, and payment-agent credentials as target-only until explicit endpoints exist.",
+          "Reconcile any future paid call into Transaction and RequestEvent truth before claiming capacity or payment state.",
+        ],
+        doNotUseFor: [
+          "live wallet spend claim",
+          "payment authorization",
+          "Order root",
+          "completion proof",
+          "Transaction replacement",
+        ],
+      },
+      {
+        id: "rfc_9457_problem_details",
+        name: "RFC 9457 Problem Details",
+        category: "error_recovery",
+        status: "live_error_recovery_standard",
+        officialReferences: [
+          {
+            label: "RFC 9457",
+            url: "https://www.rfc-editor.org/rfc/rfc9457.html",
+          },
+        ],
+        borealUse:
+          "Gives agents stable error-shape examples for auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write recovery.",
+        currentBorealArtifacts: [
+          absoluteUrl(agentDiscoveryPaths.agentErrorExamples),
+          absoluteUrl("/schemas/agent-error-examples.schema.json"),
+        ],
+        currentArtifactVersions: ["problem-details example profile"],
+        agentUse: [
+          "Classify failures before retrying.",
+          "Choose whether to stop, retry with the same idempotency key, resume from cursor, inspect Transaction truth, or escalate.",
+        ],
+        doNotUseFor: [
+          "retry authority by itself",
+          "permission grant",
+          "durable RequestEvent",
+          "payment authorization",
+          "completion proof",
+        ],
+      },
+    ],
+    resolutionOrder: [
+      {
+        id: "discover_public_entrypoints",
+        order: 1,
+        read: [
+          absoluteUrl(agentDiscoveryPaths.llms),
+          absoluteUrl(agentDiscoveryPaths.agentCard),
+          absoluteUrl(agentDiscoveryPaths.agentStart),
+        ],
+        reason:
+          "Find Boreal identity, current claim boundaries, and public-safe profile links first.",
+      },
+      {
+        id: "load_standards_and_status",
+        order: 2,
+        read: [
+          absoluteUrl(agentDiscoveryPaths.agentStandards),
+          absoluteUrl(agentDiscoveryPaths.agentReadiness),
+          absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+        ],
+        reason:
+          "Separate live HTTP and schema surfaces from target MCP, A2A, OAuth delegation, x402, and push-delivery adapters.",
+      },
+      {
+        id: "load_contracts_before_clients",
+        order: 3,
+        read: [
+          absoluteUrl(agentDiscoveryPaths.openApiIndex),
+          absoluteUrl("/schemas/request.schema.json"),
+          absoluteUrl("/events/request-room.asyncapi.yaml"),
+        ],
+        reason:
+          "Generate clients from contracts after understanding which standards and artifact versions Boreal actually uses.",
+      },
+      {
+        id: "preflight_before_write",
+        order: 4,
+        read: [
+          absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentDelegation),
+        ],
+        reason:
+          "Validate auth, scopes, approval, idempotency, and policy before any governed mutation.",
+      },
+    ],
+    interoperabilityRules: [
+      "Use OpenAPI and JSON Schema as the live baseline for HTTP and payload generation.",
+      "Use AsyncAPI for durable request-room activity monitoring, not for local telemetry or heartbeat truth.",
+      "Use A2A agent-card metadata for discovery, but do not claim live A2A task execution until an adapter contract exists.",
+      "Use MCP as a target gateway over existing contracts; do not create a parallel backend or root object.",
+      "Use x402 only after an endpoint explicitly advertises x402 capability and Transaction reconciliation.",
+      "Use OAuth-style delegation only where Boreal has a live scoped credential path or a documented target boundary.",
+      "Treat validation, preparation, standards, journey, UX, and client-kit profiles as guidance, not authority.",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Supply",
+        "RequestParticipant",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      standardsProfileIsNot: [
+        "adapter implementation",
+        "permission grant",
+        "credential issuer",
+        "human approval record",
+        "operator approval record",
+        "payment authorization",
+        "completion proof",
+        "generated SDK package",
+        "workflow engine",
+        "durable truth object",
+      ],
+      notRoots: [
+        "OpenAPI operation",
+        "JSON Schema document",
+        "AsyncAPI message",
+        "llms.txt entry",
+        "A2A Agent Card",
+        "A2A Task",
+        "MCP session",
+        "MCP Resource",
+        "MCP Tool",
+        "x402 payment payload",
+        "Problem Details envelope",
+      ],
+      rules: [
+        "Standards make Boreal easier for agents to understand; they do not change canonical object semantics.",
+        "If a standard or adapter conflicts with Request-native truth, Request-native truth wins.",
+        "Current Boreal artifact versions must be reported separately from latest upstream standard versions.",
+        "Target protocol profiles must stay target-only until explicit live contracts and tests exist.",
+      ],
+    },
+  };
+}
+
 export function buildAgentReadinessProfile() {
   return {
     schemaVersion: 1,
@@ -12665,6 +13180,10 @@ export function buildAgentReadinessProfile() {
       {
         label: "Agent protocol profile",
         url: absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+      },
+      {
+        label: "Agent standards profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentStandards),
       },
       {
         label: "Agent contract sandbox",
@@ -14040,6 +14559,10 @@ export function buildAgentProtocolProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples),
       },
       {
+        label: "Agent standards profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentStandards),
+      },
+      {
         label: "Agent protocol adapter samples schema",
         url: absoluteUrl("/schemas/agent-protocol-adapter-samples.schema.json"),
       },
@@ -14060,7 +14583,7 @@ export function buildAgentProtocolProfile() {
       {
         id: "mcp",
         name: "Model Context Protocol",
-        officialSpecUrl: "https://modelcontextprotocol.io/specification/2025-06-18",
+        officialSpecUrl: "https://modelcontextprotocol.io/specification/latest",
         status: "target_adapter_profile",
         borealRole: "Capability and context plane for agent hosts.",
         useFor: [

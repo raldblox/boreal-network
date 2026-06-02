@@ -28,6 +28,7 @@ import {
   buildAgentProtocolProfileMarkdown,
   buildAgentReadinessProfile,
   buildAgentStartMarkdown,
+  buildAgentStandardsProfile,
   buildAgentToolRegistry,
   buildAgentWorkflowCatalog,
   buildOpenApiDiscoveryIndex,
@@ -104,6 +105,7 @@ import { GET as getAgentSandboxJson } from "@/app/agents/sandbox.json/route";
 import { GET as getAgentSandboxMd } from "@/app/agents/sandbox.md/route";
 import { POST as postAgentSandboxReplayValidation } from "@/app/agents/sandbox/replay/route";
 import { GET as getAgentStart } from "@/app/agents/start.md/route";
+import { GET as getAgentStandards } from "@/app/agents/standards.json/route";
 import { GET as getAgentTools } from "@/app/agents/tools.json/route";
 import { GET as getAgentWorkflows } from "@/app/agents/workflows.json/route";
 import { GET as getAsyncApiContract } from "@/app/events/[contract]/route";
@@ -138,6 +140,10 @@ async function main() {
   );
   assert.equal(
     agentCard.protocolProfileJsonUrl.endsWith("/agents/protocols.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.standardsProfileUrl.endsWith("/agents/standards.json"),
     true,
   );
   assert.equal(
@@ -230,6 +236,20 @@ async function main() {
     agentCard.journeys.decisionRules.includes(
       "completion_requires_canonical_truth"
     ),
+    true,
+  );
+  assert.equal(agentCard.standards.status, "live_standards_profile");
+  assert.equal(agentCard.standards.url.endsWith("/agents/standards.json"), true);
+  assert.equal(
+    agentCard.standards.liveStandardIds.includes("openapi_3_1"),
+    true,
+  );
+  assert.equal(
+    agentCard.standards.targetStandardIds.includes("mcp_latest"),
+    true,
+  );
+  assert.equal(
+    agentCard.standards.resolutionOrder.includes("preflight_before_write"),
     true,
   );
   assert.equal(
@@ -771,6 +791,66 @@ async function main() {
     true,
   );
 
+  const standardsProfile = buildAgentStandardsProfile();
+  assert.equal(standardsProfile.status, "live_standards_profile");
+  assert.equal(standardsProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    standardsProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/client-kit.json")
+    ),
+    true,
+  );
+  assert.equal(
+    standardsProfile.standards.some(
+      (standard) =>
+        standard.id === "openapi_3_1" &&
+        standard.status === "live_contract_standard" &&
+        standard.currentArtifactVersions.includes("3.1.0")
+    ),
+    true,
+  );
+  assert.equal(
+    standardsProfile.standards.some(
+      (standard) =>
+        standard.id === "asyncapi_2_6" &&
+        standard.currentArtifactVersions.includes("2.6.0")
+    ),
+    true,
+  );
+  assert.equal(
+    standardsProfile.standards.some(
+      (standard) =>
+        standard.id === "mcp_latest" &&
+        standard.status === "target_adapter_standard" &&
+        standard.officialReferences.some((reference) =>
+          reference.url.includes("modelcontextprotocol.io/specification/latest")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    standardsProfile.standards.some(
+      (standard) =>
+        standard.id === "oauth_2_and_bearer" &&
+        standard.doNotUseFor.includes("raw user credential collection")
+    ),
+    true,
+  );
+  assert.equal(
+    standardsProfile.resolutionOrder.some(
+      (step) =>
+        step.id === "load_standards_and_status" &&
+        step.read.some((url) => url.endsWith("/agents/readiness.json"))
+    ),
+    true,
+  );
+  assert.equal(
+    standardsProfile.canonicalBoundary.standardsProfileIsNot.includes(
+      "adapter implementation"
+    ),
+    true,
+  );
+
   const protocolAdapterSamples = await readAgentProtocolAdapterSamples();
   assert.equal(protocolAdapterSamples.status, "target_protocol_sample_pack");
   assert.equal(protocolAdapterSamples.canonicalBoundary.rootObject, "Request");
@@ -893,6 +973,12 @@ async function main() {
   assert.equal(
     readinessProfile.resources.some((resource) =>
       resource.url.endsWith("/agents/journeys.json")
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/standards.json")
     ),
     true,
   );
@@ -1028,6 +1114,12 @@ async function main() {
   const clientKit = buildAgentClientKitProfile();
   assert.equal(clientKit.status, "live_client_manifest");
   assert.equal(clientKit.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    clientKit.resources.some((resource) =>
+      resource.url.endsWith("/agents/standards.json")
+    ),
+    true,
+  );
   assert.equal(
     clientKit.generationOrder.some(
       (step) => step.id === "split_client_authority"
@@ -3480,6 +3572,7 @@ async function main() {
   assert.match(startGuide, /Agent monitoring validation endpoint/);
   assert.match(startGuide, /Agent protocol adapter samples/);
   assert.match(startGuide, /Agent production access packet example/);
+  assert.match(startGuide, /Agent standards profile/);
   assert.match(startGuide, /Agent opportunity card examples/);
   assert.match(startGuide, /Agent opportunity discovery profile/);
   assert.match(startGuide, /Agent optimization preparation endpoint/);
@@ -3641,6 +3734,10 @@ async function main() {
     true,
   );
   assert.equal(
+    Object.hasOwn(discoveryIndex.components.schemas, "AgentStandardsProfile"),
+    true,
+  );
+  assert.equal(
     Object.hasOwn(
       discoveryIndex.components.schemas,
       "AgentEvidenceValidationResult"
@@ -3690,6 +3787,7 @@ async function main() {
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/protocols.md"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/protocols.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/standards.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/protocol-adapter-samples.json"),
     true,
@@ -3708,6 +3806,29 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-protocols"].samplePackUrl.endsWith(
       "/agents/protocol-adapter-samples.json"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-standards"].status,
+    "live_standards_profile",
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-standards"].standards.some(
+      (standard: { id: string; status: string }) =>
+        standard.id === "x402" && standard.status === "target_payment_standard"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-standards"].resolutionOrder.includes(
+      "load_contracts_before_clients"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-standards"].nonAuthority.includes(
+      "credential issuer"
     ),
     true,
   );
@@ -4168,6 +4289,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-journeys.schema.json")?.sourcePath,
     "schemas/json/agent-journeys.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-standards.schema.json")?.sourcePath,
+    "schemas/json/agent-standards.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-completion.schema.json")?.sourcePath,
@@ -5346,6 +5471,13 @@ async function main() {
     "target_protocol_sample_pack"
   );
 
+  const agentStandardsResponse = await getAgentStandards();
+  assert.equal(agentStandardsResponse.status, 200);
+  assert.equal(
+    (await agentStandardsResponse.json()).status,
+    "live_standards_profile"
+  );
+
   const agentRecoveryResponse = await getAgentRecovery();
   assert.equal(agentRecoveryResponse.status, 200);
   assert.equal(
@@ -5423,6 +5555,7 @@ async function main() {
   assert.match(llmsText, /Agent prompt catalog/);
   assert.match(llmsText, /Agent protocol profile JSON/);
   assert.match(llmsText, /Agent protocol adapter samples/);
+  assert.match(llmsText, /Agent standards profile/);
   assert.match(llmsText, /Agent recovery profile/);
   assert.match(llmsText, /Agent readiness profile/);
   assert.match(llmsText, /Agent tool registry/);
@@ -5630,6 +5763,18 @@ async function main() {
   });
   assert.equal(journeySchemaResponse.status, 200);
   assert.equal((await journeySchemaResponse.json()).title, "AgentJourneyProfile");
+
+  const standardsSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({ schema: "agent-standards.schema.json" }),
+    }
+  );
+  assert.equal(standardsSchemaResponse.status, 200);
+  assert.equal(
+    (await standardsSchemaResponse.json()).title,
+    "AgentStandardsProfile"
+  );
 
   const evidenceSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-evidence.schema.json" }),

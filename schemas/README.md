@@ -83,6 +83,7 @@ Recommended naming:
 - `json/agent-prompts.schema.json`
 - `json/agent-workflows.schema.json`
 - `json/agent-protocols.schema.json`
+- `json/agent-standards.schema.json`
 - `json/agent-protocol-adapter-samples.schema.json`
 - `json/agent-recovery.schema.json`
 - `json/agent-readiness.schema.json`
