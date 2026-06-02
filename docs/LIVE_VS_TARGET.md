@@ -120,6 +120,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/intake/validate/route.ts`
 - `apps/web/lib/agent-intake-validation.ts`
 - `apps/web/app/agents/actions/preflight/route.ts`
+- `apps/web/app/agents/action-cards.example.json/route.ts`
 - `apps/web/lib/agent-action-preflight.ts`
 - `apps/web/app/agents/monitoring.json/route.ts`
 - `apps/web/app/agents/monitoring/prepare/route.ts`
@@ -149,6 +150,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/schemas/[schema]/route.ts`
 - `apps/web/app/events/[contract]/route.ts`
 - `apps/web/tests/contracts/agent-discovery.test.ts`
+- `fixtures/agent/action-cards.sample.json`
 - `schemas/json/agent-access-review.schema.json`
 - `schemas/json/agent-access-review-preparation.schema.json`
 - `schemas/json/agent-sandbox.schema.json`
@@ -171,6 +173,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-ux.schema.json`
 - `schemas/json/agent-intake-validation.schema.json`
 - `schemas/json/agent-action-preflight.schema.json`
+- `schemas/json/agent-action-cards.schema.json`
 - `schemas/json/agent-client-kit.schema.json`
 - `schemas/json/agent-journeys.schema.json`
 - `schemas/json/agent-monitoring.schema.json`
@@ -247,6 +250,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/production-access-packet.example.json` packet example, `schemas/json/agent-production-access-packet.schema.json`, and `fixtures/agent/production-access-packet.sample.json` give external agents a checked operator-review packet shape for represented actor, minimal scopes, sandbox evidence, rate limits, human escalation, data handling, idempotency, payment boundary, and target-protocol claims without issuing credentials, granting permission, creating a production sandbox, authorizing spend, or proving completion
 - one public `POST /agents/intake/validate` endpoint and `schemas/json/agent-intake-validation.schema.json` contract validate conformance reports and production access packets before human or operator review without creating a review submission, issuing credentials, granting permission, recording approval, authorizing spend, creating a production sandbox, writing durable history, or proving completion
 - one public `POST /agents/actions/preflight` endpoint and `schemas/json/agent-action-preflight.schema.json` contract validate visible prerequisites for inspect, make-request, apply, submit, monitor, run, and optimize actions without granting permission, recording approval, authorizing spend, publishing artifacts, proposing commitments, mutating requests, writing durable history, or proving completion
+- one public `/agents/action-cards.example.json` example set, `schemas/json/agent-action-cards.schema.json`, and `fixtures/agent/action-cards.sample.json` give agents human-first renderable action cards for making, applying, submitting proof, monitoring, running public solutions, optimizing drafts, and recovering blocked actions without granting permission, recording approval, authorizing payment, proposing commitments, publishing artifacts, mutating requests, writing durable history, or proving completion
 - one public `/agents/completion.json` profile and `schemas/json/agent-completion.schema.json` give agents machine-readable proof packet, artifact, fulfillment, review, payment, and event boundaries for draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims without treating chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, or payment settlement as completion truth by themselves
 - one public `POST /agents/completion/validate` route and `schemas/json/agent-completion-validation.schema.json` validate completion claim packets before agents render proof-submitted, waiting-for-owner, run-started, or completed language without proving completion, closing requests, accepting review, publishing artifacts, advancing fulfillment, authorizing payment, granting permission, or writing durable history
 - one public `/agents/delegation.json` profile and `schemas/json/agent-delegation.schema.json` give agents a machine-readable human-first consent, scope minimization, revocation, and per-action approval profile for account-session, resolver-bearer, target OAuth, and operator-reviewed pilot paths without issuing credentials, granting permission, recording approval, authorizing payment, starting fulfillment, or proving completion

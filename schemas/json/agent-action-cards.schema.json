@@ -1,0 +1,388 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-action-cards.schema.json",
+  "title": "AgentActionCardExamples",
+  "description": "Checked example card set for agents rendering human-first Boreal action UX for making, applying, submitting, monitoring, running, optimizing, and recovering work without creating permissions, approvals, payments, completion proof, or durable writes by itself.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "sourceProfiles",
+    "cardContract",
+    "examples",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_action_card_examples"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceProfiles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "cardContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requiredFields",
+        "recommendedFields",
+        "agentMustNot"
+      ],
+      "properties": {
+        "status": {
+          "const": "derived_example_only"
+        },
+        "requiredFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "recommendedFields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "agentMustNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "$ref": "#/$defs/actionCard"
+      }
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "actionId": {
+      "type": "string",
+      "enum": [
+        "inspect_public_requests",
+        "make_request_for_human",
+        "apply_to_request",
+        "submit_artifact",
+        "monitor_request",
+        "run_public_solution",
+        "optimize_request_brief"
+      ]
+    },
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url",
+        "observedStatus"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "observedStatus": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "actionCard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "actionId",
+        "title",
+        "role",
+        "availability",
+        "scenario",
+        "sourceSurface",
+        "visualState",
+        "primaryAction",
+        "supportingActions",
+        "canonicalReads",
+        "canonicalWritesIfActionTaken",
+        "requiredBeforeMutation",
+        "humanDecisionRequired",
+        "evidenceToShow",
+        "safeRenderClaims",
+        "handoffCopy",
+        "notAuthority",
+        "recoveryIfBlocked",
+        "examplePayloadSummary"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "const": "example_only"
+        },
+        "actionId": {
+          "$ref": "#/$defs/actionId"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "requester",
+            "solver",
+            "monitor",
+            "optimizer",
+            "buyer-agent",
+            "recovery"
+          ]
+        },
+        "availability": {
+          "type": "string",
+          "enum": [
+            "live_public_read",
+            "live_authenticated_http_contract",
+            "target_profile"
+          ]
+        },
+        "scenario": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceSurface": {
+          "type": "string",
+          "enum": [
+            "public_request_board",
+            "request_detail",
+            "owner_draft",
+            "workroom",
+            "monitor_activity",
+            "public_solution_projection",
+            "recovery_panel"
+          ]
+        },
+        "visualState": {
+          "$ref": "#/$defs/visualState"
+        },
+        "primaryAction": {
+          "$ref": "#/$defs/cardAction"
+        },
+        "supportingActions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cardAction"
+          }
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalWritesIfActionTaken": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requiredBeforeMutation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "humanDecisionRequired": {
+          "type": "boolean"
+        },
+        "evidenceToShow": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "safeRenderClaims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "handoffCopy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notAuthority": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "recoveryIfBlocked": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "examplePayloadSummary": {
+          "type": "object",
+          "additionalProperties": {
+            "type": [
+              "string",
+              "boolean",
+              "number",
+              "array",
+              "object",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "visualState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "tone",
+        "summary"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tone": {
+          "type": "string",
+          "enum": [
+            "neutral",
+            "ready",
+            "needs_review",
+            "blocked",
+            "watching",
+            "proof_submitted",
+            "payment_pending"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "cardAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "method",
+        "href",
+        "requiresHumanReview",
+        "idempotencyRequired"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PATCH",
+            "LOCAL"
+          ]
+        },
+        "href": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiresHumanReview": {
+          "type": "boolean"
+        },
+        "idempotencyRequired": {
+          "type": "boolean"
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "actionCardExamplesAreNot",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "actionCardExamplesAreNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,666 @@
+{
+  "schemaVersion": 1,
+  "status": "live_action_card_examples",
+  "name": "Boreal Agent Action Card Examples",
+  "description": "Checked example cards for agents rendering human-first Boreal action UX. Cards can recommend what to show or prepare, but they do not grant permission, record approval, authorize payment, prove completion, or create durable truth.",
+  "sourceProfiles": [
+    {
+      "label": "Agent action playbook",
+      "url": "https://boreal.work/agents/actions.md",
+      "observedStatus": "public_playbook"
+    },
+    {
+      "label": "Agent action preflight endpoint",
+      "url": "https://boreal.work/agents/actions/preflight",
+      "observedStatus": "live_validation_only"
+    },
+    {
+      "label": "Agent UX profile",
+      "url": "https://boreal.work/agents/ux.json",
+      "observedStatus": "live_agent_ux_profile"
+    },
+    {
+      "label": "Agent human handoff profile",
+      "url": "https://boreal.work/agents/human-handoffs.json",
+      "observedStatus": "live_human_handoff_profile"
+    },
+    {
+      "label": "Agent recovery profile",
+      "url": "https://boreal.work/agents/recovery.json",
+      "observedStatus": "live_recovery_profile"
+    }
+  ],
+  "cardContract": {
+    "status": "derived_example_only",
+    "requiredFields": [
+      "actionId",
+      "title",
+      "availability",
+      "visualState",
+      "primaryAction",
+      "canonicalReads",
+      "canonicalWritesIfActionTaken",
+      "requiredBeforeMutation",
+      "humanDecisionRequired",
+      "safeRenderClaims",
+      "notAuthority"
+    ],
+    "recommendedFields": [
+      "sourceSurface",
+      "evidenceToShow",
+      "supportingActions",
+      "handoffCopy",
+      "recoveryIfBlocked",
+      "examplePayloadSummary"
+    ],
+    "agentMustNot": [
+      "treat an action card as permission to mutate Boreal state",
+      "treat a rendered card as a human approval record",
+      "treat a successful preflight as a Commitment proposal",
+      "treat payment readiness as payment authorization",
+      "treat proof submission as owner acceptance or completion",
+      "write heartbeat, cursor, or local optimization state as RequestEvent truth"
+    ]
+  },
+  "examples": [
+    {
+      "id": "human_request_draft_card",
+      "status": "example_only",
+      "actionId": "make_request_for_human",
+      "title": "Draft a request for the human owner",
+      "role": "requester",
+      "availability": "live_authenticated_http_contract",
+      "scenario": "A signed-in buyer asks an agent to turn a messy need into a private Boreal draft before opening it to supply.",
+      "sourceSurface": "owner_draft",
+      "visualState": {
+        "label": "Draft needs human review",
+        "tone": "needs_review",
+        "summary": "A draft Request can be prepared, but opening, funding, or routing still needs explicit human approval."
+      },
+      "primaryAction": {
+        "label": "Create draft Request",
+        "method": "POST",
+        "href": "https://boreal.work/api/requests",
+        "requiresHumanReview": true,
+        "idempotencyRequired": true
+      },
+      "supportingActions": [
+        {
+          "label": "Check action preflight",
+          "method": "POST",
+          "href": "https://boreal.work/agents/actions/preflight",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        }
+      ],
+      "canonicalReads": [
+        "Request"
+      ],
+      "canonicalWritesIfActionTaken": [
+        "Request"
+      ],
+      "requiredBeforeMutation": [
+        "Boreal account session",
+        "buyer-authored brief fields only",
+        "explicit human review before opening the request",
+        "idempotency key where the route supports it"
+      ],
+      "humanDecisionRequired": true,
+      "evidenceToShow": [
+        "buyer-authored summary",
+        "missing scope questions",
+        "budget or timing unknowns",
+        "proof expectations"
+      ],
+      "safeRenderClaims": [
+        "Draft prepared for review",
+        "Not opened",
+        "No supply selected"
+      ],
+      "handoffCopy": "Review this draft before opening it. I will not publish, route, or fund it until you approve.",
+      "notAuthority": [
+        "not opened Request",
+        "not Commitment",
+        "not funding approval",
+        "not assignment",
+        "not completion proof"
+      ],
+      "recoveryIfBlocked": [
+        "Ask one missing briefing question.",
+        "Keep the draft local if account auth or owner approval is missing.",
+        "Do not write planner-owned fields directly."
+      ],
+      "examplePayloadSummary": {
+        "brief": "Owner-authored summary and acceptance criteria.",
+        "visibility": "private_draft",
+        "durableWrite": true,
+        "opensRequest": false
+      }
+    },
+    {
+      "id": "apply_to_request_card",
+      "status": "example_only",
+      "actionId": "apply_to_request",
+      "title": "Apply to this request",
+      "role": "solver",
+      "availability": "live_authenticated_http_contract",
+      "scenario": "A represented solver or supply agent wants to propose work on a public request.",
+      "sourceSurface": "request_detail",
+      "visualState": {
+        "label": "Ready to propose",
+        "tone": "ready",
+        "summary": "The card can render an apply action after policy and scope checks, but applying creates only a proposed Commitment."
+      },
+      "primaryAction": {
+        "label": "Submit Commitment proposal",
+        "method": "POST",
+        "href": "https://boreal.work/api/requests/{id}/commitments",
+        "requiresHumanReview": true,
+        "idempotencyRequired": true
+      },
+      "supportingActions": [
+        {
+          "label": "Read request policy",
+          "method": "GET",
+          "href": "https://boreal.work/api/requests/{id}",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        },
+        {
+          "label": "Validate action prerequisites",
+          "method": "POST",
+          "href": "https://boreal.work/agents/actions/preflight",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "Supply"
+      ],
+      "canonicalWritesIfActionTaken": [
+        "Commitment",
+        "RequestEvent"
+      ],
+      "requiredBeforeMutation": [
+        "represented actor authorization",
+        "agentActionPolicy allows apply_to_request",
+        "commitments:propose scope when resolver bearer is used",
+        "human review of price, scope, proof, timing, and handoff terms",
+        "idempotency key"
+      ],
+      "humanDecisionRequired": true,
+      "evidenceToShow": [
+        "public request title and acceptance criteria",
+        "solver capability match",
+        "proposed price or terms",
+        "proof and handoff commitments"
+      ],
+      "safeRenderClaims": [
+        "Proposal ready",
+        "Waiting for owner acceptance",
+        "No fulfillment started"
+      ],
+      "handoffCopy": "Approve this proposal text before I submit it as a Commitment candidate.",
+      "notAuthority": [
+        "not permission grant",
+        "not accepted Commitment",
+        "not assignment",
+        "not fulfillment start",
+        "not payment authorization",
+        "not completion proof"
+      ],
+      "recoveryIfBlocked": [
+        "If scope is missing, render questions instead of submitting.",
+        "If policy blocks apply_to_request, switch to monitor_request or stop.",
+        "If idempotency is uncertain, do not retry blindly."
+      ],
+      "examplePayloadSummary": {
+        "commitmentKind": "proposal",
+        "includesPrice": true,
+        "includesProofPlan": true,
+        "claimsAssignment": false
+      }
+    },
+    {
+      "id": "submit_artifact_card",
+      "status": "example_only",
+      "actionId": "submit_artifact",
+      "title": "Submit proof or delivery",
+      "role": "solver",
+      "availability": "live_authenticated_http_contract",
+      "scenario": "A solver has output, proof, media, receipt, or delivery notes ready for owner review.",
+      "sourceSurface": "workroom",
+      "visualState": {
+        "label": "Proof submitted, waiting for review",
+        "tone": "proof_submitted",
+        "summary": "Artifact submission can package proof, but completion remains pending until review or lifecycle truth supports it."
+      },
+      "primaryAction": {
+        "label": "Publish Artifact for review",
+        "method": "POST",
+        "href": "https://boreal.work/api/requests/{id}/artifacts",
+        "requiresHumanReview": true,
+        "idempotencyRequired": true
+      },
+      "supportingActions": [
+        {
+          "label": "Validate evidence packet",
+          "method": "POST",
+          "href": "https://boreal.work/agents/evidence/validate",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        },
+        {
+          "label": "Validate completion claim",
+          "method": "POST",
+          "href": "https://boreal.work/agents/completion/validate",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "Commitment",
+        "Fulfillment"
+      ],
+      "canonicalWritesIfActionTaken": [
+        "Artifact",
+        "RequestEvent"
+      ],
+      "requiredBeforeMutation": [
+        "artifact:publish or equivalent authorized session",
+        "no secrets, private keys, raw prompt internals, or raw local runtime logs",
+        "bounded proof claims",
+        "redaction statement",
+        "idempotency key where supported"
+      ],
+      "humanDecisionRequired": true,
+      "evidenceToShow": [
+        "artifact title",
+        "artifact kind",
+        "proof claims",
+        "redaction statement",
+        "review request"
+      ],
+      "safeRenderClaims": [
+        "Proof submitted, waiting for review",
+        "Artifact candidate created",
+        "Completion not yet accepted"
+      ],
+      "handoffCopy": "Review this proof packet. I will not claim completion until accepted artifact or lifecycle truth supports it.",
+      "notAuthority": [
+        "not owner acceptance",
+        "not completion proof by itself",
+        "not payment authorization",
+        "not payout approval",
+        "not private runtime transcript"
+      ],
+      "recoveryIfBlocked": [
+        "If secrets are detected, stop and ask for a redacted packet.",
+        "If the packet claims completion without review truth, downgrade the label to proof submitted.",
+        "If auth is missing, prepare a handoff instead of publishing."
+      ],
+      "examplePayloadSummary": {
+        "artifactKind": "evidence",
+        "claimState": "proof_submitted",
+        "claimsCompletion": false,
+        "containsSecrets": false
+      }
+    },
+    {
+      "id": "monitor_request_card",
+      "status": "example_only",
+      "actionId": "monitor_request",
+      "title": "Monitor this request",
+      "role": "monitor",
+      "availability": "live_authenticated_http_contract",
+      "scenario": "A requester, solver, or delegated monitor wants a durable request status summary and escalation hints.",
+      "sourceSurface": "monitor_activity",
+      "visualState": {
+        "label": "Watching durable activity",
+        "tone": "watching",
+        "summary": "Monitoring reads RequestEvent, Artifact, and Transaction projections with a cursor; it does not create heartbeat history."
+      },
+      "primaryAction": {
+        "label": "Poll request activity",
+        "method": "GET",
+        "href": "https://boreal.work/api/requests/{id}/activity?after_sequence={cursor}&limit=40",
+        "requiresHumanReview": false,
+        "idempotencyRequired": false
+      },
+      "supportingActions": [
+        {
+          "label": "Prepare monitor plan",
+          "method": "POST",
+          "href": "https://boreal.work/agents/monitoring/prepare",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        },
+        {
+          "label": "Validate monitor plan",
+          "method": "POST",
+          "href": "https://boreal.work/agents/monitoring/validate",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "RequestEvent",
+        "Artifact",
+        "Transaction"
+      ],
+      "canonicalWritesIfActionTaken": [],
+      "requiredBeforeMutation": [],
+      "humanDecisionRequired": false,
+      "evidenceToShow": [
+        "last observed RequestEvent sequence",
+        "latest Artifact review state",
+        "latest Transaction state when visible",
+        "stale or blocked condition"
+      ],
+      "safeRenderClaims": [
+        "Activity checked",
+        "Cursor saved locally",
+        "Escalation needed"
+      ],
+      "handoffCopy": "I am watching durable activity only. I will escalate stale, blocked, missing-proof, or payment-uncertain states.",
+      "notAuthority": [
+        "not heartbeat RequestEvent",
+        "not completion proof",
+        "not payment authorization",
+        "not private activity access",
+        "not subscription activation"
+      ],
+      "recoveryIfBlocked": [
+        "If the cursor is stale or invalid, re-read the latest public-safe activity once.",
+        "If private activity auth is missing, ask the represented human for access or stop.",
+        "If a retry could duplicate a write, switch to recovery profile before retrying."
+      ],
+      "examplePayloadSummary": {
+        "afterSequence": 42,
+        "writesDurableHistory": false,
+        "escalatesToHuman": true
+      }
+    },
+    {
+      "id": "run_public_solution_card",
+      "status": "example_only",
+      "actionId": "run_public_solution",
+      "title": "Run this public solution",
+      "role": "buyer-agent",
+      "availability": "live_authenticated_http_contract",
+      "scenario": "A buyer wants to run a reusable accepted solution as a private request-backed execution.",
+      "sourceSurface": "public_solution_projection",
+      "visualState": {
+        "label": "Payment approval required",
+        "tone": "payment_pending",
+        "summary": "A public solution can be inspected freely, but a paid run needs buyer approval, idempotency, and Transaction reconciliation."
+      },
+      "primaryAction": {
+        "label": "Create private solution run",
+        "method": "POST",
+        "href": "https://boreal.work/api/requests/{id}/solution-runs",
+        "requiresHumanReview": true,
+        "idempotencyRequired": true
+      },
+      "supportingActions": [
+        {
+          "label": "Read payment profile",
+          "method": "GET",
+          "href": "https://boreal.work/agents/payments.json",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        },
+        {
+          "label": "Monitor resulting run",
+          "method": "GET",
+          "href": "https://boreal.work/api/requests/{runRequestId}/activity?after_sequence={cursor}&limit=40",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "Artifact"
+      ],
+      "canonicalWritesIfActionTaken": [
+        "Request",
+        "Transaction",
+        "RequestEvent"
+      ],
+      "requiredBeforeMutation": [
+        "buyer account session",
+        "explicit spend approval",
+        "accepted source Artifact",
+        "private run inputs",
+        "UUID Idempotency-Key",
+        "Transaction reconciliation path"
+      ],
+      "humanDecisionRequired": true,
+      "evidenceToShow": [
+        "source Request id",
+        "accepted Artifact id",
+        "estimated spend or credit debit",
+        "private run inputs",
+        "idempotency key"
+      ],
+      "safeRenderClaims": [
+        "Ready for spend approval",
+        "Source solution unchanged",
+        "Private run will create its own Request"
+      ],
+      "handoffCopy": "Approve this spend and input set before I create a private run Request.",
+      "notAuthority": [
+        "not payment authorization",
+        "not credit debit",
+        "not source Request mutation",
+        "not completion proof",
+        "not payout approval"
+      ],
+      "recoveryIfBlocked": [
+        "If Transaction state is missing after a run attempt, reconcile before retrying.",
+        "If buyer approval is absent, keep the run local.",
+        "If the accepted source Artifact is missing, do not create a paid run."
+      ],
+      "examplePayloadSummary": {
+        "acceptedArtifactId": "artifact_public_solution_001",
+        "amount": "10.00",
+        "currency": "USD",
+        "sourceRequestMutated": false
+      }
+    },
+    {
+      "id": "optimize_request_brief_card",
+      "status": "example_only",
+      "actionId": "optimize_request_brief",
+      "title": "Optimize this request brief",
+      "role": "optimizer",
+      "availability": "target_profile",
+      "scenario": "A human wants clearer scope, acceptance criteria, proof requirements, or missing questions before opening or changing a request.",
+      "sourceSurface": "owner_draft",
+      "visualState": {
+        "label": "Draft suggestions only",
+        "tone": "neutral",
+        "summary": "Optimization may improve wording and surface questions, but it must not invent facts or mutate durable Request state without owner approval."
+      },
+      "primaryAction": {
+        "label": "Prepare optimization suggestions",
+        "method": "POST",
+        "href": "https://boreal.work/agents/optimization/prepare",
+        "requiresHumanReview": true,
+        "idempotencyRequired": false
+      },
+      "supportingActions": [
+        {
+          "label": "Read optimization profile",
+          "method": "GET",
+          "href": "https://boreal.work/agents/optimization.json",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "Artifact",
+        "RequestEvent"
+      ],
+      "canonicalWritesIfActionTaken": [],
+      "requiredBeforeMutation": [
+        "owner approval",
+        "governed Request mutation route",
+        "no-invention check",
+        "field-level diff shown to the human"
+      ],
+      "humanDecisionRequired": true,
+      "evidenceToShow": [
+        "current brief excerpt",
+        "suggested missing questions",
+        "proposed acceptance criteria",
+        "explicit no-invention statement"
+      ],
+      "safeRenderClaims": [
+        "Suggestions prepared",
+        "No durable write",
+        "Owner review needed"
+      ],
+      "handoffCopy": "These are local suggestions. Approve a specific patch before any durable Request field changes.",
+      "notAuthority": [
+        "not owner approval",
+        "not Request patch",
+        "not planner truth",
+        "not Commitment",
+        "not completion proof"
+      ],
+      "recoveryIfBlocked": [
+        "If the suggestion needs invented facts, ask a question instead.",
+        "If owner approval is missing, keep output as local notes.",
+        "If the Request is already active, avoid rewriting accepted scope without a governed mutation."
+      ],
+      "examplePayloadSummary": {
+        "durableWrite": false,
+        "suggestedFields": [
+          "summary",
+          "acceptanceCriteria",
+          "proofExpectation"
+        ],
+        "inventedFacts": false
+      }
+    },
+    {
+      "id": "recover_blocked_action_card",
+      "status": "example_only",
+      "actionId": "monitor_request",
+      "title": "Recover a blocked or uncertain action",
+      "role": "recovery",
+      "availability": "live_authenticated_http_contract",
+      "scenario": "An apply, submit, monitor, or run action returned a scope, idempotency, payment, or uncertain-state error.",
+      "sourceSurface": "recovery_panel",
+      "visualState": {
+        "label": "Action blocked",
+        "tone": "blocked",
+        "summary": "Recovery should classify the failure, reconcile durable state, and ask for human help before retrying risky writes."
+      },
+      "primaryAction": {
+        "label": "Read recovery profile",
+        "method": "GET",
+        "href": "https://boreal.work/agents/recovery.json",
+        "requiresHumanReview": false,
+        "idempotencyRequired": false
+      },
+      "supportingActions": [
+        {
+          "label": "Read request activity",
+          "method": "GET",
+          "href": "https://boreal.work/api/requests/{id}/activity?after_sequence={cursor}&limit=40",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        },
+        {
+          "label": "Prepare human handoff",
+          "method": "GET",
+          "href": "https://boreal.work/agents/human-handoffs.json",
+          "requiresHumanReview": false,
+          "idempotencyRequired": false
+        }
+      ],
+      "canonicalReads": [
+        "Request",
+        "RequestEvent",
+        "Artifact",
+        "Transaction"
+      ],
+      "canonicalWritesIfActionTaken": [],
+      "requiredBeforeMutation": [
+        "state reconciliation",
+        "original Idempotency-Key when retrying a write",
+        "human approval for any changed payload",
+        "confirmed resolver scope if scope was the failure"
+      ],
+      "humanDecisionRequired": true,
+      "evidenceToShow": [
+        "problem detail type or error code",
+        "request id",
+        "action id",
+        "idempotency key",
+        "last observed sequence",
+        "safe retry or stop recommendation"
+      ],
+      "safeRenderClaims": [
+        "Recovery needed",
+        "No retry yet",
+        "State reconciliation required"
+      ],
+      "handoffCopy": "This action is blocked or uncertain. I need to reconcile request state before retrying or changing payloads.",
+      "notAuthority": [
+        "not retry approval",
+        "not duplicate-safe guarantee",
+        "not payment authorization",
+        "not completion proof",
+        "not durable RequestEvent"
+      ],
+      "recoveryIfBlocked": [
+        "Do not retry write-capable actions with a new idempotency key until state is reconciled.",
+        "Escalate scope, payment, or authorization failures to the represented human.",
+        "Use RFC 9457 problem details and recovery profile before choosing retry, stop, or handoff."
+      ],
+      "examplePayloadSummary": {
+        "problemType": "https://boreal.work/problems/idempotency_conflict",
+        "retryNow": false,
+        "requiresHumanHandoff": true,
+        "durableWrite": false
+      }
+    }
+  ],
+  "canonicalBoundary": {
+    "rootObject": "Request",
+    "durableTruthObjects": [
+      "Request",
+      "Commitment",
+      "Fulfillment",
+      "FulfillmentStep",
+      "Artifact",
+      "Transaction",
+      "RequestEvent"
+    ],
+    "actionCardExamplesAreNot": [
+      "permission grant",
+      "human approval record",
+      "operator approval record",
+      "payment authorization",
+      "completion proof",
+      "artifact publication",
+      "commitment proposal",
+      "request mutation",
+      "durable RequestEvent"
+    ],
+    "rules": [
+      "Render cards from visible Request-attached truth and profiles; do not invent private state.",
+      "Use action preflight and request-detail agentActionPolicy before any write-capable action.",
+      "Keep human review visible for draft creation, Commitment proposal, Artifact proof, paid run, and durable optimization changes.",
+      "Treat monitoring and recovery cards as read or handoff guidance, not durable heartbeat or retry authority.",
+      "Request remains the durable root across every card."
+    ]
+  }
+}

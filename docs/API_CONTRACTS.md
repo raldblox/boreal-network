@@ -398,6 +398,7 @@ Read-only public discovery surfaces:
 - `/llms.txt` for short public guidance and claim boundaries
 - `/agents/start.md` for practical agent onboarding
 - `/agents/actions.md` for contract-linked inspect, make-request, apply, submit, monitor, run, and optimize walkthroughs
+- `/agents/action-cards.example.json` for checked human-first action card examples covering make-request, apply, submit, monitor, run, optimize, and recovery rendering without authority overclaims
 - `/agents/actions/preflight` for validation-only action prerequisite checks before agents attempt governed Boreal routes
 - `/agents/client-kit.json` for a machine-readable client-generation manifest over OpenAPI, JSON Schema, AsyncAPI, validation and preparation helpers, sandbox flows, and target protocol boundaries
 - `/agents/access-review.json` for machine-readable operator-review policy around requested scopes, quotas, revocation, decision outcomes, and target-adapter claims
@@ -458,6 +459,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-production-access-packet.schema.json` for the checked production access packet example shape used as operator-review input
 - `/schemas/agent-intake-validation.schema.json` for the validation-only request and response envelope used to preflight conformance reports and production access packets
 - `/schemas/agent-action-preflight.schema.json` for the validation-only request and response envelope used to preflight action prerequisites
+- `/schemas/agent-action-cards.schema.json` for the checked action card example shape agents can use to render human-first action, handoff, evidence, recovery, and non-authority fields
 - `/schemas/agent-client-kit.schema.json` for the machine-readable agent client-generation manifest shape
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
 - `/schemas/agent-completion-validation.schema.json` for the validation-only request and response envelope used to preflight completion claim packets
@@ -510,6 +512,14 @@ The catalog is descriptive and contract-linked. It labels whether an action is
 public read, live authenticated HTTP, or target direction, and it includes
 resolver scopes where live endpoints enforce them. It does not bypass endpoint
 authorization, idempotency, or canonical lifecycle rules.
+
+The public action card example set at `/agents/action-cards.example.json` is a
+descriptive render contract for human-first agent UX. It shows safe labels,
+primary and supporting actions, evidence to show, required preconditions,
+canonical reads and writes if a governed route is later called, and recovery
+handoffs. It is not a permission grant, human or operator approval record,
+payment authorization, `Commitment` proposal, `Artifact` publication, request
+mutation, durable `RequestEvent`, or completion proof.
 
 The public agent client kit at `/agents/client-kit.json` is a descriptive
 manifest for generating local clients from existing OpenAPI, JSON Schema,

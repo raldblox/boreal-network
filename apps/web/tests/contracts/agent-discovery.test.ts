@@ -36,6 +36,7 @@ import {
   findJsonSchemaAsset,
   findOpenApiAsset,
   readAgentConformanceReportExample,
+  readAgentActionCardExamples,
   readAgentErrorExamples,
   readAgentHumanHandoffPacketExamples,
   readAgentOpportunityCardExamples,
@@ -89,6 +90,7 @@ import { POST as postAgentMonitoringPreparation } from "@/app/agents/monitoring/
 import { POST as postAgentMonitoringValidation } from "@/app/agents/monitoring/validate/route";
 import { GET as getAgentMonitorWebhooks } from "@/app/agents/monitor-webhooks.md/route";
 import { GET as getAgentOnboarding } from "@/app/agents/onboarding.json/route";
+import { GET as getAgentActionCardExamples } from "@/app/agents/action-cards.example.json/route";
 import { GET as getAgentOpportunityCardExamples } from "@/app/agents/opportunity-cards.example.json/route";
 import { GET as getAgentOpportunities } from "@/app/agents/opportunities.json/route";
 import { GET as getAgentOptimization } from "@/app/agents/optimization.json/route";
@@ -214,6 +216,19 @@ async function main() {
   );
   assert.equal(
     agentCard.actionPreflightUrl.endsWith("/agents/actions/preflight"),
+    true,
+  );
+  assert.equal(
+    agentCard.actionCardExamplesUrl.endsWith("/agents/action-cards.example.json"),
+    true,
+  );
+  assert.equal(agentCard.actionCards.status, "live_action_card_examples");
+  assert.equal(
+    agentCard.actionCards.actionIds.includes("submit_artifact"),
+    true,
+  );
+  assert.equal(
+    agentCard.actionCards.nonAuthority.includes("completion proof"),
     true,
   );
   assert.equal(
@@ -2850,6 +2865,70 @@ async function main() {
     true,
   );
 
+  const actionCards = await readAgentActionCardExamples();
+  assert.equal(actionCards.status, "live_action_card_examples");
+  assert.equal(actionCards.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    actionCards.examples.some(
+      (card: {
+        actionId: string;
+        canonicalWritesIfActionTaken: string[];
+        humanDecisionRequired: boolean;
+      }) =>
+        card.actionId === "apply_to_request" &&
+        card.canonicalWritesIfActionTaken.includes("Commitment") &&
+        card.humanDecisionRequired
+    ),
+    true,
+  );
+  assert.equal(
+    actionCards.examples.some(
+      (card: {
+        actionId: string;
+        canonicalWritesIfActionTaken: string[];
+        safeRenderClaims: string[];
+      }) =>
+        card.actionId === "submit_artifact" &&
+        card.canonicalWritesIfActionTaken.includes("Artifact") &&
+        card.safeRenderClaims.includes("Proof submitted, waiting for review")
+    ),
+    true,
+  );
+  assert.equal(
+    actionCards.examples.some(
+      (card: { actionId: string; canonicalWritesIfActionTaken: string[] }) =>
+        card.actionId === "optimize_request_brief" &&
+        card.canonicalWritesIfActionTaken.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    actionCards.examples.some(
+      (card: { id: string; notAuthority: string[] }) =>
+        card.id === "recover_blocked_action_card" &&
+        card.notAuthority.includes("not duplicate-safe guarantee")
+    ),
+    true,
+  );
+  assert.equal(
+    actionCards.canonicalBoundary.actionCardExamplesAreNot.includes(
+      "human approval record"
+    ),
+    true,
+  );
+  assert.equal(
+    actionCards.canonicalBoundary.actionCardExamplesAreNot.includes(
+      "payment authorization"
+    ),
+    true,
+  );
+  assert.equal(
+    actionCards.canonicalBoundary.actionCardExamplesAreNot.includes(
+      "completion proof"
+    ),
+    true,
+  );
+
   const optimizationProfile = buildAgentOptimizationProfile();
   assert.equal(optimizationProfile.status, "live_optimization_profile");
   assert.equal(optimizationProfile.canonicalBoundary.rootObject, "Request");
@@ -3529,6 +3608,7 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/human-handoff-packets\.example\.json/);
   assert.match(startGuide, /GET \/agents\/http\.json/);
   assert.match(startGuide, /GET \/agents\/ux\.json/);
+  assert.match(startGuide, /GET \/agents\/action-cards\.example\.json/);
   assert.match(startGuide, /POST \/agents\/actions\/preflight/);
   assert.match(startGuide, /POST \/agents\/intake\/validate/);
   assert.match(startGuide, /GET \/agents\/monitoring\.json/);
@@ -3547,6 +3627,7 @@ async function main() {
   assert.match(startGuide, /POST \/agents\/access-review\/prepare/);
   assert.match(startGuide, /POST \/agents\/monitoring\/prepare/);
   assert.match(startGuide, /Agent action playbook/);
+  assert.match(startGuide, /Agent action card examples/);
   assert.match(startGuide, /Agent access review profile/);
   assert.match(startGuide, /Agent access review preparation endpoint/);
   assert.match(startGuide, /Agent auth preparation endpoint/);
@@ -3598,6 +3679,22 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex["x-boreal-agent-action-cards"].status,
+    "live_action_card_examples"
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-action-cards"].coveredActionIds.includes(
+      "apply_to_request"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-action-cards"].nonAuthority.includes(
+      "human approval record"
+    ),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-contracts"].jsonSchemas.some((asset) =>
       asset.url.endsWith("/schemas/request.schema.json")
     ),
@@ -3613,6 +3710,14 @@ async function main() {
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/actions.md"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/action-cards.example.json"),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(discoveryIndex.components.schemas, "AgentActionCardExamples"),
+    true,
+  );
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/actions/preflight"),
     true,
@@ -4281,6 +4386,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-action-preflight.schema.json")?.sourcePath,
     "schemas/json/agent-action-preflight.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-action-cards.schema.json")?.sourcePath,
+    "schemas/json/agent-action-cards.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-client-kit.schema.json")?.sourcePath,
@@ -5294,6 +5403,13 @@ async function main() {
     "live_onboarding_profile"
   );
 
+  const agentActionCardExamplesResponse = await getAgentActionCardExamples();
+  assert.equal(agentActionCardExamplesResponse.status, 200);
+  assert.equal(
+    (await agentActionCardExamplesResponse.json()).status,
+    "live_action_card_examples"
+  );
+
   const agentOpportunityCardExamplesResponse =
     await getAgentOpportunityCardExamples();
   assert.equal(agentOpportunityCardExamplesResponse.status, 200);
@@ -5522,6 +5638,7 @@ async function main() {
   assert.match(llmsText, /Agent access review profile/);
   assert.match(llmsText, /Agent access review preparation endpoint/);
   assert.match(llmsText, /Agent action playbook/);
+  assert.match(llmsText, /Agent action card examples/);
   assert.match(llmsText, /Agent action preflight endpoint/);
   assert.match(llmsText, /Agent client kit/);
   assert.match(llmsText, /Agent auth profile/);
@@ -5698,6 +5815,20 @@ async function main() {
   assert.equal(
     (await actionPreflightSchemaResponse.json()).title,
     "AgentActionPreflight"
+  );
+
+  const actionCardsSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-action-cards.schema.json",
+      }),
+    }
+  );
+  assert.equal(actionCardsSchemaResponse.status, 200);
+  assert.equal(
+    (await actionCardsSchemaResponse.json()).title,
+    "AgentActionCardExamples"
   );
 
   const clientKitSchemaResponse = await getJsonSchema(

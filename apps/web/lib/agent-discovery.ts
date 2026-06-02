@@ -48,6 +48,7 @@ export const agentDiscoveryPaths = {
   agentAuthPrepare: "/agents/auth/prepare",
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
+  agentActionCardExamples: "/agents/action-cards.example.json",
   agentActionPreflight: "/agents/actions/preflight",
   agentClientKit: "/agents/client-kit.json",
   agentConformance: "/agents/conformance.json",
@@ -544,6 +545,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Checked action card example schema for agents rendering human-first apply, submit, monitor, run, optimize, and recovery UX without creating permission, approval, payment, or completion truth.",
+    routePath: "/schemas/agent-action-cards.schema.json",
+    sourcePath: "schemas/json/agent-action-cards.schema.json",
+    standard: "json_schema",
+    title: "Agent action card examples",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable client-generation manifest schema for agents consuming Boreal OpenAPI, JSON Schema, AsyncAPI, validation, preparation, sandbox, and target protocol surfaces.",
     routePath: "/schemas/agent-client-kit.schema.json",
     sourcePath: "schemas/json/agent-client-kit.schema.json",
@@ -805,6 +815,7 @@ export function buildAgentCard() {
     url: absoluteUrl("/"),
     documentationUrl: absoluteUrl(agentDiscoveryPaths.agentStart),
     accessReviewProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAccessReview),
+    actionCardExamplesUrl: absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
     actionPreflightUrl: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
     authProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
     authPrepareUrl: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
@@ -875,6 +886,22 @@ export function buildAgentCard() {
         "Write-capable actions require a Boreal account session or approved resolver bearer token.",
         "Sandbox mock credentials are contract samples only and are not accepted by production endpoints.",
         "OAuth-compatible external-agent auth is target direction, not a live claim in this card.",
+      ],
+    },
+    actionCards: {
+      url: absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
+      status: "live_action_card_examples",
+      actionIds: buildAgentActionCatalog().map((action) => action.id),
+      nonAuthority: [
+        "permission grant",
+        "human approval record",
+        "operator approval record",
+        "payment authorization",
+        "completion proof",
+        "artifact publication",
+        "commitment proposal",
+        "request mutation",
+        "durable RequestEvent",
       ],
     },
     accessReview: {
@@ -1438,6 +1465,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent card: [${agentDiscoveryPaths.agentCard}](${absoluteUrl(agentDiscoveryPaths.agentCard)})
 - Agent-readable overview: [${agentDiscoveryPaths.llms}](${absoluteUrl(agentDiscoveryPaths.llms)})
 - Agent action playbook: [${agentDiscoveryPaths.agentActions}](${absoluteUrl(agentDiscoveryPaths.agentActions)})
+- Agent action card examples: [${agentDiscoveryPaths.agentActionCardExamples}](${absoluteUrl(agentDiscoveryPaths.agentActionCardExamples)})
 - Agent action preflight endpoint: [${agentDiscoveryPaths.agentActionPreflight}](${absoluteUrl(agentDiscoveryPaths.agentActionPreflight)})
 - Agent access review profile: [${agentDiscoveryPaths.agentAccessReview}](${absoluteUrl(agentDiscoveryPaths.agentAccessReview)})
 - Agent access review preparation endpoint: [${agentDiscoveryPaths.agentAccessReviewPrepare}](${absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare)})
@@ -1834,6 +1862,12 @@ For deterministic public opportunity discovery and fit ranking without mutation 
 GET ${agentDiscoveryPaths.agentOpportunities}
 \`\`\`
 
+For deterministic action card examples covering make, apply, submit proof, monitor, run, optimize, and recovery UX, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentActionCardExamples}
+\`\`\`
+
 For deterministic opportunity card examples covering apply, monitor, run, and optimize recommendations, agents can read:
 
 \`\`\`http
@@ -2124,6 +2158,25 @@ export function buildOpenApiDiscoveryIndex() {
                 "Markdown walkthrough for inspect, apply, submit, monitor, run, and optimize agent intents.",
               content: {
                 "text/markdown": { schema: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+      "/agents/action-cards.example.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary: "Read Boreal's example agent action cards.",
+          responses: {
+            "200": {
+              description:
+                "JSON example card set for rendering human-first apply, submit, monitor, run, optimize, and recovery actions without permission, approval, payment, completion, or mutation authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentActionCardExamples",
+                  },
+                },
               },
             },
           },
@@ -4783,6 +4836,26 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentActionCardExamples: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "cardContract",
+            "examples",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_action_card_examples" },
+            cardContract: { type: "object" },
+            examples: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentOpportunityCardExamples: {
           type: "object",
           required: [
@@ -5001,6 +5074,23 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-contracts": contracts,
     "x-boreal-agent-actions": buildAgentActionCatalog(),
+    "x-boreal-agent-action-cards": {
+      url: absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
+      status: "live_action_card_examples",
+      schemaUrl: absoluteUrl("/schemas/agent-action-cards.schema.json"),
+      coveredActionIds: buildAgentActionCatalog().map((action) => action.id),
+      nonAuthority: [
+        "permission grant",
+        "human approval record",
+        "operator approval record",
+        "payment authorization",
+        "completion proof",
+        "artifact publication",
+        "commitment proposal",
+        "request mutation",
+        "durable RequestEvent",
+      ],
+    },
     "x-boreal-agent-action-preflight": {
       url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
       status: "live_validation_only",
@@ -8468,6 +8558,10 @@ export function buildAgentUxProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
       },
       {
+        label: "Agent action card examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
+      },
+      {
         label: "Agent human delegation profile",
         url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
       },
@@ -9034,6 +9128,10 @@ export function buildAgentJourneyProfile() {
       {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent action card examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
       },
       {
         label: "Agent tool registry",
@@ -11513,6 +11611,10 @@ export function buildAgentClientKitProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
       },
       {
+        label: "Agent action card examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
+      },
+      {
         label: "Agent standards profile",
         url: absoluteUrl(agentDiscoveryPaths.agentStandards),
       },
@@ -11543,6 +11645,7 @@ export function buildAgentClientKitProfile() {
           absoluteUrl(agentDiscoveryPaths.agentCard),
           absoluteUrl(agentDiscoveryPaths.llms),
           absoluteUrl(agentDiscoveryPaths.agentStart),
+          absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
         ],
         outputs: [
           "public capability map",
@@ -13130,6 +13233,10 @@ export function buildAgentReadinessProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentActions),
       },
       {
+        label: "Agent action card examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
+      },
+      {
         label: "Agent client kit",
         url: absoluteUrl(agentDiscoveryPaths.agentClientKit),
       },
@@ -14039,6 +14146,10 @@ export function buildAgentWorkflowCatalog() {
     resources: [
       { label: "Agent start guide", url: absoluteUrl(agentDiscoveryPaths.agentStart) },
       { label: "Agent action playbook", url: absoluteUrl(agentDiscoveryPaths.agentActions) },
+      {
+        label: "Agent action card examples",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
+      },
       {
         label: "Agent contract sandbox",
         url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
@@ -15434,6 +15545,15 @@ export async function readAgentOpportunityCardExamples() {
     getFixturesRoot(),
     "agent",
     "opportunity-cards.sample.json"
+  );
+  return JSON.parse(await readFile(filePath, "utf8"));
+}
+
+export async function readAgentActionCardExamples() {
+  const filePath = path.join(
+    getFixturesRoot(),
+    "agent",
+    "action-cards.sample.json"
   );
   return JSON.parse(await readFile(filePath, "utf8"));
 }
