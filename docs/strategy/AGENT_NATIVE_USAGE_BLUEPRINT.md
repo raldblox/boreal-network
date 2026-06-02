@@ -108,6 +108,7 @@ Current assets that agents can eventually build on:
 - A machine-readable payment profile exists through `/agents/payments.json` and `schemas/json/agent-payments.schema.json`, mapping buyer-credit, direct funding, paid solution runs, idempotency, x402 target boundaries, and `Transaction` reconciliation.
 - A machine-readable prompt catalog exists through `/agents/prompts.json` and `schemas/json/agent-prompts.schema.json`, mapping safe briefing, applying, proof submission, monitoring, optimization, and recovery prompts below durable truth.
 - A machine-readable protocol profile exists through `/agents/protocols.json` and `schemas/json/agent-protocols.schema.json`, mapping MCP, A2A, and x402 adapter concepts below Boreal canonical truth.
+- Decision `0024-agent-protocol-gateway-topology` answers the live adapter topology question: `apps/web` remains public discovery and canonical HTTP, while future MCP/A2A adapters should live behind a gateway over existing contracts.
 - A machine-readable protocol adapter sample pack exists through `/agents/protocol-adapter-samples.json`, `schemas/json/agent-protocol-adapter-samples.schema.json`, and `fixtures/agent/protocol-adapter-samples.sample.json`, showing target-only MCP, A2A, and x402 payload mappings without making adapters live.
 - A machine-readable recovery profile exists through `/agents/recovery.json` and `schemas/json/agent-recovery.schema.json`, mapping auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and escalation behavior for agents.
 - A machine-readable readiness profile exists through `/agents/readiness.json` and `schemas/json/agent-readiness.schema.json`, mapping live versus target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities.
@@ -141,8 +142,8 @@ Current gaps to close before Boreal is truly agent-native:
 - the first machine-readable optimization profile and preparation endpoint now tell agents how to improve briefs, proposals, evidence packets, monitor updates, and public-solution run inputs without inventing facts or mutating durable truth without approval, but owner-approved diff previews and semantic validators remain target direction
 - the first machine-readable payment profile now tells agents when inspection is free, when account-session spend authority is required, which payment mutations need idempotency, how buyer credit and paid runs reconcile into `Transaction`, and why x402 remains target-only until explicit endpoint activation
 - the first machine-readable prompt catalog now gives agents ready prompt templates for briefing, applying, proof submission, monitoring, optimization, and recovery, but versioned prompt packs, prompt evals, and signed distribution remain target direction
-- no live MCP server for Boreal resources and mutation tools
-- no A2A adapter that maps A2A tasks/artifacts onto Boreal requests, fulfillments, and artifacts
+- no live MCP gateway for Boreal resources and mutation tools
+- no A2A gateway or adapter that maps A2A tasks/artifacts onto Boreal requests, fulfillments, and artifacts
 - no live x402 or wallet-based execution payment endpoint in the canonical web app
 - the first MCP/A2A/x402 boundary profile now exists, but implementation adapters are not live yet
 - the first machine-readable MCP/A2A/x402 protocol profile and target-only sample pack now exist, so agents can read adapter mappings, sample payloads, non-goals, implementation order, and canon boundaries without scraping markdown
@@ -1008,7 +1009,7 @@ Acceptance:
 
 Deliverables:
 
-- Boreal MCP server or gateway workspace
+- Boreal MCP gateway workspace following decision `0024-agent-protocol-gateway-topology`
 - resource list for public requests, request details, schemas, activity, and artifacts - first profile listed in `/agents/protocols.md` and `standards/agent-protocol-profile.md`
 - tools for propose commitment, publish artifact, monitor request, run public solution, payment reconciliation, draft optimization, validation, and preparation - first machine-readable registry is live in `/agents/tools.json`, while the live MCP server remains target
 - prompts for briefing, applying, submitting proof, and plan optimization - first profile listed in `/agents/protocols.md` and `standards/agent-protocol-profile.md`
@@ -1120,8 +1121,8 @@ Boreal is agent-ready when all of these are true:
 ## Open Decisions
 
 - Should external agent auth be OAuth-compatible from day one, or should resolver-style approval be the first write-capable path?
-- Should Boreal's MCP server live inside `apps/web`, a new `apps/gateway-agent`, or a package plus deployable gateway?
-- Should A2A support be a public endpoint on web or a separate gateway?
+- Which read-only MCP resources should ship first once `packages/agent-protocol` and `apps/gateway-agent` are activated?
+- Which A2A task operations should ship first after the request-bound write path, sandbox credentials, and operator-review rules are proven?
 - Which schemas should be exposed publicly before private write APIs are stable?
 - Which public solution run types should be x402-capable first?
 - What rate limits and review queues are needed before public agent proposals are enabled?

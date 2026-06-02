@@ -53,6 +53,23 @@ Target direction:
 - production sandbox credentials and isolated write-sandbox runner
 - external-agent auth beyond current session and resolver-token lanes
 
+## Gateway Topology
+
+Future live MCP and A2A adapters should follow [decision 0024](../docs/decisions/0024-agent-protocol-gateway-topology.md).
+
+`apps/web` remains the public discovery, HTTP contract, schema, validation, and preparation surface.
+
+A future live adapter should be a gateway over those contracts, not a second backend.
+
+Preferred future shape:
+
+- shared protocol mapping code in a role-named package such as `packages/agent-protocol`
+- deployable protocol bridge in `apps/gateway-agent` when live adapter work is actually activated
+
+Do not create either workspace without the required repo topology, ownership, local `README.md`, local `AGENTS.md`, and validation updates.
+
+The gateway must call or enforce existing OpenAPI, JSON Schema, AsyncAPI, auth, resolver-scope, account-session, idempotency, validation, preparation, payment, and completion boundaries.
+
 ## Protocol Layer Map
 
 | Protocol | Boreal role | Canonical boundary |
