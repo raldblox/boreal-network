@@ -5,6 +5,7 @@ import {
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
 import {
+  buildRequestAgentActionCardHints,
   buildRequestAgentActionPolicy,
   toPublicRequestPoolEntry,
   type BorealRequestDraft,
@@ -144,15 +145,18 @@ export async function GET(
     }
   }
 
+  const agentActionPolicy = buildRequestAgentActionPolicy({
+    actor: toRequestAgentActionPolicyActor(actor),
+    request: requestDraft,
+  });
+
   return Response.json(
     {
       request: isOwner
         ? requestDraft
         : toPublicRequestPoolEntry(requestDraft),
-      agentActionPolicy: buildRequestAgentActionPolicy({
-        actor: toRequestAgentActionPolicyActor(actor),
-        request: requestDraft,
-      }),
+      agentActionPolicy,
+      agentActionCardHints: buildRequestAgentActionCardHints(agentActionPolicy),
     },
     { status: 200 }
   );

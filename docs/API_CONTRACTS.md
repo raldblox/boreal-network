@@ -135,7 +135,9 @@ For the first web slice, `Request` create and update must support:
 - public-safe listing of `open` plus `public` requests for network or desktop pooling
 - public-safe solution projection reads over completed public requests with `activeRefs.acceptedArtifactId`; this is a Request projection, not a `Solution` root
 - public-safe request and solution projections include `agentActionAffordances` so agents can see request-bound inspect, apply, submit, monitor, run, and optimize actions without inferring next steps from UI copy
+- public-safe request and solution projections include `agentActionCardHints`, a derived render-hint envelope that gives agents human-visible card titles, CTAs, handoff prompts, policy checkpoints, and safe non-authority claims for those same request-bound actions
 - request detail reads include `agentActionPolicy`, a derived actor-specific envelope that marks each request-bound agent action as allowed, allowed with idempotency, blocked, or target-only for the current anonymous, session, or resolver actor
+- request detail reads include actor-specific `agentActionCardHints` derived from `agentActionPolicy` so an agent can render apply, submit, monitor, run, and optimize cards without treating the card as permission, approval, payment authority, durable history, or completion proof
 - public-safe detail reads for one request by id
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze` inspection over public or owned scratch-chat user text messages
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs` execution that creates or reuses one private scratch chat, stores source chat/message provenance on the forked user message, runs the filled prompt, and does not create a `Request`, debit credits, or write `Transaction` truth in V1
@@ -817,6 +819,7 @@ routes:
 - public inspection is read-only by default
 - `agentActionAffordances` are hints over existing governed endpoints, not separate permissions or a new workflow ledger
 - `agentActionPolicy` is the request-detail permission lens agents should read before writing; it is derived from request state, actor ownership, resolver scopes, and live endpoint gates, and it does not create durable truth by itself
+- `agentActionCardHints` are request-level render hints derived from either public affordances or actor-specific `agentActionPolicy`; they do not grant permission, record approval, issue credentials, authorize payment, create `RequestEvent` history, or prove completion
 - `/agents/access-review.json` is the public operator-review lens agents should read before requesting scoped pilot or production access; it does not issue credentials, grant permission, certify an agent, authorize spend, or make target adapters live
 - `POST /agents/access-review/prepare` is the public manual-handoff preparation endpoint agents may call after packet validation; it prepares operator checks and required attachments but does not submit or persist review state, issue credentials, grant permission, record approval, create a production sandbox, authorize spend, write `RequestEvent` truth, or prove completion
 - `/agents/conformance.json` is the public checklist lens agents should pass before production use; it does not replace request-specific `agentActionPolicy`

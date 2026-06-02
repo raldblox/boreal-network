@@ -887,6 +887,7 @@ components:
       required:
         - request
         - agentActionPolicy
+        - agentActionCardHints
       properties:
         request:
           oneOf:
@@ -894,6 +895,8 @@ components:
             - $ref: "#/components/schemas/WebPublicRequest"
         agentActionPolicy:
           $ref: "#/components/schemas/WebRequestAgentActionPolicy"
+        agentActionCardHints:
+          $ref: "#/components/schemas/WebRequestAgentActionCardHintSet"
     WebRequestAgentActionPolicy:
       type: object
       additionalProperties: false
@@ -1973,6 +1976,7 @@ components:
         - latest
         - derived
         - agentActionAffordances
+        - agentActionCardHints
         - createdAt
         - updatedAt
       properties:
@@ -2127,6 +2131,8 @@ components:
               type: string
         agentActionAffordances:
           $ref: "#/components/schemas/WebRequestAgentActionAffordanceSet"
+        agentActionCardHints:
+          $ref: "#/components/schemas/WebRequestAgentActionCardHintSet"
         createdAt:
           type: string
           format: date-time
@@ -2245,6 +2251,204 @@ components:
           type: boolean
         reason:
           type: string
+    WebRequestAgentActionCardHintSet:
+      type: object
+      additionalProperties: false
+      required:
+        - schemaVersion
+        - subject
+        - roleHint
+        - cards
+        - authorityBoundary
+      properties:
+        schemaVersion:
+          type: integer
+          enum:
+            - 1
+        subject:
+          type: object
+          additionalProperties: false
+          required:
+            - type
+            - id
+            - status
+            - visibility
+          properties:
+            type:
+              type: string
+              enum:
+                - Request
+            id:
+              type: string
+              format: uuid
+            status:
+              type: string
+              enum:
+                - draft
+                - open
+                - funding_required
+                - funded
+                - in_progress
+                - waiting_for_owner
+                - delivered
+                - completed
+                - cancelled
+                - failed
+            visibility:
+              type: string
+              enum:
+                - private
+                - public
+        roleHint:
+          type: string
+          enum:
+            - private_request
+            - public_request
+            - public_solution
+        cards:
+          type: array
+          items:
+            $ref: "#/components/schemas/WebRequestAgentActionCardHint"
+        authorityBoundary:
+          type: object
+          additionalProperties: false
+          required:
+            - permissionSource
+            - cardsAre
+            - nonAuthority
+          properties:
+            permissionSource:
+              type: string
+              enum:
+                - agentActionPolicy
+            cardsAre:
+              type: string
+              enum:
+                - render_hints
+            nonAuthority:
+              type: array
+              items:
+                type: string
+    WebRequestAgentActionCardHint:
+      type: object
+      additionalProperties: false
+      required:
+        - actionId
+        - intent
+        - title
+        - summary
+        - ctaLabel
+        - method
+        - href
+        - state
+        - humanDecisionRequired
+        - policyCheckpoint
+        - safeRenderClaims
+        - requiredBeforeAction
+        - handoffPrompts
+        - canonicalReads
+        - canonicalWritesIfAuthorized
+        - authority
+      properties:
+        actionId:
+          type: string
+          enum:
+            - inspect_public_requests
+            - apply_to_request
+            - submit_artifact
+            - monitor_request
+            - run_public_solution
+            - optimize_request_brief
+        intent:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        ctaLabel:
+          type: string
+        method:
+          type: string
+          enum:
+            - GET
+            - POST
+            - LOCAL_DRAFT
+        href:
+          type: string
+        state:
+          type: string
+          enum:
+            - ready
+            - requires_auth
+            - requires_policy_check
+            - blocked
+            - target_only
+        humanDecisionRequired:
+          type: boolean
+        policyCheckpoint:
+          type: string
+          enum:
+            - agentActionPolicy
+        safeRenderClaims:
+          type: array
+          items:
+            type: string
+        requiredBeforeAction:
+          type: array
+          items:
+            type: string
+        handoffPrompts:
+          type: array
+          items:
+            type: string
+        canonicalReads:
+          type: array
+          items:
+            type: string
+        canonicalWritesIfAuthorized:
+          type: array
+          items:
+            type: string
+        authority:
+          type: object
+          additionalProperties: false
+          required:
+            - source
+            - permissionGranted
+            - approvalRecorded
+            - credentialIssued
+            - paymentAuthorized
+            - durableWriteCreated
+            - completionProven
+          properties:
+            source:
+              type: string
+              enum:
+                - agentActionCardHints
+            permissionGranted:
+              type: boolean
+              enum:
+                - false
+            approvalRecorded:
+              type: boolean
+              enum:
+                - false
+            credentialIssued:
+              type: boolean
+              enum:
+                - false
+            paymentAuthorized:
+              type: boolean
+              enum:
+                - false
+            durableWriteCreated:
+              type: boolean
+              enum:
+                - false
+            completionProven:
+              type: boolean
+              enum:
+                - false
     WebRequestDraft:
       type: object
       additionalProperties: false

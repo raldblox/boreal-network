@@ -4528,6 +4528,11 @@ async function main() {
   assert.match(requestOpenApi, /commitments:propose/);
   assert.match(requestOpenApi, /artifacts:publish/);
   assert.match(requestOpenApi, /x-boreal-response-policy-field: agentActionPolicy/);
+  assert.match(requestOpenApi, /agentActionCardHints/);
+  assert.match(requestOpenApi, /WebRequestAgentActionCardHintSet/);
+  assert.match(requestOpenApi, /canonicalWritesIfAuthorized/);
+  assert.match(requestOpenApi, /permissionGranted/);
+  assert.match(requestOpenApi, /completionProven/);
 
   const supplyOpenApiAsset = findOpenApiAsset("supply-management.yaml");
   assert.ok(supplyOpenApiAsset);

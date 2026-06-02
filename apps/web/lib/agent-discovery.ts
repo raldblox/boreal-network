@@ -1537,7 +1537,11 @@ Public inspection must not expose private drafts, private chats, owner-only fiel
 
 Public request projections include \`agentActionAffordances\`: request-level hints for inspect, apply, submit, monitor, run, and optimize actions. These hints are not permissions. They point to governed endpoints and name auth, idempotency, and canonical write boundaries.
 
+Public request projections and request detail reads include \`agentActionCardHints\`: request-level render hints for human-visible card labels, CTAs, handoff prompts, policy checkpoints, and non-authority flags. These cards help agents show "apply to this", "submit here", "monitor this", "run this", or "optimize this" without guessing UI copy.
+
 Request detail reads include \`agentActionPolicy\`: an actor-specific derived policy envelope that tells the current anonymous, session, or resolver actor which request-bound actions are allowed, blocked, idempotency-gated, or target-only now.
+
+\`agentActionCardHints\` do not grant permission, record approval, issue credentials, authorize payment, create durable history, or prove completion. Before any write, read \`agentActionPolicy\` and use the governed route contract.
 
 For validation-only preflight before attempting apply, submit, monitor, run, or optimize actions, agents can post:
 
@@ -8670,7 +8674,7 @@ export function buildAgentUxProfile() {
         status: "live_public_read",
         userIntent: "Apply to this, monitor this, run this, or optimize this.",
         agentGoal:
-          "Use request-level affordances and opportunity cards as hints, then read request-detail policy before any mutation.",
+          "Use request-level affordances, agentActionCardHints, and opportunity cards as render hints, then read request-detail policy before any mutation.",
         primaryActionIds: [
           "apply_to_request",
           "monitor_request",
@@ -8680,9 +8684,11 @@ export function buildAgentUxProfile() {
         readProfiles: [
           absoluteUrl(agentDiscoveryPaths.agentOpportunities),
           absoluteUrl(agentDiscoveryPaths.agentOpportunityCardExamples),
+          absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
           absoluteUrl(agentDiscoveryPaths.agentWorkflows),
         ],
         renderForHuman: [
+          "request-level agentActionCardHints labels, CTAs, and handoff prompts",
           "why this request or solution is a fit",
           "which actions are read-only versus write-capable",
           "which scopes or human approvals are missing",
@@ -8691,7 +8697,7 @@ export function buildAgentUxProfile() {
         canonicalWrites: [],
         continueWhen: ["agentActionPolicy permits or clearly explains the next action"],
         stopWhen: [
-          "the action would treat a fit score, affordance, or opportunity card as permission",
+          "the action would treat a fit score, affordance, agentActionCardHint, or opportunity card as permission",
         ],
       },
       {
@@ -11657,7 +11663,7 @@ export function buildAgentClientKitProfile() {
         id: "load_contract_sources",
         order: 2,
         use:
-          "Load OpenAPI for HTTP routes, JSON Schema for object/profile/payload shapes, and AsyncAPI for durable activity monitoring.",
+          "Load OpenAPI for HTTP routes and response fields such as agentActionCardHints, JSON Schema for object/profile/payload shapes, and AsyncAPI for durable activity monitoring.",
         inputs: [
           absoluteUrl(agentDiscoveryPaths.openApiIndex),
           ...contracts.openapi.map((asset) => asset.url),
@@ -11665,6 +11671,7 @@ export function buildAgentClientKitProfile() {
         ],
         outputs: [
           "typed HTTP operation candidates",
+          "typed request-level action card hint responses",
           "durable activity models",
           "schema registry",
         ],
@@ -11693,7 +11700,7 @@ export function buildAgentClientKitProfile() {
         id: "wire_runtime_gates",
         order: 4,
         use:
-          "Before calling generated write methods, read request detail, follow agentActionPolicy, run relevant validation or preparation helpers, and preserve idempotency keys.",
+          "Before calling generated write methods, read request detail, render agentActionCardHints for human review, follow agentActionPolicy, run relevant validation or preparation helpers, and preserve idempotency keys.",
         inputs: [
           absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
           absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
@@ -11703,6 +11710,7 @@ export function buildAgentClientKitProfile() {
         ],
         outputs: [
           "policy gate checks",
+          "human-visible card hints",
           "scope checks",
           "idempotency handling",
           "safe completion language checks",
@@ -11755,6 +11763,7 @@ export function buildAgentClientKitProfile() {
         status: "live_public_read",
         useFor: [
           "find public requests",
+          "render public request action cards",
           "read public profiles",
           "load public contracts",
         ],
@@ -11872,7 +11881,7 @@ export function buildAgentClientKitProfile() {
     generationRules: [
       "Generate from OpenAPI, JSON Schema, and AsyncAPI exports; do not scrape private UI routes.",
       "Keep public-read, guardrail, authorized-work, payment, sandbox, and target-adapter modules separate.",
-      "Generated methods must not imply permission; live writes still require route auth, scopes, agentActionPolicy, human approval when required, and idempotency.",
+      "Generated methods must render agentActionCardHints as UX hints only; live writes still require route auth, scopes, agentActionPolicy, human approval when required, and idempotency.",
       "Validation and preparation helpers are non-write guardrails, not approval records, artifact publication, payment authorization, completion proof, or durable RequestEvent truth.",
       "Do not treat MCP sessions, A2A tasks, x402 payloads, tool results, runtime logs, or generated SDK responses as canonical roots.",
       "Pin schemaVersion=1 payloads and fail closed when required fields, scopes, idempotency keys, or non-authority flags are missing.",
@@ -12008,6 +12017,7 @@ export function buildAgentToolRegistry() {
       "Read-only tools may run from public contracts when their target resource is public-safe.",
       "Before any write-capable tool call, read request detail and follow agentActionPolicy.",
       "agentActionAffordances are discovery hints; they are not permission grants.",
+      "agentActionCardHints are render hints for human-facing cards; they are not permission grants, approvals, payment authority, durable writes, or completion proof.",
       "Mutation tools must use the same HTTP endpoints, auth, idempotency, lifecycle, and approval gates as human or resolver flows.",
       "MCP and A2A names in this registry are target adapter mappings until a live adapter contract says otherwise.",
       "Tool outputs are not completion truth until they map back to Request, Commitment, Fulfillment, FulfillmentStep, Artifact, Transaction, or RequestEvent records.",
@@ -12072,6 +12082,7 @@ export function buildAgentToolRegistry() {
         preflight: [
           "Use only public-safe request projections.",
           "Treat agentActionAffordances as hints, not authorization.",
+          "Render agentActionCardHints only as labels, CTAs, handoff prompts, and non-authority guidance.",
         ],
         auth: "none",
         idempotencyRequired: false,
@@ -12080,6 +12091,7 @@ export function buildAgentToolRegistry() {
         outputTruth: [
           "public Request projection",
           "public agentActionAffordances",
+          "public agentActionCardHints",
           "fit summary generated by the agent",
         ],
         stopWhen: [
@@ -12115,12 +12127,17 @@ export function buildAgentToolRegistry() {
           "Use public reads only for public-safe requests.",
           "Use session or resolver authorization for private or participant-scoped detail.",
           "Read agentActionPolicy before any write.",
+          "Render agentActionCardHints only after checking the matching policy state.",
         ],
         auth: "none, Boreal account session, or resolver bearer depending on request visibility",
         idempotencyRequired: false,
         canonicalReads: ["Request", "RequestParticipant"],
         canonicalWrites: [],
-        outputTruth: ["Request detail projection", "agentActionPolicy"],
+        outputTruth: [
+          "Request detail projection",
+          "agentActionPolicy",
+          "agentActionCardHints",
+        ],
         stopWhen: [
           "agentActionPolicy blocks the intended next action.",
           "resolver missingScopes is non-empty for the desired write.",
@@ -14142,7 +14159,7 @@ export function buildAgentWorkflowCatalog() {
     description:
       "Machine-readable process flows for agents that inspect, make, complete, monitor, run, or optimize Boreal work through Request-native contracts.",
     policyRule:
-      "Before any write, read the request detail response and follow agentActionPolicy decisions. agentActionAffordances are discovery hints, not permission grants.",
+      "Before any write, read the request detail response and follow agentActionPolicy decisions. agentActionAffordances are discovery hints and agentActionCardHints are render hints, not permission grants.",
     resources: [
       { label: "Agent start guide", url: absoluteUrl(agentDiscoveryPaths.agentStart) },
       { label: "Agent action playbook", url: absoluteUrl(agentDiscoveryPaths.agentActions) },
@@ -14457,6 +14474,7 @@ export function buildAgentWorkflowCatalog() {
       notRoots: [
         "workflow catalog",
         "agentActionPolicy",
+        "agentActionCardHints",
         "MCP session",
         "A2A task",
         "x402 payment payload",
@@ -14534,6 +14552,7 @@ Use it after reading [${agentDiscoveryPaths.agentStart}](${absoluteUrl(agentDisc
 - Keep MCP, A2A, and x402 as adapter or payment profiles over Boreal truth.
 - Do not mutate owner-authored request briefs unless the owner explicitly authorizes that mutation.
 - Read \`agentActionPolicy\` from request detail before attempting writes; \`agentActionAffordances\` are discovery hints, not permission grants.
+- Render request-level \`agentActionCardHints\` for human-facing labels, CTAs, and handoff prompts, but keep them below \`agentActionPolicy\` and governed route authorization.
 
 ## Action Index
 

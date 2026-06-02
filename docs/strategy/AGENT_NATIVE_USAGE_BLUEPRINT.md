@@ -66,6 +66,7 @@ Current assets that agents can eventually build on:
 - Public request reads exist through `GET /api/requests?scope=public`.
 - Public solution projections exist over completed public requests with accepted artifacts.
 - Public request projections include request-level `agentActionAffordances` for inspect, apply, submit, monitor, run, and optimize affordances.
+- Public request projections and request detail responses include request-level `agentActionCardHints` that turn affordances or actor-specific `agentActionPolicy` decisions into human-visible card labels, CTAs, handoff prompts, required preconditions, and non-authority flags.
 - The public workflow catalog exists at `/agents/workflows.json` so agents can follow deterministic process flows with policy checkpoints, scopes, idempotency, stop conditions, and completion signals.
 - Request detail, activity, commitment, fulfillment, artifact, transaction, and solution-run routes exist under `apps/web/app/(chat)/api/requests`.
 - Resolver auth exists under `apps/web/app/(auth)/api/auth/resolver`.
@@ -125,6 +126,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first public bundled OpenAPI index route is discovery-oriented and still points to existing YAML contracts rather than a complete merged API surface
 - the first public schema catalog is allowlisted and read-only, and a client-kit manifest now names generation order and authority boundaries, but no packaged generated SDK exists yet
 - the first request-detail `agentActionPolicy` compiler now accounts for public visibility, private ownership, resolver scopes, solution-run session requirements, and idempotency-gated actions; deeper rate-limit, payment-balance, lane-participant, and failure-mode policy remains target direction
+- the first request-level `agentActionCardHints` compiler now derives human-first render cards from public affordances or actor-specific `agentActionPolicy`, but richer personalization, rate-limit-aware card states, and payment-balance-aware card states remain target direction
 - the first OpenAPI auth metadata pass now declares account-session, resolver-bearer, anonymous-public, provider-callback, and refresh-token body boundaries in the machine-readable contracts; OAuth-compatible external-agent authorization remains target direction
 - the first machine-readable access review profile now tells agents how Boreal operators should evaluate conformance reports, requested scopes, rate limits, revocation triggers, decision outcomes, and target adapter claims, but it does not issue credentials, grant permission, certify agents, authorize spend, or make protocol adapters live
 - the first access-review preparation endpoint now tells agents what to hand a Boreal operator and which checks must pass, but it does not persist submissions, issue credentials, grant permission, create production sandboxes, or prove completion
@@ -950,6 +952,7 @@ Deliverables:
 - machine-readable agent tool registry - implemented as `/agents/tools.json`, linked from the agent card and `/openapi.json`
 - request-level `agentActionAffordances` on public request projections - implemented in `toPublicRequestPoolEntry`
 - request-detail `agentActionPolicy` decisions for anonymous, session, and resolver actors - implemented in the request detail API as a derived policy envelope
+- request-level `agentActionCardHints` on public request projections and request detail reads - implemented as a derived render-hint envelope over affordances or `agentActionPolicy`
 - agent sandbox fixture runner - implemented as `pnpm contracts:agent-sandbox`
 - conformance report fixture validation - implemented inside `pnpm contracts:agent-sandbox`
 - production access packet fixture validation - implemented inside `pnpm contracts:agent-sandbox`
@@ -993,6 +996,7 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent onboarding profile, contract sandbox validation stage, target OAuth-compatible external-agent path, production access packet fields, production packet example link, go-live checks, non-credential-issuer boundary, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent opportunity discovery profile, public request entrypoint, read-only affordance requirements, fit dimensions, next-action writes, non-permission boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent action card example set, make/apply/submit/monitor/run/optimize/recovery card coverage, safe proof-submitted label, no-write optimizer card, non-authority boundary, OpenAPI extension, public route, `/llms.txt`, and public schema route.
+- `apps/web/tests/contracts/request-boundary.test.ts` verifies request-level `agentActionCardHints` on public projections and actor-policy cards, including non-authority booleans, human approval requirements, paid-run preconditions, blocked policy recovery, and public-solution role hints.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent payment profile, free inspection boundary, account-session spend surfaces, idempotency, target x402 boundary, `Transaction` truth, non-root payment objects, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent prompt catalog, apply and submit prompt mappings, draft-only output contract, non-mutation boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent protocol adapter sample pack, MCP/A2A/x402 sample coverage, target-only status, non-permission boundary, public route, and public schema route.

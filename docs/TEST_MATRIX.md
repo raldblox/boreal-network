@@ -137,7 +137,9 @@ Verify:
 - the public agent card and `/openapi.json` link to the workflow catalog and keep workflows below `Request` truth
 - each catalog action names canonical reads, canonical writes, availability, auth boundary, standard contract links, and guardrails
 - public request projections expose request-level `agentActionAffordances` that map concrete request ids to inspect, apply, submit, monitor, run, and optimize affordances without exposing owner-only routing or granting mutation authority
+- public request projections expose request-level `agentActionCardHints` that map concrete request ids to human-visible card labels, CTAs, policy checkpoints, handoff prompts, canonical reads, and conditional writes without exposing owner-only routing or becoming permission, approval, payment authority, durable history, or completion proof
 - request detail reads expose request-level `agentActionPolicy` decisions that distinguish anonymous, session, and resolver actors; resolver decisions should report missing scopes instead of implying permission
+- request detail reads expose actor-specific `agentActionCardHints` derived from `agentActionPolicy`, and blocked or missing-scope cards must render stop or recovery requirements instead of implying the agent can proceed
 - public OpenAPI exports expose machine-readable `security` requirements, `BorealAccountSession`, `ResolverBearer`, `x-boreal-auth-boundary`, and `x-boreal-required-scopes` where live agent-facing routes enforce session or resolver gates
 - the public agent access review profile stays operator-review policy and does not issue credentials, grant permission, certify an agent, record human approval, authorize spend, prove completion, or make target protocol adapters live
 - the public agent auth profile keeps OAuth-compatible external-agent authorization as target direction unless a live route contract says otherwise

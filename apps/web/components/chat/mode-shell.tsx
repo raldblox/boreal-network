@@ -18,6 +18,10 @@ export function ModeShell({ user: _user }: { user?: User | null }) {
     return <HomePage />;
   }
 
+  if (pathname === "/home/alpha") {
+    return null;
+  }
+
   if (pathname === "/supplies") {
     return <SupplyHub />;
   }

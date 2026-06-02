@@ -14,9 +14,12 @@ import {
 } from "@/lib/chat-route-validation";
 import {
   applyRequestPatch,
+  buildRequestAgentActionCardHints,
+  buildRequestAgentActionPolicy,
   type BorealRequestDraft,
   canUseDirectOwnerPrivateFulfillmentLane,
   createInitialRequestDraft,
+  type RequestAgentActionCardHint,
   toPublicRequestPoolEntry,
 } from "@/lib/request";
 import {
@@ -184,6 +187,15 @@ function makeDraft(
 
 const publicProjection = toPublicRequestPoolEntry(makeDraft());
 
+function assertNonAuthorityCard(card: RequestAgentActionCardHint) {
+  assert.equal(card.authority.permissionGranted, false);
+  assert.equal(card.authority.approvalRecorded, false);
+  assert.equal(card.authority.credentialIssued, false);
+  assert.equal(card.authority.paymentAuthorized, false);
+  assert.equal(card.authority.durableWriteCreated, false);
+  assert.equal(card.authority.completionProven, false);
+}
+
 assert.equal(publicProjection.visibility, "public");
 assert.equal("routing" in publicProjection, false);
 assert.equal("candidatePool" in publicProjection.derived, false);
@@ -191,6 +203,94 @@ assert.equal("matchCandidates" in publicProjection.derived, false);
 assert.equal("leadRanking" in publicProjection.derived, false);
 assert.equal("assignmentProposal" in publicProjection.derived, false);
 assert.equal(publicProjection.derived.routeSummary, "Human-led pilot lane");
+assert.equal(publicProjection.agentActionCardHints.subject.type, "Request");
+assert.equal(publicProjection.agentActionCardHints.subject.id, publicProjection.id);
+assert.equal(publicProjection.agentActionCardHints.roleHint, "public_request");
+assert.equal(
+  publicProjection.agentActionCardHints.authorityBoundary.permissionSource,
+  "agentActionPolicy"
+);
+assert.equal(
+  publicProjection.agentActionCardHints.authorityBoundary.nonAuthority.includes(
+    "does not grant permission"
+  ),
+  true
+);
+const publicApplyCard = publicProjection.agentActionCardHints.cards.find(
+  (card) => card.actionId === "apply_to_request"
+);
+assert.ok(publicApplyCard);
+assert.equal(publicApplyCard.title, "Apply with a proposal");
+assert.equal(publicApplyCard.state, "requires_auth");
+assert.equal(publicApplyCard.humanDecisionRequired, true);
+assert.equal(publicApplyCard.policyCheckpoint, "agentActionPolicy");
+assert.deepEqual(publicApplyCard.canonicalWritesIfAuthorized, [
+  "Commitment",
+  "RequestEvent",
+]);
+assert.equal(
+  publicApplyCard.requiredBeforeAction.includes(
+    "Read request detail and agentActionPolicy before any write-capable action."
+  ),
+  true
+);
+assertNonAuthorityCard(publicApplyCard);
+const publicOptimizeCard = publicProjection.agentActionCardHints.cards.find(
+  (card) => card.actionId === "optimize_request_brief"
+);
+assert.ok(publicOptimizeCard);
+assert.equal(publicOptimizeCard.state, "target_only");
+assert.equal(publicOptimizeCard.humanDecisionRequired, true);
+assert.deepEqual(publicOptimizeCard.canonicalWritesIfAuthorized, []);
+assertNonAuthorityCard(publicOptimizeCard);
+
+const publicSolutionProjection = toPublicRequestPoolEntry(
+  makeDraft({
+    status: "completed",
+    activeRefs: {
+      latestArtifactId: "artifact_public",
+      acceptedArtifactId: "artifact_public",
+    },
+  })
+);
+const runSolutionCard = publicSolutionProjection.agentActionCardHints.cards.find(
+  (card) => card.actionId === "run_public_solution"
+);
+assert.ok(runSolutionCard);
+assert.equal(publicSolutionProjection.agentActionCardHints.roleHint, "public_solution");
+assert.equal(runSolutionCard.humanDecisionRequired, true);
+assert.equal(
+  runSolutionCard.requiredBeforeAction.includes(
+    "Confirm buyer payment or credit authority at the solution-run endpoint."
+  ),
+  true
+);
+assertNonAuthorityCard(runSolutionCard);
+
+const anonymousPolicyCards = buildRequestAgentActionCardHints(
+  buildRequestAgentActionPolicy({
+    actor: { kind: "anonymous" },
+    request: makeDraft(),
+  })
+);
+const anonymousApplyCard = anonymousPolicyCards.cards.find(
+  (card) => card.actionId === "apply_to_request"
+);
+assert.ok(anonymousApplyCard);
+assert.equal(anonymousApplyCard.state, "blocked");
+assert.equal(
+  anonymousApplyCard.requiredBeforeAction.includes(
+    "Stop until the policy reason is resolved."
+  ),
+  true
+);
+assert.equal(
+  anonymousApplyCard.safeRenderClaims.some((claim) =>
+    claim.includes("agentActionPolicy currently reports blocked.")
+  ),
+  true
+);
+assertNonAuthorityCard(anonymousApplyCard);
 
 const draftFlowRequest = makeDraft({
   status: "draft",

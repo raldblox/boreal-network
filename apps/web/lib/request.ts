@@ -583,9 +583,15 @@ export type PublicRequestPoolEntry = {
     routeSummary: string | null;
   };
   agentActionAffordances: RequestAgentActionAffordanceSet;
+  agentActionCardHints: RequestAgentActionCardHintSet;
   createdAt: string;
   updatedAt: string;
 };
+
+export type RequestAgentActionRoleHint =
+  | "private_request"
+  | "public_request"
+  | "public_solution";
 
 export type RequestAgentActionAffordanceId =
   | "inspect_public_requests"
@@ -623,7 +629,7 @@ export type RequestAgentActionAffordanceSet = {
     status: RequestStatus;
     visibility: "public";
   };
-  roleHint: "public_request" | "public_solution";
+  roleHint: Exclude<RequestAgentActionRoleHint, "private_request">;
   actions: RequestAgentActionAffordance[];
 };
 
@@ -678,8 +684,59 @@ export type RequestAgentActionPolicy = {
     userId?: string;
     scopes?: ResolverScope[];
   };
-  roleHint: "private_request" | "public_request" | "public_solution";
+  roleHint: RequestAgentActionRoleHint;
   decisions: RequestAgentActionPolicyDecision[];
+};
+
+export type RequestAgentActionCardHintState =
+  | "ready"
+  | "requires_auth"
+  | "requires_policy_check"
+  | "blocked"
+  | "target_only";
+
+export type RequestAgentActionCardHint = {
+  actionId: RequestAgentActionAffordanceId;
+  intent: string;
+  title: string;
+  summary: string;
+  ctaLabel: string;
+  method: RequestAgentActionAffordance["method"];
+  href: string;
+  state: RequestAgentActionCardHintState;
+  humanDecisionRequired: boolean;
+  policyCheckpoint: "agentActionPolicy";
+  safeRenderClaims: string[];
+  requiredBeforeAction: string[];
+  handoffPrompts: string[];
+  canonicalReads: string[];
+  canonicalWritesIfAuthorized: string[];
+  authority: {
+    source: "agentActionCardHints";
+    permissionGranted: false;
+    approvalRecorded: false;
+    credentialIssued: false;
+    paymentAuthorized: false;
+    durableWriteCreated: false;
+    completionProven: false;
+  };
+};
+
+export type RequestAgentActionCardHintSet = {
+  schemaVersion: 1;
+  subject: {
+    type: "Request";
+    id: string;
+    status: RequestStatus;
+    visibility: RequestVisibility;
+  };
+  roleHint: RequestAgentActionRoleHint;
+  cards: RequestAgentActionCardHint[];
+  authorityBoundary: {
+    permissionSource: "agentActionPolicy";
+    cardsAre: "render_hints";
+    nonAuthority: string[];
+  };
 };
 
 export type EditableRequestDocument = {
@@ -1242,6 +1299,7 @@ export function toPublicRequestPoolEntry(
     visibility: "public" as const,
     activeRefs,
   };
+  const agentActionAffordances = buildRequestAgentActionAffordances(publicDraft);
 
   return {
     id: draft.id,
@@ -1271,7 +1329,8 @@ export function toPublicRequestPoolEntry(
       readiness: draft.derived.readiness,
       routeSummary: draft.derived.routeSummary ?? null,
     },
-    agentActionAffordances: buildRequestAgentActionAffordances(publicDraft),
+    agentActionAffordances,
+    agentActionCardHints: buildRequestAgentActionCardHints(agentActionAffordances),
     createdAt: draft.createdAt,
     updatedAt: draft.updatedAt,
   };
@@ -1343,6 +1402,249 @@ export function buildRequestAgentActionPolicy({
       buildRequestAgentActionPolicyDecision({ action, actor, isOwner, request })
     ),
   };
+}
+
+export function buildRequestAgentActionCardHints(
+  source: RequestAgentActionAffordanceSet | RequestAgentActionPolicy
+): RequestAgentActionCardHintSet {
+  const isPolicySource = "decisions" in source;
+  const actions = isPolicySource ? source.decisions : source.actions;
+
+  return {
+    schemaVersion: 1,
+    subject: source.subject,
+    roleHint: source.roleHint,
+    cards: actions.map((action) =>
+      buildRequestAgentActionCardHint({ action, isPolicySource })
+    ),
+    authorityBoundary: {
+      permissionSource: "agentActionPolicy",
+      cardsAre: "render_hints",
+      nonAuthority: [
+        "does not grant permission",
+        "does not record human approval",
+        "does not issue credentials",
+        "does not authorize payment",
+        "does not create durable RequestEvent history",
+        "does not prove completion",
+      ],
+    },
+  };
+}
+
+function buildRequestAgentActionCardHint({
+  action,
+  isPolicySource,
+}: {
+  action: RequestAgentActionAffordance | RequestAgentActionPolicyDecision;
+  isPolicySource: boolean;
+}): RequestAgentActionCardHint {
+  const isDecision = isRequestAgentActionPolicyDecision(action);
+  const state = isDecision
+    ? mapPolicyDecisionToCardState(action.state)
+    : mapAffordanceAvailabilityToCardState(action.availability);
+  const humanDecisionRequired =
+    action.method !== "GET" || action.id === "optimize_request_brief";
+  const requiredBeforeAction = buildRequestAgentActionCardRequirements({
+    action,
+    state,
+    humanDecisionRequired,
+  });
+
+  return {
+    actionId: action.id,
+    intent: action.intent,
+    title: getRequestAgentActionCardTitle(action.id),
+    summary: action.reason,
+    ctaLabel: getRequestAgentActionCardCta(action.id),
+    method: action.method,
+    href: action.href,
+    state,
+    humanDecisionRequired,
+    policyCheckpoint: "agentActionPolicy",
+    safeRenderClaims: [
+      "This card is a derived render hint for one Request.",
+      isPolicySource
+        ? `agentActionPolicy currently reports ${isDecision ? action.state : "unknown"}.`
+        : "Public affordances are endpoint hints, not permission grants.",
+      action.reason,
+    ],
+    requiredBeforeAction,
+    handoffPrompts: getRequestAgentActionCardHandoffPrompts(action.id),
+    canonicalReads: action.canonicalReads,
+    canonicalWritesIfAuthorized: action.canonicalWrites,
+    authority: {
+      source: "agentActionCardHints",
+      permissionGranted: false,
+      approvalRecorded: false,
+      credentialIssued: false,
+      paymentAuthorized: false,
+      durableWriteCreated: false,
+      completionProven: false,
+    },
+  };
+}
+
+function isRequestAgentActionPolicyDecision(
+  action: RequestAgentActionAffordance | RequestAgentActionPolicyDecision
+): action is RequestAgentActionPolicyDecision {
+  return "state" in action;
+}
+
+function mapAffordanceAvailabilityToCardState(
+  availability: RequestAgentActionAffordanceAvailability
+): RequestAgentActionCardHintState {
+  switch (availability) {
+    case "available":
+      return "ready";
+    case "available_with_auth":
+      return "requires_auth";
+    case "requires_authorization":
+      return "requires_policy_check";
+    case "target_profile":
+      return "target_only";
+  }
+}
+
+function mapPolicyDecisionToCardState(
+  state: RequestAgentActionPolicyDecisionState
+): RequestAgentActionCardHintState {
+  switch (state) {
+    case "allowed":
+    case "allowed_with_idempotency":
+      return "ready";
+    case "blocked":
+      return "blocked";
+    case "target_only":
+      return "target_only";
+  }
+}
+
+function getRequestAgentActionCardTitle(
+  actionId: RequestAgentActionAffordanceId
+) {
+  switch (actionId) {
+    case "inspect_public_requests":
+      return "Inspect this request";
+    case "apply_to_request":
+      return "Apply with a proposal";
+    case "submit_artifact":
+      return "Submit proof here";
+    case "monitor_request":
+      return "Monitor request activity";
+    case "run_public_solution":
+      return "Run accepted solution";
+    case "optimize_request_brief":
+      return "Optimize as a draft";
+  }
+}
+
+function getRequestAgentActionCardCta(actionId: RequestAgentActionAffordanceId) {
+  switch (actionId) {
+    case "inspect_public_requests":
+      return "Open request detail";
+    case "apply_to_request":
+      return "Prepare proposal";
+    case "submit_artifact":
+      return "Prepare proof packet";
+    case "monitor_request":
+      return "Start cursor monitor";
+    case "run_public_solution":
+      return "Prepare paid run";
+    case "optimize_request_brief":
+      return "Draft improvements";
+  }
+}
+
+function buildRequestAgentActionCardRequirements({
+  action,
+  humanDecisionRequired,
+  state,
+}: {
+  action: RequestAgentActionAffordance | RequestAgentActionPolicyDecision;
+  humanDecisionRequired: boolean;
+  state: RequestAgentActionCardHintState;
+}) {
+  const requirements = [
+    "Treat this card as display guidance, not authority.",
+    "Read request detail and agentActionPolicy before any write-capable action.",
+  ];
+
+  if (humanDecisionRequired) {
+    requirements.push(
+      "Get represented human approval before sending the live action."
+    );
+  }
+
+  if (action.method === "POST") {
+    requirements.push(
+      "Use live route auth and scopes.",
+      "Send an idempotency key with the governed endpoint."
+    );
+  }
+
+  if (action.id === "submit_artifact") {
+    requirements.push(
+      "Package proof as an Artifact payload and keep completion claims review-safe."
+    );
+  }
+
+  if (action.id === "run_public_solution") {
+    requirements.push(
+      "Confirm buyer payment or credit authority at the solution-run endpoint."
+    );
+  }
+
+  if (action.id === "optimize_request_brief") {
+    requirements.push(
+      "Keep edits as a local draft until the owner approves a governed request mutation."
+    );
+  }
+
+  if (isRequestAgentActionPolicyDecision(action)) {
+    if (action.missingScopes.length > 0) {
+      requirements.push(
+        `Acquire missing resolver scopes before retry: ${action.missingScopes.join(", ")}.`
+      );
+    }
+
+    if (state === "blocked") {
+      requirements.push("Stop until the policy reason is resolved.");
+    }
+  }
+
+  return requirements;
+}
+
+function getRequestAgentActionCardHandoffPrompts(
+  actionId: RequestAgentActionAffordanceId
+) {
+  switch (actionId) {
+    case "inspect_public_requests":
+      return [
+        "Show the human the public request brief and ask whether to continue.",
+      ];
+    case "monitor_request":
+      return [
+        "Show the latest cursor and activity summary before continuing to watch.",
+      ];
+    case "apply_to_request":
+      return [
+        "Ask the represented solver to confirm scope, price, timeline, and proposal text before posting.",
+      ];
+    case "submit_artifact":
+      return [
+        "Ask the worker or reviewer to confirm artifact contents, redactions, and proof claims before upload.",
+      ];
+    case "run_public_solution":
+      return [
+        "Ask the buyer to confirm spend source, inputs, and run intent before starting execution.",
+      ];
+    case "optimize_request_brief":
+      return [
+        "Show suggested edits as a diff and ask the owner before any durable mutation.",
+      ];
+  }
 }
 
 function buildRequestAgentActionTemplates(

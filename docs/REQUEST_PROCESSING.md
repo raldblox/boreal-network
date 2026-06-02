@@ -323,7 +323,9 @@ The first run implementation may generate an assistant reply inside the private 
 - `open` plus `public` requests may enter the public request pool and be fetched by outside supply or Boreal desktop participants.
 - Public pool reads should expose a public-safe projection, not owner-only draft fields.
 - Public projections may include `agentActionAffordances`, but those affordances are derived hints over governed endpoints and do not become durable root state.
+- Public projections may include `agentActionCardHints`, but those cards are derived UX hints over the same request-bound affordances. They may name card titles, CTAs, handoff prompts, policy checkpoints, and canonical write boundaries if authorized, but they do not grant permission, record approval, authorize payment, publish artifacts, mutate the request, write `RequestEvent` history, or prove completion.
 - Request detail reads may include `agentActionPolicy`, but that policy is a derived compiler output over request status, visibility, ownership, resolver scopes, accepted artifact truth, and endpoint gates. It tells an agent what is allowed now without writing `RequestEvent` history or replacing mutation-tool authorization.
+- Request detail reads may include actor-specific `agentActionCardHints` derived from `agentActionPolicy` so agents can show humans current apply, submit, monitor, run, optimize, or recovery state without guessing UI copy.
 
 ## Complexity Policy
 
