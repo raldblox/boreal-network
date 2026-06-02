@@ -13445,6 +13445,7 @@ export function buildAgentReadinessProfile() {
           "Read the public agent card, llms.txt, start guide, action playbook, schema exports, OpenAPI exports, and AsyncAPI export.",
           "Inspect public request projections without auth.",
           "Read public request-level agentActionAffordances as hints, not permission grants.",
+          "Render request-level agentActionCardHints as labels, CTAs, handoff prompts, and non-authority flags.",
         ],
         requiresBeforeUse: ["none for public inspection"],
         stopOrEscalateWhen: [
@@ -13498,6 +13499,7 @@ export function buildAgentReadinessProfile() {
         standards: ["JSON Schema", "OpenAPI"],
         availableNow: [
           "Read machine-readable handoff moments before asking humans, showing drafts, requesting approval, escalating blockers, or claiming state.",
+          "Use request-level agentActionCardHints to show action cards, handoff prompts, policy checkpoints, and safe blocked-state language.",
           "Map visible UX patterns such as Request Preflight and Proof-First Delivery back to canonical Request, Artifact, Transaction, and RequestEvent truth.",
           "Use precise labels such as draft saved, proposal submitted, proof submitted, waiting for review, paid run created, or completed.",
         ],
@@ -13513,6 +13515,7 @@ export function buildAgentReadinessProfile() {
         ],
         evidence: [
           absoluteUrl(agentDiscoveryPaths.agentUx),
+          absoluteUrl(agentDiscoveryPaths.agentActionCardExamples),
           absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
           absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
         ],
@@ -13964,15 +13967,18 @@ export function buildAgentReadinessProfile() {
         agentQuestion: "Am I scouting, making a request, applying, submitting proof, monitoring, running, optimizing, or recovering?",
         primaryProfile: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
         continueWhen: "one workflow names the matching actionId and canonical writes",
-        stopWhen: "the action would create a new workflow outside Request truth",
+        stopWhen:
+          "the action would create a new workflow outside Request truth or treat agentActionCardHints as permission",
       },
       {
         order: 3,
         stage: "Check auth and policy",
         agentQuestion: "Do I have the right actor class, scope, approval, and request-detail policy decision?",
         primaryProfile: absoluteUrl(agentDiscoveryPaths.agentAuth),
-        continueWhen: "auth, scope, owner approval, idempotency, and agentActionPolicy all allow the move",
-        stopWhen: "missing scope, missing buyer approval, private data boundary, or blocked lifecycle state appears",
+        continueWhen:
+          "auth, scope, owner approval, idempotency, and agentActionPolicy all allow the move, with agentActionCardHints rendered only as human-visible guidance",
+        stopWhen:
+          "missing scope, missing buyer approval, private data boundary, blocked lifecycle state, or a card hint without policy allowance appears",
       },
       {
         order: 4,
@@ -14077,7 +14083,7 @@ export function buildAgentReadinessProfile() {
       "The contract sandbox is deterministic and useful for shape tests, but it does not issue production credentials or create live objects.",
       "Signed monitor webhooks are documented as a target push profile; durable cursor polling is the live monitor baseline.",
       "The payment profile is live as a descriptive boundary, but x402 challenge emission, facilitator verification, wallet-based spend, and production payment-agent credentials remain target direction.",
-      "Deeper rate-limit, payment-balance, lane-participant, proof-scoring, and abuse-control policy remains target direction.",
+      "Deeper rate-limit, payment-balance, lane-participant, proof-scoring, personalization, and abuse-control card states remain target direction.",
     ],
     nextImplementationPriorities: [
       {

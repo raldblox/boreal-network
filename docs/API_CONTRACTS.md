@@ -138,6 +138,7 @@ For the first web slice, `Request` create and update must support:
 - public-safe request and solution projections include `agentActionCardHints`, a derived render-hint envelope that gives agents human-visible card titles, CTAs, handoff prompts, policy checkpoints, and safe non-authority claims for those same request-bound actions
 - request detail reads include `agentActionPolicy`, a derived actor-specific envelope that marks each request-bound agent action as allowed, allowed with idempotency, blocked, or target-only for the current anonymous, session, or resolver actor
 - request detail reads include actor-specific `agentActionCardHints` derived from `agentActionPolicy` so an agent can render apply, submit, monitor, run, and optimize cards without treating the card as permission, approval, payment authority, durable history, or completion proof
+- public agent discovery resources should point agents to `agentActionCardHints` for human-facing cards and to `agentActionPolicy` plus governed route contracts for authority
 - public-safe detail reads for one request by id
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze` inspection over public or owned scratch-chat user text messages
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs` execution that creates or reuses one private scratch chat, stores source chat/message provenance on the forked user message, runs the filled prompt, and does not create a `Request`, debit credits, or write `Transaction` truth in V1

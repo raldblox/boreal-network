@@ -685,6 +685,7 @@ async function main() {
   );
   assert.match(actionGuide, /cursor\.nextAfterSequence/);
   assert.match(actionGuide, /Optimization is a target profile/);
+  assert.match(actionGuide, /agentActionCardHints/);
 
   const parsedDefaultCursor = parseRequestActivityCursor(
     new URLSearchParams()
@@ -1006,6 +1007,29 @@ async function main() {
   assert.equal(
     readinessProfile.capabilityBands.some(
       (capability) =>
+        capability.id === "discover_boreal" &&
+        capability.availableNow.some((item) =>
+          item.includes("agentActionCardHints")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "human_handoff_agent_ux" &&
+        capability.availableNow.some((item) =>
+          item.includes("agentActionCardHints")
+        ) &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/action-cards.example.json")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
         capability.id === "submit_or_complete_work" &&
         capability.actions.includes("submit_artifact") &&
         capability.stopOrEscalateWhen.some((rule) =>
@@ -1107,7 +1131,8 @@ async function main() {
     readinessProfile.agentUxFlow.some(
       (stage) =>
         stage.stage === "Check auth and policy" &&
-        stage.stopWhen.includes("missing scope")
+        stage.continueWhen.includes("agentActionCardHints") &&
+        stage.stopWhen.includes("card hint")
     ),
     true,
   );
@@ -1137,7 +1162,23 @@ async function main() {
   );
   assert.equal(
     clientKit.generationOrder.some(
+      (step) =>
+        step.id === "load_contract_sources" &&
+        step.outputs.includes("typed request-level action card hint responses")
+    ),
+    true,
+  );
+  assert.equal(
+    clientKit.generationOrder.some(
       (step) => step.id === "split_client_authority"
+    ),
+    true,
+  );
+  assert.equal(
+    clientKit.generationOrder.some(
+      (step) =>
+        step.id === "wire_runtime_gates" &&
+        step.outputs.includes("human-visible card hints")
     ),
     true,
   );
@@ -1167,6 +1208,12 @@ async function main() {
     true,
   );
   assert.equal(clientKit.nonGoals.includes("generated SDK package"), true);
+  assert.equal(
+    clientKit.generationRules.some((rule) =>
+      rule.includes("agentActionCardHints")
+    ),
+    true,
+  );
   assert.equal(
     clientKit.canonicalBoundary.clientKitIsNot.includes("permission grant"),
     true,
@@ -3142,6 +3189,28 @@ async function main() {
     true,
   );
   assert.equal(
+    toolRegistry.invocationRules.some((rule) =>
+      rule.includes("agentActionCardHints")
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.requests.inspect_public" &&
+        tool.outputTruth.includes("public agentActionCardHints")
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.requests.read_detail" &&
+        tool.outputTruth.includes("agentActionCardHints")
+    ),
+    true,
+  );
+  assert.equal(
     toolRegistry.tools.some(
       (tool) =>
         tool.id === "boreal.commitments.propose" &&
@@ -3371,7 +3440,15 @@ async function main() {
     true,
   );
   assert.equal(
+    workflowCatalog.canonicalBoundary.notRoots.includes("agentActionCardHints"),
+    true,
+  );
+  assert.equal(
     workflowCatalog.policyRule.includes("agentActionPolicy"),
+    true,
+  );
+  assert.equal(
+    workflowCatalog.policyRule.includes("agentActionCardHints"),
     true,
   );
   assert.equal(
@@ -3591,6 +3668,7 @@ async function main() {
   const startGuide = buildAgentStartMarkdown();
   assert.match(startGuide, /GET \/api\/requests\?scope=public/);
   assert.match(startGuide, /agentActionAffordances/);
+  assert.match(startGuide, /agentActionCardHints/);
   assert.match(startGuide, /agentActionPolicy/);
   assert.match(startGuide, /GET \/agents\/access-review\.json/);
   assert.match(startGuide, /GET \/agents\/auth\.json/);
