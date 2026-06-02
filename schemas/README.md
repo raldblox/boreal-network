@@ -70,6 +70,7 @@ Recommended naming:
 - `json/agent-intake-validation.schema.json`
 - `json/agent-action-preflight.schema.json`
 - `json/agent-client-kit.schema.json`
+- `json/agent-journeys.schema.json`
 - `json/agent-monitoring.schema.json`
 - `json/agent-monitoring-preparation.schema.json`
 - `json/agent-monitoring-validation.schema.json`

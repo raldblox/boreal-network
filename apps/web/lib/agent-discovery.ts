@@ -64,6 +64,7 @@ export const agentDiscoveryPaths = {
   agentHttp: "/agents/http.json",
   agentUx: "/agents/ux.json",
   agentIntakeValidation: "/agents/intake/validate",
+  agentJourneys: "/agents/journeys.json",
   agentMonitorWebhooks: "/agents/monitor-webhooks.md",
   agentMonitoring: "/agents/monitoring.json",
   agentMonitoringPrepare: "/agents/monitoring/prepare",
@@ -587,6 +588,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable role journey profile schema for agents acting as requester, solver, monitor, optimizer, payment, and onboarding helpers.",
+    routePath: "/schemas/agent-journeys.schema.json",
+    sourcePath: "schemas/json/agent-journeys.schema.json",
+    standard: "json_schema",
+    title: "Agent journeys",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Checked human handoff packet example schema for agent-rendered approval, review, escalation, and payment handoff cards.",
     routePath: "/schemas/agent-human-handoff-packets.schema.json",
     sourcePath: "schemas/json/agent-human-handoff-packets.schema.json",
@@ -790,6 +800,7 @@ export function buildAgentCard() {
     authPrepareUrl: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
     conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
     clientKitUrl: absoluteUrl(agentDiscoveryPaths.agentClientKit),
+    journeyProfileUrl: absoluteUrl(agentDiscoveryPaths.agentJourneys),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
     completionValidationUrl: absoluteUrl(
       agentDiscoveryPaths.agentCompletionValidation
@@ -911,6 +922,19 @@ export function buildAgentCard() {
           status: surface.status,
           canonicalWrites: surface.canonicalWrites,
         })
+      ),
+    },
+    journeys: {
+      url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
+      status: buildAgentJourneyProfile().status,
+      roles: buildAgentJourneyProfile().journeys.map((journey) => ({
+        id: journey.id,
+        role: journey.role,
+        status: journey.status,
+        canonicalWrites: journey.canonicalWrites,
+      })),
+      decisionRules: buildAgentJourneyProfile().decisionRules.map(
+        (rule) => rule.id
       ),
     },
     completion: {
@@ -1410,6 +1434,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent HTTP reference profile: [${agentDiscoveryPaths.agentHttp}](${absoluteUrl(agentDiscoveryPaths.agentHttp)})
 - Agent UX profile: [${agentDiscoveryPaths.agentUx}](${absoluteUrl(agentDiscoveryPaths.agentUx)})
 - Agent intake validation endpoint: [${agentDiscoveryPaths.agentIntakeValidation}](${absoluteUrl(agentDiscoveryPaths.agentIntakeValidation)})
+- Agent journey profile: [${agentDiscoveryPaths.agentJourneys}](${absoluteUrl(agentDiscoveryPaths.agentJourneys)})
 - Agent monitoring profile: [${agentDiscoveryPaths.agentMonitoring}](${absoluteUrl(agentDiscoveryPaths.agentMonitoring)})
 - Agent monitoring preparation endpoint: [${agentDiscoveryPaths.agentMonitoringPrepare}](${absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare)})
 - Agent monitoring validation endpoint: [${agentDiscoveryPaths.agentMonitoringValidation}](${absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation)})
@@ -2618,6 +2643,26 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentUxProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/journeys.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary:
+            "Read Boreal's machine-readable role journey profile for agents.",
+          responses: {
+            "200": {
+              description:
+                "JSON role journey profile for requester, solver, monitor, optimizer, payment, and onboarding agents using existing Boreal contracts without granting authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentJourneyProfile",
                   },
                 },
               },
@@ -4264,6 +4309,29 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentJourneyProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "journeys",
+            "decisionRules",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_journey_profile" },
+            journeys: {
+              type: "array",
+              items: { type: "object" },
+            },
+            decisionRules: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentOptimizationProfile: {
           type: "object",
           required: [
@@ -5112,6 +5180,21 @@ export function buildOpenApiDiscoveryIndex() {
       ),
       nonAuthority: buildAgentUxProfile().canonicalBoundary.uxProfileIsNot,
     },
+    "x-boreal-agent-journeys": {
+      url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
+      status: buildAgentJourneyProfile().status,
+      roles: buildAgentJourneyProfile().journeys.map((journey) => ({
+        id: journey.id,
+        role: journey.role,
+        status: journey.status,
+        canonicalWrites: journey.canonicalWrites,
+      })),
+      decisionRules: buildAgentJourneyProfile().decisionRules.map(
+        (rule) => rule.id
+      ),
+      nonAuthority:
+        buildAgentJourneyProfile().canonicalBoundary.journeyProfileIsNot,
+    },
     "x-boreal-agent-intake-validation": {
       url: absoluteUrl(agentDiscoveryPaths.agentIntakeValidation),
       status: "live_validation_only",
@@ -5340,6 +5423,10 @@ export function buildAgentAuthProfile() {
       {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent journey profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
       },
       {
         label: "Agent action preflight endpoint",
@@ -6925,6 +7012,10 @@ export function buildAgentCompletionProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
       },
       {
+        label: "Agent journey profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
+      },
+      {
         label: "Agent UX profile",
         url: absoluteUrl(agentDiscoveryPaths.agentUx),
       },
@@ -8287,6 +8378,10 @@ export function buildAgentUxProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
       },
       {
+        label: "Agent journey profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
+      },
+      {
         label: "Agent action preflight endpoint",
         url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
       },
@@ -8833,6 +8928,803 @@ export function buildAgentUxProfile() {
         "This profile organizes existing profiles and route contracts into a human-first process; it does not create new business truth.",
         "Visible UX state must cite canonical Request-attached truth before claiming writes, payment, proof, or completion.",
         "Every write-capable stage must pass auth, request-detail policy, idempotency, and explicit human approval gates where applicable.",
+      ],
+    },
+  };
+}
+
+export function buildAgentJourneyProfile() {
+  return {
+    schemaVersion: 1,
+    status: "live_journey_profile",
+    name: "Boreal Agent Journey Profile",
+    description:
+      "Machine-readable role-by-role journey map for agents that help humans make, apply to, complete, monitor, optimize, pay for, and onboard into Boreal work without inventing a parallel workflow system.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent UX profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentUx),
+      },
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent tool registry",
+        url: absoluteUrl(agentDiscoveryPaths.agentTools),
+      },
+      {
+        label: "Agent client kit",
+        url: absoluteUrl(agentDiscoveryPaths.agentClientKit),
+      },
+      {
+        label: "Agent journeys schema",
+        url: absoluteUrl("/schemas/agent-journeys.schema.json"),
+      },
+    ],
+    journeys: [
+      {
+        id: "requester_make_request",
+        role: "requester",
+        status: "live_authenticated_http_contract",
+        userIntent: "Create a request for a represented human buyer.",
+        primaryOutcome:
+          "A human-reviewed private or draft Request exists without opening, funding, or assigning work unless the human explicitly approves that next step.",
+        startWhen: [
+          "A human asks the agent to turn a fuzzy need into Boreal work.",
+          "The agent can identify the represented Actor and must avoid inventing missing budget, deadline, or acceptance criteria.",
+        ],
+        steps: [
+          {
+            id: "load_briefing_contracts",
+            title: "Load request and briefing contracts",
+            agentAction: "inspect_public_requests",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentStart),
+              absoluteUrl(agentDiscoveryPaths.agentHttp),
+              absoluteUrl(agentDiscoveryPaths.agentPrompts),
+            ],
+            call: {
+              method: "GET",
+              href: absoluteUrl(agentDiscoveryPaths.agentStart),
+              status: "live_public_read",
+            },
+            renderForHuman:
+              "Show the human what will become request truth and what is still a draft.",
+            continueWhen: [
+              "The human confirms the brief facts or asks for a draft with visible missing fields.",
+            ],
+            stopWhen: [
+              "The agent would invent buyer intent, budget, deadline, proof criteria, or public visibility.",
+            ],
+            canonicalReads: ["Request", "Supply"],
+            canonicalWrites: [],
+          },
+          {
+            id: "preflight_make_request",
+            title: "Preflight the request creation action",
+            agentAction: "make_request_for_human",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+              absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+              status: "live_validation_only",
+            },
+            renderForHuman:
+              "Show missing requirements, approval needs, and idempotency posture before creating a Request draft.",
+            continueWhen: [
+              "The preflight result does not claim permission, approval, payment authority, or durable writes.",
+            ],
+            stopWhen: [
+              "The human has not approved the draft creation or the action policy cannot be checked.",
+            ],
+            canonicalReads: ["Request"],
+            canonicalWrites: [],
+          },
+          {
+            id: "create_or_update_draft_request",
+            title: "Create or update the draft Request",
+            agentAction: "make_request_for_human",
+            readProfiles: [
+              absoluteUrl("/openapi/request-briefing.yaml"),
+              absoluteUrl("/schemas/request.schema.json"),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteUrl("/api/requests"),
+              status: "live_authenticated_http_contract",
+            },
+            renderForHuman:
+              "Render the draft Request and label it as not open, not funded, and not assigned until separately approved.",
+            continueWhen: [
+              "The route returns a Request id and the visible state remains draft or private unless the human approved opening.",
+            ],
+            stopWhen: [
+              "The agent cannot preserve idempotency or would open the Request without explicit approval.",
+            ],
+            canonicalReads: ["Request"],
+            canonicalWrites: ["Request", "RequestEvent"],
+          },
+        ],
+        humanVisibleState: [
+          "Draft ready for review",
+          "Missing fields",
+          "Needs approval before opening",
+        ],
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+          absoluteUrl(agentDiscoveryPaths.agentUx),
+        ],
+        requiredAuth: ["Boreal account session"],
+        canonicalReads: ["Request", "Supply"],
+        canonicalWrites: ["Request", "RequestEvent"],
+        stopConditions: [
+          "No represented human approval.",
+          "Missing idempotency key for a write.",
+          "Request would be opened, funded, or routed without explicit approval.",
+        ],
+        successEvidence: [
+          "Request id",
+          "draft or private visibility",
+          "owner-visible brief",
+          "safe claim label: Draft ready for review",
+        ],
+        nonAuthority: [
+          "opening approval",
+          "funding authorization",
+          "assignment",
+          "completion proof",
+        ],
+      },
+      {
+        id: "solver_apply_submit_monitor",
+        role: "solver",
+        status: "live_authenticated_http_contract",
+        userIntent:
+          "Apply to a public Request, submit proof, and monitor review without overclaiming completion.",
+        primaryOutcome:
+          "A Commitment proposal and reviewable Artifact proof are attached to one Request, with activity monitoring and bounded completion language.",
+        startWhen: [
+          "A public Request matches the represented solver capability.",
+          "The agent can identify required scope, proof expectations, and the current request policy.",
+        ],
+        steps: [
+          {
+            id: "inspect_request_policy",
+            title: "Inspect public request detail and action policy",
+            agentAction: "inspect_public_requests",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentOpportunities),
+              absoluteUrl(agentDiscoveryPaths.agentHttp),
+            ],
+            call: {
+              method: "GET",
+              href: absoluteTemplateUrl("/api/requests/{id}"),
+              status: "live_public_read",
+            },
+            renderForHuman:
+              "Show fit, missing proof expectations, allowed actions, and why public affordances are not permission.",
+            continueWhen: [
+              "agentActionPolicy allows apply or names the missing resolver scope.",
+            ],
+            stopWhen: [
+              "The Request is private, draft-only, or lacks enough public detail for a safe proposal.",
+            ],
+            canonicalReads: ["Request", "Supply", "RequestParticipant"],
+            canonicalWrites: [],
+          },
+          {
+            id: "preflight_and_apply",
+            title: "Preflight and submit the Commitment proposal",
+            agentAction: "apply_to_request",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+              absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteTemplateUrl("/api/requests/{id}/commitments"),
+              status: "live_authenticated_http_contract",
+            },
+            renderForHuman:
+              "Show proposal scope, price or terms, required approval, and that proposal submission is not acceptance.",
+            continueWhen: [
+              "The human approved the proposal text and idempotency is preserved.",
+            ],
+            stopWhen: [
+              "Commitment acceptance, funding, or fulfillment start would be implied by proposal submission.",
+            ],
+            canonicalReads: ["Request", "Supply"],
+            canonicalWrites: ["Commitment", "RequestEvent"],
+          },
+          {
+            id: "validate_and_submit_proof",
+            title: "Validate proof packet and publish Artifact",
+            agentAction: "submit_artifact",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentEvidence),
+              absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+              absoluteUrl(agentDiscoveryPaths.agentCompletion),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteTemplateUrl("/api/requests/{id}/artifacts"),
+              status: "live_authenticated_http_contract",
+            },
+            renderForHuman:
+              "Show proof, redaction statement, review question, and the safe label: Proof submitted, waiting for review.",
+            continueWhen: [
+              "The proof packet passes validation and the Request allows artifact submission.",
+            ],
+            stopWhen: [
+              "The agent would publish secrets, raw prompt logs, payment-only proof, or a completion claim without review truth.",
+            ],
+            canonicalReads: ["Request", "Commitment", "Fulfillment"],
+            canonicalWrites: ["Artifact", "RequestEvent"],
+          },
+          {
+            id: "monitor_review_state",
+            title: "Monitor review and completion-sensitive state",
+            agentAction: "monitor_request",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+              absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+            ],
+            call: {
+              method: "GET",
+              href: absoluteTemplateUrl("/api/requests/{id}/activity?after_sequence={cursor}"),
+              status: "live_authenticated_http_contract",
+            },
+            renderForHuman:
+              "Show activity since the last cursor and avoid completed language until accepted Artifact or lifecycle truth supports it.",
+            continueWhen: [
+              "The cursor advances or a human review decision is needed.",
+            ],
+            stopWhen: [
+              "The agent would treat silence, a heartbeat, HTTP 2xx, payment state, or provider callback as completion.",
+            ],
+            canonicalReads: ["Request", "Artifact", "RequestEvent"],
+            canonicalWrites: [],
+          },
+        ],
+        humanVisibleState: [
+          "Proposal submitted",
+          "Proof submitted, waiting for review",
+          "Needs owner review",
+          "Completed only after accepted proof and lifecycle truth",
+        ],
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+          absoluteUrl(agentDiscoveryPaths.agentEvidence),
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+        ],
+        requiredAuth: ["resolver_bearer with commitments:propose and artifacts:publish or account session"],
+        canonicalReads: [
+          "Request",
+          "Supply",
+          "Commitment",
+          "Fulfillment",
+          "Artifact",
+          "RequestEvent",
+        ],
+        canonicalWrites: ["Commitment", "Artifact", "RequestEvent"],
+        stopConditions: [
+          "Commitment not accepted where acceptance is required.",
+          "Proof packet contains secrets or raw runtime logs.",
+          "Completion claim lacks accepted Artifact or lifecycle truth.",
+        ],
+        successEvidence: [
+          "Commitment id",
+          "Artifact id",
+          "Request activity cursor",
+          "completion validation result before completion-sensitive language",
+        ],
+        nonAuthority: [
+          "proposal acceptance",
+          "payment authorization",
+          "owner review acceptance",
+          "completion proof by itself",
+        ],
+      },
+      {
+        id: "monitor_escalate_request",
+        role: "monitor",
+        status: "live_validation_and_preparation",
+        userIntent:
+          "Watch request activity, persist a cursor, and escalate stale or blocked work.",
+        primaryOutcome:
+          "A cursor-safe monitor plan and human escalation packet exist without creating subscriptions, heartbeat events, or completion claims.",
+        startWhen: [
+          "A human or operator asks the agent to watch a Request.",
+          "The agent has a request id and knows whether the activity lane is public or private.",
+        ],
+        steps: [
+          {
+            id: "prepare_monitor_plan",
+            title: "Prepare cursor polling and escalation plan",
+            agentAction: "monitor_request",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+              absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+              status: "live_plan_preparation_only",
+            },
+            renderForHuman:
+              "Show polling cadence, cursor storage, escalation triggers, and target webhook boundary.",
+            continueWhen: [
+              "The plan preserves cursor state and keeps subscription and push delivery claims false.",
+            ],
+            stopWhen: [
+              "The agent would create a subscription, heartbeat event, push receiver, or completion claim from the plan.",
+            ],
+            canonicalReads: ["Request"],
+            canonicalWrites: [],
+          },
+          {
+            id: "poll_activity_cursor",
+            title: "Read durable request activity from cursor",
+            agentAction: "monitor_request",
+            readProfiles: [
+              absoluteUrl("/events/request-room.asyncapi.yaml"),
+              absoluteUrl(agentDiscoveryPaths.agentRecovery),
+            ],
+            call: {
+              method: "GET",
+              href: absoluteTemplateUrl("/api/requests/{id}/activity?after_sequence={cursor}"),
+              status: "live_authenticated_http_contract",
+            },
+            renderForHuman:
+              "Show only new durable activity and the next cursor checkpoint.",
+            continueWhen: [
+              "cursor.nextAfterSequence is persisted outside Request root history.",
+            ],
+            stopWhen: [
+              "The monitor would write heartbeat RequestEvents or infer failure or completion from silence.",
+            ],
+            canonicalReads: ["Request", "RequestEvent"],
+            canonicalWrites: [],
+          },
+          {
+            id: "render_escalation_packet",
+            title: "Escalate blockers to a human",
+            agentAction: "monitor_request",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+              absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+            ],
+            call: {
+              method: "LOCAL_RENDER",
+              href: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffPacketExamples),
+              status: "live_example_pack",
+            },
+            renderForHuman:
+              "Render a stale-work, missing-proof, payment-uncertain, or access-missing handoff card.",
+            continueWhen: [
+              "The card asks for a human decision without recording approval itself.",
+            ],
+            stopWhen: [
+              "The agent would record approval, authorize payment, or close the Request from the handoff card.",
+            ],
+            canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction"],
+            canonicalWrites: [],
+          },
+        ],
+        humanVisibleState: [
+          "Monitoring",
+          "Needs escalation",
+          "Waiting for owner review",
+        ],
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentMonitoring),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+          absoluteUrl(agentDiscoveryPaths.agentRecovery),
+        ],
+        requiredAuth: ["none for public-safe lanes; account session or resolver bearer for private activity"],
+        canonicalReads: ["Request", "RequestEvent", "Artifact", "Transaction"],
+        canonicalWrites: [],
+        stopConditions: [
+          "No durable activity access.",
+          "Private activity without the required actor or scope.",
+          "Escalation would be mistaken for approval, payment, or completion.",
+        ],
+        successEvidence: [
+          "cursor.nextAfterSequence",
+          "monitor plan validation result",
+          "human escalation packet when needed",
+        ],
+        nonAuthority: [
+          "subscription record",
+          "push delivery activation",
+          "heartbeat RequestEvent",
+          "approval record",
+          "completion proof",
+        ],
+      },
+      {
+        id: "optimizer_draft_only",
+        role: "optimizer",
+        status: "live_validation_and_preparation",
+        userIntent:
+          "Improve a brief, proposal, proof packet, monitor update, or solution-run input without mutating Boreal truth.",
+        primaryOutcome:
+          "A local optimization suggestion is ready for human review and a separate preflight identifies any governed mutation path.",
+        startWhen: [
+          "A human asks the agent to improve wording, structure, proof clarity, or reuse input.",
+          "The source context is available and the agent can mark missing facts instead of inventing them.",
+        ],
+        steps: [
+          {
+            id: "prepare_optimization",
+            title: "Prepare draft-only optimization",
+            agentAction: "optimize_request_brief",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentOptimization),
+              absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+              status: "live_plan_preparation_only",
+            },
+            renderForHuman:
+              "Show allowed surface, no-invention rules, output contract, and owner-approval gate.",
+            continueWhen: [
+              "The preparation response keeps durableWriteCreated and ownerApprovalRecorded false.",
+            ],
+            stopWhen: [
+              "The agent would invent facts, override planner fields, or mutate a Request without owner approval.",
+            ],
+            canonicalReads: ["Request", "Commitment", "Artifact"],
+            canonicalWrites: [],
+          },
+          {
+            id: "draft_local_suggestion",
+            title: "Draft the local suggestion",
+            agentAction: "optimize_request_brief",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentPrompts),
+              absoluteUrl(agentDiscoveryPaths.agentUx),
+            ],
+            call: {
+              method: "LOCAL_DRAFT",
+              href: absoluteUrl(agentDiscoveryPaths.agentPrompts),
+              status: "local_only",
+            },
+            renderForHuman:
+              "Show a diff or suggestion with missing facts, risks, and the exact next preflight if a mutation is desired.",
+            continueWhen: [
+              "The human can accept, reject, or edit the suggestion before any governed write.",
+            ],
+            stopWhen: [
+              "The output would be represented as a committed Request, Commitment, Artifact, Fulfillment, payment, or completion change.",
+            ],
+            canonicalReads: ["Request", "Commitment", "Artifact"],
+            canonicalWrites: [],
+          },
+        ],
+        humanVisibleState: [
+          "Draft suggestion",
+          "Needs owner approval before mutation",
+        ],
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentOptimization),
+          absoluteUrl(agentDiscoveryPaths.agentPrompts),
+          absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+        ],
+        requiredAuth: ["none for local draft; governed mutation follows the target route auth"],
+        canonicalReads: ["Request", "Commitment", "Artifact"],
+        canonicalWrites: [],
+        stopConditions: [
+          "Missing source context.",
+          "Suggestion would invent business facts.",
+          "Owner approval is absent for a durable mutation.",
+        ],
+        successEvidence: [
+          "optimization preparation result",
+          "local suggestion",
+          "next preflight action id if mutation is requested",
+        ],
+        nonAuthority: [
+          "durable mutation",
+          "owner approval",
+          "planner override",
+          "completion proof",
+        ],
+      },
+      {
+        id: "payment_run_reconcile",
+        role: "payment",
+        status: "live_account_session_payment_contract",
+        userIntent:
+          "Run or fund work while keeping payment truth separate from completion truth.",
+        primaryOutcome:
+          "A request-attached Transaction or paid-run Request can be reconciled without treating payment as delivery.",
+        startWhen: [
+          "The human wants to run a reusable solution, apply buyer credit, or fund request work.",
+          "The agent can distinguish free inspection from paid execution.",
+        ],
+        steps: [
+          {
+            id: "read_payment_profile",
+            title: "Read payment and credit boundaries",
+            agentAction: "run_public_solution",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentPayments),
+              absoluteUrl("/openapi/payment-and-credit.yaml"),
+            ],
+            call: {
+              method: "GET",
+              href: absoluteUrl(agentDiscoveryPaths.agentPayments),
+              status: "live_public_read",
+            },
+            renderForHuman:
+              "Show that inspection is free, account-session spend is required for live spend, and x402 remains target-only.",
+            continueWhen: [
+              "The human approves spend and the account-session route supports the intended action.",
+            ],
+            stopWhen: [
+              "The agent would spend from resolver bearer auth or treat x402 metadata as live payment authority.",
+            ],
+            canonicalReads: ["Request", "Artifact", "Transaction"],
+            canonicalWrites: [],
+          },
+          {
+            id: "create_paid_run_or_funding",
+            title: "Create the paid run or funding mutation",
+            agentAction: "run_public_solution",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+              absoluteUrl(agentDiscoveryPaths.agentPayments),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteTemplateUrl("/api/requests/{id}/solution-runs"),
+              status: "live_account_session_payment_contract",
+            },
+            renderForHuman:
+              "Show paid-run state and transaction reconciliation separately from proof or completion state.",
+            continueWhen: [
+              "A Transaction or run Request is returned and idempotency is preserved.",
+            ],
+            stopWhen: [
+              "Payment success would be described as fulfillment completion or accepted proof.",
+            ],
+            canonicalReads: ["Request", "Artifact"],
+            canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+          },
+        ],
+        humanVisibleState: [
+          "Payment needs approval",
+          "Paid run created",
+          "Payment reconciled separately from completion",
+        ],
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+        ],
+        requiredAuth: ["Boreal account session for live spend"],
+        canonicalReads: ["Request", "Artifact", "Transaction"],
+        canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+        stopConditions: [
+          "No human spend approval.",
+          "Resolver bearer would be used for spend.",
+          "Payment result would be treated as work completion.",
+        ],
+        successEvidence: [
+          "Transaction id",
+          "run Request id when applicable",
+          "safe claim label: Paid run created",
+        ],
+        nonAuthority: [
+          "completion proof",
+          "artifact acceptance",
+          "wallet custody",
+          "x402 activation",
+        ],
+      },
+      {
+        id: "external_agent_onboarding",
+        role: "onboarding",
+        status: "live_operator_review_handoff",
+        userIntent:
+          "Prepare an external agent for scoped Boreal production review.",
+        primaryOutcome:
+          "A conformance report and production access packet are ready for manual operator review without issuing credentials.",
+        startWhen: [
+          "An external agent wants production access beyond public reads.",
+          "The agent can run contract-only sandbox replay and state requested scopes.",
+        ],
+        steps: [
+          {
+            id: "prove_contract_sandbox",
+            title: "Replay contract-only sandbox scenarios",
+            agentAction: "validate_review_packet",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+              absoluteUrl(agentDiscoveryPaths.agentConformance),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+              status: "live_validation_only",
+            },
+            renderForHuman:
+              "Show scenario id, expected order, idempotency evidence, terminal state, and non-authority flags.",
+            continueWhen: [
+              "Sandbox replay validation passes without claiming production credentials or durable writes.",
+            ],
+            stopWhen: [
+              "The agent would use mock credentials against production or claim sandbox replay as certification.",
+            ],
+            canonicalReads: [],
+            canonicalWrites: [],
+          },
+          {
+            id: "prepare_operator_packet",
+            title: "Prepare operator-review handoff",
+            agentAction: "request_production_access_review",
+            readProfiles: [
+              absoluteUrl(agentDiscoveryPaths.agentAccessReview),
+              absoluteUrl(agentDiscoveryPaths.agentOnboarding),
+              absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
+            ],
+            call: {
+              method: "POST",
+              href: absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare),
+              status: "live_handoff_preparation_only",
+            },
+            renderForHuman:
+              "Show requested scopes, sandbox evidence, rate limits, human escalation, data handling, payment boundary, and target protocol claims.",
+            continueWhen: [
+              "The handoff packet is explicit that operator review is still required.",
+            ],
+            stopWhen: [
+              "The packet would be treated as a credential, permission grant, production sandbox, certification, or payment authority.",
+            ],
+            canonicalReads: [],
+            canonicalWrites: [],
+          },
+        ],
+        humanVisibleState: [
+          "Sandbox evidence ready",
+          "Operator review required",
+        ],
+        requiredProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentOnboarding),
+          absoluteUrl(agentDiscoveryPaths.agentAccessReview),
+          absoluteUrl(agentDiscoveryPaths.agentConformance),
+        ],
+        requiredAuth: ["none for public packet preparation; live production access requires separate operator-issued credentials"],
+        canonicalReads: [],
+        canonicalWrites: [],
+        stopConditions: [
+          "Sandbox replay is missing.",
+          "Requested scopes are broader than the minimal intended actions.",
+          "The agent claims production access before operator approval.",
+        ],
+        successEvidence: [
+          "sandbox replay validation result",
+          "conformance report packet",
+          "production access packet draft",
+          "manual operator-review handoff checklist",
+        ],
+        nonAuthority: [
+          "credential issuer",
+          "permission grant",
+          "production sandbox",
+          "operator approval record",
+          "certification",
+        ],
+      },
+    ],
+    decisionRules: [
+      {
+        id: "read_policy_before_write",
+        rule:
+          "Before any write-capable journey step, read request detail and follow agentActionPolicy instead of relying on public affordances alone.",
+        appliesTo: [
+          "requester_make_request",
+          "solver_apply_submit_monitor",
+          "payment_run_reconcile",
+        ],
+        readBeforeActing: [
+          absoluteUrl(agentDiscoveryPaths.agentHttp),
+          absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+        ],
+      },
+      {
+        id: "human_approval_before_human_owned_changes",
+        rule:
+          "Opening requests, spending, submitting proposals, publishing proof, accepting work, and completion-sensitive claims need explicit human approval or canonical review truth.",
+        appliesTo: [
+          "requester_make_request",
+          "solver_apply_submit_monitor",
+          "payment_run_reconcile",
+        ],
+        readBeforeActing: [
+          absoluteUrl(agentDiscoveryPaths.agentDelegation),
+          absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+        ],
+      },
+      {
+        id: "validation_is_not_authority",
+        rule:
+          "Validation, preparation, journey, UX, prompt, and client-kit outputs are guardrails only; they do not grant permission or create durable truth.",
+        appliesTo: [
+          "monitor_escalate_request",
+          "optimizer_draft_only",
+          "external_agent_onboarding",
+        ],
+        readBeforeActing: [
+          absoluteUrl(agentDiscoveryPaths.agentReadiness),
+          absoluteUrl(agentDiscoveryPaths.agentClientKit),
+        ],
+      },
+      {
+        id: "completion_requires_canonical_truth",
+        rule:
+          "Do not say completed unless Request lifecycle, Artifact, Fulfillment, review, Transaction where applicable, and RequestEvent truth support that label.",
+        appliesTo: ["solver_apply_submit_monitor", "payment_run_reconcile"],
+        readBeforeActing: [
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
+          absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+        ],
+      },
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      policyObject: "agentActionPolicy",
+      durableTruthObjects: [
+        "Request",
+        "Supply",
+        "RequestParticipant",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      journeyProfileIsNot: [
+        "workflow engine",
+        "permission grant",
+        "credential issuer",
+        "human approval record",
+        "operator approval record",
+        "payment authorization",
+        "completion proof",
+        "generated SDK package",
+        "MCP server",
+        "A2A adapter",
+        "x402 endpoint",
+      ],
+      notRoots: [
+        "journey",
+        "journey step",
+        "UX card",
+        "handoff packet",
+        "prompt output",
+        "client wrapper",
+        "MCP task",
+        "A2A task",
+        "x402 payload",
+      ],
+      rules: [
+        "Journeys organize existing profiles, route contracts, and human-visible steps; they do not create new Boreal semantics.",
+        "Request remains the durable root across requester, solver, monitor, optimizer, payment, and onboarding journeys.",
+        "Generated clients, validation helpers, handoff packets, prompt output, and journey steps stay below canonical truth until a governed route writes a canonical object.",
       ],
     },
   };
@@ -10535,6 +11427,10 @@ export function buildAgentClientKitProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
       },
       {
+        label: "Agent journey profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
+      },
+      {
         label: "Agent readiness profile",
         url: absoluteUrl(agentDiscoveryPaths.agentReadiness),
       },
@@ -11745,6 +12641,10 @@ export function buildAgentReadinessProfile() {
       {
         label: "Agent workflow catalog",
         url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent journey profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentJourneys),
       },
       {
         label: "Agent UX profile",

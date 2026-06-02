@@ -8,6 +8,7 @@ import {
   buildAgentCard,
   buildAgentClientKitProfile,
   buildAgentConformanceProfile,
+  buildAgentJourneyProfile,
   buildAgentCompletionProfile,
   buildAgentDelegationProfile,
   buildAgentEvidenceProfile,
@@ -63,6 +64,7 @@ import { GET as getAgentCard } from "@/app/.well-known/agent-card.json/route";
 import { GET as getAgentActions } from "@/app/agents/actions.md/route";
 import { POST as postAgentActionPreflight } from "@/app/agents/actions/preflight/route";
 import { GET as getAgentClientKit } from "@/app/agents/client-kit.json/route";
+import { GET as getAgentJourneys } from "@/app/agents/journeys.json/route";
 import { GET as getAgentAccessReview } from "@/app/agents/access-review.json/route";
 import { POST as postAgentAccessReviewPreparation } from "@/app/agents/access-review/prepare/route";
 import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
@@ -210,6 +212,24 @@ async function main() {
   );
   assert.equal(
     agentCard.clientKitUrl.endsWith("/agents/client-kit.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.journeyProfileUrl.endsWith("/agents/journeys.json"),
+    true,
+  );
+  assert.equal(agentCard.journeys.status, "live_journey_profile");
+  assert.equal(
+    agentCard.journeys.roles.some(
+      (role: { role: string; canonicalWrites: string[] }) =>
+        role.role === "solver" && role.canonicalWrites.includes("Artifact")
+    ),
+    true,
+  );
+  assert.equal(
+    agentCard.journeys.decisionRules.includes(
+      "completion_requires_canonical_truth"
+    ),
     true,
   );
   assert.equal(
@@ -867,6 +887,12 @@ async function main() {
   assert.equal(
     readinessProfile.resources.some((resource) =>
       resource.url.endsWith("/agents/client-kit.json")
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/journeys.json")
     ),
     true,
   );
@@ -1668,6 +1694,49 @@ async function main() {
   );
   assert.equal(
     uxProfile.canonicalBoundary.uxProfileIsNot.includes("workflow engine"),
+    true,
+  );
+
+  const journeyProfile = buildAgentJourneyProfile();
+  assert.equal(journeyProfile.status, "live_journey_profile");
+  assert.equal(journeyProfile.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    journeyProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/client-kit.json")
+    ),
+    true,
+  );
+  assert.equal(
+    journeyProfile.journeys.some(
+      (journey) =>
+        journey.id === "solver_apply_submit_monitor" &&
+        journey.canonicalWrites.includes("Artifact")
+    ),
+    true,
+  );
+  assert.equal(
+    journeyProfile.journeys.some(
+      (journey) =>
+        journey.role === "optimizer" && journey.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    journeyProfile.decisionRules.some(
+      (rule) => rule.id === "completion_requires_canonical_truth"
+    ),
+    true,
+  );
+  assert.equal(
+    journeyProfile.canonicalBoundary.journeyProfileIsNot.includes(
+      "permission grant"
+    ),
+    true,
+  );
+  assert.equal(
+    journeyProfile.canonicalBoundary.journeyProfileIsNot.includes(
+      "completion proof"
+    ),
     true,
   );
 
@@ -3402,6 +3471,7 @@ async function main() {
   assert.match(startGuide, /Agent HTTP reference profile/);
   assert.match(startGuide, /Agent client kit/);
   assert.match(startGuide, /Agent UX profile/);
+  assert.match(startGuide, /Agent journey profile/);
   assert.match(startGuide, /Agent action preflight endpoint/);
   assert.match(startGuide, /Agent intake validation endpoint/);
   assert.match(startGuide, /manual handoff packet/);
@@ -3493,6 +3563,7 @@ async function main() {
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/http.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/ux.json"), true);
+  assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/journeys.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/monitoring.json"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/monitoring/prepare"),
@@ -3563,6 +3634,10 @@ async function main() {
   );
   assert.equal(
     Object.hasOwn(discoveryIndex.components.schemas, "AgentClientKit"),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(discoveryIndex.components.schemas, "AgentJourneyProfile"),
     true,
   );
   assert.equal(
@@ -3669,6 +3744,30 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-client-kit"].nonGoals.includes(
       "generated SDK package"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-journeys"].status,
+    "live_journey_profile",
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-journeys"].roles.some(
+      (role: { id: string; canonicalWrites: string[] }) =>
+        role.id === "requester_make_request" &&
+        role.canonicalWrites.includes("Request")
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-journeys"].decisionRules.includes(
+      "validation_is_not_authority"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-journeys"].nonAuthority.includes(
+      "permission grant"
     ),
     true,
   );
@@ -4067,6 +4166,10 @@ async function main() {
     "schemas/json/agent-client-kit.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-journeys.schema.json")?.sourcePath,
+    "schemas/json/agent-journeys.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-completion.schema.json")?.sourcePath,
     "schemas/json/agent-completion.schema.json",
   );
@@ -4246,6 +4349,13 @@ async function main() {
   assert.equal(
     (await agentClientKitResponse.json()).status,
     "live_client_manifest"
+  );
+
+  const agentJourneysResponse = await getAgentJourneys();
+  assert.equal(agentJourneysResponse.status, 200);
+  assert.equal(
+    (await agentJourneysResponse.json()).status,
+    "live_journey_profile"
   );
 
   const agentAccessReviewResponse = await getAgentAccessReview();
@@ -5298,6 +5408,7 @@ async function main() {
   assert.match(llmsText, /Agent human handoff packet examples/);
   assert.match(llmsText, /Agent HTTP reference profile/);
   assert.match(llmsText, /Agent UX profile/);
+  assert.match(llmsText, /Agent journey profile/);
   assert.match(llmsText, /Agent intake validation endpoint/);
   assert.match(llmsText, /Agent monitoring profile/);
   assert.match(llmsText, /Agent monitoring preparation endpoint/);
@@ -5513,6 +5624,12 @@ async function main() {
   });
   assert.equal(uxSchemaResponse.status, 200);
   assert.equal((await uxSchemaResponse.json()).title, "AgentUxProfile");
+
+  const journeySchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-journeys.schema.json" }),
+  });
+  assert.equal(journeySchemaResponse.status, 200);
+  assert.equal((await journeySchemaResponse.json()).title, "AgentJourneyProfile");
 
   const evidenceSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
     params: Promise.resolve({ schema: "agent-evidence.schema.json" }),

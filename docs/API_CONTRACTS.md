@@ -417,6 +417,7 @@ Read-only public discovery surfaces:
 - `/agents/human-handoff-packets.example.json` for checked renderable packet examples covering draft approval, Commitment review, proof review, monitor escalation, and payment authorization
 - `/agents/http.json` for a unified machine-readable HTTP reference over current agent-callable routes, OpenAPI sources, auth, scopes, idempotency, and canonical writes
 - `/agents/ux.json` for machine-readable human-first agent process and UX surfaces covering discovery, consent, action, monitoring, proof review, payment authorization, optimization, and completion claims
+- `/agents/journeys.json` for machine-readable requester, solver, monitor, optimizer, payment, and onboarding role journeys that compose existing contracts without becoming workflow authority
 - `/agents/onboarding.json` for machine-readable external-agent onboarding, contract sandbox validation, production eligibility, and scoped credential boundaries
 - `/agents/optimization.json` for machine-readable draft-only optimization, no-invention, owner-approval, and mutation-boundary handling
 - `POST /agents/optimization/prepare` for plan-preparation that returns the allowed optimization surface, no-invention rules, output contract, owner-approval gate, and next preflight handoff before draft generation without generating optimized content or creating durable writes
@@ -468,6 +469,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-human-handoff-packets.schema.json` for the checked human handoff packet example shape
 - `/schemas/agent-http.schema.json` for the machine-readable agent HTTP reference profile shape
 - `/schemas/agent-ux.schema.json` for the machine-readable agent UX profile shape
+- `/schemas/agent-journeys.schema.json` for the machine-readable role journey profile shape
 - `/schemas/agent-monitoring.schema.json` for the machine-readable agent monitoring profile shape
 - `/schemas/agent-monitoring-preparation.schema.json` for the plan-preparation request and response envelope used to prepare cursor-safe monitor execution and escalation handoff
 - `/schemas/agent-monitoring-validation.schema.json` for the validation-only request and response envelope used to preflight monitor plans
@@ -515,6 +517,15 @@ adapter clients so generated code does not blur authority. It is not a
 generated SDK package, production credential, permission grant, operator
 approval record, new API surface, MCP server, A2A adapter, x402 activation,
 payment authority, completion proof, or durable truth object.
+
+The public agent journey profile at `/agents/journeys.json` is a descriptive
+role map for requester, solver, monitor, optimizer, payment, and onboarding
+agents. It composes the existing start guide, UX profile, workflow catalog,
+tool registry, HTTP contracts, validation endpoints, preparation endpoints, and
+client kit into human-visible steps. It is not a workflow engine, permission
+grant, credential issuer, human or operator approval record, payment
+authorization, completion proof, generated SDK package, MCP server, A2A
+adapter, x402 endpoint, or durable truth object.
 
 Agent-facing OpenAPI contracts must expose auth metadata in the machine-readable
 contract, not only in prose. Live request, supply, and payment OpenAPI exports

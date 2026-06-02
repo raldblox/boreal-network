@@ -172,6 +172,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-intake-validation.schema.json`
 - `schemas/json/agent-action-preflight.schema.json`
 - `schemas/json/agent-client-kit.schema.json`
+- `schemas/json/agent-journeys.schema.json`
 - `schemas/json/agent-monitoring.schema.json`
 - `schemas/json/agent-monitoring-preparation.schema.json`
 - `schemas/json/agent-monitoring-validation.schema.json`
@@ -235,6 +236,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/workflows.json` workflow catalog gives agents machine-readable process flows for scouting public work, making human-owned drafts, applying, submitting artifacts, monitoring activity, running public solutions, and optimizing without durable writes
 - one public `/agents/actions.md` playbook gives contract-linked walkthroughs and HTTP sketches for inspect, make-request, apply, submit, monitor, run, and optimize intents without creating a parallel agent ledger
 - one public `/agents/client-kit.json` manifest and `schemas/json/agent-client-kit.schema.json` tell agents how to generate separate public-read, guardrail, authorized-work, payment, sandbox, and target-adapter clients from existing OpenAPI, JSON Schema, AsyncAPI, validation, preparation, and sandbox surfaces without granting permission, issuing credentials, creating a new API surface, activating adapters, authorizing spend, proving completion, or becoming durable truth
+- one public `/agents/journeys.json` profile and `schemas/json/agent-journeys.schema.json` give requester, solver, monitor, optimizer, payment, and onboarding agents machine-readable role journeys over existing contracts without granting permission, issuing credentials, creating a workflow engine, authorizing payment, proving completion, or becoming durable truth
 - one public `/agents/access-review.json` profile and `schemas/json/agent-access-review.schema.json` give external agents machine-readable operator-review policy for requested scopes, quotas, revocation triggers, decision outcomes, and target adapter claims without issuing credentials, granting permission, certifying agents, authorizing spend, or proving completion
 - one public `POST /agents/access-review/prepare` route and `schemas/json/agent-access-review-preparation.schema.json` prepare a production access packet for manual operator-review handoff with required attachments, operator checks, decision options, and next human actions without creating a persistent review submission, issuing credentials, granting permission, recording approval, creating a production sandbox, authorizing payment, proving completion, or writing durable history
 - one public `/agents/auth.json` profile and `schemas/json/agent-auth.schema.json` give agents machine-readable actor classes, auth schemes, scopes, approval boundaries, idempotency requirements, and explicit non-grants without claiming OAuth-compatible external-agent auth is live
