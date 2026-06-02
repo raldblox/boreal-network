@@ -53,6 +53,7 @@ import { prepareAgentAccessReviewPayload } from "@/lib/agent-access-review-prepa
 import { prepareAgentAuthPayload } from "@/lib/agent-auth-preparation";
 import { prepareAgentMonitoringPayload } from "@/lib/agent-monitoring-preparation";
 import { prepareAgentOptimizationPayload } from "@/lib/agent-optimization-preparation";
+import { prepareAgentWriteSandboxPayload } from "@/lib/agent-write-sandbox-preparation";
 import { validateAgentMonitoringPayload } from "@/lib/agent-monitoring-validation";
 import { validateAgentSandboxReplayPayload } from "@/lib/agent-sandbox-replay-validation";
 import {
@@ -111,6 +112,7 @@ import { GET as getAgentStart } from "@/app/agents/start.md/route";
 import { GET as getAgentStandards } from "@/app/agents/standards.json/route";
 import { GET as getAgentTools } from "@/app/agents/tools.json/route";
 import { GET as getAgentWriteSandbox } from "@/app/agents/write-sandbox.json/route";
+import { POST as postAgentWriteSandboxPreparation } from "@/app/agents/write-sandbox/prepare/route";
 import { GET as getAgentWorkflows } from "@/app/agents/workflows.json/route";
 import { GET as getAsyncApiContract } from "@/app/events/[contract]/route";
 import { GET as getLlmsTxt } from "@/app/llms.txt/route";
@@ -1245,6 +1247,134 @@ async function main() {
     ),
     true,
   );
+  assert.equal(
+    writeSandboxProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/write-sandbox/prepare")
+    ),
+    true,
+  );
+
+  const writeSandboxActivationPlan = {
+    schemaVersion: 1,
+    preparationIntent: "isolated_write_sandbox_activation",
+    preparationMode: "operator_activation_plan",
+    decisionId: "0025-agent-isolated-write-sandbox-boundary",
+    operatorReviewRequired: true,
+    notCredentialRequest: true,
+    noSecretsIncluded: true,
+    claimsLiveSandbox: false,
+    claimsProductionAccess: false,
+    claimsPermissionGranted: false,
+    claimsPaymentAuthority: false,
+    claimsCompletion: false,
+    claimsDurableWrite: false,
+    activationPlan: {
+      environment: {
+        segregatedNonProduction: true,
+        productionDataTouched: false,
+        productionRequestEventWrites: false,
+        realPaymentMovement: false,
+        sandboxRecordsPromotableWithoutSeparateDecision: false,
+      },
+      credentials: {
+        representedActorIncluded: true,
+        credentialKindIncluded: true,
+        allowedScopes: ["requests:create", "commitments:propose"],
+        allowedEnvironment: "sandbox",
+        expiryIncluded: true,
+        revocationPathIncluded: true,
+        rateLimitIncluded: true,
+        idempotencyRequired: true,
+        issuingPolicyIncluded: true,
+        productionRejectionTestIncluded: true,
+      },
+      coverage: {
+        requestDraftCreation: true,
+        commitmentProposal: true,
+        ownerAcceptanceGate: true,
+        fulfillmentAndStepsAfterGate: true,
+        artifactProofSubmission: true,
+        cursorMonitoring: true,
+        idempotentRetry: true,
+        paidRunShapeNoMoney: true,
+        optimizationDraftOnly: true,
+        rfc9457Failures: true,
+      },
+      humanFirstUx: {
+        actionCardsIncluded: true,
+        handoffPromptsIncluded: true,
+        proofReviewIncluded: true,
+        monitorEscalationIncluded: true,
+        paymentAuthorizationIncluded: true,
+      },
+    },
+  };
+  const writeSandboxPreparation = prepareAgentWriteSandboxPayload(
+    writeSandboxActivationPlan
+  );
+  assert.equal(
+    writeSandboxPreparation.status,
+    "write_sandbox_plan_ready",
+  );
+  assert.equal(
+    writeSandboxPreparation.activationGateResults.every(
+      (gate) => gate.status === "passed"
+    ),
+    true,
+  );
+  assert.equal(writeSandboxPreparation.sandboxCredentialsIssued, false);
+  assert.equal(writeSandboxPreparation.liveSandboxCreated, false);
+  assert.equal(writeSandboxPreparation.productionAccessGranted, false);
+  assert.equal(writeSandboxPreparation.paymentAuthorized, false);
+  assert.equal(writeSandboxPreparation.completionProven, false);
+  assert.equal(writeSandboxPreparation.durableWriteCreated, false);
+
+  const blockedWriteSandboxPreparation = prepareAgentWriteSandboxPayload({
+    ...writeSandboxActivationPlan,
+    claimsLiveSandbox: true,
+    claimsProductionAccess: true,
+    activationPlan: {
+      ...writeSandboxActivationPlan.activationPlan,
+      environment: {
+        ...writeSandboxActivationPlan.activationPlan.environment,
+        segregatedNonProduction: false,
+        productionDataTouched: true,
+      },
+      credentials: {
+        ...writeSandboxActivationPlan.activationPlan.credentials,
+        allowedScopes: [],
+        productionRejectionTestIncluded: false,
+      },
+      coverage: {
+        ...writeSandboxActivationPlan.activationPlan.coverage,
+        rfc9457Failures: false,
+      },
+    },
+  });
+  assert.equal(
+    blockedWriteSandboxPreparation.status,
+    "write_sandbox_plan_blocked",
+  );
+  assert.equal(
+    blockedWriteSandboxPreparation.blockedAssertions.some((assertion) =>
+      assertion.includes("claimsLiveSandbox")
+    ),
+    true,
+  );
+  assert.equal(
+    blockedWriteSandboxPreparation.activationGateResults.some(
+      (gate) => gate.id === "environment_separation" && gate.status === "blocked"
+    ),
+    true,
+  );
+  assert.equal(
+    blockedWriteSandboxPreparation.minimumFlowCoverageResults.some(
+      (flow) => flow.id === "rfc_9457_failures" && flow.status === "missing"
+    ),
+    true,
+  );
+  assert.equal(blockedWriteSandboxPreparation.credentialsIssued, false);
+  assert.equal(blockedWriteSandboxPreparation.reviewSubmissionCreated, false);
 
   const clientKit = buildAgentClientKitProfile();
   assert.equal(clientKit.status, "live_client_manifest");
@@ -1260,7 +1390,10 @@ async function main() {
       (surface) =>
         surface.id === "target_write_sandbox_client" &&
         surface.status === "target_write_sandbox_profile" &&
-        surface.canonicalWrites.includes("RequestEvent")
+        surface.canonicalWrites.includes("RequestEvent") &&
+        surface.sourceProfiles.some((profile) =>
+          profile.endsWith("/agents/write-sandbox/prepare")
+        )
     ),
     true,
   );
@@ -4748,6 +4881,11 @@ async function main() {
     "schemas/json/agent-write-sandbox.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-write-sandbox-preparation.schema.json")
+      ?.sourcePath,
+    "schemas/json/agent-write-sandbox-preparation.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-tools.schema.json")?.sourcePath,
     "schemas/json/agent-tools.schema.json",
   );
@@ -5777,6 +5915,95 @@ async function main() {
   assert.equal(malformedAgentOptimizationPreparationResponse.status, 400);
   assert.equal(
     (await malformedAgentOptimizationPreparationResponse.json())
+      .durableWriteCreated,
+    false,
+  );
+
+  const agentWriteSandboxPreparationResponse =
+    await postAgentWriteSandboxPreparation(
+      new Request("http://boreal.test/agents/write-sandbox/prepare", {
+        body: JSON.stringify(writeSandboxActivationPlan),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(agentWriteSandboxPreparationResponse.status, 200);
+  const agentWriteSandboxPreparationRouteResult =
+    await agentWriteSandboxPreparationResponse.json();
+  assert.equal(
+    agentWriteSandboxPreparationRouteResult.status,
+    "write_sandbox_plan_ready",
+  );
+  assert.equal(
+    agentWriteSandboxPreparationRouteResult.activationGateResults.some(
+      (gate: { id: string; status: string }) =>
+        gate.id === "production_rejection" && gate.status === "passed"
+    ),
+    true,
+  );
+  assert.equal(
+    agentWriteSandboxPreparationRouteResult.sandboxCredentialsIssued,
+    false,
+  );
+  assert.equal(agentWriteSandboxPreparationRouteResult.liveSandboxCreated, false);
+  assert.equal(agentWriteSandboxPreparationRouteResult.paymentAuthorized, false);
+  assert.equal(agentWriteSandboxPreparationRouteResult.completionProven, false);
+  assert.equal(
+    agentWriteSandboxPreparationRouteResult.durableWriteCreated,
+    false,
+  );
+
+  const failedAgentWriteSandboxPreparationResponse =
+    await postAgentWriteSandboxPreparation(
+      new Request("http://boreal.test/agents/write-sandbox/prepare", {
+        body: JSON.stringify({
+          ...writeSandboxActivationPlan,
+          claimsLiveSandbox: true,
+          activationPlan: {
+            ...writeSandboxActivationPlan.activationPlan,
+            credentials: {
+              ...writeSandboxActivationPlan.activationPlan.credentials,
+              productionRejectionTestIncluded: false,
+            },
+          },
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(failedAgentWriteSandboxPreparationResponse.status, 400);
+  const failedAgentWriteSandboxPreparationRouteResult =
+    await failedAgentWriteSandboxPreparationResponse.json();
+  assert.equal(
+    failedAgentWriteSandboxPreparationRouteResult.status,
+    "write_sandbox_plan_blocked",
+  );
+  assert.equal(
+    failedAgentWriteSandboxPreparationRouteResult.blockedAssertions.some(
+      (assertion: string) => assertion.includes("claimsLiveSandbox")
+    ),
+    true,
+  );
+  assert.equal(
+    failedAgentWriteSandboxPreparationRouteResult.credentialsIssued,
+    false,
+  );
+  assert.equal(
+    failedAgentWriteSandboxPreparationRouteResult.reviewSubmissionCreated,
+    false,
+  );
+
+  const malformedAgentWriteSandboxPreparationResponse =
+    await postAgentWriteSandboxPreparation(
+      new Request("http://boreal.test/agents/write-sandbox/prepare", {
+        body: "{",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(malformedAgentWriteSandboxPreparationResponse.status, 400);
+  assert.equal(
+    (await malformedAgentWriteSandboxPreparationResponse.json())
       .durableWriteCreated,
     false,
   );

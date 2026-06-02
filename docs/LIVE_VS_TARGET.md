@@ -134,6 +134,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/optimization.json/route.ts`
 - `apps/web/app/agents/optimization/prepare/route.ts`
 - `apps/web/lib/agent-optimization-preparation.ts`
+- `apps/web/lib/agent-write-sandbox-preparation.ts`
 - `apps/web/app/agents/payments.json/route.ts`
 - `apps/web/app/agents/prompts.json/route.ts`
 - `apps/web/app/agents/protocol-adapter-samples.json/route.ts`
@@ -143,6 +144,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/readiness.json/route.ts`
 - `apps/web/app/agents/tools.json/route.ts`
 - `apps/web/app/agents/write-sandbox.json/route.ts`
+- `apps/web/app/agents/write-sandbox/prepare/route.ts`
 - `apps/web/app/agents/sandbox.md/route.ts`
 - `apps/web/app/agents/sandbox.json/route.ts`
 - `apps/web/app/.well-known/agent-card.json/route.ts`
@@ -193,6 +195,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-recovery.schema.json`
 - `schemas/json/agent-readiness.schema.json`
 - `schemas/json/agent-write-sandbox.schema.json`
+- `schemas/json/agent-write-sandbox-preparation.schema.json`
 - `schemas/json/agent-tools.schema.json`
 - `fixtures/agent/sandbox-manifest.sample.json`
 - `fixtures/agent/conformance-report.sample.json`
@@ -213,6 +216,7 @@ Today, the machine-readable baseline proves:
 - one public `/llms.txt` route exists and gives agents high-level public-page, claim-boundary, canonical-object, and agent-discovery guidance
 - one read-only agent discovery package exists through `/agents/start.md`, `/.well-known/agent-card.json`, `/openapi.json`, public OpenAPI YAML exports, public JSON Schema exports, and the public request-room AsyncAPI export
 - one target-only `/agents/write-sandbox.json` profile exists for decision `0025`, defining the future isolated non-production write-sandbox boundary, credential requirements, process order, minimum flow coverage, activation gates, and non-authority limits without making sandbox write credentials or mutating sandbox routes live
+- one public `POST /agents/write-sandbox/prepare` route and `schemas/json/agent-write-sandbox-preparation.schema.json` check a proposed decision `0025` activation plan for environment, credential, production-rejection, route-enforcement, fixture, human-UX, payment, completion, and operator-handoff gates before review without issuing credentials, creating a live sandbox, granting production access, authorizing payment, proving completion, submitting review state, or writing durable history
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
 - one private request may carry an owner-scoped preferred supply, and one resolver-approved desktop may read owned supplies and bind direct auto-fulfillment to a published owned supply when the request override or desktop default selects it
@@ -272,6 +276,7 @@ Today, the machine-readable baseline proves:
 - one public `/agents/opportunities.json` profile and `schemas/json/agent-opportunities.schema.json` give agents a machine-readable read-only way to turn public request projections and `agentActionAffordances` into local opportunity cards, fit scores, and recommended next actions without granting permission, assigning supply, creating a match result, starting fulfillment, authorizing payment, or proving completion
 - one public `/agents/optimization.json` profile and `schemas/json/agent-optimization.schema.json` give agents machine-readable draft-only optimization surfaces for briefs, proposals, evidence packets, monitor updates, and public-solution reuse without inventing facts, overriding planner or policy fields, authorizing writes, implying owner approval, settling payment, or proving completion
 - one public `POST /agents/optimization/prepare` route and `schemas/json/agent-optimization-preparation.schema.json` give agents a draft-only optimization plan, output contract, no-invention boundary, owner-approval gate, and next preflight handoff before local suggestion drafting without generating content, mutating `Request`, submitting `Commitment`, publishing `Artifact`, starting `Fulfillment`, recording approval, granting permission, authorizing payment, proving completion, or writing durable history
+- one public `POST /agents/write-sandbox/prepare` route and `schemas/json/agent-write-sandbox-preparation.schema.json` give agents and operators decision `0025` activation gate results and minimum flow coverage results before write-sandbox operator review without issuing credentials, creating a live sandbox, granting production access, authorizing payment, proving completion, submitting review state, or writing durable history
 - one public `/agents/payments.json` profile and `schemas/json/agent-payments.schema.json` give agents machine-readable buyer-credit, request-funding, paid-run, idempotency, x402-target, reconciliation, and escalation boundaries without granting payment credentials, creating an `Order` root, or treating payment success as completion truth
 - one public `/agents/prompts.json` catalog and `schemas/json/agent-prompts.schema.json` give agents machine-readable prompt templates for briefing, applying, proof submission, monitoring, optimization, and recovery without treating prompt output as approval, mutation, proof, payment, or completion truth
 - one request activity endpoint can resume monitor reads with `after_sequence` and return `cursor.nextAfterSequence` without creating heartbeat `RequestEvent` records

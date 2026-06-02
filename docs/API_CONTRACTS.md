@@ -442,6 +442,7 @@ Read-only public discovery surfaces:
 - `/agents/readiness.json` for machine-readable live-versus-target capability bands, standard planes, agent UX flow, and go/no-go checks
 - `/agents/tools.json` for machine-readable safe tool invocation, validation and preparation tools, HTTP fallback, target MCP/A2A mapping, idempotency, and canonical write boundaries
 - `/agents/write-sandbox.json` for the target isolated write-sandbox profile defined by decision `0025`; it describes segregated non-production environment requirements, sandbox credential requirements, process order, minimum flow coverage, activation gates, standards, and canonical non-authority boundaries without issuing credentials, granting permission, authorizing payment, proving completion, or writing durable production history
+- `POST /agents/write-sandbox/prepare` for activation-plan preparation that checks decision `0025` environment, credential, production-rejection, route-enforcement, fixture, human-UX, payment, completion, and operator-handoff gates before review without issuing credentials, creating a live sandbox, granting permission, granting production access, authorizing payment, proving completion, submitting review state, or writing durable history
 - `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, payloads, and replay scenarios
 - `/agents/sandbox.json` for the machine-readable contract-only sandbox manifest and deterministic replay catalog
 - `POST /agents/sandbox/replay` for validation-only replay evidence checks before conformance or production-access review packets
@@ -493,6 +494,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-recovery.schema.json` for the machine-readable agent recovery profile shape
 - `/schemas/agent-readiness.schema.json` for the machine-readable agent readiness profile shape
 - `/schemas/agent-write-sandbox.schema.json` for the target isolated write-sandbox profile shape and its non-production authority boundaries
+- `/schemas/agent-write-sandbox-preparation.schema.json` for the preparation-only request and response envelope used to check isolated write-sandbox activation gates before operator review
 - `/schemas/agent-tools.schema.json` for the machine-readable agent tool registry shape
 - `/events/request-room.asyncapi.yaml` for durable request-room monitoring contracts
 
@@ -508,6 +510,7 @@ Validation and preparation public agent surface:
 - `POST /agents/monitoring/prepare` accepts a monitor plan plus explicit no-activity-read, no-subscription, no-push, no-heartbeat, no-completion, and no-durable-write assertions, then returns a cursor polling plan, escalation handoff context, and target webhook receiver boundary. It does not read request activity, create a subscription, activate push delivery, write heartbeat events, grant permission, authorize payment, write `RequestEvent` truth, or prove completion.
 - `POST /agents/monitoring/validate` accepts a monitor plan envelope and returns missing fields, warnings, next steps, accepted modes, accepted escalation triggers, and non-authority boundaries. It does not grant permission, read request activity, create a subscription, activate push delivery, write heartbeat events, authorize payment, write `RequestEvent` truth, or prove completion.
 - `POST /agents/optimization/prepare` accepts an optimization surface id, request id, source-context assertion, no-invention assertion, no-secret assertions, and no-authority claims, then returns a draft-only optimization plan, output contract, owner-approval gate, and next preflight handoff. It does not generate optimized content, mutate a `Request`, submit a `Commitment`, publish an `Artifact`, start `Fulfillment`, record owner approval, override policy, grant permission, authorize payment, prove completion, or write durable `RequestEvent` truth.
+- `POST /agents/write-sandbox/prepare` accepts a decision `0025` activation plan plus explicit non-credential, no-secret, no-live-sandbox, no-production-access, no-permission, no-payment, no-completion, and no-durable-write assertions, then returns activation gate results, minimum flow coverage results, missing requirements, blocked assertions, and operator handoff checks. It does not issue sandbox credentials, create a live sandbox, grant production access, record approval, submit review state, authorize payment, prove completion, or write durable `RequestEvent` truth.
 
 The agent card and `/openapi.json` include the same action catalog for common
 agent intents: inspect public requests, make a request draft for a human, apply
@@ -822,6 +825,11 @@ and rejected by production endpoints.
 Sandbox writes may create canonical-shaped objects only inside the sandbox
 dataset and must not create production `RequestEvent` history, move real money,
 grant production access, or prove completion.
+`POST /agents/write-sandbox/prepare` is the public preparation endpoint for
+checking those activation gates before operator review. It returns gate and
+minimum-flow coverage feedback only; it does not create the sandbox, issue
+credentials, submit review state, authorize spend, or make the target routes
+live.
 
 These are public inspection and contract-discovery routes.
 They do not create a new root object, and they do not make private drafts,
@@ -858,6 +866,7 @@ routes:
 - `POST /agents/monitoring/prepare` is the public plan-preparation endpoint agents may call before activity polling; it returns cursor polling and escalation handoff guidance but does not read activity, create subscriptions, activate push delivery, write `RequestEvent` truth, grant permission, authorize spend, or prove completion
 - `POST /agents/monitoring/validate` is the public validation-only preflight agents may call before polling or target signed-webhook receiver setup; it validates cursor, escalation, private-access, no-heartbeat, and no-completion posture but does not read activity, create subscriptions, activate push delivery, write `RequestEvent` truth, grant permission, authorize spend, or prove completion
 - `/agents/onboarding.json` is the public onboarding lens external agents should read before claiming production eligibility; it is not a credential issuer, OAuth server, production sandbox, adapter implementation, payment endpoint, or permission grant
+- `POST /agents/write-sandbox/prepare` is the public activation-plan preparation endpoint agents may call before operator review of a future isolated write sandbox; it checks decision `0025` gates and minimum flow coverage but does not issue credentials, create a live sandbox, grant production access, authorize payment, submit review state, prove completion, or write `RequestEvent` truth
 - `/agents/opportunities.json` is the public opportunity lens agents should read before ranking public requests or recommending apply, submit, monitor, run, or optimize actions; it is read-only analysis and does not grant permission, attach a match, assign supply, start fulfillment, authorize payment, or prove completion
 - `/agents/prompts.json` is the public prompt lens agents should read before drafting briefs, proposals, proof packets, monitor updates, optimizations, or recovery packets; it is not a mutation endpoint, approval record, completion proof, MCP server, or workflow engine
 - `/agents/protocol-adapter-samples.json` is the public standards-interop sample pack agents should read before designing MCP, A2A, or x402 adapters; it is target-only and does not make any adapter live

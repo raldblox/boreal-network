@@ -1,0 +1,527 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-write-sandbox-preparation.schema.json",
+  "title": "AgentWriteSandboxPreparation",
+  "description": "Preparation contract for checking whether a proposed isolated write-sandbox activation plan satisfies decision 0025 before operator review. It does not issue credentials, grant permission, create a live sandbox, grant production access, authorize payment, prove completion, submit review state, or create durable RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "request": {
+      "$ref": "#/$defs/preparationRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/preparationResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "preparationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "preparationIntent",
+        "preparationMode",
+        "decisionId",
+        "operatorReviewRequired",
+        "notCredentialRequest",
+        "noSecretsIncluded",
+        "claimsLiveSandbox",
+        "claimsProductionAccess",
+        "claimsPermissionGranted",
+        "claimsPaymentAuthority",
+        "claimsCompletion",
+        "claimsDurableWrite",
+        "activationPlan"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "preparationIntent": {
+          "const": "isolated_write_sandbox_activation"
+        },
+        "preparationMode": {
+          "const": "operator_activation_plan"
+        },
+        "decisionId": {
+          "const": "0025-agent-isolated-write-sandbox-boundary"
+        },
+        "operatorReviewRequired": {
+          "const": true
+        },
+        "notCredentialRequest": {
+          "const": true
+        },
+        "noSecretsIncluded": {
+          "const": true
+        },
+        "claimsLiveSandbox": {
+          "const": false
+        },
+        "claimsProductionAccess": {
+          "const": false
+        },
+        "claimsPermissionGranted": {
+          "const": false
+        },
+        "claimsPaymentAuthority": {
+          "const": false
+        },
+        "claimsCompletion": {
+          "const": false
+        },
+        "claimsDurableWrite": {
+          "const": false
+        },
+        "activationPlan": {
+          "$ref": "#/$defs/activationPlan"
+        }
+      }
+    },
+    "activationPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "environment",
+        "credentials",
+        "coverage",
+        "humanFirstUx"
+      ],
+      "properties": {
+        "environment": {
+          "$ref": "#/$defs/environmentPlan"
+        },
+        "credentials": {
+          "$ref": "#/$defs/credentialPlan"
+        },
+        "coverage": {
+          "$ref": "#/$defs/coveragePlan"
+        },
+        "humanFirstUx": {
+          "$ref": "#/$defs/humanFirstUxPlan"
+        }
+      }
+    },
+    "environmentPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "segregatedNonProduction",
+        "productionDataTouched",
+        "productionRequestEventWrites",
+        "realPaymentMovement",
+        "sandboxRecordsPromotableWithoutSeparateDecision"
+      ],
+      "properties": {
+        "segregatedNonProduction": {
+          "const": true
+        },
+        "productionDataTouched": {
+          "const": false
+        },
+        "productionRequestEventWrites": {
+          "const": false
+        },
+        "realPaymentMovement": {
+          "const": false
+        },
+        "sandboxRecordsPromotableWithoutSeparateDecision": {
+          "const": false
+        }
+      }
+    },
+    "credentialPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "representedActorIncluded",
+        "credentialKindIncluded",
+        "allowedScopes",
+        "allowedEnvironment",
+        "expiryIncluded",
+        "revocationPathIncluded",
+        "rateLimitIncluded",
+        "idempotencyRequired",
+        "issuingPolicyIncluded",
+        "productionRejectionTestIncluded"
+      ],
+      "properties": {
+        "representedActorIncluded": {
+          "const": true
+        },
+        "credentialKindIncluded": {
+          "const": true
+        },
+        "allowedScopes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allowedEnvironment": {
+          "const": "sandbox"
+        },
+        "expiryIncluded": {
+          "const": true
+        },
+        "revocationPathIncluded": {
+          "const": true
+        },
+        "rateLimitIncluded": {
+          "const": true
+        },
+        "idempotencyRequired": {
+          "const": true
+        },
+        "issuingPolicyIncluded": {
+          "const": true
+        },
+        "productionRejectionTestIncluded": {
+          "const": true
+        }
+      }
+    },
+    "coveragePlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestDraftCreation",
+        "commitmentProposal",
+        "ownerAcceptanceGate",
+        "fulfillmentAndStepsAfterGate",
+        "artifactProofSubmission",
+        "cursorMonitoring",
+        "idempotentRetry",
+        "paidRunShapeNoMoney",
+        "optimizationDraftOnly",
+        "rfc9457Failures"
+      ],
+      "properties": {
+        "requestDraftCreation": {
+          "const": true
+        },
+        "commitmentProposal": {
+          "const": true
+        },
+        "ownerAcceptanceGate": {
+          "const": true
+        },
+        "fulfillmentAndStepsAfterGate": {
+          "const": true
+        },
+        "artifactProofSubmission": {
+          "const": true
+        },
+        "cursorMonitoring": {
+          "const": true
+        },
+        "idempotentRetry": {
+          "const": true
+        },
+        "paidRunShapeNoMoney": {
+          "const": true
+        },
+        "optimizationDraftOnly": {
+          "const": true
+        },
+        "rfc9457Failures": {
+          "const": true
+        }
+      }
+    },
+    "humanFirstUxPlan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actionCardsIncluded",
+        "handoffPromptsIncluded",
+        "proofReviewIncluded",
+        "monitorEscalationIncluded",
+        "paymentAuthorizationIncluded"
+      ],
+      "properties": {
+        "actionCardsIncluded": {
+          "const": true
+        },
+        "handoffPromptsIncluded": {
+          "const": true
+        },
+        "proofReviewIncluded": {
+          "const": true
+        },
+        "monitorEscalationIncluded": {
+          "const": true
+        },
+        "paymentAuthorizationIncluded": {
+          "const": true
+        }
+      }
+    },
+    "preparationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "preparationIntent",
+        "preparationMode",
+        "decisionId",
+        "acceptedByProduction",
+        "sandboxCredentialsIssued",
+        "credentialsIssued",
+        "permissionGranted",
+        "productionAccessGranted",
+        "productionSandboxCreated",
+        "liveSandboxCreated",
+        "reviewSubmissionCreated",
+        "paymentAuthorized",
+        "completionProven",
+        "durableWriteCreated",
+        "activationGateResults",
+        "minimumFlowCoverageResults",
+        "operatorHandoff",
+        "missingRequirements",
+        "blockedAssertions",
+        "warnings",
+        "nextSteps",
+        "recommendedNextReads",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "write_sandbox_plan_ready",
+            "write_sandbox_plan_blocked"
+          ]
+        },
+        "preparationIntent": {
+          "enum": [
+            "isolated_write_sandbox_activation",
+            "unknown"
+          ]
+        },
+        "preparationMode": {
+          "const": "operator_activation_plan"
+        },
+        "decisionId": {
+          "const": "0025-agent-isolated-write-sandbox-boundary"
+        },
+        "acceptedByProduction": {
+          "const": false
+        },
+        "sandboxCredentialsIssued": {
+          "const": false
+        },
+        "credentialsIssued": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "productionAccessGranted": {
+          "const": false
+        },
+        "productionSandboxCreated": {
+          "const": false
+        },
+        "liveSandboxCreated": {
+          "const": false
+        },
+        "reviewSubmissionCreated": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "activationGateResults": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/checkResult"
+          }
+        },
+        "minimumFlowCoverageResults": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/checkResult"
+          }
+        },
+        "operatorHandoff": {
+          "$ref": "#/$defs/operatorHandoff"
+        },
+        "missingRequirements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blockedAssertions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendedNextReads": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "checkResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "blocking",
+        "requirement",
+        "missingRequirements"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "missing",
+            "blocked"
+          ]
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "requirement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missingRequirements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "operatorHandoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requiredAttachments",
+        "operatorChecks",
+        "decisionOptions",
+        "nextHumanActions"
+      ],
+      "properties": {
+        "kind": {
+          "const": "write_sandbox_activation_handoff"
+        },
+        "requiredAttachments": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "operatorChecks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "decisionOptions": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "ready_for_operator_review",
+              "needs_more_activation_evidence",
+              "reject_authority_overclaim",
+              "defer_until_sandbox_routes_exist"
+            ]
+          }
+        },
+        "nextHumanActions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "preparationIsNot",
+        "durableTruthObjects"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "preparationIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "RequestParticipant",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

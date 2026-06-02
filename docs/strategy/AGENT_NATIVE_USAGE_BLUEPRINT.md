@@ -118,9 +118,31 @@ Current assets that agents can eventually build on:
 - A machine-readable protocol adapter sample pack exists through `/agents/protocol-adapter-samples.json`, `schemas/json/agent-protocol-adapter-samples.schema.json`, and `fixtures/agent/protocol-adapter-samples.sample.json`, showing target-only MCP, A2A, and x402 payload mappings without making adapters live.
 - Decision `0025-agent-isolated-write-sandbox-boundary` now defines the minimum future write sandbox as a segregated non-production environment over the same Boreal contracts, with revocable scoped credentials, production credential rejection, same policy/idempotency order, sandbox-only canonical-shaped writes, and human-first approval gates.
 - A machine-readable isolated write-sandbox profile exists through `/agents/write-sandbox.json` and `schemas/json/agent-write-sandbox.schema.json`, turning decision `0025` into a target-only contract for environment separation, sandbox credential requirements, process order, minimum flow coverage, activation gates, standards, and canonical non-authority boundaries.
+- A write-sandbox activation preparation endpoint exists through `POST /agents/write-sandbox/prepare` and `schemas/json/agent-write-sandbox-preparation.schema.json`, checking decision `0025` gate coverage and minimum flow coverage before operator review without creating credentials, live sandboxes, production access, payment authority, completion proof, review submissions, or durable writes.
 - A machine-readable recovery profile exists through `/agents/recovery.json` and `schemas/json/agent-recovery.schema.json`, mapping auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and escalation behavior for agents.
 - A machine-readable readiness profile exists through `/agents/readiness.json` and `schemas/json/agent-readiness.schema.json`, mapping live versus target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities.
 - A machine-readable tool registry exists through `/agents/tools.json` and `schemas/json/agent-tools.schema.json`, mapping agent intents to live HTTP calls, validation and preparation tools, target MCP tools, target A2A operations, idempotency, and canonical write boundaries.
+
+Current scope checkpoint:
+
+- The active implementation lane is discovery, preflight, and human-first agent UX only.
+- Discovery means public, machine-readable surfaces that let agents find Boreal, understand `Request`-native actions, locate OpenAPI, JSON Schema, AsyncAPI, standards, tools, prompts, workflows, readiness, and target protocol profiles.
+- Preflight means validation-only or preparation-only endpoints that check payload shape, scope posture, idempotency, evidence, monitor cursors, completion claims, optimization plans, sandbox replay, access-review packets, and write-sandbox activation plans before live authority.
+- Agent UX means renderable human-first cards, handoff packets, consent boundaries, escalation prompts, proof-review prompts, monitor summaries, payment authorization language, and safe claim-state labels for first users who are human.
+- This lane may add docs, schemas, public discovery routes, example fixtures, validation helpers, preparation helpers, and tests that prove non-authority boundaries.
+- This lane must not add production external-agent credentials, live OAuth grants, live sandbox credentials, mutating write-sandbox routes, production adapter servers, automatic operator approvals, payment authorization, completion proof, or durable `RequestEvent` writes by itself.
+- If a patch starts changing live authorization, live writes, payment movement, production data access, adapter runtime behavior, or sandbox credential issuance, it has left this scope and needs a separate alignment decision.
+
+Full end-to-end safe agent infra backlog:
+
+- Live external-agent credentials need an explicit credential issuer, represented-actor binding, minimal scopes, expiry, revocation, rate limits, audit records, abuse controls, and production route enforcement before external agents can write without account-session or resolver-bearer mediation.
+- A real isolated write sandbox needs a segregated non-production dataset, sandbox-scoped credentials, sandbox-only canonical-shaped `Request`, `Commitment`, `Fulfillment`, `FulfillmentStep`, `Artifact`, `Transaction`, and `RequestEvent` records, and no path that promotes sandbox records into production without a separate governed import or replay decision.
+- Route-level sandbox mutation tests need to cover requester draft creation, solver commitment proposal, owner acceptance gate, fulfillment step execution, artifact proof submission, cursor monitoring, idempotent retry, paid-run shape with no money movement, optimization draft-only behavior, and RFC 9457 failure responses.
+- Production rejection tests need to prove sandbox credentials, mock credentials, sample ids, sandbox secrets, target adapter tokens, and replay evidence are rejected by production mutation endpoints with safe problem details.
+- MCP adapters should ship only after the HTTP route, auth, policy, idempotency, evidence, recovery, and completion rules are already enforced, and MCP sessions or tool results must never become Boreal root objects.
+- A2A adapters should map A2A tasks and artifacts onto request-bound operations while preserving `Request` as the durable root, `Artifact` as proof or delivery truth, and owner review as the completion gate.
+- x402 activation should start only on selected paid execution endpoints with explicit challenge emission, facilitator verification, idempotency, no-completion-from-payment rules, and reconciliation into request-attached `Transaction` truth.
+- The safe rollout order is discovery and preflight first, then live external-agent credential design, then isolated write sandbox, then production rejection and route-level sandbox mutation tests, then limited adapter runtimes, then selected x402 payment activation.
 
 Current gaps to close before Boreal is truly agent-native:
 
@@ -133,7 +155,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first OpenAPI auth metadata pass now declares account-session, resolver-bearer, anonymous-public, provider-callback, and refresh-token body boundaries in the machine-readable contracts; OAuth-compatible external-agent authorization remains target direction
 - the first machine-readable access review profile now tells agents how Boreal operators should evaluate conformance reports, requested scopes, rate limits, revocation triggers, decision outcomes, and target adapter claims, but it does not issue credentials, grant permission, certify agents, authorize spend, or make protocol adapters live
 - the first access-review preparation endpoint now tells agents what to hand a Boreal operator and which checks must pass, but it does not persist submissions, issue credentials, grant permission, create production sandboxes, or prove completion
-- the first isolated write-sandbox profile now gives agent builders a concrete target contract for write-capable rehearsal, but no sandbox-scoped write credentials, segregated mutating sandbox routes, seeded write-sandbox dataset, production-rejection tests, or route-level sandbox replay coverage are live yet
+- the first isolated write-sandbox profile and activation preparation endpoint now give agent builders a concrete target contract plus a machine-checkable operator-review plan path, but no sandbox-scoped write credentials, segregated mutating sandbox routes, seeded write-sandbox dataset, production-rejection tests, or route-level sandbox replay coverage are live yet
 - the first machine-readable auth profile now tells agents which actor class, auth scheme, scope, approval boundary, and idempotency rule applies before writes, but it does not create production credentials or make OAuth-compatible external-agent auth live
 - the first auth preparation endpoint now tells agents which auth route, scopes, human approval, request-policy check, and idempotency posture are needed for an action, but it does not issue credentials, grant permission, record approval, grant production access, authorize spend, prove completion, or write durable history
 - the first machine-readable conformance profile now gives agent builders a checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol behavior, and the first conformance report schema plus public example route now gives them an operator-review evidence packet shape; neither certifies agents nor grants production access
@@ -859,7 +881,7 @@ Acceptance:
 - protocols are mapped to Boreal layers
 - current versus target claims are explicit
 
-### Phase 1: Read-Only Agent Discovery
+### Phase 1: Discovery, Preflight, And Agent UX Layer
 
 Deliverables:
 
@@ -929,6 +951,7 @@ Deliverables:
 - machine-readable agent client kit manifest - implemented as `/agents/client-kit.json`, linked from the agent card, start guide, `/llms.txt`, readiness profile, public schema catalog, and `/openapi.json`
 - machine-readable agent journey profile - implemented as `/agents/journeys.json`, linked from the agent card, start guide, `/llms.txt`, UX profile, client kit, readiness profile, public schema catalog, and `/openapi.json`
 - machine-readable agent sandbox replay validation endpoint - implemented as `POST /agents/sandbox/replay`, linked from the agent card, start guide, sandbox manifest, onboarding, readiness profile, `/llms.txt`, and `/openapi.json`
+- machine-readable isolated write-sandbox activation preparation endpoint - implemented as `POST /agents/write-sandbox/prepare`, linked from the agent card, write-sandbox profile, start guide, readiness profile, client kit, `/llms.txt`, public schema catalog, and `/openapi.json`
 - machine-readable agent completion profile - implemented as `/agents/completion.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent completion validation endpoint - implemented as `POST /agents/completion/validate`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, completion profile, readiness profile, and `/openapi.json`
 - machine-readable agent human delegation profile - implemented as `/agents/delegation.json`, linked from the agent card, auth profile, start guide, `/llms.txt`, and `/openapi.json`

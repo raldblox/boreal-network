@@ -91,6 +91,7 @@ export const agentDiscoveryPaths = {
   agentStandards: "/agents/standards.json",
   agentTools: "/agents/tools.json",
   agentWriteSandbox: "/agents/write-sandbox.json",
+  agentWriteSandboxPrepare: "/agents/write-sandbox/prepare",
   agentWorkflows: "/agents/workflows.json",
   llms: "/llms.txt",
   openApiIndex: "/openapi.json",
@@ -792,6 +793,15 @@ export const jsonSchemaDiscoveryAssets = [
     standard: "json_schema",
     title: "Agent write sandbox profile",
   },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable write-sandbox activation preparation schema for checking decision 0025 gates before operator review without credentials or live authority.",
+    routePath: "/schemas/agent-write-sandbox-preparation.schema.json",
+    sourcePath: "schemas/json/agent-write-sandbox-preparation.schema.json",
+    standard: "json_schema",
+    title: "Agent write sandbox preparation",
+  },
 ] as const satisfies readonly AgentDiscoveryAsset[];
 
 export const eventDiscoveryAssets = [
@@ -874,6 +884,9 @@ export function buildAgentCard() {
     standardsProfileUrl: absoluteUrl(agentDiscoveryPaths.agentStandards),
     toolRegistryUrl: absoluteUrl(agentDiscoveryPaths.agentTools),
     writeSandboxProfileUrl: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+    writeSandboxPrepareUrl: absoluteUrl(
+      agentDiscoveryPaths.agentWriteSandboxPrepare
+    ),
     workflowCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
     accessReviewPrepareUrl: absoluteUrl(
       agentDiscoveryPaths.agentAccessReviewPrepare
@@ -884,6 +897,7 @@ export function buildAgentCard() {
     ),
     writeSandbox: {
       url: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentWriteSandboxPrepare),
       status: buildAgentWriteSandboxProfile().status,
       decisionId: buildAgentWriteSandboxProfile().decision.id,
       activationGateIds: buildAgentWriteSandboxProfile().activationGates.map(
@@ -1883,6 +1897,14 @@ GET ${agentDiscoveryPaths.agentWriteSandbox}
 \`\`\`
 
 This profile is target-only. It describes the future segregated non-production environment, credential requirements, activation gates, process order, and minimum flow coverage. It does not create sandbox credentials, grant production permission, authorize payment, prove completion, or write durable production history.
+
+To check whether a proposed write-sandbox activation plan satisfies decision 0025 before operator review, agents can call:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentWriteSandboxPrepare}
+\`\`\`
+
+This endpoint returns activation-gate and minimum-flow coverage results. It does not issue credentials, create a live sandbox, grant production access, authorize payment, prove completion, submit review state, or write durable history.
 
 For deterministic external-agent onboarding, sandbox validation, and production eligibility handling, agents can read:
 
@@ -3208,6 +3230,49 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/write-sandbox/prepare": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Prepare an isolated write-sandbox activation plan for operator review.",
+          description:
+            "Activation-plan preparation only. This endpoint checks decision 0025 environment, credential, production rejection, route enforcement, fixture coverage, human UX, payment, completion, and operator handoff gates. It does not issue credentials, create a live sandbox, grant permission, grant production access, authorize payment, prove completion, submit review state, or create durable RequestEvent truth.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentWriteSandboxPreparationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Write-sandbox activation plan is ready for operator review; no credential, permission, live sandbox, payment authority, completion proof, review submission, or durable write was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentWriteSandboxPreparationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Write-sandbox activation plan is blocked by missing decision 0025 gates or live-authority overclaims.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentWriteSandboxPreparationResult",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/tools.json": {
         get: {
           tags: ["agent-discovery"],
@@ -3418,6 +3483,133 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
           additionalProperties: true,
+        },
+        AgentWriteSandboxPreparationRequest: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "preparationIntent",
+            "preparationMode",
+            "decisionId",
+            "operatorReviewRequired",
+            "notCredentialRequest",
+            "noSecretsIncluded",
+            "claimsLiveSandbox",
+            "claimsProductionAccess",
+            "claimsPermissionGranted",
+            "claimsPaymentAuthority",
+            "claimsCompletion",
+            "claimsDurableWrite",
+            "activationPlan",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            preparationIntent: {
+              const: "isolated_write_sandbox_activation",
+            },
+            preparationMode: { const: "operator_activation_plan" },
+            decisionId: {
+              const: "0025-agent-isolated-write-sandbox-boundary",
+            },
+            operatorReviewRequired: { const: true },
+            notCredentialRequest: { const: true },
+            noSecretsIncluded: { const: true },
+            claimsLiveSandbox: { const: false },
+            claimsProductionAccess: { const: false },
+            claimsPermissionGranted: { const: false },
+            claimsPaymentAuthority: { const: false },
+            claimsCompletion: { const: false },
+            claimsDurableWrite: { const: false },
+            activationPlan: { type: "object" },
+          },
+          additionalProperties: false,
+        },
+        AgentWriteSandboxPreparationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "preparationIntent",
+            "preparationMode",
+            "decisionId",
+            "acceptedByProduction",
+            "sandboxCredentialsIssued",
+            "credentialsIssued",
+            "permissionGranted",
+            "productionAccessGranted",
+            "productionSandboxCreated",
+            "liveSandboxCreated",
+            "reviewSubmissionCreated",
+            "paymentAuthorized",
+            "completionProven",
+            "durableWriteCreated",
+            "activationGateResults",
+            "minimumFlowCoverageResults",
+            "operatorHandoff",
+            "missingRequirements",
+            "blockedAssertions",
+            "warnings",
+            "nextSteps",
+            "recommendedNextReads",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: {
+              enum: [
+                "write_sandbox_plan_ready",
+                "write_sandbox_plan_blocked",
+              ],
+            },
+            preparationIntent: {
+              enum: ["isolated_write_sandbox_activation", "unknown"],
+            },
+            preparationMode: { const: "operator_activation_plan" },
+            decisionId: {
+              const: "0025-agent-isolated-write-sandbox-boundary",
+            },
+            acceptedByProduction: { const: false },
+            sandboxCredentialsIssued: { const: false },
+            credentialsIssued: { const: false },
+            permissionGranted: { const: false },
+            productionAccessGranted: { const: false },
+            productionSandboxCreated: { const: false },
+            liveSandboxCreated: { const: false },
+            reviewSubmissionCreated: { const: false },
+            paymentAuthorized: { const: false },
+            completionProven: { const: false },
+            durableWriteCreated: { const: false },
+            activationGateResults: {
+              type: "array",
+              items: { type: "object" },
+            },
+            minimumFlowCoverageResults: {
+              type: "array",
+              items: { type: "object" },
+            },
+            operatorHandoff: { type: "object" },
+            missingRequirements: {
+              type: "array",
+              items: { type: "string" },
+            },
+            blockedAssertions: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
+            },
+            recommendedNextReads: {
+              type: "array",
+              items: { type: "string" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
         },
         AgentSandboxReplayValidationRequest: {
           type: "object",
@@ -5238,6 +5430,7 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-write-sandbox": {
       url: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+      preparationUrl: absoluteUrl(agentDiscoveryPaths.agentWriteSandboxPrepare),
       status: buildAgentWriteSandboxProfile().status,
       decisionId: buildAgentWriteSandboxProfile().decision.id,
       schemaUrl: absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
@@ -5256,6 +5449,34 @@ export function buildOpenApiDiscoveryIndex() {
       ),
       nonAuthority:
         buildAgentWriteSandboxProfile().canonicalBoundary.writeSandboxProfileIsNot,
+    },
+    "x-boreal-agent-write-sandbox-preparation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentWriteSandboxPrepare),
+      status: "live_activation_plan_preparation_only",
+      decisionId: "0025-agent-isolated-write-sandbox-boundary",
+      schemaUrl: absoluteUrl(
+        "/schemas/agent-write-sandbox-preparation.schema.json"
+      ),
+      gateIds: buildAgentWriteSandboxProfile().activationGates.map(
+        (gate) => gate.id
+      ),
+      flowCoverageIds: buildAgentWriteSandboxProfile().minimumFlowCoverage.map(
+        (flow) => flow.id
+      ),
+      nonAuthority: [
+        "credential issuer",
+        "sandbox credential issuer",
+        "permission grant",
+        "production sandbox",
+        "production credential",
+        "production access grant",
+        "operator approval record",
+        "human approval record",
+        "review submission",
+        "payment authorization",
+        "completion proof",
+        "durable RequestEvent",
+      ],
     },
     "x-boreal-agent-auth": {
       url: absoluteUrl(agentDiscoveryPaths.agentAuth),
@@ -12011,7 +12232,9 @@ export function buildAgentClientKitProfile() {
           "target sandbox-scoped credential only; not accepted by production endpoints",
         sourceProfiles: [
           absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+          absoluteUrl(agentDiscoveryPaths.agentWriteSandboxPrepare),
           absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
+          absoluteUrl("/schemas/agent-write-sandbox-preparation.schema.json"),
         ],
         canonicalReads: [
           "Request",
@@ -14072,6 +14295,7 @@ export function buildAgentReadinessProfile() {
         ],
         availableNow: [
           "Read the target isolated write-sandbox profile and decision 0025 boundary.",
+          "Prepare a non-authority activation plan and receive gate and minimum-flow coverage results before operator review.",
           "Use contract-only sandbox replay, validation endpoints, and production-access packet examples as preparation evidence only.",
         ],
         requiresBeforeUse: [
@@ -14085,7 +14309,9 @@ export function buildAgentReadinessProfile() {
         ],
         evidence: [
           absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+          absoluteUrl(agentDiscoveryPaths.agentWriteSandboxPrepare),
           absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
+          absoluteUrl("/schemas/agent-write-sandbox-preparation.schema.json"),
           absoluteUrl(
             "/docs/decisions/0025-agent-isolated-write-sandbox-boundary.md"
           ),
@@ -14435,8 +14661,16 @@ export function buildAgentWriteSandboxProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
       },
       {
+        label: "Agent write sandbox preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentWriteSandboxPrepare),
+      },
+      {
         label: "Agent write sandbox schema",
         url: absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
+      },
+      {
+        label: "Agent write sandbox preparation schema",
+        url: absoluteUrl("/schemas/agent-write-sandbox-preparation.schema.json"),
       },
       {
         label: "Request OpenAPI",

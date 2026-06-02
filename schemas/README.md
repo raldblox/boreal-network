@@ -89,6 +89,7 @@ Recommended naming:
 - `json/agent-recovery.schema.json`
 - `json/agent-readiness.schema.json`
 - `json/agent-write-sandbox.schema.json`
+- `json/agent-write-sandbox-preparation.schema.json`
 - `json/agent-tools.schema.json`
 - `openapi/request-briefing.openapi.yaml`
 - `openapi/supply-management.openapi.yaml`
