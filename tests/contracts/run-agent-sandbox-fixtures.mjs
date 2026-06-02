@@ -426,6 +426,25 @@ function validateFlows(manifest, errors) {
     "inspect_public_requests must teach agents to read request-level action affordances",
     errors
   );
+  assert(
+    (inspect?.sample?.expectedResponseFields ?? []).includes("requests[].agentActionCardHints"),
+    "inspect_public_requests must teach agents to read request-level action card hints",
+    errors
+  );
+  assert(
+    (inspect?.sample?.expectedResponseFields ?? []).includes(
+      "requests[].agentActionCardHints.cards[].policyCheckpoint"
+    ),
+    "inspect_public_requests must point card hints back to the agentActionPolicy checkpoint",
+    errors
+  );
+  assert(
+    (inspect?.sample?.expectedResponseFields ?? []).includes(
+      "requests[].agentActionCardHints.cards[].authority.permissionGranted"
+    ),
+    "inspect_public_requests must say card hints do not grant permission",
+    errors
+  );
 
   const makeRequest = flowMap.get("make_request_for_human");
   assert(makeRequest?.auth === "mock_session:requests:create", "make_request_for_human must use mock session auth", errors);
@@ -544,6 +563,28 @@ function validateScenarios(manifest, errors) {
         step.expected?.requiredBefore === "submit_artifact"
     ),
     "solver replay must model the accepted Commitment gate before Artifact proof",
+    errors
+  );
+  const solverInspectStep = solverReplay?.steps?.find((step) => step.id === "inspect_public_fit");
+  includesAll(
+    solverInspectStep?.expected?.requiredFields,
+    [
+      "requests[].agentActionAffordances",
+      "requests[].agentActionCardHints",
+      "requests[].agentActionCardHints.cards[].policyCheckpoint",
+      "requests[].agentActionCardHints.cards[].authority.permissionGranted",
+    ],
+    "solver replay inspect step required fields",
+    errors
+  );
+  assert(
+    solverInspectStep?.expected?.authorityCheckpoint === "agentActionPolicy",
+    "solver replay inspect step must preserve agentActionPolicy as authority checkpoint",
+    errors
+  );
+  assert(
+    solverInspectStep?.expected?.cardsAreAuthority === false,
+    "solver replay inspect step must not treat action card hints as authority",
     errors
   );
 

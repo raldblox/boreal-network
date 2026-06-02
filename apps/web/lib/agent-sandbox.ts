@@ -324,6 +324,11 @@ export function buildAgentSandboxManifest() {
           expectedResponseFields: [
             "requests[].agentActionAffordances",
             "requests[].agentActionAffordances.actions[].href",
+            "requests[].agentActionCardHints",
+            "requests[].agentActionCardHints.cards[].policyCheckpoint",
+            "requests[].agentActionCardHints.cards[].canonicalWritesIfAuthorized",
+            "requests[].agentActionCardHints.cards[].authority.permissionGranted",
+            "requests[].agentActionCardHints.authorityBoundary.permissionSource",
           ],
         },
       },
@@ -708,11 +713,18 @@ export function buildAgentSandboxManifest() {
             actor: "anonymous-public-scout",
             kind: "read",
             description:
-              "Read public request projections and agentActionAffordances before choosing a request.",
+              "Read public request projections, agentActionAffordances, and agentActionCardHints before choosing a request.",
             writes: [],
             idempotencyKey: null,
             expected: {
-              requiredField: "requests[].agentActionAffordances",
+              requiredFields: [
+                "requests[].agentActionAffordances",
+                "requests[].agentActionCardHints",
+                "requests[].agentActionCardHints.cards[].policyCheckpoint",
+                "requests[].agentActionCardHints.cards[].authority.permissionGranted",
+              ],
+              authorityCheckpoint: "agentActionPolicy",
+              cardsAreAuthority: false,
             },
           },
           {
@@ -942,6 +954,8 @@ export function buildAgentSandboxManifest() {
         "A2A task",
         "x402 payment payload",
         "webhook delivery",
+        "agentActionAffordances",
+        "agentActionCardHints",
         "local draft output",
       ],
     },
@@ -999,6 +1013,10 @@ These identities are labels and payload examples only. They are not accounts, be
 | Intent | Method | Path | Availability | Durable writes |
 | --- | --- | --- | --- | --- |
 ${flowRows}
+
+## Inspect Before Action
+
+Use the \`inspect_public_requests\` sample before applying, submitting, running, or optimizing. Public request projections expose \`agentActionAffordances\` for endpoint shape and \`agentActionCardHints\` for human-facing action cards. Card hints are render hints only: each card points back to \`agentActionPolicy\` through \`policyCheckpoint\` and keeps \`authority.permissionGranted\` false until a live authenticated route policy permits the action.
 
 ## Replay Scenarios
 

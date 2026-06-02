@@ -3384,6 +3384,15 @@ async function main() {
   assert.match(sandboxText, /apply_to_request/);
   assert.match(sandboxText, /submit_artifact/);
   assert.match(sandboxText, /monitor_request/);
+  assert.match(sandboxText, /requests\[\]\.agentActionCardHints/);
+  assert.match(
+    sandboxText,
+    /requests\[\]\.agentActionCardHints\.cards\[\]\.policyCheckpoint/
+  );
+  assert.match(
+    sandboxText,
+    /requests\[\]\.agentActionCardHints\.cards\[\]\.authority\.permissionGranted/
+  );
   assert.match(sandboxText, /run_public_solution/);
   assert.match(sandboxText, /signed_monitor_webhook/);
   assert.match(sandboxText, /optimize_request_brief/);
@@ -3404,6 +3413,22 @@ async function main() {
     ),
     true,
   );
+  const solverReplay = sandboxManifest.scenarios.find(
+    (scenario) => scenario.id === "solver_apply_submit_monitor_replay"
+  );
+  const solverInspectStep = solverReplay?.steps.find(
+    (step) => step.id === "inspect_public_fit"
+  );
+  const solverInspectStepExpectedText = JSON.stringify(
+    solverInspectStep?.expected ?? {}
+  );
+  assert.match(solverInspectStepExpectedText, /requests\[\]\.agentActionCardHints/);
+  assert.match(
+    solverInspectStepExpectedText,
+    /requests\[\]\.agentActionCardHints\.cards\[\]\.policyCheckpoint/
+  );
+  assert.match(solverInspectStepExpectedText, /"authorityCheckpoint":"agentActionPolicy"/);
+  assert.match(solverInspectStepExpectedText, /"cardsAreAuthority":false/);
   assert.equal(
     sandboxManifest.scenarios.some(
       (scenario) =>
@@ -3428,6 +3453,11 @@ async function main() {
   const sandboxGuide = buildAgentSandboxMarkdown();
   assert.match(sandboxGuide, /contract-only sandbox/);
   assert.match(sandboxGuide, /not accepted by production endpoints/);
+  assert.match(sandboxGuide, /Inspect Before Action/);
+  assert.match(sandboxGuide, /inspect_public_requests/);
+  assert.match(sandboxGuide, /agentActionCardHints/);
+  assert.match(sandboxGuide, /authority\.permissionGranted/);
+  assert.match(sandboxGuide, /agentActionPolicy/);
   assert.match(sandboxGuide, /Replay Scenarios/);
   assert.match(sandboxGuide, /Apply To A Request/);
   assert.match(sandboxGuide, /Submit Proof/);

@@ -77,7 +77,7 @@ Current assets that agents can eventually build on:
 - JSON schemas exist under `schemas/json/`.
 - HTTP contracts exist under `schemas/openapi/`.
 - Request-room async event contracts exist under `schemas/events/`.
-- A contract-only agent sandbox exists through `/agents/sandbox.md`, `/agents/sandbox.json`, `schemas/json/agent-sandbox.schema.json`, `fixtures/agent/sandbox-manifest.sample.json`, and `pnpm contracts:agent-sandbox`; the manifest includes deterministic replay scenarios for requester drafting, solver apply/submit/monitor, paid-run shape, and idempotent recovery.
+- A contract-only agent sandbox exists through `/agents/sandbox.md`, `/agents/sandbox.json`, `schemas/json/agent-sandbox.schema.json`, `fixtures/agent/sandbox-manifest.sample.json`, and `pnpm contracts:agent-sandbox`; the manifest includes request-level action affordances, request-level action card render hints, and deterministic replay scenarios for requester drafting, solver apply/submit/monitor, paid-run shape, and idempotent recovery.
 - A validation-only sandbox replay endpoint exists through `POST /agents/sandbox/replay` and `schemas/json/agent-sandbox-replay.schema.json`, checking replay scenario id, step order, idempotency, terminal state, canonical writes, and non-authority boundaries before conformance or production-access review packets.
 - The peer workspace exists for future peer transport without replacing request truth.
 - A machine-readable access review profile exists through `/agents/access-review.json` and `schemas/json/agent-access-review.schema.json`, mapping conformance-report review, scope minimization, sandbox or pilot decisions, target adapter review, rate limits, revocation triggers, and decision outcomes.
@@ -116,6 +116,7 @@ Current assets that agents can eventually build on:
 - Decision `0024-agent-protocol-gateway-topology` answers the live adapter topology question: `apps/web` remains public discovery and canonical HTTP, while future MCP/A2A adapters should live behind a gateway over existing contracts.
 - A machine-readable standards profile exists through `/agents/standards.json` and `schemas/json/agent-standards.schema.json`, separating live contract standards from target MCP, A2A, OAuth delegation, and x402 adapter layers.
 - A machine-readable protocol adapter sample pack exists through `/agents/protocol-adapter-samples.json`, `schemas/json/agent-protocol-adapter-samples.schema.json`, and `fixtures/agent/protocol-adapter-samples.sample.json`, showing target-only MCP, A2A, and x402 payload mappings without making adapters live.
+- Decision `0025-agent-isolated-write-sandbox-boundary` now defines the minimum future write sandbox as a segregated non-production environment over the same Boreal contracts, with revocable scoped credentials, production credential rejection, same policy/idempotency order, sandbox-only canonical-shaped writes, and human-first approval gates.
 - A machine-readable recovery profile exists through `/agents/recovery.json` and `schemas/json/agent-recovery.schema.json`, mapping auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and escalation behavior for agents.
 - A machine-readable readiness profile exists through `/agents/readiness.json` and `schemas/json/agent-readiness.schema.json`, mapping live versus target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities.
 - A machine-readable tool registry exists through `/agents/tools.json` and `schemas/json/agent-tools.schema.json`, mapping agent intents to live HTTP calls, validation and preparation tools, target MCP tools, target A2A operations, idempotency, and canonical write boundaries.
@@ -163,7 +164,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first validation-only evidence path now exists, so agents can check proof packets before attempting Artifact submission while keeping publication, review acceptance, payment authorization, durable history, and completion decisions target-bound
 - the first validation-only monitor path now exists, so agents can check cursor persistence, access posture, escalation triggers, no-heartbeat behavior, no-completion claims, and target signed-webhook receiver readiness while keeping subscriptions, push delivery, permission, payment, durable history, and completion target-bound
 - the first machine-readable tool registry now exists, so agents can map inspect, make draft, apply, submit, monitor, run, payment reconciliation, optimization, validation, and preparation intents to safe HTTP calls while keeping MCP and A2A as target adapter mappings
-- the first contract-only sandbox, replay scenarios, and fixture runner exist, but no production sandbox credentials or isolated write sandbox exists for external agents yet
+- the first contract-only sandbox, replay scenarios, and fixture runner exist, and decision `0025` now defines the isolated write sandbox boundary, but no live isolated write sandbox credentials exist for external agents yet
 - the first signed webhook/push-notification profile is documented for long-running agent monitoring, but subscription persistence and delivery are not live yet
 - the first machine-readable action catalog, public action playbook, access review profile, auth profile, conformance profile, completion profile, evidence profile, execution profile, human handoff profile, monitoring profile, onboarding profile, optimization profile, payment profile, prompt catalog, and readiness profile now name inspect, make-request, apply, submit, monitor, run, optimize, spend, recover, approve, escalate, proof-package, lane-start, runtime-promotion, sandbox-validation, production-access-review, prompt-output, and claim-state boundaries, but production sandbox credentials and live external-agent authorization are still needed
 
@@ -904,7 +905,7 @@ Deliverables:
 - `/agents/recovery.json` - implemented as a public machine-readable recovery profile for auth failures, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and escalation packets
 - `/agents/readiness.json` - implemented as a public machine-readable readiness profile for live-versus-target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities
 - `/agents/tools.json` - implemented as a public machine-readable tool registry for live HTTP calls, validation and preparation tools, target MCP tools, target A2A operations, idempotency, output truth, and canonical write boundaries
-- `/agents/sandbox.md` and `/agents/sandbox.json` - implemented as a public contract-only sandbox guide and manifest with deterministic replay scenarios
+- `/agents/sandbox.md` and `/agents/sandbox.json` - implemented as a public contract-only sandbox guide and manifest with request-level action affordances, action card render hints, and deterministic replay scenarios
 - `/agents/sandbox/replay` - implemented as a public validation-only endpoint for checking sandbox replay evidence against manifest scenarios without granting access or creating durable truth
 - `/.well-known/agent-card.json` - implemented as a public-safe JSON card in `apps/web`
 - public OpenAPI route or static export - implemented as `/openapi.json` plus allowlisted YAML contract exports
@@ -1008,7 +1009,7 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent journey profile, requester and solver role mappings, optimizer no-write behavior, completion-truth decision rule, non-authority boundary, OpenAPI extension, public route, `/llms.txt`, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent standards profile, live OpenAPI and AsyncAPI artifact versions, target MCP and x402 status, OAuth non-credential boundary, resolution order, non-authority boundary, OpenAPI extension, public route, `/llms.txt`, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent tool registry, HTTP invocation baseline, validation and preparation tool categories, target MCP/A2A mappings, idempotency, optimization draft-only behavior, optimization preparation pass/fail route behavior, payment mutation boundaries, non-root tool objects, and public schema route.
-- `pnpm contracts:agent-sandbox` verifies the sandbox fixture, mock identity coverage, idempotency samples, cursor sample, signed-webhook sample, draft-only optimization sample, deterministic replay scenarios, conformance report fixture, production access packet fixture, and production-auth boundary.
+- `pnpm contracts:agent-sandbox` verifies the sandbox fixture, mock identity coverage, request-level action affordances, action card render hints, idempotency samples, cursor sample, signed-webhook sample, draft-only optimization sample, deterministic replay scenarios, conformance report fixture, production access packet fixture, and production-auth boundary.
 - `apps/web/tests/contracts/request-boundary.test.ts` verifies public request action affordances, keeps owner-only routing and planner internals out of public projections, and only exposes `run_public_solution` when completed public solution truth exists.
 
 ### Phase 2: Authenticated Agent Writes
@@ -1080,8 +1081,9 @@ Deliverables:
 
 - sandbox request/project for agents
 - contract-only mock identities, sample payloads, deterministic replay scenarios, and fixture runner - first slice implemented through `/agents/sandbox.json` and `pnpm contracts:agent-sandbox`
+- isolated write sandbox boundary - accepted in decision `0025-agent-isolated-write-sandbox-boundary`; implementation remains target
 - operator-review profile for requested scopes, low-volume pilots, rate limits, revocation triggers, and target adapter claims - first slice implemented through `/agents/access-review.json`
-- production test credentials
+- isolated write sandbox credentials with production rejection, expiry, revocation, scopes, rate limits, and idempotency
 - rate limits
 - abuse controls
 - artifact scanning and proof review checks
@@ -1122,7 +1124,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can find the monitoring profile and distinguish live cursor polling, target signed push delivery, stale-state detection, and escalation triggers.
 - A fresh agent can find the onboarding profile and distinguish public discovery, contract-only sandbox validation, scoped live HTTP use, target production access review, target production sandbox credentials, and target protocol adapter readiness.
 - A fresh agent can find the opportunity discovery profile and rank public requests into local opportunity cards without treating fit scores, recommended actions, or public board rows as permission, assignment, payment authority, or completion proof.
-- A fresh agent can find sandbox replay scenarios for drafting a request, applying to a request, submitting proof, monitoring activity, running a public solution shape, and recovering from uncertain writes without treating those transcripts as production authority.
+- A fresh agent can find sandbox replay scenarios for drafting a request, applying to a request, submitting proof, monitoring activity, running a public solution shape, and recovering from uncertain writes, with request-level action affordances and action card render hints visible before mutation, without treating those transcripts or cards as production authority.
 - A fresh agent can find the optimization profile and distinguish draft-only improvement from owner-approved durable mutation.
 - A fresh agent can call the optimization preparation endpoint before drafting suggestions and receive surface, no-invention, output-contract, owner-approval, and next-preflight guidance without treating it as mutation, approval, payment, completion, or durable history.
 - A fresh agent can find the payment profile and distinguish free inspection, buyer-credit support ledger state, request-attached `Transaction` truth, live account-session spend authority, and target x402 activation.
@@ -1152,4 +1154,4 @@ Boreal is agent-ready when all of these are true:
 - Which schemas should be exposed publicly before private write APIs are stable?
 - Which public solution run types should be x402-capable first?
 - What rate limits and review queues are needed before public agent proposals are enabled?
-- What is the minimum isolated write sandbox, beyond contract replay scenarios, that lets agents test apply, submit, monitor, and run flows safely with revocable credentials?
+- Which sandbox credential issuance mechanism should implement decision `0025` first: account-session scoped pilot tokens, resolver-bearer scoped approvals, or OAuth-compatible external-agent grants?

@@ -296,7 +296,12 @@
         },
         "expectedResponseFields": [
           "requests[].agentActionAffordances",
-          "requests[].agentActionAffordances.actions[].href"
+          "requests[].agentActionAffordances.actions[].href",
+          "requests[].agentActionCardHints",
+          "requests[].agentActionCardHints.cards[].policyCheckpoint",
+          "requests[].agentActionCardHints.cards[].canonicalWritesIfAuthorized",
+          "requests[].agentActionCardHints.cards[].authority.permissionGranted",
+          "requests[].agentActionCardHints.authorityBoundary.permissionSource"
         ]
       }
     },
@@ -675,11 +680,18 @@
           "flowId": "inspect_public_requests",
           "actor": "anonymous-public-scout",
           "kind": "read",
-          "description": "Read public request projections and agentActionAffordances before choosing a request.",
+          "description": "Read public request projections, agentActionAffordances, and agentActionCardHints before choosing a request.",
           "writes": [],
           "idempotencyKey": null,
           "expected": {
-            "requiredField": "requests[].agentActionAffordances"
+            "requiredFields": [
+              "requests[].agentActionAffordances",
+              "requests[].agentActionCardHints",
+              "requests[].agentActionCardHints.cards[].policyCheckpoint",
+              "requests[].agentActionCardHints.cards[].authority.permissionGranted"
+            ],
+            "authorityCheckpoint": "agentActionPolicy",
+            "cardsAreAuthority": false
           }
         },
         {
@@ -933,6 +945,8 @@
       "A2A task",
       "x402 payment payload",
       "webhook delivery",
+      "agentActionAffordances",
+      "agentActionCardHints",
       "local draft output"
     ]
   }

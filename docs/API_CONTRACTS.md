@@ -799,8 +799,9 @@ from `/agents/sandbox.json` must not be accepted by production endpoints.
 `pnpm contracts:agent-sandbox` validates the checked
 `fixtures/agent/sandbox-manifest.sample.json` fixture against the public
 sandbox contract, required flow coverage, idempotency samples, cursor samples,
-webhook header samples, deterministic replay scenarios, and canon-boundary
-rules. Replay scenarios may model process order across apply, accepted
+webhook header samples, request-level `agentActionAffordances` and
+`agentActionCardHints` render hints, deterministic replay scenarios, and
+canon-boundary rules. Replay scenarios may model process order across apply, accepted
 commitment, proof submission, monitoring, paid-run shape, and recovery, but they
 remain non-production transcripts and do not grant live write authority.
 `POST /agents/sandbox/replay` validates replay evidence against those
@@ -808,6 +809,17 @@ contract-only scenarios before it is attached to conformance or
 production-access review packets. It is preflight-only and does not create
 credentials, review submissions, production sandboxes, payment authorization,
 completion proof, durable `RequestEvent` history, or live write authority.
+
+Future isolated write sandbox routes are governed by decision
+`0025-agent-isolated-write-sandbox-boundary`.
+They must use a segregated non-production environment over the same OpenAPI,
+JSON Schema, AsyncAPI, idempotency, `agentActionPolicy`, evidence, completion,
+payment, and recovery contracts.
+Sandbox credentials must be revocable, scoped, rate-limited, environment-bound,
+and rejected by production endpoints.
+Sandbox writes may create canonical-shaped objects only inside the sandbox
+dataset and must not create production `RequestEvent` history, move real money,
+grant production access, or prove completion.
 
 These are public inspection and contract-discovery routes.
 They do not create a new root object, and they do not make private drafts,
