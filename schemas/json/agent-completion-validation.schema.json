@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-completion-validation.schema.json",
+  "title": "AgentCompletionValidation",
+  "description": "Validation-only request and response contract for checking agent completion claim packets before rendering or acting on draft-ready, proposal-submitted, proof-submitted, waiting-for-owner, run-started, or completed language. It does not prove completion, close requests, accept review, publish artifacts, advance fulfillment, authorize payment, grant permission, or write RequestEvent truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "acceptedClaimStates",
+    "request",
+    "response",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "acceptedClaimStates": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/claimState"
+      }
+    },
+    "request": {
+      "$ref": "#/$defs/completionValidationRequest"
+    },
+    "response": {
+      "$ref": "#/$defs/completionValidationResponse"
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "claimState": {
+      "enum": [
+        "draft_ready",
+        "proposal_submitted",
+        "proof_submitted",
+        "waiting_for_owner_acceptance",
+        "completed",
+        "run_started_not_completed"
+      ]
+    },
+    "completionValidationRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "claim"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "claim": {
+          "$ref": "#/$defs/completionClaimPacket"
+        }
+      }
+    },
+    "completionClaimPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestId",
+        "claimState",
+        "summary",
+        "evidenceSummary",
+        "reviewStatus",
+        "hasRequestLifecycleTruth",
+        "hasCommitmentTruth",
+        "hasFulfillmentTruth",
+        "hasArtifactTruth",
+        "hasReviewTruth",
+        "hasTransactionTruth",
+        "hasRequestEventTruth",
+        "containsSecrets",
+        "rawPromptTranscriptIncluded",
+        "rawRuntimeLogsIncluded",
+        "paymentOnlyProof",
+        "claimsFromToolSuccess",
+        "claimsFromProviderCallback",
+        "claimsFromRuntimeLogs",
+        "claimsFromA2ATask",
+        "claimsFromMcpTool"
+      ],
+      "properties": {
+        "requestId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claimState": {
+          "$ref": "#/$defs/claimState"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidenceSummary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reviewStatus": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestStatus": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commitmentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fulfillmentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "artifactId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptedArtifactId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transactionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestEventSequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "hasRequestLifecycleTruth": {
+          "type": "boolean"
+        },
+        "hasCommitmentTruth": {
+          "type": "boolean"
+        },
+        "hasFulfillmentTruth": {
+          "type": "boolean"
+        },
+        "hasArtifactTruth": {
+          "type": "boolean"
+        },
+        "hasReviewTruth": {
+          "type": "boolean"
+        },
+        "hasTransactionTruth": {
+          "type": "boolean"
+        },
+        "hasRequestEventTruth": {
+          "type": "boolean"
+        },
+        "containsSecrets": {
+          "const": false
+        },
+        "rawPromptTranscriptIncluded": {
+          "const": false
+        },
+        "rawRuntimeLogsIncluded": {
+          "const": false
+        },
+        "paymentOnlyProof": {
+          "const": false
+        },
+        "claimsFromToolSuccess": {
+          "const": false
+        },
+        "claimsFromProviderCallback": {
+          "const": false
+        },
+        "claimsFromRuntimeLogs": {
+          "const": false
+        },
+        "claimsFromA2ATask": {
+          "const": false
+        },
+        "claimsFromMcpTool": {
+          "const": false
+        }
+      }
+    },
+    "completionValidationResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "status",
+        "acceptedClaimStates",
+        "claimState",
+        "matchedRuleId",
+        "requiredTruth",
+        "completionProven",
+        "requestClosed",
+        "reviewAccepted",
+        "artifactPublished",
+        "fulfillmentAdvanced",
+        "requestEventWritten",
+        "paymentAuthorized",
+        "permissionGranted",
+        "durableWriteCreated",
+        "summary",
+        "missingFields",
+        "warnings",
+        "nextSteps",
+        "canonicalBoundary"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "status": {
+          "enum": [
+            "validation_passed",
+            "validation_failed"
+          ]
+        },
+        "acceptedClaimStates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/claimState"
+          }
+        },
+        "claimState": {
+          "enum": [
+            "draft_ready",
+            "proposal_submitted",
+            "proof_submitted",
+            "waiting_for_owner_acceptance",
+            "completed",
+            "run_started_not_completed",
+            "unknown"
+          ]
+        },
+        "matchedRuleId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requiredTruth": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "completionProven": {
+          "const": false
+        },
+        "requestClosed": {
+          "const": false
+        },
+        "reviewAccepted": {
+          "const": false
+        },
+        "artifactPublished": {
+          "const": false
+        },
+        "fulfillmentAdvanced": {
+          "const": false
+        },
+        "requestEventWritten": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "permissionGranted": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missingFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonicalBoundary": {
+          "$ref": "#/$defs/canonicalBoundary"
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "completionTruthObjects",
+        "validationIsNot",
+        "notCompletionTruth"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "completionTruthObjects": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "Request",
+              "Commitment",
+              "Fulfillment",
+              "FulfillmentStep",
+              "Artifact",
+              "Transaction",
+              "RequestEvent"
+            ]
+          }
+        },
+        "validationIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notCompletionTruth": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

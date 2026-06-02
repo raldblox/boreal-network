@@ -105,6 +105,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/conformance-report.example.json/route.ts`
 - `apps/web/app/agents/production-access-packet.example.json/route.ts`
 - `apps/web/app/agents/completion.json/route.ts`
+- `apps/web/app/agents/completion/validate/route.ts`
+- `apps/web/lib/agent-completion-validation.ts`
 - `apps/web/app/agents/delegation.json/route.ts`
 - `apps/web/app/agents/evidence.json/route.ts`
 - `apps/web/app/agents/evidence/validate/route.ts`
@@ -157,6 +159,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-conformance-report.schema.json`
 - `schemas/json/agent-production-access-packet.schema.json`
 - `schemas/json/agent-completion.schema.json`
+- `schemas/json/agent-completion-validation.schema.json`
 - `schemas/json/agent-delegation.schema.json`
 - `schemas/json/agent-evidence.schema.json`
 - `schemas/json/agent-evidence-validation.schema.json`
@@ -240,6 +243,7 @@ Today, the machine-readable baseline proves:
 - one public `POST /agents/intake/validate` endpoint and `schemas/json/agent-intake-validation.schema.json` contract validate conformance reports and production access packets before human or operator review without creating a review submission, issuing credentials, granting permission, recording approval, authorizing spend, creating a production sandbox, writing durable history, or proving completion
 - one public `POST /agents/actions/preflight` endpoint and `schemas/json/agent-action-preflight.schema.json` contract validate visible prerequisites for inspect, make-request, apply, submit, monitor, run, and optimize actions without granting permission, recording approval, authorizing spend, publishing artifacts, proposing commitments, mutating requests, writing durable history, or proving completion
 - one public `/agents/completion.json` profile and `schemas/json/agent-completion.schema.json` give agents machine-readable proof packet, artifact, fulfillment, review, payment, and event boundaries for draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims without treating chat output, MCP tool success, A2A task status, provider callbacks, runtime logs, or payment settlement as completion truth by themselves
+- one public `POST /agents/completion/validate` route and `schemas/json/agent-completion-validation.schema.json` validate completion claim packets before agents render proof-submitted, waiting-for-owner, run-started, or completed language without proving completion, closing requests, accepting review, publishing artifacts, advancing fulfillment, authorizing payment, granting permission, or writing durable history
 - one public `/agents/delegation.json` profile and `schemas/json/agent-delegation.schema.json` give agents a machine-readable human-first consent, scope minimization, revocation, and per-action approval profile for account-session, resolver-bearer, target OAuth, and operator-reviewed pilot paths without issuing credentials, granting permission, recording approval, authorizing payment, starting fulfillment, or proving completion
 - one public `/agents/evidence.json` profile and `schemas/json/agent-evidence.schema.json` give agents machine-readable evidence packet, `Artifact` packaging, redaction, evidence-level, review-signal, and retry-safety guidance without authorizing artifact publication, storing files, accepting review, settling payment, or proving completion by itself
 - one public `POST /agents/evidence/validate` endpoint and `schemas/json/agent-evidence-validation.schema.json` contract validate proof, delivery, receipt, and handoff packet shape before governed `Artifact` submission without publishing artifacts, storing files, accepting review, authorizing spend, writing durable history, or proving completion

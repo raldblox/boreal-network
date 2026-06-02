@@ -16,6 +16,7 @@
     "artifactGuidance",
     "reviewBoundaries",
     "completionSignals",
+    "validationEndpoint",
     "canonicalBoundary"
   ],
   "properties": {
@@ -94,6 +95,9 @@
         "type": "string",
         "minLength": 1
       }
+    },
+    "validationEndpoint": {
+      "$ref": "#/$defs/validationEndpoint"
     },
     "canonicalBoundary": {
       "type": "object",
@@ -233,6 +237,52 @@
           }
         },
         "mustNotInclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "validationEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method",
+        "path",
+        "schemaUrl",
+        "accepts",
+        "returns",
+        "nonAuthority"
+      ],
+      "properties": {
+        "status": {
+          "const": "live_validation_only"
+        },
+        "method": {
+          "const": "POST"
+        },
+        "path": {
+          "const": "/agents/completion/validate"
+        },
+        "schemaUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "accepts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "returns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nonAuthority": {
           "type": "array",
           "items": {
             "type": "string"

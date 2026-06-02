@@ -58,6 +58,7 @@ Recommended naming:
 - `json/agent-delegation.schema.json`
 - `json/agent-production-access-packet.schema.json`
 - `json/agent-completion.schema.json`
+- `json/agent-completion-validation.schema.json`
 - `json/agent-evidence.schema.json`
 - `json/agent-evidence-validation.schema.json`
 - `json/agent-error-examples.schema.json`

@@ -52,6 +52,7 @@ export const agentDiscoveryPaths = {
   agentConformance: "/agents/conformance.json",
   agentConformanceReportExample: "/agents/conformance-report.example.json",
   agentCompletion: "/agents/completion.json",
+  agentCompletionValidation: "/agents/completion/validate",
   agentDelegation: "/agents/delegation.json",
   agentEvidence: "/agents/evidence.json",
   agentEvidenceValidation: "/agents/evidence/validate",
@@ -594,6 +595,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Validation-only request and response schema for checking agent completion claim packets before rendering or acting on completion-sensitive language.",
+    routePath: "/schemas/agent-completion-validation.schema.json",
+    sourcePath: "schemas/json/agent-completion-validation.schema.json",
+    standard: "json_schema",
+    title: "Agent completion validation",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable evidence packet, artifact packaging, redaction, review, and proof-boundary profile schema for agents submitting work.",
     routePath: "/schemas/agent-evidence.schema.json",
     sourcePath: "schemas/json/agent-evidence.schema.json",
@@ -770,6 +780,9 @@ export function buildAgentCard() {
     authPrepareUrl: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
     conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+    completionValidationUrl: absoluteUrl(
+      agentDiscoveryPaths.agentCompletionValidation
+    ),
     delegationProfileUrl: absoluteUrl(agentDiscoveryPaths.agentDelegation),
     evidenceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentEvidence),
     evidenceValidationUrl: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
@@ -876,12 +889,36 @@ export function buildAgentCard() {
     },
     completion: {
       url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      validationUrl: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
       status: buildAgentCompletionProfile().status,
       rules: buildAgentCompletionProfile().completionRules.map((rule) => ({
         id: rule.id,
         actionId: rule.actionId,
         claimState: rule.claimState,
       })),
+    },
+    completionValidation: {
+      url: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+      status: "live_validation_only",
+      acceptedClaimStates: [
+        "draft_ready",
+        "proposal_submitted",
+        "proof_submitted",
+        "waiting_for_owner_acceptance",
+        "completed",
+        "run_started_not_completed",
+      ],
+      schemaUrl: absoluteUrl("/schemas/agent-completion-validation.schema.json"),
+      nonAuthority: [
+        "completion proof",
+        "request closure",
+        "review acceptance",
+        "artifact publication",
+        "fulfillment state mutation",
+        "payment authorization",
+        "permission grant",
+        "durable RequestEvent",
+      ],
     },
     delegation: {
       url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
@@ -1335,6 +1372,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
 - Agent conformance report example: [${agentDiscoveryPaths.agentConformanceReportExample}](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)})
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
+- Agent completion validation endpoint: [${agentDiscoveryPaths.agentCompletionValidation}](${absoluteUrl(agentDiscoveryPaths.agentCompletionValidation)})
 - Agent human delegation profile: [${agentDiscoveryPaths.agentDelegation}](${absoluteUrl(agentDiscoveryPaths.agentDelegation)})
 - Agent evidence profile: [${agentDiscoveryPaths.agentEvidence}](${absoluteUrl(agentDiscoveryPaths.agentEvidence)})
 - Agent evidence validation endpoint: [${agentDiscoveryPaths.agentEvidenceValidation}](${absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation)})
@@ -1444,6 +1482,43 @@ Content-Type: application/json
 \`\`\`
 
 This endpoint returns the recommended auth scheme, required scopes, human approval requirement, request policy checkpoint, and idempotency posture. It does not issue credentials, grant permission, record approval, grant production access, authorize payment, prove completion, or create durable \`RequestEvent\` truth.
+
+For completion-claim validation before rendering or acting on completion-sensitive language, agents can post:
+
+\`\`\`http
+POST ${agentDiscoveryPaths.agentCompletionValidation}
+Content-Type: application/json
+
+{
+  "schemaVersion": 1,
+  "claim": {
+    "requestId": "req_public_design_001",
+    "claimState": "proof_submitted",
+    "summary": "Proof was submitted for owner review.",
+    "evidenceSummary": "Artifact art_123 is attached to the accepted fulfillment lane.",
+    "reviewStatus": "owner_review_required",
+    "artifactId": "art_123",
+    "hasRequestLifecycleTruth": false,
+    "hasCommitmentTruth": false,
+    "hasFulfillmentTruth": false,
+    "hasArtifactTruth": true,
+    "hasReviewTruth": false,
+    "hasTransactionTruth": false,
+    "hasRequestEventTruth": false,
+    "containsSecrets": false,
+    "rawPromptTranscriptIncluded": false,
+    "rawRuntimeLogsIncluded": false,
+    "paymentOnlyProof": false,
+    "claimsFromToolSuccess": false,
+    "claimsFromProviderCallback": false,
+    "claimsFromRuntimeLogs": false,
+    "claimsFromA2ATask": false,
+    "claimsFromMcpTool": false
+  }
+}
+\`\`\`
+
+This endpoint returns claim-state, required-truth, and safe-language feedback only. It does not prove completion, close a Request, accept review, publish an Artifact, advance Fulfillment, authorize payment, grant permission, or write durable \`RequestEvent\` truth.
 
 For optimization planning before producing draft-only suggestions, agents can post:
 
@@ -2258,6 +2333,49 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentCompletionProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/completion/validate": {
+        post: {
+          tags: ["agent-discovery"],
+          summary:
+            "Validate an agent completion claim packet before rendering or acting on it.",
+          description:
+            "Validation-only preflight. This endpoint does not prove completion, close requests, accept review, publish artifacts, advance fulfillment, authorize payment, grant permission, or write durable RequestEvent truth.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/AgentCompletionValidationRequest",
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Completion claim packet shape passed validation, but no completion proof or durable mutation was created.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentCompletionValidationResult",
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Completion claim packet failed validation or overclaimed authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentCompletionValidationResult",
                   },
                 },
               },
@@ -3651,6 +3769,7 @@ export function buildOpenApiDiscoveryIndex() {
             "status",
             "completionRules",
             "proofPacket",
+            "validationEndpoint",
             "canonicalBoundary",
           ],
           properties: {
@@ -3661,6 +3780,140 @@ export function buildOpenApiDiscoveryIndex() {
               items: { type: "object" },
             },
             proofPacket: { type: "object" },
+            validationEndpoint: { type: "object" },
+            canonicalBoundary: { type: "object" },
+          },
+        },
+        AgentCompletionValidationRequest: {
+          type: "object",
+          required: ["schemaVersion", "claim"],
+          properties: {
+            schemaVersion: { const: 1 },
+            claim: {
+              type: "object",
+              required: [
+                "requestId",
+                "claimState",
+                "summary",
+                "evidenceSummary",
+                "reviewStatus",
+                "hasRequestLifecycleTruth",
+                "hasCommitmentTruth",
+                "hasFulfillmentTruth",
+                "hasArtifactTruth",
+                "hasReviewTruth",
+                "hasTransactionTruth",
+                "hasRequestEventTruth",
+                "containsSecrets",
+                "rawPromptTranscriptIncluded",
+                "rawRuntimeLogsIncluded",
+                "paymentOnlyProof",
+                "claimsFromToolSuccess",
+                "claimsFromProviderCallback",
+                "claimsFromRuntimeLogs",
+                "claimsFromA2ATask",
+                "claimsFromMcpTool",
+              ],
+              properties: {
+                requestId: { type: "string" },
+                claimState: {
+                  enum: [
+                    "draft_ready",
+                    "proposal_submitted",
+                    "proof_submitted",
+                    "waiting_for_owner_acceptance",
+                    "completed",
+                    "run_started_not_completed",
+                  ],
+                },
+                summary: { type: "string" },
+                evidenceSummary: { type: "string" },
+                reviewStatus: { type: "string" },
+                commitmentId: { type: "string" },
+                fulfillmentId: { type: "string" },
+                artifactId: { type: "string" },
+                acceptedArtifactId: { type: "string" },
+                transactionId: { type: "string" },
+                hasRequestLifecycleTruth: { type: "boolean" },
+                hasCommitmentTruth: { type: "boolean" },
+                hasFulfillmentTruth: { type: "boolean" },
+                hasArtifactTruth: { type: "boolean" },
+                hasReviewTruth: { type: "boolean" },
+                hasTransactionTruth: { type: "boolean" },
+                hasRequestEventTruth: { type: "boolean" },
+                containsSecrets: { type: "boolean" },
+                rawPromptTranscriptIncluded: { type: "boolean" },
+                rawRuntimeLogsIncluded: { type: "boolean" },
+                paymentOnlyProof: { type: "boolean" },
+                claimsFromToolSuccess: { type: "boolean" },
+                claimsFromProviderCallback: { type: "boolean" },
+                claimsFromRuntimeLogs: { type: "boolean" },
+                claimsFromA2ATask: { type: "boolean" },
+                claimsFromMcpTool: { type: "boolean" },
+              },
+            },
+          },
+          additionalProperties: false,
+        },
+        AgentCompletionValidationResult: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "acceptedClaimStates",
+            "claimState",
+            "completionProven",
+            "requestClosed",
+            "reviewAccepted",
+            "artifactPublished",
+            "fulfillmentAdvanced",
+            "requestEventWritten",
+            "paymentAuthorized",
+            "permissionGranted",
+            "durableWriteCreated",
+            "summary",
+            "missingFields",
+            "warnings",
+            "nextSteps",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { enum: ["validation_passed", "validation_failed"] },
+            acceptedClaimStates: {
+              type: "array",
+              items: { type: "string" },
+            },
+            claimState: { type: "string" },
+            matchedRuleId: {
+              type: ["string", "null"],
+            },
+            requiredTruth: {
+              type: "array",
+              items: { type: "string" },
+            },
+            completionProven: { const: false },
+            requestClosed: { const: false },
+            reviewAccepted: { const: false },
+            artifactPublished: { const: false },
+            fulfillmentAdvanced: { const: false },
+            requestEventWritten: { const: false },
+            paymentAuthorized: { const: false },
+            permissionGranted: { const: false },
+            durableWriteCreated: { const: false },
+            summary: { type: "string" },
+            missingFields: {
+              type: "array",
+              items: { type: "string" },
+            },
+            warnings: {
+              type: "array",
+              items: { type: "string" },
+            },
+            nextSteps: {
+              type: "array",
+              items: { type: "string" },
+            },
             canonicalBoundary: { type: "object" },
           },
         },
@@ -4637,11 +4890,35 @@ export function buildOpenApiDiscoveryIndex() {
     },
     "x-boreal-agent-completion": {
       url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      validationUrl: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
       rules: buildAgentCompletionProfile().completionRules.map((rule) => ({
         id: rule.id,
         actionId: rule.actionId,
         claimState: rule.claimState,
       })),
+    },
+    "x-boreal-agent-completion-validation": {
+      url: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+      status: "live_validation_only",
+      acceptedClaimStates: [
+        "draft_ready",
+        "proposal_submitted",
+        "proof_submitted",
+        "waiting_for_owner_acceptance",
+        "completed",
+        "run_started_not_completed",
+      ],
+      schemaUrl: absoluteUrl("/schemas/agent-completion-validation.schema.json"),
+      nonAuthority: [
+        "completion proof",
+        "request closure",
+        "review acceptance",
+        "artifact publication",
+        "fulfillment state mutation",
+        "payment authorization",
+        "permission grant",
+        "durable RequestEvent",
+      ],
     },
     "x-boreal-agent-delegation": {
       url: absoluteUrl(agentDiscoveryPaths.agentDelegation),
@@ -6561,12 +6838,20 @@ export function buildAgentCompletionProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
       },
       {
+        label: "Agent completion validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+      },
+      {
         label: "Agent recovery profile",
         url: absoluteUrl(agentDiscoveryPaths.agentRecovery),
       },
       {
         label: "Agent completion schema",
         url: absoluteUrl("/schemas/agent-completion.schema.json"),
+      },
+      {
+        label: "Agent completion validation schema",
+        url: absoluteUrl("/schemas/agent-completion-validation.schema.json"),
       },
       {
         label: "Artifact schema",
@@ -6716,6 +7001,37 @@ export function buildAgentCompletionProfile() {
       "RequestEvent sequence and event types for audit and review",
       "agentActionPolicy next allowed action",
     ],
+    validationEndpoint: {
+      status: "live_validation_only",
+      method: "POST",
+      path: agentDiscoveryPaths.agentCompletionValidation,
+      schemaUrl: absoluteUrl("/schemas/agent-completion-validation.schema.json"),
+      accepts: [
+        "claimState",
+        "requestId",
+        "canonical truth assertions",
+        "artifact, fulfillment, commitment, transaction, and event references when applicable",
+        "no-secret and no-tool-success-only assertions",
+      ],
+      returns: [
+        "matched completion rule",
+        "requiredTruth",
+        "missingFields",
+        "warnings",
+        "safe next steps",
+        "false non-authority flags",
+      ],
+      nonAuthority: [
+        "completion proof",
+        "request closure",
+        "review acceptance",
+        "artifact publication",
+        "fulfillment state mutation",
+        "payment authorization",
+        "permission grant",
+        "durable RequestEvent",
+      ],
+    },
     canonicalBoundary: {
       rootObject: "Request",
       durableTruthObjects: [
@@ -6762,6 +7078,10 @@ export function buildAgentEvidenceProfile() {
       {
         label: "Agent completion profile",
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent completion validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
       },
       {
         label: "Agent evidence validation endpoint",
@@ -10645,6 +10965,10 @@ export function buildAgentReadinessProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
       },
       {
+        label: "Agent completion validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+      },
+      {
         label: "Agent evidence validation endpoint",
         url: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
       },
@@ -10871,6 +11195,7 @@ export function buildAgentReadinessProfile() {
         requiresBeforeUse: [
           "explicit human approval before opening, funding, acceptance, or review-sensitive completion claims",
           "completion profile for proof and claim boundaries",
+          "completion validation endpoint for completion-sensitive language",
           "payment profile for spend boundaries",
         ],
         stopOrEscalateWhen: [
@@ -10880,6 +11205,41 @@ export function buildAgentReadinessProfile() {
         evidence: [
           absoluteUrl(agentDiscoveryPaths.agentUx),
           absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
+          absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+        ],
+      },
+      {
+        id: "completion_claim_validation",
+        primaryAgentIntent: "Can I say this work is done?",
+        status: "live_validation_only",
+        actions: [
+          "make_request_for_human",
+          "apply_to_request",
+          "submit_artifact",
+          "monitor_request",
+          "run_public_solution",
+        ],
+        standards: ["OpenAPI 3.1", "JSON Schema"],
+        availableNow: [
+          "Post a completion claim packet before rendering draft-ready, proposal-submitted, proof-submitted, waiting-for-owner, run-started, or completed language.",
+          "Receive the matched completion rule, required truth, missing fields, warnings, and false non-authority flags.",
+          "Keep validation separate from Request closure, review acceptance, Artifact publication, Fulfillment mutation, payment authorization, permission grants, and durable history.",
+        ],
+        requiresBeforeUse: [
+          "schemaVersion=1",
+          "requestId and accepted claimState",
+          "canonical truth assertions for the claimState",
+          "no secrets, raw prompt transcript, raw runtime logs, payment-only proof, or tool-success-only completion claims",
+        ],
+        stopOrEscalateWhen: [
+          "the packet lacks Artifact, Fulfillment, review, transaction, or RequestEvent truth required by the claimState",
+          "the agent would claim completion from payment, provider callback, MCP result, A2A task status, runtime log, or generated text alone",
+          "the claim needs human owner or reviewer acceptance before public or buyer-facing wording",
+        ],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+          absoluteUrl("/schemas/agent-completion-validation.schema.json"),
+          absoluteUrl(agentDiscoveryPaths.agentCompletion),
         ],
       },
       {

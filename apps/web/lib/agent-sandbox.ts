@@ -11,6 +11,7 @@ export const agentSandboxPaths = {
   conformance: "/agents/conformance.json",
   conformanceReportExample: "/agents/conformance-report.example.json",
   completion: "/agents/completion.json",
+  completionValidation: "/agents/completion/validate",
   delegation: "/agents/delegation.json",
   evidence: "/agents/evidence.json",
   evidenceValidation: "/agents/evidence/validate",
@@ -119,6 +120,10 @@ export function buildAgentSandboxManifest() {
       {
         label: "Completion profile",
         url: absoluteUrl(agentSandboxPaths.completion),
+      },
+      {
+        label: "Completion validation endpoint",
+        url: absoluteUrl(agentSandboxPaths.completionValidation),
       },
       {
         label: "Human delegation profile",
@@ -418,6 +423,75 @@ export function buildAgentSandboxManifest() {
         },
       },
       {
+        id: "validate_completion_claim",
+        intent: "Can I say this is done?",
+        method: "POST",
+        path: "/agents/completion/validate",
+        auth: "none",
+        availability: "contract_sample_only",
+        canonicalReads: [
+          "Request",
+          "Commitment",
+          "Fulfillment",
+          "Artifact",
+          "Transaction",
+          "RequestEvent",
+        ],
+        canonicalWrites: [],
+        idempotencyRequired: false,
+        productionWrite: false,
+        sample: {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: {
+            schemaVersion: 1,
+            claim: {
+              requestId: sampleIds.requestId,
+              claimState: "proof_submitted",
+              summary: "Proof was submitted for owner review.",
+              evidenceSummary:
+                "Artifact proof is attached to the sandbox fulfillment lane.",
+              reviewStatus: "owner_review_required",
+              artifactId: sampleIds.artifactId,
+              hasRequestLifecycleTruth: false,
+              hasCommitmentTruth: false,
+              hasFulfillmentTruth: false,
+              hasArtifactTruth: true,
+              hasReviewTruth: false,
+              hasTransactionTruth: false,
+              hasRequestEventTruth: false,
+              containsSecrets: false,
+              rawPromptTranscriptIncluded: false,
+              rawRuntimeLogsIncluded: false,
+              paymentOnlyProof: false,
+              claimsFromToolSuccess: false,
+              claimsFromProviderCallback: false,
+              claimsFromRuntimeLogs: false,
+              claimsFromA2ATask: false,
+              claimsFromMcpTool: false,
+            },
+          },
+          expectedResponseFields: [
+            "status",
+            "requiredTruth",
+            "completionProven",
+            "durableWriteCreated",
+          ],
+          expectedFalseFlags: [
+            "completionProven",
+            "requestClosed",
+            "reviewAccepted",
+            "artifactPublished",
+            "fulfillmentAdvanced",
+            "requestEventWritten",
+            "paymentAuthorized",
+            "permissionGranted",
+            "durableWriteCreated",
+          ],
+        },
+      },
+      {
         id: "monitor_request",
         intent: "Monitor this",
         method: "GET",
@@ -620,6 +694,7 @@ export function buildAgentSandboxManifest() {
           "inspect_public_requests",
           "apply_to_request",
           "submit_artifact",
+          "validate_completion_claim",
           "monitor_request",
         ],
         preconditions: [
@@ -678,6 +753,20 @@ export function buildAgentSandboxManifest() {
             expected: {
               claimState: "proof_submitted",
               ownerAcceptanceRequired: true,
+            },
+          },
+          {
+            id: "validate_proof_submitted_claim",
+            flowId: "validate_completion_claim",
+            actor: "sandbox-solver-publisher",
+            kind: "validation",
+            description:
+              "Validate proof-submitted language before saying completion-sensitive state to the owner.",
+            writes: [],
+            idempotencyKey: null,
+            expected: {
+              claimState: "proof_submitted",
+              completionProven: false,
             },
           },
           {
@@ -928,6 +1017,10 @@ Use the \`apply_to_request\` sample to validate \`Commitment\` proposal shape an
 ## Submit Proof
 
 Use the \`submit_artifact\` sample to validate \`Artifact\` publication shape. In production, proof must attach to an authorized request or fulfillment lane and cannot bypass commitment or owner-review gates.
+
+## Validate Completion Claims
+
+Use the \`validate_completion_claim\` sample before rendering proof-submitted, waiting-for-owner, run-started, or completed language. The validation endpoint checks packet posture only; it does not prove completion, close a request, accept review, publish artifacts, advance fulfillment, authorize payment, or write durable history.
 
 ## Monitor
 

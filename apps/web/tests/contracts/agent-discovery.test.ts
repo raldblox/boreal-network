@@ -41,6 +41,7 @@ import {
   readDiscoveryAsset,
 } from "@/lib/agent-discovery";
 import { validateAgentActionPreflight } from "@/lib/agent-action-preflight";
+import { validateAgentCompletionPayload } from "@/lib/agent-completion-validation";
 import { validateAgentEvidencePayload } from "@/lib/agent-evidence-validation";
 import { validateAgentIntakePayload } from "@/lib/agent-intake-validation";
 import { prepareAgentAccessReviewPayload } from "@/lib/agent-access-review-preparation";
@@ -67,6 +68,7 @@ import { POST as postAgentAuthPreparation } from "@/app/agents/auth/prepare/rout
 import { GET as getAgentConformance } from "@/app/agents/conformance.json/route";
 import { GET as getAgentConformanceReportExample } from "@/app/agents/conformance-report.example.json/route";
 import { GET as getAgentCompletion } from "@/app/agents/completion.json/route";
+import { POST as postAgentCompletionValidation } from "@/app/agents/completion/validate/route";
 import { GET as getAgentDelegation } from "@/app/agents/delegation.json/route";
 import { GET as getAgentEvidence } from "@/app/agents/evidence.json/route";
 import { POST as postAgentEvidenceValidation } from "@/app/agents/evidence/validate/route";
@@ -162,6 +164,10 @@ async function main() {
   );
   assert.equal(
     agentCard.completionProfileUrl.endsWith("/agents/completion.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.completionValidationUrl.endsWith("/agents/completion/validate"),
     true,
   );
   assert.equal(
@@ -404,7 +410,22 @@ async function main() {
   );
   assert.equal(agentCard.completion.status, "live_completion_profile");
   assert.equal(
+    agentCard.completion.validationUrl.endsWith("/agents/completion/validate"),
+    true,
+  );
+  assert.equal(
     agentCard.completion.rules.some((rule) => rule.claimState === "completed"),
+    true,
+  );
+  assert.equal(agentCard.completionValidation.status, "live_validation_only");
+  assert.equal(
+    agentCard.completionValidation.acceptedClaimStates.includes(
+      "proof_submitted"
+    ),
+    true,
+  );
+  assert.equal(
+    agentCard.completionValidation.nonAuthority.includes("completion proof"),
     true,
   );
   assert.equal(agentCard.evidence.status, "live_evidence_profile");
@@ -898,6 +919,23 @@ async function main() {
   );
   assert.equal(
     readinessProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/completion/validate")
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "completion_claim_validation" &&
+        capability.status === "live_validation_only" &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/completion/validate")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.resources.some((resource) =>
       resource.url.endsWith("/agents/optimization/prepare")
     ),
     true,
@@ -1237,6 +1275,22 @@ async function main() {
     true,
   );
   assert.equal(
+    completionProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/completion/validate")
+    ),
+    true,
+  );
+  assert.equal(
+    completionProfile.validationEndpoint.path,
+    "/agents/completion/validate",
+  );
+  assert.equal(
+    completionProfile.validationEndpoint.nonAuthority.includes(
+      "completion proof"
+    ),
+    true,
+  );
+  assert.equal(
     completionProfile.proofPacket.requiredFor.includes("submit_artifact"),
     true,
   );
@@ -1278,6 +1332,96 @@ async function main() {
     ),
     true,
   );
+
+  const completionValidation = validateAgentCompletionPayload({
+    schemaVersion: 1,
+    claim: {
+      requestId: "req_public_design_001",
+      claimState: "proof_submitted",
+      summary: "Proof was submitted for owner review.",
+      evidenceSummary:
+        "Artifact art_123 is attached to the accepted fulfillment lane.",
+      reviewStatus: "owner_review_required",
+      artifactId: "art_123",
+      hasRequestLifecycleTruth: false,
+      hasCommitmentTruth: false,
+      hasFulfillmentTruth: false,
+      hasArtifactTruth: true,
+      hasReviewTruth: false,
+      hasTransactionTruth: false,
+      hasRequestEventTruth: false,
+      containsSecrets: false,
+      rawPromptTranscriptIncluded: false,
+      rawRuntimeLogsIncluded: false,
+      paymentOnlyProof: false,
+      claimsFromToolSuccess: false,
+      claimsFromProviderCallback: false,
+      claimsFromRuntimeLogs: false,
+      claimsFromA2ATask: false,
+      claimsFromMcpTool: false,
+    },
+  });
+  assert.equal(completionValidation.status, "validation_passed");
+  assert.equal(
+    completionValidation.matchedRuleId,
+    "proof_submitted_for_review",
+  );
+  assert.equal(completionValidation.completionProven, false);
+  assert.equal(completionValidation.artifactPublished, false);
+  assert.equal(completionValidation.durableWriteCreated, false);
+
+  const failedCompletionValidation = validateAgentCompletionPayload({
+    schemaVersion: 1,
+    claim: {
+      requestId: "req_public_design_001",
+      claimState: "completed",
+      summary: "The work is complete.",
+      evidenceSummary: "The tool finished.",
+      reviewStatus: "not_reviewed",
+      hasRequestLifecycleTruth: false,
+      hasCommitmentTruth: false,
+      hasFulfillmentTruth: false,
+      hasArtifactTruth: false,
+      hasReviewTruth: false,
+      hasTransactionTruth: false,
+      hasRequestEventTruth: false,
+      containsSecrets: true,
+      rawPromptTranscriptIncluded: true,
+      rawRuntimeLogsIncluded: true,
+      paymentOnlyProof: true,
+      claimsFromToolSuccess: true,
+      claimsFromProviderCallback: true,
+      claimsFromRuntimeLogs: true,
+      claimsFromA2ATask: true,
+      claimsFromMcpTool: true,
+    },
+  });
+  assert.equal(failedCompletionValidation.status, "validation_failed");
+  assert.equal(
+    failedCompletionValidation.missingFields.includes(
+      "hasRequestLifecycleTruth=true"
+    ),
+    true,
+  );
+  assert.equal(
+    failedCompletionValidation.missingFields.includes(
+      "hasFulfillmentTruth=true"
+    ),
+    true,
+  );
+  assert.equal(
+    failedCompletionValidation.missingFields.includes("hasReviewTruth=true"),
+    true,
+  );
+  assert.equal(
+    failedCompletionValidation.missingFields.includes(
+      "acceptedArtifactId or artifactId"
+    ),
+    true,
+  );
+  assert.equal(failedCompletionValidation.completionProven, false);
+  assert.equal(failedCompletionValidation.reviewAccepted, false);
+  assert.equal(failedCompletionValidation.requestEventWritten, false);
 
   const delegationProfile = buildAgentDelegationProfile();
   assert.equal(delegationProfile.status, "live_human_delegation_profile");
@@ -2327,6 +2471,14 @@ async function main() {
           idempotencyKey: "00000000-0000-4000-8000-000000000102",
         },
         {
+          id: "validate_proof_submitted_claim",
+          flowId: "validate_completion_claim",
+          actor: "sandbox-solver-publisher",
+          kind: "validation",
+          writes: [],
+          productionWrite: false,
+        },
+        {
           id: "resume_monitor_cursor",
           flowId: "monitor_request",
           actor: "sandbox-monitor",
@@ -2754,6 +2906,12 @@ async function main() {
   );
   assert.equal(
     sandboxManifest.resources.some((resource) =>
+      resource.url.endsWith("/agents/completion/validate")
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.resources.some((resource) =>
       resource.url.endsWith("/agents/sandbox/replay")
     ),
     true,
@@ -2773,6 +2931,15 @@ async function main() {
   assert.equal(
     sandboxManifest.resources.some((resource) =>
       resource.url.endsWith("/agents/optimization/prepare")
+    ),
+    true,
+  );
+  assert.equal(
+    sandboxManifest.flows.some(
+      (flow) =>
+        flow.id === "validate_completion_claim" &&
+        flow.path === "/agents/completion/validate" &&
+        flow.canonicalWrites.length === 0
     ),
     true,
   );
@@ -3076,6 +3243,7 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/conformance\.json/);
   assert.match(startGuide, /GET \/agents\/conformance-report\.example\.json/);
   assert.match(startGuide, /GET \/agents\/completion\.json/);
+  assert.match(startGuide, /POST \/agents\/completion\/validate/);
   assert.match(startGuide, /GET \/agents\/delegation\.json/);
   assert.match(startGuide, /GET \/agents\/evidence\.json/);
   assert.match(startGuide, /POST \/agents\/evidence\/validate/);
@@ -3107,6 +3275,8 @@ async function main() {
   assert.match(startGuide, /Agent access review preparation endpoint/);
   assert.match(startGuide, /Agent auth preparation endpoint/);
   assert.match(startGuide, /recommended auth scheme/);
+  assert.match(startGuide, /Agent completion validation endpoint/);
+  assert.match(startGuide, /completion-sensitive language/);
   assert.match(startGuide, /Agent conformance report example/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent sandbox replay validation endpoint/);
@@ -3250,6 +3420,17 @@ async function main() {
     Object.hasOwn(
       discoveryIndex.components.schemas,
       "AgentAuthPreparationResult"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/completion/validate"),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentCompletionValidationResult"
     ),
     true,
   );
@@ -3467,6 +3648,22 @@ async function main() {
     discoveryIndex["x-boreal-agent-completion"].rules.some(
       (rule) => rule.claimState === "completed"
     ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-completion"].validationUrl.endsWith(
+      "/agents/completion/validate"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-completion-validation"].status,
+    "live_validation_only",
+  );
+  assert.equal(
+    discoveryIndex[
+      "x-boreal-agent-completion-validation"
+    ].nonAuthority.includes("completion proof"),
     true,
   );
   assert.equal(
@@ -3714,6 +3911,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-completion.schema.json")?.sourcePath,
     "schemas/json/agent-completion.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-completion-validation.schema.json")?.sourcePath,
+    "schemas/json/agent-completion-validation.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-delegation.schema.json")?.sourcePath,
@@ -4010,6 +4211,106 @@ async function main() {
   assert.equal(
     (await agentCompletionResponse.json()).status,
     "live_completion_profile"
+  );
+
+  const completionValidationResponse = await postAgentCompletionValidation(
+    new Request("http://boreal.test/agents/completion/validate", {
+      body: JSON.stringify({
+        schemaVersion: 1,
+        claim: {
+          requestId: "req_public_design_001",
+          claimState: "proof_submitted",
+          summary: "Proof was submitted for owner review.",
+          evidenceSummary:
+            "Artifact art_123 is attached to the accepted fulfillment lane.",
+          reviewStatus: "owner_review_required",
+          artifactId: "art_123",
+          hasRequestLifecycleTruth: false,
+          hasCommitmentTruth: false,
+          hasFulfillmentTruth: false,
+          hasArtifactTruth: true,
+          hasReviewTruth: false,
+          hasTransactionTruth: false,
+          hasRequestEventTruth: false,
+          containsSecrets: false,
+          rawPromptTranscriptIncluded: false,
+          rawRuntimeLogsIncluded: false,
+          paymentOnlyProof: false,
+          claimsFromToolSuccess: false,
+          claimsFromProviderCallback: false,
+          claimsFromRuntimeLogs: false,
+          claimsFromA2ATask: false,
+          claimsFromMcpTool: false,
+        },
+      }),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    })
+  );
+  assert.equal(completionValidationResponse.status, 200);
+  const completionValidationRouteResult =
+    await completionValidationResponse.json();
+  assert.equal(completionValidationRouteResult.status, "validation_passed");
+  assert.equal(completionValidationRouteResult.completionProven, false);
+  assert.equal(completionValidationRouteResult.artifactPublished, false);
+  assert.equal(completionValidationRouteResult.requestEventWritten, false);
+
+  const failedCompletionValidationResponse =
+    await postAgentCompletionValidation(
+      new Request("http://boreal.test/agents/completion/validate", {
+        body: JSON.stringify({
+          schemaVersion: 1,
+          claim: {
+            requestId: "req_public_design_001",
+            claimState: "completed",
+            summary: "The work is complete.",
+            evidenceSummary: "The tool finished.",
+            reviewStatus: "not_reviewed",
+            hasRequestLifecycleTruth: false,
+            hasCommitmentTruth: false,
+            hasFulfillmentTruth: false,
+            hasArtifactTruth: false,
+            hasReviewTruth: false,
+            hasTransactionTruth: false,
+            hasRequestEventTruth: false,
+            containsSecrets: true,
+            rawPromptTranscriptIncluded: true,
+            rawRuntimeLogsIncluded: true,
+            paymentOnlyProof: true,
+            claimsFromToolSuccess: true,
+            claimsFromProviderCallback: true,
+            claimsFromRuntimeLogs: true,
+            claimsFromA2ATask: true,
+            claimsFromMcpTool: true,
+          },
+        }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(failedCompletionValidationResponse.status, 400);
+  const failedCompletionValidationRouteResult =
+    await failedCompletionValidationResponse.json();
+  assert.equal(
+    failedCompletionValidationRouteResult.status,
+    "validation_failed",
+  );
+  assert.equal(failedCompletionValidationRouteResult.completionProven, false);
+  assert.equal(failedCompletionValidationRouteResult.reviewAccepted, false);
+  assert.equal(failedCompletionValidationRouteResult.durableWriteCreated, false);
+
+  const malformedCompletionValidationResponse =
+    await postAgentCompletionValidation(
+      new Request("http://boreal.test/agents/completion/validate", {
+        body: "{",
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      })
+    );
+  assert.equal(malformedCompletionValidationResponse.status, 400);
+  assert.equal(
+    (await malformedCompletionValidationResponse.json()).completionProven,
+    false,
   );
 
   const agentDelegationResponse = await getAgentDelegation();
@@ -4821,6 +5122,7 @@ async function main() {
   assert.match(llmsText, /Agent conformance report schema/);
   assert.match(llmsText, /Agent conformance report example/);
   assert.match(llmsText, /Agent completion profile/);
+  assert.match(llmsText, /Agent completion validation endpoint/);
   assert.match(llmsText, /Agent human delegation profile/);
   assert.match(llmsText, /Agent evidence profile/);
   assert.match(llmsText, /Agent evidence validation endpoint/);
@@ -4995,6 +5297,20 @@ async function main() {
   assert.equal(
     (await completionSchemaResponse.json()).title,
     "AgentCompletionProfile"
+  );
+
+  const completionValidationSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-completion-validation.schema.json",
+      }),
+    }
+  );
+  assert.equal(completionValidationSchemaResponse.status, 200);
+  assert.equal(
+    (await completionValidationSchemaResponse.json()).title,
+    "AgentCompletionValidation",
   );
 
   const delegationSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

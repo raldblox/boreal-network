@@ -88,6 +88,7 @@ Current assets that agents can eventually build on:
 - A validation-only intake endpoint exists through `POST /agents/intake/validate` and `schemas/json/agent-intake-validation.schema.json`, giving agents machine-readable preflight feedback on conformance reports and production access packets before human or operator review without creating access, approvals, credentials, production sandboxes, payment authority, completion proof, or durable history.
 - A validation-only action preflight endpoint exists through `POST /agents/actions/preflight` and `schemas/json/agent-action-preflight.schema.json`, giving agents machine-readable feedback on request id, represented actor, human approval, idempotency, resolver scopes, canonical reads and writes, route contracts, and non-authority boundaries before attempting apply, submit, monitor, run, or optimize actions.
 - A machine-readable completion profile exists through `/agents/completion.json` and `schemas/json/agent-completion.schema.json`, mapping draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims to proof, Artifact, Fulfillment, Transaction, RequestEvent, and owner-review truth.
+- A validation-only completion endpoint exists through `POST /agents/completion/validate` and `schemas/json/agent-completion-validation.schema.json`, giving agents machine-readable feedback before rendering draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed language without proving completion, closing requests, accepting review, publishing artifacts, advancing fulfillment, authorizing payment, granting permission, or writing durable history.
 - A machine-readable delegation profile exists through `/agents/delegation.json` and `schemas/json/agent-delegation.schema.json`, mapping human consent screens, scopes, account-session use, resolver bearer delegation, target OAuth, revocation, and per-action approval expiry.
 - A machine-readable evidence profile exists through `/agents/evidence.json` and `schemas/json/agent-evidence.schema.json`, mapping evidence packets, artifact packaging, redaction rules, review signals, and retry-safe proof submission.
 - A validation-only evidence endpoint exists through `POST /agents/evidence/validate` and `schemas/json/agent-evidence-validation.schema.json`, giving agents machine-readable preflight feedback on proof, delivery, receipt, and handoff packets before governed `Artifact` submission without publishing artifacts, storing files, accepting review, authorizing payment, proving completion, or writing durable history.
@@ -127,7 +128,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first machine-readable conformance profile now gives agent builders a checklist for validating discovery, auth, handoff, payment, proof, recovery, sandbox, and protocol behavior, and the first conformance report schema plus public example route now gives them an operator-review evidence packet shape; neither certifies agents nor grants production access
 - the first validation-only intake endpoint now gives agents immediate feedback on conformance reports and production access packets, but it does not create persisted operator-review submissions, issue credentials, grant permission, authorize spend, create production sandboxes, or prove completion
 - the first validation-only action preflight endpoint now gives agents immediate feedback on action prerequisites before using live routes, but it does not execute the route, grant permission, record approval, publish artifacts, propose commitments, mutate requests, authorize spend, or prove completion
-- the first machine-readable completion profile now tells agents what proof and review truth is required before saying draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed, but deeper lane-specific proof scoring remains target direction
+- the first machine-readable completion profile and validation-only completion endpoint now tell agents what proof and review truth is required before saying draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed, but deeper lane-specific proof scoring remains target direction
 - the first machine-readable evidence profile now tells agents how to package proof, receipts, outputs, redaction statements, and review signals as `Artifact` support, but automated proof scoring, private reviewer access, and artifact scanning remain target direction
 - the first validation-only evidence endpoint now lets agents preflight proof and delivery packet shape before `submit_artifact`, but it does not publish artifacts, store files, accept review, authorize spend, or prove completion
 - the first RFC 9457-style error example pack now tells agents how to classify auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and unknown-write failures before retrying or escalating, but live routes still need consistent problem-details envelopes before this is fully production behavior
@@ -359,6 +360,7 @@ Add these public surfaces:
 - `POST /agents/actions/preflight`
 - `POST /agents/sandbox/replay`
 - `GET /agents/completion.json`
+- `POST /agents/completion/validate`
 - `GET /agents/evidence.json`
 - `POST /agents/evidence/validate`
 - `GET /agents/error-examples.json`
@@ -405,6 +407,7 @@ Add these public surfaces:
 - `GET /schemas/agent-production-access-packet.schema.json`
 - `GET /schemas/agent-intake-validation.schema.json`
 - `GET /schemas/agent-completion.schema.json`
+- `GET /schemas/agent-completion-validation.schema.json`
 - `GET /schemas/agent-evidence.schema.json`
 - `GET /schemas/agent-error-examples.schema.json`
 - `GET /schemas/agent-execution.schema.json`
@@ -861,6 +864,7 @@ Deliverables:
 - `POST /agents/intake/validate` and `schemas/json/agent-intake-validation.schema.json` - implemented as a validation-only preflight for conformance reports and production access packets before human or operator review
 - `POST /agents/actions/preflight` and `schemas/json/agent-action-preflight.schema.json` - implemented as a validation-only preflight for action prerequisites before agents attempt governed HTTP routes
 - `/agents/completion.json` - implemented as a public machine-readable completion profile for proof packets, Artifact guidance, completion claims, and review boundaries
+- `POST /agents/completion/validate` and `schemas/json/agent-completion-validation.schema.json` - implemented as a validation-only preflight for completion claim packets before agents render draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed language
 - `/agents/delegation.json` - implemented as a public machine-readable human delegation profile for consent screens, scope minimization, account-session use, resolver bearer delegation, target OAuth, revocation, and per-action approval expiry
 - `/agents/evidence.json` - implemented as a public machine-readable evidence profile for proof packets, Artifact packaging, redaction, review signals, and retry-safe submission boundaries
 - `POST /agents/evidence/validate` and `schemas/json/agent-evidence-validation.schema.json` - implemented as a validation-only preflight for proof, delivery, receipt, and handoff packet shape before governed Artifact submission
@@ -908,6 +912,7 @@ Deliverables:
 - machine-readable agent action preflight endpoint - implemented as `POST /agents/actions/preflight`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, UX profile, readiness profile, and `/openapi.json`
 - machine-readable agent sandbox replay validation endpoint - implemented as `POST /agents/sandbox/replay`, linked from the agent card, start guide, sandbox manifest, onboarding, readiness profile, `/llms.txt`, and `/openapi.json`
 - machine-readable agent completion profile - implemented as `/agents/completion.json`, linked from the agent card and `/openapi.json`
+- machine-readable agent completion validation endpoint - implemented as `POST /agents/completion/validate`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, completion profile, readiness profile, and `/openapi.json`
 - machine-readable agent human delegation profile - implemented as `/agents/delegation.json`, linked from the agent card, auth profile, start guide, `/llms.txt`, and `/openapi.json`
 - machine-readable agent evidence profile - implemented as `/agents/evidence.json`, linked from the agent card and `/openapi.json`
 - machine-readable agent evidence validation endpoint - implemented as `POST /agents/evidence/validate`, linked from the agent card, start guide, `/llms.txt`, sandbox manifest, completion profile, evidence profile, readiness profile, and `/openapi.json`
@@ -962,7 +967,7 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the public production access packet example route, packet kind, operator-review status, non-production boundary, target-protocol boundary, payment non-authority, onboarding link, OpenAPI path, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the validation-only intake endpoint for passing conformance reports, passing production access packets, malformed bodies, non-authority flags, OpenAPI path and extension, public schema route, `/llms.txt`, start-guide, sandbox-manifest, and readiness links.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the validation-only action preflight endpoint for passing apply and monitor checks, failed missing prerequisites, malformed bodies, non-authority flags, OpenAPI path and extension, public schema route, `/llms.txt`, start-guide, sandbox-manifest, UX profile, and readiness links.
-- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent completion profile, proof packet, Artifact and owner-review boundaries, non-completion truth list, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent completion profile, proof packet, Artifact and owner-review boundaries, non-completion truth list, public schema route, and validation-only completion endpoint for pass, fail, malformed, non-authority, OpenAPI, start-guide, `/llms.txt`, sandbox-manifest, completion-profile, and readiness links.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the validation-only evidence endpoint for passing proof packets, failing secret/completion/payment-only packets, malformed bodies, non-authority flags, OpenAPI path and extension, public schema route, `/llms.txt`, start-guide, sandbox-manifest, evidence profile, completion profile, and readiness links.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent human delegation profile, live account-session and resolver-bearer modes, target OAuth boundary, action consent flows, revocation routes, non-grant boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent HTTP reference profile, OpenAPI source list, route families, idempotency-required HTTP intents, non-HTTP fallbacks, non-new-API boundary, OpenAPI extension, public route, and public schema route.
@@ -1077,6 +1082,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can fetch the production access packet example and mirror its represented-actor, minimal-scope, sandbox-evidence, rate-limit, human-escalation, data-handling, idempotency, payment-boundary, and target-protocol sections without treating the packet as production authority.
 - A fresh agent can preflight an intended action and receive missing requirements, required scopes, canonical writes, route contracts, and non-authority flags before attempting live apply, submit, monitor, run, or optimize work.
 - A fresh agent can find the completion profile and distinguish draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, and completed claims.
+- A fresh agent can validate completion claim packet shape before rendering or acting on draft-ready, proposal-submitted, proof-submitted, waiting-for-acceptance, run-started, or completed language and see required truth, missing fields, warnings, next steps, and non-authority flags.
 - A fresh agent can validate proof or delivery packet shape before `submit_artifact` and see which fields, redaction boundaries, claim-state limits, and non-authority flags apply.
 - A fresh agent can find the delegation profile and distinguish public read, account-session assisted use, resolver device delegation, target OAuth delegation, operator-reviewed pilot paths, consent screens, revocation, and per-action approval expiry without treating delegation as permission, spend authority, or completion truth.
 - A fresh agent can find the HTTP reference profile and map live route families, auth schemes, scopes, idempotency requirements, OpenAPI sources, canonical write boundaries, and non-HTTP fallbacks without treating it as a permission grant or new API surface.

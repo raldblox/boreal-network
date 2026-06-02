@@ -45,6 +45,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent conformance report schema](${absoluteUrl("/schemas/agent-conformance-report.schema.json")}): Machine-readable report shape for sandbox replay evidence, requested scopes, protocol claims, and human review.
 - [Agent conformance report example](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)}): Submit-ready example package for operator review; it is not a credential, permission grant, or certification.
 - [Agent completion profile](${absoluteUrl(agentDiscoveryPaths.agentCompletion)}): Machine-readable proof packets, Artifact requirements, completion claims, and review boundaries.
+- [Agent completion validation endpoint](${absoluteUrl(agentDiscoveryPaths.agentCompletionValidation)}): Validation-only POST endpoint for checking completion claim packets before rendering or acting on proof, review, delivery, run-started, or completed language.
 - [Agent human delegation profile](${absoluteUrl(agentDiscoveryPaths.agentDelegation)}): Machine-readable consent, scoped authority, revocation, and per-action approval boundaries for human-owned agent usage.
 - [Agent evidence profile](${absoluteUrl(agentDiscoveryPaths.agentEvidence)}): Machine-readable evidence packet, Artifact packaging, redaction, review, and proof-boundary guidance.
 - [Agent evidence validation endpoint](${absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation)}): Validation-only POST endpoint for proof and delivery packets before governed Artifact submission.
