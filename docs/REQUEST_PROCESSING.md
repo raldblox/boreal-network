@@ -110,6 +110,7 @@ Once a draft `Request` exists, show an inline briefing or plan review surface in
 Before the draft is ready to open, that surface should show captured brief facts, missing essentials, and the next question or disabled open state.
 When derived plan steps exist, show buyer-facing plan steps and proof or done criteria.
 The pre-open flow review should render only the `Request` card and one or more parallel `Plan` cards.
+The draft stepper and draft flow review must use the same buyer-facing plan-step projection. Do not generate or maintain a second flow-specific plan narrative with different titles, summaries, or proof wording.
 Do not expose feasibility grids, supply paths, role candidates, worker lanes, delivery lanes, capability lanes, or assignment projections until the request has been opened into a workroom or route-selection surface.
 10. Team assembly
    Match optional collaborator slots only after a credible lead route exists, except bounded direct-tool routes.

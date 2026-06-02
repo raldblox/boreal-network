@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { selectChatModelRoute } from "@/lib/ai/model-routing";
 import { composerChatModels, isComposerChatModelId } from "@/lib/ai/models";
+import { getModelProviderRouteEntries } from "@/lib/ai/providers";
 import {
   chatDeleteQuerySchema,
   chatMessagesQuerySchema,
@@ -11,9 +12,6 @@ import {
   votePatchSchema,
   voteQuerySchema,
 } from "@/lib/chat-route-validation";
-import { getModelProviderRouteEntries } from "@/lib/ai/providers";
-import { buildRequestPreflightPreview } from "@/lib/request-preflight";
-import { buildDraftRequestFlowGraph } from "@/lib/request-flow";
 import {
   applyRequestPatch,
   type BorealRequestDraft,
@@ -25,6 +23,11 @@ import {
   canReadChatEnvelope,
   canUseRequestChatTranscript,
 } from "@/lib/request-chat-access";
+import {
+  buildBuyerFacingDraftPlanSteps,
+  buildDraftRequestFlowGraph,
+} from "@/lib/request-flow";
+import { buildRequestPreflightPreview } from "@/lib/request-preflight";
 
 assert.equal(
   chatMessagesQuerySchema.safeParse({ chatId: "undefined" }).success,
@@ -243,6 +246,10 @@ const draftFlowRequest = makeDraft({
   },
 });
 const draftFlowGraph = buildDraftRequestFlowGraph(draftFlowRequest);
+const draftPlanSteps = buildBuyerFacingDraftPlanSteps(draftFlowRequest);
+const draftPlanNodes = draftFlowGraph.nodes.filter(
+  (node) => node.kind === "phase",
+);
 assert.deepEqual(
   draftFlowGraph.nodes.map((node) => node.kind),
   ["request", "phase", "phase"],
@@ -256,6 +263,24 @@ assert.equal(
 assert.deepEqual(
   draftFlowGraph.edges.map((edge) => edge.source),
   ["request", "request"],
+);
+assert.equal(draftFlowGraph.nodes[0]?.title, draftFlowRequest.brief.title);
+assert.deepEqual(
+  draftPlanNodes.map((node) => node.title),
+  ["Plan 1", "Plan 2"],
+);
+assert.deepEqual(
+  draftPlanNodes.map((node) => node.subtitle),
+  draftPlanSteps.map((step) => step.title),
+);
+assert.deepEqual(
+  draftPlanNodes.map((node) => node.summary),
+  draftPlanSteps.map((step) => step.summary),
+);
+assert.equal(
+  (draftPlanNodes[1]?.position.y ?? 0) - (draftPlanNodes[0]?.position.y ?? 0) >=
+    248,
+  true,
 );
 
 assert.equal(

@@ -364,11 +364,11 @@ test.describe("Request chat lifecycle", () => {
     await expect(
       page.getByRole("button", { name: "Flow review" }),
     ).toBeVisible();
-    await expect(page.getByText("Confirm inspection details")).toBeVisible();
-    await expect(page.getByText("Inspect the car")).toBeVisible();
+    await expect(page.getByText("Confirm request scope")).toBeVisible();
     await expect(
-      page.getByText("Package the delivery and proof"),
+      page.getByText("Complete the onsite photo visit"),
     ).toBeVisible();
+    await expect(page.getByText("Submit photo proof")).toBeVisible();
     await expect(
       page
         .getByTestId("draft-plan-message")
@@ -377,8 +377,9 @@ test.describe("Request chat lifecycle", () => {
 
     await page.getByRole("button", { name: "Flow review" }).click();
     await expect(page.getByLabel("Request workflow canvas")).toBeVisible();
-    await expect(page.getByText("Confirm inspection details")).toBeVisible();
-    await expect(page.getByText("Deliver proof package")).toBeVisible();
+    await expect(page.getByText("Plan 1")).toBeVisible();
+    await expect(page.getByText("Plan 3")).toBeVisible();
+    await expect(page.getByText("Submit photo proof")).toBeVisible();
     await expect(page.getByText("Lead lane opens after approval")).toHaveCount(
       0,
     );

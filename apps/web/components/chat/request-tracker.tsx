@@ -13,17 +13,18 @@ import {
   XIcon,
 } from "lucide-react";
 import {
+  type ReactNode,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
-  type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
 import useSWR from "swr";
 import { useWindowSize } from "usehooks-ts";
+import { CharacterCallLauncher } from "@/components/services/character-call-launcher";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -33,12 +34,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  type DesktopRuntimeDiscoveryPayload,
   discoverDesktopRuntime,
   isDesktopBridgeSupportedOrigin,
   tryOpenDesktopRuntimeApp,
-  type DesktopRuntimeDiscoveryPayload,
 } from "@/lib/desktop-runtime-bridge";
-import { CharacterCallLauncher } from "@/components/services/character-call-launcher";
+import type {
+  BorealRequestDraft,
+  RequestActivityEntry,
+  RequestBudget,
+  RequestFulfillment,
+  RequestStatus,
+} from "@/lib/request";
 import {
   buildTrackedRequestFlowGraph,
   type RequestFlowNodeDescriptor,
@@ -51,18 +58,16 @@ import {
   type RequestTaskBoardStageId,
   type RequestTaskBoardWorker,
 } from "@/lib/request-task-board";
-import type {
-  BorealRequestDraft,
-  RequestActivityEntry,
-  RequestBudget,
-  RequestFulfillment,
-  RequestStatus,
-} from "@/lib/request";
 import type { BorealSupplyDraft } from "@/lib/supply";
 import { cn, fetcher } from "@/lib/utils";
 import { LoadingButton } from "./loading-button";
-import { RequestFlowCanvas } from "./request-flow-canvas";
 import { RequestActivityMessage } from "./request-activity-timeline";
+import { RequestFlowCanvas } from "./request-flow-canvas";
+import {
+  RequestProcessCard,
+  type RequestProcessCardTag,
+  type RequestProcessCardTone,
+} from "./request-process-card";
 import { toast } from "./toast";
 
 type RequestTrackerProps = {
@@ -92,11 +97,7 @@ type TrackerStageId =
   | "work_delivery"
   | "review_resolve";
 
-export type WorkroomViewId =
-  | "monitor"
-  | "tasks"
-  | "activity"
-  | "artifacts";
+export type WorkroomViewId = "monitor" | "tasks" | "activity" | "artifacts";
 
 const CHARACTER_CALL_LAUNCHABLE_STATUSES = new Set<RequestStatus>([
   "funded",
@@ -129,7 +130,7 @@ export function RequestTracker({
   const { width: windowWidth } = useWindowSize();
   const isMobile = windowWidth ? windowWidth < 768 : false;
   const hasFulfillmentFailure = activities.some(
-    (activity) => activity.eventType === "fulfillment.failed"
+    (activity) => activity.eventType === "fulfillment.failed",
   );
   const currentStageId = getCurrentTrackerStageId(request.status, {
     hasFulfillmentFailure,
@@ -146,38 +147,45 @@ export function RequestTracker({
   const [isSavingPreferredSupply, setIsSavingPreferredSupply] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [selectedFlowNodeId, setSelectedFlowNodeId] = useState<string | null>(
-    null
+    null,
   );
   const [isWorkObjectViewerOpen, setIsWorkObjectViewerOpen] = useState(false);
-  const [selectedArtifactEventId, setSelectedArtifactEventId] =
-    useState<string | null>(null);
+  const [selectedArtifactEventId, setSelectedArtifactEventId] = useState<
+    string | null
+  >(null);
   const localContainerRef = useRef<HTMLDivElement>(null);
   const previousSelectedViewRef = useRef<WorkroomViewId>(selectedView);
   const lastAutoWorkerCheckRef = useRef<string | null>(null);
   const scrollHostRef = scrollContainerRef ?? localContainerRef;
   const usesExternalScrollHost = Boolean(scrollContainerRef);
-  const scrollToTop = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const container = scrollHostRef.current;
-    if (!container) {
-      return;
-    }
+  const scrollToTop = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      const container = scrollHostRef.current;
+      if (!container) {
+        return;
+      }
 
-    container.scrollTo({
-      top: 0,
-      behavior,
-    });
-  }, [scrollHostRef]);
-  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
-    const container = scrollHostRef.current;
-    if (!container) {
-      return;
-    }
+      container.scrollTo({
+        top: 0,
+        behavior,
+      });
+    },
+    [scrollHostRef],
+  );
+  const scrollToBottom = useCallback(
+    (behavior: ScrollBehavior = "smooth") => {
+      const container = scrollHostRef.current;
+      if (!container) {
+        return;
+      }
 
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior,
-    });
-  }, [scrollHostRef]);
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior,
+      });
+    },
+    [scrollHostRef],
+  );
 
   const resumeLiveStage = useCallback(() => {
     onSelectView("monitor");
@@ -188,13 +196,24 @@ export function RequestTracker({
   }, [onSelectView, scrollToTop]);
 
   useEffect(() => {
+    void currentStageId;
+    void hasFulfillmentFailure;
+    void request.id;
+    void request.status;
     setFollowMode("auto");
     requestAnimationFrame(() => {
       scrollToTop("instant");
     });
-  }, [currentStageId, hasFulfillmentFailure, request.id, request.status, scrollToTop]);
+  }, [
+    currentStageId,
+    hasFulfillmentFailure,
+    request.id,
+    request.status,
+    scrollToTop,
+  ]);
 
   useEffect(() => {
+    void request.id;
     setSelectedFlowNodeId(null);
     setIsWorkObjectViewerOpen(false);
   }, [request.id]);
@@ -235,7 +254,7 @@ export function RequestTracker({
     const updateBottomState = () => {
       setIsAtBottom(
         container.scrollTop + container.clientHeight >=
-          container.scrollHeight - 100
+          container.scrollHeight - 100,
       );
     };
 
@@ -266,9 +285,8 @@ export function RequestTracker({
         : 4000,
   });
   const activeFulfillment = activeFulfillmentData?.fulfillment ?? null;
-  const activeFulfillmentWorkerState = getBorealWorkerTrackerState(
-    activeFulfillment
-  );
+  const activeFulfillmentWorkerState =
+    getBorealWorkerTrackerState(activeFulfillment);
   const isCharacterCallStarterRequest =
     request.brief.constraints?.serviceFamilyKey === "character-call-starter" ||
     (request.brief.tags ?? []).includes("character_call");
@@ -304,18 +322,19 @@ export function RequestTracker({
   const ownedSuppliesKey = canManagePrivateRouting
     ? `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/supplies?limit=100`
     : null;
-  const { data: ownedSuppliesData, isLoading: isLoadingOwnedSupplies } = useSWR<{
-    supplies: BorealSupplyDraft[];
-    hasMore: boolean;
-  }>(ownedSuppliesKey, fetcher, {
-    revalidateOnFocus: false,
-  });
+  const { data: ownedSuppliesData, isLoading: isLoadingOwnedSupplies } =
+    useSWR<{
+      supplies: BorealSupplyDraft[];
+      hasMore: boolean;
+    }>(ownedSuppliesKey, fetcher, {
+      revalidateOnFocus: false,
+    });
   const publishedOwnedSupplies = useMemo(
     () =>
       (ownedSuppliesData?.supplies ?? []).filter(
-        (supply) => supply.status === "published"
+        (supply) => supply.status === "published",
       ),
-    [ownedSuppliesData?.supplies]
+    [ownedSuppliesData?.supplies],
   );
   const desktopRuntimeDiscoveryEnabled =
     isRequestOwner && request.visibility === "private";
@@ -331,23 +350,23 @@ export function RequestTracker({
     {
       revalidateOnFocus: false,
       refreshInterval: 5000,
-    }
+    },
   );
   const desktopRuntimeState = useMemo(
     () => getDesktopRuntimeState(desktopRuntimeDiscovery),
-    [desktopRuntimeDiscovery]
+    [desktopRuntimeDiscovery],
   );
   const desktopDefaultSupply = desktopRuntimeState.autoResolveSupplyId
-    ? publishedOwnedSupplies.find(
-        (supply) => supply.id === desktopRuntimeState.autoResolveSupplyId
-      ) ?? null
+    ? (publishedOwnedSupplies.find(
+        (supply) => supply.id === desktopRuntimeState.autoResolveSupplyId,
+      ) ?? null)
     : null;
   const preferredSupplySelectionValue =
     request.routing.preferredSupplyId ?? REQUEST_ROUTE_INHERIT_DEFAULT;
 
   const orderedActivities = useMemo(
     () => [...activities].sort((left, right) => left.sequence - right.sequence),
-    [activities]
+    [activities],
   );
 
   const canResolveDelivery =
@@ -360,25 +379,23 @@ export function RequestTracker({
     isRequestOwner &&
     request.visibility === "public" &&
     typeof onCreateRoleplayDelivery === "function" &&
-    (
-      request.status === "open" ||
+    (request.status === "open" ||
       request.status === "funded" ||
       request.status === "in_progress" ||
-      request.status === "waiting_for_owner"
-    ) &&
+      request.status === "waiting_for_owner") &&
     activeFulfillment?.status !== "delivered" &&
     activeFulfillment?.status !== "accepted";
   const artifactActivities = useMemo(
     () => orderedActivities.filter((activity) => Boolean(activity.artifact)),
-    [orderedActivities]
+    [orderedActivities],
   );
   const deliveryArtifactActivities = useMemo(
     () => [...artifactActivities].reverse(),
-    [artifactActivities]
+    [artifactActivities],
   );
   const latestDeliveryArtifact =
     deliveryArtifactActivities.find(
-      (activity) => activity.artifact?.kind === "delivery"
+      (activity) => activity.artifact?.kind === "delivery",
     )?.artifact ??
     deliveryArtifactActivities[0]?.artifact ??
     null;
@@ -433,7 +450,7 @@ export function RequestTracker({
       orderedActivities,
       preferredSupply,
       request,
-    ]
+    ],
   );
   const taskBoardProjection = useMemo(
     () =>
@@ -450,22 +467,25 @@ export function RequestTracker({
       orderedActivities,
       preferredSupply,
       request,
-    ]
+    ],
   );
   const selectedFlowNodeDescriptor =
     (selectedFlowNodeId
       ? requestFlowGraph.nodes.find((node) => node.id === selectedFlowNodeId)
       : null) ??
     requestFlowGraph.nodes.find(
-      (node) => node.id === requestFlowGraph.initialSelectedNodeId
+      (node) => node.id === requestFlowGraph.initialSelectedNodeId,
     ) ??
     requestFlowGraph.nodes[0] ??
     null;
-  const openWorkObjectViewer = useCallback((nodeId: string) => {
-    onBeforeOpenWorkObjectViewer?.();
-    setSelectedFlowNodeId(nodeId);
-    setIsWorkObjectViewerOpen(true);
-  }, [onBeforeOpenWorkObjectViewer]);
+  const openWorkObjectViewer = useCallback(
+    (nodeId: string) => {
+      onBeforeOpenWorkObjectViewer?.();
+      setSelectedFlowNodeId(nodeId);
+      setIsWorkObjectViewerOpen(true);
+    },
+    [onBeforeOpenWorkObjectViewer],
+  );
   const handlePreferredSupplyChange = async (value: string) => {
     if (!onUpdatePreferredSupply) {
       return;
@@ -475,7 +495,7 @@ export function RequestTracker({
 
     try {
       await onUpdatePreferredSupply(
-        value === REQUEST_ROUTE_INHERIT_DEFAULT ? null : value
+        value === REQUEST_ROUTE_INHERIT_DEFAULT ? null : value,
       );
 
       toast({
@@ -502,8 +522,7 @@ export function RequestTracker({
     {
       id: "brief_terms" as const,
       title: "Ask and terms",
-      summary:
-        "Lock the ask, scope, and terms before routing starts.",
+      summary: "Lock the ask, scope, and terms before routing starts.",
       body: (
         <div className="space-y-4">
           <CompactFactPanel
@@ -520,7 +539,7 @@ export function RequestTracker({
                 label: "Deliverables",
                 value: formatTokenList(
                   request.brief.outputKinds,
-                  "No deliverables set yet."
+                  "No deliverables set yet.",
                 ),
               },
               {
@@ -552,15 +571,13 @@ export function RequestTracker({
               },
             ]}
           />
-
         </div>
       ),
     },
     {
       id: "route_workers" as const,
       title: "Routing and ownership",
-      summary:
-        "Show who should lead the work and how it will move forward.",
+      summary: "Show who should lead the work and how it will move forward.",
       body: (
         <div className="space-y-4">
           <CompactFactPanel
@@ -610,7 +627,6 @@ export function RequestTracker({
             publishedOwnedSupplies={publishedOwnedSupplies}
             request={request}
           />
-
         </div>
       ),
     },
@@ -670,10 +686,12 @@ export function RequestTracker({
                 Render in progress
               </div>
               <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
-                The provider render is still running. Boreal will keep checking this same fulfillment lane while the room is open.
+                The provider render is still running. Boreal will keep checking
+                this same fulfillment lane while the room is open.
               </div>
               <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                You can leave and return; the provider task id is already saved on the request.
+                You can leave and return; the provider task id is already saved
+                on the request.
               </div>
               <LoadingButton
                 className="mt-3"
@@ -718,10 +736,12 @@ export function RequestTracker({
                 Terminal failure
               </div>
               <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
-                This request was sealed by the older failure path before Boreal could pause and retry the same worker lane.
+                This request was sealed by the older failure path before Boreal
+                could pause and retry the same worker lane.
               </div>
               <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-                New retryable worker errors now stop in a blocked state instead of rendering this room as complete.
+                New retryable worker errors now stop in a blocked state instead
+                of rendering this room as complete.
               </div>
             </div>
           ) : null}
@@ -730,7 +750,6 @@ export function RequestTracker({
             activeRouteSupply={activeRouteSupply}
             fulfillment={activeFulfillment}
           />
-
         </div>
       ),
     },
@@ -766,7 +785,8 @@ export function RequestTracker({
                   Owner action
                 </div>
                 <div className="mt-1.5 max-w-[13rem] text-[13px] leading-5.5 text-foreground">
-                  Confirm delivery to resolve the request and lock the accepted result.
+                  Confirm delivery to resolve the request and lock the accepted
+                  result.
                 </div>
                 <LoadingButton
                   className="mt-3"
@@ -780,7 +800,6 @@ export function RequestTracker({
               </div>
             ) : null}
           </div>
-
         </div>
       ),
     },
@@ -799,7 +818,7 @@ export function RequestTracker({
     : "request";
   const selectedArtifactActivity =
     deliveryArtifactActivities.find(
-      (activity) => activity.eventId === selectedArtifactEventId
+      (activity) => activity.eventId === selectedArtifactEventId,
     ) ??
     deliveryArtifactActivities[0] ??
     null;
@@ -838,7 +857,7 @@ export function RequestTracker({
 
   useEffect(() => {
     onWorkObjectViewerOpenChange?.(
-      showWorkObjectViewer && canUseShellWorkObjectViewerHost
+      showWorkObjectViewer && canUseShellWorkObjectViewerHost,
     );
   }, [
     canUseShellWorkObjectViewerHost,
@@ -892,7 +911,7 @@ export function RequestTracker({
             ? "min-h-0 overflow-hidden"
             : usesExternalScrollHost
               ? undefined
-              : "overflow-y-auto"
+              : "overflow-y-auto",
         )}
         ref={usesExternalScrollHost ? undefined : localContainerRef}
       >
@@ -964,63 +983,69 @@ export function RequestTracker({
           <div className="flex min-h-full flex-col gap-4 px-4 pb-5 pt-2 md:px-6 md:pb-6 md:pt-3">
             <div className="mx-auto w-full max-w-[84rem]">
               <div className="mt-5 space-y-4">
-              {selectedView === "tasks" ? (
-                <TaskBoardPanel projection={taskBoardProjection} />
-              ) : null}
+                {selectedView === "tasks" ? (
+                  <TaskBoardPanel projection={taskBoardProjection} />
+                ) : null}
 
-              {selectedView === "activity" ? (
-                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                      Activity
+                {selectedView === "activity" ? (
+                  <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                    <div className="border-b border-border/60 px-4 py-4 md:px-5">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                        Activity
+                      </div>
+                      <div className="mt-2 text-[15px] leading-6 text-foreground">
+                        A chronological ledger of request events, tool calls,
+                        artifacts, and closure decisions.
+                      </div>
                     </div>
-                    <div className="mt-2 text-[15px] leading-6 text-foreground">
-                      A chronological ledger of request events, tool calls, artifacts, and closure decisions.
+                    <div className="px-4 py-4 md:px-5">
+                      <GroupedActivityLedger
+                        activities={orderedActivities}
+                        isReadonly={isReadonly}
+                        ownerUserId={request.ownerId}
+                      />
                     </div>
-                  </div>
-                  <div className="px-4 py-4 md:px-5">
-                    <GroupedActivityLedger
-                      activities={orderedActivities}
-                      isReadonly={isReadonly}
-                      ownerUserId={request.ownerId}
-                    />
-                  </div>
-                </section>
-              ) : null}
+                  </section>
+                ) : null}
 
-              {selectedView === "artifacts" ? (
-                <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
-                  <div className="border-b border-border/60 px-4 py-4 md:px-5">
-                    <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-                      Artifacts
+                {selectedView === "artifacts" ? (
+                  <section className="overflow-hidden rounded-[24px] border border-border/60 bg-background/94 shadow-[0_12px_34px_rgba(15,23,42,0.03)]">
+                    <div className="border-b border-border/60 px-4 py-4 md:px-5">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                        Artifacts
+                      </div>
+                      <div className="mt-2 text-[15px] leading-6 text-foreground">
+                        Files, media, proof, and delivery packages attached to
+                        this request.
+                      </div>
                     </div>
-                    <div className="mt-2 text-[15px] leading-6 text-foreground">
-                      Files, media, proof, and delivery packages attached to this request.
+                    <div className="px-4 py-4 md:px-5">
+                      <ArtifactFileBrowser
+                        activities={deliveryArtifactActivities}
+                        isReadonly={isReadonly}
+                        onSelect={setSelectedArtifactEventId}
+                        ownerUserId={request.ownerId}
+                        selectedActivity={selectedArtifactActivity}
+                        selectedEventId={selectedArtifactEventIdForRender}
+                      />
                     </div>
-                  </div>
-                  <div className="px-4 py-4 md:px-5">
-                    <ArtifactFileBrowser
-                      activities={deliveryArtifactActivities}
-                      isReadonly={isReadonly}
-                      onSelect={setSelectedArtifactEventId}
-                      ownerUserId={request.ownerId}
-                      selectedActivity={selectedArtifactActivity}
-                      selectedEventId={selectedArtifactEventIdForRender}
-                    />
-                  </div>
-                </section>
-              ) : null}
+                  </section>
+                ) : null}
+              </div>
             </div>
           </div>
-        </div>
         )}
       </div>
 
-      {workObjectViewer && workObjectViewerHost && canUseShellWorkObjectViewerHost
+      {workObjectViewer &&
+      workObjectViewerHost &&
+      canUseShellWorkObjectViewerHost
         ? createPortal(workObjectViewer, workObjectViewerHost)
         : workObjectViewer}
 
-      {!usesExternalScrollHost && showBackToLiveControl && !showWorkObjectViewer ? (
+      {!usesExternalScrollHost &&
+      showBackToLiveControl &&
+      !showWorkObjectViewer ? (
         <button
           className="absolute bottom-4 left-1/2 z-10 inline-flex h-9 -translate-x-1/2 items-center gap-2 rounded-full border border-border/60 bg-background/92 px-4 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={resumeLiveStage}
@@ -1029,7 +1054,9 @@ export function RequestTracker({
           <span className="status-dot size-2 rounded-full bg-current text-status-active" />
           Back to live path
         </button>
-      ) : !usesExternalScrollHost && selectedView === "activity" && !showWorkObjectViewer ? (
+      ) : !usesExternalScrollHost &&
+        selectedView === "activity" &&
+        !showWorkObjectViewer ? (
         <button
           aria-label="Scroll to bottom"
           className={`absolute bottom-4 left-1/2 z-10 flex h-8 -translate-x-1/2 items-center rounded-full border border-border/60 bg-background/92 px-3.5 text-[10px] shadow-[var(--shadow-float)] backdrop-blur-lg transition-all duration-200 ${
@@ -1071,7 +1098,9 @@ function TaskBoardPanel({
             />
             <TaskBoardStat
               label={projection.hasFulfillmentSteps ? "Source" : "Projection"}
-              value={projection.hasFulfillmentSteps ? "Live steps" : "Plan phases"}
+              value={
+                projection.hasFulfillmentSteps ? "Live steps" : "Plan phases"
+              }
             />
             <TaskBoardStat
               label="Workers"
@@ -1104,7 +1133,7 @@ function TaskBoardColumnView({ column }: { column: RequestTaskBoardColumn }) {
     <div
       className={cn(
         "flex min-h-[24rem] flex-col rounded-[22px] border bg-muted/[0.14]",
-        getTaskColumnClassName(column.id)
+        getTaskColumnClassName(column.id),
       )}
     >
       <div className="border-b border-border/55 px-3.5 py-3">
@@ -1139,58 +1168,24 @@ function TaskBoardColumnView({ column }: { column: RequestTaskBoardColumn }) {
 }
 
 function TaskBoardCardView({ card }: { card: RequestTaskBoardCard }) {
+  const statusTone = getTaskCardStatusTone(card.stageId);
+
   return (
-    <article className="rounded-[18px] border border-border/60 bg-background/96 p-3 shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition-colors hover:border-foreground/18">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="rounded-full border border-border/60 px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.13em] text-muted-foreground">
-              {card.source === "fulfillment_step" ? "Step" : "Plan"}
-            </span>
-            <span className="rounded-full border border-border/60 px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.13em] text-muted-foreground">
-              {card.statusLabel}
-            </span>
-          </div>
-          <h3 className="mt-2 text-[14px] font-semibold leading-5.5 text-foreground">
-            {card.title}
-          </h3>
-        </div>
-        <TaskWorkerAvatar worker={card.worker} />
-      </div>
-
-      <p className="mt-2 line-clamp-3 text-[12px] leading-5 text-muted-foreground">
-        {card.summary}
-      </p>
-
-      <div className="mt-3">
-        <TaskWorkerPill worker={card.worker} />
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {card.roleLabels.slice(0, 2).map((roleLabel) => (
-          <TaskChip key={`role:${roleLabel}`} label={roleLabel} />
-        ))}
-        {card.proofLabels.slice(0, 2).map((proofLabel) => (
-          <TaskChip key={`proof:${proofLabel}`} label={`Proof: ${proofLabel}`} />
-        ))}
-        {card.artifactCount > 0 ? (
-          <TaskChip
-            label={`${card.artifactCount} ${card.artifactCount === 1 ? "artifact" : "artifacts"}`}
-          />
-        ) : null}
-        {card.dependsOnCount > 0 ? (
-          <TaskChip label={`${card.dependsOnCount} dependency`} />
-        ) : null}
-      </div>
-    </article>
-  );
-}
-
-function TaskChip({ label }: { label: string }) {
-  return (
-    <span className="rounded-full border border-border/60 bg-muted/[0.16] px-2 py-0.5 text-[10px] leading-5 text-muted-foreground">
-      {label}
-    </span>
+    <RequestProcessCard
+      badges={[
+        {
+          label: card.source === "fulfillment_step" ? "Step" : "Plan",
+          tone: "muted",
+        },
+      ]}
+      density="task"
+      footer={<TaskWorkerPill worker={card.worker} />}
+      icon={<TaskWorkerAvatar worker={card.worker} />}
+      status={{ label: card.statusLabel, tone: statusTone }}
+      summary={card.summary}
+      tags={getTaskCardTags(card, statusTone)}
+      title={card.title}
+    />
   );
 }
 
@@ -1201,7 +1196,7 @@ function TaskWorkerPill({ worker }: { worker: RequestTaskBoardWorker }) {
         "flex items-center gap-2 rounded-2xl border px-2.5 py-2",
         worker.assigned
           ? "border-status-success/25 bg-status-success/[0.08]"
-          : "border-dashed border-border/70 bg-muted/[0.12]"
+          : "border-dashed border-border/70 bg-muted/[0.12]",
       )}
     >
       <TaskWorkerAvatar size="sm" worker={worker} />
@@ -1233,7 +1228,7 @@ function TaskWorkerAvatar({
         size === "sm" ? "size-7" : "size-9",
         worker.assigned
           ? "border-status-success/35 bg-status-success/[0.14] text-status-success"
-          : "border-border/70 bg-muted/[0.18] text-muted-foreground"
+          : "border-border/70 bg-muted/[0.18] text-muted-foreground",
       )}
       title={`${worker.label} · ${worker.detail}`}
     >
@@ -1255,6 +1250,55 @@ function getTaskWorkerIcon(kind: RequestTaskBoardWorker["kind"]) {
     default:
       return PackageIcon;
   }
+}
+
+function getTaskCardStatusTone(
+  stageId: RequestTaskBoardStageId,
+): RequestProcessCardTone {
+  switch (stageId) {
+    case "completed":
+      return "success";
+    case "in_progress":
+      return "active";
+    case "review":
+      return "waiting";
+    default:
+      return "muted";
+  }
+}
+
+function getTaskCardTags(
+  card: RequestTaskBoardCard,
+  statusTone: RequestProcessCardTone,
+): RequestProcessCardTag[] {
+  const tags: RequestProcessCardTag[] = [
+    ...card.roleLabels.slice(0, 2).map((roleLabel) => ({
+      label: roleLabel,
+      tone: "muted" as const,
+    })),
+    ...card.proofLabels.slice(0, 2).map((proofLabel) => ({
+      label: `Proof: ${proofLabel}`,
+      tone: statusTone,
+    })),
+  ];
+
+  if (card.artifactCount > 0) {
+    tags.push({
+      label: `${card.artifactCount} ${
+        card.artifactCount === 1 ? "artifact" : "artifacts"
+      }`,
+      tone: "delivered",
+    });
+  }
+
+  if (card.dependsOnCount > 0) {
+    tags.push({
+      label: `${card.dependsOnCount} dependency`,
+      tone: "waiting",
+    });
+  }
+
+  return tags;
 }
 
 function getTaskColumnClassName(stageId: RequestTaskBoardStageId) {
@@ -1285,7 +1329,7 @@ function CompactFactPanel({ facts }: { facts: CompactFact[] }) {
         <div
           className={cn(
             "space-y-0.5 px-3.5 py-3",
-            index > 0 ? "border-t border-border/60" : undefined
+            index > 0 ? "border-t border-border/60" : undefined,
           )}
           key={`${fact.label}:${fact.value}`}
         >
@@ -1328,7 +1372,7 @@ function WorkroomObjectViewer({
         "z-20 flex shrink-0 flex-col overflow-hidden bg-secondary transition-[width,flex-basis] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
         isShellHosted
           ? "h-full w-full rounded-tl-[28px] border border-y-0 border-r-0 border-border/70 shadow-[0_24px_65px_rgba(0,0,0,0.18)]"
-          : "h-[60dvh] w-full border-t border-border/70 shadow-[0_-18px_60px_rgba(15,23,42,0.12)] md:h-full md:w-[58%] md:min-w-[34rem] md:max-w-[72rem] md:resize-x md:rounded-tl-[28px] md:border md:border-y-0 md:border-r-0 md:shadow-[0_24px_65px_rgba(0,0,0,0.18)]"
+          : "h-[60dvh] w-full border-t border-border/70 shadow-[0_-18px_60px_rgba(15,23,42,0.12)] md:h-full md:w-[58%] md:min-w-[34rem] md:max-w-[72rem] md:resize-x md:rounded-tl-[28px] md:border md:border-y-0 md:border-r-0 md:shadow-[0_24px_65px_rgba(0,0,0,0.18)]",
       )}
       data-testid="request-object-viewer"
     >
@@ -1401,7 +1445,7 @@ function FlowNodeDetailList({
         <div
           className={cn(
             "space-y-1 px-3 py-2.5",
-            index > 0 ? "border-t border-border/60" : undefined
+            index > 0 ? "border-t border-border/60" : undefined,
           )}
           key={`${detail.label}:${Array.isArray(detail.value) ? detail.value.join(",") : detail.value}`}
         >
@@ -1433,8 +1477,8 @@ function PlanFlowContext({
         {descriptor?.subtitle || "Selected plan step"}
       </div>
       <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-        Flow explains Request -&gt; Path -&gt; Worker -&gt; Proof -&gt; Review. It is
-        not a separate request or fake task tree.
+        Flow explains Request -&gt; Path -&gt; Worker -&gt; Proof -&gt; Review.
+        It is not a separate request or fake task tree.
       </div>
     </div>
   );
@@ -1518,7 +1562,8 @@ function DeliveryFlowContext({
             Owner action
           </div>
           <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
-            Confirm delivery to resolve the request and lock the accepted result.
+            Confirm delivery to resolve the request and lock the accepted
+            result.
           </div>
           <LoadingButton
             className="mt-3"
@@ -1548,10 +1593,12 @@ function RoleplayDeliveryAction({
         Roleplay delivery
       </div>
       <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
-        Create a mock proposal, fulfillment lane, and proof artifact through the same request APIs real work uses.
+        Create a mock proposal, fulfillment lane, and proof artifact through the
+        same request APIs real work uses.
       </div>
       <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-        This is only for exercising the full lifecycle; replace it with real proof before treating production work as complete.
+        This is only for exercising the full lifecycle; replace it with real
+        proof before treating production work as complete.
       </div>
       <LoadingButton
         className="mt-3"
@@ -1658,9 +1705,7 @@ function ArtifactFileBrowser({
               <button
                 className={cn(
                   "grid w-full gap-2 px-3 py-3 text-left transition-colors md:grid-cols-[minmax(0,1fr)_7rem_8rem] md:gap-3",
-                  isSelected
-                    ? "bg-muted/[0.28]"
-                    : "hover:bg-muted/[0.14]"
+                  isSelected ? "bg-muted/[0.28]" : "hover:bg-muted/[0.14]",
                 )}
                 key={activity.eventId}
                 onClick={() => onSelect(activity.eventId)}
@@ -1726,7 +1771,11 @@ function ArtifactFileBrowser({
   );
 }
 
-function ArtifactPreviewPanel({ activity }: { activity: RequestActivityEntry }) {
+function ArtifactPreviewPanel({
+  activity,
+}: {
+  activity: RequestActivityEntry;
+}) {
   const artifact = activity.artifact;
 
   if (!artifact) {
@@ -1792,9 +1841,13 @@ function ArtifactPreviewPanel({ activity }: { activity: RequestActivityEntry }) 
 
         <div className="grid gap-2 text-[12px] leading-5 text-muted-foreground sm:grid-cols-2">
           <ArtifactMetaPill label="Kind" value={formatLabel(artifact.kind)} />
-          <ArtifactMetaPill label="Type" value={getArtifactFileType(artifact)} />
+          <ArtifactMetaPill
+            label="Type"
+            value={getArtifactFileType(artifact)}
+          />
           {fileName ? <ArtifactMetaPill label="File" value={fileName} /> : null}
-          {artifact.container.kind === "object_ref" && artifact.container.byteSize ? (
+          {artifact.container.kind === "object_ref" &&
+          artifact.container.byteSize ? (
             <ArtifactMetaPill
               label="Size"
               value={formatByteSize(artifact.container.byteSize)}
@@ -1814,7 +1867,8 @@ function ArtifactPreviewPanel({ activity }: { activity: RequestActivityEntry }) 
           </a>
         ) : artifact.container.kind === "object_ref" ? (
           <div className="break-all rounded-[14px] border border-dashed border-border/60 bg-muted/[0.16] px-3 py-2 text-[12px] leading-5 text-muted-foreground">
-            Stored as {artifact.container.storageProvider}: {artifact.container.objectKey}
+            Stored as {artifact.container.storageProvider}:{" "}
+            {artifact.container.objectKey}
           </div>
         ) : null}
       </div>
@@ -1822,13 +1876,7 @@ function ArtifactPreviewPanel({ activity }: { activity: RequestActivityEntry }) 
   );
 }
 
-function ArtifactMetaPill({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function ArtifactMetaPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 rounded-[12px] border border-border/60 bg-muted/[0.14] px-2.5 py-2">
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground/72">
@@ -1856,11 +1904,11 @@ function groupActivitiesByDay(activities: RequestActivityEntry[]) {
 }
 
 function getArtifactFileType(
-  artifact: NonNullable<RequestActivityEntry["artifact"]>
+  artifact: NonNullable<RequestActivityEntry["artifact"]>,
 ) {
   if (artifact.container.kind === "document") {
     return `${formatLabel(artifact.kind)} / ${formatLabel(
-      artifact.container.documentKind
+      artifact.container.documentKind,
     )}`;
   }
 
@@ -1871,7 +1919,7 @@ function getArtifactFileType(
   return `${formatLabel(artifact.kind)} / ${formatLabel(
     artifact.container.mimeType ||
       artifact.container.mediaKind ||
-      artifact.container.storageProvider
+      artifact.container.storageProvider,
   )}`;
 }
 
@@ -1933,7 +1981,7 @@ function isImageArtifactPreview(activity: RequestActivityEntry) {
 }
 
 function getArtifactFileName(
-  artifact: NonNullable<RequestActivityEntry["artifact"]>
+  artifact: NonNullable<RequestActivityEntry["artifact"]>,
 ) {
   const container = artifact.container;
 
@@ -2017,7 +2065,10 @@ function RouteAndWorkersPanel({
   activeFulfillment: RequestFulfillment | null;
   activeRouteSupply: BorealSupplyDraft | null;
   canManagePrivateRouting: boolean;
-  desktopRuntimePolicy: DesktopRuntimeDiscoveryPayload["policy"] | null | undefined;
+  desktopRuntimePolicy:
+    | DesktopRuntimeDiscoveryPayload["policy"]
+    | null
+    | undefined;
   desktopRuntimeState: DesktopRuntimeState;
   isDesktopRuntimeSupportedOrigin: boolean;
   isLoadingDesktopRuntimeDiscovery: boolean;
@@ -2042,12 +2093,11 @@ function RouteAndWorkersPanel({
   });
   const preferredSupplyMatchesRequest =
     !preferredSupply || doesOwnedSupplyMatchRequest(request, preferredSupply);
-  const desktopDefaultSupply =
-    desktopRuntimePolicy?.autoResolveSupplyId
-      ? publishedOwnedSupplies.find(
-          (supply) => supply.id === desktopRuntimePolicy.autoResolveSupplyId
-        ) ?? null
-      : null;
+  const desktopDefaultSupply = desktopRuntimePolicy?.autoResolveSupplyId
+    ? (publishedOwnedSupplies.find(
+        (supply) => supply.id === desktopRuntimePolicy.autoResolveSupplyId,
+      ) ?? null)
+    : null;
   const [supplySearchQuery, setSupplySearchQuery] = useState("");
   const searchedOwnedSupplies = useMemo(() => {
     const query = supplySearchQuery.trim().toLowerCase();
@@ -2056,7 +2106,7 @@ function RouteAndWorkersPanel({
     }
 
     return publishedOwnedSupplies.filter((supply) =>
-      getSupplySearchText(supply).includes(query)
+      getSupplySearchText(supply).includes(query),
     );
   }, [publishedOwnedSupplies, supplySearchQuery]);
 
@@ -2084,7 +2134,7 @@ function RouteAndWorkersPanel({
               label="Requested capability kinds"
               value={formatTokenList(
                 request.seeking.supplyKinds,
-                "No capability kinds pinned yet."
+                "No capability kinds pinned yet.",
               )}
             />
             {currentSupply ? (
@@ -2122,14 +2172,14 @@ function RouteAndWorkersPanel({
                   No support lanes are attached yet.
                 </div>
               )}
-          </div>
-        ) : (
-          <div className="mt-2.5 text-[13px] leading-5.5 text-muted-foreground">
-            {desktopRuntimeState.requestLaneReady
-              ? "Desktop runtime is ready for private execution, but no live lane has started yet."
-              : "No live lead or support lane is attached to this request yet."}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="mt-2.5 text-[13px] leading-5.5 text-muted-foreground">
+              {desktopRuntimeState.requestLaneReady
+                ? "Desktop runtime is ready for private execution, but no live lane has started yet."
+                : "No live lead or support lane is attached to this request yet."}
+            </div>
+          )}
         </div>
 
         {activeFulfillment ? (
@@ -2167,7 +2217,7 @@ function RouteAndWorkersPanel({
                   </SelectItem>
                   {preferredSupply &&
                   !publishedOwnedSupplies.some(
-                    (supply) => supply.id === preferredSupply.id
+                    (supply) => supply.id === preferredSupply.id,
                   ) ? (
                     <SelectItem disabled value={preferredSupply.id}>
                       {getOwnedSupplyLabel(preferredSupply)} - unavailable
@@ -2181,7 +2231,8 @@ function RouteAndWorkersPanel({
                       Unavailable preferred capability
                     </SelectItem>
                   ) : null}
-                  {searchedOwnedSupplies.length === 0 && publishedOwnedSupplies.length > 0 ? (
+                  {searchedOwnedSupplies.length === 0 &&
+                  publishedOwnedSupplies.length > 0 ? (
                     <SelectItem disabled value="__no_matching_supply__">
                       No matching published capability
                     </SelectItem>
@@ -2200,9 +2251,9 @@ function RouteAndWorkersPanel({
                     ? "Publish at least one capability first before pinning a private route."
                     : supplySearchQuery.trim()
                       ? `${searchedOwnedSupplies.length} of ${publishedOwnedSupplies.length} published capabilities match this search. Selection pins a route, not a live assignment.`
-                    : !preferredSupplyMatchesRequest
-                      ? `${getOwnedSupplyLabel(preferredSupply)} is pinned, but it does not match this request's capability kinds.`
-                      : pinnedSupplyNote}
+                      : !preferredSupplyMatchesRequest
+                        ? `${getOwnedSupplyLabel(preferredSupply)} is pinned, but it does not match this request's capability kinds.`
+                        : pinnedSupplyNote}
               </p>
             </div>
           </div>
@@ -2247,16 +2298,14 @@ function RouteAndWorkersPanel({
                   : "Disabled on this desktop."
               }
             />
-            <RouteFactRow
-              label="Desktop model"
-              value={desktopModelSelection}
-            />
+            <RouteFactRow label="Desktop model" value={desktopModelSelection} />
             <RouteFactRow
               label="Desktop default"
               value={describeDesktopDefaultRoute({
                 desktopDefaultSupply,
                 desktopRuntimeState,
-                policySupplyId: desktopRuntimePolicy?.autoResolveSupplyId ?? null,
+                policySupplyId:
+                  desktopRuntimePolicy?.autoResolveSupplyId ?? null,
                 request,
               })}
             />
@@ -2318,7 +2367,8 @@ function FulfillmentStepsPanel({
   if (!fulfillment || fulfillment.steps.length === 0) {
     return (
       <div className="rounded-[16px] border border-dashed border-border/60 bg-muted/[0.12] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
-        No execution steps are attached yet. Once a fulfillment lane opens, Boreal will show seeded step ownership here.
+        No execution steps are attached yet. Once a fulfillment lane opens,
+        Boreal will show seeded step ownership here.
       </div>
     );
   }
@@ -2367,7 +2417,9 @@ function FulfillmentStepCard({
             {formatLabel(step.status)}
           </div>
         </div>
-        <div className="text-[14px] leading-6 text-foreground">{step.title}</div>
+        <div className="text-[14px] leading-6 text-foreground">
+          {step.title}
+        </div>
         {typeof step.metadata?.phaseSummary === "string" &&
         step.metadata.phaseSummary.trim().length > 0 ? (
           <div className="text-[13px] leading-5.5 text-muted-foreground">
@@ -2418,7 +2470,7 @@ function RuntimeStateRow({
       <span
         className={cn(
           "status-dot size-2 shrink-0 rounded-full bg-current",
-          isReady ? "text-status-success" : "text-status-muted"
+          isReady ? "text-status-success" : "text-status-muted",
         )}
       />
       <span className={isReady ? "text-foreground" : "text-muted-foreground"}>
@@ -2434,7 +2486,7 @@ function getCurrentTrackerStageId(
     hasFulfillmentFailure = false,
   }: {
     hasFulfillmentFailure?: boolean;
-  } = {}
+  } = {},
 ): TrackerStageId {
   switch (status) {
     case "open":
@@ -2452,15 +2504,12 @@ function getCurrentTrackerStageId(
       return "review_resolve";
     case "failed":
       return hasFulfillmentFailure ? "work_delivery" : "review_resolve";
-    case "draft":
     default:
       return "brief_terms";
   }
 }
 
-function getBorealWorkerTrackerState(
-  fulfillment: RequestFulfillment | null
-): {
+function getBorealWorkerTrackerState(fulfillment: RequestFulfillment | null): {
   errorMessage?: string;
   providerStatus?: string;
   providerTaskId?: string;
@@ -2469,7 +2518,11 @@ function getBorealWorkerTrackerState(
   workerKey?: string;
 } | null {
   const rawWorkerState = fulfillment?.metadata?.borealWorker;
-  if (!rawWorkerState || typeof rawWorkerState !== "object" || Array.isArray(rawWorkerState)) {
+  if (
+    !rawWorkerState ||
+    typeof rawWorkerState !== "object" ||
+    Array.isArray(rawWorkerState)
+  ) {
     return null;
   }
 
@@ -2496,7 +2549,9 @@ function getBorealWorkerTrackerState(
         ? workerState.retryable
         : undefined,
     workerKey:
-      typeof workerState.workerKey === "string" ? workerState.workerKey : undefined,
+      typeof workerState.workerKey === "string"
+        ? workerState.workerKey
+        : undefined,
   };
 }
 
@@ -2510,7 +2565,7 @@ function isProviderRenderInProgress(status: string | undefined) {
 }
 
 function getBlockedFulfillmentRecoverySummary(
-  fulfillment: RequestFulfillment | null
+  fulfillment: RequestFulfillment | null,
 ) {
   const workerState = getBorealWorkerTrackerState(fulfillment);
   if (workerState?.errorMessage) {
@@ -2680,7 +2735,8 @@ function getWorkroomNextActionSummary({
   if (request.status === "cancelled" || request.status === "failed") {
     return {
       value: "The room is preserving the final state.",
-      detail: "Review the activity log and artifacts if follow-up work is needed.",
+      detail:
+        "Review the activity log and artifacts if follow-up work is needed.",
     };
   }
 
@@ -2732,7 +2788,9 @@ function formatSeekingSummary(request: BorealRequestDraft) {
   return parts.length > 0 ? parts.join(" | ") : "No seeking filters yet.";
 }
 
-function formatConstraintDetail(constraints: Record<string, unknown> | undefined) {
+function formatConstraintDetail(
+  constraints: Record<string, unknown> | undefined,
+) {
   if (!constraints || Object.keys(constraints).length === 0) {
     return "No structured constraints captured yet.";
   }
@@ -2849,7 +2907,7 @@ function getStepAssigneeLabel(step: RequestFulfillment["steps"][number]) {
 
 function getStepSupplyLabel(
   step: RequestFulfillment["steps"][number],
-  activeRouteSupply: BorealSupplyDraft | null
+  activeRouteSupply: BorealSupplyDraft | null,
 ) {
   const assignedSupplyLabel =
     typeof step.metadata?.assignedSupplyLabel === "string"
@@ -2929,7 +2987,7 @@ function getResolutionSummary(status: RequestStatus) {
 }
 
 function getOwnedSupplyLabel(
-  supply: Pick<BorealSupplyDraft, "key" | "profile"> | null | undefined
+  supply: Pick<BorealSupplyDraft, "key" | "profile"> | null | undefined,
 ) {
   return (
     supply?.profile.displayName.trim() || supply?.key || "Untitled capability"
@@ -2952,14 +3010,16 @@ function getSupplySearchText(supply: BorealSupplyDraft) {
     supply.visibility,
     supply.source.kind,
   ]
-    .filter((value): value is string => typeof value === "string" && value.length > 0)
+    .filter(
+      (value): value is string => typeof value === "string" && value.length > 0,
+    )
     .join(" ")
     .toLowerCase();
 }
 
 function doesOwnedSupplyMatchRequest(
   request: Pick<BorealRequestDraft, "seeking"> | null | undefined,
-  supply: Pick<BorealSupplyDraft, "capability"> | null | undefined
+  supply: Pick<BorealSupplyDraft, "capability"> | null | undefined,
 ) {
   const requestedKinds = request?.seeking.supplyKinds ?? [];
 
@@ -3127,7 +3187,7 @@ function getRouteSummaryValue({
 }
 
 function getDesktopRuntimeState(
-  discovery: DesktopRuntimeDiscoveryPayload | null | undefined
+  discovery: DesktopRuntimeDiscoveryPayload | null | undefined,
 ): DesktopRuntimeState {
   const modelAccessReady = discovery?.readiness?.modelAccessReady === true;
   const resolverReady = discovery?.readiness?.borealResolverReady === true;
@@ -3215,7 +3275,10 @@ function describeDesktopModelSelection({
   desktopRuntimePolicy,
   desktopRuntimeState,
 }: {
-  desktopRuntimePolicy: DesktopRuntimeDiscoveryPayload["policy"] | null | undefined;
+  desktopRuntimePolicy:
+    | DesktopRuntimeDiscoveryPayload["policy"]
+    | null
+    | undefined;
   desktopRuntimeState: DesktopRuntimeState;
 }) {
   if (!desktopRuntimeState.modelAccessReady) {
@@ -3268,4 +3331,3 @@ function describeDesktopDefaultRoute({
 
   return `${getOwnedSupplyLabel(desktopDefaultSupply)} is the desktop default route for private auto-resolve.`;
 }
-

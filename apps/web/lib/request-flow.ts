@@ -97,12 +97,21 @@ type PortablePhase = {
   requiredEvidenceClaims: string[];
 };
 
+export type BuyerFacingRequestPlanStep = {
+  phaseKey: string;
+  title: string;
+  summary: string;
+  items: string[];
+  proof?: string;
+  statusLabel: string;
+  roleSummary?: string;
+  requiredEvidenceClaims: string[];
+};
+
 const draftFlowLayout = {
-  request: { x: 44, y: 0 },
-  plan: { x: 430, y: 0 },
-  worker: { x: 770, y: 0 },
-  delivery: { x: 1110, y: 0 },
-  laneGapY: 236,
+  request: { x: 52, y: 0 },
+  plan: { x: 452, y: 0 },
+  laneGapY: 248,
 } as const;
 
 const workroomFlowLayout = {
@@ -114,11 +123,11 @@ const workroomFlowLayout = {
 } as const;
 
 export function buildDraftRequestFlowGraph(
-  request: BorealRequestDraft
+  request: BorealRequestDraft,
 ): RequestFlowGraph {
-  const phases = getPortableDraftPhases(request);
-  const planNodes = phases.map((phase, index) =>
-    buildDraftPlanNode(request, phase, index, phases.length)
+  const planSteps = buildBuyerFacingDraftPlanSteps(request);
+  const planNodes = planSteps.map((step, index) =>
+    buildDraftPlanNode(request, step, index, planSteps.length),
   );
   const requestY =
     draftFlowLayout.plan.y +
@@ -155,7 +164,9 @@ export function buildDraftRequestFlowGraph(
           label: "Proof",
           value:
             request.derived.verificationPlan.requiredEvidenceClaims.length > 0
-              ? request.derived.verificationPlan.requiredEvidenceClaims.map(formatLabel)
+              ? request.derived.verificationPlan.requiredEvidenceClaims.map(
+                  formatLabel,
+                )
               : "No proof package required yet.",
         },
       ],
@@ -163,15 +174,15 @@ export function buildDraftRequestFlowGraph(
         x: draftFlowLayout.request.x,
         y: requestY,
       },
-      width: 320,
+      width: 318,
     },
     ...planNodes,
   ];
 
   const edges: RequestFlowEdgeDescriptor[] = planNodes.map((node) => ({
-      id: `edge:request-${node.id}`,
-      source: "request",
-      target: node.id,
+    id: `edge:request-${node.id}`,
+    source: "request",
+    target: node.id,
   }));
 
   return {
@@ -195,7 +206,9 @@ function getDraftRequestSummary(request: BorealRequestDraft) {
 function getDraftPlanSummary(request: BorealRequestDraft) {
   if (request.derived.clarificationNeeded.required) {
     const missing = formatInlineList(
-      request.derived.clarificationNeeded.missingDetails.map(formatMissingDetail)
+      request.derived.clarificationNeeded.missingDetails.map(
+        formatMissingDetail,
+      ),
     );
 
     return missing
@@ -203,7 +216,8 @@ function getDraftPlanSummary(request: BorealRequestDraft) {
       : "Add the missing route details before opening this request.";
   }
 
-  const location = request.derived.embodiedConstraintSet.serviceLocation?.trim();
+  const location =
+    request.derived.embodiedConstraintSet.serviceLocation?.trim();
   const proof = getProofLabels(request);
 
   if (request.derived.embodiedConstraintSet.requiresEmbodiedHandling) {
@@ -224,107 +238,47 @@ function getDraftPlanSummary(request: BorealRequestDraft) {
 
   if (request.brief.outputKinds && request.brief.outputKinds.length > 0) {
     return `Produce ${formatInlineList(
-      request.brief.outputKinds.map(formatLabel)
+      request.brief.outputKinds.map(formatLabel),
     )} and keep the delivery attached to this request.`;
   }
 
   return "Complete the requested output and keep progress, delivery, and review in one request.";
 }
 
-function getDraftWorkerSummary({
-  hasCandidatePool,
-  hasPreferredSupply,
-  request,
-  selectedMatch,
-}: {
-  hasCandidatePool: boolean;
-  hasPreferredSupply: boolean;
-  request: BorealRequestDraft;
-  selectedMatch: BorealRequestDraft["derived"]["roleMatches"][number] | null;
-}) {
-  if (selectedMatch?.status === "attached") {
-    return "A real execution lane is attached. Completion still depends on delivery and proof.";
-  }
-
-  if (hasPreferredSupply) {
-    return "The pinned supply narrows routing, but approval, proof, funding, and safety still apply.";
-  }
-
-  if (selectedMatch) {
-    return "A likely lane is visible for this flow. It is not assigned or complete until the request is opened and attached.";
-  }
-
-  if (hasCandidatePool) {
-    return "Boreal has possible lanes to consider after opening. No worker is assigned yet.";
-  }
-
-  if (request.derived.readiness.readyForOpen) {
-    return "Open the request from this path, then Boreal can route or attach the right lane.";
-  }
-
-  return "Once the brief is ready, the request can open and find the right lane.";
-}
-
-function getDraftDeliveryTitle(request: BorealRequestDraft) {
-  if (request.derived.verificationPlan.requiredArtifactKinds.length > 0) {
-    return request.derived.embodiedConstraintSet.requiresEmbodiedHandling
-      ? "Proof package"
-      : "Delivery package";
-  }
-
-  if (isResearchRequest(request)) {
-    return "Research brief";
-  }
-
-  if (request.brief.outputKinds && request.brief.outputKinds.length > 0) {
-    const [firstOutputKind] = request.brief.outputKinds;
-    return `${capitalize(formatLabel(firstOutputKind ?? "output"))} delivery`;
-  }
-
-  return "Finished output";
-}
-
-function getDraftDeliverySummary(request: BorealRequestDraft) {
-  const proof = getProofLabels(request);
-
-  if (proof.length > 0) {
-    return `Final delivery should include ${formatInlineList(
-      proof
-    )} before this request closes.`;
-  }
-
-  if (isResearchRequest(request)) {
-    return "A clear research brief with findings, tradeoffs, and recommendations.";
-  }
-
-  if (request.brief.outputKinds && request.brief.outputKinds.length > 0) {
-    return `Boreal will package ${formatInlineList(
-      request.brief.outputKinds.map(formatLabel)
-    )} as the request delivery.`;
-  }
-
-  if (request.derived.outcomeClaims.length > 0) {
-    return truncateText(request.derived.outcomeClaims[0]!.summary, 136);
-  }
-
-  return "A final result or supporting artifact will be attached here before closure.";
+export function buildBuyerFacingDraftPlanSteps(
+  request: BorealRequestDraft,
+): BuyerFacingRequestPlanStep[] {
+  return getPortableDraftPhases(request).map((phase) => ({
+    phaseKey: phase.phaseKey,
+    title: getBuyerFacingPhaseTitle(request, phase),
+    summary: getBuyerFacingPhaseSummary(request, phase),
+    items: getBuyerFacingPhaseItems(request, phase),
+    proof:
+      phase.requiredEvidenceClaims.length > 0
+        ? phase.requiredEvidenceClaims.map(formatLabel).join(", ")
+        : undefined,
+    statusLabel: getBuyerFacingPhaseStatusLabel(phase.phaseKey),
+    roleSummary: getBuyerFacingPhaseRoleSummary(request, phase),
+    requiredEvidenceClaims: phase.requiredEvidenceClaims,
+  }));
 }
 
 function buildDraftPlanNode(
   request: BorealRequestDraft,
-  phase: PortablePhase,
+  step: BuyerFacingRequestPlanStep,
   index: number,
-  totalPhases: number
+  totalPhases: number,
 ): RequestFlowNodeDescriptor {
   const needsClarification = request.derived.clarificationNeeded.required;
-  const isEmbodied = request.derived.embodiedConstraintSet.requiresEmbodiedHandling;
-  const isPlannerPending = phase.phaseKey === "planner_pending";
+  const isEmbodied =
+    request.derived.embodiedConstraintSet.requiresEmbodiedHandling;
+  const isPlannerPending = step.phaseKey === "planner_pending";
   const plannedPhaseCount = totalPhases - (isPlannerPending ? 1 : 0);
-  const proofLabels = phase.requiredEvidenceClaims.map(formatLabel);
-  const roleLabels = phase.roleKeys.map(formatLabel);
+  const proofLabels = step.requiredEvidenceClaims.map(formatLabel);
+  const planNumber = totalPhases > 1 ? `Plan ${index + 1}` : "Plan";
 
   return {
-    id: `plan:${phase.phaseKey}:${index}`,
+    id: `plan:${step.phaseKey}:${index}`,
     kind: "phase",
     state: needsClarification
       ? "blocked"
@@ -339,167 +293,39 @@ function buildDraftPlanNode(
       : request.derived.readiness.readyForOpen
         ? "ready"
         : undefined,
-    laneLabel: totalPhases > 1 ? `Plan ${index + 1}` : "Plan",
-    title: needsClarification
-      ? "Needs a few details"
-      : phase.title?.trim() ||
-        (isEmbodied ? "Local work is mapped" : "Ready to carry out"),
+    laneLabel: planNumber,
+    title: planNumber,
     subtitle:
-      plannedPhaseCount > 0
-        ? `${plannedPhaseCount} planned ${
-            plannedPhaseCount === 1 ? "step" : "steps"
-          }`
-        : "Path forming",
-    summary: phase.summary?.trim() || getDraftPlanSummary(request),
+      step.title || (plannedPhaseCount > 0 ? "Ready step" : "Path forming"),
+    summary: step.summary || getDraftPlanSummary(request),
     chips: compactChips([
       isEmbodied ? "local work" : null,
       proofLabels.length > 0 ? "proof required" : null,
-      roleLabels.length > 0 ? `${roleLabels.length} roles` : null,
+      step.roleSummary ? step.roleSummary : null,
       request.derived.noMicrotaskExplosion ? "bounded" : null,
     ]),
     details: [
       {
-        label: "Plan",
-        value: phase.summary?.trim() || getDraftPlanSummary(request),
+        label: step.title || "Plan step",
+        value: step.summary || getDraftPlanSummary(request),
       },
       {
-        label: "Roles",
-        value: roleLabels.length > 0 ? roleLabels : "No role lane required yet.",
+        label: "Checklist",
+        value: step.items.length > 0 ? step.items : "No extra checklist items.",
       },
       {
         label: "Proof",
-        value: proofLabels.length > 0 ? proofLabels : "No proof package required yet.",
-      },
-      {
-        label: "Missing details",
         value:
-          request.derived.clarificationNeeded.missingDetails.length > 0
-            ? request.derived.clarificationNeeded.missingDetails.map(formatLabel)
-            : "No critical route gaps.",
+          proofLabels.length > 0
+            ? proofLabels
+            : "No proof package required yet.",
       },
     ],
     position: {
       x: draftFlowLayout.plan.x,
       y: draftFlowLayout.plan.y + index * draftFlowLayout.laneGapY,
     },
-    width: 340,
-  };
-}
-
-function buildDraftWorkerNode(request: BorealRequestDraft): RequestFlowNodeDescriptor {
-  const attachedMatch =
-    request.derived.roleMatches.find((match) => match.status === "attached") ??
-    null;
-  const selectedMatch =
-    attachedMatch ??
-    request.derived.roleMatches.find((match) => match.status === "selected") ??
-    request.derived.roleMatches.find((match) => Boolean(match.supplyId)) ??
-    null;
-  const hasPreferredSupply = Boolean(request.routing.preferredSupplyId?.trim());
-  const hasCandidatePool =
-    request.derived.matchCandidates.length > 0 ||
-    request.derived.leadRanking.some((entry) => Boolean(entry.supplyId));
-  const title = attachedMatch
-    ? "Execution lane attached"
-    : selectedMatch
-      ? "Selected lane is ready"
-      : hasPreferredSupply
-        ? "Selected supply narrows the route"
-        : hasCandidatePool
-          ? "Candidate lanes are available"
-          : "Lead lane opens after approval";
-  const state: RequestFlowNodeState = attachedMatch
-    ? "done"
-    : selectedMatch || hasPreferredSupply
-      ? "current"
-      : "pending";
-
-  return {
-    id: "worker",
-    kind: "worker",
-    state,
-    tone: getProcessNodeTone(state, "violet"),
-    laneLabel: "Worker path",
-    title,
-    subtitle: attachedMatch
-      ? "Execution attached"
-      : selectedMatch
-        ? "Selected, not completed"
-        : hasPreferredSupply
-          ? "Pinned, not assigned"
-          : "No assignment yet",
-    summary: getDraftWorkerSummary({
-      hasCandidatePool,
-      hasPreferredSupply,
-      request,
-      selectedMatch,
-    }),
-    chips: compactChips([
-      hasPreferredSupply ? "pinned route" : null,
-      selectedMatch?.confidence ? formatLabel(selectedMatch.confidence) : null,
-      attachedMatch ? "attached" : null,
-    ]),
-    details: [
-      {
-        label: "Assignment state",
-        value: formatLabel(request.derived.assignmentProposal.state),
-      },
-      {
-        label: "Assignment summary",
-        value: request.derived.assignmentProposal.summary,
-      },
-      {
-        label: "Preferred supply",
-        value: request.routing.preferredSupplyId || "No supply selected yet.",
-      },
-    ],
-    position: draftFlowLayout.worker,
-    width: 292,
-  };
-}
-
-function buildDraftDeliveryNode(request: BorealRequestDraft): RequestFlowNodeDescriptor {
-  const proofCount =
-    request.derived.verificationPlan.requiredEvidenceClaims.length +
-    request.derived.verificationPlan.requiredArtifactKinds.length;
-  const outputKinds = request.brief.outputKinds ?? [];
-
-  return {
-    id: "delivery",
-    kind: "delivery",
-    state: "pending",
-    tone: "violet",
-    laneLabel: "Delivery",
-    title: getDraftDeliveryTitle(request),
-    subtitle: proofCount > 0 ? "Output and proof" : "Expected output",
-    summary: getDraftDeliverySummary(request),
-    chips: compactChips([
-      outputKinds.length > 0
-        ? outputKinds.slice(0, 2).map(formatLabel).join(", ")
-        : null,
-      proofCount > 0 ? `${proofCount} proof signals` : null,
-      request.derived.verificationPlan.mustHaveOwnerAcceptance
-        ? "owner review"
-        : null,
-    ]),
-    details: [
-      {
-        label: "Outcome claims",
-        value:
-          request.derived.outcomeClaims.length > 0
-            ? request.derived.outcomeClaims.map((claim) => claim.summary)
-            : "No explicit outcome claims captured yet.",
-      },
-      {
-        label: "Proof required",
-        value:
-          request.derived.verificationPlan.requiredEvidenceClaims.length > 0
-            ? request.derived.verificationPlan.requiredEvidenceClaims.map(formatLabel)
-            : "No proof package required yet.",
-      },
-    ],
-    position: draftFlowLayout.delivery,
-    width: 292,
+    width: 322,
   };
 }
 
@@ -522,7 +348,9 @@ export function buildTrackedRequestFlowGraph({
 }): RequestFlowGraph {
   const phases = getPortableDraftPhases(request);
   const roleSlotByKey = new Map(
-    request.derived.roleSlots.map((roleSlot) => [roleSlot.roleKey, roleSlot] as const)
+    request.derived.roleSlots.map(
+      (roleSlot) => [roleSlot.roleKey, roleSlot] as const,
+    ),
   );
   const latestArtifact = getLatestTrackedArtifact(activities);
   const workerNode = buildTrackedWorkerNode({
@@ -537,7 +365,8 @@ export function buildTrackedRequestFlowGraph({
     request,
     fulfillment,
     latestArtifact,
-    artifactCount: activities.filter((activity) => Boolean(activity.artifact)).length,
+    artifactCount: activities.filter((activity) => Boolean(activity.artifact))
+      .length,
   });
   const primaryNodeY = workroomFlowLayout.phaseBase.y;
 
@@ -562,7 +391,9 @@ export function buildTrackedRequestFlowGraph({
         request.latest.summary?.trim() ||
         "No request brief captured yet.",
       chips: compactChips([
-        request.derived.routeFamily ? formatLabel(request.derived.routeFamily) : null,
+        request.derived.routeFamily
+          ? formatLabel(request.derived.routeFamily)
+          : null,
         request.derived.executionKind
           ? formatLabel(request.derived.executionKind)
           : null,
@@ -570,7 +401,8 @@ export function buildTrackedRequestFlowGraph({
       details: [
         {
           label: "Path summary",
-          value: request.derived.routeSummary?.trim() || "No route summary yet.",
+          value:
+            request.derived.routeSummary?.trim() || "No route summary yet.",
         },
         {
           label: "Readiness",
@@ -580,7 +412,9 @@ export function buildTrackedRequestFlowGraph({
           label: "Proof",
           value:
             request.derived.verificationPlan.requiredEvidenceClaims.length > 0
-              ? request.derived.verificationPlan.requiredEvidenceClaims.map(formatLabel)
+              ? request.derived.verificationPlan.requiredEvidenceClaims.map(
+                  formatLabel,
+                )
               : "No proof gate set.",
         },
       ],
@@ -762,7 +596,7 @@ function getInitialTrackedFlowNodeId({
   const activePhaseNode = nodes.find(
     (node) =>
       node.kind === "phase" &&
-      (node.state === "current" || node.state === "blocked")
+      (node.state === "current" || node.state === "blocked"),
   );
   if (activePhaseNode) {
     return activePhaseNode.id;
@@ -796,26 +630,227 @@ function getPortableDraftPhases(request: BorealRequestDraft): PortablePhase[] {
   ];
 }
 
+function getBuyerFacingPhaseTitle(
+  request: BorealRequestDraft,
+  phase: PortablePhase,
+) {
+  switch (phase.phaseKey) {
+    case "clarify_constraints":
+      return "Answer missing details";
+    case "onsite_execution":
+    case "field_execution":
+      return hasPhotoProof(request)
+        ? "Complete the onsite photo visit"
+        : "Complete the onsite visit";
+    case "handoff_execution":
+    case "witness_execution":
+      return "Complete the handoff";
+    case "proof_delivery":
+    case "handoff_review":
+      return hasPhotoProof(request) ? "Submit photo proof" : "Submit proof";
+    case "scope_route":
+      return "Confirm request scope";
+    case "execute_delivery":
+      return "Complete the deliverable";
+    case "planner_pending":
+      return "Shape the request plan";
+    default:
+      return scrubPlannerTitle(phase.title);
+  }
+}
+
+function getBuyerFacingPhaseSummary(
+  request: BorealRequestDraft,
+  phase: PortablePhase,
+) {
+  const location =
+    request.derived.embodiedConstraintSet.serviceLocation?.trim();
+  const timing = request.derived.embodiedConstraintSet.timeWindows[0]?.trim();
+  const proof = formatInlineList(phase.requiredEvidenceClaims.map(formatLabel));
+
+  if (phase.phaseKey === "clarify_constraints") {
+    return request.derived.clarificationNeeded.reasons.length > 0
+      ? truncateText(request.derived.clarificationNeeded.reasons.join(" "), 132)
+      : "Add the missing details before posting this request.";
+  }
+
+  if (
+    phase.phaseKey === "onsite_execution" ||
+    phase.phaseKey === "field_execution"
+  ) {
+    const place = location ? ` in ${location}` : "";
+    const window = timing ? ` ${timing}` : "";
+    return hasPhotoProof(request)
+      ? `Visit the target area${place}${window} and capture the requested photo proof.`
+      : `Visit the target area${place}${window} and complete the onsite check.`;
+  }
+
+  if (
+    phase.phaseKey === "handoff_execution" ||
+    phase.phaseKey === "witness_execution"
+  ) {
+    return "Complete the pickup, dropoff, or witnessed handoff before anything is marked done.";
+  }
+
+  if (
+    phase.phaseKey === "proof_delivery" ||
+    phase.phaseKey === "handoff_review"
+  ) {
+    return proof
+      ? `Attach ${proof} and any short note needed for buyer review.`
+      : "Attach the delivery and any proof needed for buyer review.";
+  }
+
+  if (phase.phaseKey === "scope_route") {
+    return "Confirm what will be done, where it happens, and what counts as delivered.";
+  }
+
+  if (phase.phaseKey === "execute_delivery") {
+    if (isResearchRequest(request)) {
+      return "Research the topic, organize the findings, and return a clear brief.";
+    }
+
+    const outputKinds = request.brief.outputKinds ?? [];
+    if (outputKinds.length > 0) {
+      return `Produce ${formatInlineList(
+        outputKinds.map(formatLabel),
+      )} and keep the result attached to this request.`;
+    }
+
+    return "Complete the requested output and keep the result attached to this request.";
+  }
+
+  if (isPlannerInternalFlowSummary(phase.summary)) {
+    return "Keep the work in one clear request path from execution to review.";
+  }
+
+  return (
+    truncateText(phase.summary, 132) ||
+    "Move this plan forward until the buyer can review the result."
+  );
+}
+
+function getBuyerFacingPhaseItems(
+  request: BorealRequestDraft,
+  phase: PortablePhase,
+) {
+  if (phase.phaseKey === "clarify_constraints") {
+    return request.derived.clarificationNeeded.missingDetails.map(
+      formatMissingDetail,
+    );
+  }
+
+  if (
+    phase.phaseKey === "onsite_execution" ||
+    phase.phaseKey === "field_execution"
+  ) {
+    return compactChips([
+      request.derived.embodiedConstraintSet.serviceLocation
+        ? `Area: ${request.derived.embodiedConstraintSet.serviceLocation}`
+        : null,
+      request.derived.embodiedConstraintSet.timeWindows[0]
+        ? `Timing: ${request.derived.embodiedConstraintSet.timeWindows[0]}`
+        : null,
+      hasPhotoProof(request) ? "Capture photo proof" : null,
+    ]);
+  }
+
+  if (
+    phase.phaseKey === "proof_delivery" ||
+    phase.phaseKey === "handoff_review"
+  ) {
+    const proofItems = compactChips([
+      request.derived.verificationPlan.mustHaveLocationSignal
+        ? "Include location signal"
+        : null,
+      request.derived.verificationPlan.mustHaveOwnerAcceptance
+        ? "Buyer review"
+        : null,
+      request.derived.verificationPlan.mustHaveSignature
+        ? "Signature proof"
+        : null,
+      hasPhotoProof(request) ? "Attach photo evidence" : null,
+    ]);
+
+    return proofItems.length > 0
+      ? proofItems
+      : phase.requiredEvidenceClaims.map(formatLabel);
+  }
+
+  return [];
+}
+
+function getBuyerFacingPhaseRoleSummary(
+  request: BorealRequestDraft,
+  phase: PortablePhase,
+) {
+  if (phase.roleKeys.length === 0) {
+    return "";
+  }
+
+  const roleTitles = phase.roleKeys.map((roleKey) => {
+    const matchingRole = request.derived.roleSlots.find(
+      (roleSlot) => roleSlot.roleKey === roleKey,
+    );
+
+    return matchingRole?.title ?? formatLabel(roleKey);
+  });
+
+  return roleTitles.join(", ");
+}
+
+function getBuyerFacingPhaseStatusLabel(phaseKey: string) {
+  switch (phaseKey) {
+    case "proof_delivery":
+    case "handoff_review":
+      return "final";
+    case "clarify_constraints":
+      return "needed";
+    case "planner_pending":
+      return "draft";
+    default:
+      return "next";
+  }
+}
+
+function hasPhotoProof(request: BorealRequestDraft) {
+  return [
+    ...(request.brief.outputKinds ?? []),
+    ...request.derived.verificationPlan.requiredEvidenceClaims,
+    ...request.derived.embodiedConstraintSet.verificationRequirements,
+  ].some((value) => /photo|picture|image/i.test(value));
+}
+
+function scrubPlannerTitle(value: string) {
+  const title = value.trim();
+
+  if (!title || /microtask|planner|brittle/i.test(title)) {
+    return "Complete this plan step";
+  }
+
+  return title;
+}
+
 function getPrimaryPhaseRoleMatch(
   request: BorealRequestDraft,
-  roleKeys: RequestRoleKey[]
+  roleKeys: RequestRoleKey[],
 ) {
   return (
     request.derived.roleMatches.find(
-      (roleMatch) => roleMatch.required && roleKeys.includes(roleMatch.roleKey)
+      (roleMatch) => roleMatch.required && roleKeys.includes(roleMatch.roleKey),
     ) ??
     request.derived.roleMatches.find(
       (roleMatch) =>
-        Boolean(roleMatch.supplyId) && roleKeys.includes(roleMatch.roleKey)
+        Boolean(roleMatch.supplyId) && roleKeys.includes(roleMatch.roleKey),
     ) ??
     request.derived.roleMatches.find((roleMatch) =>
-      roleKeys.includes(roleMatch.roleKey)
+      roleKeys.includes(roleMatch.roleKey),
     )
   );
 }
 
 function deriveRequestLifecycleState(
-  status: RequestStatus
+  status: RequestStatus,
 ): RequestFlowNodeState {
   switch (status) {
     case "completed":
@@ -893,10 +928,16 @@ function buildTrackedWorkerNode({
 }): RequestFlowProcessNode {
   const currentStep = getCurrentTrackedStep(fulfillment);
   const contributorCount = fulfillment?.contributors.length ?? 0;
-  const autoResolveLane = getStringMetadata(fulfillment?.metadata, "autoResolveLane");
+  const autoResolveLane = getStringMetadata(
+    fulfillment?.metadata,
+    "autoResolveLane",
+  );
 
   if (fulfillment) {
-    const state = mapTrackedFulfillmentStatus(fulfillment.status, request.status);
+    const state = mapTrackedFulfillmentStatus(
+      fulfillment.status,
+      request.status,
+    );
     const title =
       getTrackedSupplyLabel(activeRouteSupply) ||
       fulfillment.lead.displayName?.trim() ||
@@ -907,13 +948,13 @@ function buildTrackedWorkerNode({
       state,
       stateLabel:
         request.status === "completed"
-            ? "completed"
-            : request.status === "delivered" ||
-                request.status === "waiting_for_owner" ||
-                fulfillment.status === "delivered" ||
-                fulfillment.status === "accepted"
-              ? "delivered"
-              : undefined,
+          ? "completed"
+          : request.status === "delivered" ||
+              request.status === "waiting_for_owner" ||
+              fulfillment.status === "delivered" ||
+              fulfillment.status === "accepted"
+            ? "delivered"
+            : undefined,
       tone: getProcessNodeTone(state, "violet"),
       title,
       subtitle:
@@ -959,11 +1000,14 @@ function buildTrackedWorkerNode({
   }
 
   const preferredTitle =
-    getTrackedSupplyLabel(preferredSupply) || request.routing.preferredSupplyId?.trim() || null;
+    getTrackedSupplyLabel(preferredSupply) ||
+    request.routing.preferredSupplyId?.trim() ||
+    null;
 
   if (preferredTitle) {
     const matchesRequest =
-      !preferredSupply || doesTrackedSupplyMatchRequest(request, preferredSupply);
+      !preferredSupply ||
+      doesTrackedSupplyMatchRequest(request, preferredSupply);
     const state = derivePinnedRouteState({
       requestStatus: request.status,
       requestLaneReady: desktopRuntimeState?.requestLaneReady === true,
@@ -1024,10 +1068,12 @@ function buildTrackedWorkerNode({
     if (desktopDefaultSupply) {
       const matchesRequest = doesTrackedSupplyMatchRequest(
         request,
-        desktopDefaultSupply
+        desktopDefaultSupply,
       );
       const state =
-        desktopRuntimeState.requestLaneReady && matchesRequest ? "current" : "pending";
+        desktopRuntimeState.requestLaneReady && matchesRequest
+          ? "current"
+          : "pending";
       const desktopDefaultTitle =
         getTrackedSupplyLabel(desktopDefaultSupply) || "Desktop default route";
 
@@ -1043,7 +1089,9 @@ function buildTrackedWorkerNode({
           : `${desktopDefaultTitle} is configured on desktop, but it does not match this request's requested capability kinds.`,
         chips: compactChips([
           formatSupplyKinds(desktopDefaultSupply),
-          desktopRuntimeState.requestLaneReady ? "desktop ready" : "desktop pending",
+          desktopRuntimeState.requestLaneReady
+            ? "desktop ready"
+            : "desktop pending",
           "auto-resolve",
         ]),
         details: [
@@ -1090,10 +1138,12 @@ function buildTrackedWorkerNode({
 
   if (desktopRuntimeState?.requestLaneReady) {
     return {
-      state: desktopRuntimeState.autoResolveOwnedPrivate ? "current" : "pending",
+      state: desktopRuntimeState.autoResolveOwnedPrivate
+        ? "current"
+        : "pending",
       tone: getProcessNodeTone(
         desktopRuntimeState.autoResolveOwnedPrivate ? "current" : "pending",
-        "violet"
+        "violet",
       ),
       title: "Boreal Desktop runtime",
       subtitle: desktopRuntimeState.autoResolveOwnedPrivate
@@ -1119,7 +1169,8 @@ function buildTrackedWorkerNode({
             desktopRuntimeState.defaultReasoning &&
             desktopRuntimeState.defaultModel
               ? `${desktopRuntimeState.defaultModel} / ${desktopRuntimeState.defaultReasoning}`
-              : desktopRuntimeState.defaultModel || "No desktop default model pinned yet.",
+              : desktopRuntimeState.defaultModel ||
+                "No desktop default model pinned yet.",
         },
       ],
     };
@@ -1135,7 +1186,9 @@ function buildTrackedWorkerNode({
       "No live worker lane is attached yet. Boreal still needs a preferred supply, a desktop default route, or a created fulfillment.",
     chips: compactChips([
       request.derived.leadRole ? formatLabel(request.derived.leadRole) : null,
-      request.derived.matchingMode ? formatLabel(request.derived.matchingMode) : null,
+      request.derived.matchingMode
+        ? formatLabel(request.derived.matchingMode)
+        : null,
     ]),
     details: [
       {
@@ -1197,7 +1250,8 @@ function buildTrackedDeliveryNode({
     subtitle:
       request.status === "completed"
         ? "Accepted delivery"
-        : request.status === "delivered" || request.status === "waiting_for_owner"
+        : request.status === "delivered" ||
+            request.status === "waiting_for_owner"
           ? "Owner review"
           : "Proof and output",
     summary: getTrackedDeliverySummary({
@@ -1224,7 +1278,9 @@ function buildTrackedDeliveryNode({
         label: "Proof required",
         value:
           request.derived.verificationPlan.requiredEvidenceClaims.length > 0
-            ? request.derived.verificationPlan.requiredEvidenceClaims.map(formatLabel)
+            ? request.derived.verificationPlan.requiredEvidenceClaims.map(
+                formatLabel,
+              )
             : "No proof package required yet.",
       },
       {
@@ -1237,7 +1293,7 @@ function buildTrackedDeliveryNode({
 
 function mapTrackedFulfillmentStatus(
   fulfillmentStatus: RequestFulfillment["status"],
-  requestStatus: RequestStatus
+  requestStatus: RequestStatus,
 ): RequestFlowNodeState {
   if (
     requestStatus === "completed" ||
@@ -1360,7 +1416,9 @@ function getTrackedPhaseSummary({
     return "Carry the work in this request, then attach the finished output for owner review.";
   }
 
-  return rawSummary || "Move this step forward until the output or proof lands.";
+  return (
+    rawSummary || "Move this step forward until the output or proof lands."
+  );
 }
 
 function getTrackedDeliverySummary({
@@ -1406,7 +1464,7 @@ function isPlannerInternalFlowSummary(value: string) {
 }
 
 function isVideoActivityArtifact(
-  artifact: NonNullable<RequestActivityEntry["artifact"]>
+  artifact: NonNullable<RequestActivityEntry["artifact"]>,
 ) {
   const container = artifact.container;
 
@@ -1425,7 +1483,7 @@ function isVideoActivityArtifact(
 }
 
 function getCurrentTrackedStep(
-  fulfillment: RequestFulfillment | null
+  fulfillment: RequestFulfillment | null,
 ): RequestFulfillmentStep | null {
   if (!fulfillment) {
     return null;
@@ -1443,7 +1501,8 @@ function getLatestTrackedArtifact(activities: RequestActivityEntry[]) {
   const reversed = [...activities].reverse();
 
   return (
-    reversed.find((activity) => activity.artifact?.kind === "delivery")?.artifact ??
+    reversed.find((activity) => activity.artifact?.kind === "delivery")
+      ?.artifact ??
     reversed.find((activity) => Boolean(activity.artifact))?.artifact ??
     null
   );
@@ -1451,7 +1510,7 @@ function getLatestTrackedArtifact(activities: RequestActivityEntry[]) {
 
 function getProcessNodeTone(
   state: RequestFlowNodeState,
-  pendingTone: RequestFlowNodeTone
+  pendingTone: RequestFlowNodeTone,
 ): RequestFlowNodeTone {
   switch (state) {
     case "blocked":
@@ -1463,14 +1522,13 @@ function getProcessNodeTone(
       return "green";
     case "current":
       return "blue";
-    case "pending":
     default:
       return pendingTone;
   }
 }
 
 function getTrackedSupplyLabel(
-  supply: Pick<BorealSupplyDraft, "key" | "profile"> | null | undefined
+  supply: Pick<BorealSupplyDraft, "key" | "profile"> | null | undefined,
 ) {
   const displayName = supply?.profile.displayName?.trim();
   return displayName && displayName.length > 0
@@ -1489,7 +1547,7 @@ function getTrackedLeadLabel(fulfillment: RequestFulfillment) {
 
 function doesTrackedSupplyMatchRequest(
   request: Pick<BorealRequestDraft, "seeking">,
-  supply: Pick<BorealSupplyDraft, "capability">
+  supply: Pick<BorealSupplyDraft, "capability">,
 ) {
   const requestedKinds = request.seeking.supplyKinds ?? [];
 
@@ -1503,10 +1561,12 @@ function doesTrackedSupplyMatchRequest(
 
 function getStringMetadata(
   metadata: Record<string, unknown> | undefined,
-  key: string
+  key: string,
 ) {
   const value = metadata?.[key];
-  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : null;
 }
 
 function formatSupplyKinds(supply: BorealSupplyDraft) {
@@ -1540,7 +1600,7 @@ function isResearchRequest(request: BorealRequestDraft) {
     .toLowerCase();
 
   return /\bresearch\b|\bdeep dive\b|\banaly[sz]e\b|\bcompare\b|\bmarket scan\b/.test(
-    source
+    source,
   );
 }
 
@@ -1569,7 +1629,7 @@ function formatInlineList(values: string[]) {
   }
 
   if (compacted.length === 1) {
-    return compacted[0]!;
+    return compacted[0] ?? "";
   }
 
   if (compacted.length === 2) {
@@ -1589,14 +1649,6 @@ function truncateText(value: string, maxLength: number) {
   }
 
   return `${normalized.slice(0, Math.max(0, maxLength - 3)).trimEnd()}...`;
-}
-
-function capitalize(value: string) {
-  if (!value) {
-    return value;
-  }
-
-  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
 function compactChips(values: Array<string | null | undefined>) {

@@ -1,28 +1,35 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
   ConnectionLineType,
   Controls,
+  type Edge,
   Handle,
+  type Node,
+  type NodeChange,
+  type NodeProps,
   Position,
   ReactFlow,
-  ReactFlowProvider,
-  type Edge,
-  type Node,
-  type NodeProps,
   type ReactFlowInstance,
-  type NodeChange,
+  ReactFlowProvider,
   useEdgesState,
   useNodesState,
 } from "@xyflow/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  RequestProcessCard,
+  type RequestProcessCardIconKind,
+  type RequestProcessCardItem,
+  type RequestProcessCardTag,
+  type RequestProcessCardTone,
+} from "@/components/chat/request-process-card";
 import type {
   RequestFlowGraph,
   RequestFlowNodeDescriptor,
   RequestFlowNodeKind,
+  RequestFlowNodeState,
   RequestFlowNodeTone,
 } from "@/lib/request-flow";
 import { cn } from "@/lib/utils";
@@ -48,7 +55,7 @@ type PendingWorkflowAction = {
 const nodeTypes = {
   requestFlow: RequestFlowCanvasNode,
 };
-const NODE_HANDLE_TOP = "4.85rem";
+const NODE_HANDLE_TOP = "4.25rem";
 
 export function RequestFlowCanvas({
   graph,
@@ -78,16 +85,18 @@ function RequestFlowCanvasInner({
   selectedNodeId: selectedNodeIdProp,
 }: RequestFlowCanvasProps) {
   const [uncontrolledSelectedNodeId, setUncontrolledSelectedNodeId] = useState(
-    graph.initialSelectedNodeId
+    graph.initialSelectedNodeId,
   );
   const selectedNodeId = selectedNodeIdProp ?? uncontrolledSelectedNodeId;
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLElement>(null);
   const connectingSourceNodeIdRef = useRef<string | null>(null);
   const [pendingAction, setPendingAction] =
     useState<PendingWorkflowAction | null>(null);
-  const [flowInstance, setFlowInstance] = useState<
-    ReactFlowInstance<Node<RequestFlowCanvasNodeData>, Edge> | null
-  >(null);
+  const [flowInstance, setFlowInstance] = useState<ReactFlowInstance<
+    Node<RequestFlowCanvasNodeData>,
+    Edge
+  > | null>(null);
+  const graphViewportKey = `${graph.nodes.length}:${graph.edges.length}`;
 
   const builtNodes = useMemo(
     () =>
@@ -102,7 +111,7 @@ function RequestFlowCanvasInner({
         draggable: true,
         selectable: true,
       })) satisfies Array<Node<RequestFlowCanvasNodeData>>,
-    [graph.nodes, selectedNodeId]
+    [graph.nodes, selectedNodeId],
   );
 
   const builtEdges = useMemo(
@@ -120,14 +129,16 @@ function RequestFlowCanvasInner({
           strokeLinejoin: "round" as const,
         },
       })) satisfies Edge[],
-    [graph.edges]
+    [graph.edges],
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node<RequestFlowCanvasNodeData>>(
-    []
-  );
+  const [nodes, setNodes, onNodesChange] = useNodesState<
+    Node<RequestFlowCanvasNodeData>
+  >([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const handleNodesChange = (changes: NodeChange<Node<RequestFlowCanvasNodeData>>[]) => {
+  const handleNodesChange = (
+    changes: NodeChange<Node<RequestFlowCanvasNodeData>>[],
+  ) => {
     setPendingAction(null);
     onNodesChange(changes);
   };
@@ -138,7 +149,7 @@ function RequestFlowCanvasInner({
         currentNodes,
         nextNodes: builtNodes,
         selectedNodeId,
-      })
+      }),
     );
   }, [builtNodes, selectedNodeId, setNodes]);
 
@@ -167,6 +178,7 @@ function RequestFlowCanvasInner({
       return;
     }
 
+    void graphViewportKey;
     const handle = window.setTimeout(() => {
       flowInstance.fitView({
         duration: 280,
@@ -176,7 +188,7 @@ function RequestFlowCanvasInner({
     }, 30);
 
     return () => window.clearTimeout(handle);
-  }, [flowInstance, graph.edges.length, graph.nodes.length]);
+  }, [flowInstance, graphViewportKey]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -216,14 +228,13 @@ function RequestFlowCanvasInner({
 
   return (
     <div className={className}>
-      <div
+      <section
         ref={canvasRef}
         aria-label="Request workflow canvas"
         className={cn(
           "relative overflow-hidden rounded-[20px] border border-border/60 bg-background",
-          heightClassName
+          heightClassName,
         )}
-        role="region"
         style={{
           background:
             "radial-gradient(circle at 18% 0%, color-mix(in oklch, var(--status-success) 16%, transparent), transparent 34rem), radial-gradient(circle at 84% 18%, color-mix(in oklch, var(--status-active) 10%, transparent), transparent 30rem), linear-gradient(135deg, var(--background), color-mix(in oklch, var(--background) 76%, var(--card) 24%))",
@@ -275,8 +286,14 @@ function RequestFlowCanvasInner({
             const rect = canvasRef.current.getBoundingClientRect();
             setPendingAction({
               sourceId,
-              x: Math.min(Math.max(point.clientX - rect.left, 24), rect.width - 320),
-              y: Math.min(Math.max(point.clientY - rect.top, 24), rect.height - 220),
+              x: Math.min(
+                Math.max(point.clientX - rect.left, 24),
+                rect.width - 320,
+              ),
+              y: Math.min(
+                Math.max(point.clientY - rect.top, 24),
+                rect.height - 220,
+              ),
             });
           }}
           onConnectStart={(_, params) => {
@@ -326,7 +343,7 @@ function RequestFlowCanvasInner({
             pendingAction={pendingAction}
           />
         ) : null}
-      </div>
+      </section>
     </div>
   );
 }
@@ -337,13 +354,14 @@ function RequestFlowCanvasNode({
 }: NodeProps<Node<RequestFlowCanvasNodeData>>) {
   const descriptor = data.descriptor;
   const tone = getToneStyles(descriptor.tone);
+  const cardTone = getProcessCardTone(descriptor);
 
   return (
     <div className="relative">
       <Handle
         className={cn(
           "!size-4 !border-2 !border-[#050608] shadow-[0_0_0_4px_rgba(5,6,8,0.72)]",
-          tone.handle
+          tone.handle,
         )}
         isConnectable={false}
         position={Position.Left}
@@ -353,7 +371,7 @@ function RequestFlowCanvasNode({
       <Handle
         className={cn(
           "!size-4 !border-2 !border-[#050608] shadow-[0_0_0_4px_rgba(5,6,8,0.72)]",
-          tone.handle
+          tone.handle,
         )}
         isConnectable
         position={Position.Right}
@@ -362,54 +380,29 @@ function RequestFlowCanvasNode({
       />
 
       <div
-        className={cn(
-          "relative h-[17.5rem] cursor-grab overflow-hidden rounded-[22px] border bg-card/96 p-5 text-card-foreground shadow-[0_34px_90px_-40px_rgba(0,0,0,0.78)] backdrop-blur-xl transition-[border-color,box-shadow,transform] duration-200 active:cursor-grabbing",
-          selected
-            ? "border-white/24 shadow-[0_40px_96px_-42px_rgba(0,0,0,0.9)]"
-            : "border-white/[0.08] hover:border-white/[0.14]"
-        )}
+        className="relative h-[13.5rem] max-h-[13.5rem] min-h-[13.5rem]"
         style={{
           width: descriptor.width,
         }}
       >
-        <div className="flex h-full flex-col">
-          <div className="min-w-0">
-            <div className="text-[15px] font-medium leading-6 text-card-foreground">
-              <ClampedText lines={1}>{descriptor.title}</ClampedText>
-            </div>
-            <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
-              <ClampedText lines={1}>{getBuyerNodeSubtitle(descriptor)}</ClampedText>
-            </div>
-          </div>
-
-          <div className="mt-5 flex min-h-0 flex-1 items-center rounded-[16px] bg-muted/34 px-4 py-5 text-[14px] leading-7 text-card-foreground">
-            <ClampedText lines={5}>{getBuyerNodeSummary(descriptor)}</ClampedText>
-          </div>
-
-          <div className="mt-4 h-px bg-border/60" />
-        </div>
+        <RequestProcessCard
+          badges={[{ label: descriptor.laneLabel, tone: cardTone }]}
+          className="h-full cursor-grab bg-card/96 active:cursor-grabbing"
+          density="flow"
+          iconKind={getProcessCardIconKind(descriptor)}
+          items={getBuyerNodeItems(descriptor)}
+          selected={selected}
+          status={{
+            label:
+              descriptor.stateLabel || formatNodeStateLabel(descriptor.state),
+            tone: cardTone,
+          }}
+          subtitle={getBuyerNodeSubtitle(descriptor)}
+          summary={getBuyerNodeSummary(descriptor)}
+          tags={getBuyerNodeTags(descriptor, cardTone)}
+          title={descriptor.title}
+        />
       </div>
-    </div>
-  );
-}
-
-function ClampedText({
-  children,
-  lines,
-}: {
-  children: ReactNode;
-  lines: number;
-}) {
-  return (
-    <div
-      className="overflow-hidden"
-      style={{
-        display: "-webkit-box",
-        WebkitBoxOrient: "vertical",
-        WebkitLineClamp: lines,
-      }}
-    >
-      {children}
     </div>
   );
 }
@@ -432,7 +425,6 @@ function getToneStyles(tone: RequestFlowNodeTone) {
       return {
         handle: "!bg-status-delivered",
       };
-    case "violet":
     default:
       return {
         handle: "!bg-status-waiting",
@@ -440,13 +432,144 @@ function getToneStyles(tone: RequestFlowNodeTone) {
   }
 }
 
+function getProcessCardTone(
+  descriptor: RequestFlowNodeDescriptor,
+): RequestProcessCardTone {
+  switch (descriptor.state) {
+    case "blocked":
+      return "waiting";
+    case "cancelled":
+    case "failed":
+      return "danger";
+    case "current":
+      return "active";
+    case "done":
+      return descriptor.kind === "delivery" ? "delivered" : "success";
+    default:
+      return mapNodeToneToCardTone(descriptor.tone);
+  }
+}
+
+function mapNodeToneToCardTone(
+  tone: RequestFlowNodeTone,
+): RequestProcessCardTone {
+  switch (tone) {
+    case "amber":
+      return "waiting";
+    case "blue":
+      return "active";
+    case "green":
+      return "success";
+    case "pink":
+      return "delivered";
+    case "violet":
+      return "violet";
+    default:
+      return "muted";
+  }
+}
+
+function getProcessCardIconKind(
+  descriptor: RequestFlowNodeDescriptor,
+): RequestProcessCardIconKind {
+  const source = [
+    descriptor.kind,
+    descriptor.title,
+    descriptor.subtitle,
+    descriptor.summary,
+    ...descriptor.chips,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (descriptor.state === "blocked" || descriptor.state === "failed") {
+    return "blocked";
+  }
+
+  if (/photo|picture|image|proof|evidence/.test(source)) {
+    return "proof";
+  }
+
+  if (/onsite|field|local|visit|storefront|location/.test(source)) {
+    return "onsite";
+  }
+
+  switch (descriptor.kind) {
+    case "delivery":
+    case "step":
+      return descriptor.state === "done" ? "done" : "package";
+    case "request":
+      return "request";
+    case "worker":
+      return "package";
+    default:
+      return "plan";
+  }
+}
+
+function getBuyerNodeItems(
+  descriptor: RequestFlowNodeDescriptor,
+): RequestProcessCardItem[] {
+  const checklist = descriptor.details.find(
+    (detail) => detail.label === "Checklist",
+  );
+
+  if (checklist) {
+    return fieldValuesToStrings(checklist.value).map((label) => ({ label }));
+  }
+
+  return descriptor.details.slice(0, 2).map((detail) => ({
+    detail: formatFieldValue(detail.value),
+    label: detail.label,
+  }));
+}
+
+function getBuyerNodeTags(
+  descriptor: RequestFlowNodeDescriptor,
+  cardTone: RequestProcessCardTone,
+): RequestProcessCardTag[] {
+  return descriptor.chips.map((chip) => ({
+    label: chip,
+    tone: /proof|ready|done|completed/i.test(chip) ? cardTone : "muted",
+  }));
+}
+
+function fieldValuesToStrings(
+  value: RequestFlowNodeDescriptor["details"][0]["value"],
+) {
+  return Array.isArray(value) ? value : [value];
+}
+
+function formatFieldValue(
+  value: RequestFlowNodeDescriptor["details"][0]["value"],
+) {
+  return fieldValuesToStrings(value).slice(0, 3).join(", ");
+}
+
+function formatNodeStateLabel(state: RequestFlowNodeState) {
+  switch (state) {
+    case "done":
+      return "done";
+    case "blocked":
+      return "needs input";
+    case "failed":
+      return "failed";
+    case "cancelled":
+      return "cancelled";
+    case "current":
+      return "active";
+    default:
+      return "pending";
+  }
+}
+
 function getBuyerNodeSubtitle(descriptor: RequestFlowNodeDescriptor) {
   switch (descriptor.kind) {
     case "request":
-      return descriptor.stateLabel ?? "Request";
+      return "Request";
     case "phase":
     case "stage":
-      return "Plan";
+      return descriptor.subtitle || descriptor.laneLabel;
     case "worker":
       return descriptor.state === "done" ? "Completed work" : "Worker route";
     case "delivery":
@@ -461,7 +584,9 @@ function getBuyerNodeSummary(descriptor: RequestFlowNodeDescriptor) {
   }
 
   if (descriptor.kind === "phase" || descriptor.kind === "stage") {
-    return descriptor.summary || "Boreal turns the request into a reusable path.";
+    return (
+      descriptor.summary || "Boreal turns the request into a reusable path."
+    );
   }
 
   if (descriptor.kind === "worker") {
@@ -488,7 +613,9 @@ function WorkflowActionSearchPanel({
   onClose: () => void;
   pendingAction: PendingWorkflowAction;
 }) {
-  const sourceNode = graph.nodes.find((node) => node.id === pendingAction.sourceId);
+  const sourceNode = graph.nodes.find(
+    (node) => node.id === pendingAction.sourceId,
+  );
   const options = getWorkflowActionOptions(graph, sourceNode);
 
   if (!sourceNode || options.length === 0) {
@@ -543,7 +670,7 @@ function WorkflowActionSearchPanel({
 
 function getWorkflowActionOptions(
   graph: RequestFlowGraph,
-  sourceNode: RequestFlowNodeDescriptor | undefined
+  sourceNode: RequestFlowNodeDescriptor | undefined,
 ) {
   if (!sourceNode) {
     return [];
@@ -554,14 +681,12 @@ function getWorkflowActionOptions(
 
   return candidates.map((node) => ({
     nodeId: node.id,
-    title: getWorkflowActionTitle(sourceNode.kind, node),
+    title: getWorkflowActionTitle(sourceNode.kind),
     description: node.summary,
   }));
 }
 
-function getNextWorkflowKind(
-  kind: RequestFlowNodeKind
-): RequestFlowNodeKind {
+function getNextWorkflowKind(kind: RequestFlowNodeKind): RequestFlowNodeKind {
   switch (kind) {
     case "request":
       return "phase";
@@ -576,10 +701,7 @@ function getNextWorkflowKind(
   }
 }
 
-function getWorkflowActionTitle(
-  sourceKind: RequestFlowNodeKind,
-  node: RequestFlowNodeDescriptor
-) {
+function getWorkflowActionTitle(sourceKind: RequestFlowNodeKind) {
   switch (sourceKind) {
     case "request":
       return "Open the plan";
@@ -622,7 +744,9 @@ function mergeNodes({
   nextNodes: Array<Node<RequestFlowCanvasNodeData>>;
   selectedNodeId: string;
 }) {
-  const currentNodeMap = new Map(currentNodes.map((node) => [node.id, node] as const));
+  const currentNodeMap = new Map(
+    currentNodes.map((node) => [node.id, node] as const),
+  );
 
   return nextNodes.map((nextNode) => {
     const currentNode = currentNodeMap.get(nextNode.id);
@@ -632,10 +756,15 @@ function mergeNodes({
         selected: nextNode.id === selectedNodeId,
       };
     }
+    const currentDescriptor = currentNode.data.descriptor;
+    const nextDescriptor = nextNode.data.descriptor;
+    const layoutChanged =
+      currentDescriptor.position.x !== nextDescriptor.position.x ||
+      currentDescriptor.position.y !== nextDescriptor.position.y;
 
     return {
       ...nextNode,
-      position: currentNode.position,
+      position: layoutChanged ? nextNode.position : currentNode.position,
       selected: nextNode.id === selectedNodeId,
     };
   });

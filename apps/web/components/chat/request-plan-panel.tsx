@@ -3,17 +3,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "usehooks-ts";
 import { RequestFlowCanvas } from "@/components/chat/request-flow-canvas";
-import { buildDraftRequestFlowGraph } from "@/lib/request-flow";
+import {
+  RequestProcessCard,
+  type RequestProcessCardIconKind,
+  type RequestProcessCardTag,
+  type RequestProcessCardTone,
+} from "@/components/chat/request-process-card";
+import type { BorealRequestDraft, RequestPatch } from "@/lib/request";
+import {
+  type BuyerFacingRequestPlanStep,
+  buildBuyerFacingDraftPlanSteps,
+  buildDraftRequestFlowGraph,
+} from "@/lib/request-flow";
 import {
   buildRequestPathBuilderViewModel,
   describeMissingPathDetail,
-  getRequestPathFallbackPhases,
-  getRequestPathPhaseStatusLabel,
   type RequestBaselinePath,
   type RequestPathSignal,
   type RequestSupportingPath,
 } from "@/lib/request-path-builder";
-import type { BorealRequestDraft, RequestPatch } from "@/lib/request";
+import { cn } from "@/lib/utils";
 import { LoadingButton } from "./loading-button";
 
 type RequestDraftUpdatePatch = Pick<
@@ -27,7 +36,7 @@ type RequestPlanPanelProps = {
   onOpenRequest?: () => Promise<void>;
   isOpeningRequest?: boolean;
   onUpdateRequestDraft?: (
-    patch: RequestDraftUpdatePatch
+    patch: RequestDraftUpdatePatch,
   ) => Promise<BorealRequestDraft | null>;
 };
 
@@ -42,14 +51,7 @@ type PlanNeed = {
   tone?: "danger" | "warn" | "neutral";
 };
 
-type FlowStep = {
-  title: string;
-  summary: string;
-  items: string[];
-  proof?: string;
-  statusLabel: string;
-  roleSummary?: string;
-};
+type FlowStep = BuyerFacingRequestPlanStep;
 
 type PlannedRole = {
   title: string;
@@ -92,7 +94,7 @@ export function RequestPlanPanel({
   const isDraftScope = scope === "draft";
   const [visualMode, setVisualMode] = useLocalStorage<"summary" | "flow">(
     "request-plan-visual-mode",
-    "summary"
+    "summary",
   );
   const effectiveVisualMode = visualMode;
   const understandingItems = getUnderstandingItems(request);
@@ -101,11 +103,20 @@ export function RequestPlanPanel({
   const fingerprintGroups = getFingerprintGroups(request);
   const leadCandidates = getLeadCandidates(request);
   const roleAssignments = getRoleAssignments(request);
-  const flowSteps = getFlowSteps(request);
-  const flowGraph = useMemo(() => buildDraftRequestFlowGraph(request), [request]);
+  const flowSteps = useMemo(
+    () => buildBuyerFacingDraftPlanSteps(request),
+    [request],
+  );
+  const [selectedStepKey, setSelectedStepKey] = useState<string | null>(
+    flowSteps[0]?.phaseKey ?? null,
+  );
+  const flowGraph = useMemo(
+    () => buildDraftRequestFlowGraph(request),
+    [request],
+  );
   const pathBuilder = useMemo(
     () => buildRequestPathBuilderViewModel({ request, scope }),
-    [request, scope]
+    [request, scope],
   );
   const planNarrative = pathBuilder.baselinePath.summary;
   const pathSignals = pathBuilder.signals;
@@ -122,6 +133,22 @@ export function RequestPlanPanel({
     missingItems.length > 0 ||
     plannedRoles.length > 0 ||
     flowSteps.length > 0;
+
+  useEffect(() => {
+    if (flowSteps.length === 0) {
+      if (selectedStepKey !== null) {
+        setSelectedStepKey(null);
+      }
+      return;
+    }
+
+    if (
+      !selectedStepKey ||
+      !flowSteps.some((step) => step.phaseKey === selectedStepKey)
+    ) {
+      setSelectedStepKey(flowSteps[0]?.phaseKey ?? null);
+    }
+  }, [flowSteps, selectedStepKey]);
 
   if (!hasPlanContent) {
     return (
@@ -150,8 +177,7 @@ export function RequestPlanPanel({
     );
   }
 
-  const canOpenRequest =
-    pathBuilder.canOpenRequest;
+  const canOpenRequest = pathBuilder.canOpenRequest;
 
   return (
     <section className="rounded-[22px] border border-border/60 bg-muted/[0.18] p-3.5 md:p-4">
@@ -169,7 +195,8 @@ export function RequestPlanPanel({
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {!isDraftScope && plannedRoles.length > 0 ? (
             <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-              {plannedRoles.length} {plannedRoles.length === 1 ? "lane" : "lanes"}
+              {plannedRoles.length}{" "}
+              {plannedRoles.length === 1 ? "lane" : "lanes"}
             </div>
           ) : null}
           {flowSteps.length > 0 ? (
@@ -185,7 +212,7 @@ export function RequestPlanPanel({
         </div>
         {flowGraph.nodes.length > 0 ? (
           <div className="flex flex-wrap gap-2 pt-1">
-            {([
+            {[
               {
                 id: "summary" as const,
                 label: isDraftScope ? "Stepper" : "Path details",
@@ -194,7 +221,7 @@ export function RequestPlanPanel({
                 id: "flow" as const,
                 label: isDraftScope ? "Flow review" : "Flow lens",
               },
-            ]).map((view) => (
+            ].map((view) => (
               <button
                 className={
                   visualMode === view.id
@@ -220,7 +247,9 @@ export function RequestPlanPanel({
 
       {!isDraftScope ? <PathSignalStrip signals={pathSignals} /> : null}
 
-      {!isDraftScope ? <SupportingPathTray slots={supportingPathSlots} /> : null}
+      {!isDraftScope ? (
+        <SupportingPathTray slots={supportingPathSlots} />
+      ) : null}
 
       {effectiveVisualMode === "flow" ? (
         <div className="mt-3">
@@ -231,218 +260,225 @@ export function RequestPlanPanel({
         </div>
       ) : (
         <>
-      <div className="mt-3 grid gap-3 xl:grid-cols-2">
-        <EditableRequestBriefCard
-          canEdit={isDraftScope && Boolean(onUpdateRequestDraft)}
-          items={understandingItems}
-          onUpdateRequestDraft={onUpdateRequestDraft}
-          request={request}
-        />
-
-        <section className="rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            {missingItems.length > 0 ? "Missing inputs" : "Open readiness"}
-          </div>
-          <div className="mt-2.5 space-y-2.5">
-            {missingItems.length > 0 ? (
-              missingItems.map((item) => (
-                <NeedRow key={item.label} item={item} />
-              ))
-            ) : (
-              <div className="space-y-1.5">
-                <div className="text-[14px] leading-6 text-foreground">
-                  {isDraftScope
-                    ? "These plans are ready to open."
-                    : "This baseline path is ready to open."}
-                </div>
-                <div className="text-[13px] leading-5.5 text-muted-foreground">
-                  {isDraftScope
-                    ? "Boreal has enough core request structure to open the Request."
-                    : "Boreal has enough core request structure to open the request and start route decisions or replies."}
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-
-      {!isDraftScope && fingerprintGroups.length > 0 ? (
-        <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            Fit signals
-          </div>
-          <div className="mt-3 grid gap-2.5 xl:grid-cols-2">
-            {fingerprintGroups.map((group) => (
-              <div
-                className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5"
-                key={group.label}
-              >
-                <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-                  {group.label}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {group.values.map((value) => (
-                    <span
-                      className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] leading-5 text-foreground"
-                      key={`${group.label}:${value}`}
-                    >
-                      {value}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {!isDraftScope && (leadCandidates.length > 0 || roleAssignments.length > 0) ? (
-        <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-              Supply path
-            </div>
-            <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-              {formatLabel(request.derived.assignmentProposal.state)}
-            </div>
-          </div>
-          <div className="mt-1.5 text-[13px] leading-5.5 text-muted-foreground">
-            {request.derived.assignmentProposal.summary}
-          </div>
           <div className="mt-3 grid gap-3 xl:grid-cols-2">
-            <div className="space-y-2.5">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-                Lead lane shortlist
+            <EditableRequestBriefCard
+              canEdit={isDraftScope && Boolean(onUpdateRequestDraft)}
+              items={understandingItems}
+              onUpdateRequestDraft={onUpdateRequestDraft}
+              request={request}
+            />
+
+            <section className="rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                {missingItems.length > 0 ? "Missing inputs" : "Open readiness"}
               </div>
-              {leadCandidates.length > 0 ? (
-                leadCandidates.map((candidate, index) => (
-                  <div
-                    className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5"
-                    key={`${candidate.supplyId ?? "open"}:${index}`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-[13px] font-medium leading-5.5 text-foreground">
-                        {candidate.supplyId ?? "Open lead lane"}
-                      </div>
-                      <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-                        {candidate.statusLabel}
-                      </div>
+              <div className="mt-2.5 space-y-2.5">
+                {missingItems.length > 0 ? (
+                  missingItems.map((item) => (
+                    <NeedRow key={item.label} item={item} />
+                  ))
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="text-[14px] leading-6 text-foreground">
+                      {isDraftScope
+                        ? "These plans are ready to open."
+                        : "This baseline path is ready to open."}
                     </div>
-                    <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
-                      {candidate.summary}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] leading-5 text-muted-foreground">
-                      <span>Confidence: {candidate.confidenceLabel}</span>
-                      <span>Source: {candidate.sourceLabel}</span>
-                      {candidate.scoreLabel ? <span>{candidate.scoreLabel}</span> : null}
+                    <div className="text-[13px] leading-5.5 text-muted-foreground">
+                      {isDraftScope
+                        ? "Boreal has enough core request structure to open the Request."
+                        : "Boreal has enough core request structure to open the request and start route decisions or replies."}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="rounded-[14px] border border-dashed border-border/60 bg-muted/[0.12] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
-                  Boreal has not surfaced a lead candidate yet.
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2.5">
-              <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-                Role candidates
+                )}
               </div>
-              {roleAssignments.length > 0 ? (
-                roleAssignments.map((assignment) => (
+            </section>
+          </div>
+
+          {!isDraftScope && fingerprintGroups.length > 0 ? (
+            <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                Fit signals
+              </div>
+              <div className="mt-3 grid gap-2.5 xl:grid-cols-2">
+                {fingerprintGroups.map((group) => (
                   <div
                     className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5"
-                    key={`${assignment.title}:${assignment.supplyId ?? assignment.statusLabel}`}
+                    key={group.label}
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="text-[13px] font-medium leading-5.5 text-foreground">
-                        {assignment.title}
-                      </div>
-                      <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-                        {assignment.required ? "required" : "optional"}
-                      </div>
+                    <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                      {group.label}
                     </div>
-                    {assignment.supplyId ? (
-                      <div className="mt-1 font-mono text-[11px] leading-5 text-muted-foreground">
-                        {assignment.supplyId}
-                      </div>
-                    ) : null}
-                    <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
-                      {assignment.summary}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] leading-5 text-muted-foreground">
-                      <span>Status: {assignment.statusLabel}</span>
-                      <span>Confidence: {assignment.confidenceLabel}</span>
-                      <span>Source: {assignment.sourceLabel}</span>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {group.values.map((value) => (
+                        <span
+                          className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] leading-5 text-foreground"
+                          key={`${group.label}:${value}`}
+                        >
+                          {value}
+                        </span>
+                      ))}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="rounded-[14px] border border-dashed border-border/60 bg-muted/[0.12] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
-                  Boreal has not mapped support lanes yet.
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {flowSteps.length > 0 ? (
-        <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-              {isDraftScope ? "Plan steps" : "Path steps"}
-            </div>
-            {!isDraftScope && request.derived.noMicrotaskExplosion ? (
-              <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-                bounded path
+                ))}
               </div>
-            ) : null}
-          </div>
+            </section>
+          ) : null}
 
-          <div className="mt-3 space-y-0">
-            {flowSteps.map((step, index) => (
-              <FlowStepRow
-                index={index}
-                key={`${index}:${step.title}`}
-                showRoleSummary={!isDraftScope}
-                showConnector={index < flowSteps.length - 1}
-                step={step}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
+          {!isDraftScope &&
+          (leadCandidates.length > 0 || roleAssignments.length > 0) ? (
+            <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                  Supply path
+                </div>
+                <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                  {formatLabel(request.derived.assignmentProposal.state)}
+                </div>
+              </div>
+              <div className="mt-1.5 text-[13px] leading-5.5 text-muted-foreground">
+                {request.derived.assignmentProposal.summary}
+              </div>
+              <div className="mt-3 grid gap-3 xl:grid-cols-2">
+                <div className="space-y-2.5">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                    Lead lane shortlist
+                  </div>
+                  {leadCandidates.length > 0 ? (
+                    leadCandidates.map((candidate, index) => (
+                      <div
+                        className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5"
+                        key={`${candidate.supplyId ?? "open"}:${index}`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-[13px] font-medium leading-5.5 text-foreground">
+                            {candidate.supplyId ?? "Open lead lane"}
+                          </div>
+                          <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                            {candidate.statusLabel}
+                          </div>
+                        </div>
+                        <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+                          {candidate.summary}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] leading-5 text-muted-foreground">
+                          <span>Confidence: {candidate.confidenceLabel}</span>
+                          <span>Source: {candidate.sourceLabel}</span>
+                          {candidate.scoreLabel ? (
+                            <span>{candidate.scoreLabel}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-[14px] border border-dashed border-border/60 bg-muted/[0.12] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
+                      Boreal has not surfaced a lead candidate yet.
+                    </div>
+                  )}
+                </div>
 
-      {!isDraftScope && plannedRoles.length > 0 ? (
-        <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
-          <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-            Capability lanes
-          </div>
-          <div className="mt-3 grid gap-2.5 md:grid-cols-2">
-            {plannedRoles.map((role) => (
-              <div
-                className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5"
-                key={`${role.title}:${role.actorKinds}`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-[14px] leading-6 text-foreground">{role.title}</div>
+                <div className="space-y-2.5">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                    Role candidates
+                  </div>
+                  {roleAssignments.length > 0 ? (
+                    roleAssignments.map((assignment) => (
+                      <div
+                        className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5"
+                        key={`${assignment.title}:${assignment.supplyId ?? assignment.statusLabel}`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-[13px] font-medium leading-5.5 text-foreground">
+                            {assignment.title}
+                          </div>
+                          <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                            {assignment.required ? "required" : "optional"}
+                          </div>
+                        </div>
+                        {assignment.supplyId ? (
+                          <div className="mt-1 font-mono text-[11px] leading-5 text-muted-foreground">
+                            {assignment.supplyId}
+                          </div>
+                        ) : null}
+                        <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+                          {assignment.summary}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] leading-5 text-muted-foreground">
+                          <span>Status: {assignment.statusLabel}</span>
+                          <span>Confidence: {assignment.confidenceLabel}</span>
+                          <span>Source: {assignment.sourceLabel}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-[14px] border border-dashed border-border/60 bg-muted/[0.12] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
+                      Boreal has not mapped support lanes yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {flowSteps.length > 0 ? (
+            <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                  {isDraftScope ? "Plan steps" : "Path steps"}
+                </div>
+                {!isDraftScope && request.derived.noMicrotaskExplosion ? (
                   <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-                    {role.required ? "required" : "optional"}
+                    bounded path
                   </div>
-                </div>
-                <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
-                  {role.summary}
-                </div>
-                <div className="mt-2 text-[12px] leading-5 text-muted-foreground">
-                  Actor types: {role.actorKinds}
-                </div>
+                ) : null}
               </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
+
+              <div className="mt-3 space-y-0">
+                {flowSteps.map((step, index) => (
+                  <FlowStepRow
+                    index={index}
+                    key={`${step.phaseKey}:${index}`}
+                    onSelect={() => setSelectedStepKey(step.phaseKey)}
+                    selected={selectedStepKey === step.phaseKey}
+                    showRoleSummary={!isDraftScope}
+                    showConnector={index < flowSteps.length - 1}
+                    step={step}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {!isDraftScope && plannedRoles.length > 0 ? (
+            <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
+                Capability lanes
+              </div>
+              <div className="mt-3 grid gap-2.5 md:grid-cols-2">
+                {plannedRoles.map((role) => (
+                  <div
+                    className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5"
+                    key={`${role.title}:${role.actorKinds}`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-[14px] leading-6 text-foreground">
+                        {role.title}
+                      </div>
+                      <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                        {role.required ? "required" : "optional"}
+                      </div>
+                    </div>
+                    <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+                      {role.summary}
+                    </div>
+                    <div className="mt-2 text-[12px] leading-5 text-muted-foreground">
+                      Actor types: {role.actorKinds}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </>
       )}
 
@@ -492,7 +528,9 @@ function BaselinePathCard({
   showSignals?: boolean;
 }) {
   const proofSignal = pathSignals.find((signal) => signal.label === "Proof");
-  const humanWorkSignal = pathSignals.find((signal) => signal.label === "Human work");
+  const humanWorkSignal = pathSignals.find(
+    (signal) => signal.label === "Human work",
+  );
   const riskSignal = pathSignals.find((signal) => signal.label === "Risk");
 
   return (
@@ -516,10 +554,14 @@ function BaselinePathCard({
         </div>
 
         <div className="grid min-w-[160px] grid-cols-2 gap-2 text-[12px] leading-5 text-muted-foreground md:text-right">
-          <span>{baselinePath.stepCount} {baselinePath.stepCount === 1 ? "step" : "steps"}</span>
+          <span>
+            {baselinePath.stepCount}{" "}
+            {baselinePath.stepCount === 1 ? "step" : "steps"}
+          </span>
           {showSignals ? (
             <span>
-              {baselinePath.laneCount} {baselinePath.laneCount === 1 ? "lane" : "lanes"}
+              {baselinePath.laneCount}{" "}
+              {baselinePath.laneCount === 1 ? "lane" : "lanes"}
             </span>
           ) : null}
         </div>
@@ -527,16 +569,16 @@ function BaselinePathCard({
 
       {showSignals ? (
         <div className="mt-3 flex flex-wrap gap-1.5">
-        {[humanWorkSignal, proofSignal, riskSignal]
-          .filter((signal): signal is RequestPathSignal => Boolean(signal))
-          .map((signal) => (
-            <span
-              className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] leading-5 text-muted-foreground"
-              key={signal.label}
-            >
-              {signal.label}: {signal.value}
-            </span>
-          ))}
+          {[humanWorkSignal, proofSignal, riskSignal]
+            .filter((signal): signal is RequestPathSignal => Boolean(signal))
+            .map((signal) => (
+              <span
+                className="rounded-full border border-border/70 px-2.5 py-1 text-[11px] leading-5 text-muted-foreground"
+                key={signal.label}
+              >
+                {signal.label}: {signal.value}
+              </span>
+            ))}
         </div>
       ) : null}
 
@@ -584,7 +626,9 @@ function SupportingPathTray({ slots }: { slots: RequestSupportingPath[] }) {
         </div>
       </div>
       <div className="mt-2 text-[13px] leading-5.5 text-muted-foreground">
-        Boreal starts with a baseline path. Humans, agents, services, and workflows can become supporting paths when that capability is live or attached.
+        Boreal starts with a baseline path. Humans, agents, services, and
+        workflows can become supporting paths when that capability is live or
+        attached.
       </div>
       <div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
         {slots.map((slot) => (
@@ -641,7 +685,7 @@ function EditableRequestBriefCard({
   canEdit: boolean;
   items: PlanFact[];
   onUpdateRequestDraft?: (
-    patch: RequestDraftUpdatePatch
+    patch: RequestDraftUpdatePatch,
   ) => Promise<BorealRequestDraft | null>;
   request: BorealRequestDraft;
 }) {
@@ -680,7 +724,7 @@ function EditableRequestBriefCard({
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Failed to update request draft."
+          : "Failed to update request draft.",
       );
     } finally {
       setIsSaving(false);
@@ -729,7 +773,8 @@ function EditableRequestBriefCard({
             ))
           ) : (
             <div className="text-[13px] leading-5.5 text-muted-foreground">
-              Boreal still needs a clearer work ask before it can summarize the request cleanly.
+              Boreal still needs a clearer work ask before it can summarize the
+              request cleanly.
             </div>
           )}
           {budgetLabel ? (
@@ -820,7 +865,7 @@ function EditableRequestBriefCard({
               onChange={(event) =>
                 updateForm(
                   "budgetMode",
-                  event.currentTarget.value as EditableBriefForm["budgetMode"]
+                  event.currentTarget.value as EditableBriefForm["budgetMode"],
                 )
               }
               value={form.budgetMode}
@@ -873,7 +918,8 @@ function EditableRequestBriefCard({
           />
         </div>
         <div className="rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5 text-[12px] leading-5 text-muted-foreground">
-          Derived planner fields, route summary, matches, and readiness remain read-only.
+          Derived planner fields, route summary, matches, and readiness remain
+          read-only.
         </div>
         {error ? (
           <div className="rounded-[14px] border border-status-danger/25 bg-status-danger/10 px-3 py-2.5 text-[13px] leading-5.5 text-status-danger">
@@ -984,9 +1030,7 @@ function NeedRow({ item }: { item: PlanNeed }) {
         ? "border-status-waiting/25 bg-status-waiting/10"
         : "border-border/60 bg-muted/[0.18]";
   const titleClassName =
-    item.tone === "danger"
-      ? "text-status-danger"
-      : "text-foreground";
+    item.tone === "danger" ? "text-status-danger" : "text-foreground";
 
   return (
     <div className={`rounded-[14px] border px-3 py-2.5 ${toneClassName}`}>
@@ -1002,62 +1046,115 @@ function NeedRow({ item }: { item: PlanNeed }) {
 
 function FlowStepRow({
   index,
+  onSelect,
+  selected,
   showRoleSummary,
   step,
   showConnector,
 }: {
   index: number;
+  onSelect: () => void;
+  selected: boolean;
   showRoleSummary: boolean;
   step: FlowStep;
   showConnector: boolean;
 }) {
+  const statusTone = getFlowStepStatusTone(step.statusLabel);
+
   return (
-    <div className="relative flex gap-2.5 pb-3 last:pb-0">
+    <div className="relative flex gap-2.5 pb-2.5 last:pb-0">
       <div className="relative flex w-7 shrink-0 justify-center">
-        <div className="relative z-10 flex size-7 items-center justify-center rounded-full border border-status-success/25 bg-status-success/10 text-[11px] font-medium text-status-success">
+        <div
+          className={cn(
+            "relative z-10 flex size-7 items-center justify-center rounded-full border text-[11px] font-medium transition-colors",
+            selected
+              ? "border-status-active/35 bg-status-active/14 text-status-active"
+              : "border-status-success/25 bg-status-success/10 text-status-success",
+          )}
+        >
           {index + 1}
         </div>
         {showConnector ? (
-          <div className="absolute top-7 bottom-0 w-px bg-border/60" />
+          <div
+            className={cn(
+              "absolute top-7 bottom-0 w-px",
+              selected ? "bg-status-active/35" : "bg-border/60",
+            )}
+          />
         ) : null}
       </div>
 
-      <div className="min-w-0 flex-1 rounded-[14px] border border-border/60 bg-muted/[0.18] px-3 py-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-[14px] leading-6 text-foreground">{step.title}</div>
-          <div className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
-            {step.statusLabel}
-          </div>
-        </div>
-        <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
-          {step.summary}
-        </div>
-        {step.items.length > 0 ? (
-          <div className="mt-2.5 space-y-1.5">
-            {step.items.map((item) => (
-              <div
-                className="flex items-start gap-2 text-[13px] leading-5.5 text-muted-foreground"
-                key={item}
-              >
-                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-foreground/45" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        {showRoleSummary && step.roleSummary ? (
-          <div className="mt-2 text-[13px] leading-5.5 text-muted-foreground">
-            Lanes: {step.roleSummary}
-          </div>
-        ) : null}
-        {step.proof ? (
-          <div className="mt-2 text-[13px] leading-5.5 text-muted-foreground">
-            Proof: {step.proof}
-          </div>
-        ) : null}
-      </div>
+      <RequestProcessCard
+        ariaLabel={`Select plan ${index + 1}: ${step.title}`}
+        badges={[{ label: `Plan ${index + 1}`, tone: statusTone }]}
+        className="min-w-0 flex-1"
+        iconKind={getFlowStepIconKind(step)}
+        items={step.items.map((item) => ({ label: item }))}
+        onClick={onSelect}
+        selected={selected}
+        status={{ label: step.statusLabel, tone: statusTone }}
+        subtitle={showRoleSummary && step.roleSummary ? step.roleSummary : ""}
+        summary={step.summary}
+        tags={getFlowStepTags(step, showRoleSummary)}
+        title={step.title}
+      />
     </div>
   );
+}
+
+function getFlowStepStatusTone(statusLabel: string): RequestProcessCardTone {
+  switch (statusLabel) {
+    case "final":
+      return "success";
+    case "needed":
+      return "waiting";
+    case "draft":
+      return "muted";
+    default:
+      return "active";
+  }
+}
+
+function getFlowStepIconKind(step: FlowStep): RequestProcessCardIconKind {
+  const source = [
+    step.phaseKey,
+    step.title,
+    step.summary,
+    step.proof ?? "",
+    ...step.requiredEvidenceClaims,
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  if (/photo|picture|image|proof|evidence/.test(source)) {
+    return "proof";
+  }
+
+  if (/onsite|field|local|visit|storefront|location/.test(source)) {
+    return "onsite";
+  }
+
+  if (step.statusLabel === "final") {
+    return "done";
+  }
+
+  return "plan";
+}
+
+function getFlowStepTags(
+  step: FlowStep,
+  showRoleSummary: boolean,
+): RequestProcessCardTag[] {
+  return uniqueValues([
+    showRoleSummary && step.roleSummary ? `Lanes: ${step.roleSummary}` : "",
+    step.proof ? `Proof: ${step.proof}` : "",
+    ...step.requiredEvidenceClaims.map((claim) => formatLabel(claim)),
+  ]).map((label) => ({
+    label,
+    tone: label.toLowerCase().includes("proof")
+      ? ("active" as const)
+      : ("muted" as const),
+  }));
 }
 
 function getPathSignalToneClassName(tone: RequestPathSignal["tone"]) {
@@ -1083,12 +1180,12 @@ function getEditableBriefForm(request: BorealRequestDraft): EditableBriefForm {
     body: request.brief.body ?? "",
     serviceLocation: getConstraintString(
       request.brief.constraints,
-      "serviceLocation"
+      "serviceLocation",
     ),
     timeWindows: getConstraintList(request.brief.constraints, "timeWindows"),
     proof: getConstraintList(
       request.brief.constraints,
-      "verificationRequirements"
+      "verificationRequirements",
     ),
     budgetMode: budget?.mode ?? "none",
     budgetCurrency: budget?.currency ?? "",
@@ -1103,17 +1200,13 @@ function getEditableBriefForm(request: BorealRequestDraft): EditableBriefForm {
 
 function buildEditableBriefPatch(
   request: BorealRequestDraft,
-  form: EditableBriefForm
+  form: EditableBriefForm,
 ): RequestDraftUpdatePatch {
   const currentForm = getEditableBriefForm(request);
   const constraints = { ...(request.brief.constraints ?? {}) };
   writeConstraintString(constraints, "serviceLocation", form.serviceLocation);
   writeConstraintList(constraints, "timeWindows", form.timeWindows);
-  writeConstraintList(
-    constraints,
-    "verificationRequirements",
-    form.proof
-  );
+  writeConstraintList(constraints, "verificationRequirements", form.proof);
 
   const patch: RequestDraftUpdatePatch = {
     brief: {
@@ -1180,7 +1273,7 @@ function buildDeadlinePatch(form: EditableBriefForm): RequestPatch["deadline"] {
 
 function hasEditableBudgetChange(
   currentForm: EditableBriefForm,
-  nextForm: EditableBriefForm
+  nextForm: EditableBriefForm,
 ) {
   return (
     currentForm.budgetMode !== nextForm.budgetMode ||
@@ -1194,7 +1287,7 @@ function hasEditableBudgetChange(
 
 function hasEditableDeadlineChange(
   currentForm: EditableBriefForm,
-  nextForm: EditableBriefForm
+  nextForm: EditableBriefForm,
 ) {
   return (
     currentForm.deadlineTargetAt !== nextForm.deadlineTargetAt ||
@@ -1238,7 +1331,7 @@ function formatDeadlineSummary(request: BorealRequestDraft) {
 
 function getConstraintString(
   constraints: Record<string, unknown> | undefined,
-  key: string
+  key: string,
 ) {
   const value = constraints?.[key];
   return typeof value === "string" ? value : "";
@@ -1246,7 +1339,7 @@ function getConstraintString(
 
 function getConstraintList(
   constraints: Record<string, unknown> | undefined,
-  key: string
+  key: string,
 ) {
   const value = constraints?.[key];
   if (Array.isArray(value)) {
@@ -1261,7 +1354,7 @@ function getConstraintList(
 function writeConstraintString(
   constraints: Record<string, unknown>,
   key: string,
-  value: string
+  value: string,
 ) {
   const nextValue = value.trim();
   if (nextValue) {
@@ -1274,7 +1367,7 @@ function writeConstraintString(
 function writeConstraintList(
   constraints: Record<string, unknown>,
   key: string,
-  value: string
+  value: string,
 ) {
   const list = value
     .split(/[,;\n]/)
@@ -1308,7 +1401,8 @@ function getUnderstandingItems(request: BorealRequestDraft): PlanFact[] {
     request.brief.body?.trim() ||
     request.brief.summary?.trim() ||
     request.brief.title?.trim();
-  const location = request.derived.embodiedConstraintSet.serviceLocation?.trim();
+  const location =
+    request.derived.embodiedConstraintSet.serviceLocation?.trim();
   const schedule = request.derived.embodiedConstraintSet.timeWindows[0]?.trim();
   const headcount = extractHeadcount(request);
   const proof = getProofSummary(request);
@@ -1378,27 +1472,8 @@ function getMissingItems(request: BorealRequestDraft): PlanNeed[] {
     request.derived.clarificationNeeded.missingDetails.map((detail) => ({
       ...describeMissingPathDetail(detail),
       tone: "warn" as const,
-    }))
+    })),
   );
-}
-
-function getFlowSteps(request: BorealRequestDraft): FlowStep[] {
-  const phases =
-    request.derived.phases.length > 0
-      ? request.derived.phases
-      : getRequestPathFallbackPhases(request);
-
-  return phases.map((phase) => ({
-    title: getPhaseTitle(request, phase),
-    summary: getPhaseSummary(request, phase),
-    items: getPhaseItems(request, phase),
-    proof:
-      phase.requiredEvidenceClaims.length > 0
-        ? phase.requiredEvidenceClaims.map((claim) => formatLabel(claim)).join(", ")
-        : undefined,
-    statusLabel: getRequestPathPhaseStatusLabel(phase.phaseKey),
-    roleSummary: getPhaseRoleSummary(request, phase),
-  }));
 }
 
 function getPlannedRoles(request: BorealRequestDraft): PlannedRole[] {
@@ -1414,7 +1489,9 @@ function getPlannedRoles(request: BorealRequestDraft): PlannedRole[] {
     required: roleSlot.required,
     actorKinds:
       roleSlot.requiredActorKinds.length > 0
-        ? roleSlot.requiredActorKinds.map((kind) => formatLabel(kind)).join(", ")
+        ? roleSlot.requiredActorKinds
+            .map((kind) => formatLabel(kind))
+            .join(", ")
         : "not specified",
   }));
 }
@@ -1424,9 +1501,13 @@ function getFingerprintGroups(request: BorealRequestDraft): FingerprintGroup[] {
 
   const routeValues = [
     request.derived.routeFamily ? formatLabel(request.derived.routeFamily) : "",
-    request.derived.executionKind ? formatLabel(request.derived.executionKind) : "",
+    request.derived.executionKind
+      ? formatLabel(request.derived.executionKind)
+      : "",
     request.derived.paymentMode ? formatLabel(request.derived.paymentMode) : "",
-    request.derived.matchingMode ? formatLabel(request.derived.matchingMode) : "",
+    request.derived.matchingMode
+      ? formatLabel(request.derived.matchingMode)
+      : "",
   ].filter(Boolean);
 
   if (routeValues.length > 0) {
@@ -1449,7 +1530,7 @@ function getFingerprintGroups(request: BorealRequestDraft): FingerprintGroup[] {
   }
 
   const outputValues = (request.brief.outputKinds ?? []).map((kind) =>
-    formatLabel(kind)
+    formatLabel(kind),
   );
 
   if (outputValues.length > 0) {
@@ -1459,8 +1540,8 @@ function getFingerprintGroups(request: BorealRequestDraft): FingerprintGroup[] {
     });
   }
 
-  const executionValues = request.derived.executionProfile.executionModes.map((mode) =>
-    formatLabel(mode)
+  const executionValues = request.derived.executionProfile.executionModes.map(
+    (mode) => formatLabel(mode),
   );
 
   if (executionValues.length > 0) {
@@ -1470,9 +1551,10 @@ function getFingerprintGroups(request: BorealRequestDraft): FingerprintGroup[] {
     });
   }
 
-  const proofValues = request.derived.verificationPlan.requiredEvidenceClaims.map((claim) =>
-    formatLabel(claim)
-  );
+  const proofValues =
+    request.derived.verificationPlan.requiredEvidenceClaims.map((claim) =>
+      formatLabel(claim),
+    );
 
   if (proofValues.length > 0) {
     groups.push({
@@ -1486,7 +1568,10 @@ function getFingerprintGroups(request: BorealRequestDraft): FingerprintGroup[] {
 
 function getLeadCandidates(request: BorealRequestDraft): LeadCandidate[] {
   const matchCandidateMap = new Map(
-    request.derived.matchCandidates.map((candidate) => [candidate.supplyId, candidate])
+    request.derived.matchCandidates.map((candidate) => [
+      candidate.supplyId,
+      candidate,
+    ]),
   );
   const seenSupplyIds = new Set<string>();
 
@@ -1524,12 +1609,13 @@ function getLeadCandidates(request: BorealRequestDraft): LeadCandidate[] {
 
 function getRoleAssignments(request: BorealRequestDraft): RoleAssignment[] {
   const roleSlotMap = new Map(
-    request.derived.roleSlots.map((roleSlot) => [roleSlot.roleKey, roleSlot])
+    request.derived.roleSlots.map((roleSlot) => [roleSlot.roleKey, roleSlot]),
   );
 
   return request.derived.roleMatches.map((roleMatch) => ({
     title:
-      roleSlotMap.get(roleMatch.roleKey)?.title ?? formatLabel(roleMatch.roleKey),
+      roleSlotMap.get(roleMatch.roleKey)?.title ??
+      formatLabel(roleMatch.roleKey),
     summary: roleMatch.summary,
     required: roleMatch.required,
     statusLabel: formatLabel(roleMatch.status),
@@ -1537,141 +1623,6 @@ function getRoleAssignments(request: BorealRequestDraft): RoleAssignment[] {
     sourceLabel: formatLabel(roleMatch.source),
     supplyId: roleMatch.supplyId,
   }));
-}
-
-function getPhaseTitle(
-  request: BorealRequestDraft,
-  phase: BorealRequestDraft["derived"]["phases"][number]
-) {
-  switch (phase.phaseKey) {
-    case "clarify_constraints":
-      return "Lock the missing event details";
-    case "onsite_execution":
-      return request.derived.embodiedConstraintSet.serviceLocation
-        ? "Coordinate the local event work"
-        : "Complete the main work";
-    case "proof_delivery":
-      return "Package the delivery and proof";
-    case "execute_delivery":
-      return "Complete the deliverable";
-    default:
-      return phase.title;
-  }
-}
-
-function getPhaseSummary(
-  request: BorealRequestDraft,
-  phase: BorealRequestDraft["derived"]["phases"][number]
-) {
-  if (phase.phaseKey === "clarify_constraints") {
-    return request.derived.clarificationNeeded.reasons.length > 0
-      ? request.derived.clarificationNeeded.reasons.join(" ")
-      : phase.summary;
-  }
-
-  if (
-    phase.phaseKey === "onsite_execution" &&
-    request.derived.embodiedConstraintSet.serviceLocation
-  ) {
-    return `Handle the local execution work in ${request.derived.embodiedConstraintSet.serviceLocation} and keep proof attached before closure.`;
-  }
-
-  if (
-    phase.phaseKey === "onsite_execution" ||
-    phase.phaseKey === "field_execution" ||
-    phase.phaseKey === "handoff_execution" ||
-    phase.phaseKey === "witness_execution"
-  ) {
-    return "Carry out the real-world step and keep the result tied to this request.";
-  }
-
-  if (phase.phaseKey === "scope_route") {
-    return "Confirm the scope and the lane that should carry the work after the request opens.";
-  }
-
-  if (phase.phaseKey === "execute_delivery") {
-    if (isResearchRequest(request)) {
-      return "Research the topic, organize the findings, and return a clear brief.";
-    }
-
-    if ((request.brief.outputKinds ?? []).length > 0) {
-      return "Produce the requested deliverable and keep progress in this request thread.";
-    }
-
-    return "Complete the requested output and keep delivery attached to this request.";
-  }
-
-  if (phase.phaseKey === "proof_delivery" || phase.phaseKey === "handoff_review") {
-    return "Package the output, evidence, and owner-facing notes needed for review.";
-  }
-
-  if (/brittle task tree|microtask|planner/i.test(phase.summary)) {
-    return "Keep the work in one clear request path from execution to delivery.";
-  }
-
-  return phase.summary;
-}
-
-function getPhaseRoleSummary(
-  request: BorealRequestDraft,
-  phase: BorealRequestDraft["derived"]["phases"][number]
-) {
-  if (phase.roleKeys.length === 0) {
-    return "";
-  }
-
-  const roleTitles = phase.roleKeys.map((roleKey) => {
-    const matchingRole = request.derived.roleSlots.find(
-      (roleSlot) => roleSlot.roleKey === roleKey
-    );
-
-    return matchingRole?.title ?? formatLabel(roleKey);
-  });
-
-  return roleTitles.join(", ");
-}
-
-function getPhaseItems(
-  request: BorealRequestDraft,
-  phase: BorealRequestDraft["derived"]["phases"][number]
-) {
-  if (phase.phaseKey === "clarify_constraints") {
-    return request.derived.clarificationNeeded.missingDetails.map(
-      (detail) => describeMissingPathDetail(detail).label
-    );
-  }
-
-  if (phase.phaseKey === "onsite_execution") {
-    return [
-      request.derived.embodiedConstraintSet.serviceLocation
-        ? `Run in ${request.derived.embodiedConstraintSet.serviceLocation}`
-        : null,
-      request.derived.embodiedConstraintSet.timeWindows[0]
-        ? `Target timing: ${request.derived.embodiedConstraintSet.timeWindows[0]}`
-        : null,
-      extractHeadcount(request) ? `Target size: ${extractHeadcount(request)}` : null,
-    ].filter((item): item is string => Boolean(item));
-  }
-
-  if (phase.phaseKey === "proof_delivery") {
-    const proofItems = [
-      request.derived.verificationPlan.mustHaveLocationSignal
-        ? "Include location-backed proof"
-        : null,
-      request.derived.verificationPlan.mustHaveOwnerAcceptance
-        ? "Collect owner acceptance"
-        : null,
-      request.derived.verificationPlan.mustHaveSignature
-        ? "Collect signature proof"
-        : null,
-    ].filter((item): item is string => Boolean(item));
-
-    if (proofItems.length > 0) {
-      return proofItems;
-    }
-  }
-
-  return [];
 }
 
 function getProofSummary(request: BorealRequestDraft) {
@@ -1693,7 +1644,7 @@ function getProofSummary(request: BorealRequestDraft) {
     parts.push(
       request.derived.verificationPlan.requiredArtifactKinds
         .map((kind) => formatLabel(kind))
-        .join(", ")
+        .join(", "),
     );
   }
 
@@ -1713,22 +1664,6 @@ function extractHeadcount(request: BorealRequestDraft) {
   }
 
   return `${match[1]} ${match[2].toLowerCase()}`;
-}
-
-function isResearchRequest(request: BorealRequestDraft) {
-  const source = [
-    request.brief.title,
-    request.brief.summary,
-    request.brief.body,
-    ...(request.brief.outputKinds ?? []),
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-
-  return /\bresearch\b|\bdeep dive\b|\banaly[sz]e\b|\bcompare\b|\bmarket scan\b/.test(
-    source
-  );
 }
 
 function formatLabel(value: string) {

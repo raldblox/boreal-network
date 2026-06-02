@@ -130,7 +130,9 @@ Once a draft `Request` exists, buyer-facing draft mode should show an inline bri
 If the draft is not ready to open, that surface should show captured facts, missing essentials, and the next question or disabled open state.
 If derived plan steps exist, draft-mode plans should stay limited to buyer-facing completion paths, steps, done criteria, and proof requirements.
 Public storefront, exterior, or street-facing photo requests should not be held in draft only because no private access requirement was supplied. If geography, timing, and proof are clear, missing access stays optional unless the request implies controlled entry, permission, pickup, dropoff, or handoff.
+The draft stepper and draft flow review should render the same buyer-facing plan steps, with the flow using `Request` plus numbered `Plan` cards rather than a separate planner-debug narrative.
 Draft flow review should render only the `Request` plus one or more parallel `Plan` cards before opening.
+Flow cards, stepper cards, and task-board cards should share one buyer-facing process-card treatment: compact badges, status accents, icons, short descriptions, checklist rows, proof or lane tags, fixed-height clipping where needed, and an explicit selected-card state.
 Supply path, role candidates, worker lanes, delivery lanes, capability lanes, and assignment projections belong after the request opens or inside advanced owner/debug context.
 
 ## Current Implementation Audit
