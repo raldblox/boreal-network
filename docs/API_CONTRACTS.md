@@ -441,6 +441,7 @@ Read-only public discovery surfaces:
 - `/agents/recovery.json` for machine-readable auth failure, scope failure, idempotency conflict, rate limit, monitor cursor, fulfillment retry, payment uncertainty, and escalation handling
 - `/agents/readiness.json` for machine-readable live-versus-target capability bands, standard planes, agent UX flow, and go/no-go checks
 - `/agents/tools.json` for machine-readable safe tool invocation, validation and preparation tools, HTTP fallback, target MCP/A2A mapping, idempotency, and canonical write boundaries
+- `/agents/write-sandbox.json` for the target isolated write-sandbox profile defined by decision `0025`; it describes segregated non-production environment requirements, sandbox credential requirements, process order, minimum flow coverage, activation gates, standards, and canonical non-authority boundaries without issuing credentials, granting permission, authorizing payment, proving completion, or writing durable production history
 - `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, payloads, and replay scenarios
 - `/agents/sandbox.json` for the machine-readable contract-only sandbox manifest and deterministic replay catalog
 - `POST /agents/sandbox/replay` for validation-only replay evidence checks before conformance or production-access review packets
@@ -491,6 +492,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-protocol-adapter-samples.schema.json` for the target-only agent protocol adapter sample pack shape
 - `/schemas/agent-recovery.schema.json` for the machine-readable agent recovery profile shape
 - `/schemas/agent-readiness.schema.json` for the machine-readable agent readiness profile shape
+- `/schemas/agent-write-sandbox.schema.json` for the target isolated write-sandbox profile shape and its non-production authority boundaries
 - `/schemas/agent-tools.schema.json` for the machine-readable agent tool registry shape
 - `/events/request-room.asyncapi.yaml` for durable request-room monitoring contracts
 

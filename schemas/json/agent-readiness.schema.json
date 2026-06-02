@@ -211,6 +211,7 @@
             "live_recovery_profile",
             "live_contract_sandbox",
             "target_external_agent_auth",
+            "target_write_sandbox_profile",
             "target_adapter_profile"
           ]
         },

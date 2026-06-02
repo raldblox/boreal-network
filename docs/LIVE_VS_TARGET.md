@@ -142,6 +142,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/recovery.json/route.ts`
 - `apps/web/app/agents/readiness.json/route.ts`
 - `apps/web/app/agents/tools.json/route.ts`
+- `apps/web/app/agents/write-sandbox.json/route.ts`
 - `apps/web/app/agents/sandbox.md/route.ts`
 - `apps/web/app/agents/sandbox.json/route.ts`
 - `apps/web/app/.well-known/agent-card.json/route.ts`
@@ -191,6 +192,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-protocol-adapter-samples.schema.json`
 - `schemas/json/agent-recovery.schema.json`
 - `schemas/json/agent-readiness.schema.json`
+- `schemas/json/agent-write-sandbox.schema.json`
 - `schemas/json/agent-tools.schema.json`
 - `fixtures/agent/sandbox-manifest.sample.json`
 - `fixtures/agent/conformance-report.sample.json`
@@ -210,6 +212,7 @@ Today, the machine-readable baseline proves:
 - one open request room can expose request activity derived from durable `RequestEvent`, `Commitment`, and `Artifact` records
 - one public `/llms.txt` route exists and gives agents high-level public-page, claim-boundary, canonical-object, and agent-discovery guidance
 - one read-only agent discovery package exists through `/agents/start.md`, `/.well-known/agent-card.json`, `/openapi.json`, public OpenAPI YAML exports, public JSON Schema exports, and the public request-room AsyncAPI export
+- one target-only `/agents/write-sandbox.json` profile exists for decision `0025`, defining the future isolated non-production write-sandbox boundary, credential requirements, process order, minimum flow coverage, activation gates, and non-authority limits without making sandbox write credentials or mutating sandbox routes live
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
 - one private request may carry an owner-scoped preferred supply, and one resolver-approved desktop may read owned supplies and bind direct auto-fulfillment to a published owned supply when the request override or desktop default selects it

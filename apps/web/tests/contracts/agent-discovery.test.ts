@@ -30,6 +30,7 @@ import {
   buildAgentStartMarkdown,
   buildAgentStandardsProfile,
   buildAgentToolRegistry,
+  buildAgentWriteSandboxProfile,
   buildAgentWorkflowCatalog,
   buildOpenApiDiscoveryIndex,
   findEventAsset,
@@ -109,6 +110,7 @@ import { POST as postAgentSandboxReplayValidation } from "@/app/agents/sandbox/r
 import { GET as getAgentStart } from "@/app/agents/start.md/route";
 import { GET as getAgentStandards } from "@/app/agents/standards.json/route";
 import { GET as getAgentTools } from "@/app/agents/tools.json/route";
+import { GET as getAgentWriteSandbox } from "@/app/agents/write-sandbox.json/route";
 import { GET as getAgentWorkflows } from "@/app/agents/workflows.json/route";
 import { GET as getAsyncApiContract } from "@/app/events/[contract]/route";
 import { GET as getLlmsTxt } from "@/app/llms.txt/route";
@@ -157,6 +159,18 @@ async function main() {
     true,
   );
   assert.equal(agentCard.toolRegistryUrl.endsWith("/agents/tools.json"), true);
+  assert.equal(
+    agentCard.writeSandboxProfileUrl.endsWith("/agents/write-sandbox.json"),
+    true,
+  );
+  assert.equal(
+    agentCard.writeSandbox.status,
+    "target_write_sandbox_profile",
+  );
+  assert.equal(
+    agentCard.writeSandbox.nonAuthority.includes("production credential"),
+    true,
+  );
   assert.equal(
     agentCard.accessReviewProfileUrl.endsWith("/agents/access-review.json"),
     true,
@@ -1100,6 +1114,12 @@ async function main() {
     true,
   );
   assert.equal(
+    readinessProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/write-sandbox.json")
+    ),
+    true,
+  );
+  assert.equal(
     readinessProfile.capabilityBands.some(
       (capability) =>
         capability.id === "completion_claim_validation" &&
@@ -1150,6 +1170,81 @@ async function main() {
     ),
     true,
   );
+  assert.equal(
+    readinessProfile.capabilityBands.some(
+      (capability) =>
+        capability.id === "isolated_write_sandbox" &&
+        capability.status === "target_write_sandbox_profile" &&
+        capability.evidence.some((url) =>
+          url.endsWith("/agents/write-sandbox.json")
+        )
+    ),
+    true,
+  );
+  assert.equal(
+    readinessProfile.goNoGoChecks.some(
+      (check) =>
+        check.id === "isolated_write_sandbox_boundary" &&
+        check.failWhen.includes("production permission")
+    ),
+    true,
+  );
+
+  const writeSandboxProfile = buildAgentWriteSandboxProfile();
+  assert.equal(writeSandboxProfile.status, "target_write_sandbox_profile");
+  assert.equal(writeSandboxProfile.decision.id, "0025-agent-isolated-write-sandbox-boundary");
+  assert.equal(
+    writeSandboxProfile.environmentBoundary.productionCredentialsAccepted,
+    false,
+  );
+  assert.equal(
+    writeSandboxProfile.currentStatus.liveWriteSandboxCredentials,
+    false,
+  );
+  assert.equal(
+    writeSandboxProfile.credentialRequirements.some(
+      (requirement) => requirement.id === "revocation_path"
+    ),
+    true,
+  );
+  assert.equal(
+    writeSandboxProfile.processOrder.some(
+      (step) =>
+        step.id === "call_governed_sandbox_route" &&
+        step.stopWhen.includes("real customer data")
+    ),
+    true,
+  );
+  assert.equal(
+    writeSandboxProfile.minimumFlowCoverage.some(
+      (flow) =>
+        flow.id === "paid_run_shape_no_money" &&
+        flow.canonicalWrites.includes("Transaction")
+    ),
+    true,
+  );
+  assert.equal(
+    writeSandboxProfile.activationGates.some(
+      (gate) => gate.id === "production_rejection" && gate.blocking
+    ),
+    true,
+  );
+  assert.equal(
+    writeSandboxProfile.canonicalBoundary.rootObject,
+    "Request",
+  );
+  assert.equal(
+    writeSandboxProfile.canonicalBoundary.writeSandboxProfileIsNot.includes(
+      "payment authorization"
+    ),
+    true,
+  );
+  assert.equal(
+    writeSandboxProfile.canonicalBoundary.forbiddenRoots.includes(
+      "SandboxRequest"
+    ),
+    true,
+  );
 
   const clientKit = buildAgentClientKitProfile();
   assert.equal(clientKit.status, "live_client_manifest");
@@ -1157,6 +1252,15 @@ async function main() {
   assert.equal(
     clientKit.resources.some((resource) =>
       resource.url.endsWith("/agents/standards.json")
+    ),
+    true,
+  );
+  assert.equal(
+    clientKit.clientSurfaces.some(
+      (surface) =>
+        surface.id === "target_write_sandbox_client" &&
+        surface.status === "target_write_sandbox_profile" &&
+        surface.canonicalWrites.includes("RequestEvent")
     ),
     true,
   );
@@ -3732,6 +3836,7 @@ async function main() {
   assert.match(startGuide, /GET \/agents\/recovery\.json/);
   assert.match(startGuide, /GET \/agents\/readiness\.json/);
   assert.match(startGuide, /GET \/agents\/tools\.json/);
+  assert.match(startGuide, /GET \/agents\/write-sandbox\.json/);
   assert.match(startGuide, /POST \/agents\/access-review\/prepare/);
   assert.match(startGuide, /POST \/agents\/monitoring\/prepare/);
   assert.match(startGuide, /Agent action playbook/);
@@ -3745,6 +3850,7 @@ async function main() {
   assert.match(startGuide, /Agent conformance report example/);
   assert.match(startGuide, /Agent contract sandbox/);
   assert.match(startGuide, /Agent sandbox replay validation endpoint/);
+  assert.match(startGuide, /Agent isolated write sandbox profile/);
   assert.match(startGuide, /Agent error examples/);
   assert.match(startGuide, /Agent human delegation profile/);
   assert.match(startGuide, /Agent evidence validation endpoint/);
@@ -4007,6 +4113,10 @@ async function main() {
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/recovery.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/readiness.json"), true);
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/write-sandbox.json"),
+    true,
+  );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/tools.json"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/sandbox.md"), true);
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/sandbox.json"), true);
@@ -4426,6 +4536,23 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex["x-boreal-agent-write-sandbox"].status,
+    "target_write_sandbox_profile",
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-write-sandbox"].activationGates.some(
+      (gate: { id: string; blocking: boolean }) =>
+        gate.id === "production_rejection" && gate.blocking
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-write-sandbox"].nonAuthority.includes(
+      "production credential"
+    ),
+    true,
+  );
+  assert.equal(
     discoveryIndex["x-boreal-agent-tools"].tools.some(
       (tool) => tool.id === "boreal.activity.monitor"
     ),
@@ -4615,6 +4742,10 @@ async function main() {
   assert.equal(
     findJsonSchemaAsset("agent-readiness.schema.json")?.sourcePath,
     "schemas/json/agent-readiness.schema.json",
+  );
+  assert.equal(
+    findJsonSchemaAsset("agent-write-sandbox.schema.json")?.sourcePath,
+    "schemas/json/agent-write-sandbox.schema.json",
   );
   assert.equal(
     findJsonSchemaAsset("agent-tools.schema.json")?.sourcePath,
@@ -5721,6 +5852,15 @@ async function main() {
     "live_readiness_profile"
   );
 
+  const agentWriteSandboxResponse = await getAgentWriteSandbox();
+  assert.equal(agentWriteSandboxResponse.status, 200);
+  const agentWriteSandbox = await agentWriteSandboxResponse.json();
+  assert.equal(agentWriteSandbox.status, "target_write_sandbox_profile");
+  assert.equal(
+    agentWriteSandbox.environmentBoundary.productionCredentialsAccepted,
+    false,
+  );
+
   const agentToolsResponse = await getAgentTools();
   assert.equal(agentToolsResponse.status, 200);
   assert.equal(
@@ -5789,6 +5929,7 @@ async function main() {
   assert.match(llmsText, /Agent recovery profile/);
   assert.match(llmsText, /Agent readiness profile/);
   assert.match(llmsText, /Agent tool registry/);
+  assert.match(llmsText, /Agent isolated write sandbox profile/);
   assert.match(llmsText, /Agent contract sandbox/);
   assert.match(llmsText, /Agent sandbox replay validation endpoint/);
 
@@ -6243,6 +6384,15 @@ async function main() {
   assert.equal(
     (await readinessSchemaResponse.json()).title,
     "AgentReadinessProfile"
+  );
+
+  const writeSandboxSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
+    params: Promise.resolve({ schema: "agent-write-sandbox.schema.json" }),
+  });
+  assert.equal(writeSandboxSchemaResponse.status, 200);
+  assert.equal(
+    (await writeSandboxSchemaResponse.json()).title,
+    "AgentWriteSandboxProfile"
   );
 
   const toolSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {

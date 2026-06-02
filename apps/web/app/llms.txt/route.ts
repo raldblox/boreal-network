@@ -79,6 +79,7 @@ Boreal is request-native work commerce: one durable Request carries demand, rout
 - [Agent recovery profile](${absoluteUrl(agentDiscoveryPaths.agentRecovery)}): Machine-readable auth, idempotency, retry, monitor, payment, and escalation rules.
 - [Agent readiness profile](${absoluteUrl(agentDiscoveryPaths.agentReadiness)}): Machine-readable live-versus-target capability matrix, agent UX flow, and go/no-go checks.
 - [Agent tool registry](${absoluteUrl(agentDiscoveryPaths.agentTools)}): Machine-readable safe HTTP tool calls, validation/preparation tools, target MCP/A2A mappings, preflight checks, and canonical write boundaries.
+- [Agent isolated write sandbox profile](${absoluteUrl(agentDiscoveryPaths.agentWriteSandbox)}): Target-only requirements for a segregated non-production write sandbox; it does not issue credentials, grant permission, authorize payment, prove completion, or write durable production history.
 - [Agent contract sandbox](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)}): Deterministic mock identities, payloads, and sample IDs for contract tests; mock credentials are not production auth.
 - [Agent sandbox manifest](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)}): Machine-readable contract-only sandbox profile with deterministic replay scenarios.
 - [Agent sandbox replay validation endpoint](${absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation)}): Validation-only POST endpoint for checking sandbox replay evidence before conformance or production-access review.

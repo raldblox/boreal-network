@@ -179,6 +179,7 @@
             "live_authenticated_http_contract",
             "live_account_session_payment_contract",
             "live_contract_only",
+            "target_write_sandbox_profile",
             "target_adapter_profile"
           ]
         },

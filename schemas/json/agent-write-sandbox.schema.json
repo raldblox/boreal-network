@@ -1,0 +1,400 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-write-sandbox.schema.json",
+  "title": "AgentWriteSandboxProfile",
+  "description": "Machine-readable target isolated write sandbox profile for agent apply, submit, monitor, run, recovery, and optimization rehearsal without production authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "decision",
+    "resources",
+    "environmentBoundary",
+    "credentialRequirements",
+    "processOrder",
+    "minimumFlowCoverage",
+    "activationGates",
+    "standards",
+    "humanFirstUxArtifacts",
+    "currentStatus",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "target_write_sandbox_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "date",
+        "repoPath"
+      ],
+      "properties": {
+        "id": {
+          "const": "0025-agent-isolated-write-sandbox-boundary"
+        },
+        "status": {
+          "const": "accepted"
+        },
+        "date": {
+          "const": "2026-06-02"
+        },
+        "repoPath": {
+          "const": "docs/decisions/0025-agent-isolated-write-sandbox-boundary.md"
+        }
+      }
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "environmentBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "environment",
+        "dataset",
+        "productionCredentialsAccepted",
+        "productionDataTouched",
+        "realPaymentMovement",
+        "productionRequestEventWrites",
+        "sandboxRecordsPromotableWithoutSeparateDecision",
+        "liveCredentialIssuer",
+        "liveMutatingEndpoint"
+      ],
+      "properties": {
+        "status": {
+          "const": "target_environment_isolation"
+        },
+        "environment": {
+          "const": "segregated_non_production"
+        },
+        "dataset": {
+          "const": "sandbox_only"
+        },
+        "productionCredentialsAccepted": {
+          "const": false
+        },
+        "productionDataTouched": {
+          "const": false
+        },
+        "realPaymentMovement": {
+          "const": false
+        },
+        "productionRequestEventWrites": {
+          "const": false
+        },
+        "sandboxRecordsPromotableWithoutSeparateDecision": {
+          "const": false
+        },
+        "liveCredentialIssuer": {
+          "const": false
+        },
+        "liveMutatingEndpoint": {
+          "const": false
+        }
+      }
+    },
+    "credentialRequirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/requiredTextItem"
+      }
+    },
+    "processOrder": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/processStep"
+      }
+    },
+    "minimumFlowCoverage": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/flowCoverage"
+      }
+    },
+    "activationGates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/activationGate"
+      }
+    },
+    "standards": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/standard"
+      }
+    },
+    "humanFirstUxArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "currentStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "liveWriteSandboxCredentials",
+        "liveWriteSandboxRoutes",
+        "contractOnlySandbox",
+        "replayValidationEndpoint",
+        "productionAccessReviewPath",
+        "targetAdaptersWaitForSandbox"
+      ],
+      "properties": {
+        "liveWriteSandboxCredentials": {
+          "const": false
+        },
+        "liveWriteSandboxRoutes": {
+          "const": false
+        },
+        "contractOnlySandbox": {
+          "const": true
+        },
+        "replayValidationEndpoint": {
+          "const": true
+        },
+        "productionAccessReviewPath": {
+          "const": true
+        },
+        "targetAdaptersWaitForSandbox": {
+          "const": true
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "writeSandboxProfileIsNot",
+        "forbiddenRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "writeSandboxProfileIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "forbiddenRoots": {
+          "type": "array",
+          "contains": {
+            "const": "SandboxRequest"
+          },
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "requiredTextItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "required",
+        "reason"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "const": true
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "processStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "order",
+        "id",
+        "actionIds",
+        "continueWhen",
+        "stopWhen"
+      ],
+      "properties": {
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "continueWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stopWhen": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "flowCoverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "required",
+        "canonicalWrites",
+        "proves"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "const": true
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "proves": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "activationGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "blocking",
+        "passWhen",
+        "failWhen"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocking": {
+          "const": true
+        },
+        "passWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "failWhen": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "standard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "useFor"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "useFor": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

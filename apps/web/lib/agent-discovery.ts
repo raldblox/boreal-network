@@ -90,6 +90,7 @@ export const agentDiscoveryPaths = {
   agentStart: "/agents/start.md",
   agentStandards: "/agents/standards.json",
   agentTools: "/agents/tools.json",
+  agentWriteSandbox: "/agents/write-sandbox.json",
   agentWorkflows: "/agents/workflows.json",
   llms: "/llms.txt",
   openApiIndex: "/openapi.json",
@@ -782,6 +783,15 @@ export const jsonSchemaDiscoveryAssets = [
     standard: "json_schema",
     title: "Agent readiness profile",
   },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
+      "Machine-readable target isolated write sandbox profile schema for agent apply, submit, monitor, run, recovery, and optimization rehearsal without production authority.",
+    routePath: "/schemas/agent-write-sandbox.schema.json",
+    sourcePath: "schemas/json/agent-write-sandbox.schema.json",
+    standard: "json_schema",
+    title: "Agent write sandbox profile",
+  },
 ] as const satisfies readonly AgentDiscoveryAsset[];
 
 export const eventDiscoveryAssets = [
@@ -863,6 +873,7 @@ export function buildAgentCard() {
     readinessProfileUrl: absoluteUrl(agentDiscoveryPaths.agentReadiness),
     standardsProfileUrl: absoluteUrl(agentDiscoveryPaths.agentStandards),
     toolRegistryUrl: absoluteUrl(agentDiscoveryPaths.agentTools),
+    writeSandboxProfileUrl: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
     workflowCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
     accessReviewPrepareUrl: absoluteUrl(
       agentDiscoveryPaths.agentAccessReviewPrepare
@@ -871,6 +882,16 @@ export function buildAgentCard() {
     sandboxReplayValidationUrl: absoluteUrl(
       agentDiscoveryPaths.agentSandboxReplayValidation
     ),
+    writeSandbox: {
+      url: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+      status: buildAgentWriteSandboxProfile().status,
+      decisionId: buildAgentWriteSandboxProfile().decision.id,
+      activationGateIds: buildAgentWriteSandboxProfile().activationGates.map(
+        (gate) => gate.id
+      ),
+      nonAuthority:
+        buildAgentWriteSandboxProfile().canonicalBoundary.writeSandboxProfileIsNot,
+    },
     preferredTransport: "http",
     capabilities: {
       contractSandbox: true,
@@ -1507,6 +1528,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent recovery profile: [${agentDiscoveryPaths.agentRecovery}](${absoluteUrl(agentDiscoveryPaths.agentRecovery)})
 - Agent readiness profile: [${agentDiscoveryPaths.agentReadiness}](${absoluteUrl(agentDiscoveryPaths.agentReadiness)})
 - Agent tool registry: [${agentDiscoveryPaths.agentTools}](${absoluteUrl(agentDiscoveryPaths.agentTools)})
+- Agent isolated write sandbox profile: [${agentDiscoveryPaths.agentWriteSandbox}](${absoluteUrl(agentDiscoveryPaths.agentWriteSandbox)})
 - Agent contract sandbox: [${agentDiscoveryPaths.agentSandboxGuide}](${absoluteUrl(agentDiscoveryPaths.agentSandboxGuide)})
 - Agent sandbox manifest and replay scenarios: [${agentDiscoveryPaths.agentSandboxManifest}](${absoluteUrl(agentDiscoveryPaths.agentSandboxManifest)})
 - Agent sandbox replay validation endpoint: [${agentDiscoveryPaths.agentSandboxReplayValidation}](${absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation)})
@@ -1854,6 +1876,14 @@ For deterministic live-versus-target capability and agent UX flow handling, agen
 GET ${agentDiscoveryPaths.agentReadiness}
 \`\`\`
 
+For target isolated write-sandbox requirements before building write-capable agents or protocol adapters, agents can read:
+
+\`\`\`http
+GET ${agentDiscoveryPaths.agentWriteSandbox}
+\`\`\`
+
+This profile is target-only. It describes the future segregated non-production environment, credential requirements, activation gates, process order, and minimum flow coverage. It does not create sandbox credentials, grant production permission, authorize payment, prove completion, or write durable production history.
+
 For deterministic external-agent onboarding, sandbox validation, and production eligibility handling, agents can read:
 
 \`\`\`http
@@ -2093,7 +2123,7 @@ ${eventLinks}
 
 ## Current Boundary
 
-This discovery package is public and read-oriented. MCP server support, A2A task adapters, OAuth-compatible external-agent auth, signed push notifications, and x402 payment profiles are target direction unless a separate live contract says otherwise.
+This discovery package is public and read-oriented. Isolated write-sandbox credentials, MCP server support, A2A task adapters, OAuth-compatible external-agent auth, signed push notifications, and x402 payment profiles are target direction unless a separate live contract says otherwise.
 `;
 }
 
@@ -3158,6 +3188,26 @@ export function buildOpenApiDiscoveryIndex() {
           },
         },
       },
+      "/agents/write-sandbox.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary:
+            "Read Boreal's target isolated write-sandbox requirements profile.",
+          responses: {
+            "200": {
+              description:
+                "JSON target profile for a future segregated non-production write sandbox, credential requirements, activation gates, process order, and minimum flow coverage. It does not issue credentials, grant permission, authorize payment, prove completion, or write durable production history.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentWriteSandboxProfile",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/agents/tools.json": {
         get: {
           tags: ["agent-discovery"],
@@ -3328,6 +3378,46 @@ export function buildOpenApiDiscoveryIndex() {
             },
             canonicalBoundary: { type: "object" },
           },
+        },
+        AgentWriteSandboxProfile: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "name",
+            "decision",
+            "environmentBoundary",
+            "credentialRequirements",
+            "processOrder",
+            "minimumFlowCoverage",
+            "activationGates",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "target_write_sandbox_profile" },
+            name: { type: "string" },
+            decision: { type: "object" },
+            environmentBoundary: { type: "object" },
+            credentialRequirements: {
+              type: "array",
+              items: { type: "object" },
+            },
+            processOrder: {
+              type: "array",
+              items: { type: "object" },
+            },
+            minimumFlowCoverage: {
+              type: "array",
+              items: { type: "object" },
+            },
+            activationGates: {
+              type: "array",
+              items: { type: "object" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+          additionalProperties: true,
         },
         AgentSandboxReplayValidationRequest: {
           type: "object",
@@ -5145,6 +5235,27 @@ export function buildOpenApiDiscoveryIndex() {
         "completion proof",
         "durable RequestEvent",
       ],
+    },
+    "x-boreal-agent-write-sandbox": {
+      url: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+      status: buildAgentWriteSandboxProfile().status,
+      decisionId: buildAgentWriteSandboxProfile().decision.id,
+      schemaUrl: absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
+      environment: buildAgentWriteSandboxProfile().environmentBoundary.environment,
+      productionCredentialsAccepted:
+        buildAgentWriteSandboxProfile().environmentBoundary
+          .productionCredentialsAccepted,
+      activationGates: buildAgentWriteSandboxProfile().activationGates.map(
+        (gate) => ({
+          id: gate.id,
+          blocking: gate.blocking,
+        })
+      ),
+      minimumFlowCoverage: buildAgentWriteSandboxProfile().minimumFlowCoverage.map(
+        (flow) => flow.id
+      ),
+      nonAuthority:
+        buildAgentWriteSandboxProfile().canonicalBoundary.writeSandboxProfileIsNot,
     },
     "x-boreal-agent-auth": {
       url: absoluteUrl(agentDiscoveryPaths.agentAuth),
@@ -10752,6 +10863,10 @@ export function buildAgentOnboardingProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
       },
       {
+        label: "Agent isolated write sandbox profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+      },
+      {
         label: "Agent readiness profile",
         url: absoluteUrl(agentDiscoveryPaths.agentReadiness),
       },
@@ -10874,6 +10989,7 @@ export function buildAgentOnboardingProfile() {
           absoluteUrl(agentDiscoveryPaths.agentSandboxGuide),
           absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
           absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+          absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
           absoluteUrl("/schemas/agent-sandbox.schema.json"),
           absoluteUrl("/schemas/agent-sandbox-replay.schema.json"),
         ],
@@ -10907,6 +11023,7 @@ export function buildAgentOnboardingProfile() {
           "Prepare a production access packet for external-agent credentials, scopes, abuse controls, callback boundaries, and represented-human approval.",
         requiredReads: [
           absoluteUrl(agentDiscoveryPaths.agentReadiness),
+          absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
           absoluteUrl(agentDiscoveryPaths.agentConformance),
           absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
           absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
@@ -10924,6 +11041,7 @@ export function buildAgentOnboardingProfile() {
           "Prepare future MCP, A2A, or x402 integration using Boreal canonical truth rather than adapter-local state.",
         requiredReads: [
           absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+          absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
           absoluteUrl(agentDiscoveryPaths.agentPayments),
           absoluteUrl(agentDiscoveryPaths.agentExecution),
         ],
@@ -10966,8 +11084,17 @@ export function buildAgentOnboardingProfile() {
         id: "production_sandbox_credentials",
         status: "target_isolated_write_sandbox",
         authScheme: "future sandbox-scoped credential",
-        useFor: ["future safe write rehearsal", "operator-reviewed conformance evidence", "abuse-control testing"],
-        cannotDo: ["touch real customer requests", "settle money", "create public completion claims"],
+        useFor: [
+          "future safe write rehearsal in a segregated non-production environment",
+          "operator-reviewed conformance evidence",
+          "abuse-control and idempotency testing",
+        ],
+        cannotDo: [
+          "touch real customer requests",
+          "be accepted by production endpoints",
+          "settle money",
+          "create public completion claims",
+        ],
       },
     ],
     productionAccessPacket: {
@@ -11019,6 +11146,12 @@ export function buildAgentOnboardingProfile() {
         id: "sandbox_evidence_attached",
         blocking: true,
         passWhen: "Contract sandbox validation is attached and covers every requested write class.",
+      },
+      {
+        id: "isolated_write_sandbox_boundary_loaded",
+        blocking: true,
+        passWhen:
+          "Decision 0025 and /agents/write-sandbox.json are loaded before requesting sandbox-scoped write rehearsal or protocol-adapter write testing.",
       },
       {
         id: "human_handoff_ready",
@@ -11633,6 +11766,10 @@ export function buildAgentClientKitProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
       },
       {
+        label: "Agent isolated write sandbox profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+      },
+      {
         label: "OpenAPI discovery index",
         url: absoluteUrl(agentDiscoveryPaths.openApiIndex),
       },
@@ -11724,6 +11861,7 @@ export function buildAgentClientKitProfile() {
         inputs: [
           absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
           absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+          absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
           absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample),
           absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
         ],
@@ -11859,6 +11997,39 @@ export function buildAgentClientKitProfile() {
         ],
         canonicalReads: [],
         canonicalWrites: [],
+      },
+      {
+        id: "target_write_sandbox_client",
+        status: "target_write_sandbox_profile",
+        useFor: [
+          "prepare future sandbox-scoped apply flows",
+          "prepare future sandbox-scoped proof submissions",
+          "prepare future sandbox cursor monitors",
+          "prepare future sandbox paid-run shapes without money movement",
+        ],
+        auth:
+          "target sandbox-scoped credential only; not accepted by production endpoints",
+        sourceProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+          absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
+        ],
+        canonicalReads: [
+          "Request",
+          "Commitment",
+          "Fulfillment",
+          "Artifact",
+          "Transaction",
+          "RequestEvent",
+        ],
+        canonicalWrites: [
+          "Request",
+          "Commitment",
+          "Fulfillment",
+          "FulfillmentStep",
+          "Artifact",
+          "Transaction",
+          "RequestEvent",
+        ],
       },
       {
         id: "target_protocol_adapter_client",
@@ -13314,6 +13485,10 @@ export function buildAgentReadinessProfile() {
         url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
       },
       {
+        label: "Agent isolated write sandbox profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+      },
+      {
         label: "Agent onboarding profile",
         url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
       },
@@ -13383,6 +13558,7 @@ export function buildAgentReadinessProfile() {
           absoluteUrl("/schemas/request.schema.json"),
           absoluteUrl("/schemas/artifact.schema.json"),
           absoluteUrl("/schemas/agent-readiness.schema.json"),
+          absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
         ],
       },
       {
@@ -13876,6 +14052,46 @@ export function buildAgentReadinessProfile() {
         ],
       },
       {
+        id: "isolated_write_sandbox",
+        primaryAgentIntent: "Rehearse write-capable work without touching production",
+        status: "target_write_sandbox_profile",
+        actions: [
+          "make_request_for_human",
+          "apply_to_request",
+          "submit_artifact",
+          "monitor_request",
+          "run_public_solution",
+          "optimize_request_brief",
+        ],
+        standards: [
+          "OpenAPI 3.1",
+          "JSON Schema",
+          "AsyncAPI",
+          "Idempotency-Key",
+          "RFC 9457",
+        ],
+        availableNow: [
+          "Read the target isolated write-sandbox profile and decision 0025 boundary.",
+          "Use contract-only sandbox replay, validation endpoints, and production-access packet examples as preparation evidence only.",
+        ],
+        requiresBeforeUse: [
+          "future segregated non-production dataset",
+          "future sandbox-scoped credentials with revocation, expiry, scopes, rate limits, and production rejection",
+          "future route tests for minimum write-like flows",
+        ],
+        stopOrEscalateWhen: [
+          "an agent treats the target write-sandbox profile as live credentials, production permission, payment authority, or completion proof",
+          "sandbox writes would touch production RequestEvent, Transaction, Artifact, or Request rows",
+        ],
+        evidence: [
+          absoluteUrl(agentDiscoveryPaths.agentWriteSandbox),
+          absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
+          absoluteUrl(
+            "/docs/decisions/0025-agent-isolated-write-sandbox-boundary.md"
+          ),
+        ],
+      },
+      {
         id: "review_packet_validation",
         primaryAgentIntent: "Preflight agent review packets",
         status: "live_validation_only",
@@ -14075,12 +14291,22 @@ export function buildAgentReadinessProfile() {
         failWhen:
           "A mock credential, sample id, or sandbox secret is sent to production as authority.",
       },
+      {
+        id: "isolated_write_sandbox_boundary",
+        appliesTo: ["isolated_write_sandbox", "protocol_adapters"],
+        blocking: true,
+        passWhen:
+          "The write sandbox is a segregated non-production environment with sandbox-scoped credentials, production rejection, idempotency, rate limits, fixtures, and no real payment movement.",
+        failWhen:
+          "The target profile is treated as live credentials, production permission, payment authority, completion proof, or production RequestEvent write authority.",
+      },
     ],
     currentLimitations: [
       "OAuth-compatible external-agent auth is target direction; live write access currently depends on Boreal account sessions or approved resolver bearers where routes support them.",
       "MCP, A2A, and x402 profiles are documented, but live adapters are not active unless a future contract says so.",
       "The public OpenAPI index is discovery-oriented and still points to exported YAML contracts instead of one complete generated surface.",
       "The contract sandbox is deterministic and useful for shape tests, but it does not issue production credentials or create live objects.",
+      "The isolated write-sandbox profile is target-only; no sandbox-scoped write credentials or mutating sandbox routes are live yet.",
       "Signed monitor webhooks are documented as a target push profile; durable cursor polling is the live monitor baseline.",
       "The payment profile is live as a descriptive boundary, but x402 challenge emission, facilitator verification, wallet-based spend, and production payment-agent credentials remain target direction.",
       "Deeper rate-limit, payment-balance, lane-participant, proof-scoring, personalization, and abuse-control card states remain target direction.",
@@ -14097,8 +14323,15 @@ export function buildAgentReadinessProfile() {
         id: "isolated_write_sandbox",
         priority: 2,
         target:
-          "A production-safe sandbox request or project where agents can perform apply, submit, monitor, and run flows without polluting real work.",
-        dependsOn: ["contract sandbox", "abuse controls", "test credentials"],
+          "A segregated non-production environment where agents can rehearse apply, submit, monitor, run, recovery, and optimization flows without polluting real work.",
+        dependsOn: [
+          "decision 0025",
+          "write-sandbox profile",
+          "contract sandbox",
+          "abuse controls",
+          "sandbox-scoped credentials",
+          "production rejection tests",
+        ],
       },
       {
         id: "merged_agent_openapi",
@@ -14143,6 +14376,7 @@ export function buildAgentReadinessProfile() {
       readinessIsNot: [
         "permission grant",
         "production credential",
+        "sandbox credential issuer",
         "completion proof",
         "protocol adapter implementation",
         "payment settlement",
@@ -14152,6 +14386,464 @@ export function buildAgentReadinessProfile() {
         "Live status means a public contract or route profile exists now; it does not imply every target adapter is live.",
         "Target status must stay explicit so agents do not overclaim MCP, A2A, x402, OAuth, push delivery, or production sandbox behavior.",
         "Use request-detail agentActionPolicy before writes, completion profile before claims, and recovery profile before retries.",
+      ],
+    },
+  };
+}
+
+export function buildAgentWriteSandboxProfile() {
+  return {
+    schemaVersion: 1,
+    status: "target_write_sandbox_profile",
+    name: "Boreal Agent Isolated Write Sandbox Profile",
+    description:
+      "Machine-readable target profile for the first segregated non-production write sandbox defined by decision 0025. It lets agents and client builders rehearse apply, submit, monitor, run, recovery, and optimization flows over Boreal contracts without production authority.",
+    decision: {
+      id: "0025-agent-isolated-write-sandbox-boundary",
+      status: "accepted",
+      date: "2026-06-02",
+      repoPath:
+        "docs/decisions/0025-agent-isolated-write-sandbox-boundary.md",
+    },
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent onboarding profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentOnboarding),
+      },
+      {
+        label: "Agent readiness profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentReadiness),
+      },
+      {
+        label: "Agent auth profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuth),
+      },
+      {
+        label: "Agent action preflight endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+      },
+      {
+        label: "Agent contract sandbox manifest",
+        url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+      },
+      {
+        label: "Agent sandbox replay validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+      },
+      {
+        label: "Agent write sandbox schema",
+        url: absoluteUrl("/schemas/agent-write-sandbox.schema.json"),
+      },
+      {
+        label: "Request OpenAPI",
+        url: absoluteUrl("/openapi/request-briefing.yaml"),
+      },
+      {
+        label: "Request activity AsyncAPI",
+        url: absoluteUrl("/events/request-room.asyncapi.yaml"),
+      },
+    ],
+    environmentBoundary: {
+      status: "target_environment_isolation",
+      environment: "segregated_non_production",
+      dataset: "sandbox_only",
+      productionCredentialsAccepted: false,
+      productionDataTouched: false,
+      realPaymentMovement: false,
+      productionRequestEventWrites: false,
+      sandboxRecordsPromotableWithoutSeparateDecision: false,
+      liveCredentialIssuer: false,
+      liveMutatingEndpoint: false,
+    },
+    credentialRequirements: [
+      {
+        id: "represented_actor",
+        required: true,
+        reason:
+          "Every sandbox write-like action still acts for a human, organization, supply owner, or approved resolver actor.",
+      },
+      {
+        id: "credential_kind",
+        required: true,
+        reason:
+          "Sandbox auth must name whether it is a pilot token, resolver bearer, OAuth-compatible grant, or other scoped credential.",
+      },
+      {
+        id: "allowed_scopes",
+        required: true,
+        reason:
+          "Apply, submit, monitor, run, recovery, and optimization paths need minimal route-level scope boundaries.",
+      },
+      {
+        id: "allowed_environment",
+        required: true,
+        reason:
+          "Credentials must be sandbox-only and rejected by production endpoints.",
+      },
+      {
+        id: "expiry",
+        required: true,
+        reason: "Sandbox credentials need a bounded lifetime.",
+      },
+      {
+        id: "revocation_path",
+        required: true,
+        reason:
+          "Operators must be able to revoke unsafe or stale sandbox access without changing request truth.",
+      },
+      {
+        id: "rate_limit",
+        required: true,
+        reason:
+          "Write rehearsal should prove abuse controls before external write access widens.",
+      },
+      {
+        id: "idempotency_required",
+        required: true,
+        reason:
+          "Write-like calls must preserve retry safety across apply, submit, run, and recovery paths.",
+      },
+      {
+        id: "operator_reviewer_or_issuing_policy",
+        required: true,
+        reason:
+          "Sandbox access must have an accountable issuing policy before becoming evidence for production review.",
+      },
+    ],
+    processOrder: [
+      {
+        order: 1,
+        id: "discover_public_contracts",
+        actionIds: ["inspect_public_requests"],
+        continueWhen:
+          "The agent has loaded llms.txt, the agent card, start guide, OpenAPI index, JSON Schemas, and public-safe request projections.",
+        stopWhen:
+          "The agent guesses private routes or treats the sandbox as production access.",
+      },
+      {
+        order: 2,
+        id: "inspect_action_affordances_and_cards",
+        actionIds: ["inspect_public_requests"],
+        continueWhen:
+          "Request projections expose agentActionAffordances and agentActionCardHints for the candidate request.",
+        stopWhen:
+          "The agent treats card hints as approval, permission, payment authority, or completion proof.",
+      },
+      {
+        order: 3,
+        id: "read_agent_action_policy",
+        actionIds: [
+          "make_request_for_human",
+          "apply_to_request",
+          "submit_artifact",
+          "monitor_request",
+          "run_public_solution",
+          "optimize_request_brief",
+        ],
+        continueWhen:
+          "The request-detail agentActionPolicy allows or idempotency-gates the intended action for the represented actor.",
+        stopWhen:
+          "The policy blocks the action or the agent lacks the required actor, scope, lifecycle gate, or human approval.",
+      },
+      {
+        order: 4,
+        id: "run_validation_or_preparation",
+        actionIds: [
+          "action_preflight",
+          "auth_preparation",
+          "evidence_validation",
+          "monitor_checkpoint_validation",
+          "optimization_plan_preparation",
+        ],
+        continueWhen:
+          "The validation or preparation response confirms required fields, non-authority boundaries, idempotency posture, and missing requirements.",
+        stopWhen:
+          "The preflight reports missing scope, approval, idempotency, proof, payment, or private-access requirements.",
+      },
+      {
+        order: 5,
+        id: "request_human_approval",
+        actionIds: ["apply_to_request", "submit_artifact", "run_public_solution"],
+        continueWhen:
+          "A human-visible card or handoff packet shows the exact Request, action, spend, proof, and claim-state decision.",
+        stopWhen:
+          "Approval is implied, hidden, stale, or not linked to the action and Request.",
+      },
+      {
+        order: 6,
+        id: "call_governed_sandbox_route",
+        actionIds: [
+          "make_request_for_human",
+          "apply_to_request",
+          "submit_artifact",
+          "run_public_solution",
+        ],
+        continueWhen:
+          "The call uses sandbox-scoped auth, minimal scopes, the required idempotency key, and the same contract shape as production-facing routes.",
+        stopWhen:
+          "The agent attempts production credentials, real customer data, real payment movement, or an unregistered route.",
+      },
+      {
+        order: 7,
+        id: "monitor_sandbox_activity_cursor",
+        actionIds: ["monitor_request"],
+        continueWhen:
+          "The monitor persists RequestEvent cursor state and resumes without heartbeat writes.",
+        stopWhen:
+          "The agent loses cursor continuity, claims completion from silence, or writes monitor heartbeats as durable history.",
+      },
+      {
+        order: 8,
+        id: "package_evidence_without_completion_claim",
+        actionIds: ["submit_artifact", "package_production_access_packet"],
+        continueWhen:
+          "Sandbox evidence names canonical writes, non-production effects, idempotency keys, and owner-review boundaries without claiming completion.",
+        stopWhen:
+          "The evidence claims production access, payment settlement, owner acceptance, or completion proof.",
+      },
+    ],
+    minimumFlowCoverage: [
+      {
+        id: "requester_draft_creation",
+        required: true,
+        canonicalWrites: ["Request"],
+        proves:
+          "An agent can create or update a sandbox Request draft without auto-opening, routing, funding, or assigning it.",
+      },
+      {
+        id: "solver_commitment_proposal",
+        required: true,
+        canonicalWrites: ["Commitment", "RequestEvent"],
+        proves:
+          "A solver agent can apply to one Request by proposing a Commitment with idempotency and scoped actor context.",
+      },
+      {
+        id: "owner_acceptance_gate",
+        required: true,
+        canonicalWrites: ["Commitment", "Fulfillment", "RequestEvent"],
+        proves:
+          "Fulfillment starts only after an owner or simulated-owner acceptance gate.",
+      },
+      {
+        id: "fulfillment_step_execution",
+        required: true,
+        canonicalWrites: ["Fulfillment", "FulfillmentStep", "RequestEvent"],
+        proves:
+          "Worker-generated sub-work stays under FulfillmentStep rather than creating a new root Request.",
+      },
+      {
+        id: "artifact_proof_submission",
+        required: true,
+        canonicalWrites: ["Artifact", "RequestEvent"],
+        proves:
+          "Proof, receipt, media, file, or delivery output is packaged as an Artifact candidate without premature completion claims.",
+      },
+      {
+        id: "cursor_monitoring",
+        required: true,
+        canonicalWrites: [],
+        proves:
+          "A monitor can resume from RequestEvent sequence checkpoints without creating heartbeat events.",
+      },
+      {
+        id: "idempotent_retry",
+        required: true,
+        canonicalWrites: ["Commitment", "Artifact", "Transaction", "RequestEvent"],
+        proves:
+          "Apply, submit, run, and recovery actions handle same-key replay and changed-input conflict safely.",
+      },
+      {
+        id: "paid_run_shape_no_money",
+        required: true,
+        canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+        proves:
+          "A paid-run shape can create sandbox-only Transaction truth with no real money movement.",
+      },
+      {
+        id: "optimization_draft_only",
+        required: true,
+        canonicalWrites: [],
+        proves:
+          "Optimization remains draft-only unless a human approves a governed mutation path.",
+      },
+      {
+        id: "rfc_9457_failures",
+        required: true,
+        canonicalWrites: [],
+        proves:
+          "Auth, scope, idempotency, rate-limit, payment, monitor, fulfillment, and unknown-write failures return problem-detail shaped responses.",
+      },
+    ],
+    activationGates: [
+      {
+        id: "environment_separation",
+        blocking: true,
+        passWhen:
+          "Sandbox routes read and write only a segregated non-production dataset.",
+        failWhen:
+          "Sandbox calls can touch production Request, Artifact, Transaction, or RequestEvent rows.",
+      },
+      {
+        id: "credential_issuance_and_revocation",
+        blocking: true,
+        passWhen:
+          "Sandbox credentials include represented actor, credential kind, scopes, environment, expiry, revocation, rate limit, idempotency, and issuing policy.",
+        failWhen:
+          "Credentials are unscoped, unrevocable, production-accepted, or not tied to a represented actor.",
+      },
+      {
+        id: "production_rejection",
+        blocking: true,
+        passWhen:
+          "Production endpoints reject sandbox credentials and return safe problem details.",
+        failWhen:
+          "Any production endpoint accepts sandbox credentials as mutation authority.",
+      },
+      {
+        id: "scope_idempotency_rate_limit_enforcement",
+        blocking: true,
+        passWhen:
+          "Every write-like sandbox route enforces route scopes, idempotency keys, replay safety, and rate limits.",
+        failWhen:
+          "A write-like route can be called without scope, idempotency posture, or abuse controls.",
+      },
+      {
+        id: "seeded_fixture_and_replay_coverage",
+        blocking: true,
+        passWhen:
+          "Fixtures and replay tests cover the minimum requester, solver, owner, fulfillment, proof, monitor, retry, paid-run, optimization, and failure flows.",
+        failWhen:
+          "Only contract replay or toy mock examples exist for write-capable behavior.",
+      },
+      {
+        id: "human_first_cards_and_handoffs",
+        blocking: true,
+        passWhen:
+          "Action cards, handoff packets, proof review, monitor escalation, and payment authorization UX stay visible and non-authoritative.",
+        failWhen:
+          "The agent mutates without an explicit human decision where policy requires it.",
+      },
+      {
+        id: "no_payment_or_completion_overclaim",
+        blocking: true,
+        passWhen:
+          "Sandbox paid-run shapes move no real money and completion claims remain blocked until owner-review truth exists.",
+        failWhen:
+          "Sandbox evidence is treated as settlement, delivery acceptance, or completed work.",
+      },
+      {
+        id: "operator_review_handoff",
+        blocking: true,
+        passWhen:
+          "Sandbox evidence can be packaged into conformance and production-access review without creating access by itself.",
+        failWhen:
+          "Sandbox pass status automatically issues production credentials or broad write scopes.",
+      },
+    ],
+    standards: [
+      {
+        id: "openapi_3_1",
+        name: "OpenAPI 3.1",
+        useFor: "HTTP route and error contract shape.",
+      },
+      {
+        id: "json_schema_2020_12",
+        name: "JSON Schema 2020-12",
+        useFor:
+          "Canonical object, profile, credential requirement, and fixture shape validation.",
+      },
+      {
+        id: "asyncapi",
+        name: "AsyncAPI",
+        useFor:
+          "RequestEvent monitoring, cursor semantics, and future webhook delivery contracts.",
+      },
+      {
+        id: "idempotency_key",
+        name: "Idempotency-Key",
+        useFor: "Replay-safe write-like calls and uncertain-write recovery.",
+      },
+      {
+        id: "rfc_9457",
+        name: "RFC 9457 Problem Details",
+        useFor: "Machine-readable auth, scope, conflict, rate-limit, and unknown-write failures.",
+      },
+      {
+        id: "oauth2_bearer",
+        name: "OAuth 2.0 Bearer Token Usage",
+        useFor:
+          "Target external-agent or sandbox-scoped credential style; not a live issuer claim.",
+      },
+      {
+        id: "mcp_a2a_x402",
+        name: "MCP, A2A, and x402",
+        useFor:
+          "Target adapter and payment mappings only after sandbox boundaries are implemented and verified.",
+      },
+    ],
+    humanFirstUxArtifacts: [
+      "request draft approval card",
+      "Commitment review card",
+      "proof review card",
+      "monitor escalation card",
+      "payment authorization card",
+      "safe completion claim packet",
+    ],
+    currentStatus: {
+      liveWriteSandboxCredentials: false,
+      liveWriteSandboxRoutes: false,
+      contractOnlySandbox: true,
+      replayValidationEndpoint: true,
+      productionAccessReviewPath: true,
+      targetAdaptersWaitForSandbox: true,
+    },
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "RequestParticipant",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      writeSandboxProfileIsNot: [
+        "credential issuer",
+        "permission grant",
+        "production sandbox",
+        "production credential",
+        "production access grant",
+        "operator approval record",
+        "human approval record",
+        "payment authorization",
+        "payment settlement",
+        "completion proof",
+        "durable production RequestEvent",
+        "MCP server implementation",
+        "A2A adapter implementation",
+        "x402 endpoint activation",
+      ],
+      forbiddenRoots: [
+        "SandboxRequest",
+        "Task",
+        "Job",
+        "Order",
+        "Offer",
+        "A2A Task",
+        "MCP session",
+        "x402 payload",
+      ],
+      rules: [
+        "The write sandbox uses canonical-shaped objects inside a sandbox dataset only.",
+        "Sandbox records are not production records and cannot be merged into production history without a separate governed import or replay decision.",
+        "Write-capable MCP tools, A2A task operations, and x402-enabled calls must wait until this sandbox boundary is implemented and verified.",
+        "Human-visible cards and handoff packets are UX artifacts, not permission, approval, payment, durable history, or completion proof.",
       ],
     },
   };
