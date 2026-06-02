@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/agent-client-kit.schema.json",
+  "title": "AgentClientKit",
+  "description": "Machine-readable client-generation manifest for agents consuming Boreal OpenAPI, JSON Schema, AsyncAPI, validation, preparation, sandbox, and target protocol surfaces.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "resources",
+    "generationOrder",
+    "contractSources",
+    "clientSurfaces",
+    "generationRules",
+    "nonGoals",
+    "canonicalBoundary"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "live_client_manifest"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/link"
+      }
+    },
+    "generationOrder": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/generationStep"
+      }
+    },
+    "contractSources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/contractSource"
+      }
+    },
+    "clientSurfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/clientSurface"
+      }
+    },
+    "generationRules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "nonGoals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "url"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "generationStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "order", "use", "inputs", "outputs"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "use": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "outputs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "contractSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "standard", "url", "useFor"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "standard": {
+          "enum": ["OpenAPI 3.1", "JSON Schema 2020-12", "AsyncAPI"]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "useFor": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "clientSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "useFor",
+        "auth",
+        "sourceProfiles",
+        "canonicalReads",
+        "canonicalWrites"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "live_public_read",
+            "live_validation_and_preparation",
+            "live_authenticated_http_contract",
+            "live_account_session_payment_contract",
+            "live_contract_only",
+            "target_adapter_profile"
+          ]
+        },
+        "useFor": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "auth": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceProfiles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "canonicalWrites": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rootObject", "durableTruthObjects", "clientKitIsNot", "rules"],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "clientKitIsNot": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -49,6 +49,7 @@ export const agentDiscoveryPaths = {
   agentCard: "/.well-known/agent-card.json",
   agentActions: "/agents/actions.md",
   agentActionPreflight: "/agents/actions/preflight",
+  agentClientKit: "/agents/client-kit.json",
   agentConformance: "/agents/conformance.json",
   agentConformanceReportExample: "/agents/conformance-report.example.json",
   agentCompletion: "/agents/completion.json",
@@ -541,6 +542,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Machine-readable client-generation manifest schema for agents consuming Boreal OpenAPI, JSON Schema, AsyncAPI, validation, preparation, sandbox, and target protocol surfaces.",
+    routePath: "/schemas/agent-client-kit.schema.json",
+    sourcePath: "schemas/json/agent-client-kit.schema.json",
+    standard: "json_schema",
+    title: "Agent client kit",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Machine-readable agent payment, buyer-credit, paid-run, x402 target, and Transaction reconciliation profile schema.",
     routePath: "/schemas/agent-payments.schema.json",
     sourcePath: "schemas/json/agent-payments.schema.json",
@@ -779,6 +789,7 @@ export function buildAgentCard() {
     authProfileUrl: absoluteUrl(agentDiscoveryPaths.agentAuth),
     authPrepareUrl: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
     conformanceProfileUrl: absoluteUrl(agentDiscoveryPaths.agentConformance),
+    clientKitUrl: absoluteUrl(agentDiscoveryPaths.agentClientKit),
     completionProfileUrl: absoluteUrl(agentDiscoveryPaths.agentCompletion),
     completionValidationUrl: absoluteUrl(
       agentDiscoveryPaths.agentCompletionValidation
@@ -886,6 +897,21 @@ export function buildAgentCard() {
         .flatMap((checklist) => checklist.checks)
         .filter((check) => check.required)
         .map((check) => check.id),
+    },
+    clientKit: {
+      url: absoluteUrl(agentDiscoveryPaths.agentClientKit),
+      status: buildAgentClientKitProfile().status,
+      contractSourceCount: buildAgentClientKitProfile().contractSources.length,
+      generationOrder: buildAgentClientKitProfile().generationOrder.map(
+        (step) => step.id
+      ),
+      clientSurfaces: buildAgentClientKitProfile().clientSurfaces.map(
+        (surface) => ({
+          id: surface.id,
+          status: surface.status,
+          canonicalWrites: surface.canonicalWrites,
+        })
+      ),
     },
     completion: {
       url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
@@ -1369,6 +1395,7 @@ This page is for agents acting for humans. It explains what can be inspected pub
 - Agent access review preparation endpoint: [${agentDiscoveryPaths.agentAccessReviewPrepare}](${absoluteUrl(agentDiscoveryPaths.agentAccessReviewPrepare)})
 - Agent auth profile: [${agentDiscoveryPaths.agentAuth}](${absoluteUrl(agentDiscoveryPaths.agentAuth)})
 - Agent auth preparation endpoint: [${agentDiscoveryPaths.agentAuthPrepare}](${absoluteUrl(agentDiscoveryPaths.agentAuthPrepare)})
+- Agent client kit: [${agentDiscoveryPaths.agentClientKit}](${absoluteUrl(agentDiscoveryPaths.agentClientKit)})
 - Agent conformance profile: [${agentDiscoveryPaths.agentConformance}](${absoluteUrl(agentDiscoveryPaths.agentConformance)})
 - Agent conformance report example: [${agentDiscoveryPaths.agentConformanceReportExample}](${absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample)})
 - Agent completion profile: [${agentDiscoveryPaths.agentCompletion}](${absoluteUrl(agentDiscoveryPaths.agentCompletion)})
@@ -2088,6 +2115,26 @@ export function buildOpenApiDiscoveryIndex() {
                 "application/json": {
                   schema: {
                     $ref: "#/components/schemas/AgentActionPreflightResult",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/agents/client-kit.json": {
+        get: {
+          tags: ["agent-discovery"],
+          summary:
+            "Read Boreal's machine-readable agent client-generation manifest.",
+          responses: {
+            "200": {
+              description:
+                "JSON manifest for generating clients from Boreal OpenAPI, JSON Schema, AsyncAPI, validation/preparation, sandbox, and target protocol surfaces without granting authority.",
+              content: {
+                "application/json": {
+                  schema: {
+                    $ref: "#/components/schemas/AgentClientKit",
                   },
                 },
               },
@@ -4759,6 +4806,39 @@ export function buildOpenApiDiscoveryIndex() {
             canonicalBoundary: { type: "object" },
           },
         },
+        AgentClientKit: {
+          type: "object",
+          required: [
+            "schemaVersion",
+            "status",
+            "generationOrder",
+            "contractSources",
+            "clientSurfaces",
+            "generationRules",
+            "canonicalBoundary",
+          ],
+          properties: {
+            schemaVersion: { const: 1 },
+            status: { const: "live_client_manifest" },
+            generationOrder: {
+              type: "array",
+              items: { type: "object" },
+            },
+            contractSources: {
+              type: "array",
+              items: { type: "object" },
+            },
+            clientSurfaces: {
+              type: "array",
+              items: { type: "object" },
+            },
+            generationRules: {
+              type: "array",
+              items: { type: "string" },
+            },
+            canonicalBoundary: { type: "object" },
+          },
+        },
         AgentToolRegistry: {
           type: "object",
           required: [
@@ -4803,6 +4883,21 @@ export function buildOpenApiDiscoveryIndex() {
         "request mutation",
         "durable RequestEvent",
       ],
+    },
+    "x-boreal-agent-client-kit": {
+      url: absoluteUrl(agentDiscoveryPaths.agentClientKit),
+      status: buildAgentClientKitProfile().status,
+      generationOrder: buildAgentClientKitProfile().generationOrder.map(
+        (step) => step.id
+      ),
+      clientSurfaces: buildAgentClientKitProfile().clientSurfaces.map(
+        (surface) => ({
+          id: surface.id,
+          status: surface.status,
+          canonicalWrites: surface.canonicalWrites,
+        })
+      ),
+      nonGoals: buildAgentClientKitProfile().nonGoals,
     },
     "x-boreal-agent-sandbox-replay-validation": {
       url: absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
@@ -10411,6 +10506,334 @@ export function buildAgentPaymentProfile() {
   };
 }
 
+export function buildAgentClientKitProfile() {
+  const contracts = buildContractCatalog();
+  const contractSourceId = (asset: { title: string; url: string }) =>
+    asset.url.split("/").pop() ?? asset.title;
+
+  return {
+    schemaVersion: 1,
+    status: "live_client_manifest",
+    name: "Boreal Agent Client Kit",
+    description:
+      "Machine-readable manifest for agents and agent developers generating clients over Boreal public discovery, OpenAPI, JSON Schema, AsyncAPI, validation, preparation, sandbox, and target protocol surfaces without treating generated code as permission or durable truth.",
+    resources: [
+      {
+        label: "Agent start guide",
+        url: absoluteUrl(agentDiscoveryPaths.agentStart),
+      },
+      {
+        label: "Agent HTTP reference profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentHttp),
+      },
+      {
+        label: "Agent tool registry",
+        url: absoluteUrl(agentDiscoveryPaths.agentTools),
+      },
+      {
+        label: "Agent workflow catalog",
+        url: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+      },
+      {
+        label: "Agent readiness profile",
+        url: absoluteUrl(agentDiscoveryPaths.agentReadiness),
+      },
+      {
+        label: "Agent contract sandbox",
+        url: absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+      },
+      {
+        label: "OpenAPI discovery index",
+        url: absoluteUrl(agentDiscoveryPaths.openApiIndex),
+      },
+      {
+        label: "Agent client kit schema",
+        url: absoluteUrl("/schemas/agent-client-kit.schema.json"),
+      },
+    ],
+    generationOrder: [
+      {
+        id: "discover_public_surfaces",
+        order: 1,
+        use:
+          "Load the agent card, llms.txt, and start guide before generating endpoint clients.",
+        inputs: [
+          absoluteUrl(agentDiscoveryPaths.agentCard),
+          absoluteUrl(agentDiscoveryPaths.llms),
+          absoluteUrl(agentDiscoveryPaths.agentStart),
+        ],
+        outputs: [
+          "public capability map",
+          "profile URLs",
+          "safe live-versus-target boundary",
+        ],
+      },
+      {
+        id: "load_contract_sources",
+        order: 2,
+        use:
+          "Load OpenAPI for HTTP routes, JSON Schema for object/profile/payload shapes, and AsyncAPI for durable activity monitoring.",
+        inputs: [
+          absoluteUrl(agentDiscoveryPaths.openApiIndex),
+          ...contracts.openapi.map((asset) => asset.url),
+          ...contracts.asyncapi.map((asset) => asset.url),
+        ],
+        outputs: [
+          "typed HTTP operation candidates",
+          "durable activity models",
+          "schema registry",
+        ],
+      },
+      {
+        id: "split_client_authority",
+        order: 3,
+        use:
+          "Generate separate modules for public reads, validation/preparation helpers, authorized mutations, payment mutations, sandbox replay, and target protocol adapters.",
+        inputs: [
+          absoluteUrl(agentDiscoveryPaths.agentTools),
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+        ],
+        outputs: [
+          "read-only client",
+          "guardrail client",
+          "authorized work client",
+          "payment client",
+          "sandbox client",
+          "target adapter stubs",
+        ],
+      },
+      {
+        id: "wire_runtime_gates",
+        order: 4,
+        use:
+          "Before calling generated write methods, read request detail, follow agentActionPolicy, run relevant validation or preparation helpers, and preserve idempotency keys.",
+        inputs: [
+          absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+          absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+          absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+          absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+          absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+        ],
+        outputs: [
+          "policy gate checks",
+          "scope checks",
+          "idempotency handling",
+          "safe completion language checks",
+        ],
+      },
+      {
+        id: "prove_with_sandbox",
+        order: 5,
+        use:
+          "Validate generated client call shapes against the contract-only sandbox and replay endpoint before requesting scoped production access.",
+        inputs: [
+          absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+          absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+          absoluteUrl(agentDiscoveryPaths.agentConformanceReportExample),
+          absoluteUrl(agentDiscoveryPaths.agentProductionAccessPacketExample),
+        ],
+        outputs: [
+          "sandbox replay evidence",
+          "conformance report packet",
+          "production access packet draft",
+        ],
+      },
+    ],
+    contractSources: [
+      ...contracts.openapi.map((asset) => ({
+        id: contractSourceId(asset),
+        title: asset.title,
+        standard: "OpenAPI 3.1",
+        url: asset.url,
+        useFor: "Generate typed HTTP route operations and response envelopes.",
+      })),
+      ...contracts.jsonSchemas.map((asset) => ({
+        id: contractSourceId(asset),
+        title: asset.title,
+        standard: "JSON Schema 2020-12",
+        url: asset.url,
+        useFor: "Validate canonical objects, public profiles, examples, and helper payloads.",
+      })),
+      ...contracts.asyncapi.map((asset) => ({
+        id: contractSourceId(asset),
+        title: asset.title,
+        standard: "AsyncAPI",
+        url: asset.url,
+        useFor: "Model durable request activity monitoring and future push semantics.",
+      })),
+    ],
+    clientSurfaces: [
+      {
+        id: "public_discovery_client",
+        status: "live_public_read",
+        useFor: [
+          "find public requests",
+          "read public profiles",
+          "load public contracts",
+        ],
+        auth: "none",
+        sourceProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentCard),
+          absoluteUrl(agentDiscoveryPaths.agentStart),
+          absoluteUrl(agentDiscoveryPaths.agentOpportunities),
+          absoluteUrl(agentDiscoveryPaths.agentHttp),
+        ],
+        canonicalReads: ["Request", "Supply", "Artifact"],
+        canonicalWrites: [],
+      },
+      {
+        id: "guardrail_client",
+        status: "live_validation_and_preparation",
+        useFor: [
+          "preflight actions",
+          "prepare auth",
+          "validate proof packets",
+          "validate completion claims",
+          "prepare monitor plans",
+          "prepare optimization drafts",
+        ],
+        auth: "none for public helper contracts; live actions still require their own auth",
+        sourceProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+          absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+          absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+          absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+          absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+          absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+        ],
+        canonicalReads: [
+          "Request",
+          "Commitment",
+          "Fulfillment",
+          "Artifact",
+          "Transaction",
+          "RequestEvent",
+        ],
+        canonicalWrites: [],
+      },
+      {
+        id: "authorized_work_client",
+        status: "live_authenticated_http_contract",
+        useFor: [
+          "make human-owned drafts",
+          "apply to requests",
+          "submit artifacts",
+          "monitor authorized private activity",
+        ],
+        auth:
+          "Boreal account session or approved resolver bearer token, depending on route contract",
+        sourceProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentAuth),
+          absoluteUrl(agentDiscoveryPaths.agentTools),
+          absoluteUrl("/openapi/request-briefing.yaml"),
+          absoluteUrl("/openapi/resolver-auth.yaml"),
+        ],
+        canonicalReads: ["Request", "RequestParticipant", "Supply"],
+        canonicalWrites: ["Request", "Commitment", "Artifact", "RequestEvent"],
+      },
+      {
+        id: "payment_client",
+        status: "live_account_session_payment_contract",
+        useFor: [
+          "read buyer credit",
+          "apply credit",
+          "run public solutions",
+          "reconcile request transactions",
+        ],
+        auth: "Boreal account session for live spend; resolver bearer read only where route allows",
+        sourceProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentPayments),
+          absoluteUrl("/openapi/payment-and-credit.yaml"),
+        ],
+        canonicalReads: ["Request", "Artifact", "Transaction"],
+        canonicalWrites: ["Request", "Transaction", "RequestEvent"],
+      },
+      {
+        id: "contract_sandbox_client",
+        status: "live_contract_only",
+        useFor: [
+          "validate generated shapes",
+          "replay deterministic flows",
+          "package conformance evidence",
+        ],
+        auth: "mock credentials only; never production authority",
+        sourceProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentSandboxManifest),
+          absoluteUrl(agentDiscoveryPaths.agentSandboxReplayValidation),
+        ],
+        canonicalReads: [],
+        canonicalWrites: [],
+      },
+      {
+        id: "target_protocol_adapter_client",
+        status: "target_adapter_profile",
+        useFor: [
+          "prepare future MCP resources",
+          "prepare future A2A tasks",
+          "prepare future x402 payment mappings",
+        ],
+        auth:
+          "target only until gateway contracts, production credentials, and route policies exist",
+        sourceProfiles: [
+          absoluteUrl(agentDiscoveryPaths.agentProtocolsJson),
+          absoluteUrl(agentDiscoveryPaths.agentProtocolAdapterSamples),
+        ],
+        canonicalReads: [],
+        canonicalWrites: [],
+      },
+    ],
+    generationRules: [
+      "Generate from OpenAPI, JSON Schema, and AsyncAPI exports; do not scrape private UI routes.",
+      "Keep public-read, guardrail, authorized-work, payment, sandbox, and target-adapter modules separate.",
+      "Generated methods must not imply permission; live writes still require route auth, scopes, agentActionPolicy, human approval when required, and idempotency.",
+      "Validation and preparation helpers are non-write guardrails, not approval records, artifact publication, payment authorization, completion proof, or durable RequestEvent truth.",
+      "Do not treat MCP sessions, A2A tasks, x402 payloads, tool results, runtime logs, or generated SDK responses as canonical roots.",
+      "Pin schemaVersion=1 payloads and fail closed when required fields, scopes, idempotency keys, or non-authority flags are missing.",
+    ],
+    nonGoals: [
+      "generated SDK package",
+      "production credential",
+      "permission grant",
+      "operator approval record",
+      "new API surface",
+      "MCP server implementation",
+      "A2A adapter implementation",
+      "x402 payment activation",
+      "completion proof",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      durableTruthObjects: [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent",
+      ],
+      clientKitIsNot: [
+        "generated SDK package",
+        "permission grant",
+        "production credential",
+        "operator approval",
+        "protocol adapter implementation",
+        "payment authority",
+        "completion proof",
+        "durable truth object",
+      ],
+      rules: [
+        "Generated clients wrap Boreal contracts; they do not create new Boreal semantics.",
+        "Request remains the root across generated reads, writes, monitoring, payment, and adapter stubs.",
+        "Use the contract sandbox before requesting production access.",
+        "Use decision 0024 before adding live MCP or A2A gateway workspaces.",
+      ],
+    },
+  };
+}
+
 export function buildAgentToolRegistry() {
   return {
     schemaVersion: 1,
@@ -11294,6 +11717,10 @@ export function buildAgentReadinessProfile() {
       {
         label: "Agent action playbook",
         url: absoluteUrl(agentDiscoveryPaths.agentActions),
+      },
+      {
+        label: "Agent client kit",
+        url: absoluteUrl(agentDiscoveryPaths.agentClientKit),
       },
       {
         label: "Agent auth profile",

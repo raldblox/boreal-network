@@ -399,6 +399,7 @@ Read-only public discovery surfaces:
 - `/agents/start.md` for practical agent onboarding
 - `/agents/actions.md` for contract-linked inspect, make-request, apply, submit, monitor, run, and optimize walkthroughs
 - `/agents/actions/preflight` for validation-only action prerequisite checks before agents attempt governed Boreal routes
+- `/agents/client-kit.json` for a machine-readable client-generation manifest over OpenAPI, JSON Schema, AsyncAPI, validation and preparation helpers, sandbox flows, and target protocol boundaries
 - `/agents/access-review.json` for machine-readable operator-review policy around requested scopes, quotas, revocation, decision outcomes, and target-adapter claims
 - `POST /agents/access-review/prepare` for manual operator-review handoff preparation after a production access packet passes validation
 - `/agents/auth.json` for machine-readable actor class, auth scheme, scope, approval, and write-boundary handling
@@ -455,6 +456,7 @@ Read-only public discovery surfaces:
 - `/schemas/agent-production-access-packet.schema.json` for the checked production access packet example shape used as operator-review input
 - `/schemas/agent-intake-validation.schema.json` for the validation-only request and response envelope used to preflight conformance reports and production access packets
 - `/schemas/agent-action-preflight.schema.json` for the validation-only request and response envelope used to preflight action prerequisites
+- `/schemas/agent-client-kit.schema.json` for the machine-readable agent client-generation manifest shape
 - `/schemas/agent-completion.schema.json` for the machine-readable agent completion profile shape
 - `/schemas/agent-completion-validation.schema.json` for the validation-only request and response envelope used to preflight completion claim packets
 - `/schemas/agent-delegation.schema.json` for the machine-readable human delegation profile shape
@@ -504,6 +506,15 @@ The catalog is descriptive and contract-linked. It labels whether an action is
 public read, live authenticated HTTP, or target direction, and it includes
 resolver scopes where live endpoints enforce them. It does not bypass endpoint
 authorization, idempotency, or canonical lifecycle rules.
+
+The public agent client kit at `/agents/client-kit.json` is a descriptive
+manifest for generating local clients from existing OpenAPI, JSON Schema,
+AsyncAPI, validation, preparation, sandbox, and target protocol surfaces. It
+splits public-read, guardrail, authorized-work, payment, sandbox, and target
+adapter clients so generated code does not blur authority. It is not a
+generated SDK package, production credential, permission grant, operator
+approval record, new API surface, MCP server, A2A adapter, x402 activation,
+payment authority, completion proof, or durable truth object.
 
 Agent-facing OpenAPI contracts must expose auth metadata in the machine-readable
 contract, not only in prose. Live request, supply, and payment OpenAPI exports
@@ -789,6 +800,7 @@ routes:
 - `/agents/execution.json` is the public execution lens agents should read before starting work, retrying a lane, or promoting runtime output; it does not authorize writes, prove completion, or turn runtime sessions, provider tasks, MCP sessions, A2A tasks, x402 payments, stdout, local logs, or tool traces into roots
 - `/agents/human-handoffs.json` is the public handoff lens agents should read before asking, stopping, escalating, requesting approval, or claiming draft, proposal, proof, payment, monitor, or completion state to a human
 - `/agents/http.json` is the public HTTP lens agents should read before choosing a live route; it summarizes existing OpenAPI exports and does not create a new endpoint contract, grant permission, replace route auth, make target adapters live, or prove completion
+- `/agents/client-kit.json` is the public client-generation lens agents should read before generating local wrappers; it organizes existing contract sources and must not be treated as a generated SDK package, credential, permission grant, operator approval, new API surface, adapter implementation, payment authority, completion proof, or durable truth object
 - `/agents/ux.json` is the public UX lens agents should read before rendering human-facing process state; it organizes existing profiles and route contracts without creating a workflow engine, permission grant, approval record, payment authorization, adapter, or completion proof
 - `POST /agents/intake/validate` is the public validation-only preflight agents may call before human or operator review; it validates conformance reports and production access packets but does not submit them, issue credentials, grant permission, record approval, authorize spend, create a production sandbox, write `RequestEvent` truth, or prove completion
 - `POST /agents/actions/preflight` is the public validation-only preflight agents may call before attempting apply, submit, monitor, run, or optimize actions; it validates visible prerequisites and returns canonical route guidance but does not grant permission, record approval, authorize spend, publish artifacts, propose commitments, mutate requests, write `RequestEvent` truth, or prove completion

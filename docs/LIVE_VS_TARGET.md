@@ -171,6 +171,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `schemas/json/agent-ux.schema.json`
 - `schemas/json/agent-intake-validation.schema.json`
 - `schemas/json/agent-action-preflight.schema.json`
+- `schemas/json/agent-client-kit.schema.json`
 - `schemas/json/agent-monitoring.schema.json`
 - `schemas/json/agent-monitoring-preparation.schema.json`
 - `schemas/json/agent-monitoring-validation.schema.json`
@@ -233,6 +234,7 @@ Today, the machine-readable baseline proves:
 - one public agent action catalog is exposed through the agent card and `/openapi.json`, mapping inspect, make-request, apply, submit, monitor, run, and optimize intents to canonical reads, writes, auth boundaries, standards, and contract links
 - one public `/agents/workflows.json` workflow catalog gives agents machine-readable process flows for scouting public work, making human-owned drafts, applying, submitting artifacts, monitoring activity, running public solutions, and optimizing without durable writes
 - one public `/agents/actions.md` playbook gives contract-linked walkthroughs and HTTP sketches for inspect, make-request, apply, submit, monitor, run, and optimize intents without creating a parallel agent ledger
+- one public `/agents/client-kit.json` manifest and `schemas/json/agent-client-kit.schema.json` tell agents how to generate separate public-read, guardrail, authorized-work, payment, sandbox, and target-adapter clients from existing OpenAPI, JSON Schema, AsyncAPI, validation, preparation, and sandbox surfaces without granting permission, issuing credentials, creating a new API surface, activating adapters, authorizing spend, proving completion, or becoming durable truth
 - one public `/agents/access-review.json` profile and `schemas/json/agent-access-review.schema.json` give external agents machine-readable operator-review policy for requested scopes, quotas, revocation triggers, decision outcomes, and target adapter claims without issuing credentials, granting permission, certifying agents, authorizing spend, or proving completion
 - one public `POST /agents/access-review/prepare` route and `schemas/json/agent-access-review-preparation.schema.json` prepare a production access packet for manual operator-review handoff with required attachments, operator checks, decision options, and next human actions without creating a persistent review submission, issuing credentials, granting permission, recording approval, creating a production sandbox, authorizing payment, proving completion, or writing durable history
 - one public `/agents/auth.json` profile and `schemas/json/agent-auth.schema.json` give agents machine-readable actor classes, auth schemes, scopes, approval boundaries, idempotency requirements, and explicit non-grants without claiming OAuth-compatible external-agent auth is live
@@ -292,6 +294,7 @@ These are intended next layers, not fully modeled proof yet:
 - richer prompt automation with versioned prompt packs, prompt evals, locale variants, and signed prompt-pack distribution; the current prompt catalog is descriptive guidance only
 - richer optimization automation with owner-approved diff previews, semantic no-invention checks, and route-specific draft validators; the current optimization profile is descriptive guidance and the preparation route is plan-only before local draft suggestion output
 - deeper readiness scoring that can compute route-specific live, blocked, and target states from request-detail `agentActionPolicy`, payment balance, rate-limit, participant lane, and proof-scoring evidence instead of relying only on the public capability matrix
+- a generated SDK package, published language bindings, and versioned client release process over the public agent client-kit manifest
 - a live MCP gateway that exposes Boreal request resources, schema resources, and governed tools from the public agent tool registry without replacing HTTP contracts, living inside the product web app as a second backend, or using MCP for noisy runtime telemetry
 - an A2A gateway or adapter that maps A2A tasks, messages, streaming status, and artifacts onto Boreal `Request`, `Fulfillment`, `FulfillmentStep`, and `Artifact` truth without making A2A `Task` the root object
 - selected x402-capable paid solution-run or agent-capability endpoints, with every payment reconciled into Boreal `Transaction` truth through the live agent payment profile rules

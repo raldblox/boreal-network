@@ -6,6 +6,7 @@ import {
   buildAgentActionsMarkdown,
   buildAgentAuthProfile,
   buildAgentCard,
+  buildAgentClientKitProfile,
   buildAgentConformanceProfile,
   buildAgentCompletionProfile,
   buildAgentDelegationProfile,
@@ -61,6 +62,7 @@ import {
 import { GET as getAgentCard } from "@/app/.well-known/agent-card.json/route";
 import { GET as getAgentActions } from "@/app/agents/actions.md/route";
 import { POST as postAgentActionPreflight } from "@/app/agents/actions/preflight/route";
+import { GET as getAgentClientKit } from "@/app/agents/client-kit.json/route";
 import { GET as getAgentAccessReview } from "@/app/agents/access-review.json/route";
 import { POST as postAgentAccessReviewPreparation } from "@/app/agents/access-review/prepare/route";
 import { GET as getAgentAuth } from "@/app/agents/auth.json/route";
@@ -204,6 +206,10 @@ async function main() {
   );
   assert.equal(
     agentCard.actionPreflightUrl.endsWith("/agents/actions/preflight"),
+    true,
+  );
+  assert.equal(
+    agentCard.clientKitUrl.endsWith("/agents/client-kit.json"),
     true,
   );
   assert.equal(
@@ -354,6 +360,19 @@ async function main() {
   );
   assert.equal(
     agentCard.actionPreflight.nonAuthority.includes("request mutation"),
+    true,
+  );
+  assert.equal(agentCard.clientKit.status, "live_client_manifest");
+  assert.equal(
+    agentCard.clientKit.generationOrder.includes("split_client_authority"),
+    true,
+  );
+  assert.equal(
+    agentCard.clientKit.clientSurfaces.some(
+      (surface: { id: string; canonicalWrites: string[] }) =>
+        surface.id === "guardrail_client" &&
+        surface.canonicalWrites.length === 0
+    ),
     true,
   );
   assert.equal(agentCard.sandboxReplayValidation.status, "live_validation_only");
@@ -846,6 +865,12 @@ async function main() {
     true,
   );
   assert.equal(
+    readinessProfile.resources.some((resource) =>
+      resource.url.endsWith("/agents/client-kit.json")
+    ),
+    true,
+  );
+  assert.equal(
     readinessProfile.standardPlanes.some(
       (plane) => plane.id === "http_contracts" && plane.standard === "OpenAPI 3.1"
     ),
@@ -971,6 +996,46 @@ async function main() {
     readinessProfile.nextImplementationPriorities.some(
       (priority) => priority.id === "production_agent_auth"
     ),
+    true,
+  );
+
+  const clientKit = buildAgentClientKitProfile();
+  assert.equal(clientKit.status, "live_client_manifest");
+  assert.equal(clientKit.canonicalBoundary.rootObject, "Request");
+  assert.equal(
+    clientKit.generationOrder.some(
+      (step) => step.id === "split_client_authority"
+    ),
+    true,
+  );
+  assert.equal(
+    clientKit.contractSources.some(
+      (source) =>
+        source.standard === "OpenAPI 3.1" &&
+        source.url.endsWith("/openapi/request-briefing.yaml")
+    ),
+    true,
+  );
+  assert.equal(
+    clientKit.contractSources.some(
+      (source) =>
+        source.standard === "JSON Schema 2020-12" &&
+        source.url.endsWith("/schemas/agent-client-kit.schema.json")
+    ),
+    true,
+  );
+  assert.equal(
+    clientKit.clientSurfaces.some(
+      (surface) =>
+        surface.id === "guardrail_client" &&
+        surface.status === "live_validation_and_preparation" &&
+        surface.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(clientKit.nonGoals.includes("generated SDK package"), true);
+  assert.equal(
+    clientKit.canonicalBoundary.clientKitIsNot.includes("permission grant"),
     true,
   );
 
@@ -3335,6 +3400,7 @@ async function main() {
   assert.match(startGuide, /Agent evidence validation endpoint/);
   assert.match(startGuide, /Agent human handoff packet examples/);
   assert.match(startGuide, /Agent HTTP reference profile/);
+  assert.match(startGuide, /Agent client kit/);
   assert.match(startGuide, /Agent UX profile/);
   assert.match(startGuide, /Agent action preflight endpoint/);
   assert.match(startGuide, /Agent intake validation endpoint/);
@@ -3386,6 +3452,10 @@ async function main() {
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/actions.md"), true);
   assert.equal(
     Object.hasOwn(discoveryIndex.paths, "/agents/actions/preflight"),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(discoveryIndex.paths, "/agents/client-kit.json"),
     true,
   );
   assert.equal(Object.hasOwn(discoveryIndex.paths, "/agents/auth.json"), true);
@@ -3492,6 +3562,10 @@ async function main() {
     true,
   );
   assert.equal(
+    Object.hasOwn(discoveryIndex.components.schemas, "AgentClientKit"),
+    true,
+  );
+  assert.equal(
     Object.hasOwn(
       discoveryIndex.components.schemas,
       "AgentEvidenceValidationResult"
@@ -3571,6 +3645,30 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-action-preflight"].nonAuthority.includes(
       "commitment proposal"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-client-kit"].status,
+    "live_client_manifest",
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-client-kit"].generationOrder.includes(
+      "split_client_authority"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-client-kit"].clientSurfaces.some(
+      (surface: { id: string; canonicalWrites: string[] }) =>
+        surface.id === "guardrail_client" &&
+        surface.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-client-kit"].nonGoals.includes(
+      "generated SDK package"
     ),
     true,
   );
@@ -3965,6 +4063,10 @@ async function main() {
     "schemas/json/agent-action-preflight.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("agent-client-kit.schema.json")?.sourcePath,
+    "schemas/json/agent-client-kit.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-completion.schema.json")?.sourcePath,
     "schemas/json/agent-completion.schema.json",
   );
@@ -4137,6 +4239,13 @@ async function main() {
   assert.match(
     await agentActionsResponse.text(),
     /Boreal Agent Action Playbook/
+  );
+
+  const agentClientKitResponse = await getAgentClientKit();
+  assert.equal(agentClientKitResponse.status, 200);
+  assert.equal(
+    (await agentClientKitResponse.json()).status,
+    "live_client_manifest"
   );
 
   const agentAccessReviewResponse = await getAgentAccessReview();
@@ -5172,6 +5281,7 @@ async function main() {
   assert.match(llmsText, /Agent access review preparation endpoint/);
   assert.match(llmsText, /Agent action playbook/);
   assert.match(llmsText, /Agent action preflight endpoint/);
+  assert.match(llmsText, /Agent client kit/);
   assert.match(llmsText, /Agent auth profile/);
   assert.match(llmsText, /Agent auth preparation endpoint/);
   assert.match(llmsText, /Agent conformance profile/);
@@ -5344,6 +5454,20 @@ async function main() {
   assert.equal(
     (await actionPreflightSchemaResponse.json()).title,
     "AgentActionPreflight"
+  );
+
+  const clientKitSchemaResponse = await getJsonSchema(
+    new Request("http://boreal.test"),
+    {
+      params: Promise.resolve({
+        schema: "agent-client-kit.schema.json",
+      }),
+    }
+  );
+  assert.equal(clientKitSchemaResponse.status, 200);
+  assert.equal(
+    (await clientKitSchemaResponse.json()).title,
+    "AgentClientKit"
   );
 
   const completionSchemaResponse = await getJsonSchema(new Request("http://boreal.test"), {
