@@ -190,6 +190,8 @@
           "type": "string",
           "enum": [
             "read",
+            "validation",
+            "preparation",
             "mutation",
             "monitor",
             "payment_mutation",
@@ -200,6 +202,8 @@
           "type": "string",
           "enum": [
             "live_http_contract",
+            "live_validation_only",
+            "live_preparation_only",
             "target_profile"
           ]
         },

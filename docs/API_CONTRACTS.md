@@ -433,7 +433,7 @@ Read-only public discovery surfaces:
 - `/agents/protocol-adapter-samples.json` for target-only MCP, A2A, and x402 sample payloads mapped to Boreal HTTP contracts, scopes, idempotency, and canonical writes
 - `/agents/recovery.json` for machine-readable auth failure, scope failure, idempotency conflict, rate limit, monitor cursor, fulfillment retry, payment uncertainty, and escalation handling
 - `/agents/readiness.json` for machine-readable live-versus-target capability bands, standard planes, agent UX flow, and go/no-go checks
-- `/agents/tools.json` for machine-readable safe tool invocation, preflight, HTTP fallback, target MCP/A2A mapping, idempotency, and canonical write boundaries
+- `/agents/tools.json` for machine-readable safe tool invocation, validation and preparation tools, HTTP fallback, target MCP/A2A mapping, idempotency, and canonical write boundaries
 - `/agents/sandbox.md` for a contract-only sandbox guide with deterministic mock identities, sample IDs, payloads, and replay scenarios
 - `/agents/sandbox.json` for the machine-readable contract-only sandbox manifest and deterministic replay catalog
 - `POST /agents/sandbox/replay` for validation-only replay evidence checks before conformance or production-access review packets
@@ -738,10 +738,14 @@ authorization, or completion proof.
 
 The public agent tool registry is descriptive and safety-oriented. It maps
 agent intents to current HTTP routes plus target MCP and A2A names, and it names
-the preflight, auth, idempotency, output-truth, and canonical write boundaries
-for each tool. It does not create a separate tool runtime, grant permission,
-make MCP or A2A adapters live, or let tool success replace `Request`,
-`Commitment`, `Fulfillment`, `Artifact`, `Transaction`, or `RequestEvent` truth.
+the validation, preparation, auth, idempotency, output-truth, and canonical write
+boundaries for each tool. Validation and preparation tools return readiness,
+missing-field, safe-language, and next-step guidance only; they do not execute
+actions, persist approvals, publish artifacts, accept review, authorize payment,
+grant permission, prove completion, or write durable history. The registry does
+not create a separate tool runtime, grant permission, make MCP or A2A adapters
+live, or let tool success replace `Request`, `Commitment`, `Fulfillment`,
+`Artifact`, `Transaction`, or `RequestEvent` truth.
 
 The sandbox surfaces are contract samples only.
 They do not create live objects, spend money, approve resolver access, or grant

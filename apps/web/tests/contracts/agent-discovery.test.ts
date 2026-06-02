@@ -2865,6 +2865,56 @@ async function main() {
     true,
   );
   assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.actions.preflight" &&
+        tool.invocationKind === "validation" &&
+        tool.status === "live_validation_only" &&
+        tool.standardMappings.http.href.endsWith("/agents/actions/preflight") &&
+        tool.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.completion.validate_claim" &&
+        tool.invocationKind === "validation" &&
+        tool.status === "live_validation_only" &&
+        tool.standardMappings.http.href.endsWith("/agents/completion/validate") &&
+        tool.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.monitoring.prepare_plan" &&
+        tool.invocationKind === "preparation" &&
+        tool.status === "live_preparation_only" &&
+        tool.standardMappings.http.href.endsWith("/agents/monitoring/prepare") &&
+        tool.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.tools.some(
+      (tool) =>
+        tool.id === "boreal.optimization.prepare_brief" &&
+        tool.invocationKind === "preparation" &&
+        tool.status === "live_preparation_only" &&
+        tool.standardMappings.http.href.endsWith("/agents/optimization/prepare") &&
+        tool.canonicalWrites.length === 0
+    ),
+    true,
+  );
+  assert.equal(
+    toolRegistry.invocationRules.some((rule) =>
+      rule.includes("Validation and preparation tools")
+    ),
+    true,
+  );
+  assert.equal(
     toolRegistry.adapterMappings.some(
       (mapping) =>
         mapping.standard === "Model Context Protocol" &&
@@ -3847,6 +3897,12 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-tools"].tools.some(
       (tool) => tool.id === "boreal.activity.monitor"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-tools"].tools.some(
+      (tool) => tool.id === "boreal.completion.validate_claim"
     ),
     true,
   );

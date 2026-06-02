@@ -28,7 +28,7 @@ The public agent tool registry lives at:
 - `schemas/json/agent-tools.schema.json`
 
 It is a descriptive registry for agents and future protocol adapters.
-It maps common intents such as inspect, make draft, apply, submit proof, monitor, run public solution, reconcile payment, and optimize draft into safe HTTP calls and target MCP or A2A names.
+It maps common intents such as inspect, make draft, apply, submit proof, monitor, run public solution, reconcile payment, optimize draft, validation, and preparation into safe HTTP calls and target MCP or A2A names.
 
 Rules:
 
@@ -38,6 +38,8 @@ Rules:
 - A2A operations are target adapter mappings until a live A2A adapter exists
 - every write-capable tool must still read `agentActionPolicy` before mutation
 - every payment-capable tool must follow `/agents/payments.json`
+- validation and preparation tools return readiness, missing-field, safe-language, and next-step guidance only
+- validation and preparation tools do not execute actions, persist approvals, publish artifacts, accept review, authorize payment, grant permission, prove completion, or write durable history
 - tool success is not completion truth unless canonical request lifecycle, proof, and review truth support the claim
 
 ## Tool Layers

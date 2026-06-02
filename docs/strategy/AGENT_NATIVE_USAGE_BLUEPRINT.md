@@ -111,7 +111,7 @@ Current assets that agents can eventually build on:
 - A machine-readable protocol adapter sample pack exists through `/agents/protocol-adapter-samples.json`, `schemas/json/agent-protocol-adapter-samples.schema.json`, and `fixtures/agent/protocol-adapter-samples.sample.json`, showing target-only MCP, A2A, and x402 payload mappings without making adapters live.
 - A machine-readable recovery profile exists through `/agents/recovery.json` and `schemas/json/agent-recovery.schema.json`, mapping auth, scope, idempotency, rate-limit, monitor, fulfillment, payment, and escalation behavior for agents.
 - A machine-readable readiness profile exists through `/agents/readiness.json` and `schemas/json/agent-readiness.schema.json`, mapping live versus target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities.
-- A machine-readable tool registry exists through `/agents/tools.json` and `schemas/json/agent-tools.schema.json`, mapping agent intents to live HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, and canonical write boundaries.
+- A machine-readable tool registry exists through `/agents/tools.json` and `schemas/json/agent-tools.schema.json`, mapping agent intents to live HTTP calls, validation and preparation tools, target MCP tools, target A2A operations, idempotency, and canonical write boundaries.
 
 Current gaps to close before Boreal is truly agent-native:
 
@@ -153,7 +153,7 @@ Current gaps to close before Boreal is truly agent-native:
 - the first validation-only action preflight path now exists, so agents can check apply, submit, monitor, run, and optimize prerequisites before attempting real governed routes while keeping permission, approval, payment, artifact, commitment, request mutation, and completion decisions target-bound
 - the first validation-only evidence path now exists, so agents can check proof packets before attempting Artifact submission while keeping publication, review acceptance, payment authorization, durable history, and completion decisions target-bound
 - the first validation-only monitor path now exists, so agents can check cursor persistence, access posture, escalation triggers, no-heartbeat behavior, no-completion claims, and target signed-webhook receiver readiness while keeping subscriptions, push delivery, permission, payment, durable history, and completion target-bound
-- the first machine-readable tool registry now exists, so agents can map inspect, make draft, apply, submit, monitor, run, payment reconciliation, and optimization intents to safe HTTP calls while keeping MCP and A2A as target adapter mappings
+- the first machine-readable tool registry now exists, so agents can map inspect, make draft, apply, submit, monitor, run, payment reconciliation, optimization, validation, and preparation intents to safe HTTP calls while keeping MCP and A2A as target adapter mappings
 - the first contract-only sandbox, replay scenarios, and fixture runner exist, but no production sandbox credentials or isolated write sandbox exists for external agents yet
 - the first signed webhook/push-notification profile is documented for long-running agent monitoring, but subscription persistence and delivery are not live yet
 - the first machine-readable action catalog, public action playbook, access review profile, auth profile, conformance profile, completion profile, evidence profile, execution profile, human handoff profile, monitoring profile, onboarding profile, optimization profile, payment profile, prompt catalog, and readiness profile now name inspect, make-request, apply, submit, monitor, run, optimize, spend, recover, approve, escalate, proof-package, lane-start, runtime-promotion, sandbox-validation, production-access-review, prompt-output, and claim-state boundaries, but production sandbox credentials and live external-agent authorization are still needed
@@ -890,7 +890,7 @@ Deliverables:
 - `/agents/protocol-adapter-samples.json` - implemented as a public target-only MCP, A2A, and x402 sample payload pack
 - `/agents/recovery.json` - implemented as a public machine-readable recovery profile for auth failures, missing scopes, idempotency conflicts, rate limits, monitor cursor recovery, blocked fulfillment retry, payment uncertainty, and escalation packets
 - `/agents/readiness.json` - implemented as a public machine-readable readiness profile for live-versus-target capability bands, standard planes, agent UX flow, go/no-go checks, current limitations, and next implementation priorities
-- `/agents/tools.json` - implemented as a public machine-readable tool registry for live HTTP calls, target MCP tools, target A2A operations, preflight checks, idempotency, output truth, and canonical write boundaries
+- `/agents/tools.json` - implemented as a public machine-readable tool registry for live HTTP calls, validation and preparation tools, target MCP tools, target A2A operations, idempotency, output truth, and canonical write boundaries
 - `/agents/sandbox.md` and `/agents/sandbox.json` - implemented as a public contract-only sandbox guide and manifest with deterministic replay scenarios
 - `/agents/sandbox/replay` - implemented as a public validation-only endpoint for checking sandbox replay evidence against manifest scenarios without granting access or creating durable truth
 - `/.well-known/agent-card.json` - implemented as a public-safe JSON card in `apps/web`
@@ -981,7 +981,7 @@ Current evidence:
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent prompt catalog, apply and submit prompt mappings, draft-only output contract, non-mutation boundary, OpenAPI extension, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent protocol adapter sample pack, MCP/A2A/x402 sample coverage, target-only status, non-permission boundary, public route, and public schema route.
 - `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent readiness profile, live and target capability bands, standards map, agent UX flow, go/no-go checks, and public schema route.
-- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent tool registry, HTTP invocation baseline, target MCP/A2A mappings, idempotency, optimization draft-only behavior, optimization preparation pass/fail route behavior, payment mutation boundaries, non-root tool objects, and public schema route.
+- `apps/web/tests/contracts/agent-discovery.test.ts` verifies the agent tool registry, HTTP invocation baseline, validation and preparation tool categories, target MCP/A2A mappings, idempotency, optimization draft-only behavior, optimization preparation pass/fail route behavior, payment mutation boundaries, non-root tool objects, and public schema route.
 - `pnpm contracts:agent-sandbox` verifies the sandbox fixture, mock identity coverage, idempotency samples, cursor sample, signed-webhook sample, draft-only optimization sample, deterministic replay scenarios, conformance report fixture, production access packet fixture, and production-auth boundary.
 - `apps/web/tests/contracts/request-boundary.test.ts` verifies public request action affordances, keeps owner-only routing and planner internals out of public projections, and only exposes `run_public_solution` when completed public solution truth exists.
 
@@ -1010,7 +1010,7 @@ Deliverables:
 
 - Boreal MCP server or gateway workspace
 - resource list for public requests, request details, schemas, activity, and artifacts - first profile listed in `/agents/protocols.md` and `standards/agent-protocol-profile.md`
-- tools for propose commitment, publish artifact, monitor request, run public solution, payment reconciliation, and draft optimization - first machine-readable registry is live in `/agents/tools.json`, while the live MCP server remains target
+- tools for propose commitment, publish artifact, monitor request, run public solution, payment reconciliation, draft optimization, validation, and preparation - first machine-readable registry is live in `/agents/tools.json`, while the live MCP server remains target
 - prompts for briefing, applying, submitting proof, and plan optimization - first profile listed in `/agents/protocols.md` and `standards/agent-protocol-profile.md`
 
 Acceptance:
@@ -1102,7 +1102,7 @@ Boreal is agent-ready when all of these are true:
 - A fresh agent can find the prompt catalog and use briefing, applying, proof submission, monitoring, optimization, and recovery prompts without treating prompt output as mutation, approval, payment, proof, or completion truth.
 - A fresh agent can fetch protocol adapter samples and understand how MCP tool calls, A2A tasks or artifacts, and x402 payment payloads map to Boreal routes without becoming canonical roots or live adapters.
 - A fresh agent can find the readiness profile and distinguish live public reads, live authenticated HTTP contracts, contract-only sandbox flows, and target OAuth, MCP, A2A, and x402 layers.
-- A fresh agent can find the tool registry and map common agent intents to safe HTTP calls, target MCP tools, target A2A operations, required preflights, idempotency requirements, and canonical writes.
+- A fresh agent can find the tool registry and map common agent intents to safe HTTP calls, validation/preparation guardrail tools, target MCP tools, target A2A operations, idempotency requirements, and canonical writes.
 - A fresh agent can inspect public requests without auth.
 - Draft and private requests are not exposed through public reads.
 - A scoped requester agent can create or update a draft request without opening it automatically.

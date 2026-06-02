@@ -10436,8 +10436,36 @@ export function buildAgentToolRegistry() {
         url: absoluteUrl(agentDiscoveryPaths.agentAuth),
       },
       {
+        label: "Agent auth preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+      },
+      {
+        label: "Agent action preflight endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+      },
+      {
         label: "Agent completion profile",
         url: absoluteUrl(agentDiscoveryPaths.agentCompletion),
+      },
+      {
+        label: "Agent completion validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+      },
+      {
+        label: "Agent evidence validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+      },
+      {
+        label: "Agent monitoring validation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+      },
+      {
+        label: "Agent monitoring preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+      },
+      {
+        label: "Agent optimization preparation endpoint",
+        url: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
       },
       {
         label: "Agent payment profile",
@@ -10475,6 +10503,7 @@ export function buildAgentToolRegistry() {
       "Mutation tools must use the same HTTP endpoints, auth, idempotency, lifecycle, and approval gates as human or resolver flows.",
       "MCP and A2A names in this registry are target adapter mappings until a live adapter contract says otherwise.",
       "Tool outputs are not completion truth until they map back to Request, Commitment, Fulfillment, FulfillmentStep, Artifact, Transaction, or RequestEvent records.",
+      "Validation and preparation tools return readiness, missing fields, safe language, and next-step guidance only; they do not execute actions, persist approvals, publish artifacts, accept review, authorize payment, or create durable history.",
       "If a tool call spends money or credits, use the payment profile and reconcile into Transaction truth.",
       "If a tool call fails or returns uncertain state, use the recovery profile before retrying.",
     ],
@@ -10587,6 +10616,316 @@ export function buildAgentToolRegistry() {
         stopWhen: [
           "agentActionPolicy blocks the intended next action.",
           "resolver missingScopes is non-empty for the desired write.",
+        ],
+      },
+      {
+        id: "boreal.auth.prepare_action",
+        actionId: "auth_preparation",
+        title: "Prepare action auth requirements",
+        invocationKind: "preparation",
+        status: "live_preparation_only",
+        standardMappings: {
+          http: {
+            method: "POST",
+            href: absoluteUrl(agentDiscoveryPaths.agentAuthPrepare),
+          },
+          mcp: {
+            status: "target_adapter_mapping",
+            type: "tool",
+            name: "boreal.auth.prepare_action",
+          },
+          a2a: {
+            status: "target_adapter_mapping",
+            operation: "prepare action authentication",
+          },
+        },
+        inputShape: {
+          required: ["actionId", "representedActor", "requestedScopes"],
+          optional: ["requestId", "idempotencyIntent", "humanApprovalState"],
+        },
+        preflight: [
+          "Use before any write-capable action when the agent is unsure which auth scheme, scope, approval, and idempotency posture applies.",
+          "Treat the response as guidance, not a credential, permission grant, or approval record.",
+        ],
+        auth: "none for public preparation profile",
+        idempotencyRequired: false,
+        canonicalReads: [],
+        canonicalWrites: [],
+        outputTruth: [
+          "required auth scheme",
+          "required scopes",
+          "approval and policy checks",
+          "idempotency posture",
+        ],
+        stopWhen: [
+          "The agent would treat auth preparation as a live credential or permission grant.",
+        ],
+      },
+      {
+        id: "boreal.actions.preflight",
+        actionId: "action_preflight",
+        title: "Preflight a Boreal action",
+        invocationKind: "validation",
+        status: "live_validation_only",
+        standardMappings: {
+          http: {
+            method: "POST",
+            href: absoluteUrl(agentDiscoveryPaths.agentActionPreflight),
+          },
+          mcp: {
+            status: "target_adapter_mapping",
+            type: "tool",
+            name: "boreal.actions.preflight",
+          },
+          a2a: {
+            status: "target_adapter_mapping",
+            operation: "preflight request action",
+          },
+        },
+        inputShape: {
+          required: ["actionId", "requestId", "representedActor", "requestedScopes"],
+          optional: ["idempotencyKey", "humanApprovalState", "canonicalWrites"],
+        },
+        preflight: [
+          "Use after reading request detail and before apply, submit, monitor, run, optimize, spend, approve, or escalate actions.",
+          "Confirm missing requirements, scopes, route contracts, idempotency, and canonical write boundaries before attempting a live route.",
+        ],
+        auth: "none for validation; live action still requires its own auth",
+        idempotencyRequired: false,
+        canonicalReads: ["Request"],
+        canonicalWrites: [],
+        outputTruth: [
+          "preflight status",
+          "missing requirements",
+          "required scopes",
+          "route contract",
+          "non-authority flags",
+        ],
+        stopWhen: [
+          "The preflight fails or the live action would require approval, scope, or idempotency the agent does not have.",
+        ],
+      },
+      {
+        id: "boreal.evidence.validate_packet",
+        actionId: "evidence_validation",
+        title: "Validate proof or delivery evidence",
+        invocationKind: "validation",
+        status: "live_validation_only",
+        standardMappings: {
+          http: {
+            method: "POST",
+            href: absoluteUrl(agentDiscoveryPaths.agentEvidenceValidation),
+          },
+          mcp: {
+            status: "target_adapter_mapping",
+            type: "tool",
+            name: "boreal.evidence.validate_packet",
+          },
+          a2a: {
+            status: "target_adapter_mapping",
+            operation: "validate evidence packet",
+          },
+        },
+        inputShape: {
+          required: ["requestId", "artifactKind", "title", "summary", "redaction assertions"],
+          optional: ["fulfillmentId", "commitmentId", "artifact references", "review signals"],
+        },
+        preflight: [
+          "Use before submit_artifact when proof, receipt, delivery, or handoff evidence will become reviewable.",
+          "Keep secrets, raw prompts, runtime logs, payment-only proof, and completion claims out of the packet.",
+        ],
+        auth: "none for validation; artifact submission still requires its own auth",
+        idempotencyRequired: false,
+        canonicalReads: ["Request", "Fulfillment", "Artifact"],
+        canonicalWrites: [],
+        outputTruth: [
+          "packet posture",
+          "missing fields",
+          "redaction guidance",
+          "non-authority flags",
+        ],
+        stopWhen: [
+          "The packet includes secrets, raw prompt transcript, raw runtime logs, payment-only proof, or unsupported completion language.",
+        ],
+      },
+      {
+        id: "boreal.completion.validate_claim",
+        actionId: "completion_claim_validation",
+        title: "Validate completion-sensitive language",
+        invocationKind: "validation",
+        status: "live_validation_only",
+        standardMappings: {
+          http: {
+            method: "POST",
+            href: absoluteUrl(agentDiscoveryPaths.agentCompletionValidation),
+          },
+          mcp: {
+            status: "target_adapter_mapping",
+            type: "tool",
+            name: "boreal.completion.validate_claim",
+          },
+          a2a: {
+            status: "target_adapter_mapping",
+            operation: "validate completion claim",
+          },
+        },
+        inputShape: {
+          required: ["requestId", "claimState", "summary", "evidenceSummary", "truth assertions"],
+          optional: ["commitmentId", "fulfillmentId", "artifactId", "transactionId", "acceptedArtifactId"],
+        },
+        preflight: [
+          "Use before saying draft-ready, proposal-submitted, proof-submitted, waiting-for-owner, run-started, or completed.",
+          "Treat validation as language safety and packet posture only; it is not completion proof or lifecycle mutation.",
+        ],
+        auth: "none for validation; any live mutation still requires its own auth",
+        idempotencyRequired: false,
+        canonicalReads: [
+          "Request",
+          "Commitment",
+          "Fulfillment",
+          "Artifact",
+          "Transaction",
+          "RequestEvent",
+        ],
+        canonicalWrites: [],
+        outputTruth: [
+          "matched completion rule",
+          "required truth",
+          "missing fields",
+          "safe next steps",
+          "false non-authority flags",
+        ],
+        stopWhen: [
+          "The agent would claim completion from tool success, payment settlement, provider callback, runtime logs, MCP result, A2A task, or chat output alone.",
+        ],
+      },
+      {
+        id: "boreal.monitoring.validate_cursor",
+        actionId: "monitor_checkpoint_validation",
+        title: "Validate monitor checkpoint posture",
+        invocationKind: "validation",
+        status: "live_validation_only",
+        standardMappings: {
+          http: {
+            method: "POST",
+            href: absoluteUrl(agentDiscoveryPaths.agentMonitoringValidation),
+          },
+          mcp: {
+            status: "target_adapter_mapping",
+            type: "tool",
+            name: "boreal.monitoring.validate_cursor",
+          },
+          a2a: {
+            status: "target_adapter_mapping",
+            operation: "validate monitor checkpoint",
+          },
+        },
+        inputShape: {
+          required: ["requestId", "afterSequence", "limit", "monitor intent"],
+          optional: ["lastSeenEventId", "webhook delivery target", "escalation posture"],
+        },
+        preflight: [
+          "Use before resuming activity polling, deciding whether a cursor is safe to persist, or rendering monitor state.",
+          "Do not treat cursor validation as a subscription, push delivery, activity read, or durable event.",
+        ],
+        auth: "none for validation; private activity reads still require their own auth",
+        idempotencyRequired: false,
+        canonicalReads: ["RequestEvent", "Artifact", "Transaction"],
+        canonicalWrites: [],
+        outputTruth: [
+          "monitor validation status",
+          "cursor guidance",
+          "escalation hints",
+          "non-authority flags",
+        ],
+        stopWhen: [
+          "The monitor would lose cursor continuity, claim stale state as current, or rely on unsigned push payloads.",
+        ],
+      },
+      {
+        id: "boreal.monitoring.prepare_plan",
+        actionId: "monitor_preparation",
+        title: "Prepare a monitor execution plan",
+        invocationKind: "preparation",
+        status: "live_preparation_only",
+        standardMappings: {
+          http: {
+            method: "POST",
+            href: absoluteUrl(agentDiscoveryPaths.agentMonitoringPrepare),
+          },
+          mcp: {
+            status: "target_adapter_mapping",
+            type: "tool",
+            name: "boreal.monitoring.prepare_plan",
+          },
+          a2a: {
+            status: "target_adapter_mapping",
+            operation: "prepare monitor plan",
+          },
+        },
+        inputShape: {
+          required: ["requestId", "preparationIntent", "preparationMode", "monitor"],
+          optional: ["cursor", "webhook target", "escalation thresholds"],
+        },
+        preflight: [
+          "Use before long-running monitor loops or signed webhook setup decisions.",
+          "Treat the response as a plan; it does not persist subscriptions or activate push delivery.",
+        ],
+        auth: "none for preparation; activity reads and subscriptions still require their own auth",
+        idempotencyRequired: false,
+        canonicalReads: ["RequestEvent", "Artifact", "Transaction"],
+        canonicalWrites: [],
+        outputTruth: [
+          "cursor poll plan",
+          "webhook readiness guidance",
+          "escalation packet fields",
+          "non-authority flags",
+        ],
+        stopWhen: [
+          "The agent would treat a prepared monitor plan as a persisted subscription or current activity read.",
+        ],
+      },
+      {
+        id: "boreal.optimization.prepare_brief",
+        actionId: "optimization_preparation",
+        title: "Prepare a request optimization plan",
+        invocationKind: "preparation",
+        status: "live_preparation_only",
+        standardMappings: {
+          http: {
+            method: "POST",
+            href: absoluteUrl(agentDiscoveryPaths.agentOptimizationPrepare),
+          },
+          mcp: {
+            status: "target_adapter_mapping",
+            type: "tool",
+            name: "boreal.optimization.prepare_brief",
+          },
+          a2a: {
+            status: "target_adapter_mapping",
+            operation: "prepare request optimization",
+          },
+        },
+        inputShape: {
+          required: ["requestId", "preparationIntent", "source brief", "explicit facts"],
+          optional: ["owner instructions", "missing questions", "proposed patch"],
+        },
+        preflight: [
+          "Use before producing optimization output for a human-owned request brief.",
+          "Keep output draft-only until the owner approves a governed mutation path.",
+        ],
+        auth: "none for preparation; request mutation still requires account session and owner approval",
+        idempotencyRequired: false,
+        canonicalReads: ["Request", "Artifact", "RequestEvent"],
+        canonicalWrites: [],
+        outputTruth: [
+          "optimization plan",
+          "safe patch boundaries",
+          "missing questions",
+          "non-authority flags",
+        ],
+        stopWhen: [
+          "Optimization would invent facts, mutate buyer-authored text, or change route/payment/proof semantics without owner approval.",
         ],
       },
       {
