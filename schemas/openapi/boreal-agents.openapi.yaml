@@ -1,0 +1,364 @@
+openapi: 3.1.0
+info:
+  title: Boreal Named Agents API
+  version: 0.1.0
+  description: |
+    Preparation-only route contract for named in-house Boreal agents.
+    These routes expose agent templates and prepare application packets without
+    mutating Request, Commitment, Fulfillment, FulfillmentStep, Artifact,
+    Transaction, or RequestEvent truth.
+paths:
+  /api/boreal-agents/{agentKey}:
+    get:
+      summary: Read a named Boreal agent template.
+      operationId: getBorealAgentTemplate
+      parameters:
+        - $ref: "#/components/parameters/AgentKey"
+      responses:
+        "200":
+          description: Agent template and explicit non-authority boundary.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BorealAgentTemplateResponse"
+        "404":
+          description: Unknown named agent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      summary: Prepare an application packet for a named Boreal agent.
+      operationId: prepareBorealAgentApplication
+      parameters:
+        - $ref: "#/components/parameters/AgentKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrepareApplicationRequest"
+      responses:
+        "200":
+          description: Preparation-only application result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreparedAgentApplication"
+        "400":
+          description: Invalid preparation input.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown named agent.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  parameters:
+    AgentKey:
+      name: agentKey
+      in: path
+      required: true
+      schema:
+        type: string
+        enum:
+          - mira-video
+          - tala-humanizer
+  schemas:
+    BorealAgentTemplateResponse:
+      type: object
+      required:
+        - kind
+        - template
+        - authority
+      properties:
+        kind:
+          const: boreal_agent_template
+        template:
+          $ref: "#/components/schemas/BorealAgentTemplate"
+        authority:
+          $ref: "#/components/schemas/NonAuthority"
+    BorealAgentTemplate:
+      type: object
+      required:
+        - agentKey
+        - uniqueName
+        - displayName
+        - status
+        - apiRoute
+        - workerKey
+        - supplyBinding
+        - modelBindings
+        - toolBindings
+        - qualificationTags
+        - taskPipeline
+      properties:
+        agentKey:
+          type: string
+        uniqueName:
+          type: string
+        displayName:
+          type: string
+        status:
+          enum:
+            - live_template
+            - target_template
+        apiRoute:
+          type: string
+        workerKey:
+          type: string
+        supplyBinding:
+          type: object
+          required:
+            - required
+            - supplyKind
+            - providerRef
+          properties:
+            required:
+              const: true
+            supplyKind:
+              type: string
+            providerRef:
+              type: string
+        modelBindings:
+          type: array
+          items:
+            type: object
+            required:
+              - provider
+              - purpose
+              - env
+              - models
+            properties:
+              provider:
+                enum:
+                  - openai
+                  - runway
+              purpose:
+                type: string
+              env:
+                type: string
+              models:
+                type: array
+                items:
+                  type: string
+        toolBindings:
+          type: array
+          items:
+            type: string
+        qualificationTags:
+          type: object
+          required:
+            - actorKinds
+            - supplyKinds
+            - outputKinds
+            - executionKinds
+            - skipWhen
+          properties:
+            actorKinds:
+              type: array
+              items:
+                type: string
+            supplyKinds:
+              type: array
+              items:
+                type: string
+            outputKinds:
+              type: array
+              items:
+                type: string
+            executionKinds:
+              type: array
+              items:
+                type: string
+            skipWhen:
+              type: array
+              items:
+                type: string
+        taskPipeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentTaskStep"
+    AgentTaskStep:
+      type: object
+      required:
+        - id
+        - kind
+        - summary
+        - canonicalReads
+        - canonicalWritesIfAuthorized
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        summary:
+          type: string
+        canonicalReads:
+          type: array
+          items:
+            type: string
+        canonicalWritesIfAuthorized:
+          type: array
+          items:
+            type: string
+    PrepareApplicationRequest:
+      type: object
+      required:
+        - action
+        - request
+      additionalProperties: false
+      properties:
+        action:
+          const: prepare_application
+        request:
+          type: object
+          required:
+            - id
+            - visibility
+          additionalProperties: true
+          properties:
+            id:
+              type: string
+            visibility:
+              enum:
+                - public
+                - private
+            status:
+              type: string
+            brief:
+              type: object
+              additionalProperties: true
+            derived:
+              type: object
+              additionalProperties: true
+            constraints:
+              type: object
+              additionalProperties: true
+        supply:
+          type: object
+          additionalProperties: false
+          properties:
+            id:
+              type: string
+            kind:
+              type: string
+            capabilityTags:
+              type: array
+              items:
+                type: string
+            providerRef:
+              type: string
+    PreparedAgentApplication:
+      type: object
+      required:
+        - kind
+        - agent
+        - request
+        - qualification
+        - scanner
+        - applicationPacket
+        - taskPipeline
+        - nonAuthority
+      properties:
+        kind:
+          const: prepared_agent_application
+        agent:
+          type: object
+          additionalProperties: true
+        request:
+          type: object
+          additionalProperties: true
+        qualification:
+          type: object
+          required:
+            - allowedToWake
+            - reasons
+            - rejectedBy
+            - recommendedLane
+          properties:
+            allowedToWake:
+              type: boolean
+            reasons:
+              type: array
+              items:
+                type: string
+            rejectedBy:
+              type: array
+              items:
+                type: string
+            recommendedLane:
+              type: string
+        scanner:
+          type: object
+          required:
+            - canonicalReads
+            - canonicalWrites
+            - sideEffects
+          properties:
+            canonicalReads:
+              type: array
+              items:
+                type: string
+            canonicalWrites:
+              type: array
+              maxItems: 0
+            sideEffects:
+              type: array
+              maxItems: 0
+        applicationPacket:
+          type: object
+          additionalProperties: true
+        taskPipeline:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/AgentTaskStep"
+              - type: object
+                required:
+                  - state
+                properties:
+                  state:
+                    type: string
+        nonAuthority:
+          $ref: "#/components/schemas/NonAuthority"
+    NonAuthority:
+      type: object
+      required:
+        - canMutateRequest
+        - canCreateCommitment
+        - canCreateFulfillment
+        - canCallProvider
+      properties:
+        canMutateRequest:
+          const: false
+        canCreateCommitment:
+          const: false
+        canCreateFulfillment:
+          const: false
+        canCallProvider:
+          const: false
+        routeMode:
+          type: string
+        requiresSeparateAuthorizedMutation:
+          type: boolean
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        knownAgents:
+          type: array
+          items:
+            type: string
+        issues:
+          type: array
+          items:
+            type: object
+            additionalProperties: true

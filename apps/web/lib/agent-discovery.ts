@@ -342,6 +342,15 @@ export const openApiDiscoveryAssets = [
     standard: "openapi",
     title: "Payment and credit",
   },
+  {
+    contentType: "application/yaml; charset=utf-8",
+    description:
+      "Named Boreal agent template and preparation-only dispatch HTTP contract.",
+    routePath: "/openapi/boreal-agents.yaml",
+    sourcePath: "schemas/openapi/boreal-agents.openapi.yaml",
+    standard: "openapi",
+    title: "Boreal named agents",
+  },
 ] as const satisfies readonly AgentDiscoveryAsset[];
 
 export const jsonSchemaDiscoveryAssets = [

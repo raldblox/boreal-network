@@ -256,6 +256,8 @@ From the repo root:
   Validates the read-only agent discovery package: public agent card, start guide, OpenAPI discovery index, allowlisted OpenAPI/JSON Schema/AsyncAPI exports, and the `Request` root boundary.
 - `pnpm contracts:in-house-workers`
   Validates the in-house Boreal worker application profile: scanner read-only guarantees, public `Commitment` application boundary, owner-private direct `Fulfillment` exception, auto-approval non-completion limits, prompt-only asset gates, live `video-generation`, and target-only humanizer status.
+- `pnpm web:test:boreal-agents`
+  Validates the named Boreal agent route surface: unique `Mira` and `Tala` route templates, `Mira` video-generation qualification, human-required scanner skip behavior, target-only humanizer behavior, and preparation-only packets that do not create commitments, fulfillments, artifacts, events, transactions, or provider calls.
 - `pnpm evals:request-processing:benchmark`
   Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
 - `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`
