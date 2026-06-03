@@ -340,8 +340,7 @@ components:
               type: array
               maxItems: 0
         applicationPacket:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/ApplicationPacket"
         taskPipeline:
           type: array
           items:
@@ -430,8 +429,7 @@ components:
                   type: string
               applicationPacket:
                 oneOf:
-                  - type: object
-                    additionalProperties: true
+                  - $ref: "#/components/schemas/ApplicationPacket"
                   - type: "null"
         scanner:
           type: object
@@ -452,6 +450,139 @@ components:
               maxItems: 0
         nonAuthority:
           $ref: "#/components/schemas/NonAuthority"
+    ApplicationPacket:
+      type: object
+      required:
+        - requestId
+        - agentKey
+        - workerKey
+        - supplyBinding
+        - durableWriteStatus
+        - requiredNextAction
+        - mutationCall
+        - proposedCanonicalWrites
+        - proposedObject
+        - ownerApprovalMode
+      properties:
+        requestId:
+          type: string
+        agentKey:
+          type: string
+        workerKey:
+          type: string
+        supplyBinding:
+          type: object
+          additionalProperties: true
+        durableWriteStatus:
+          const: not_created_prepare_only
+        requiredNextAction:
+          const: submit_through_authorized_mutation_route
+        mutationCall:
+          $ref: "#/components/schemas/PreparedMutationCall"
+        proposedCanonicalWrites:
+          type: array
+          items:
+            type: string
+        proposedObject:
+          enum:
+            - Commitment
+            - Fulfillment
+        ownerApprovalMode:
+          enum:
+            - explicit_owner_acceptance_required
+            - trusted_worker_auto_approval_required
+    PreparedMutationCall:
+      type: object
+      required:
+        - method
+        - route
+        - auth
+        - requiredHeaders
+        - body
+        - nonAuthority
+      properties:
+        method:
+          const: POST
+        route:
+          type: string
+          pattern: "^/api/requests/[^/]+/(commitments|fulfillments)$"
+        auth:
+          type: string
+        requiredHeaders:
+          type: array
+          items:
+            type: string
+          contains:
+            const: Idempotency-Key
+        body:
+          oneOf:
+            - $ref: "#/components/schemas/CommitmentMutationBody"
+            - $ref: "#/components/schemas/FulfillmentMutationBody"
+        nonAuthority:
+          type: string
+    CommitmentMutationBody:
+      type: object
+      required:
+        - kind
+        - summary
+        - terms
+      properties:
+        kind:
+          const: proposal
+        summary:
+          type: string
+        terms:
+          type: object
+          required:
+            - fundingRequired
+            - amountMode
+            - deliverableSummary
+            - paymentNotes
+          properties:
+            fundingRequired:
+              type: boolean
+            amountMode:
+              enum:
+                - open
+            deliverableSummary:
+              type: string
+            paymentNotes:
+              type: string
+    FulfillmentMutationBody:
+      type: object
+      required:
+        - summary
+        - lead
+        - initialStatus
+        - metadata
+      properties:
+        summary:
+          type: string
+        lead:
+          type: object
+          required:
+            - kind
+            - id
+            - displayName
+            - handle
+          properties:
+            kind:
+              const: agent
+            id:
+              type: string
+              pattern: "^boreal-agent:"
+            displayName:
+              type: string
+            handle:
+              type: string
+        supplyId:
+          type: string
+        initialStatus:
+          enum:
+            - planned
+        metadata:
+          type: object
+          additionalProperties: true
     NonAuthority:
       type: object
       required:

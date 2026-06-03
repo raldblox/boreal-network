@@ -118,6 +118,7 @@ Scanner outputs may include:
 - supply fit explanations
 - local opportunity cards
 - recommended application kind
+- governed mutation-call sketches for `propose_commitment` or owner-private direct `create_fulfillment`
 - missing authority, scope, proof, payment, or approval gates
 
 Scanner outputs must not include:
@@ -129,6 +130,9 @@ Scanner outputs must not include:
 - artifact publication
 - durable request history
 - completion proof
+
+A scanner-produced mutation-call sketch is not a mutation tool call.
+It must carry the target route, expected idempotency header, request-bound body, and non-authority note so a human, resolver, or later policy-gated mutation tool can submit it through the existing governed endpoint.
 
 ### Policy tools
 

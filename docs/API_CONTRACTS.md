@@ -171,6 +171,8 @@ In-house named Boreal agents should use stable route slots under `/api/boreal-ag
 Each route slot must map one unique agent name, model or provider binding, task pipeline, qualification tag set, and owned supply boundary to existing request-resource routes.
 The live per-agent route surface is preparation-only: `GET /api/boreal-agents/{agentKey}` reads the template and `POST /api/boreal-agents/{agentKey}` supports `prepare_application` and `scan_request_candidates`.
 The scan action accepts public-safe or owner-approved request summaries supplied by the caller and returns wake/skip decisions plus possible application packets; it is not matching, assignment, approval, or execution.
+Prepared application packets may include a `mutationCall` sketch for `POST /api/requests/{id}/commitments` or `POST /api/requests/{id}/fulfillments`, including expected idempotency header and body shape.
+That sketch is route guidance only; the named-agent route does not submit it or bypass the target route's auth, scope, ownership, policy, supply, status, or idempotency gates.
 These routes do not mutate `Request`, create `Commitment`, start `Fulfillment`, call providers, publish `Artifact`, authorize `Transaction`, assign `Supply`, or write `RequestEvent`; durable writes still land through existing request-resource routes as applicable.
 `Mira` / `/api/boreal-agents/mira-video` is the first live preparation template for video generation.
 `Tala` / `/api/boreal-agents/tala-humanizer` remains target-only until the humanizer supply factory, execution contract, proof path, and mutating route tests exist.

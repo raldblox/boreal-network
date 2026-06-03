@@ -40,6 +40,7 @@ const videoPrepareInput = {
     },
   },
   supply: {
+    id: "11111111-1111-4111-8111-111111111111",
     kind: "video_generation",
     capabilityTags: ["video"],
     providerRef: "runway/video-generation",
@@ -102,6 +103,23 @@ async function main() {
     "RequestEvent",
   ]);
   assert.equal(publicPrepare.applicationPacket.proposedObject, "Commitment");
+  assert.equal(
+    publicPrepare.applicationPacket.mutationCall.route,
+    "/api/requests/req-video-001/commitments"
+  );
+  assert.equal(publicPrepare.applicationPacket.mutationCall.method, "POST");
+  assert.deepEqual(publicPrepare.applicationPacket.mutationCall.requiredHeaders, [
+    "Idempotency-Key",
+  ]);
+  assert.equal(publicPrepare.applicationPacket.mutationCall.body.kind, "proposal");
+  assert.equal(
+    publicPrepare.applicationPacket.mutationCall.body.terms.amountMode,
+    "open"
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.mutationCall.body.terms.fundingRequired,
+    false
+  );
   assert.ok(
     publicPrepare.taskPipeline.some(
       (task: { kind: string; state: string }) =>
@@ -163,6 +181,10 @@ async function main() {
     "Commitment",
     "RequestEvent",
   ]);
+  assert.equal(
+    scanBody.candidates[0].applicationPacket.mutationCall.route,
+    "/api/requests/req-video-001/commitments"
+  );
   assert.equal(scanBody.candidates[1].allowedToWake, false);
   assert.ok(
     scanBody.candidates[1].rejectedBy.includes("human_required_boundary")
@@ -218,6 +240,31 @@ assert.deepEqual(privatePrepare.applicationPacket.proposedCanonicalWrites, [
   "RequestEvent",
 ]);
 assert.equal(privatePrepare.applicationPacket.proposedObject, "Fulfillment");
+assert.equal(
+  privatePrepare.applicationPacket.mutationCall.route,
+  "/api/requests/req-video-001/fulfillments"
+);
+assert.equal(privatePrepare.applicationPacket.mutationCall.method, "POST");
+assert.equal(
+  privatePrepare.applicationPacket.mutationCall.body.lead.id,
+  "boreal-agent:mira-video"
+);
+assert.equal(
+  privatePrepare.applicationPacket.mutationCall.body.lead.kind,
+  "agent"
+);
+assert.equal(
+  privatePrepare.applicationPacket.mutationCall.body.supplyId,
+  "11111111-1111-4111-8111-111111111111"
+);
+assert.equal(
+  privatePrepare.applicationPacket.mutationCall.body.initialStatus,
+  "planned"
+);
+assert.equal(
+  privatePrepare.applicationPacket.mutationCall.body.metadata.prepareOnly,
+  true
+);
 
 const humanRequiredPrepare = prepareBorealAgentApplication({
   input: {

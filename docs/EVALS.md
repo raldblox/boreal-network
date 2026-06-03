@@ -257,7 +257,7 @@ From the repo root:
 - `pnpm contracts:in-house-workers`
   Validates the in-house Boreal worker application profile: scanner read-only guarantees, public `Commitment` application boundary, owner-private direct `Fulfillment` exception, auto-approval non-completion limits, prompt-only asset gates, live `video-generation`, and target-only humanizer status.
 - `pnpm web:test:boreal-agents`
-  Validates the named Boreal agent route surface: unique `Mira` and `Tala` route templates, `Mira` video-generation qualification, caller-supplied request scan wake or skip behavior, human-required scanner skip behavior, target-only humanizer behavior, and preparation-only packets that do not match, assign, create commitments, start fulfillments, publish artifacts, write events, create transactions, or call providers.
+  Validates the named Boreal agent route surface: unique `Mira` and `Tala` route templates, `Mira` video-generation qualification, caller-supplied request scan wake or skip behavior, human-required scanner skip behavior, target-only humanizer behavior, governed mutation-call sketches for commitment or owner-private fulfillment routes, and preparation-only packets that do not match, assign, create commitments, start fulfillments, publish artifacts, write events, create transactions, or call providers.
 - `pnpm evals:request-processing:benchmark`
   Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
 - `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`

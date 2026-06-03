@@ -226,6 +226,7 @@ function buildApplicationPacket({
   if (lane === "owner_private_direct_worker_fulfillment") {
     return {
       ...base,
+      mutationCall: buildFulfillmentMutationCall({ input, template }),
       proposedCanonicalWrites: ["Fulfillment", "FulfillmentStep", "RequestEvent"],
       proposedObject: "Fulfillment",
       ownerApprovalMode: "trusted_worker_auto_approval_required",
@@ -234,10 +235,97 @@ function buildApplicationPacket({
 
   return {
     ...base,
+    mutationCall: buildCommitmentMutationCall({ input, template }),
     proposedCanonicalWrites: ["Commitment", "RequestEvent"],
     proposedObject: "Commitment",
     ownerApprovalMode: "explicit_owner_acceptance_required",
   };
+}
+
+function buildCommitmentMutationCall({
+  input,
+  template,
+}: {
+  input: BorealAgentPrepareApplicationInput;
+  template: BorealAgentTemplate;
+}) {
+  const deliverableSummary = buildDeliverableSummary({ input, template });
+
+  return {
+    method: "POST",
+    route: `/api/requests/${input.request.id}/commitments`,
+    auth: "Boreal account session or resolver bearer token with commitments:propose",
+    requiredHeaders: ["Idempotency-Key"],
+    body: {
+      kind: "proposal",
+      summary: `${template.displayName} can apply as ${template.workerKey}: ${deliverableSummary}`,
+      terms: {
+        fundingRequired: false,
+        amountMode: "open",
+        deliverableSummary,
+        paymentNotes:
+          "Prepared by a named Boreal agent. Owner acceptance is required before fulfillment starts.",
+      },
+    },
+    nonAuthority:
+      "This packet is not submitted by the agent preparation route and does not create a Commitment.",
+  } as const;
+}
+
+function buildFulfillmentMutationCall({
+  input,
+  template,
+}: {
+  input: BorealAgentPrepareApplicationInput;
+  template: BorealAgentTemplate;
+}) {
+  const deliverableSummary = buildDeliverableSummary({ input, template });
+
+  return {
+    method: "POST",
+    route: `/api/requests/${input.request.id}/fulfillments`,
+    auth: "Owner account session or resolver bearer token with fulfillments:create",
+    requiredHeaders: ["Idempotency-Key"],
+    body: {
+      summary: `${template.displayName} owner-private worker lane: ${deliverableSummary}`,
+      lead: {
+        kind: "agent",
+        id: `boreal-agent:${template.agentKey}`,
+        displayName: template.displayName,
+        handle: template.agentKey,
+      },
+      ...(input.supply?.id ? { supplyId: input.supply.id } : {}),
+      initialStatus: "planned",
+      metadata: {
+        borealAgent: {
+          agentKey: template.agentKey,
+          uniqueName: template.uniqueName,
+          workerKey: template.workerKey,
+          providerRef: template.supplyBinding.providerRef,
+          routeMode: "owner_private_direct_worker_fulfillment",
+        },
+        prepareOnly: true,
+      },
+    },
+    nonAuthority:
+      "This packet is not submitted by the agent preparation route and does not create a Fulfillment.",
+  } as const;
+}
+
+function buildDeliverableSummary({
+  input,
+  template,
+}: {
+  input: BorealAgentPrepareApplicationInput;
+  template: BorealAgentTemplate;
+}) {
+  const requestTitle = input.request.brief?.title?.trim();
+  const requestSummary = input.request.brief?.summary?.trim();
+  const source = requestSummary || requestTitle || input.request.id;
+  return `${template.supplyBinding.supplyKind} via ${template.supplyBinding.providerRef} for ${source}`.slice(
+    0,
+    220
+  );
 }
 
 function stateForTask({
