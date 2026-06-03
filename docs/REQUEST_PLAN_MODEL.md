@@ -129,6 +129,7 @@ That preview is a UI projection over chat history, not a canonical object.
 Once a draft `Request` exists, buyer-facing draft mode should show an inline briefing or plan review surface in the chat timeline instead of exposing raw tool-call completion as the final state.
 If the draft is not ready to open, that surface should show captured facts, missing essentials, and the next question or disabled open state.
 If derived plan steps exist, draft-mode plans should stay limited to buyer-facing completion paths, steps, done criteria, and proof requirements.
+If `Request.derived.planningMode` is `raw`, draft mode should show the captured request and readiness only. It must not render fallback plan steps, planner-pending phases, role lanes, match candidates, route summaries, or proof-planning projections until assisted planning is resumed on the same `Request`.
 Public storefront, exterior, or street-facing photo requests should not be held in draft only because no private access requirement was supplied. If geography, timing, and proof are clear, missing access stays optional unless the request implies controlled entry, permission, pickup, dropoff, or handoff.
 The draft stepper and draft flow review should render the same buyer-facing plan steps, with the flow using `Request` plus numbered `Plan` cards rather than a separate planner-debug narrative.
 Draft flow review should render only the `Request` plus one or more parallel `Plan` cards before opening.
@@ -143,7 +144,7 @@ Audit date: 2026-05-28.
 
 The actual codebase already reflects the core Boreal plan model in these areas:
 
-- `apps/web/lib/request.ts` defines `RequestDerived` with `leadRole`, `roleSlots`, `phases`, `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, `replanReasons`, `executionProfile`, `embodiedConstraintSet`, `verificationPlan`, `planCollapseRisk`, and `clarificationNeeded`.
+- `apps/web/lib/request.ts` defines `RequestDerived` with `planningMode`, `leadRole`, `roleSlots`, `phases`, `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, `replanReasons`, `executionProfile`, `embodiedConstraintSet`, `verificationPlan`, `planCollapseRisk`, and `clarificationNeeded`.
 - `schemas/json/request.schema.json` machine-models the same derived planning projection on the canonical `Request` schema.
 - `apps/web/lib/db/schema.ts` persists `Request.derived` as request-owned JSON and has no separate `Plan` table.
 - `apps/web/lib/request-planner.ts` derives embodied execution, proof requirements, lead roles, role slots, phase plans, match candidates, assignment state, and replan reasons from the request plus candidate supply.

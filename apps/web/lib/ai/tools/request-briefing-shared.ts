@@ -118,7 +118,13 @@ export async function applyRequestBriefPatch({
   const nextDraft = await persistRequestPatch({
     requestId: currentDraft.id,
     userId,
-    patch: hydrateExplicitStructuredFields(patch),
+    patch: {
+      ...hydrateExplicitStructuredFields(patch),
+      derived: {
+        ...(patch.derived ?? {}),
+        planningMode: "assisted",
+      },
+    },
   });
 
   return {

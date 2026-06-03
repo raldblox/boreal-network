@@ -92,6 +92,8 @@ export function RequestPlanPanel({
   onUpdateRequestDraft,
 }: RequestPlanPanelProps) {
   const isDraftScope = scope === "draft";
+  const isRawDraft =
+    isDraftScope && request.derived.planningMode === "raw";
   const [visualMode, setVisualMode] = useLocalStorage<"summary" | "flow">(
     "request-plan-visual-mode",
     "summary",
@@ -122,7 +124,9 @@ export function RequestPlanPanel({
   const pathSignals = pathBuilder.signals;
   const supportingPathSlots = pathBuilder.supportingPaths;
   const draftPanelLabel =
-    isDraftScope && !request.derived.readiness.readyForOpen
+    isRawDraft
+      ? "Raw request"
+      : isDraftScope && !request.derived.readiness.readyForOpen
       ? "Briefing result"
       : isDraftScope
         ? "Plans"
@@ -187,7 +191,9 @@ export function RequestPlanPanel({
         </div>
         <div className="text-[13px] leading-6 text-muted-foreground">
           {isDraftScope && request.derived.readiness.readyForOpen
-            ? "Review the completion plan before opening the Request. Worker and supply routing start after the Request is open."
+            ? isRawDraft
+              ? "Review the captured request before posting. No plan was generated; assisted planning can resume on this same request."
+              : "Review the completion plan before opening the Request. Worker and supply routing start after the Request is open."
             : isDraftScope
               ? "Review what Boreal captured so far, answer missing inputs in chat, then open the Request once the plans are ready."
               : planNarrative}
@@ -199,7 +205,7 @@ export function RequestPlanPanel({
               {plannedRoles.length === 1 ? "lane" : "lanes"}
             </div>
           ) : null}
-          {flowSteps.length > 0 ? (
+          {!isRawDraft && flowSteps.length > 0 ? (
             <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
               {flowSteps.length} {flowSteps.length === 1 ? "step" : "steps"}
             </div>
@@ -210,7 +216,7 @@ export function RequestPlanPanel({
             </div>
           ) : null}
         </div>
-        {flowGraph.nodes.length > 0 ? (
+        {!isRawDraft && flowGraph.nodes.length > 0 ? (
           <div className="flex flex-wrap gap-2 pt-1">
             {[
               {
@@ -239,11 +245,15 @@ export function RequestPlanPanel({
         ) : null}
       </div>
 
-      <BaselinePathCard
-        baselinePath={pathBuilder.baselinePath}
-        pathSignals={pathSignals}
-        showSignals={!isDraftScope}
-      />
+      {isRawDraft ? (
+        <RawRequestSummaryCard request={request} />
+      ) : (
+        <BaselinePathCard
+          baselinePath={pathBuilder.baselinePath}
+          pathSignals={pathSignals}
+          showSignals={!isDraftScope}
+        />
+      )}
 
       {!isDraftScope ? <PathSignalStrip signals={pathSignals} /> : null}
 
@@ -487,12 +497,18 @@ export function RequestPlanPanel({
           <div className="min-w-0">
             <div className="text-[12px] font-medium text-foreground">
               {canOpenRequest
-                ? "Plans are ready to post."
-                : "Plans still need a few details."}
+                ? isRawDraft
+                  ? "Raw request is ready to post."
+                  : "Plans are ready to post."
+                : isRawDraft
+                  ? "Raw request still needs the core ask."
+                  : "Plans still need a few details."}
             </div>
             <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
               {canOpenRequest
-                ? "Post the Request when these plans look right. Worker and supply routing start after the Request is open."
+                ? isRawDraft
+                  ? "Post now, or switch to Planner and send another message to generate buyer-facing steps first."
+                  : "Post the Request when these plans look right. Worker and supply routing start after the Request is open."
                 : request.derived.readiness.summary}
             </div>
           </div>
@@ -581,11 +597,35 @@ function BaselinePathCard({
             ))}
         </div>
       ) : null}
+    </section>
+  );
+}
 
-      <div className="mt-3 rounded-[14px] border border-border/60 bg-muted/[0.16] px-3 py-2.5 text-[13px] leading-5.5 text-muted-foreground">
-        {showSignals
-          ? "This path is a proposal for how the request can become execution. It is not a match, fulfillment, proof, or completion by itself."
-          : "These plans describe how the request can be completed. They are not worker assignment, proof, or completion by themselves."}
+function RawRequestSummaryCard({ request }: { request: BorealRequestDraft }) {
+  return (
+    <section className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="rounded-full border border-status-success/25 bg-status-success/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-status-success">
+              Raw request
+            </div>
+            <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+              {request.derived.readiness.readyForOpen ? "ready" : "draft"}
+            </div>
+          </div>
+          <div className="mt-3 text-[17px] font-medium leading-7 text-foreground">
+            {request.brief.title?.trim() || "Raw request captured"}
+          </div>
+          <div className="mt-1 text-[13px] leading-5.5 text-muted-foreground">
+            No plan was generated. The raw buyer text is the request draft, and
+            assisted planning can resume here later.
+          </div>
+        </div>
+
+        <div className="text-[12px] leading-5 text-muted-foreground md:text-right">
+          0 generated steps
+        </div>
       </div>
     </section>
   );

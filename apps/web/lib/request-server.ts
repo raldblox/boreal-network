@@ -148,10 +148,12 @@ export async function persistRequestPatch({
   requestId,
   userId,
   patch,
+  enrichPlannerMatches = true,
 }: {
   requestId: string;
   userId: string;
   patch: RequestPatch;
+  enrichPlannerMatches?: boolean;
 }): Promise<BorealRequestDraft> {
   const existingRequest = await getRequestById({ id: requestId });
   if (!existingRequest) {
@@ -184,9 +186,11 @@ export async function persistRequestPatch({
     patch,
     new Date().toISOString()
   );
-  const enrichedDraft = await enrichRequestDraftPlannerMatches({
-    draft: nextDraft,
-  });
+  const enrichedDraft = enrichPlannerMatches
+    ? await enrichRequestDraftPlannerMatches({
+        draft: nextDraft,
+      })
+    : nextDraft;
 
   if (!hasRootRequestChange(syncedDraft, enrichedDraft)) {
     return syncedDraft;
@@ -225,6 +229,91 @@ export async function persistRequestPatch({
   });
 
   return enrichedDraft;
+}
+
+export async function createOrUpdateRawRequestDraftForChat({
+  chatId,
+  preferredSupplyId,
+  rawBody,
+  userId,
+  visibility,
+}: {
+  chatId: string;
+  preferredSupplyId?: string | null;
+  rawBody: string;
+  userId: string;
+  visibility: RequestVisibility;
+}): Promise<BorealRequestDraft> {
+  const normalizedRawBody = rawBody.trim();
+  if (!normalizedRawBody) {
+    throw new Error("Raw request body is required");
+  }
+
+  const currentDraft = await ensureRequestDraftForChat({
+    chatId,
+    userId,
+    visibility,
+  });
+
+  if (currentDraft.status !== "draft") {
+    throw new Error("Only draft requests can use raw intake");
+  }
+
+  const normalizedPreferredSupplyId = preferredSupplyId?.trim() || undefined;
+  if (normalizedPreferredSupplyId) {
+    if (currentDraft.visibility !== "private") {
+      throw new Error("Preferred supply is only available for private requests");
+    }
+
+    const selectedSupply = await getSupplyById({
+      id: normalizedPreferredSupplyId,
+    });
+    if (!selectedSupply) {
+      throw new Error("Supply not found");
+    }
+
+    if (selectedSupply.ownerId !== userId) {
+      throw new Error("Supply does not belong to request owner");
+    }
+
+    if (selectedSupply.status !== "published") {
+      throw new Error("Published supply required");
+    }
+  }
+
+  return persistRequestPatch({
+    requestId: currentDraft.id,
+    userId,
+    enrichPlannerMatches: false,
+    patch: {
+      brief: {
+        body: normalizedRawBody,
+      },
+      ...(normalizedPreferredSupplyId
+        ? {
+            routing: {
+              preferredSupplyId: normalizedPreferredSupplyId,
+            },
+          }
+        : {}),
+      derived: {
+        planningMode: "raw",
+        candidatePool: [],
+        matchCandidates: [],
+        routeFamily: null,
+        executionKind: null,
+        paymentMode: null,
+        matchingMode: null,
+        routeSummary: null,
+      },
+      latest: {
+        summary:
+          "Raw request captured. Assisted planning can resume on this request.",
+        lastEventAt: new Date().toISOString(),
+        lastActor: toHumanActorRef(userId),
+      },
+    },
+  });
 }
 
 async function enrichRequestDraftPlannerMatches({

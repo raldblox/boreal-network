@@ -1,0 +1,50 @@
+{
+  "scenarioId": "raw-request-intake-no-planner",
+  "description": "Raw request intake should create one durable Request draft from buyer text without generating planner steps, roles, matching candidates, or route summaries.",
+  "requestInput": {
+    "actor": {
+      "kind": "human",
+      "id": "actor_raw_buyer",
+      "displayName": "Raw Buyer"
+    },
+    "rawAsk": "need to onsite visit and take picture of any uniqlo storefront anywhere around manila tomorrow"
+  },
+  "requestPatch": {
+    "visibility": "public",
+    "brief": {
+      "body": "need to onsite visit and take picture of any uniqlo storefront anywhere around manila tomorrow"
+    },
+    "derived": {
+      "planningMode": "raw",
+      "candidatePool": [],
+      "matchCandidates": [],
+      "routeFamily": null,
+      "executionKind": null,
+      "paymentMode": null,
+      "matchingMode": null,
+      "routeSummary": null
+    }
+  },
+  "expectedDerived": {
+    "planningMode": "raw",
+    "readiness": {
+      "readyForOpen": true,
+      "readyForMatch": false
+    },
+    "emptyPlannerFields": [
+      "candidatePool",
+      "matchCandidates",
+      "roleSlots",
+      "phases",
+      "outcomeClaims",
+      "leadRanking",
+      "roleMatches",
+      "replanReasons"
+    ]
+  },
+  "resumePatch": {
+    "derived": {
+      "planningMode": "assisted"
+    }
+  }
+}

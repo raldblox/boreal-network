@@ -223,6 +223,8 @@ Every mutation call should return:
 - Pre-draft request mode may answer conversationally and ask one focused briefing question before any request mutation when the brief is not ready.
 - Pre-draft request mode may persist private chat turns, but that persistence is not `RequestEvent` history and must not create planner, artifact, transaction, or fulfillment truth.
 - Web briefing-workspace submits are hidden briefing-source turns, not visible transcript rows; they must create or update the same draft `Request` and hide completed draft request tool chrome once the briefing form is visible.
+- Raw request intake is an explicit non-LLM planner option. It may create or update the same draft `Request` from the submitted buyer text, but it must not call `create_request_brief`, produce planner output, retrieve matches, write route summaries, or mutate proof-planning fields.
+- Resuming assisted planning from a raw draft must update the same `Request` by setting `Request.derived.planningMode` to `assisted`; it must not fork a second request or treat raw text as a completed plan.
 - `create_request_brief` should be called only when the brief is ready enough for useful draft plans or when the buyer explicitly asks to create the request draft.
 - Draft request mode may clarify before mutation when missing embodied, geographic, access, scheduling, or verification-critical fields materially change the safe route.
 - Public storefront, exterior, or street-facing photo requests should preserve embodied execution and proof requirements, but should not force an `accessRequirements` blocker unless private, controlled, permissioned, pickup, dropoff, or handoff access is stated.
@@ -239,6 +241,7 @@ Every mutation call should return:
 - The inline editable request-input projection must stay limited to buyer-authored `brief` fields, buyer-authored `brief.constraints`, `budget`, and `deadline`.
 - Selected or pinned supply context should stay in `routing.preferredSupplyId` or another read-only routing surface, not be synthesized into buyer-authored `brief` text.
 - Planner-derived fields such as lead role, role slots, phase plans, execution profile, verification plan, and collapse-risk outputs must remain read-only and system-owned.
+- `Request.derived.planningMode` is system-owned. Buyer UI may choose the intake mode, but manual draft edits must not write arbitrary planner, matcher, route, or policy fields.
 - Planner-derived fields such as `leadRole`, `roleSlots`, `phases`, `executionProfile`, `verificationPlan`, `planCollapseRisk`, `clarificationNeeded`, `noMicrotaskExplosion`, `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` must remain canonical, read-only, and system-owned.
 - When retrieval already happened, `matchCandidates` may capture the request-owned candidate-fit snapshot that planner projections read from, but it must still remain read-only and must not be confused for attached execution truth.
 - Planner tools should detect when a request requires non-substitutable human or embodied execution and must not flatten those requirements into a digital-only plan.

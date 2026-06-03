@@ -14,6 +14,8 @@ A high-scoring match system that mutates too early is still failing.
 Verify that a raw ask becomes the expected brief, optional structured `seeking`, constraints, output kinds, budget shape, and missing-field list.
 Verify that a fuzzy first turn in a chat-only `New request` clarification lane may remain conversational, save private chat history, and ask one focused briefing question without creating a durable `Request`.
 Verify that web briefing-workspace submits create or update one draft `Request`, remain hidden from the visible transcript, preserve the raw composer prompt, and expose missing brief fields in the briefing surface.
+Verify that raw request-intake mode creates or updates one draft `Request` from the submitted buyer text without calling LLM briefing, generating planner phases or roles, retrieving match candidates, or writing route/proof projections.
+Verify that a raw draft can resume assisted planning on the same `Request` by switching planner mode, preserving the buyer-authored body, and then rebuilding planner projections.
 Verify that preflight preview fields are derived from chat turns and do not become canonical planner or request truth.
 If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.
 Verify that pinned-supply routing context stays outside the buyer-authored brief and does not appear as synthetic prompt text when the request started from a supply selection.
@@ -25,7 +27,9 @@ Verify that pinned supply stays candidate-only in planner outputs until the curr
 Verify that requests implying onsite work, pickup or dropoff, field inspection, witnessed handoff, measurement, or other non-substitutable human execution surface those requirements instead of rewriting them as digital-only work.
 Verify that planner-derived role, phase, execution, and proof outputs do not leak back into the buyer-authored editable brief surface.
 Verify that a created draft renders an inline briefing or plan review instead of leaving the buyer at raw tool-call completion.
+Verify that request-intake pending UI renders the destination plan/review container skeleton, not a separate briefing card followed by generic `Thinking...` and tool-call hops.
 Verify that draft plans omit worker, delivery, supply path, role-candidate, capability-lane, and assignment projections from the buyer-facing preflight surface.
+Verify that raw draft review shows captured request and open readiness only, with no fallback plan steps or planner-pending phase.
 Verify that draft flow review renders only the `Request` plus one or more parallel `Plan` cards before the request opens.
 Verify that inline draft edits can change only buyer-authored brief fields, buyer-authored constraints, budget, and deadline while derived planner fields stay read-only.
 Verify that opened-request owner support chat can continue from private briefing history without exposing that transcript to public responders or converting every support turn into request activity.

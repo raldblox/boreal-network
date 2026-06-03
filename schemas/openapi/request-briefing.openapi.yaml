@@ -108,6 +108,16 @@ paths:
                 preferredSupplyId:
                   type: string
                   format: uuid
+                planningMode:
+                  type: string
+                  enum:
+                    - assisted
+                    - raw
+                  default: assisted
+                rawBody:
+                  type: string
+                  minLength: 1
+                  maxLength: 2000
       responses:
         "200":
           description: The newly created or existing request draft.
@@ -2091,9 +2101,15 @@ components:
           type: object
           additionalProperties: false
           required:
+            - planningMode
             - missingDetails
             - readiness
           properties:
+            planningMode:
+              type: string
+              enum:
+                - assisted
+                - raw
             routeFamily:
               $ref: "#/components/schemas/BorealRequestRouteFamily"
             executionKind:

@@ -131,6 +131,8 @@ For the first web slice, `Request` create and update must support:
 
 - explicit `New request` mode without a durable write until first send
 - first-send draft creation for request-mode intake
+- raw first-send draft creation through `POST /api/requests` with `planningMode: "raw"` and `rawBody`, which stores the buyer-authored text on the same draft `Request` without LLM briefing, planner generation, candidate retrieval, route summary writes, or proof-planning projections
+- assisted request planning may resume from a raw draft by updating the same request-owned `derived.planningMode` back to `assisted`
 - optional `preferredSupplyId` on create so one private request can be born with a selected worker already pinned
 - public-safe listing of `open` plus `public` requests for network or desktop pooling
 - public-safe solution projection reads over completed public requests with `activeRefs.acceptedArtifactId`; this is a Request projection, not a `Solution` root

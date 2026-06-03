@@ -30,10 +30,13 @@ import {
   type RequestLeadRankingEntry,
   type RequestMatchCandidate,
   type RequestOutcomeClaim,
+  type RequestPlannerState,
   type RequestRoleMatch,
 } from "./request-planner";
 import type { ResolverScope } from "./resolver";
 
+export const requestPlanningModes = ["assisted", "raw"] as const;
+export type RequestPlanningMode = (typeof requestPlanningModes)[number];
 export type RequestVisibility = "private" | "public";
 export type RequestActorKind = BorealActorKind;
 export type RequestOutputKind = BorealOutputKind;
@@ -192,6 +195,7 @@ export type RequestPhasePlan = {
 };
 
 export type RequestDerived = {
+  planningMode: RequestPlanningMode;
   routeFamily?: RequestRouteFamily;
   executionKind?: RequestExecutionKind;
   paymentMode?: RequestPaymentMode;
@@ -574,6 +578,7 @@ export type PublicRequestPoolEntry = {
   activeRefs: RequestActiveRefs;
   latest: RequestLatest;
   derived: {
+    planningMode: RequestPlanningMode;
     routeFamily: RequestRouteFamily | null;
     executionKind: RequestExecutionKind | null;
     paymentMode: RequestPaymentMode | null;
@@ -804,6 +809,7 @@ type RequestDocumentObject = {
   activeRefs: RequestActiveRefs;
   latest: RequestLatest;
   derived: {
+    planningMode: RequestPlanningMode;
     routeFamily: RequestRouteFamily | null;
     executionKind: RequestExecutionKind | null;
     paymentMode: RequestPaymentMode | null;
@@ -842,6 +848,7 @@ export type RequestPatch = {
   budget?: RequestBudget | null;
   deadline?: RequestDeadline | null;
   derived?: {
+    planningMode?: RequestPlanningMode;
     routeFamily?: RequestRouteFamily | null;
     executionKind?: RequestExecutionKind | null;
     paymentMode?: RequestPaymentMode | null;
@@ -1036,6 +1043,7 @@ export function createInitialRequestDraft({
     activeRefs: {},
     latest: {},
     derived: {
+      planningMode: "assisted",
       candidatePool: [],
       matchCandidates: [],
       roleSlots: [],
@@ -1106,6 +1114,10 @@ export function applyRequestPatch(
     ...currentDraft.routing,
     ...patch.routing,
   });
+  const nextDerivedPlanningMode =
+    patch.derived?.planningMode === undefined
+      ? normalizePlanningMode(currentDraft.derived.planningMode)
+      : normalizePlanningMode(patch.derived.planningMode);
   const nextDerivedRouteFamily =
     patch.derived?.routeFamily === undefined
       ? currentDraft.derived.routeFamily
@@ -1154,6 +1166,7 @@ export function applyRequestPatch(
     key: slugifyRequestKey(nextBrief.title || nextBrief.body, currentDraft.id),
     derived: {
       ...currentDraft.derived,
+      planningMode: nextDerivedPlanningMode,
       routeFamily: nextDerivedRouteFamily,
       executionKind: nextDerivedExecutionKind,
       paymentMode: nextDerivedPaymentMode,
@@ -1177,6 +1190,7 @@ export function deriveRequestState(
   >
 ): RequestDerived {
   const missingDetails: string[] = [];
+  const planningMode = normalizePlanningMode(draft.derived.planningMode);
 
   if (!hasText(draft.brief.body)) {
     missingDetails.push("body");
@@ -1198,8 +1212,13 @@ export function deriveRequestState(
     }
   }
 
-  const plannerState = deriveRequestPlannerState(draft);
-  missingDetails.push(...plannerState.clarificationNeeded.missingDetails);
+  const plannerState =
+    planningMode === "raw"
+      ? createRawRequestPlannerState()
+      : deriveRequestPlannerState(draft);
+  if (planningMode === "assisted") {
+    missingDetails.push(...plannerState.clarificationNeeded.missingDetails);
+  }
   const routeFamily = normalizeRouteFamily(draft.derived.routeFamily);
   const executionKind = normalizeExecutionKind(draft.derived.executionKind);
   const paymentMode = normalizePaymentMode(draft.derived.paymentMode);
@@ -1208,47 +1227,59 @@ export function deriveRequestState(
   const candidatePool = normalizeStringArray(draft.derived.candidatePool);
 
   const hasBriefCore = hasText(draft.brief.body);
-  const hasRouteReadiness = hasText(routeFamily) && hasText(routeSummary);
-  const hasEmbodiedBlockingGaps = plannerState.clarificationNeeded.required;
+  const hasRouteReadiness =
+    planningMode === "assisted" && hasText(routeFamily) && hasText(routeSummary);
+  const hasEmbodiedBlockingGaps =
+    planningMode === "assisted" && plannerState.clarificationNeeded.required;
 
-  const readiness: RequestReadiness = hasBriefCore && !hasEmbodiedBlockingGaps
-    ? hasRouteReadiness
+  const readiness: RequestReadiness =
+    hasBriefCore && planningMode === "raw"
       ? {
-          state: "ready_to_match",
-          summary:
-            "Core briefing is present and Boreal has a route summary ready for matching.",
-          readyForOpen: true,
-          readyForMatch: true,
-        }
-      : {
           state: "ready_to_open",
           summary:
-            "Core briefing is present. This request can be opened now and refined further before matching. Summary is still optional.",
+            "Raw request text is captured. This request can be posted now or resumed with assisted planning before routing.",
           readyForOpen: true,
           readyForMatch: false,
         }
-    : hasBriefCore && hasEmbodiedBlockingGaps
-      ? {
-          state: "collecting_brief",
-          summary: plannerState.embodiedSummary,
-          readyForOpen: false,
-          readyForMatch: false,
-        }
-    : {
-        state: "collecting_brief",
-        summary:
-          "Keep briefing the request. Boreal still needs the core ask in the brief body.",
-        readyForOpen: false,
-        readyForMatch: false,
-      };
+      : hasBriefCore && !hasEmbodiedBlockingGaps
+        ? hasRouteReadiness
+          ? {
+              state: "ready_to_match",
+              summary:
+                "Core briefing is present and Boreal has a route summary ready for matching.",
+              readyForOpen: true,
+              readyForMatch: true,
+            }
+          : {
+              state: "ready_to_open",
+              summary:
+                "Core briefing is present. This request can be opened now and refined further before matching. Summary is still optional.",
+              readyForOpen: true,
+              readyForMatch: false,
+            }
+        : hasBriefCore && hasEmbodiedBlockingGaps
+          ? {
+              state: "collecting_brief",
+              summary: plannerState.embodiedSummary,
+              readyForOpen: false,
+              readyForMatch: false,
+            }
+          : {
+              state: "collecting_brief",
+              summary:
+                "Keep briefing the request. Boreal still needs the core ask in the brief body.",
+              readyForOpen: false,
+              readyForMatch: false,
+            };
 
   return {
     ...draft.derived,
-    routeFamily,
-    executionKind,
-    paymentMode,
-    matchingMode,
-    candidatePool,
+    planningMode,
+    routeFamily: planningMode === "raw" ? undefined : routeFamily,
+    executionKind: planningMode === "raw" ? undefined : executionKind,
+    paymentMode: planningMode === "raw" ? undefined : paymentMode,
+    matchingMode: planningMode === "raw" ? undefined : matchingMode,
+    candidatePool: planningMode === "raw" ? [] : candidatePool,
     matchCandidates: plannerState.matchCandidates,
     leadRole: plannerState.leadRole,
     roleSlots: plannerState.roleSlots,
@@ -1261,12 +1292,39 @@ export function deriveRequestState(
     replanReasons: plannerState.replanReasons,
     missingDetails: Array.from(new Set(missingDetails)),
     readiness,
-    routeSummary,
+    routeSummary: planningMode === "raw" ? undefined : routeSummary,
     executionProfile: plannerState.executionProfile,
     embodiedConstraintSet: plannerState.embodiedConstraintSet,
     verificationPlan: plannerState.verificationPlan,
     planCollapseRisk: plannerState.planCollapseRisk,
     clarificationNeeded: plannerState.clarificationNeeded,
+  };
+}
+
+function normalizePlanningMode(
+  value: RequestPlanningMode | undefined
+): RequestPlanningMode {
+  return value === "raw" ? "raw" : "assisted";
+}
+
+function createRawRequestPlannerState(): RequestPlannerState {
+  return {
+    roleSlots: [],
+    phases: [],
+    noMicrotaskExplosion: true,
+    executionProfile: createDefaultExecutionProfile(),
+    embodiedConstraintSet: createDefaultEmbodiedConstraintSet(),
+    verificationPlan: createDefaultVerificationPlan(),
+    planCollapseRisk: createDefaultPlanCollapseRisk(),
+    clarificationNeeded: createDefaultClarificationNeeded(),
+    outcomeClaims: [],
+    matchCandidates: [],
+    leadRanking: [],
+    roleMatches: [],
+    assignmentProposal: createDefaultAssignmentProposal(),
+    replanReasons: [],
+    embodiedSummary:
+      "Raw request mode captured the buyer-authored text without running planner projections.",
   };
 }
 
@@ -1321,6 +1379,7 @@ export function toPublicRequestPoolEntry(
     activeRefs,
     latest: normalizeLatest(draft.latest),
     derived: {
+      planningMode: normalizePlanningMode(draft.derived.planningMode),
       routeFamily: draft.derived.routeFamily ?? null,
       executionKind: draft.derived.executionKind ?? null,
       paymentMode: draft.derived.paymentMode ?? null,
@@ -2425,6 +2484,7 @@ function toRequestDerivedProjection(
   derived: RequestDerived
 ): RequestDocumentObject["derived"] {
   return {
+    planningMode: normalizePlanningMode(derived.planningMode),
     routeFamily: derived.routeFamily ?? null,
     executionKind: derived.executionKind ?? null,
     paymentMode: derived.paymentMode ?? null,

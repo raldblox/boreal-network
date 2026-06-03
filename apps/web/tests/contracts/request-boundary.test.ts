@@ -143,6 +143,7 @@ function makeDraft(
       lastEventAt: "2026-05-29T00:00:00.000Z",
     },
     derived: {
+      planningMode: "assisted",
       routeFamily: "worker_market",
       executionKind: "human_request_room",
       paymentMode: "fixed_funded_request",
@@ -689,6 +690,60 @@ assert.equal(
   ),
   true,
 );
+
+const rawRequestFixture = JSON.parse(
+  readFileSync(
+    fileURLToPath(
+      new URL(
+        "../../../../fixtures/request/raw-request-intake-no-planner.json",
+        import.meta.url,
+      ),
+    ),
+    "utf8",
+  ),
+);
+const rawRequestDraft = applyRequestPatch(
+  createInitialRequestDraft({
+    id: "req_raw_request",
+    chatId: "chat_raw_request",
+    documentId: "doc_raw_request",
+    userId: "buyer_1",
+    visibility: "public",
+    createdAt: "2026-06-01T00:00:00.000Z",
+  }),
+  rawRequestFixture.requestPatch,
+  "2026-06-01T00:01:00.000Z",
+);
+
+assert.equal(rawRequestDraft.derived.planningMode, "raw");
+assert.equal(rawRequestDraft.brief.body, rawRequestFixture.requestInput.rawAsk);
+assert.equal(rawRequestDraft.derived.readiness.readyForOpen, true);
+assert.equal(rawRequestDraft.derived.readiness.readyForMatch, false);
+for (const field of rawRequestFixture.expectedDerived
+  .emptyPlannerFields as Array<keyof typeof rawRequestDraft.derived>) {
+  assert.deepEqual(rawRequestDraft.derived[field], []);
+}
+assert.equal(rawRequestDraft.derived.leadRole, undefined);
+assert.equal(rawRequestDraft.derived.routeFamily, undefined);
+assert.equal(rawRequestDraft.derived.routeSummary, undefined);
+assert.deepEqual(buildBuyerFacingDraftPlanSteps(rawRequestDraft), []);
+assert.deepEqual(
+  buildDraftRequestFlowGraph(rawRequestDraft).nodes
+    .filter((node) => node.kind === "phase")
+    .map((node) => node.id),
+  [],
+);
+
+const rawRequestResumedWithPlanner = applyRequestPatch(
+  rawRequestDraft,
+  rawRequestFixture.resumePatch,
+  "2026-06-01T00:02:00.000Z",
+);
+
+assert.equal(rawRequestResumedWithPlanner.derived.planningMode, "assisted");
+assert.equal(rawRequestResumedWithPlanner.id, rawRequestDraft.id);
+assert.equal(rawRequestResumedWithPlanner.brief.body, rawRequestDraft.brief.body);
+assert.equal(rawRequestResumedWithPlanner.derived.phases.length > 0, true);
 
 const originalOpenAIKey = process.env.OPENAI_API_KEY;
 delete process.env.OPENAI_API_KEY;

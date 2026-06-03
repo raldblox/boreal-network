@@ -100,6 +100,8 @@ export function ChatShell() {
     setShowModelAccessAlert,
     activeRequest,
     isRequestMode,
+    requestPlanningMode,
+    setRequestPlanningMode,
     requestPromptOptimizerEnabled,
     setRequestPromptOptimizerEnabled,
     createRequest,
@@ -693,6 +695,7 @@ export function ChatShell() {
                   isRequestMode={isRequestMode}
                   isLoading={isLoading}
                   messages={messages}
+                  onRequestPlanningModeChange={setRequestPlanningMode}
                   onCreateRequest={handleCreateRequest}
                   onCancelEdit={() => {
                     setEditingMessage(null);
@@ -700,6 +703,7 @@ export function ChatShell() {
                   }}
                   onModelChange={setCurrentModelId}
                   selectedModelId={currentModelId}
+                  requestPlanningMode={requestPlanningMode}
                   selectedVisibilityType={visibilityType}
                   sendMessage={
                     editingMessage
@@ -835,6 +839,7 @@ export function ChatShell() {
                     isRequestMode={isRequestMode}
                     isLoading={isLoading}
                     messages={messages}
+                    onRequestPlanningModeChange={setRequestPlanningMode}
                     onCreateRequest={handleCreateRequest}
                     onCancelEdit={() => {
                       setEditingMessage(null);
@@ -842,6 +847,7 @@ export function ChatShell() {
                     }}
                     onModelChange={setCurrentModelId}
                     selectedModelId={currentModelId}
+                    requestPlanningMode={requestPlanningMode}
                     selectedVisibilityType={visibilityType}
                     sendMessage={
                       editingMessage

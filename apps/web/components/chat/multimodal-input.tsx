@@ -75,7 +75,7 @@ import {
   storeDesktopBridgeUrl,
   tryOpenDesktopRuntimeApp,
 } from "@/lib/desktop-runtime-bridge";
-import type { BorealRequestDraft } from "@/lib/request";
+import type { BorealRequestDraft, RequestPlanningMode } from "@/lib/request";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import {
@@ -455,6 +455,8 @@ function PureMultimodalInput({
   onCancelEdit,
   activeRequest,
   isRequestMode,
+  requestPlanningMode,
+  onRequestPlanningModeChange,
   onCreateRequest,
 }: {
   chatId: string;
@@ -478,6 +480,8 @@ function PureMultimodalInput({
   isLoading?: boolean;
   activeRequest: BorealRequestDraft | null;
   isRequestMode: boolean;
+  requestPlanningMode: RequestPlanningMode;
+  onRequestPlanningModeChange: (mode: RequestPlanningMode) => void;
   onCreateRequest: () => Promise<BorealRequestDraft | null>;
 }) {
   const router = useRouter();
@@ -1212,7 +1216,7 @@ function PureMultimodalInput({
 
       {isDraggingFiles && (
         <div
-          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-[32px] border border-dashed border-foreground/25 bg-background/75 text-foreground text-sm shadow-[var(--shadow-float)] backdrop-blur-md"
+          className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-[32px] border border-dashed border-foreground/25 bg-background/75 text-foreground text-sm backdrop-blur-md"
           data-testid="attachments-dropzone"
         >
           Drop files to attach
@@ -1220,7 +1224,7 @@ function PureMultimodalInput({
       )}
 
       <PromptInput
-        className="[&>div]:rounded-[28px] [&>div]:border [&>div]:border-border/65 [&>div]:bg-card/95 [&>div]:shadow-[0_24px_70px_rgba(0,0,0,0.18)] [&>div]:transition-shadow [&>div]:duration-300 dark:[&>div]:shadow-[0_28px_95px_rgba(0,0,0,0.56)] [&>div]:focus-within:shadow-[0_28px_90px_rgba(0,0,0,0.24)] dark:[&>div]:focus-within:shadow-[0_32px_110px_rgba(0,0,0,0.68)]"
+        className="[&>div]:rounded-[28px] [&>div]:border [&>div]:border-border/65 [&>div]:bg-card/95 [&>div]:shadow-none"
         onSubmit={() => {
           if (input.startsWith("/")) {
             const query = input.slice(1).trim();
@@ -1382,6 +1386,12 @@ function PureMultimodalInput({
             {showNewModeControls ? (
               <NewModeControls isRequestMode={isRequestMode} />
             ) : null}
+            {isRequestMode && !isOpenedRequest ? (
+              <RequestPlannerModeControls
+                mode={requestPlanningMode}
+                onModeChange={onRequestPlanningModeChange}
+              />
+            ) : null}
           </PromptInputTools>
 
           <div className="ml-auto flex min-w-0 items-center gap-1">
@@ -1452,6 +1462,9 @@ export const MultimodalInput = memo(
     if (prevProps.isRequestMode !== nextProps.isRequestMode) {
       return false;
     }
+    if (prevProps.requestPlanningMode !== nextProps.requestPlanningMode) {
+      return false;
+    }
     if (prevProps.activeRequest?.id !== nextProps.activeRequest?.id) {
       return false;
     }
@@ -1462,6 +1475,47 @@ export const MultimodalInput = memo(
     return true;
   },
 );
+
+function RequestPlannerModeControls({
+  mode,
+  onModeChange,
+}: {
+  mode: RequestPlanningMode;
+  onModeChange: (mode: RequestPlanningMode) => void;
+}) {
+  return (
+    <fieldset
+      aria-label="Request planner mode"
+      className="flex items-center gap-0.5 rounded-xl border border-border/50 bg-background p-0.5"
+      data-testid="request-planner-mode-controls"
+    >
+      {[
+        { id: "assisted" as const, label: "Planner" },
+        { id: "raw" as const, label: "Raw" },
+      ].map((option) => {
+        const isSelected = mode === option.id;
+
+        return (
+          <button
+            aria-pressed={isSelected}
+            className={cn(
+              "inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-[12px] transition-colors",
+              isSelected
+                ? "bg-card/95 text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+            data-testid={`request-planner-mode-${option.id}`}
+            key={option.id}
+            onClick={() => onModeChange(option.id)}
+            type="button"
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}
 
 function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
   const router = useRouter();
@@ -1485,7 +1539,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         className={cn(
           "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           !isRequestMode
-            ? "w-[5.8rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
+            ? "w-[5.8rem] gap-1.5 bg-card/95 px-2.5 text-foreground"
             : "w-8 px-0 text-muted-foreground hover:text-foreground",
         )}
         data-expanded={!isRequestMode}
@@ -1509,7 +1563,7 @@ function NewModeControls({ isRequestMode }: { isRequestMode: boolean }) {
         className={cn(
           "inline-flex h-7 items-center justify-center overflow-hidden rounded-lg text-[12px] transition-[width,background-color,color,box-shadow] duration-200",
           isRequestMode
-            ? "w-[6.95rem] gap-1.5 bg-card/95 px-2.5 text-foreground shadow-sm"
+            ? "w-[6.95rem] gap-1.5 bg-card/95 px-2.5 text-foreground"
             : "w-8 px-0 text-muted-foreground hover:text-foreground",
         )}
         data-expanded={isRequestMode}

@@ -37,6 +37,7 @@ import type {
   BorealRequestDraft,
   RequestActivityEntry,
   RequestPatch,
+  RequestPlanningMode,
 } from "@/lib/request";
 import type { Vote } from "@/lib/db/schema";
 import { ChatbotError } from "@/lib/errors";
@@ -81,6 +82,8 @@ type ActiveChatContextValue = {
   setShowModelAccessAlert: Dispatch<SetStateAction<boolean>>;
   activeRequest: BorealRequestDraft | null;
   isRequestMode: boolean;
+  requestPlanningMode: RequestPlanningMode;
+  setRequestPlanningMode: Dispatch<SetStateAction<RequestPlanningMode>>;
   requestPromptOptimizerEnabled: boolean;
   setRequestPromptOptimizerEnabled: Dispatch<SetStateAction<boolean>>;
   createRequest: (options?: {
@@ -313,6 +316,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     requestPromptOptimizerEnabled,
     setRequestPromptOptimizerEnabled,
   ] = useLocalStorage("request-briefing-optimizer-enabled", false);
+  const [requestPlanningMode, setRequestPlanningMode] =
+    useLocalStorage<RequestPlanningMode>("request-planning-mode", "assisted");
   const currentModelIdRef = useRef(currentModelId);
   useEffect(() => {
     currentModelIdRef.current = currentModelId;
@@ -427,6 +432,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
               ? { messages: request.messages }
               : { message: lastMessage }),
             requestMode: isRequestMode,
+            requestPlanningMode,
             requestPromptOptimizerEnabled,
             selectedChatModel: currentModelIdRef.current,
             selectedVisibilityType: visibility,
@@ -506,6 +512,101 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
   const sendMessage = useCallback<UseChatHelpers<ChatMessage>["sendMessage"]>(
     async (message, options) => {
       const selectedModelId = currentModelIdRef.current;
+      const shouldUseRawRequestIntake =
+        isRequestMode &&
+        requestPlanningMode === "raw" &&
+        (!activeRequest || activeRequest.status === "draft");
+
+      if (shouldUseRawRequestIntake) {
+        const userMessage = normalizeChatMessageForLocalSend(message);
+        if (!userMessage) {
+          toast({
+            type: "error",
+            description: "Type a request before sending.",
+          });
+          return;
+        }
+
+        const rawBody = getMessageTextContent(userMessage).trim();
+        if (rawBody.length === 0) {
+          toast({
+            type: "error",
+            description: "Type a request before sending.",
+          });
+          return;
+        }
+
+        setDesktopTransportStatus("submitted");
+        setMessages((currentMessages) => [...currentMessages, userMessage]);
+
+        try {
+          const response = await fetchWithErrorHandlers(
+            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/requests`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                chatId,
+                planningMode: "raw",
+                preferredSupplyId:
+                  activeRequest?.routing.preferredSupplyId?.trim() ||
+                  preferredSupplyIdFromUrl?.trim() ||
+                  undefined,
+                rawBody,
+                visibility,
+              }),
+            },
+          );
+
+          const data = (await response.json()) as {
+            request: BorealRequestDraft | null;
+          };
+          const nextRequest = data.request;
+
+          router.push(
+            `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/chat/${chatId}`
+          );
+          await mutate<ChatDataResponse>(
+            chatDataKey,
+            {
+              messages: [...messages, userMessage],
+              visibility: nextRequest?.visibility ?? visibility,
+              ownerUserId: chatData?.ownerUserId ?? null,
+              viewerUserId: chatData?.viewerUserId ?? null,
+              isReadonly: false,
+              request: nextRequest,
+            },
+            {
+              revalidate: false,
+            }
+          );
+          if (nextRequest) {
+            await mutate(
+              `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/document?id=${nextRequest.documentId}`
+            );
+          }
+          await mutate(unstable_serialize(getRequestHistoryPaginationKey));
+          setDesktopTransportStatus("ready");
+          return;
+        } catch (error) {
+          setDesktopTransportStatus("error");
+          setMessages((currentMessages) =>
+            currentMessages.filter(
+              (currentMessage) => currentMessage.id !== userMessage.id
+            )
+          );
+          toast({
+            type: "error",
+            description:
+              error instanceof Error
+                ? error.message
+                : "Failed to create raw request.",
+          });
+          return;
+        }
+      }
 
       if (!isDesktopRuntimeModelId(selectedModelId)) {
         if (desktopTransportStatus !== "ready") {
@@ -754,6 +855,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       activeRequest,
       activities,
       baseSendMessage,
+      chatData?.ownerUserId,
+      chatData?.viewerUserId,
       chatDataKey,
       chatId,
       closeDesktopTransport,
@@ -761,6 +864,9 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       isRequestMode,
       messages,
       mutate,
+      preferredSupplyIdFromUrl,
+      requestPlanningMode,
+      router,
       setMessages,
       visibility,
     ]
@@ -1450,6 +1556,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       setShowModelAccessAlert,
       activeRequest,
       isRequestMode,
+      requestPlanningMode,
+      setRequestPlanningMode,
       requestPromptOptimizerEnabled,
       setRequestPromptOptimizerEnabled,
       createRequest,
@@ -1509,6 +1617,8 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       showModelAccessAlert,
       activeRequest,
       isRequestMode,
+      requestPlanningMode,
+      setRequestPlanningMode,
       requestPromptOptimizerEnabled,
       setRequestPromptOptimizerEnabled,
       createRequest,

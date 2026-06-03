@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { z } from "zod";
+import { requestByChatQuerySchema } from "@/lib/chat-route-validation";
 import {
   getChatById,
   getPublicOpenRequests,
@@ -10,19 +11,19 @@ import {
   getUserById,
   toRequestDraft,
 } from "@/lib/db/queries";
-import { requestByChatQuerySchema } from "@/lib/chat-route-validation";
 import { ChatbotError } from "@/lib/errors";
 import {
-  getRequestActorContext,
-  hasResolverScope,
-} from "@/lib/resolver-session";
-import {
+  createOrUpdateRawRequestDraftForChat,
   ensureRequestDraftForChat,
   maybeAutoRunPinnedBorealWorkerForRequest,
   openRequestDraft,
   persistRequestPatch,
   setRequestPreferredSupply,
 } from "@/lib/request-server";
+import {
+  getRequestActorContext,
+  hasResolverScope,
+} from "@/lib/resolver-session";
 
 export const maxDuration = 60;
 
@@ -30,12 +31,22 @@ const createRequestSchema = z.object({
   chatId: z.string().uuid(),
   visibility: z.enum(["public", "private"]).default("private"),
   preferredSupplyId: z.string().uuid().optional(),
+  planningMode: z.enum(["assisted", "raw"]).default("assisted"),
+  rawBody: z.string().min(1).max(2000).optional(),
 });
 
 const patchRequestSchema = z.object({
   requestId: z.string().uuid(),
   action: z.enum(["save_draft", "open_request"]),
 });
+
+function toRequestReadErrorResponse(error: unknown) {
+  if (error instanceof ChatbotError) {
+    return error.toResponse();
+  }
+
+  throw error;
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -45,7 +56,7 @@ export async function GET(request: Request) {
   if (scope === "public") {
     const limit = Math.min(
       Math.max(Number.parseInt(searchParams.get("limit") || "10", 10), 1),
-      50
+      50,
     );
     const startingAfter = searchParams.get("starting_after");
     const endingBefore = searchParams.get("ending_before");
@@ -53,22 +64,27 @@ export async function GET(request: Request) {
     if (chatId) {
       return new ChatbotError(
         "bad_request:api",
-        "chatId cannot be combined with scope=public."
+        "chatId cannot be combined with scope=public.",
       ).toResponse();
     }
 
     if (startingAfter && endingBefore) {
       return new ChatbotError(
         "bad_request:api",
-        "Only one of starting_after or ending_before can be provided."
+        "Only one of starting_after or ending_before can be provided.",
       ).toResponse();
     }
 
-    const requests = await getPublicOpenRequests({
-      limit,
-      startingAfter,
-      endingBefore,
-    });
+    let requests: Awaited<ReturnType<typeof getPublicOpenRequests>>;
+    try {
+      requests = await getPublicOpenRequests({
+        limit,
+        startingAfter,
+        endingBefore,
+      });
+    } catch (error) {
+      return toRequestReadErrorResponse(error);
+    }
 
     return Response.json(requests, { status: 200 });
   }
@@ -76,7 +92,7 @@ export async function GET(request: Request) {
   if (scope === "public_solutions") {
     const limit = Math.min(
       Math.max(Number.parseInt(searchParams.get("limit") || "10", 10), 1),
-      50
+      50,
     );
     const startingAfter = searchParams.get("starting_after");
     const endingBefore = searchParams.get("ending_before");
@@ -84,22 +100,27 @@ export async function GET(request: Request) {
     if (chatId) {
       return new ChatbotError(
         "bad_request:api",
-        "chatId cannot be combined with scope=public_solutions."
+        "chatId cannot be combined with scope=public_solutions.",
       ).toResponse();
     }
 
     if (startingAfter && endingBefore) {
       return new ChatbotError(
         "bad_request:api",
-        "Only one of starting_after or ending_before can be provided."
+        "Only one of starting_after or ending_before can be provided.",
       ).toResponse();
     }
 
-    const requests = await getPublicSolutionRequests({
-      limit,
-      startingAfter,
-      endingBefore,
-    });
+    let requests: Awaited<ReturnType<typeof getPublicSolutionRequests>>;
+    try {
+      requests = await getPublicSolutionRequests({
+        limit,
+        startingAfter,
+        endingBefore,
+      });
+    } catch (error) {
+      return toRequestReadErrorResponse(error);
+    }
 
     return Response.json(requests, { status: 200 });
   }
@@ -118,7 +139,7 @@ export async function GET(request: Request) {
 
     const limit = Math.min(
       Math.max(Number.parseInt(searchParams.get("limit") || "10", 10), 1),
-      50
+      50,
     );
     const startingAfter = searchParams.get("starting_after");
     const endingBefore = searchParams.get("ending_before");
@@ -126,16 +147,21 @@ export async function GET(request: Request) {
     if (startingAfter && endingBefore) {
       return new ChatbotError(
         "bad_request:api",
-        "Only one of starting_after or ending_before can be provided."
+        "Only one of starting_after or ending_before can be provided.",
       ).toResponse();
     }
 
-    const requests = await getRequestsByUserId({
-      id: actor.userId,
-      limit,
-      startingAfter,
-      endingBefore,
-    });
+    let requests: Awaited<ReturnType<typeof getRequestsByUserId>>;
+    try {
+      requests = await getRequestsByUserId({
+        id: actor.userId,
+        limit,
+        startingAfter,
+        endingBefore,
+      });
+    } catch (error) {
+      return toRequestReadErrorResponse(error);
+    }
 
     return Response.json(requests, { status: 200 });
   }
@@ -144,13 +170,18 @@ export async function GET(request: Request) {
   if (!parsedQuery.success) {
     return new ChatbotError(
       "bad_request:api",
-      "Valid chatId is required."
+      "Valid chatId is required.",
     ).toResponse();
   }
 
-  const requestDraft = await getRequestByChatId({
-    chatId: parsedQuery.data.chatId,
-  });
+  let requestDraft: Awaited<ReturnType<typeof getRequestByChatId>>;
+  try {
+    requestDraft = await getRequestByChatId({
+      chatId: parsedQuery.data.chatId,
+    });
+  } catch (error) {
+    return toRequestReadErrorResponse(error);
+  }
   if (!requestDraft) {
     return Response.json({ request: null }, { status: 200 });
   }
@@ -167,7 +198,7 @@ export async function GET(request: Request) {
 
   return Response.json(
     { request: toRequestDraft(requestDraft) },
-    { status: 200 }
+    { status: 200 },
   );
 }
 
@@ -181,7 +212,7 @@ export async function POST(request: Request) {
   if (!existingUser) {
     return new ChatbotError(
       "unauthorized:auth",
-      "Your local session points to a deleted user record. Sign out, then sign in again."
+      "Your local session points to a deleted user record. Sign out, then sign in again.",
     ).toResponse();
   }
 
@@ -191,7 +222,7 @@ export async function POST(request: Request) {
   } catch {
     return new ChatbotError(
       "bad_request:api",
-      "Invalid request body."
+      "Invalid request body.",
     ).toResponse();
   }
 
@@ -201,18 +232,28 @@ export async function POST(request: Request) {
   }
 
   try {
-    const requestDraft = await ensureRequestDraftForChat({
-      chatId: body.chatId,
-      userId: actor.userId,
-      visibility: body.visibility,
-    });
-    const nextRequest = body.preferredSupplyId
-      ? await setRequestPreferredSupply({
-          requestId: requestDraft.id,
-          userId: actor.userId,
-          preferredSupplyId: body.preferredSupplyId,
-        })
-      : requestDraft;
+    const nextRequest =
+      body.planningMode === "raw" && body.rawBody
+        ? await createOrUpdateRawRequestDraftForChat({
+            chatId: body.chatId,
+            userId: actor.userId,
+            visibility: body.visibility,
+            preferredSupplyId: body.preferredSupplyId,
+            rawBody: body.rawBody,
+          })
+        : await ensureRequestDraftForChat({
+            chatId: body.chatId,
+            userId: actor.userId,
+            visibility: body.visibility,
+          }).then((requestDraft) =>
+            body.preferredSupplyId
+              ? setRequestPreferredSupply({
+                  requestId: requestDraft.id,
+                  userId: actor.userId,
+                  preferredSupplyId: body.preferredSupplyId,
+                })
+              : requestDraft,
+          );
 
     return Response.json({ request: nextRequest }, { status: 200 });
   } catch (error) {
@@ -226,6 +267,8 @@ export async function POST(request: Request) {
     if (
       error instanceof Error &&
       [
+        "Raw request body is required",
+        "Only draft requests can use raw intake",
         "Preferred supply is only available for private requests",
         "Supply does not belong to request owner",
         "Published supply required",
@@ -236,7 +279,7 @@ export async function POST(request: Request) {
 
     return new ChatbotError(
       "bad_request:database",
-      "Failed to create request draft"
+      "Failed to create request draft",
     ).toResponse();
   }
 }
@@ -253,7 +296,7 @@ export async function PATCH(request: Request) {
   } catch {
     return new ChatbotError(
       "bad_request:api",
-      "Invalid request body."
+      "Invalid request body.",
     ).toResponse();
   }
 
@@ -308,7 +351,7 @@ export async function PATCH(request: Request) {
     ) {
       return new ChatbotError(
         "bad_request:api",
-        "The request draft JSON is invalid. Fix the object before continuing."
+        "The request draft JSON is invalid. Fix the object before continuing.",
       ).toResponse();
     }
 
@@ -318,7 +361,7 @@ export async function PATCH(request: Request) {
     ) {
       return new ChatbotError(
         "bad_request:api",
-        "This request is still missing core briefing details."
+        "This request is still missing core briefing details.",
       ).toResponse();
     }
 
@@ -328,7 +371,7 @@ export async function PATCH(request: Request) {
     ) {
       return new ChatbotError(
         "bad_request:api",
-        "Only draft requests can be opened."
+        "Only draft requests can be opened.",
       ).toResponse();
     }
 
@@ -336,7 +379,7 @@ export async function PATCH(request: Request) {
       "bad_request:database",
       body.action === "open_request"
         ? "Failed to open request draft"
-        : "Failed to save request draft"
+        : "Failed to save request draft",
     ).toResponse();
   }
 }

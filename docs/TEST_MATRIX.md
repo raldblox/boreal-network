@@ -268,6 +268,8 @@ Verify:
 - web briefing-workspace submits in `New request` mode create or update one draft request through hidden briefing-source turns instead of visible user bubbles or completed draft tool rows
 - pre-open briefing composer keeps the raw submitted prompt visible, disables while loading, and enables resubmission only after the prompt or attachments change
 - `New request` mode creates at most one draft request once the brief is ready enough for useful plans or the buyer explicitly asks to create it
+- raw request planner mode creates or updates one draft request from buyer text without LLM briefing, generated phases, generated roles, candidate matching, route summary, or proof-planning projections
+- raw request drafts can switch back to assisted planning on the same `Request`, preserve the buyer-authored body, and rebuild planner projections without forking request history
 - preflight preview fields should be UI projections from chat history and must not create a `Request`, `RequestEvent`, `Artifact`, `Transaction`, planner output, or fulfillment truth
 - selecting one supply from the supply hub may pin preflight context without creating a durable request
 - an explicit create-from-supply action may create one private draft request and pin `routing.preferredSupplyId` without auto-sending synthetic prompt text
@@ -295,6 +297,8 @@ Verify:
 - request mode may ask clarifying questions before draft readiness when missing location, access, timing, or proof fields materially change embodied execution safety
 - request mode should ask one focused briefing question at a time before draft creation when the ask is fuzzy
 - draft creation should render an inline briefing or plan review in the chat timeline instead of leaving only completed tool-call UI
+- request-intake pending state should render the same plan/review container skeleton that will receive the generated draft, and should suppress generic `Thinking...` while that skeleton is visible
+- raw draft review should show the captured request and open readiness only, with no fallback plan steps, planner-pending phase, flow-plan nodes, or generated proof notes
 - draft inline plan review should offer a compact stepper and optional flow review without replacing pre-open request mode with a planner dashboard
 - draft flow review should render `Request` plus one or more parallel `Plan` cards and must not show worker or delivery nodes before the request opens
 - draft flow review should reuse the same buyer-facing plan-step projection as the stepper, with numbered plan cards and non-overlapping fixed-height flow nodes

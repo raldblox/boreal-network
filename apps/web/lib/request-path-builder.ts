@@ -40,22 +40,28 @@ export function buildRequestPathBuilderViewModel({
   request: BorealRequestDraft;
   scope: "draft" | "open";
 }): RequestPathBuilderViewModel {
-  const stepCount = Math.max(getRequestPathStepCount(request), 1);
-  const laneCount = Math.max(request.derived.roleSlots.length, 1);
+  const isRawDraft =
+    scope === "draft" && request.derived.planningMode === "raw";
+  const stepCount = isRawDraft ? 0 : Math.max(getRequestPathStepCount(request), 1);
+  const laneCount = isRawDraft ? 0 : Math.max(request.derived.roleSlots.length, 1);
   const canOpenRequest =
     scope === "draft" && request.derived.readiness.readyForOpen;
 
   return {
     baselinePath: {
-      title: request.brief.title?.trim() || "Baseline path",
-      sourceLabel: "Boreal baseline",
+      title: isRawDraft
+        ? request.brief.title?.trim() || "Raw request captured"
+        : request.brief.title?.trim() || "Baseline path",
+      sourceLabel: isRawDraft ? "Raw request" : "Boreal baseline",
       statusLabel:
         scope === "open"
           ? "request-open"
           : canOpenRequest
             ? "execution-ready"
             : "proposal",
-      summary: getBaselinePathSummary(request, stepCount, laneCount),
+      summary: isRawDraft
+        ? "Boreal captured the buyer-authored request without generating plan steps. Assisted planning can be resumed on this same request."
+        : getBaselinePathSummary(request, stepCount, laneCount),
       stepCount,
       laneCount,
     },

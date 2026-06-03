@@ -248,6 +248,10 @@ function getDraftPlanSummary(request: BorealRequestDraft) {
 export function buildBuyerFacingDraftPlanSteps(
   request: BorealRequestDraft,
 ): BuyerFacingRequestPlanStep[] {
+  if (request.derived.planningMode === "raw") {
+    return [];
+  }
+
   return getPortableDraftPhases(request).map((phase) => ({
     phaseKey: phase.phaseKey,
     title: getBuyerFacingPhaseTitle(request, phase),

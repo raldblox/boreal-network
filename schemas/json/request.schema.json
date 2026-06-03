@@ -211,6 +211,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "planningMode",
         "candidatePool",
         "matchCandidates",
         "roleSlots",
@@ -230,6 +231,14 @@
         "clarificationNeeded"
       ],
       "properties": {
+        "planningMode": {
+          "description": "Controls whether request-owned planner projections are generated. Raw mode stores buyer-authored request text without derived plan steps; assisted mode allows planner, matcher, and policy projections to rebuild from the same Request.",
+          "type": "string",
+          "enum": [
+            "assisted",
+            "raw"
+          ]
+        },
         "routeFamily": {
           "$ref": "common.schema.json#/$defs/requestRouteFamily"
         },

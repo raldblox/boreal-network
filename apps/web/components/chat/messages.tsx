@@ -331,6 +331,7 @@ function PureMessages({
 
           {status === "submitted" &&
             !isBriefingInFlight &&
+            !(displayMode === "timeline" && isRequestMode && !request) &&
             lastVisibleMessage?.role !== "assistant" && <ThinkingMessage />}
 
           <div
@@ -369,28 +370,54 @@ function BriefingIntakePending() {
         <section className="w-full rounded-[22px] border border-border/60 bg-muted/[0.18] p-3.5 md:p-4">
           <div className="space-y-2">
             <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground/72">
-              Briefing result
+              Plans
             </div>
             <div className="text-[13px] leading-6 text-muted-foreground">
-              Boreal is structuring the submitted ask into a draft Request.
-              Missing details stay visible instead of becoming invented plan
-              steps.
+              Preparing a buyer-facing request draft. Missing details stay
+              visible instead of becoming invented plan steps.
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                request brief
+              </div>
+              <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                plan steps
+              </div>
             </div>
           </div>
 
-          <div className="mt-3 rounded-[18px] border border-dashed border-border/60 bg-background/92 px-3.5 py-3">
-            <div className="flex items-center gap-2 text-[14px] leading-6 text-foreground">
-              <span className="size-2 rounded-full bg-foreground/70" />
-              Preparing the briefing.
+          <div className="mt-3 rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-full border border-status-success/25 bg-status-success/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-status-success">
+                draft plan
+              </div>
+              <div className="rounded-full border border-border/70 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground/72">
+                generating
+              </div>
             </div>
-            <div className="mt-1.5 text-[13px] leading-5.5 text-muted-foreground">
-              Next up: brief body, missing details, route hints, and proof
-              needs.
+            <div className="mt-4 space-y-2.5" aria-hidden="true">
+              <div className="h-5 w-2/3 animate-pulse rounded-full bg-muted" />
+              <div className="h-3 w-full animate-pulse rounded-full bg-muted/80" />
+              <div className="h-3 w-5/6 animate-pulse rounded-full bg-muted/70" />
             </div>
-            <div className="mt-4 space-y-2" aria-hidden="true">
-              <div className="h-2.5 w-2/3 animate-pulse rounded-full bg-muted" />
-              <div className="h-2.5 w-full animate-pulse rounded-full bg-muted/80" />
-              <div className="h-2.5 w-5/6 animate-pulse rounded-full bg-muted/70" />
+          </div>
+
+          <div className="mt-3 grid gap-3 xl:grid-cols-2" aria-hidden="true">
+            <div className="rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+              <div className="h-3 w-28 animate-pulse rounded-full bg-muted" />
+              <div className="mt-5 space-y-3">
+                <div className="h-3 w-16 animate-pulse rounded-full bg-muted/80" />
+                <div className="h-4 w-full animate-pulse rounded-full bg-muted" />
+                <div className="h-4 w-4/5 animate-pulse rounded-full bg-muted/70" />
+              </div>
+            </div>
+            <div className="rounded-[18px] border border-border/60 bg-background/92 px-3.5 py-3.5">
+              <div className="h-3 w-32 animate-pulse rounded-full bg-muted" />
+              <div className="mt-5 space-y-3">
+                <div className="h-4 w-3/5 animate-pulse rounded-full bg-muted" />
+                <div className="h-3 w-full animate-pulse rounded-full bg-muted/80" />
+                <div className="h-3 w-2/3 animate-pulse rounded-full bg-muted/70" />
+              </div>
             </div>
           </div>
         </section>
