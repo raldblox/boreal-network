@@ -557,7 +557,9 @@ components:
         endpoint:
           const: /agents/actions/preflight
         actionId:
-          const: apply_to_request
+          enum:
+            - apply_to_request
+            - create_owner_private_fulfillment
         requiredStatus:
           const: preflight_passed
         requiredBeforeMutation:
@@ -596,8 +598,10 @@ components:
               type: array
               items:
                 type: string
-              contains:
-                const: commitments:propose
+                enum:
+                  - commitments:propose
+                  - fulfillments:create
+              minItems: 1
             payloadSummaryRequired:
               const: true
         routePolicyRecheck:

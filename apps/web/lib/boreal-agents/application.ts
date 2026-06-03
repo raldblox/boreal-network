@@ -425,10 +425,16 @@ function buildSubmissionPreflight({
 }) {
   const directOwnerPrivate =
     lane === "owner_private_direct_worker_fulfillment";
+  const actionId = directOwnerPrivate
+    ? "create_owner_private_fulfillment"
+    : "apply_to_request";
+  const requestedScopes = directOwnerPrivate
+    ? ["fulfillments:create"]
+    : ["commitments:propose"];
 
   return {
     endpoint: "/agents/actions/preflight",
-    actionId: "apply_to_request",
+    actionId,
     requiredStatus: "preflight_passed",
     requiredBeforeMutation: true,
     requiredInput: {
@@ -440,7 +446,7 @@ function buildSubmissionPreflight({
       },
       hasHumanApproval: true,
       hasIdempotencyKey: true,
-      requestedScopes: ["commitments:propose"],
+      requestedScopes,
       payloadSummaryRequired: true,
     },
     routePolicyRecheck: {

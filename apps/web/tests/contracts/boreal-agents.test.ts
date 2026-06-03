@@ -525,6 +525,15 @@ assert.equal(
   true
 );
 assert.equal(
+  privatePrepare.applicationPacket.submissionPreflight.actionId,
+  "create_owner_private_fulfillment"
+);
+assert.deepEqual(
+  privatePrepare.applicationPacket.submissionPreflight.requiredInput
+    .requestedScopes,
+  ["fulfillments:create"]
+);
+assert.equal(
   privatePrepare.applicationPacket.submissionPreflight.routePolicyRecheck
     .mutationScopeIfResolverBearer,
   "fulfillments:create"

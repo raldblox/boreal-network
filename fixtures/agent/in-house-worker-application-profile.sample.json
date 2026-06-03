@@ -371,6 +371,7 @@
     "submissionPreflight": {
       "endpoint": "/agents/actions/preflight",
       "actionId": "apply_to_request",
+      "directLaneActionId": "create_owner_private_fulfillment",
       "requiredStatus": "preflight_passed",
       "requiredBeforeMutation": true,
       "requiredInput": {
@@ -383,6 +384,9 @@
         "hasIdempotencyKey": true,
         "requestedScopes": [
           "commitments:propose"
+        ],
+        "directLaneRequestedScopes": [
+          "fulfillments:create"
         ],
         "payloadSummaryRequired": true
       },

@@ -89,6 +89,18 @@ const actionPreflightRules = {
       "Owner acceptance must happen before cross-actor fulfillment starts.",
     ],
   },
+  create_owner_private_fulfillment: {
+    requiredScopes: ["fulfillments:create"],
+    requestIdRequired: true,
+    representedActorRequired: true,
+    humanApprovalRequired: true,
+    idempotencyRequired: true,
+    payloadSummaryRecommended: true,
+    warnings: [
+      "Use only for owner-private direct fulfillment with selected Supply and ownerPrivateDirectApproval evidence.",
+      "Passing preflight does not create Fulfillment truth or publish artifacts.",
+    ],
+  },
   submit_artifact: {
     requiredScopes: ["artifacts:publish"],
     requestIdRequired: true,

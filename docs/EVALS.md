@@ -87,7 +87,7 @@ Verify that in-house Boreal worker scanning is read-only and produces only oppor
 Verify that public or cross-actor in-house worker application proposes a `Commitment` before fulfillment, while owner-private direct worker fulfillment remains limited to owner-controlled private requests with selected published first-party supply.
 Verify that owner-private direct worker fulfillment is not recommended from private visibility alone; request-specific trusted-worker auto-approval, eligible status, allowed worker key, and selected supply proof must all be present.
 Verify that public or cross-actor worker applications attach selected supply through `Commitment.supplyId`, while owner-private direct lanes attach selected supply through `Fulfillment.supplyId`.
-Verify that named Boreal agent application packets include `submissionPreflight` requiring `/agents/actions/preflight`, `apply_to_request`, represented actor evidence, idempotency, selected `Supply`, `agentActionPolicy`, and lane-specific route-policy rechecks before any sketched mutation route can be attempted.
+Verify that named Boreal agent application packets include lane-specific `submissionPreflight` requiring `/agents/actions/preflight`, `apply_to_request` for commitment applications or `create_owner_private_fulfillment` for owner-private direct fulfillment, represented actor evidence, idempotency, selected `Supply`, `agentActionPolicy`, and lane-specific route-policy rechecks before any sketched mutation route can be attempted.
 Verify that no-commitment direct fulfillment creation rejects private-visibility-only attempts and requires selected `Supply` plus `ownerPrivateDirectApproval` evidence before `Fulfillment`, `FulfillmentStep`, or `RequestEvent` truth can be created.
 Verify that owner-scoped auto-approval can create or accept only the next worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to another supply.
 Verify that prompt-only assets are rejected as starter supply until a backing execution profile, capability fingerprints, proof path, and readiness tests exist.
@@ -258,7 +258,7 @@ From the repo root:
 - `pnpm contracts:solution-runs`
   Validates the v0 public-solution-run fixture: completed public source request, accepted source artifact, private run request, buyer-credit debit, and request-attached transaction truth.
 - `pnpm web:test:agent-discovery`
-  Validates the read-only agent discovery package: public agent card, start guide, OpenAPI discovery index, allowlisted OpenAPI/JSON Schema/AsyncAPI exports, and the `Request` root boundary.
+  Validates the read-only agent discovery package: public agent card, start guide, OpenAPI discovery index, allowlisted OpenAPI/JSON Schema/AsyncAPI exports, action preflight for commitment applications and owner-private direct fulfillment, and the `Request` root boundary.
 - `pnpm contracts:in-house-workers`
   Validates the in-house Boreal worker application profile: scanner read-only guarantees, public `Commitment` application boundary, owner-private direct `Fulfillment` exception, auto-approval non-completion limits, prompt-only asset gates, live `video-generation`, and target-only humanizer status.
 - `pnpm web:test:boreal-agents`

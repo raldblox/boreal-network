@@ -2928,6 +2928,34 @@ async function main() {
     true,
   );
 
+  const ownerPrivateFulfillmentPreflight = validateAgentActionPreflight({
+    schemaVersion: 1,
+    actionId: "create_owner_private_fulfillment",
+    requestId: "req_owner_private_video_001",
+    representedActor: {
+      kind: "boreal_agent",
+      reference: "boreal-agent:mira-video",
+    },
+    hasHumanApproval: true,
+    hasIdempotencyKey: true,
+    requestedScopes: ["fulfillments:create"],
+    payloadSummary:
+      "Owner-private direct fulfillment with selected Supply and ownerPrivateDirectApproval.",
+  });
+  assert.equal(ownerPrivateFulfillmentPreflight.status, "preflight_passed");
+  assert.equal(
+    ownerPrivateFulfillmentPreflight.requiredScopes.includes(
+      "fulfillments:create"
+    ),
+    true,
+  );
+  assert.equal(
+    ownerPrivateFulfillmentPreflight.canonicalWrites.includes("Fulfillment"),
+    true,
+  );
+  assert.equal(ownerPrivateFulfillmentPreflight.permissionGranted, false);
+  assert.equal(ownerPrivateFulfillmentPreflight.durableWriteCreated, false);
+
   const monitorPreflight = validateAgentActionPreflight({
     schemaVersion: 1,
     actionId: "monitor_request",

@@ -187,6 +187,35 @@ const agentActionDefinitions = [
     standards: ["OpenAPI", "JSON Schema"],
   },
   {
+    auth: "Owner Boreal account session or resolver bearer token with fulfillments:create scope",
+    availability: "live_authenticated_http_contract",
+    canonicalReads: ["Request", "Supply"],
+    canonicalWrites: ["Fulfillment", "FulfillmentStep", "RequestEvent"],
+    contracts: [
+      "/openapi/request-briefing.yaml",
+      "/schemas/request.schema.json",
+      "/schemas/fulfillment.schema.json",
+    ],
+    entrypoints: ["/api/requests/{id}/fulfillments"],
+    guidePath: `${agentDiscoveryPaths.agentActions}#create_owner_private_fulfillment`,
+    guardrails: [
+      "Use only when the request is owner-private and direct fulfillment policy allows the represented worker.",
+      "Include selected Supply and ownerPrivateDirectApproval evidence in the route body.",
+      "Do not publish artifacts, authorize payment, accept review, or complete the Request from this action.",
+    ],
+    id: "create_owner_private_fulfillment",
+    intent: "Start trusted private work",
+    name: "Create owner-private fulfillment",
+    process: [
+      "Inspect the owned private Request and selected Supply.",
+      "Run action preflight with fulfillments:create scope, represented worker, human approval, and idempotency.",
+      "Submit one fulfillment-create body with ownerPrivateDirectApproval evidence through the fulfillment endpoint.",
+      "Keep provider execution, artifact publication, review, payment, and completion as separate downstream gates.",
+    ],
+    role: "solver",
+    standards: ["OpenAPI", "JSON Schema"],
+  },
+  {
     auth: "Boreal account session or resolver bearer token with artifacts:publish scope",
     availability: "live_authenticated_http_contract",
     canonicalReads: ["Request", "Commitment", "Fulfillment"],
@@ -6280,7 +6309,7 @@ export function buildAgentAuthProfile() {
         status: "live_resolver_scope",
         grants: ["create fulfillment truth only after commitment or direct-owner gates allow it"],
         doesNotGrant: ["new request creation for worker sub-work"],
-        requiredFor: ["create_fulfillment"],
+        requiredFor: ["create_fulfillment", "create_owner_private_fulfillment"],
       },
       {
         id: "fulfillments:update",
@@ -6339,6 +6368,13 @@ export function buildAgentAuthProfile() {
           requiredScopes: ["commitments:propose"],
           humanApproval:
             "owner review is required before cross-actor fulfillment starts",
+          idempotencyRequired: true,
+        },
+        create_owner_private_fulfillment: {
+          authOptions: ["boreal_account_session", "resolver_bearer"],
+          requiredScopes: ["fulfillments:create"],
+          humanApproval:
+            "owner-private direct approval is required before trusted fulfillment starts",
           idempotencyRequired: true,
         },
         submit_artifact: {
@@ -16435,6 +16471,28 @@ Idempotency-Key: <uuid>
   }
 }
 ~~~`;
+    case "create_owner_private_fulfillment":
+      return `HTTP sketch:
+
+~~~http
+POST /api/requests/{id}/fulfillments
+Content-Type: application/json
+Idempotency-Key: <uuid>
+
+{
+  "summary": "Trusted owner-private worker lane.",
+  "supplyId": "<selected-owned-published-supply-uuid>",
+  "ownerPrivateDirectApproval": {
+    "mode": "trusted_worker_auto_approval",
+    "approvedByOwner": true,
+    "selectedSupplyId": "<same-selected-supply-uuid>",
+    "workerKey": "video-generation"
+  },
+  "initialStatus": "planned"
+}
+~~~
+
+Use only after live request policy confirms owner-private direct fulfillment. This does not publish artifacts, authorize payment, accept review, or complete the Request.`;
     case "submit_artifact":
       return `HTTP sketch:
 

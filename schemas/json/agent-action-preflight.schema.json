@@ -39,6 +39,7 @@
         "inspect_public_requests",
         "make_request_for_human",
         "apply_to_request",
+        "create_owner_private_fulfillment",
         "submit_artifact",
         "monitor_request",
         "run_public_solution",

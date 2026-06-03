@@ -210,6 +210,24 @@ function validateProfile(profile, errors) {
   );
   assert(publicLane?.idempotencyRequired === true, "public application must require idempotency", errors);
   assert(publicLane?.completionAuthority === false, "public application must not have completion authority", errors);
+  assert(
+    profile.applicationPacket?.submissionPreflight?.actionId === "apply_to_request",
+    "application packet must preflight public applications with apply_to_request",
+    errors
+  );
+  assert(
+    profile.applicationPacket?.submissionPreflight?.directLaneActionId ===
+      "create_owner_private_fulfillment",
+    "application packet must preflight direct fulfillment with create_owner_private_fulfillment",
+    errors
+  );
+  includesAll(
+    profile.applicationPacket?.submissionPreflight?.requiredInput
+      ?.directLaneRequestedScopes,
+    ["fulfillments:create"],
+    "direct fulfillment preflight scopes",
+    errors
+  );
 
   equalsSet(
     directLane?.canonicalWritesIfAuthorized,
