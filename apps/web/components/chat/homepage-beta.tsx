@@ -237,8 +237,9 @@ export function HomeBetaPage() {
                       <div>
                         <p className={surfaceEyebrowClassName}>Card anatomy</p>
                         <p className="mt-2 text-sm leading-6 text-foreground/82">
-                          A service is nearly complete. The missing piece is
-                          usually the buyer brief, funding, or final outcome.
+                          A service starts with a known plan, but the worker or
+                          supply attachment waits for checkout or request
+                          routing.
                         </p>
                       </div>
                       <Badge className="rounded-full border-border/60 bg-muted/40 text-foreground/70">
@@ -251,8 +252,10 @@ export function HomeBetaPage() {
                           <div
                             className={cn(
                               "flex items-center justify-between rounded-2xl border px-4 py-3",
-                              index < 3
+                              index < 2
                                 ? "border-emerald-400/25 bg-emerald-400/[0.06]"
+                                : index === 2
+                                  ? "border-amber-400/45 bg-amber-400/[0.08]"
                                 : "border-dashed border-border/80 bg-muted/20",
                             )}
                             key={part}
@@ -261,7 +264,11 @@ export function HomeBetaPage() {
                               {part}
                             </span>
                             <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/72">
-                              {index < 3 ? "added" : "missing"}
+                              {index < 2
+                                ? "added"
+                                : index === 2
+                                  ? "pending"
+                                  : "missing"}
                             </span>
                           </div>
                         ),
@@ -342,6 +349,12 @@ function WorkCardRow({ card }: { card: WorkCard }) {
               <Badge className="rounded-full border-border/60 bg-muted/35 text-foreground/70">
                 {card.kind}
               </Badge>
+              <Badge className="rounded-full border-border/60 bg-background/40 text-foreground/65">
+                {card.taxonomy.canonicalRoot} root
+              </Badge>
+              <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
+                {card.taxonomy.workerAttachmentLabel}
+              </span>
               <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground/70">
                 {completeParts}/5 added
               </span>
@@ -399,7 +412,7 @@ function WorkCardRow({ card }: { card: WorkCard }) {
               <span className="text-[11px] text-muted-foreground/72">
                 {card.primaryAction.source === "agentActionCardHints"
                   ? "Action from request hints"
-                  : "Action from service adapter"}
+                  : "Action from service starter"}
               </span>
             </div>
             <div className="grid gap-2 md:grid-cols-5">

@@ -291,6 +291,8 @@ Verify:
 - request creation with `preferredSupplyId` should return the draft with seeded `seeking` and worker-facing output defaults when those fields were still empty
 - owner-private preferred-supply draft seeding may also add truthful route-facing derived defaults such as candidate pool, route family, execution kind, payment mode, matching mode, and route summary
 - supply-started draft requests should not auto-open the raw request-object panel before the owner writes the worker prompt
+- home beta work cards should expose a typed taxonomy with `Request` as canonical root, listing kind, worker attachment state, next canonical boundary, and explicit in/out scope
+- service request starter cards should show service path known but worker or `Supply` attachment pending until checkout or request routing, and must not count the worker slot as completed
 - request-briefing assist or optimizer profiles in request mode must still create at most one draft request on first send
 - request draft extraction is deterministic for canonical fixtures
 - request-briefing assist or optimizer profiles may improve wording clarity but must not invent budget, deadline, deliverables, actor requirements, or constraints

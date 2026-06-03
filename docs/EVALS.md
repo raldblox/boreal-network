@@ -266,6 +266,8 @@ From the repo root:
   Validates the in-house Boreal worker application profile: scanner read-only guarantees, public `Commitment` application boundary, owner-private direct `Fulfillment` exception, auto-approval non-completion limits, prompt-only asset gates, live `video-generation`, target-only humanizer status, and named-agent promotion gates.
 - `pnpm web:test:boreal-agents`
   Validates the named Boreal agent route surface: unique `Mira` and `Tala` route templates, shared framework id/version, preparation-only route mode, boilerplate refs, `live_backed` and `target_blocked` promotion gates, `Mira` video-generation qualification, caller-supplied request scan wake or skip behavior, human-required scanner skip behavior, target-only humanizer behavior, governed mutation-call sketches for commitment or owner-private fulfillment routes, required `submissionPreflight` handoffs, and preparation-only packets that do not match, assign, create commitments, start fulfillments, publish artifacts, write events, create transactions, or call providers.
+- `pnpm --filter @boreal/web exec tsx tests/contracts/showcase-request-catalog.test.ts`
+  Validates beta work-card taxonomy for service request starters, open request listings, reuse-ready requests, canonical `Request` root, worker attachment state, next boundary, and explicit in/out scope.
 - `pnpm evals:request-processing:benchmark`
   Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
 - `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`

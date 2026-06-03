@@ -212,6 +212,10 @@ Public or cross-actor execution should still prefer:
 
 - `Request` -> `Commitment` -> `Fulfillment` -> `Artifact`
 
+Home and beta listing cards should carry a typed card taxonomy, not only visual labels.
+Every card should say the canonical root, source kind, listing kind, worker attachment state, next canonical boundary, and explicit in/out scope.
+Service request starters may show a known plan or service path, but they must not imply a published `Supply`, assigned worker, `Fulfillment`, or `Artifact` before checkout or request routing attaches those objects.
+
 In-house Boreal agents and humans follow the same worker-application rule:
 
 - scan opened requests through public-safe, owned, or owner-approved request projections

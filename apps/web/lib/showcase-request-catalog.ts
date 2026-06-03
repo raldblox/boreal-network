@@ -43,6 +43,39 @@ export type HomeBetaWorkCardSort =
   | "most-missing"
   | "newest";
 
+export type HomeBetaWorkCardListingKind =
+  | "service_request_starter"
+  | "open_request_listing"
+  | "campaign_request_listing"
+  | "workflow_preflight_listing"
+  | "reuse_ready_listing"
+  | "public_interest_listing";
+
+export type HomeBetaWorkerAttachmentState =
+  | "service_path_known_supply_not_attached"
+  | "worker_application_needed"
+  | "worker_lane_active"
+  | "completed_artifact_available";
+
+export type HomeBetaNextCanonicalBoundary =
+  | "Request"
+  | "Commitment"
+  | "Fulfillment"
+  | "Artifact"
+  | "NewRequestFromArtifact";
+
+export type HomeBetaWorkCardTaxonomy = {
+  canonicalRoot: "Request";
+  sourceKind: ShowcaseRequestSourceKind;
+  listingKind: HomeBetaWorkCardListingKind;
+  listingLabel: string;
+  workerAttachment: HomeBetaWorkerAttachmentState;
+  workerAttachmentLabel: string;
+  nextCanonicalBoundary: HomeBetaNextCanonicalBoundary;
+  inScope: readonly string[];
+  outOfScope: readonly string[];
+};
+
 export type HomeBetaFlowStageId =
   | "request_intake"
   | "path_planning"
@@ -83,6 +116,7 @@ export type HomeBetaWorkCard = {
   slots: HomeBetaWorkSlot[];
   summary: string;
   tags: string[];
+  taxonomy: HomeBetaWorkCardTaxonomy;
   timestamp: number;
   title: string;
   workroomHref: string;
@@ -276,11 +310,12 @@ function buildServiceFlowProjection({
       title: plan.label,
     },
     {
-      detail: family.providerLabel,
+      detail:
+        "Service path is known; selected Supply or worker lane attaches after checkout or request routing.",
       flowStageId: "fulfillment_handoff",
       key: "workers",
-      state: "complete",
-      title: "Known supply path",
+      state: "active",
+      title: "Supply attachment pending",
     },
     {
       detail: `${plan.price} checkout before execution starts.`,
@@ -934,9 +969,97 @@ export function toHomeBetaWorkCard(
     slots: entry.flowProjection,
     summary: request.brief.summary,
     tags: request.brief.tags,
+    taxonomy: deriveWorkCardTaxonomy(entry),
     timestamp: Date.parse(request.updatedAt),
     title: request.brief.title,
     workroomHref: showcaseRequestWorkroomHref(request.id),
+  };
+}
+
+function deriveWorkCardTaxonomy(
+  entry: ShowcaseRequestCatalogEntry,
+): HomeBetaWorkCardTaxonomy {
+  if (entry.source.kind === "service_plan") {
+    return {
+      canonicalRoot: "Request",
+      sourceKind: entry.source.kind,
+      listingKind: "service_request_starter",
+      listingLabel: "Service request starter",
+      workerAttachment: "service_path_known_supply_not_attached",
+      workerAttachmentLabel: "No worker attached yet",
+      nextCanonicalBoundary: "Request",
+      inScope: [
+        "start a buyer-owned Request draft",
+        "preserve selected service family and plan metadata",
+        "collect missing brief and checkout inputs",
+      ],
+      outOfScope: [
+        "not a published Supply listing",
+        "no worker assignment from the card",
+        "no Fulfillment or Artifact exists before request routing",
+      ],
+    };
+  }
+
+  if (entry.source.kind === "reuse_ready_request") {
+    return {
+      canonicalRoot: "Request",
+      sourceKind: entry.source.kind,
+      listingKind: "reuse_ready_listing",
+      listingLabel: "Reusable completed request",
+      workerAttachment: "completed_artifact_available",
+      workerAttachmentLabel: "Accepted artifact available",
+      nextCanonicalBoundary: "NewRequestFromArtifact",
+      inScope: [
+        "inspect accepted public artifact",
+        "prepare a new private run request",
+        "preserve source artifact provenance",
+      ],
+      outOfScope: [
+        "do not mutate the original completed Request",
+        "do not treat reuse as free execution",
+        "do not skip credit or request creation gates",
+      ],
+    };
+  }
+
+  const listingKindBySource = {
+    campaign_request: "campaign_request_listing",
+    public_interest_request: "public_interest_listing",
+    public_request: "open_request_listing",
+    workflow_request: "workflow_preflight_listing",
+  } satisfies Record<
+    Exclude<ShowcaseRequestSourceKind, "service_plan" | "reuse_ready_request">,
+    HomeBetaWorkCardListingKind
+  >;
+
+  const hasActiveWorkerLane =
+    entry.request.status === "in_progress" ||
+    entry.request.status === "waiting_for_owner" ||
+    entry.request.status === "delivered";
+
+  return {
+    canonicalRoot: "Request",
+    sourceKind: entry.source.kind,
+    listingKind: listingKindBySource[entry.source.kind],
+    listingLabel: sourceKindLabels[entry.source.kind],
+    workerAttachment: hasActiveWorkerLane
+      ? "worker_lane_active"
+      : "worker_application_needed",
+    workerAttachmentLabel: hasActiveWorkerLane
+      ? "Worker lane active"
+      : "Application needed",
+    nextCanonicalBoundary: hasActiveWorkerLane ? "Artifact" : "Commitment",
+    inScope: [
+      "inspect public Request projection",
+      "prepare a worker application or response",
+      "preserve Request as the durable work thread",
+    ],
+    outOfScope: [
+      "no worker assignment from listing",
+      "no hidden owner approval",
+      "no Fulfillment before Commitment or owner-private policy",
+    ],
   };
 }
 
