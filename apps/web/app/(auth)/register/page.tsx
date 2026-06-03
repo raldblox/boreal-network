@@ -1,14 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Suspense, useActionState, useEffect, useState } from "react";
 import { AuthForm } from "@/components/chat/auth-form";
+import { AuthModeSwitch } from "@/components/chat/auth-mode-switch";
 import { type AuthFeedback, AuthStatus } from "@/components/chat/auth-status";
 import { SubmitButton } from "@/components/chat/submit-button";
 import { toast } from "@/components/chat/toast";
 import { type RegisterActionState, register } from "../actions";
+
+const DATABASE_OFFLINE_MESSAGE =
+  "Database is still waking up. Wait a few seconds, then try again.";
 
 export default function Page() {
   return (
@@ -24,11 +27,7 @@ function RegisterPageContent() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [isSuccessful, setIsSuccessful] = useState(false);
-  const [feedback, setFeedback] = useState<AuthFeedback>({
-    tone: "info",
-    message:
-      "Create the account with username/password, then add a passkey for faster sign-in.",
-  });
+  const [feedback, setFeedback] = useState<AuthFeedback | null>(null);
   const rawCallbackUrl = searchParams.get("callbackUrl")?.trim() || "/";
   const callbackUrl =
     rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
@@ -52,6 +51,9 @@ function RegisterPageContent() {
       const message = "Could not create the account. Try again.";
       setFeedback({ tone: "error", message });
       toast({ type: "error", description: message });
+    } else if (state.status === "database_offline") {
+      setFeedback({ tone: "error", message: DATABASE_OFFLINE_MESSAGE });
+      toast({ type: "error", description: DATABASE_OFFLINE_MESSAGE });
     } else if (state.status === "invalid_data") {
       const message = "Enter a valid username, email, and password.";
       setFeedback({ tone: "error", message });
@@ -78,15 +80,17 @@ function RegisterPageContent() {
   };
 
   return (
-    <>
-      <h1 className="text-3xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
-        Create a Boreal account
-      </h1>
-      <p className="text-sm leading-7 text-muted-foreground">
-        Create the fallback account path first. Add a passkey after sign-in for
-        the fast path.
-      </p>
-      <AuthStatus feedback={feedback} />
+    <div className="space-y-6">
+      <AuthModeSwitch callbackUrl={callbackUrl} mode="register" />
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)]">
+          Create account
+        </h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          You will be signed in immediately.
+        </p>
+      </div>
+      {feedback ? <AuthStatus feedback={feedback} /> : null}
       <AuthForm
         action={handleSubmit}
         defaultEmail={email}
@@ -100,16 +104,7 @@ function RegisterPageContent() {
         >
           Create account
         </SubmitButton>
-        <p className="text-center text-[13px] text-muted-foreground">
-          {"Already inside Boreal? "}
-          <Link
-            className="text-foreground underline-offset-4 hover:underline"
-            href={`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-          >
-            Sign in
-          </Link>
-        </p>
       </AuthForm>
-    </>
+    </div>
   );
 }

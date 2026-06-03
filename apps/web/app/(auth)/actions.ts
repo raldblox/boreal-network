@@ -1,23 +1,23 @@
 "use server";
 
 import {
-  generateAuthenticationOptions,
-  verifyAuthenticationResponse,
   type AuthenticationResponseJSON,
   type AuthenticatorTransportFuture,
+  generateAuthenticationOptions,
   type PublicKeyCredentialRequestOptionsJSON,
+  verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
 import { compare } from "bcrypt-ts";
 import { headers } from "next/headers";
 import { z } from "zod";
 import { USERNAME_PATTERN } from "@/lib/account-auth";
 import {
-  consumeAnonymousAccountAuthChallengeForUser,
   consumeAccountAuthChallenge,
-  getAccountPasskeyCredentialByCredentialIdGlobal,
+  consumeAnonymousAccountAuthChallengeForUser,
   getAccountPasskeyCredentialByCredentialId,
-  getActiveAccountAuthChallengeById,
+  getAccountPasskeyCredentialByCredentialIdGlobal,
   getActiveAccountAuthChallenge,
+  getActiveAccountAuthChallengeById,
   getChallengeWebAuthnContext,
   getWebAuthnRequestContext,
   mapCredentialDeviceType,
@@ -26,7 +26,6 @@ import {
   updateAccountPasskeyCredentialAfterAuthentication,
 } from "@/lib/account-webauthn";
 import { DUMMY_PASSWORD } from "@/lib/constants";
-
 import {
   createUser,
   getAccountPasskeyCredentialsByUserId,
@@ -34,6 +33,7 @@ import {
   getUserByIdentifier,
   getUserByUsername,
 } from "@/lib/db/queries";
+import { ChatbotError } from "@/lib/errors";
 
 import { signIn } from "./auth";
 
@@ -44,7 +44,7 @@ const usernameSchema = z
   .max(24)
   .regex(
     USERNAME_PATTERN,
-    "Username must use letters, numbers, dots, underscores, or hyphens."
+    "Username must use letters, numbers, dots, underscores, or hyphens.",
   );
 
 const loginFormSchema = z.object({
@@ -57,14 +57,14 @@ const verifyLoginPasskeySchema = z.object({
   password: z.string().min(6),
   challengeId: z.string().uuid(),
   response: z.custom<AuthenticationResponseJSON>(
-    (value) => typeof value === "object" && value !== null
+    (value) => typeof value === "object" && value !== null,
   ),
 });
 
 const verifyPasskeyOnlyLoginSchema = z.object({
   challengeId: z.string().uuid(),
   response: z.custom<AuthenticationResponseJSON>(
-    (value) => typeof value === "object" && value !== null
+    (value) => typeof value === "object" && value !== null,
   ),
 });
 
@@ -80,6 +80,7 @@ export type LoginActionState = {
     | "in_progress"
     | "success"
     | "failed"
+    | "database_offline"
     | "invalid_data"
     | "webauthn_required";
   identifier?: string;
@@ -88,10 +89,18 @@ export type LoginActionState = {
 };
 
 export type PasskeyOnlyLoginActionState = {
-  status: "idle" | "in_progress" | "ready" | "failed";
+  status: "idle" | "in_progress" | "ready" | "failed" | "database_offline";
   challengeId?: string;
   options?: PublicKeyCredentialRequestOptionsJSON;
 };
+
+function isOfflineDatabaseError(error: unknown) {
+  return (
+    error instanceof ChatbotError &&
+    error.type === "offline" &&
+    error.surface === "database"
+  );
+}
 
 async function validateRegularUserCredentials({
   identifier,
@@ -123,7 +132,7 @@ async function validateRegularUserCredentials({
 
 export const login = async (
   _: LoginActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<LoginActionState> => {
   try {
     const validatedData = loginFormSchema.parse({
@@ -252,7 +261,7 @@ export const verifyLoginPasskey = async ({
       userId: user.id,
       counter: verification.authenticationInfo.newCounter,
       deviceType: mapCredentialDeviceType(
-        verification.authenticationInfo.credentialDeviceType
+        verification.authenticationInfo.credentialDeviceType,
       ),
       backedUp: verification.authenticationInfo.credentialBackedUp,
     });
@@ -271,6 +280,10 @@ export const verifyLoginPasskey = async ({
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: "invalid_data" };
+    }
+
+    if (isOfflineDatabaseError(error)) {
+      return { status: "database_offline" };
     }
 
     return { status: "failed" };
@@ -301,7 +314,11 @@ export const startPasskeyOnlyLogin =
         challengeId: challenge.id,
         options,
       };
-    } catch (_error) {
+    } catch (error) {
+      if (isOfflineDatabaseError(error)) {
+        return { status: "database_offline" };
+      }
+
       return { status: "failed" };
     }
   };
@@ -354,14 +371,16 @@ export const verifyPasskeyOnlyLogin = async ({
       userId: credential.userId,
       counter: verification.authenticationInfo.newCounter,
       deviceType: mapCredentialDeviceType(
-        verification.authenticationInfo.credentialDeviceType
+        verification.authenticationInfo.credentialDeviceType,
       ),
       backedUp: verification.authenticationInfo.credentialBackedUp,
     });
-    const consumedChallenge = await consumeAnonymousAccountAuthChallengeForUser({
-      id: challenge.id,
-      userId: credential.userId,
-    });
+    const consumedChallenge = await consumeAnonymousAccountAuthChallengeForUser(
+      {
+        id: challenge.id,
+        userId: credential.userId,
+      },
+    );
 
     if (!consumedChallenge) {
       return { status: "failed" };
@@ -378,6 +397,10 @@ export const verifyPasskeyOnlyLogin = async ({
       return { status: "invalid_data" };
     }
 
+    if (isOfflineDatabaseError(error)) {
+      return { status: "database_offline" };
+    }
+
     return { status: "failed" };
   }
 };
@@ -388,13 +411,14 @@ export type RegisterActionState = {
     | "in_progress"
     | "success"
     | "failed"
+    | "database_offline"
     | "user_exists"
     | "invalid_data";
 };
 
 export const register = async (
   _: RegisterActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<RegisterActionState> => {
   try {
     const validatedData = registerFormSchema.parse({
@@ -424,6 +448,10 @@ export const register = async (
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: "invalid_data" };
+    }
+
+    if (isOfflineDatabaseError(error)) {
+      return { status: "database_offline" };
     }
 
     return { status: "failed" };

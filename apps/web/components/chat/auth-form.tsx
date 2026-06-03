@@ -25,16 +25,15 @@ export function AuthForm({
   mode?: "login" | "register";
 }) {
   const passwordId = useId();
-  const passwordHelpId = useId();
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <Form action={action} className="flex flex-col gap-5">
+    <Form action={action} className="flex flex-col gap-4">
       {mode === "register" ? (
         <>
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2">
             <Label
-              className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/72"
+              className="text-sm font-medium text-foreground"
               htmlFor="username"
             >
               Username
@@ -43,10 +42,11 @@ export function AuthForm({
               autoCapitalize="none"
               autoComplete="username"
               autoCorrect="off"
-              autoFocus
               className="h-11 rounded-lg border-border/70 bg-background text-sm shadow-none"
               defaultValue={defaultUsername}
               id="username"
+              maxLength={24}
+              minLength={3}
               name="username"
               placeholder="your-name"
               required
@@ -54,9 +54,9 @@ export function AuthForm({
             />
           </div>
 
-          <div className="flex flex-col gap-2.5">
+          <div className="flex flex-col gap-2">
             <Label
-              className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/72"
+              className="text-sm font-medium text-foreground"
               htmlFor="email"
             >
               Email
@@ -71,16 +71,12 @@ export function AuthForm({
               required
               type="email"
             />
-            <p className="text-xs leading-5 text-muted-foreground">
-              Email is still required for account recovery until recovery codes
-              are added.
-            </p>
           </div>
         </>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2">
           <Label
-            className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/72"
+            className="text-sm font-medium text-foreground"
             htmlFor="identifier"
           >
             Username or email
@@ -89,7 +85,6 @@ export function AuthForm({
             autoCapitalize="none"
             autoComplete="username"
             autoCorrect="off"
-            autoFocus
             className="h-11 rounded-lg border-border/70 bg-background text-sm shadow-none"
             defaultValue={defaultIdentifier}
             id="identifier"
@@ -101,23 +96,23 @@ export function AuthForm({
         </div>
       )}
 
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2">
         <Label
-          className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/72"
+          className="text-sm font-medium text-foreground"
           htmlFor={passwordId}
         >
           Password
         </Label>
         <div className="relative">
           <Input
-            aria-describedby={passwordHelpId}
             autoComplete={
               mode === "register" ? "new-password" : "current-password"
             }
             className="h-11 rounded-lg border-border/70 bg-background pr-12 text-sm shadow-none"
             id={passwordId}
+            minLength={6}
             name="password"
-            placeholder="Enter password"
+            placeholder={mode === "register" ? "6+ characters" : "Password"}
             required
             type={showPassword ? "text" : "password"}
           />
@@ -136,14 +131,6 @@ export function AuthForm({
             )}
           </Button>
         </div>
-        <p
-          className="text-xs leading-5 text-muted-foreground"
-          id={passwordHelpId}
-        >
-          {mode === "register"
-            ? "Use at least 6 characters. Add a passkey after account creation for faster sign-in."
-            : "Use password fallback only when passkey sign-in is not available."}
-        </p>
       </div>
 
       <div className="pt-1">{children}</div>

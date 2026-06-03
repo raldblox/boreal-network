@@ -11,8 +11,8 @@ import {
   inArray,
   isNull,
   lt,
-  sql,
   type SQL,
+  sql,
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -23,13 +23,24 @@ import {
   normalizeEmail,
   normalizeUsername,
 } from "@/lib/account-auth";
+import type {
+  BuyerCreditAccountStatus,
+  BuyerCreditLedgerEntryKind,
+  BuyerCreditLedgerEntryStatus,
+  BuyerCreditLedgerMetadata,
+  RequestTransactionMetadata,
+  TransactionKind,
+  TransactionStatus,
+} from "@/lib/payment";
 import {
+  type BorealRequestDraft,
   type CommitmentKind,
   type CommitmentStatus,
   type CommitmentTerms,
-  type BorealRequestDraft,
   deriveRequestState,
   type FulfillmentStatus,
+  hasPublicSolutionProjectionTruth,
+  normalizeRequestBrief,
   type PublicRequestPoolEntry,
   type RequestActiveRefs,
   type RequestActivityEntry,
@@ -48,19 +59,14 @@ import {
   type RequestSeeking,
   type RequestStatus,
   type RequestVisibility,
-  hasPublicSolutionProjectionTruth,
-  normalizeRequestBrief,
   toPublicRequestPoolEntry,
 } from "@/lib/request";
 import type {
-  BuyerCreditAccountStatus,
-  BuyerCreditLedgerEntryKind,
-  BuyerCreditLedgerEntryStatus,
-  BuyerCreditLedgerMetadata,
-  RequestTransactionMetadata,
-  TransactionKind,
-  TransactionStatus,
-} from "@/lib/payment";
+  ResolverAuthorizationStatus,
+  ResolverClientStatus,
+  ResolverScope,
+  ResolverTokenKind,
+} from "@/lib/resolver";
 import type {
   BorealSupplyDraft,
   SupplyAvailability,
@@ -72,12 +78,6 @@ import type {
   SupplyStatus,
   SupplyVisibility,
 } from "@/lib/supply";
-import type {
-  ResolverAuthorizationStatus,
-  ResolverClientStatus,
-  ResolverScope,
-  ResolverTokenKind,
-} from "@/lib/resolver";
 import type {
   WorkflowAdapterKind,
   WorkflowAdapterRun,
@@ -98,50 +98,51 @@ import type {
 } from "@/lib/workflow-pack";
 import { ChatbotError } from "../errors";
 import { generateUUID } from "../utils";
+import { getPostgresJsConnectionUrl } from "./connection-url";
 import {
-  accountPasskeyCredential,
   type AccountPasskeyCredentialRecord,
-  artifactRecord,
   type ArtifactRecord,
-  buyerCreditAccount,
+  accountPasskeyCredential,
+  artifactRecord,
   type BuyerCreditAccountRecord,
-  buyerCreditLedgerEntry,
   type BuyerCreditLedgerEntryRecord,
+  buyerCreditAccount,
+  buyerCreditLedgerEntry,
   type Chat,
+  type CommitmentRecord,
   chat,
   commitment,
-  type CommitmentRecord,
   type DBMessage,
   document,
-  fulfillment,
   type FulfillmentRecord,
+  fulfillment,
   message,
-  request,
-  requestEvent,
   type RequestEventRecord,
   type RequestRecord,
-  requestTransaction,
-  supply,
-  type SupplyRecord,
-  type TransactionRecord,
-  resolverAuthorization,
   type ResolverAuthorizationRecord,
-  resolverClient,
   type ResolverClientRecord,
-  resolverToken,
   type ResolverTokenRecord,
+  request,
+  requestEvent,
+  requestTransaction,
+  resolverAuthorization,
+  resolverClient,
+  resolverToken,
   type Suggestion,
+  type SupplyRecord,
   stream,
   suggestion,
+  supply,
+  type TransactionRecord,
   type User,
   user,
   vote,
-  workflowAdapterRun,
   type WorkflowAdapterRunRecord,
-  workflowPack,
   type WorkflowPackRecord,
-  workflowPackVersion,
   type WorkflowPackVersionRecord,
+  workflowAdapterRun,
+  workflowPack,
+  workflowPackVersion,
 } from "./schema";
 import { generateHashedPassword } from "./utils";
 
@@ -151,11 +152,11 @@ const globalForDatabase = globalThis as typeof globalThis & {
 };
 
 function createDatabaseClient() {
-  return postgres(process.env.POSTGRES_URL ?? "", {
+  return postgres(getPostgresJsConnectionUrl(), {
     prepare: false,
     max: process.env.NODE_ENV === "production" ? 5 : 1,
     idle_timeout: 20,
-    connect_timeout: 15,
+    connect_timeout: 8,
   });
 }
 
@@ -170,6 +171,10 @@ if (process.env.NODE_ENV !== "production") {
 
 function getDatabaseErrorDetail(error: unknown) {
   if (error instanceof Error) {
+    if (error.message.includes("undefined:undefined")) {
+      return "Database connection URL is not configured.";
+    }
+
     return error.message;
   }
 
@@ -245,9 +250,9 @@ async function sleep(ms: number) {
 async function withDatabaseRetry<T>(
   operation: () => Promise<T>,
   {
-    attempts = 3,
-    baseDelayMs = 250,
-  }: { attempts?: number; baseDelayMs?: number } = {}
+    attempts = 2,
+    baseDelayMs = 200,
+  }: { attempts?: number; baseDelayMs?: number } = {},
 ) {
   let lastError: unknown;
 
@@ -257,7 +262,10 @@ async function withDatabaseRetry<T>(
     } catch (error) {
       lastError = error;
 
-      if (!isTransientDatabaseConnectionError(error) || attempt === attempts - 1) {
+      if (
+        !isTransientDatabaseConnectionError(error) ||
+        attempt === attempts - 1
+      ) {
         throw error;
       }
 
@@ -275,7 +283,7 @@ function createDatabaseQueryError(action: string, error: unknown) {
 
   return new ChatbotError(
     errorCode,
-    `${action}: ${getDatabaseErrorDetail(error)}`
+    `${action}: ${getDatabaseErrorDetail(error)}`,
   );
 }
 
@@ -284,13 +292,10 @@ export async function getUser(email: string): Promise<User[]> {
 
   try {
     return await withDatabaseRetry(() =>
-      db.select().from(user).where(eq(user.email, normalizedEmail))
+      db.select().from(user).where(eq(user.email, normalizedEmail)),
     );
   } catch (error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      `Failed to get user by email: ${getDatabaseErrorDetail(error)}`
-    );
+    throw createDatabaseQueryError("Failed to get user by email", error);
   }
 }
 
@@ -302,19 +307,14 @@ export async function getUserByUsername(username: string): Promise<User[]> {
       db
         .select()
         .from(user)
-        .where(eq(user.usernameNormalized, normalizedUsername))
+        .where(eq(user.usernameNormalized, normalizedUsername)),
     );
   } catch (error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      `Failed to get user by username: ${getDatabaseErrorDetail(error)}`
-    );
+    throw createDatabaseQueryError("Failed to get user by username", error);
   }
 }
 
-export async function getUserByIdentifier(
-  identifier: string
-): Promise<User[]> {
+export async function getUserByIdentifier(identifier: string): Promise<User[]> {
   const trimmedIdentifier = identifier.trim();
 
   if (trimmedIdentifier.length === 0) {
@@ -327,13 +327,10 @@ export async function getUserByIdentifier(
 
   try {
     return await withDatabaseRetry(() =>
-      db.select().from(user).where(loginLookup)
+      db.select().from(user).where(loginLookup),
     );
   } catch (error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      `Failed to get user by identifier: ${getDatabaseErrorDetail(error)}`
-    );
+    throw createDatabaseQueryError("Failed to get user by identifier", error);
   }
 }
 
@@ -357,13 +354,10 @@ export async function createUser({
         password: hashedPassword,
         username: username.trim(),
         usernameNormalized: normalizedUsername,
-      })
+      }),
     );
   } catch (error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      `Failed to create user: ${getDatabaseErrorDetail(error)}`
-    );
+    throw createDatabaseQueryError("Failed to create user", error);
   }
 }
 
@@ -385,7 +379,7 @@ export async function createGuestUser() {
           .returning({
             id: user.id,
             email: user.email,
-          })
+          }),
       );
     } catch (error) {
       if (isUniqueViolation(error) && attempt < 2) {
@@ -393,15 +387,17 @@ export async function createGuestUser() {
       }
 
       throw new ChatbotError(
-        "bad_request:database",
-        `Failed to create guest user: ${getDatabaseErrorDetail(error)}`
+        isTransientDatabaseConnectionError(error)
+          ? "offline:database"
+          : "bad_request:database",
+        `Failed to create guest user: ${getDatabaseErrorDetail(error)}`,
       );
     }
   }
 
   throw new ChatbotError(
     "bad_request:database",
-    "Failed to create guest user: repeated guest identity collision"
+    "Failed to create guest user: repeated guest identity collision",
   );
 }
 
@@ -416,13 +412,10 @@ export async function getAccountPasskeyCredentialsByUserId({
         .select()
         .from(accountPasskeyCredential)
         .where(eq(accountPasskeyCredential.userId, userId))
-        .orderBy(desc(accountPasskeyCredential.createdAt))
+        .orderBy(desc(accountPasskeyCredential.createdAt)),
     );
   } catch (error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      `Failed to get passkey credentials: ${getDatabaseErrorDetail(error)}`
-    );
+    throw createDatabaseQueryError("Failed to get passkey credentials", error);
   }
 }
 
@@ -440,17 +433,17 @@ export async function deleteAccountPasskeyCredentialById({
         .where(
           and(
             eq(accountPasskeyCredential.id, id),
-            eq(accountPasskeyCredential.userId, userId)
-          )
+            eq(accountPasskeyCredential.userId, userId),
+          ),
         )
-        .returning({ id: accountPasskeyCredential.id })
+        .returning({ id: accountPasskeyCredential.id }),
     );
 
     return deletedCredential ?? null;
   } catch (error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      `Failed to delete passkey credential: ${getDatabaseErrorDetail(error)}`
+    throw createDatabaseQueryError(
+      "Failed to delete passkey credential",
+      error,
     );
   }
 }
@@ -508,7 +501,7 @@ export async function deleteChatById({ id }: { id: string }) {
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to delete chat by id"
+      "Failed to delete chat by id",
     );
   }
 }
@@ -533,9 +526,15 @@ export async function deleteAllChatsByUserId({ userId }: { userId: string }) {
     const requestIds = requestRows.map((row) => row.id);
 
     if (requestIds.length > 0) {
-      await db.delete(requestEvent).where(inArray(requestEvent.requestId, requestIds));
-      await db.delete(artifactRecord).where(inArray(artifactRecord.requestId, requestIds));
-      await db.delete(commitment).where(inArray(commitment.requestId, requestIds));
+      await db
+        .delete(requestEvent)
+        .where(inArray(requestEvent.requestId, requestIds));
+      await db
+        .delete(artifactRecord)
+        .where(inArray(artifactRecord.requestId, requestIds));
+      await db
+        .delete(commitment)
+        .where(inArray(commitment.requestId, requestIds));
     }
 
     await db.delete(request).where(inArray(request.chatId, chatIds));
@@ -552,7 +551,7 @@ export async function deleteAllChatsByUserId({ userId }: { userId: string }) {
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to delete all chats by user id"
+      "Failed to delete all chats by user id",
     );
   }
 }
@@ -586,8 +585,8 @@ export async function getChatsByUserId({
           and(
             eq(chat.userId, id),
             isNull(request.id),
-            ...(whereCondition ? [whereCondition] : [])
-          )
+            ...(whereCondition ? [whereCondition] : []),
+          ),
         )
         .orderBy(desc(chat.createdAt))
         .limit(extendedLimit);
@@ -604,7 +603,7 @@ export async function getChatsByUserId({
       if (!selectedChat) {
         throw new ChatbotError(
           "not_found:database",
-          `Chat with id ${startingAfter} not found`
+          `Chat with id ${startingAfter} not found`,
         );
       }
 
@@ -619,7 +618,7 @@ export async function getChatsByUserId({
       if (!selectedChat) {
         throw new ChatbotError(
           "not_found:database",
-          `Chat with id ${endingBefore} not found`
+          `Chat with id ${endingBefore} not found`,
         );
       }
 
@@ -637,7 +636,7 @@ export async function getChatsByUserId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get chats by user id"
+      "Failed to get chats by user id",
     );
   }
 }
@@ -645,7 +644,7 @@ export async function getChatsByUserId({
 export async function getChatById({ id }: { id: string }) {
   try {
     const [selectedChat] = await withDatabaseRetry(() =>
-      db.select().from(chat).where(eq(chat.id, id))
+      db.select().from(chat).where(eq(chat.id, id)),
     );
     if (!selectedChat) {
       return null;
@@ -722,7 +721,7 @@ export async function saveResolverClient({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save resolver client"
+      "Failed to save resolver client",
     );
   }
 }
@@ -743,7 +742,7 @@ export async function getResolverClientById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get resolver client"
+      "Failed to get resolver client",
     );
   }
 }
@@ -784,7 +783,7 @@ export async function updateResolverClientById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update resolver client"
+      "Failed to update resolver client",
     );
   }
 }
@@ -839,7 +838,7 @@ export async function saveResolverAuthorization({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save resolver authorization"
+      "Failed to save resolver authorization",
     );
   }
 }
@@ -860,7 +859,7 @@ export async function getResolverAuthorizationByUserCode({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get resolver authorization by user code"
+      "Failed to get resolver authorization by user code",
     );
   }
 }
@@ -881,7 +880,7 @@ export async function getResolverAuthorizationByDeviceCodeHash({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get resolver authorization by device code"
+      "Failed to get resolver authorization by device code",
     );
   }
 }
@@ -916,7 +915,7 @@ export async function updateResolverAuthorizationById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update resolver authorization"
+      "Failed to update resolver authorization",
     );
   }
 }
@@ -967,7 +966,7 @@ export async function saveResolverToken({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save resolver token"
+      "Failed to save resolver token",
     );
   }
 }
@@ -984,7 +983,10 @@ export async function getResolverTokenByHash({
       .select()
       .from(resolverToken)
       .where(
-        and(eq(resolverToken.tokenHash, tokenHash), eq(resolverToken.kind, kind))
+        and(
+          eq(resolverToken.tokenHash, tokenHash),
+          eq(resolverToken.kind, kind),
+        ),
       )
       .limit(1);
 
@@ -992,7 +994,7 @@ export async function getResolverTokenByHash({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get resolver token"
+      "Failed to get resolver token",
     );
   }
 }
@@ -1024,7 +1026,7 @@ export async function updateResolverTokenById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update resolver token"
+      "Failed to update resolver token",
     );
   }
 }
@@ -1046,18 +1048,25 @@ export async function revokeResolverTokensByClientId({
         updatedAt: new Date(),
       })
       .where(
-        and(eq(resolverToken.clientId, clientId), isNull(resolverToken.revokedAt))
+        and(
+          eq(resolverToken.clientId, clientId),
+          isNull(resolverToken.revokedAt),
+        ),
       )
       .returning();
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to revoke resolver tokens"
+      "Failed to revoke resolver tokens",
     );
   }
 }
 
-export async function deleteChatHistoryByUserId({ userId }: { userId: string }) {
+export async function deleteChatHistoryByUserId({
+  userId,
+}: {
+  userId: string;
+}) {
   try {
     const userChats = await db
       .select({ id: chat.id })
@@ -1084,7 +1093,7 @@ export async function deleteChatHistoryByUserId({ userId }: { userId: string }) 
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to delete chat history by user id"
+      "Failed to delete chat history by user id",
     );
   }
 }
@@ -1101,7 +1110,7 @@ export async function getRequestByChatId({
         .from(request)
         .where(eq(request.chatId, chatId))
         .orderBy(desc(request.createdAt))
-        .limit(1)
+        .limit(1),
     );
 
     return selectedRequest ?? null;
@@ -1127,7 +1136,7 @@ export async function getRequestByDocumentId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get request by document id"
+      "Failed to get request by document id",
     );
   }
 }
@@ -1148,7 +1157,7 @@ export async function getRequestById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get request by id"
+      "Failed to get request by id",
     );
   }
 }
@@ -1169,7 +1178,7 @@ export async function getCommitmentById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to get commitment by id ${id}`
+      `Failed to get commitment by id ${id}`,
     );
   }
 }
@@ -1213,7 +1222,7 @@ export async function updateCommitmentById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update commitment"
+      "Failed to update commitment",
     );
   }
 }
@@ -1234,7 +1243,7 @@ export async function getArtifactById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to get artifact by id ${id}`
+      `Failed to get artifact by id ${id}`,
     );
   }
 }
@@ -1255,7 +1264,7 @@ export async function getFulfillmentById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to get fulfillment by id ${id}`
+      `Failed to get fulfillment by id ${id}`,
     );
   }
 }
@@ -1336,7 +1345,7 @@ export async function saveFulfillment({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save fulfillment"
+      "Failed to save fulfillment",
     );
   }
 }
@@ -1398,7 +1407,7 @@ export async function updateFulfillmentById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update fulfillment"
+      "Failed to update fulfillment",
     );
   }
 }
@@ -1477,14 +1486,14 @@ export async function saveRequestTransaction({
           disputedAt,
           failedAt,
         })
-        .returning()
+        .returning(),
     );
 
     return createdTransaction;
   } catch (error) {
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to save transaction: ${getDatabaseErrorDetail(error)}`
+      `Failed to save transaction: ${getDatabaseErrorDetail(error)}`,
     );
   }
 }
@@ -1500,12 +1509,12 @@ export async function getRequestTransactionsByRequestId({
         .select()
         .from(requestTransaction)
         .where(eq(requestTransaction.requestId, requestId))
-        .orderBy(desc(requestTransaction.updatedAt))
+        .orderBy(desc(requestTransaction.updatedAt)),
     );
   } catch (error) {
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to get request transactions: ${getDatabaseErrorDetail(error)}`
+      `Failed to get request transactions: ${getDatabaseErrorDetail(error)}`,
     );
   }
 }
@@ -1521,14 +1530,14 @@ export async function getRequestTransactionById({
         .select()
         .from(requestTransaction)
         .where(eq(requestTransaction.id, id))
-        .limit(1)
+        .limit(1),
     );
 
     return transaction ?? null;
   } catch (error) {
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to get request transaction: ${getDatabaseErrorDetail(error)}`
+      `Failed to get request transaction: ${getDatabaseErrorDetail(error)}`,
     );
   }
 }
@@ -1548,17 +1557,17 @@ export async function getBuyerCreditAccountByOwnerId({
         .where(
           and(
             eq(buyerCreditAccount.ownerId, ownerId),
-            eq(buyerCreditAccount.currency, currency)
-          )
+            eq(buyerCreditAccount.currency, currency),
+          ),
         )
-        .limit(1)
+        .limit(1),
     );
 
     return account ?? null;
   } catch (error) {
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to get buyer credit account: ${getDatabaseErrorDetail(error)}`
+      `Failed to get buyer credit account: ${getDatabaseErrorDetail(error)}`,
     );
   }
 }
@@ -1601,7 +1610,7 @@ export async function ensureBuyerCreditAccount({
           createdAt: new Date(),
           updatedAt: new Date(),
         })
-        .returning()
+        .returning(),
     );
 
     return createdAccount;
@@ -1619,7 +1628,7 @@ export async function ensureBuyerCreditAccount({
 
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to create buyer credit account: ${getDatabaseErrorDetail(error)}`
+      `Failed to create buyer credit account: ${getDatabaseErrorDetail(error)}`,
     );
   }
 }
@@ -1683,7 +1692,7 @@ export async function createBuyerCreditLedgerEntry({
           failedAt,
           reversedAt,
         })
-        .returning()
+        .returning(),
     );
 
     return createdEntry;
@@ -1691,8 +1700,8 @@ export async function createBuyerCreditLedgerEntry({
     throw new ChatbotError(
       "bad_request:database",
       `Failed to create buyer credit ledger entry: ${getDatabaseErrorDetail(
-        error
-      )}`
+        error,
+      )}`,
     );
   }
 }
@@ -1713,12 +1722,12 @@ export async function getBuyerCreditLedgerEntryByIdempotencyKey({
           and(
             eq(
               buyerCreditLedgerEntry.buyerCreditAccountId,
-              buyerCreditAccountId
+              buyerCreditAccountId,
             ),
-            eq(buyerCreditLedgerEntry.idempotencyKey, idempotencyKey)
-          )
+            eq(buyerCreditLedgerEntry.idempotencyKey, idempotencyKey),
+          ),
         )
-        .limit(1)
+        .limit(1),
     );
 
     return entry ?? null;
@@ -1726,15 +1735,15 @@ export async function getBuyerCreditLedgerEntryByIdempotencyKey({
     throw new ChatbotError(
       "bad_request:database",
       `Failed to get buyer credit ledger entry: ${getDatabaseErrorDetail(
-        error
-      )}`
+        error,
+      )}`,
     );
   }
 }
 
 function mergeBuyerCreditLedgerMetadata(
   current: BuyerCreditLedgerMetadata | null,
-  next?: BuyerCreditLedgerMetadata | Record<string, unknown> | null
+  next?: BuyerCreditLedgerMetadata | Record<string, unknown> | null,
 ): BuyerCreditLedgerMetadata | null {
   const currentRecord =
     current && typeof current === "object" && !Array.isArray(current)
@@ -1760,7 +1769,7 @@ export async function getBuyerCreditLedgerEntryById({
         .select()
         .from(buyerCreditLedgerEntry)
         .where(eq(buyerCreditLedgerEntry.id, id))
-        .limit(1)
+        .limit(1),
     );
 
     return entry ?? null;
@@ -1768,8 +1777,8 @@ export async function getBuyerCreditLedgerEntryById({
     throw new ChatbotError(
       "bad_request:database",
       `Failed to get buyer credit ledger entry: ${getDatabaseErrorDetail(
-        error
-      )}`
+        error,
+      )}`,
     );
   }
 }
@@ -1785,7 +1794,7 @@ export async function getBuyerCreditLedgerEntryByReference({
         .select()
         .from(buyerCreditLedgerEntry)
         .where(eq(buyerCreditLedgerEntry.reference, reference))
-        .limit(1)
+        .limit(1),
     );
 
     return entry ?? null;
@@ -1793,8 +1802,8 @@ export async function getBuyerCreditLedgerEntryByReference({
     throw new ChatbotError(
       "bad_request:database",
       `Failed to get buyer credit ledger entry: ${getDatabaseErrorDetail(
-        error
-      )}`
+        error,
+      )}`,
     );
   }
 }
@@ -1838,7 +1847,7 @@ export async function updateBuyerCreditLedgerEntryById({
             ? {
                 metadata: mergeBuyerCreditLedgerMetadata(
                   existingEntry.metadata,
-                  metadata
+                  metadata,
                 ),
               }
             : {}),
@@ -1849,7 +1858,7 @@ export async function updateBuyerCreditLedgerEntryById({
           updatedAt: new Date(),
         })
         .where(eq(buyerCreditLedgerEntry.id, id))
-        .returning()
+        .returning(),
     );
 
     return updatedEntry ?? null;
@@ -1857,8 +1866,8 @@ export async function updateBuyerCreditLedgerEntryById({
     throw new ChatbotError(
       "bad_request:database",
       `Failed to update buyer credit ledger entry: ${getDatabaseErrorDetail(
-        error
-      )}`
+        error,
+      )}`,
     );
   }
 }
@@ -1887,22 +1896,20 @@ export async function settleBuyerCreditTopUpLedgerEntry({
         if (!selectedEntry) {
           throw new ChatbotError(
             "not_found:database",
-            "Buyer credit ledger entry not found"
+            "Buyer credit ledger entry not found",
           );
         }
 
         const [selectedAccount] = await tx
           .select()
           .from(buyerCreditAccount)
-          .where(
-            eq(buyerCreditAccount.id, selectedEntry.buyerCreditAccountId)
-          )
+          .where(eq(buyerCreditAccount.id, selectedEntry.buyerCreditAccountId))
           .limit(1);
 
         if (!selectedAccount) {
           throw new ChatbotError(
             "not_found:database",
-            "Buyer credit account not found"
+            "Buyer credit account not found",
           );
         }
 
@@ -1913,10 +1920,13 @@ export async function settleBuyerCreditTopUpLedgerEntry({
           };
         }
 
-        if (selectedEntry.kind !== "topup" || selectedEntry.status !== "pending") {
+        if (
+          selectedEntry.kind !== "topup" ||
+          selectedEntry.status !== "pending"
+        ) {
           throw new ChatbotError(
             "bad_request:database",
-            "Buyer credit ledger entry is not a pending top-up"
+            "Buyer credit ledger entry is not a pending top-up",
           );
         }
 
@@ -1928,7 +1938,7 @@ export async function settleBuyerCreditTopUpLedgerEntry({
             reference: reference ?? selectedEntry.reference,
             metadata: mergeBuyerCreditLedgerMetadata(
               selectedEntry.metadata,
-              metadata
+              metadata,
             ),
             verifiedAt: now,
             updatedAt: now,
@@ -1936,8 +1946,8 @@ export async function settleBuyerCreditTopUpLedgerEntry({
           .where(
             and(
               eq(buyerCreditLedgerEntry.id, id),
-              eq(buyerCreditLedgerEntry.status, "pending")
-            )
+              eq(buyerCreditLedgerEntry.status, "pending"),
+            ),
           )
           .returning();
 
@@ -1953,7 +1963,7 @@ export async function settleBuyerCreditTopUpLedgerEntry({
               .select()
               .from(buyerCreditAccount)
               .where(
-                eq(buyerCreditAccount.id, latestEntry.buyerCreditAccountId)
+                eq(buyerCreditAccount.id, latestEntry.buyerCreditAccountId),
               )
               .limit(1);
 
@@ -1967,7 +1977,7 @@ export async function settleBuyerCreditTopUpLedgerEntry({
 
           throw new ChatbotError(
             "bad_request:database",
-            "Buyer credit ledger entry settlement is already in progress"
+            "Buyer credit ledger entry settlement is already in progress",
           );
         }
 
@@ -1985,7 +1995,7 @@ export async function settleBuyerCreditTopUpLedgerEntry({
         if (!updatedAccount) {
           throw new ChatbotError(
             "not_found:database",
-            "Buyer credit account not found"
+            "Buyer credit account not found",
           );
         }
 
@@ -2008,7 +2018,7 @@ export async function settleBuyerCreditTopUpLedgerEntry({
           account: updatedAccount,
           ledgerEntry: settledEntry ?? claimedEntry,
         };
-      })
+      }),
     );
   } catch (error) {
     if (error instanceof ChatbotError) {
@@ -2017,7 +2027,7 @@ export async function settleBuyerCreditTopUpLedgerEntry({
 
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to settle buyer credit top-up: ${getDatabaseErrorDetail(error)}`
+      `Failed to settle buyer credit top-up: ${getDatabaseErrorDetail(error)}`,
     );
   }
 }
@@ -2046,22 +2056,20 @@ export async function failBuyerCreditTopUpLedgerEntry({
         if (!selectedEntry) {
           throw new ChatbotError(
             "not_found:database",
-            "Buyer credit ledger entry not found"
+            "Buyer credit ledger entry not found",
           );
         }
 
         const [selectedAccount] = await tx
           .select()
           .from(buyerCreditAccount)
-          .where(
-            eq(buyerCreditAccount.id, selectedEntry.buyerCreditAccountId)
-          )
+          .where(eq(buyerCreditAccount.id, selectedEntry.buyerCreditAccountId))
           .limit(1);
 
         if (!selectedAccount) {
           throw new ChatbotError(
             "not_found:database",
-            "Buyer credit account not found"
+            "Buyer credit account not found",
           );
         }
 
@@ -2085,7 +2093,7 @@ export async function failBuyerCreditTopUpLedgerEntry({
         if (!updatedAccount) {
           throw new ChatbotError(
             "not_found:database",
-            "Buyer credit account not found"
+            "Buyer credit account not found",
           );
         }
 
@@ -2096,7 +2104,7 @@ export async function failBuyerCreditTopUpLedgerEntry({
             reference: reference ?? selectedEntry.reference,
             metadata: mergeBuyerCreditLedgerMetadata(
               selectedEntry.metadata,
-              metadata
+              metadata,
             ),
             failedAt: now,
             updatedAt: now,
@@ -2108,7 +2116,7 @@ export async function failBuyerCreditTopUpLedgerEntry({
           account: updatedAccount,
           ledgerEntry: failedEntry ?? selectedEntry,
         };
-      })
+      }),
     );
   } catch (error) {
     if (error instanceof ChatbotError) {
@@ -2117,7 +2125,7 @@ export async function failBuyerCreditTopUpLedgerEntry({
 
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to fail buyer credit top-up: ${getDatabaseErrorDetail(error)}`
+      `Failed to fail buyer credit top-up: ${getDatabaseErrorDetail(error)}`,
     );
   }
 }
@@ -2159,14 +2167,14 @@ export async function updateBuyerCreditAccountById({
           updatedAt: new Date(),
         })
         .where(eq(buyerCreditAccount.id, id))
-        .returning()
+        .returning(),
     );
 
     return updatedAccount ?? null;
   } catch (error) {
     throw new ChatbotError(
       "bad_request:database",
-      `Failed to update buyer credit account: ${getDatabaseErrorDetail(error)}`
+      `Failed to update buyer credit account: ${getDatabaseErrorDetail(error)}`,
     );
   }
 }
@@ -2184,20 +2192,17 @@ export async function getBuyerCreditLedgerEntriesByAccountId({
         .select()
         .from(buyerCreditLedgerEntry)
         .where(
-          eq(
-            buyerCreditLedgerEntry.buyerCreditAccountId,
-            buyerCreditAccountId
-          )
+          eq(buyerCreditLedgerEntry.buyerCreditAccountId, buyerCreditAccountId),
         )
         .orderBy(desc(buyerCreditLedgerEntry.createdAt))
-        .limit(limit)
+        .limit(limit),
     );
   } catch (error) {
     throw new ChatbotError(
       "bad_request:database",
       `Failed to get buyer credit ledger entries: ${getDatabaseErrorDetail(
-        error
-      )}`
+        error,
+      )}`,
     );
   }
 }
@@ -2223,8 +2228,8 @@ export async function getRequestsByUserId({
         .where(
           and(
             eq(request.ownerId, id),
-            ...(whereCondition ? [whereCondition] : [])
-          )
+            ...(whereCondition ? [whereCondition] : []),
+          ),
         )
         .orderBy(desc(request.updatedAt))
         .limit(extendedLimit);
@@ -2232,41 +2237,37 @@ export async function getRequestsByUserId({
     let filteredRequests: RequestRecord[] = [];
 
     if (startingAfter) {
-      const [selectedRequest] = await db
-        .select()
-        .from(request)
-        .where(eq(request.id, startingAfter))
-        .limit(1);
+      const [selectedRequest] = await withDatabaseRetry(() =>
+        db.select().from(request).where(eq(request.id, startingAfter)).limit(1),
+      );
 
       if (!selectedRequest) {
         throw new ChatbotError(
           "not_found:database",
-          `Request with id ${startingAfter} not found`
+          `Request with id ${startingAfter} not found`,
         );
       }
 
-      filteredRequests = await query(
-        gt(request.updatedAt, selectedRequest.updatedAt)
+      filteredRequests = await withDatabaseRetry(() =>
+        query(gt(request.updatedAt, selectedRequest.updatedAt)),
       );
     } else if (endingBefore) {
-      const [selectedRequest] = await db
-        .select()
-        .from(request)
-        .where(eq(request.id, endingBefore))
-        .limit(1);
+      const [selectedRequest] = await withDatabaseRetry(() =>
+        db.select().from(request).where(eq(request.id, endingBefore)).limit(1),
+      );
 
       if (!selectedRequest) {
         throw new ChatbotError(
           "not_found:database",
-          `Request with id ${endingBefore} not found`
+          `Request with id ${endingBefore} not found`,
         );
       }
 
-      filteredRequests = await query(
-        lt(request.updatedAt, selectedRequest.updatedAt)
+      filteredRequests = await withDatabaseRetry(() =>
+        query(lt(request.updatedAt, selectedRequest.updatedAt)),
       );
     } else {
-      filteredRequests = await query();
+      filteredRequests = await withDatabaseRetry(() => query());
     }
 
     const hasMore = filteredRequests.length > limit;
@@ -2277,13 +2278,12 @@ export async function getRequestsByUserId({
         : filteredRequests.map(toRequestDraft),
       hasMore,
     };
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      _error instanceof Error
-        ? `Failed to get requests by user id: ${_error.message}`
-        : "Failed to get requests by user id"
-    );
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
+
+    throw createDatabaseQueryError("Failed to get requests by user id", error);
   }
 }
 
@@ -2307,8 +2307,8 @@ export async function getPublicOpenRequests({
           and(
             eq(request.visibility, "public"),
             eq(request.status, "open"),
-            ...(whereCondition ? [whereCondition] : [])
-          )
+            ...(whereCondition ? [whereCondition] : []),
+          ),
         )
         .orderBy(desc(request.updatedAt))
         .limit(extendedLimit);
@@ -2316,41 +2316,37 @@ export async function getPublicOpenRequests({
     let filteredRequests: RequestRecord[] = [];
 
     if (startingAfter) {
-      const [selectedRequest] = await db
-        .select()
-        .from(request)
-        .where(eq(request.id, startingAfter))
-        .limit(1);
+      const [selectedRequest] = await withDatabaseRetry(() =>
+        db.select().from(request).where(eq(request.id, startingAfter)).limit(1),
+      );
 
       if (!selectedRequest) {
         throw new ChatbotError(
           "not_found:database",
-          `Request with id ${startingAfter} not found`
+          `Request with id ${startingAfter} not found`,
         );
       }
 
-      filteredRequests = await query(
-        gt(request.updatedAt, selectedRequest.updatedAt)
+      filteredRequests = await withDatabaseRetry(() =>
+        query(gt(request.updatedAt, selectedRequest.updatedAt)),
       );
     } else if (endingBefore) {
-      const [selectedRequest] = await db
-        .select()
-        .from(request)
-        .where(eq(request.id, endingBefore))
-        .limit(1);
+      const [selectedRequest] = await withDatabaseRetry(() =>
+        db.select().from(request).where(eq(request.id, endingBefore)).limit(1),
+      );
 
       if (!selectedRequest) {
         throw new ChatbotError(
           "not_found:database",
-          `Request with id ${endingBefore} not found`
+          `Request with id ${endingBefore} not found`,
         );
       }
 
-      filteredRequests = await query(
-        lt(request.updatedAt, selectedRequest.updatedAt)
+      filteredRequests = await withDatabaseRetry(() =>
+        query(lt(request.updatedAt, selectedRequest.updatedAt)),
       );
     } else {
-      filteredRequests = await query();
+      filteredRequests = await withDatabaseRetry(() => query());
     }
 
     const hasMore = filteredRequests.length > limit;
@@ -2360,15 +2356,16 @@ export async function getPublicOpenRequests({
 
     return {
       requests: visibleRequests.map((record) =>
-        toPublicRequestPoolEntry(toRequestDraft(record))
+        toPublicRequestPoolEntry(toRequestDraft(record)),
       ),
       hasMore,
     };
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to get public open requests"
-    );
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
+
+    throw createDatabaseQueryError("Failed to get public open requests", error);
   }
 }
 
@@ -2392,8 +2389,8 @@ export async function getPublicSolutionRequests({
           and(
             eq(request.visibility, "public"),
             eq(request.status, "completed"),
-            ...(whereCondition ? [whereCondition] : [])
-          )
+            ...(whereCondition ? [whereCondition] : []),
+          ),
         )
         .orderBy(desc(request.updatedAt))
         .limit(extendedLimit);
@@ -2401,41 +2398,37 @@ export async function getPublicSolutionRequests({
     let filteredRequests: RequestRecord[] = [];
 
     if (startingAfter) {
-      const [selectedRequest] = await db
-        .select()
-        .from(request)
-        .where(eq(request.id, startingAfter))
-        .limit(1);
+      const [selectedRequest] = await withDatabaseRetry(() =>
+        db.select().from(request).where(eq(request.id, startingAfter)).limit(1),
+      );
 
       if (!selectedRequest) {
         throw new ChatbotError(
           "not_found:database",
-          `Request with id ${startingAfter} not found`
+          `Request with id ${startingAfter} not found`,
         );
       }
 
-      filteredRequests = await query(
-        gt(request.updatedAt, selectedRequest.updatedAt)
+      filteredRequests = await withDatabaseRetry(() =>
+        query(gt(request.updatedAt, selectedRequest.updatedAt)),
       );
     } else if (endingBefore) {
-      const [selectedRequest] = await db
-        .select()
-        .from(request)
-        .where(eq(request.id, endingBefore))
-        .limit(1);
+      const [selectedRequest] = await withDatabaseRetry(() =>
+        db.select().from(request).where(eq(request.id, endingBefore)).limit(1),
+      );
 
       if (!selectedRequest) {
         throw new ChatbotError(
           "not_found:database",
-          `Request with id ${endingBefore} not found`
+          `Request with id ${endingBefore} not found`,
         );
       }
 
-      filteredRequests = await query(
-        lt(request.updatedAt, selectedRequest.updatedAt)
+      filteredRequests = await withDatabaseRetry(() =>
+        query(lt(request.updatedAt, selectedRequest.updatedAt)),
       );
     } else {
-      filteredRequests = await query();
+      filteredRequests = await withDatabaseRetry(() => query());
     }
 
     const visibleRequests = filteredRequests
@@ -2446,10 +2439,14 @@ export async function getPublicSolutionRequests({
       requests: visibleRequests.slice(0, limit),
       hasMore: visibleRequests.length > limit,
     };
-  } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to get public solution requests"
+  } catch (error) {
+    if (error instanceof ChatbotError) {
+      throw error;
+    }
+
+    throw createDatabaseQueryError(
+      "Failed to get public solution requests",
+      error,
     );
   }
 }
@@ -2518,7 +2515,7 @@ export async function saveRequestDraft({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save request draft"
+      "Failed to save request draft",
     );
   }
 }
@@ -2574,7 +2571,7 @@ export async function updateRequestDraftById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update request draft"
+      "Failed to update request draft",
     );
   }
 }
@@ -2623,7 +2620,7 @@ export async function getSupplyById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get supply by id"
+      "Failed to get supply by id",
     );
   }
 }
@@ -2646,15 +2643,15 @@ export async function getPlannerCandidateSuppliesForRequest({
           eq(supply.status, "published"),
           requestVisibility === "private"
             ? eq(supply.ownerId, ownerId)
-            : eq(supply.visibility, "public")
-        )
+            : eq(supply.visibility, "public"),
+        ),
       )
       .orderBy(desc(supply.publishedAt), desc(supply.updatedAt))
       .limit(limit);
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get planner candidate supplies"
+      "Failed to get planner candidate supplies",
     );
   }
 }
@@ -2677,7 +2674,12 @@ export async function getSuppliesByUserId({
       db
         .select()
         .from(supply)
-        .where(and(eq(supply.ownerId, id), ...(whereCondition ? [whereCondition] : [])))
+        .where(
+          and(
+            eq(supply.ownerId, id),
+            ...(whereCondition ? [whereCondition] : []),
+          ),
+        )
         .orderBy(desc(supply.updatedAt))
         .limit(extendedLimit);
 
@@ -2693,11 +2695,13 @@ export async function getSuppliesByUserId({
       if (!selectedSupply) {
         throw new ChatbotError(
           "not_found:database",
-          `Supply with id ${startingAfter} not found`
+          `Supply with id ${startingAfter} not found`,
         );
       }
 
-      filteredSupplies = await query(gt(supply.updatedAt, selectedSupply.updatedAt));
+      filteredSupplies = await query(
+        gt(supply.updatedAt, selectedSupply.updatedAt),
+      );
     } else if (endingBefore) {
       const [selectedSupply] = await db
         .select()
@@ -2708,11 +2712,13 @@ export async function getSuppliesByUserId({
       if (!selectedSupply) {
         throw new ChatbotError(
           "not_found:database",
-          `Supply with id ${endingBefore} not found`
+          `Supply with id ${endingBefore} not found`,
         );
       }
 
-      filteredSupplies = await query(lt(supply.updatedAt, selectedSupply.updatedAt));
+      filteredSupplies = await query(
+        lt(supply.updatedAt, selectedSupply.updatedAt),
+      );
     } else {
       filteredSupplies = await query();
     }
@@ -2728,7 +2734,7 @@ export async function getSuppliesByUserId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get supplies by user id"
+      "Failed to get supplies by user id",
     );
   }
 }
@@ -2791,7 +2797,7 @@ export async function saveSupplyDraft({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save supply draft"
+      "Failed to save supply draft",
     );
   }
 }
@@ -2850,7 +2856,7 @@ export async function updateSupplyDraftById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update supply draft"
+      "Failed to update supply draft",
     );
   }
 }
@@ -2881,7 +2887,7 @@ export async function getSupplyUsageSummaryById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to inspect supply usage"
+      "Failed to inspect supply usage",
     );
   }
 }
@@ -2899,10 +2905,7 @@ export async function deleteSupplyById({
 
     return deletedSupply ?? null;
   } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to delete supply"
-    );
+    throw new ChatbotError("bad_request:database", "Failed to delete supply");
   }
 }
 
@@ -2922,7 +2925,9 @@ export function toSupplyDraft(record: SupplyRecord): BorealSupplyDraft {
     ...(record.metadata ? { metadata: record.metadata } : {}),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
-    ...(record.publishedAt ? { publishedAt: record.publishedAt.toISOString() } : {}),
+    ...(record.publishedAt
+      ? { publishedAt: record.publishedAt.toISOString() }
+      : {}),
     ...(record.retiredAt ? { retiredAt: record.retiredAt.toISOString() } : {}),
   };
 }
@@ -2943,7 +2948,7 @@ export async function getWorkflowPackById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get workflow pack by id"
+      "Failed to get workflow pack by id",
     );
   }
 }
@@ -2964,7 +2969,7 @@ export async function getWorkflowPackVersionById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get workflow pack version by id"
+      "Failed to get workflow pack version by id",
     );
   }
 }
@@ -2979,11 +2984,14 @@ export async function getWorkflowPackVersionsByWorkflowPackId({
       .select()
       .from(workflowPackVersion)
       .where(eq(workflowPackVersion.workflowPackId, workflowPackId))
-      .orderBy(desc(workflowPackVersion.version), desc(workflowPackVersion.updatedAt));
+      .orderBy(
+        desc(workflowPackVersion.version),
+        desc(workflowPackVersion.updatedAt),
+      );
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get workflow pack versions"
+      "Failed to get workflow pack versions",
     );
   }
 }
@@ -3034,7 +3042,7 @@ export async function saveWorkflowPack({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save workflow pack"
+      "Failed to save workflow pack",
     );
   }
 }
@@ -3081,7 +3089,7 @@ export async function updateWorkflowPackById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update workflow pack"
+      "Failed to update workflow pack",
     );
   }
 }
@@ -3094,7 +3102,9 @@ export function toWorkflowPack(record: WorkflowPackRecord): WorkflowPack {
     title: record.title,
     summary: record.summary,
     status: record.status,
-    ...(record.currentVersionId ? { currentVersionId: record.currentVersionId } : {}),
+    ...(record.currentVersionId
+      ? { currentVersionId: record.currentVersionId }
+      : {}),
     provenance: record.provenance,
     ...(record.metadata ? { metadata: record.metadata } : {}),
     createdAt: record.createdAt.toISOString(),
@@ -3167,7 +3177,7 @@ export async function saveWorkflowPackVersion({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save workflow pack version"
+      "Failed to save workflow pack version",
     );
   }
 }
@@ -3232,13 +3242,13 @@ export async function updateWorkflowPackVersionById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update workflow pack version"
+      "Failed to update workflow pack version",
     );
   }
 }
 
 export function toWorkflowPackVersion(
-  record: WorkflowPackVersionRecord
+  record: WorkflowPackVersionRecord,
 ): WorkflowPackVersion {
   return {
     id: record.id,
@@ -3278,7 +3288,7 @@ export async function getWorkflowAdapterRunById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get workflow adapter run by id"
+      "Failed to get workflow adapter run by id",
     );
   }
 }
@@ -3293,11 +3303,14 @@ export async function getWorkflowAdapterRunsByFulfillmentId({
       .select()
       .from(workflowAdapterRun)
       .where(eq(workflowAdapterRun.fulfillmentId, fulfillmentId))
-      .orderBy(asc(workflowAdapterRun.attempt), desc(workflowAdapterRun.updatedAt));
+      .orderBy(
+        asc(workflowAdapterRun.attempt),
+        desc(workflowAdapterRun.updatedAt),
+      );
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get workflow adapter runs"
+      "Failed to get workflow adapter runs",
     );
   }
 }
@@ -3360,7 +3373,7 @@ export async function saveWorkflowAdapterRun({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save workflow adapter run"
+      "Failed to save workflow adapter run",
     );
   }
 }
@@ -3410,13 +3423,13 @@ export async function updateWorkflowAdapterRunById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update workflow adapter run"
+      "Failed to update workflow adapter run",
     );
   }
 }
 
 export function toWorkflowAdapterRun(
-  record: WorkflowAdapterRunRecord
+  record: WorkflowAdapterRunRecord,
 ): WorkflowAdapterRun {
   return {
     id: record.id,
@@ -3478,10 +3491,7 @@ export async function saveCommitment({
 
     return createdCommitment;
   } catch (_error) {
-    throw new ChatbotError(
-      "bad_request:database",
-      "Failed to save commitment"
-    );
+    throw new ChatbotError("bad_request:database", "Failed to save commitment");
   }
 }
 
@@ -3546,7 +3556,7 @@ export async function getArtifactByDocumentId({
       .select()
       .from(artifactRecord)
       .where(
-        sql`${artifactRecord.container} ->> 'kind' = 'document' and ${artifactRecord.container} ->> 'documentId' = ${documentId}`
+        sql`${artifactRecord.container} ->> 'kind' = 'document' and ${artifactRecord.container} ->> 'documentId' = ${documentId}`,
       )
       .limit(1);
 
@@ -3554,7 +3564,7 @@ export async function getArtifactByDocumentId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get artifact by document id"
+      "Failed to get artifact by document id",
     );
   }
 }
@@ -3619,7 +3629,7 @@ export async function appendRequestEvent({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to append request event"
+      "Failed to append request event",
     );
   }
 }
@@ -3654,7 +3664,7 @@ export async function getRequestEventByIdempotencyKey({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get request event by idempotency key"
+      "Failed to get request event by idempotency key",
     );
   }
 }
@@ -3681,7 +3691,7 @@ export async function getRequestActivityByRequestId({
       .orderBy(
         afterSequence === undefined
           ? desc(requestEvent.sequence)
-          : asc(requestEvent.sequence)
+          : asc(requestEvent.sequence),
       )
       .limit(limit);
 
@@ -3689,13 +3699,13 @@ export async function getRequestActivityByRequestId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get request activity"
+      "Failed to get request activity",
     );
   }
 }
 
 export function toRequestFulfillment(
-  record: FulfillmentRecord
+  record: FulfillmentRecord,
 ): RequestFulfillment {
   return {
     id: record.id,
@@ -3719,7 +3729,9 @@ export function toRequestFulfillment(
     ...(record.deliveredAt
       ? { deliveredAt: record.deliveredAt.toISOString() }
       : {}),
-    ...(record.acceptedAt ? { acceptedAt: record.acceptedAt.toISOString() } : {}),
+    ...(record.acceptedAt
+      ? { acceptedAt: record.acceptedAt.toISOString() }
+      : {}),
     ...(record.cancelledAt
       ? { cancelledAt: record.cancelledAt.toISOString() }
       : {}),
@@ -3727,7 +3739,9 @@ export function toRequestFulfillment(
   };
 }
 
-function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntry {
+function toRequestActivityEntry(
+  record: RequestEventRecord,
+): RequestActivityEntry {
   const payload = normalizeObject(record.payload) ?? {};
   const commitmentPayload = normalizeObject(payload.commitment);
   const fulfillmentPayload = normalizeObject(payload.fulfillment);
@@ -3738,7 +3752,8 @@ function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntr
     requestId: record.requestId,
     sequence: record.sequence,
     eventType: record.eventType,
-    aggregateType: record.aggregateType as RequestActivityEntry["aggregateType"],
+    aggregateType:
+      record.aggregateType as RequestActivityEntry["aggregateType"],
     aggregateId: record.aggregateId,
     occurredAt: record.occurredAt.toISOString(),
     recordedAt: record.recordedAt.toISOString(),
@@ -3761,7 +3776,10 @@ function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntr
             status: commitmentPayload.status as CommitmentStatus,
             summary: String(commitmentPayload.summary),
             terms: normalizeCommitmentTerms(
-              normalizeObject(commitmentPayload.terms) as Record<string, unknown>
+              normalizeObject(commitmentPayload.terms) as Record<
+                string,
+                unknown
+              >,
             ),
           }
         : undefined,
@@ -3803,7 +3821,10 @@ function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntr
             title: String(artifactPayload.title),
             summary: normalizeOptionalString(artifactPayload.summary),
             container: normalizeArtifactContainer(
-              normalizeObject(artifactPayload.container) as Record<string, unknown>
+              normalizeObject(artifactPayload.container) as Record<
+                string,
+                unknown
+              >,
             ),
             ...(normalizeObject(artifactPayload.metadata)
               ? {
@@ -3811,7 +3832,7 @@ function toRequestActivityEntry(record: RequestEventRecord): RequestActivityEntr
                     normalizeObject(artifactPayload.metadata) as Record<
                       string,
                       unknown
-                    >
+                    >,
                   ),
                 }
               : {}),
@@ -3830,17 +3851,21 @@ function normalizeActivityActor(actor: RequestActorRef): RequestActorRef {
 }
 
 function normalizeCommitmentTerms(
-  terms: Record<string, unknown>
+  terms: Record<string, unknown>,
 ): CommitmentTerms {
   return {
     fundingRequired: Boolean(terms.fundingRequired),
-    amountMode: ((terms.amountMode as CommitmentTerms["amountMode"]) ?? "none"),
+    amountMode: (terms.amountMode as CommitmentTerms["amountMode"]) ?? "none",
     ...(typeof terms.currency === "string" ? { currency: terms.currency } : {}),
     ...(typeof terms.fixedAmount === "number"
       ? { fixedAmount: terms.fixedAmount }
       : {}),
-    ...(typeof terms.minAmount === "number" ? { minAmount: terms.minAmount } : {}),
-    ...(typeof terms.maxAmount === "number" ? { maxAmount: terms.maxAmount } : {}),
+    ...(typeof terms.minAmount === "number"
+      ? { minAmount: terms.minAmount }
+      : {}),
+    ...(typeof terms.maxAmount === "number"
+      ? { maxAmount: terms.maxAmount }
+      : {}),
     ...(typeof terms.deliverableSummary === "string"
       ? { deliverableSummary: terms.deliverableSummary }
       : {}),
@@ -3851,10 +3876,9 @@ function normalizeCommitmentTerms(
 }
 
 function normalizeArtifactContainer(
-  container: Record<string, unknown>
+  container: Record<string, unknown>,
 ): RequestArtifactContainer {
-  const kind =
-    typeof container.kind === "string" ? container.kind : "document";
+  const kind = typeof container.kind === "string" ? container.kind : "document";
 
   if (kind === "external_ref") {
     return {
@@ -3862,7 +3886,8 @@ function normalizeArtifactContainer(
       uri: String(container.uri ?? ""),
       ...(normalizeOptionalString(container.mediaKind)
         ? {
-            mediaKind: container.mediaKind as RequestArtifactContainer["mediaKind"],
+            mediaKind:
+              container.mediaKind as RequestArtifactContainer["mediaKind"],
           }
         : {}),
       ...(normalizeOptionalString(container.mimeType)
@@ -3893,7 +3918,8 @@ function normalizeArtifactContainer(
         : {}),
       ...(normalizeOptionalString(container.mediaKind)
         ? {
-            mediaKind: container.mediaKind as RequestArtifactContainer["mediaKind"],
+            mediaKind:
+              container.mediaKind as RequestArtifactContainer["mediaKind"],
           }
         : {}),
       ...(normalizeOptionalString(container.mimeType)
@@ -3927,7 +3953,8 @@ function normalizeArtifactContainer(
       >["documentKind"]) ?? "text",
     ...(normalizeOptionalString(container.mediaKind)
       ? {
-          mediaKind: container.mediaKind as RequestArtifactContainer["mediaKind"],
+          mediaKind:
+            container.mediaKind as RequestArtifactContainer["mediaKind"],
         }
       : {}),
     ...(normalizeOptionalString(container.mimeType)
@@ -3949,7 +3976,7 @@ function normalizeArtifactContainer(
 }
 
 function normalizeArtifactMetadata(
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown>,
 ): RequestArtifactMetadata {
   const normalizedEvidenceClaims = Array.isArray(metadata.evidenceClaims)
     ? metadata.evidenceClaims
@@ -4022,9 +4049,7 @@ function normalizeArtifactMetadata(
   };
 }
 
-function normalizeObject(
-  value: unknown
-): Record<string, unknown> | undefined {
+function normalizeObject(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;
   }
@@ -4129,7 +4154,7 @@ export async function getMessagesByChatId({ id }: { id: string }) {
         .select()
         .from(message)
         .where(eq(message.chatId, id))
-        .orderBy(asc(message.createdAt))
+        .orderBy(asc(message.createdAt)),
     );
   } catch (error) {
     throw createDatabaseQueryError("Failed to get messages by chat id", error);
@@ -4159,7 +4184,7 @@ export async function getMessagesByUserIdSince({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get messages by user id"
+      "Failed to get messages by user id",
     );
   }
 }
@@ -4201,7 +4226,7 @@ export async function getVotesByChatId({ id }: { id: string }) {
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get votes by chat id"
+      "Failed to get votes by chat id",
     );
   }
 }
@@ -4267,7 +4292,7 @@ export async function updateDocumentContent({
     }
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update document content"
+      "Failed to update document content",
     );
   }
 }
@@ -4284,7 +4309,7 @@ export async function getDocumentsById({ id }: { id: string }) {
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get documents by id"
+      "Failed to get documents by id",
     );
   }
 }
@@ -4301,7 +4326,7 @@ export async function getDocumentById({ id }: { id: string }) {
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get document by id"
+      "Failed to get document by id",
     );
   }
 }
@@ -4319,8 +4344,8 @@ export async function deleteDocumentsByIdAfterTimestamp({
       .where(
         and(
           eq(suggestion.documentId, id),
-          gt(suggestion.documentCreatedAt, timestamp)
-        )
+          gt(suggestion.documentCreatedAt, timestamp),
+        ),
       );
 
     return await db
@@ -4330,7 +4355,7 @@ export async function deleteDocumentsByIdAfterTimestamp({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to delete documents by id after timestamp"
+      "Failed to delete documents by id after timestamp",
     );
   }
 }
@@ -4345,7 +4370,7 @@ export async function saveSuggestions({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to save suggestions"
+      "Failed to save suggestions",
     );
   }
 }
@@ -4363,7 +4388,7 @@ export async function getSuggestionsByDocumentId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get suggestions by document id"
+      "Failed to get suggestions by document id",
     );
   }
 }
@@ -4371,7 +4396,7 @@ export async function getSuggestionsByDocumentId({
 export async function getMessageById({ id }: { id: string }) {
   try {
     return await withDatabaseRetry(() =>
-      db.select().from(message).where(eq(message.id, id))
+      db.select().from(message).where(eq(message.id, id)),
     );
   } catch (error) {
     throw createDatabaseQueryError("Failed to get message by id", error);
@@ -4391,12 +4416,12 @@ export async function deleteMessagesByChatIdAfterTimestamp({
         .select({ id: message.id })
         .from(message)
         .where(
-          and(eq(message.chatId, chatId), gte(message.createdAt, timestamp))
-        )
+          and(eq(message.chatId, chatId), gte(message.createdAt, timestamp)),
+        ),
     );
 
     const messageIds = messagesToDelete.map(
-      (currentMessage) => currentMessage.id
+      (currentMessage) => currentMessage.id,
     );
 
     if (messageIds.length > 0) {
@@ -4404,22 +4429,22 @@ export async function deleteMessagesByChatIdAfterTimestamp({
         db
           .delete(vote)
           .where(
-            and(eq(vote.chatId, chatId), inArray(vote.messageId, messageIds))
-          )
+            and(eq(vote.chatId, chatId), inArray(vote.messageId, messageIds)),
+          ),
       );
 
       return await withDatabaseRetry(() =>
         db
           .delete(message)
           .where(
-            and(eq(message.chatId, chatId), inArray(message.id, messageIds))
-          )
+            and(eq(message.chatId, chatId), inArray(message.id, messageIds)),
+          ),
       );
     }
   } catch (error) {
     throw createDatabaseQueryError(
       "Failed to delete messages by chat id after timestamp",
-      error
+      error,
     );
   }
 }
@@ -4436,7 +4461,7 @@ export async function updateChatVisibilityById({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to update chat visibility by id"
+      "Failed to update chat visibility by id",
     );
   }
 }
@@ -4464,7 +4489,7 @@ export async function getMessageCountByUserId({
 }) {
   try {
     const cutoffTime = new Date(
-      Date.now() - differenceInHours * 60 * 60 * 1000
+      Date.now() - differenceInHours * 60 * 60 * 1000,
     );
 
     const [stats] = await withDatabaseRetry(() =>
@@ -4476,17 +4501,17 @@ export async function getMessageCountByUserId({
           and(
             eq(chat.userId, id),
             gte(message.createdAt, cutoffTime),
-            eq(message.role, "user")
-          )
+            eq(message.role, "user"),
+          ),
         )
-        .execute()
+        .execute(),
     );
 
     return stats?.count ?? 0;
   } catch (error) {
     throw createDatabaseQueryError(
       "Failed to get message count by user id",
-      error
+      error,
     );
   }
 }
@@ -4505,7 +4530,7 @@ export async function createStreamId({
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to create stream id"
+      "Failed to create stream id",
     );
   }
 }
@@ -4523,7 +4548,7 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
   } catch (_error) {
     throw new ChatbotError(
       "bad_request:database",
-      "Failed to get stream ids by chat id"
+      "Failed to get stream ids by chat id",
     );
   }
 }

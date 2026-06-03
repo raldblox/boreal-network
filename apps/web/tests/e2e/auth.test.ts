@@ -4,12 +4,21 @@ test.describe("Authentication Pages", () => {
   test("login page renders correctly", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByTestId("auth-shell")).toBeVisible();
+    const accountAccess = page.getByRole("navigation", {
+      name: "Account access",
+    });
     await expect(
-      page.getByRole("button", { name: "Continue with passkey" }),
+      accountAccess.getByRole("link", { exact: true, name: "Sign in" }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(
+      accountAccess.getByRole("link", {
+        exact: true,
+        name: "Create account",
+      }),
     ).toBeVisible();
-    await expect(page.getByTestId("auth-status")).toContainText(
-      "Use passkey first",
-    );
+    await expect(
+      page.getByRole("button", { name: "Sign in with passkey" }),
+    ).toBeVisible();
     await expect(
       page.getByPlaceholder("your-name or you@team.com"),
     ).toBeVisible();
@@ -17,33 +26,50 @@ test.describe("Authentication Pages", () => {
     await expect(
       page.getByRole("button", { exact: true, name: "Sign in" }),
     ).toBeVisible();
-    await expect(page.getByText("New to Boreal?")).toBeVisible();
   });
 
   test("register page renders correctly", async ({ page }) => {
     await page.goto("/register");
     await expect(page.getByTestId("auth-shell")).toBeVisible();
-    await expect(page.getByTestId("auth-status")).toContainText(
-      "Create the account",
-    );
-    await expect(page.getByPlaceholder("your-name")).toBeVisible();
-    await expect(page.getByPlaceholder("you@team.com")).toBeVisible();
+    const accountAccess = page.getByRole("navigation", {
+      name: "Account access",
+    });
+    await expect(
+      accountAccess.getByRole("link", {
+        exact: true,
+        name: "Create account",
+      }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(
+      accountAccess.getByRole("link", { exact: true, name: "Sign in" }),
+    ).toBeVisible();
+    await expect(
+      page.getByPlaceholder("your-name", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByPlaceholder("you@team.com", { exact: true }),
+    ).toBeVisible();
     await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Create account" }),
     ).toBeVisible();
-    await expect(page.getByText("Already inside Boreal?")).toBeVisible();
   });
 
   test("can navigate from login to register", async ({ page }) => {
     await page.goto("/login");
-    await page.getByRole("link", { name: "Create an account" }).click();
+    await page
+      .getByRole("navigation", { name: "Account access" })
+      .getByRole("link", { exact: true, name: "Create account" })
+      .click();
     await expect(page).toHaveURL("/register?callbackUrl=%2F");
   });
 
   test("can navigate from register to login", async ({ page }) => {
     await page.goto("/register");
-    await page.getByRole("link", { name: "Sign in" }).click();
+    await page
+      .getByRole("navigation", { name: "Account access" })
+      .getByRole("link", { exact: true, name: "Sign in" })
+      .click();
     await expect(page).toHaveURL("/login?callbackUrl=%2F");
   });
 

@@ -2,12 +2,11 @@
 
 import { startAuthentication } from "@simplewebauthn/browser";
 import { KeyRoundIcon, LoaderCircleIcon } from "lucide-react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Suspense, useActionState, useEffect, useState } from "react";
-
 import { AuthForm } from "@/components/chat/auth-form";
+import { AuthModeSwitch } from "@/components/chat/auth-mode-switch";
 import { type AuthFeedback, AuthStatus } from "@/components/chat/auth-status";
 import { SubmitButton } from "@/components/chat/submit-button";
 import { toast } from "@/components/chat/toast";
@@ -26,6 +25,9 @@ type LoginPasskeyChallenge = LoginActionState & {
   options: NonNullable<LoginActionState["options"]>;
   status: "webauthn_required";
 };
+
+const DATABASE_OFFLINE_MESSAGE =
+  "Database is still waking up. Wait a few seconds, then try again.";
 
 function hasLoginPasskeyChallenge(
   state: LoginActionState,
@@ -54,11 +56,7 @@ function LoginPageContent() {
   const [isSuccessful, setIsSuccessful] = useState(false);
   const [isPasskeyPrompting, setIsPasskeyPrompting] = useState(false);
   const [isPasskeyOnlyPrompting, setIsPasskeyOnlyPrompting] = useState(false);
-  const [feedback, setFeedback] = useState<AuthFeedback>({
-    tone: "info",
-    message:
-      "Use passkey first if this account already has one. Password stays below as a fallback.",
-  });
+  const [feedback, setFeedback] = useState<AuthFeedback | null>(null);
   const rawCallbackUrl = searchParams.get("callbackUrl")?.trim() || "/";
   const callbackUrl =
     rawCallbackUrl.startsWith("/") && !rawCallbackUrl.startsWith("//")
@@ -78,6 +76,9 @@ function LoginPageContent() {
       const message = "That username/email and password did not match.";
       setFeedback({ tone: "error", message });
       toast({ type: "error", description: message });
+    } else if (state.status === "database_offline") {
+      setFeedback({ tone: "error", message: DATABASE_OFFLINE_MESSAGE });
+      toast({ type: "error", description: DATABASE_OFFLINE_MESSAGE });
     } else if (state.status === "invalid_data") {
       const message = "Enter a valid username/email and password.";
       setFeedback({ tone: "error", message });
@@ -148,7 +149,9 @@ function LoginPageContent() {
         }
 
         const message =
-          "Passkey verification failed. Try again or use password.";
+          result.status === "database_offline"
+            ? DATABASE_OFFLINE_MESSAGE
+            : "Passkey verification failed. Try again or use password.";
         setFeedback({ tone: "error", message });
         toast({ type: "error", description: message });
       } catch (error) {
@@ -216,6 +219,10 @@ function LoginPageContent() {
         !startResult.challengeId ||
         !startResult.options
       ) {
+        if (startResult.status === "database_offline") {
+          throw new Error(DATABASE_OFFLINE_MESSAGE);
+        }
+
         throw new Error("Could not start passkey sign-in.");
       }
 
@@ -228,7 +235,11 @@ function LoginPageContent() {
       });
 
       if (result.status !== "success") {
-        throw new Error("Passkey sign-in failed.");
+        throw new Error(
+          result.status === "database_offline"
+            ? DATABASE_OFFLINE_MESSAGE
+            : "Passkey sign-in failed.",
+        );
       }
 
       setFeedback({ tone: "success", message: "Signed in. Opening Boreal." });
@@ -251,16 +262,15 @@ function LoginPageContent() {
   }
 
   return (
-    <>
-      <h1 className="text-3xl font-semibold tracking-tight [font-family:var(--font-display)] md:text-4xl">
-        Sign in to Boreal
-      </h1>
-      <p className="text-sm leading-7 text-muted-foreground">
-        Fast path first. Use an enrolled passkey, or fall back to
-        username/password.
-      </p>
-      <AuthStatus feedback={feedback} />
-      <div className="flex flex-col gap-3">
+    <div className="space-y-6">
+      <AuthModeSwitch callbackUrl={callbackUrl} mode="login" />
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight [font-family:var(--font-display)]">
+          Sign in
+        </h2>
+      </div>
+      {feedback ? <AuthStatus feedback={feedback} /> : null}
+      <div className="flex flex-col gap-4">
         <Button
           aria-busy={isPasskeyOnlyPrompting}
           className="h-11 w-full rounded-lg"
@@ -280,12 +290,9 @@ function LoginPageContent() {
           )}
           {isPasskeyOnlyPrompting
             ? "Waiting for passkey"
-            : "Continue with passkey"}
+            : "Sign in with passkey"}
         </Button>
-        <p className="text-xs leading-5 text-muted-foreground">
-          Passkey sign-in works after enrollment from Account Security.
-        </p>
-        <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <div className="h-px flex-1 bg-border/60" />
           Password
           <div className="h-px flex-1 bg-border/60" />
@@ -305,16 +312,7 @@ function LoginPageContent() {
         >
           {isPasskeyPrompting ? "Waiting for passkey" : "Sign in"}
         </SubmitButton>
-        <p className="text-center text-[13px] text-muted-foreground">
-          {"New to Boreal? "}
-          <Link
-            className="text-foreground underline-offset-4 hover:underline"
-            href={`/register?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-          >
-            Create an account
-          </Link>
-        </p>
       </AuthForm>
-    </>
+    </div>
   );
 }
