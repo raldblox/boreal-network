@@ -443,6 +443,7 @@ Verify:
 - public or cross-actor worker application writes `Commitment` plus `RequestEvent` and requires route auth, request policy, and idempotency
 - public or cross-actor direct `Fulfillment` creation remains rejected before accepted commitment truth
 - owner-private direct worker fulfillment requires a private owner-controlled request and one selected published owned first-party `Supply`
+- named-agent preparation must reject owner-private direct fulfillment when explicit trusted-worker auto-approval, allowed worker key, eligible status, or selected supply proof is missing or mismatched
 - owner-scoped auto-approval can create or accept only the intended worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to a different supply
 - prompt packs, reusable prompts, workflow JSON, provider prompts, and skills cannot be listed as starter `Supply` without a backing execution profile, capability fingerprints, proof path, and readiness tests
 - `video-generation` remains the only live starter worker until another worker such as humanizer has a real supply factory, execution contract, proof path, and failure fixtures

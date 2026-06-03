@@ -362,7 +362,7 @@ async function main() {
   assert.equal(invalidResponse.status, 400);
 }
 
-const privatePrepare = prepareBorealAgentApplication({
+const privateWithoutAutoApprovalPrepare = prepareBorealAgentApplication({
   input: {
     ...videoPrepareInput,
     request: {
@@ -372,7 +372,57 @@ const privatePrepare = prepareBorealAgentApplication({
   },
   template: mira,
 });
+assert.equal(
+  privateWithoutAutoApprovalPrepare.qualification.allowedToWake,
+  false
+);
+assert.equal(
+  privateWithoutAutoApprovalPrepare.qualification.recommendedLane,
+  "do_not_wake"
+);
+assert.ok(
+  privateWithoutAutoApprovalPrepare.qualification.rejectedBy.includes(
+    "owner_auto_approval_not_enabled"
+  )
+);
+assert.equal(
+  privateWithoutAutoApprovalPrepare.applicationPacket.proposedObject,
+  "Commitment"
+);
+assert.equal(
+  privateWithoutAutoApprovalPrepare.applicationPacket.ownerApprovalMode,
+  "explicit_owner_acceptance_required"
+);
+
+const privatePrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    request: {
+      ...videoPrepareInput.request,
+      visibility: "private",
+      routing: {
+        preferredSupplyId: "11111111-1111-4111-8111-111111111111",
+      },
+      ownerApproval: {
+        trustedWorkerAutoApproval: true,
+        allowedWorkerKeys: ["video-generation"],
+        selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+      },
+    },
+  },
+  template: mira,
+});
 assert.equal(privatePrepare.qualification.allowedToWake, true);
+assert.equal(privatePrepare.qualification.ownerPrivateAutoApproval.allowed, true);
+assert.equal(
+  privatePrepare.qualification.ownerPrivateAutoApproval.selectedSupplyId,
+  "11111111-1111-4111-8111-111111111111"
+);
+assert.ok(
+  privatePrepare.qualification.ownerPrivateAutoApproval.reasons.includes(
+    "owner_private_auto_approval_gates_present"
+  )
+);
 assert.equal(
   privatePrepare.qualification.recommendedLane,
   "owner_private_direct_worker_fulfillment"
@@ -407,6 +457,57 @@ assert.equal(
 assert.equal(
   privatePrepare.applicationPacket.mutationCall.body.metadata.prepareOnly,
   true
+);
+
+const privateSelectedSupplyMismatchPrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    request: {
+      ...videoPrepareInput.request,
+      visibility: "private",
+      routing: {
+        preferredSupplyId: "33333333-3333-4333-8333-333333333333",
+      },
+      ownerApproval: {
+        trustedWorkerAutoApproval: true,
+        allowedWorkerKeys: ["video-generation"],
+      },
+    },
+  },
+  template: mira,
+});
+assert.equal(
+  privateSelectedSupplyMismatchPrepare.qualification.allowedToWake,
+  false
+);
+assert.ok(
+  privateSelectedSupplyMismatchPrepare.qualification.rejectedBy.includes(
+    "selected_supply_mismatch"
+  )
+);
+
+const privateWorkerNotAllowedPrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    request: {
+      ...videoPrepareInput.request,
+      visibility: "private",
+      routing: {
+        preferredSupplyId: "11111111-1111-4111-8111-111111111111",
+      },
+      ownerApproval: {
+        trustedWorkerAutoApproval: true,
+        allowedWorkerKeys: ["humanizer"],
+      },
+    },
+  },
+  template: mira,
+});
+assert.equal(privateWorkerNotAllowedPrepare.qualification.allowedToWake, false);
+assert.ok(
+  privateWorkerNotAllowedPrepare.qualification.rejectedBy.includes(
+    "worker_not_owner_auto_approved"
+  )
 );
 
 const humanRequiredPrepare = prepareBorealAgentApplication({

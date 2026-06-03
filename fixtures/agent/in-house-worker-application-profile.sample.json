@@ -420,6 +420,7 @@
         "routing.preferredSupplyId or explicit supplyId points to the selected Supply",
         "selected Supply belongs to the owner",
         "selected Supply is published",
+        "owner auto-approval is explicitly enabled for the selected worker key",
         "resolver binding matches when resolver bearer auth is used",
         "idempotency key"
       ],
@@ -462,6 +463,7 @@
       "owner scope",
       "trusted first-party supply",
       "request-specific policy",
+      "allowed worker key",
       "selected supply availability",
       "idempotency"
     ]

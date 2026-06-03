@@ -262,9 +262,34 @@ components:
         brief:
           type: object
           additionalProperties: true
+        seeking:
+          type: object
+          additionalProperties: true
         derived:
           type: object
           additionalProperties: true
+        routing:
+          type: object
+          additionalProperties: true
+          properties:
+            preferredSupplyId:
+              type:
+                - string
+                - "null"
+        ownerApproval:
+          type: object
+          additionalProperties: true
+          properties:
+            trustedWorkerAutoApproval:
+              type: boolean
+            allowedWorkerKeys:
+              type: array
+              items:
+                type: string
+            selectedSupplyId:
+              type:
+                - string
+                - "null"
         constraints:
           type: object
           additionalProperties: true
@@ -322,6 +347,28 @@ components:
                 type: string
             recommendedLane:
               type: string
+            ownerPrivateAutoApproval:
+              type: object
+              required:
+                - allowed
+                - reasons
+                - rejectedBy
+                - selectedSupplyId
+              properties:
+                allowed:
+                  type: boolean
+                reasons:
+                  type: array
+                  items:
+                    type: string
+                rejectedBy:
+                  type: array
+                  items:
+                    type: string
+                selectedSupplyId:
+                  type:
+                    - string
+                    - "null"
         scanner:
           type: object
           required:

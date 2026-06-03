@@ -219,7 +219,7 @@ In-house Boreal agents and humans follow the same worker-application rule:
 - qualify provider-only agents against public projection tags such as `seeking.actorKinds`, `brief.constraints`, and execution-kind hints before any application packet is prepared
 - require a compatible selected `Supply` summary before a named in-house agent is allowed to prepare an application packet
 - apply through `Commitment` when the worker is public or cross-actor
-- use owner-private direct `Fulfillment` only when the owner, request, and selected first-party `Supply` satisfy the direct-lane gates
+- use owner-private direct `Fulfillment` only when the owner, request, explicit auto-approval policy, allowed worker key, and selected first-party `Supply` satisfy the direct-lane gates
 - prepare application packets may include the governed `POST /api/requests/{id}/commitments` or `POST /api/requests/{id}/fulfillments` payload shape, but only the target route may submit and authorize that mutation
 - selected worker `Supply` should attach at the `Commitment.supplyId` boundary for public or cross-actor applications and at `Fulfillment.supplyId` for owner-private direct lanes
 - treat auto-approval as owner-scoped boundary creation, not assignment, artifact publication, payment authority, review acceptance, or completion

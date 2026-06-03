@@ -40,6 +40,22 @@ const derivedSchema = z
   .passthrough()
   .optional();
 
+const routingSchema = z
+  .object({
+    preferredSupplyId: z.string().nullable().optional(),
+  })
+  .passthrough()
+  .optional();
+
+const ownerApprovalSchema = z
+  .object({
+    trustedWorkerAutoApproval: z.boolean().optional(),
+    allowedWorkerKeys: z.array(z.string()).optional(),
+    selectedSupplyId: z.string().nullable().optional(),
+  })
+  .passthrough()
+  .optional();
+
 export const borealAgentRequestSummarySchema = z
   .object({
     id: z.string().min(1),
@@ -48,6 +64,8 @@ export const borealAgentRequestSummarySchema = z
     brief: briefSchema.optional(),
     seeking: seekingSchema,
     derived: derivedSchema,
+    routing: routingSchema,
+    ownerApproval: ownerApprovalSchema,
     constraints: z
       .object({
         requiresHumanPresence: z.boolean().optional(),
@@ -101,7 +119,7 @@ export function prepareBorealAgentApplication({
 }) {
   const evaluation = evaluateQualification({ input, template });
   const lane =
-    input.request.visibility === "private"
+    evaluation.ownerPrivateAutoApproval.allowed
       ? "owner_private_direct_worker_fulfillment"
       : "public_or_cross_actor_commitment_application";
 
@@ -125,6 +143,7 @@ export function prepareBorealAgentApplication({
       reasons: evaluation.reasons,
       rejectedBy: evaluation.rejectedBy,
       recommendedLane: evaluation.allowedToWake ? lane : "do_not_wake",
+      ownerPrivateAutoApproval: evaluation.ownerPrivateAutoApproval,
     },
     scanner: {
       canonicalReads: ["Request", "Supply", "RequestEvent"],
@@ -150,6 +169,10 @@ function evaluateQualification({
   const reasons: string[] = [];
   const rejectedBy: string[] = [];
   const supplyBinding = evaluateSupplyBinding({ input, template });
+  const ownerPrivateAutoApproval = evaluateOwnerPrivateAutoApproval({
+    input,
+    template,
+  });
   reasons.push(...supplyBinding.reasons);
   rejectedBy.push(...supplyBinding.rejectedBy);
 
@@ -160,6 +183,13 @@ function evaluateQualification({
   const humanRequired = requiresHumanWork(input);
   if (humanRequired) {
     rejectedBy.push("human_required_boundary");
+  }
+
+  if (
+    input.request.visibility === "private" &&
+    !ownerPrivateAutoApproval.allowed
+  ) {
+    rejectedBy.push(...ownerPrivateAutoApproval.rejectedBy);
   }
 
   if (template.agentKey === "mira-video") {
@@ -184,6 +214,7 @@ function evaluateQualification({
     allowedToWake,
     reasons,
     rejectedBy,
+    ownerPrivateAutoApproval,
   };
 }
 
@@ -219,6 +250,74 @@ function evaluateSupplyBinding({
   }
 
   return { reasons, rejectedBy };
+}
+
+function evaluateOwnerPrivateAutoApproval({
+  input,
+  template,
+}: {
+  input: BorealAgentPrepareApplicationInput;
+  template: BorealAgentTemplate;
+}) {
+  const reasons: string[] = [];
+  const rejectedBy: string[] = [];
+
+  if (input.request.visibility !== "private") {
+    return {
+      allowed: false,
+      reasons,
+      rejectedBy: ["not_owner_private_request"],
+      selectedSupplyId: null,
+    };
+  }
+
+  const selectedSupplyId =
+    input.request.ownerApproval?.selectedSupplyId?.trim() ||
+    input.request.routing?.preferredSupplyId?.trim() ||
+    null;
+  const allowedWorkerKeys =
+    input.request.ownerApproval?.allowedWorkerKeys ?? [];
+
+  if (!isDirectOwnerPrivateStatus(input.request.status)) {
+    rejectedBy.push("private_request_status_not_direct_eligible");
+  }
+
+  if (input.request.ownerApproval?.trustedWorkerAutoApproval !== true) {
+    rejectedBy.push("owner_auto_approval_not_enabled");
+  }
+
+  if (
+    allowedWorkerKeys.length > 0 &&
+    !allowedWorkerKeys.includes(template.workerKey)
+  ) {
+    rejectedBy.push("worker_not_owner_auto_approved");
+  }
+
+  if (!selectedSupplyId) {
+    rejectedBy.push("selected_supply_required_for_auto_approval");
+  } else if (input.supply?.id && input.supply.id !== selectedSupplyId) {
+    rejectedBy.push("selected_supply_mismatch");
+  }
+
+  if (rejectedBy.length === 0) {
+    reasons.push("owner_private_auto_approval_gates_present");
+  }
+
+  return {
+    allowed: rejectedBy.length === 0,
+    reasons,
+    rejectedBy,
+    selectedSupplyId,
+  };
+}
+
+function isDirectOwnerPrivateStatus(status: string | undefined) {
+  return (
+    status === "open" ||
+    status === "funded" ||
+    status === "in_progress" ||
+    status === "waiting_for_owner"
+  );
 }
 
 function hasVideoGenerationSignal(input: BorealAgentPrepareApplicationInput) {

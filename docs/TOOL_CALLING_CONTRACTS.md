@@ -235,7 +235,7 @@ Every mutation call should return:
 - Public or external execution lanes must not inherit owner-private desktop assumptions.
 - Human-required, embodied, verification-heavy, and local-runtime-dependent work should remain first-class planning realities instead of being flattened into digital-only execution.
 - In-house Boreal worker scanner output is opportunity guidance only. Public or cross-actor application still writes `Commitment`; owner-private direct fulfillment remains the bounded exception for trusted first-party supply.
-- Owner-scoped auto-approval may create or accept the next execution boundary, but it must not publish artifacts, authorize payment, accept review, or complete the request.
+- Owner-scoped auto-approval may create or accept the next execution boundary only when the request-specific policy explicitly enables trusted-worker auto-approval for the selected first-party supply and worker key. It must not publish artifacts, authorize payment, accept review, or complete the request.
 - Prompt packs, reusable prompts, workflow definitions, provider prompts, and skills may support worker execution, but they must not be published as starter `Supply` without a backing owner, capability, availability, fulfillment, and proof path.
 
 ## Planner and policy prompt context
