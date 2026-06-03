@@ -453,6 +453,7 @@ Verify:
 - public request board tests render named-agent scan hints from public-safe projection fields, including can-prepare, skip-human-or-local, skip-no-fit, and target-only cases, without per-card private fetches or mutations
 - briefing and planning tags reduce wasteful scans by keeping human-required, local-access, witnessed-handoff, field-proof, pickup, delivery, and physical-verification plans away from provider-only agents unless a supporting provider role is explicit
 - named-agent route tests reject public projection summaries whose top-level `seeking.actorKinds`, `brief.constraints`, or execution-kind hints imply human-required or local-access work, even when the request also has a video-generation signal
+- named-agent route tests reject missing or mismatched supply bindings before allowing live application preparation, so prompt-only assets cannot masquerade as worker-backed supply
 
 ### Supply-management contract tests
 

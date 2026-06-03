@@ -149,6 +149,9 @@ function evaluateQualification({
 }) {
   const reasons: string[] = [];
   const rejectedBy: string[] = [];
+  const supplyBinding = evaluateSupplyBinding({ input, template });
+  reasons.push(...supplyBinding.reasons);
+  rejectedBy.push(...supplyBinding.rejectedBy);
 
   if (template.status !== "live_template") {
     rejectedBy.push("target_template_not_live");
@@ -182,6 +185,40 @@ function evaluateQualification({
     reasons,
     rejectedBy,
   };
+}
+
+function evaluateSupplyBinding({
+  input,
+  template,
+}: {
+  input: BorealAgentPrepareApplicationInput;
+  template: BorealAgentTemplate;
+}) {
+  const reasons: string[] = [];
+  const rejectedBy: string[] = [];
+
+  if (!template.supplyBinding.required) {
+    return { reasons, rejectedBy };
+  }
+
+  if (!input.supply?.id) {
+    rejectedBy.push("missing_required_supply_binding");
+    return { reasons, rejectedBy };
+  }
+
+  if (input.supply.kind !== template.supplyBinding.supplyKind) {
+    rejectedBy.push("supply_kind_mismatch");
+  }
+
+  if (input.supply.providerRef !== template.supplyBinding.providerRef) {
+    rejectedBy.push("provider_ref_mismatch");
+  }
+
+  if (rejectedBy.length === 0) {
+    reasons.push("required_supply_binding_present");
+  }
+
+  return { reasons, rejectedBy };
 }
 
 function hasVideoGenerationSignal(input: BorealAgentPrepareApplicationInput) {

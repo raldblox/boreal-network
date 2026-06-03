@@ -199,6 +199,11 @@ async function main() {
   assert.equal(publicPrepareResponse.status, 200);
   const publicPrepare = await publicPrepareResponse.json();
   assert.equal(publicPrepare.qualification.allowedToWake, true);
+  assert.ok(
+    publicPrepare.qualification.reasons.includes(
+      "required_supply_binding_present"
+    )
+  );
   assert.equal(
     publicPrepare.qualification.recommendedLane,
     "public_or_cross_actor_commitment_application"
@@ -451,6 +456,48 @@ assert.equal(
 assert.ok(
   publicProjectionBriefConstraintPrepare.qualification.rejectedBy.includes(
     "human_required_boundary"
+  )
+);
+
+const missingSupplyPrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    supply: undefined,
+  },
+  template: mira,
+});
+assert.equal(missingSupplyPrepare.qualification.allowedToWake, false);
+assert.ok(
+  missingSupplyPrepare.qualification.rejectedBy.includes(
+    "missing_required_supply_binding"
+  )
+);
+assert.equal(
+  missingSupplyPrepare.applicationPacket.mutationCall.body.supplyId,
+  undefined
+);
+
+const mismatchedSupplyPrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    supply: {
+      id: "22222222-2222-4222-8222-222222222222",
+      kind: "documentation_support",
+      capabilityTags: ["copy"],
+      providerRef: "boreal/humanizer",
+    },
+  },
+  template: mira,
+});
+assert.equal(mismatchedSupplyPrepare.qualification.allowedToWake, false);
+assert.ok(
+  mismatchedSupplyPrepare.qualification.rejectedBy.includes(
+    "supply_kind_mismatch"
+  )
+);
+assert.ok(
+  mismatchedSupplyPrepare.qualification.rejectedBy.includes(
+    "provider_ref_mismatch"
   )
 );
 
