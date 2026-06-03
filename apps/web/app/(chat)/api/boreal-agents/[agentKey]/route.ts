@@ -7,6 +7,10 @@ import {
   borealAgentPrepareApplicationSchema,
   prepareBorealAgentApplication,
 } from "@/lib/boreal-agents/application";
+import {
+  borealAgentScanCandidatesSchema,
+  scanBorealAgentRequestCandidates,
+} from "@/lib/boreal-agents/scan";
 
 type RouteContext = {
   params: Promise<{
@@ -55,9 +59,30 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const parsed = borealAgentPrepareApplicationSchema.safeParse(
-    await request.json().catch(() => null)
-  );
+  const rawBody = await request.json().catch(() => null);
+
+  if (isRecord(rawBody) && rawBody.action === "scan_request_candidates") {
+    const parsed = borealAgentScanCandidatesSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "invalid_boreal_agent_scan_input",
+          issues: parsed.error.issues,
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      scanBorealAgentRequestCandidates({
+        input: parsed.data,
+        template,
+      })
+    );
+  }
+
+  const parsed = borealAgentPrepareApplicationSchema.safeParse(rawBody);
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -75,4 +100,8 @@ export async function POST(request: Request, context: RouteContext) {
       template,
     })
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

@@ -161,6 +161,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/tests/contracts/agent-discovery.test.ts`
 - `apps/web/lib/boreal-agents/registry.ts`
 - `apps/web/lib/boreal-agents/application.ts`
+- `apps/web/lib/boreal-agents/scan.ts`
 - `apps/web/app/(chat)/api/boreal-agents/[agentKey]/route.ts`
 - `apps/web/tests/contracts/boreal-agents.test.ts`
 - `fixtures/agent/action-cards.sample.json`
@@ -308,7 +309,7 @@ Today, the machine-readable baseline proves:
 - public agent start, action playbook, workflow catalog, UX profile, client kit, tool registry, and readiness profile now point agents to `agentActionCardHints` as request-level render hints while preserving `agentActionPolicy` as the permission gate
 - request, supply, payment, and resolver-auth OpenAPI exports now declare machine-readable auth boundaries: standard OpenAPI `security` requirements for anonymous, account-session, and resolver-bearer access where live routes support them, plus Boreal `x-boreal-required-scopes` extensions for resolver scope conditions
 - one Boreal-managed `video-generation` starter supply exists as the first in-house worker-backed supply lane; broader in-house worker scanning, application packets, and owner auto-approval fixtures remain target work
-- one machine-readable in-house worker application profile now defines named agent templates, including `Mira` as the video-generation route template and `Tala` as target-only humanizer, and one live preparation-only per-agent route surface can read those templates and prepare non-mutating application packets
+- one machine-readable in-house worker application profile now defines named agent templates, including `Mira` as the video-generation route template and `Tala` as target-only humanizer, and one live preparation-only per-agent route surface can read those templates, scan caller-supplied request summaries for wake or skip decisions, and prepare non-mutating application packets
 
 ## Target Direction
 

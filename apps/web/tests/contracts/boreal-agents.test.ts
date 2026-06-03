@@ -112,6 +112,81 @@ async function main() {
   assert.deepEqual(publicPrepare.scanner.canonicalWrites, []);
   assert.equal(publicPrepare.nonAuthority.canCreateCommitment, false);
 
+  const scanResponse = await POST(
+    jsonRequest({
+      action: "scan_request_candidates",
+      requests: [
+        videoPrepareInput.request,
+        {
+          ...videoPrepareInput.request,
+          id: "req-video-human-required",
+          constraints: {
+            requiresHumanPresence: true,
+          },
+        },
+        {
+          ...videoPrepareInput.request,
+          id: "req-copy-001",
+          brief: {
+            title: "Rewrite website copy",
+            summary: "Need a humanizer pass on public launch copy.",
+            body: "Polish the language and preserve facts.",
+            outputKinds: ["text"],
+          },
+          derived: {
+            seeking: {
+              supplyKinds: ["documentation_support"],
+            },
+            executionProfile: {
+              requiresHumanPresence: false,
+              requiresLocalAccess: false,
+            },
+          },
+        },
+      ],
+      supply: videoPrepareInput.supply,
+    }),
+    routeContext("mira-video")
+  );
+  assert.equal(scanResponse.status, 200);
+  const scanBody = await scanResponse.json();
+  assert.equal(scanBody.kind, "boreal_agent_scan_result");
+  assert.equal(scanBody.scan.rankingMode, "none_no_matching_or_assignment");
+  assert.equal(scanBody.scan.requestCount, 3);
+  assert.equal(scanBody.scan.wakeCount, 1);
+  assert.equal(scanBody.scan.skipCount, 2);
+  assert.deepEqual(scanBody.scanner.canonicalWrites, []);
+  assert.equal(scanBody.nonAuthority.canAssignWorker, false);
+  assert.equal(scanBody.candidates[0].request.id, "req-video-001");
+  assert.equal(scanBody.candidates[0].allowedToWake, true);
+  assert.deepEqual(scanBody.candidates[0].proposedCanonicalWritesIfAuthorized, [
+    "Commitment",
+    "RequestEvent",
+  ]);
+  assert.equal(scanBody.candidates[1].allowedToWake, false);
+  assert.ok(
+    scanBody.candidates[1].rejectedBy.includes("human_required_boundary")
+  );
+  assert.equal(scanBody.candidates[2].allowedToWake, false);
+  assert.ok(
+    scanBody.candidates[2].rejectedBy.includes("no_video_generation_signal")
+  );
+
+  const targetScanResponse = await POST(
+    jsonRequest({
+      action: "scan_request_candidates",
+      requests: [videoPrepareInput.request],
+      supply: videoPrepareInput.supply,
+    }),
+    routeContext("tala-humanizer")
+  );
+  assert.equal(targetScanResponse.status, 200);
+  const targetScanBody = await targetScanResponse.json();
+  assert.equal(targetScanBody.scan.wakeCount, 0);
+  assert.ok(
+    targetScanBody.candidates[0].rejectedBy.includes("target_template_not_live")
+  );
+
   const invalidResponse = await POST(
     jsonRequest({
       action: "finish_request",

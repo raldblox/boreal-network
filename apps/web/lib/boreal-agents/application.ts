@@ -29,7 +29,7 @@ const derivedSchema = z
   .passthrough()
   .optional();
 
-const requestSummarySchema = z
+export const borealAgentRequestSummarySchema = z
   .object({
     id: z.string().min(1),
     visibility: z.enum(["public", "private"]),
@@ -46,7 +46,7 @@ const requestSummarySchema = z
   })
   .passthrough();
 
-const supplySummarySchema = z
+export const borealAgentSupplySummarySchema = z
   .object({
     id: z.string().optional(),
     kind: z.string().optional(),
@@ -59,8 +59,8 @@ const supplySummarySchema = z
 export const borealAgentPrepareApplicationSchema = z
   .object({
     action: z.literal("prepare_application"),
-    request: requestSummarySchema,
-    supply: supplySummarySchema,
+    request: borealAgentRequestSummarySchema,
+    supply: borealAgentSupplySummarySchema,
   })
   .strict();
 
@@ -175,8 +175,6 @@ function evaluateQualification({
 function hasVideoGenerationSignal(input: BorealAgentPrepareApplicationInput) {
   const outputKinds = input.request.brief?.outputKinds ?? [];
   const supplyKinds = input.request.derived?.seeking?.supplyKinds ?? [];
-  const supplyCapabilityTags = input.supply?.capabilityTags ?? [];
-  const providerRef = input.supply?.providerRef ?? "";
   const text = [
     input.request.brief?.title,
     input.request.brief?.summary,
@@ -189,8 +187,6 @@ function hasVideoGenerationSignal(input: BorealAgentPrepareApplicationInput) {
   return (
     outputKinds.some(isVideoLike) ||
     supplyKinds.some((kind) => kind === "video_generation") ||
-    supplyCapabilityTags.some(isVideoLike) ||
-    providerRef === "runway/video-generation" ||
     /\b(video|teaser|clip|reel)\b/.test(text)
   );
 }
