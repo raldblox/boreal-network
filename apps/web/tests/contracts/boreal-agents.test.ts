@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { POST, GET } from "@/app/(chat)/api/boreal-agents/[agentKey]/route";
 import {
+  createBorealAgentApiRoute,
   getBorealAgentTemplate,
   listBorealAgentTemplates,
+  validateBorealAgentTemplateCatalog,
 } from "@/lib/boreal-agents/registry";
 import {
   type BorealAgentPrepareApplicationInput,
@@ -58,6 +60,7 @@ const templates = listBorealAgentTemplates();
 assert.equal(templates.length, 2);
 assert.equal(new Set(templates.map((agent) => agent.agentKey)).size, 2);
 assert.equal(new Set(templates.map((agent) => agent.uniqueName)).size, 2);
+assert.deepEqual(validateBorealAgentTemplateCatalog(templates), []);
 assert.ok(
   templates.every((agent) => agent.apiRoute.endsWith(agent.agentKey)),
   "agent route must be stable and agent-key scoped"
@@ -65,6 +68,7 @@ assert.ok(
 
 const mira = getBorealAgentTemplate("mira-video");
 assert.ok(mira);
+assert.equal(mira.apiRoute, createBorealAgentApiRoute("mira-video"));
 assert.equal(mira.uniqueName, "Mira");
 assert.equal(mira.status, "live_template");
 assert.ok(mira.modelBindings.some((binding) => binding.provider === "openai"));
@@ -74,8 +78,33 @@ assert.ok(mira.taskPipeline.some((task) => task.kind === "publish_artifact"));
 
 const tala = getBorealAgentTemplate("tala-humanizer");
 assert.ok(tala);
+assert.equal(tala.apiRoute, createBorealAgentApiRoute("tala-humanizer"));
 assert.equal(tala.uniqueName, "Tala");
 assert.equal(tala.status, "target_template");
+
+const invalidCatalogIssues = validateBorealAgentTemplateCatalog([
+  mira,
+  {
+    ...mira,
+    agentKey: "Mira Video",
+    apiRoute: "/api/boreal-agents/not-mira-video",
+    taskPipeline: mira.taskPipeline.filter(
+      (task) => task.kind !== "prepare_application"
+    ),
+  },
+]);
+assert.ok(
+  invalidCatalogIssues.some((issue) => issue.code === "duplicate_unique_name")
+);
+assert.ok(
+  invalidCatalogIssues.some((issue) => issue.code === "invalid_agent_key")
+);
+assert.ok(
+  invalidCatalogIssues.some((issue) => issue.code === "unstable_api_route")
+);
+assert.ok(
+  invalidCatalogIssues.some((issue) => issue.code === "missing_required_task")
+);
 
 const boardVideoRequest = {
   id: "req-board-video-001",

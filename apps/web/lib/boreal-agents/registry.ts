@@ -51,13 +51,174 @@ export type BorealAgentTemplate = {
   taskPipeline: BorealAgentTaskStep[];
 };
 
-export const borealAgentTemplates = [
+export type BorealAgentTemplateValidationIssue = {
+  agentKey?: string;
+  code:
+    | "duplicate_agent_key"
+    | "duplicate_api_route"
+    | "duplicate_unique_name"
+    | "invalid_agent_key"
+    | "missing_model_binding"
+    | "missing_required_task"
+    | "missing_supply_binding"
+    | "unknown_canonical_write"
+    | "unstable_api_route";
+  message: string;
+};
+
+const canonicalWriteObjects = new Set([
+  "Actor",
+  "Artifact",
+  "Commitment",
+  "Fulfillment",
+  "FulfillmentStep",
+  "Request",
+  "RequestParticipant",
+  "RequestEvent",
+  "Supply",
+  "Transaction",
+]);
+
+const requiredTaskKinds: BorealAgentTaskKind[] = [
+  "inspect_request",
+  "filter_qualification",
+  "prepare_application",
+];
+
+export function createBorealAgentApiRoute(agentKey: string) {
+  return `/api/boreal-agents/${agentKey}`;
+}
+
+export function defineBorealAgentTemplate<T extends BorealAgentTemplate>(
+  template: T
+) {
+  return template;
+}
+
+export function defineBorealAgentCatalog<T extends readonly BorealAgentTemplate[]>(
+  templates: T
+) {
+  const issues = validateBorealAgentTemplateCatalog(templates);
+
+  if (issues.length > 0) {
+    throw new Error(
+      `Invalid Boreal agent template catalog: ${issues
+        .map((issue) => issue.message)
+        .join("; ")}`
+    );
+  }
+
+  return templates;
+}
+
+export function validateBorealAgentTemplateCatalog(
+  templates: readonly BorealAgentTemplate[]
+): BorealAgentTemplateValidationIssue[] {
+  const issues: BorealAgentTemplateValidationIssue[] = [];
+  const keys = new Set<string>();
+  const routes = new Set<string>();
+  const names = new Set<string>();
+
+  for (const template of templates) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(template.agentKey)) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "invalid_agent_key",
+        message: `${template.agentKey} must use a stable kebab-case agent key.`,
+      });
+    }
+
+    if (keys.has(template.agentKey)) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "duplicate_agent_key",
+        message: `${template.agentKey} is declared more than once.`,
+      });
+    }
+    keys.add(template.agentKey);
+
+    if (names.has(template.uniqueName)) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "duplicate_unique_name",
+        message: `${template.uniqueName} is declared more than once.`,
+      });
+    }
+    names.add(template.uniqueName);
+
+    if (routes.has(template.apiRoute)) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "duplicate_api_route",
+        message: `${template.apiRoute} is declared more than once.`,
+      });
+    }
+    routes.add(template.apiRoute);
+
+    if (template.apiRoute !== createBorealAgentApiRoute(template.agentKey)) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "unstable_api_route",
+        message: `${template.agentKey} route must be ${createBorealAgentApiRoute(
+          template.agentKey
+        )}.`,
+      });
+    }
+
+    if (
+      !template.supplyBinding.required ||
+      !template.supplyBinding.supplyKind ||
+      !template.supplyBinding.providerRef
+    ) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "missing_supply_binding",
+        message: `${template.agentKey} must declare a required supply binding.`,
+      });
+    }
+
+    if (template.modelBindings.length === 0) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "missing_model_binding",
+        message: `${template.agentKey} must declare at least one model or provider binding.`,
+      });
+    }
+
+    const taskKinds = new Set(template.taskPipeline.map((task) => task.kind));
+    for (const taskKind of requiredTaskKinds) {
+      if (!taskKinds.has(taskKind)) {
+        issues.push({
+          agentKey: template.agentKey,
+          code: "missing_required_task",
+          message: `${template.agentKey} must include ${taskKind} in its task pipeline.`,
+        });
+      }
+    }
+
+    for (const task of template.taskPipeline) {
+      for (const write of task.canonicalWritesIfAuthorized) {
+        if (!canonicalWriteObjects.has(write)) {
+          issues.push({
+            agentKey: template.agentKey,
+            code: "unknown_canonical_write",
+            message: `${template.agentKey} task ${task.id} writes unknown canonical object ${write}.`,
+          });
+        }
+      }
+    }
+  }
+
+  return issues;
+}
+
+export const borealAgentTemplates = defineBorealAgentCatalog([
   {
     agentKey: "mira-video",
     uniqueName: "Mira",
     displayName: "Mira Video Agent",
     status: "live_template",
-    apiRoute: "/api/boreal-agents/mira-video",
+    apiRoute: createBorealAgentApiRoute("mira-video"),
     workerKey: "video-generation",
     supplyBinding: {
       required: true,
@@ -162,7 +323,7 @@ export const borealAgentTemplates = [
     uniqueName: "Tala",
     displayName: "Tala Humanizer Agent",
     status: "target_template",
-    apiRoute: "/api/boreal-agents/tala-humanizer",
+    apiRoute: createBorealAgentApiRoute("tala-humanizer"),
     workerKey: "humanizer",
     supplyBinding: {
       required: true,
@@ -221,7 +382,7 @@ export const borealAgentTemplates = [
       },
     ],
   },
-] as const satisfies readonly BorealAgentTemplate[];
+] as const satisfies readonly BorealAgentTemplate[]);
 
 export type BorealAgentKey = (typeof borealAgentTemplates)[number]["agentKey"];
 
