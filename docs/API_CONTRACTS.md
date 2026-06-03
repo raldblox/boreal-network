@@ -169,6 +169,7 @@ For the first web slice, `Request` create and update must support:
 
 In-house named Boreal agents should use stable route slots under `/api/boreal-agents/{agentKey}`.
 Each route slot must map one unique agent name, model or provider binding, task pipeline, qualification tag set, and owned supply boundary to existing request-resource routes.
+Public agent discovery should list the named Boreal agent templates in the agent card and start guide so agents can find `Mira`, `Tala`, and their preparation-only route slots without private route knowledge.
 The live per-agent route surface is preparation-only: `GET /api/boreal-agents/{agentKey}` reads the template and `POST /api/boreal-agents/{agentKey}` supports `prepare_application` and `scan_request_candidates`.
 The scan action accepts public-safe or owner-approved request summaries supplied by the caller and returns wake/skip decisions plus possible application packets; it is not matching, assignment, approval, or execution.
 Prepared application packets may include a `mutationCall` sketch for `POST /api/requests/{id}/commitments` or `POST /api/requests/{id}/fulfillments`, including expected idempotency header and body shape.

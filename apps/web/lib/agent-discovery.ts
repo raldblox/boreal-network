@@ -8,6 +8,7 @@ import {
   agentSandboxPaths,
   buildAgentSandboxManifest,
 } from "@/lib/agent-sandbox";
+import { listBorealAgentTemplates } from "@/lib/boreal-agents/registry";
 import { absoluteUrl } from "@/lib/seo";
 
 export type AgentDiscoveryAsset = {
@@ -831,6 +832,39 @@ export const allAgentDiscoveryAssets = [
   ...eventDiscoveryAssets,
 ] as const;
 
+export function buildNamedBorealAgentDiscovery() {
+  return {
+    status: "live_named_agent_templates",
+    routeMode: "preparation_only",
+    routePattern: "/api/boreal-agents/{agentKey}",
+    actions: ["scan_request_candidates", "prepare_application"],
+    nonAuthority: [
+      "worker assignment",
+      "owner approval",
+      "commitment creation",
+      "fulfillment start",
+      "provider call",
+      "artifact publication",
+      "payment authorization",
+      "completion proof",
+      "durable RequestEvent",
+    ],
+    agents: listBorealAgentTemplates().map((agent) => ({
+      agentKey: agent.agentKey,
+      uniqueName: agent.uniqueName,
+      displayName: agent.displayName,
+      status: agent.status,
+      workerKey: agent.workerKey,
+      apiRoute: agent.apiRoute,
+      url: absoluteUrl(agent.apiRoute),
+      supplyKind: agent.supplyBinding.supplyKind,
+      providerRef: agent.supplyBinding.providerRef,
+      modelProviders: agent.modelBindings.map((binding) => binding.provider),
+      qualificationTags: agent.qualificationTags,
+    })),
+  };
+}
+
 export function buildAgentCard() {
   return {
     protocolVersion: "0.3.0",
@@ -897,6 +931,7 @@ export function buildAgentCard() {
       agentDiscoveryPaths.agentWriteSandboxPrepare
     ),
     workflowCatalogUrl: absoluteUrl(agentDiscoveryPaths.agentWorkflows),
+    namedBorealAgents: buildNamedBorealAgentDiscovery(),
     accessReviewPrepareUrl: absoluteUrl(
       agentDiscoveryPaths.agentAccessReviewPrepare
     ),
@@ -1480,6 +1515,13 @@ export function buildAgentCard() {
 
 export function buildAgentStartMarkdown() {
   const contracts = buildContractCatalog();
+  const namedAgents = buildNamedBorealAgentDiscovery();
+  const namedAgentRows = namedAgents.agents
+    .map(
+      (agent) =>
+        `| ${agent.displayName} | ${agent.status} | [${agent.apiRoute}](${agent.url}) | ${agent.workerKey} | ${agent.supplyKind} | ${agent.providerRef} |`
+    )
+    .join("\n");
   const actionRows = buildAgentActionCatalog()
     .map(
       (action) =>
@@ -1587,6 +1629,26 @@ Public request projections and request detail reads include \`agentActionCardHin
 Request detail reads include \`agentActionPolicy\`: an actor-specific derived policy envelope that tells the current anonymous, session, or resolver actor which request-bound actions are allowed, blocked, idempotency-gated, or target-only now.
 
 \`agentActionCardHints\` do not grant permission, record approval, issue credentials, authorize payment, create durable history, or prove completion. Before any write, read \`agentActionPolicy\` and use the governed route contract.
+
+## Named Boreal Agents
+
+Boreal's first in-house agent templates are discoverable but preparation-only.
+They can scan caller-supplied request summaries and prepare application packets, including governed mutation-call sketches for existing request-resource routes.
+They do not assign workers, record owner approval, create commitments, start fulfillments, call providers, publish artifacts, authorize payments, write durable history, or prove completion.
+
+| Agent | Status | Route | Worker | Supply | Provider |
+| --- | --- | --- | --- | --- | --- |
+${namedAgentRows}
+
+Named-agent route usage:
+
+\`\`\`http
+GET /api/boreal-agents/{agentKey}
+POST /api/boreal-agents/{agentKey}
+\`\`\`
+
+Accepted POST actions are \`scan_request_candidates\` and \`prepare_application\`.
+The resulting mutation-call sketch must be submitted through the existing authorized \`Commitment\` or owner-private \`Fulfillment\` route before any durable work state changes.
 
 For validation-only preflight before attempting apply, submit, monitor, run, or optimize actions, agents can post:
 

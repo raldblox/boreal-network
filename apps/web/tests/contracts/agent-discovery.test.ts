@@ -19,6 +19,7 @@ import {
   buildAgentUxProfile,
   buildAgentMonitoringProfile,
   buildAgentMonitorWebhooksMarkdown,
+  buildNamedBorealAgentDiscovery,
   buildAgentOnboardingProfile,
   buildAgentOpportunityDiscoveryProfile,
   buildAgentOptimizationProfile,
@@ -130,8 +131,34 @@ import {
 
 async function main() {
   const agentCard = buildAgentCard();
+  const namedBorealAgents = buildNamedBorealAgentDiscovery();
 
   assert.equal(agentCard.name, "Boreal Network");
+  assert.equal(namedBorealAgents.status, "live_named_agent_templates");
+  assert.equal(namedBorealAgents.routeMode, "preparation_only");
+  assert.equal(namedBorealAgents.agents.length, 2);
+  assert.equal(
+    namedBorealAgents.agents.some(
+      (agent) =>
+        agent.uniqueName === "Mira" &&
+        agent.apiRoute === "/api/boreal-agents/mira-video" &&
+        agent.status === "live_template" &&
+        agent.modelProviders.includes("runway")
+    ),
+    true
+  );
+  assert.equal(
+    namedBorealAgents.nonAuthority.includes("fulfillment start"),
+    true
+  );
+  assert.equal(
+    agentCard.namedBorealAgents.agents.some(
+      (agent: { uniqueName: string; apiRoute: string }) =>
+        agent.uniqueName === "Tala" &&
+        agent.apiRoute === "/api/boreal-agents/tala-humanizer"
+    ),
+    true
+  );
   assert.equal(agentCard.xBorealBoundary.rootObject, "Request");
   assert.equal(agentCard.xBorealBoundary.notRoots.includes("A2A Task"), true);
   assert.equal(agentCard.capabilities.contractSandbox, true);
@@ -3937,6 +3964,10 @@ async function main() {
   assert.match(startGuide, /agentActionAffordances/);
   assert.match(startGuide, /agentActionCardHints/);
   assert.match(startGuide, /agentActionPolicy/);
+  assert.match(startGuide, /Named Boreal Agents/);
+  assert.match(startGuide, /Mira Video Agent/);
+  assert.match(startGuide, /\/api\/boreal-agents\/mira-video/);
+  assert.match(startGuide, /scan_request_candidates/);
   assert.match(startGuide, /GET \/agents\/access-review\.json/);
   assert.match(startGuide, /GET \/agents\/auth\.json/);
   assert.match(startGuide, /POST \/agents\/auth\/prepare/);
