@@ -46,6 +46,14 @@ assert.equal(
   "request_starter_no_supply_attached",
 );
 assert.equal(humanEditorialEntry.request.derived.executionKind, "hybrid_human_agent");
+assert.match(
+  humanEditorialEntry.request.brief.body ?? "",
+  /Attachment mode: request_starter_no_supply_attached/,
+);
+assert.match(
+  humanEditorialEntry.request.brief.body ?? "",
+  /does not assign a worker, attach Supply, start Fulfillment/,
+);
 
 const ids = new Set<string>();
 const catalogKeys = new Set<string>();

@@ -461,3 +461,26 @@ export function getServicePlan({
     plan,
   };
 }
+
+export function buildServiceRequestStarterText({
+  family,
+  plan,
+}: {
+  family: BorealServiceFamily;
+  plan: BorealServicePlan;
+}) {
+  return [
+    plan.serviceRequestStarter,
+    "",
+    "Service routing context:",
+    `- Service family: ${family.familyKey}`,
+    `- Service plan: ${plan.planKey}`,
+    `- Attachment mode: ${family.requestDefaults.attachmentMode}`,
+    `- Actor kinds: ${family.requestDefaults.actorKinds.join(", ")}`,
+    `- Supply kinds: ${family.requestDefaults.supplyKinds.join(", ")}`,
+    `- Output kinds: ${family.requestDefaults.outputKinds.join(", ")}`,
+    `- Execution kind: ${family.requestDefaults.executionKind}`,
+    `- Route family: ${family.requestDefaults.routeFamily}`,
+    "- Boundary: this starts or updates a Request; it does not assign a worker, attach Supply, start Fulfillment, publish Artifact, or prove completion by itself.",
+  ].join("\n");
+}

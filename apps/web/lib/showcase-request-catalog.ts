@@ -12,6 +12,7 @@ import {
 import {
   type BorealServiceFamily,
   type BorealServicePlan,
+  buildServiceRequestStarterText,
   borealServiceFamilies,
 } from "./service-catalog";
 
@@ -382,9 +383,10 @@ function serviceCatalogEntries(): ShowcaseRequestCatalogEntry[] {
         status: "funding_required",
         updatedAt,
         brief: {
-          body: `${plan.serviceRequestStarter}\n\nProcess: ${family.process.join(
-            " ",
-          )}`,
+          body: `${buildServiceRequestStarterText({
+            family,
+            plan,
+          })}\n\nProcess: ${family.process.join(" ")}`,
           constraints: {
             proof: family.proof,
             serviceAttachmentMode: family.requestDefaults.attachmentMode,

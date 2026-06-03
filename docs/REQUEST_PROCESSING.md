@@ -217,6 +217,7 @@ Every card should say the canonical root, source kind, listing kind, worker atta
 Service request starters may show a known plan or service path, but they must not imply a published `Supply`, assigned worker, `Fulfillment`, or `Artifact` before checkout or request routing attaches those objects.
 Service families should define typed request defaults for actor kinds, supply kinds, output kinds, execution kind, matching mode, payment mode, route family, and attachment mode.
 Those defaults shape the starter `Request` projection; they do not promote the service itself into a live worker-backed `Supply`.
+When a service plan pre-fills a request composer, the routing context should be visible in the starter text, including attachment mode and no-assignment boundary, rather than hidden as silent mutation authority.
 
 In-house Boreal agents and humans follow the same worker-application rule:
 

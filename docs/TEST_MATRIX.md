@@ -294,6 +294,7 @@ Verify:
 - home beta work cards should expose a typed taxonomy with `Request` as canonical root, listing kind, worker attachment state, next canonical boundary, and explicit in/out scope
 - service request starter cards should show service path known but worker or `Supply` attachment pending until checkout or request routing, and must not count the worker slot as completed
 - service families should carry typed request defaults so Human Editorial Polish projects as `human_service` plus `documentation_support`, not generic `provider_capability` or live worker supply
+- service plan request prefill should include visible routing context and no-assignment boundary text instead of silently granting worker, `Supply`, `Fulfillment`, or `Artifact` authority
 - request-briefing assist or optimizer profiles in request mode must still create at most one draft request on first send
 - request draft extraction is deterministic for canonical fixtures
 - request-briefing assist or optimizer profiles may improve wording clarity but must not invent budget, deadline, deliverables, actor requirements, or constraints

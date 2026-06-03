@@ -27,7 +27,10 @@ import {
   useArtifactSelector,
 } from "@/hooks/use-artifact";
 import type { RequestActivityEntry } from "@/lib/request";
-import { getServicePlan } from "@/lib/service-catalog";
+import {
+  buildServiceRequestStarterText,
+  getServicePlan,
+} from "@/lib/service-catalog";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Artifact } from "./artifact";
@@ -323,7 +326,7 @@ export function ChatShell() {
     });
 
     if (servicePlan) {
-      setInput(servicePlan.plan.serviceRequestStarter);
+      setInput(buildServiceRequestStarterText(servicePlan));
       return;
     }
 
