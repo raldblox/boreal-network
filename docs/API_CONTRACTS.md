@@ -229,8 +229,9 @@ The first resolver-facing web slice now exposes:
 - `POST /api/fulfillments/{id}/retry`
 
 Accepted responder lanes may create fulfillment after owner acceptance.
-Owned private resolver lanes may create fulfillment without `commitmentId` when the same Boreal owner is authorizing direct desktop execution.
-Owner-private first-party service lanes may create direct fulfillment from `open`, `funded`, `in_progress`, or `waiting_for_owner` when the same owner is driving a selected first-party supply lane.
+Owned private resolver lanes may create fulfillment without `commitmentId` only when the same Boreal owner is authorizing direct execution, a selected `Supply` is present through `supplyId` or `routing.preferredSupplyId`, and the request body carries `ownerPrivateDirectApproval` with `mode=trusted_worker_auto_approval`, `approvedByOwner=true`, the selected supply id, and the worker key when known.
+The `ownerPrivateDirectApproval` body object is route-scoped approval evidence, not a new durable `Request` root field; the fulfillment route still re-checks owner, visibility, status, supply ownership, published supply status, resolver binding, idempotency, and active fulfillment gates before writing `Fulfillment` truth.
+Owner-private first-party service lanes may create direct fulfillment from `open`, `funded`, `in_progress`, or `waiting_for_owner` when the same owner is driving a selected first-party supply lane and the same route-scoped approval evidence is present.
 When fulfillment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before opening the lane.
 Owner-private Boreal-managed web workers may also open one direct fulfillment lane after `open_request`, but the provider-facing payload should stay reduced to worker-specific prompt and execution inputs instead of the entire request object.
 Owner-scoped auto-approval may create or accept the next worker boundary only for trusted first-party supply, and it must still stop before artifact publication, payment authorization, owner review, or request completion.

@@ -459,6 +459,7 @@
         "selected Supply belongs to the owner",
         "selected Supply is published",
         "owner auto-approval is explicitly enabled for the selected worker key",
+        "POST /api/requests/{id}/fulfillments body includes ownerPrivateDirectApproval for the selected Supply",
         "resolver binding matches when resolver bearer auth is used",
         "idempotency key"
       ],

@@ -108,8 +108,8 @@ It must not include provider prompts, hidden chain-of-thought, tool stdout, cred
 - cancelled
 - failed
 
-Owner-private desktop auto-fulfillment may emit `fulfillment.created`, `artifact.added`, and later fulfillment events without a prior `commitment.accepted` event.
-In that lane, event payloads may omit `commitmentId`.
+Owner-private desktop, first-party service, or Boreal-managed worker auto-fulfillment may emit `fulfillment.created`, `artifact.added`, and later fulfillment events without a prior `commitment.accepted` event.
+In that lane, event payloads may omit `commitmentId`, but newly written `fulfillment.created` payloads should include the selected `supplyId` when present plus non-secret authorization context such as `authorization.mode=owner_private_direct`, `approvalMode=trusted_worker_auto_approval`, and the selected supply or worker key used by the route gate.
 
 ### Step events
 

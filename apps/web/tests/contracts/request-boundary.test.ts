@@ -17,6 +17,7 @@ import {
   buildRequestAgentActionCardHints,
   buildRequestAgentActionPolicy,
   type BorealRequestDraft,
+  assertOwnerPrivateDirectFulfillmentApproval,
   canUseDirectOwnerPrivateFulfillmentLane,
   createInitialRequestDraft,
   type RequestAgentActionCardHint,
@@ -416,6 +417,52 @@ assert.equal(
     request: makeDraft({ visibility: "private" }),
   }),
   false,
+);
+
+assert.doesNotThrow(() =>
+  assertOwnerPrivateDirectFulfillmentApproval({
+    approval: {
+      mode: "trusted_worker_auto_approval",
+      approvedByOwner: true,
+      selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+      workerKey: "video-generation",
+    },
+    selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+    workerKey: "video-generation",
+  })
+);
+assert.throws(
+  () =>
+    assertOwnerPrivateDirectFulfillmentApproval({
+      selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+    }),
+  /requires auto-approval evidence/
+);
+assert.throws(
+  () =>
+    assertOwnerPrivateDirectFulfillmentApproval({
+      approval: {
+        mode: "trusted_worker_auto_approval",
+        approvedByOwner: true,
+        selectedSupplyId: "22222222-2222-4222-8222-222222222222",
+      },
+      selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+    }),
+  /approval supply mismatch/
+);
+assert.throws(
+  () =>
+    assertOwnerPrivateDirectFulfillmentApproval({
+      approval: {
+        mode: "trusted_worker_auto_approval",
+        approvedByOwner: true,
+        selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+        workerKey: "humanizer",
+      },
+      selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+      workerKey: "video-generation",
+    }),
+  /approval worker mismatch/
 );
 
 assert.doesNotThrow(() =>

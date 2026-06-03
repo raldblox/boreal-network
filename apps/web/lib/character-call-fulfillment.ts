@@ -188,6 +188,16 @@ export async function bootstrapCharacterCallStarterFulfillment({
     actorUserId,
     summary: "Character Call Starter fulfillment started.",
     supplyId: supplyId ?? undefined,
+    ...(supplyId
+      ? {
+          ownerPrivateDirectApproval: {
+            mode: "trusted_worker_auto_approval",
+            approvedByOwner: true,
+            selectedSupplyId: supplyId,
+            workerKey: "character-call-starter",
+          },
+        }
+      : {}),
     initialStatus: "active",
     metadata: {
       serviceFamilyKey: "character-call-starter",

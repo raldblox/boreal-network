@@ -292,6 +292,7 @@ Every mutation call should return:
 - Direct resolver APIs should support the same commercial and lifecycle gates as tools: accepted commitment before fulfillment, valid fulfillment-state transitions, and idempotent retries.
 - Direct resolver APIs may omit commitment creation only for owner-private direct auto-fulfillment.
 - Owner-private direct auto-fulfillment should prefer explicit request routing over the desktop default supply and should block pickup when a configured supply is unavailable instead of silently falling back.
+- No-commitment direct fulfillment creation must include `ownerPrivateDirectApproval` route evidence and a selected `Supply`. Private owner auth, private visibility, or a prepared agent packet is not enough by itself.
 - Named Boreal agent `prepare_application` packets must include a `submissionPreflight` handoff. Agents must run `/agents/actions/preflight`, carry a real `Idempotency-Key`, refresh request detail, read `agentActionPolicy`, verify selected `Supply`, and re-check lane-specific policy before calling any sketched `Commitment` or `Fulfillment` mutation route.
 - A successful named-agent preparation packet is not worker assignment, owner approval, `Commitment` creation, `Fulfillment` start, `Artifact` publication, payment authorization, completion proof, or durable `RequestEvent` truth.
 - Retryable first-party worker failures should park the same fulfillment lane as `blocked`, preserve worker recovery metadata, and resume on explicit retry instead of silently spawning a second request or second fulfillment lane.

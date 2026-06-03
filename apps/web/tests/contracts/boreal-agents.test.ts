@@ -492,6 +492,25 @@ assert.equal(
   privatePrepare.applicationPacket.mutationCall.body.supplyId,
   "11111111-1111-4111-8111-111111111111"
 );
+const privateDirectApproval =
+  privatePrepare.applicationPacket.mutationCall.body.ownerPrivateDirectApproval;
+assert.ok(privateDirectApproval);
+assert.equal(
+  privateDirectApproval.mode,
+  "trusted_worker_auto_approval"
+);
+assert.equal(
+  privateDirectApproval.approvedByOwner,
+  true
+);
+assert.equal(
+  privateDirectApproval.selectedSupplyId,
+  "11111111-1111-4111-8111-111111111111"
+);
+assert.equal(
+  privateDirectApproval.workerKey,
+  "video-generation"
+);
 assert.equal(
   privatePrepare.applicationPacket.mutationCall.body.initialStatus,
   "planned"

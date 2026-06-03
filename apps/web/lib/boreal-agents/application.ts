@@ -527,6 +527,16 @@ function buildFulfillmentMutationCall({
         handle: template.agentKey,
       },
       ...(input.supply?.id ? { supplyId: input.supply.id } : {}),
+      ...(input.supply?.id
+        ? {
+            ownerPrivateDirectApproval: {
+              mode: "trusted_worker_auto_approval",
+              approvedByOwner: true,
+              selectedSupplyId: input.supply.id,
+              workerKey: template.workerKey,
+            },
+          }
+        : {}),
       initialStatus: "planned",
       metadata: {
         borealAgent: {

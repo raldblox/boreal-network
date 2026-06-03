@@ -225,6 +225,15 @@ function validateProfile(profile, errors) {
   );
   assert(directLane?.idempotencyRequired === true, "owner-private direct lane must require idempotency", errors);
   assert(directLane?.completionAuthority === false, "owner-private direct lane must not have completion authority", errors);
+  includesAll(
+    directLane?.requires,
+    [
+      "POST /api/requests/{id}/fulfillments body includes ownerPrivateDirectApproval for the selected Supply",
+      "routing.preferredSupplyId or explicit supplyId points to the selected Supply"
+    ],
+    "owner-private direct lane requirements",
+    errors
+  );
 
   includesAll(
     profile.autoApprovalPolicy?.forbiddenEffects,

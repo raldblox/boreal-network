@@ -120,6 +120,13 @@ export type RequestRouting = {
   preferredSupplyId?: string;
 };
 
+export type OwnerPrivateDirectFulfillmentApproval = {
+  mode: "trusted_worker_auto_approval";
+  approvedByOwner: true;
+  selectedSupplyId: string;
+  workerKey?: string;
+};
+
 export type RequestReadinessState =
   | "collecting_brief"
   | "ready_to_open"
@@ -1353,6 +1360,51 @@ export function canUseDirectOwnerPrivateFulfillmentLane({
     request.ownerId === actorUserId &&
     request.visibility === "private"
   );
+}
+
+export function assertOwnerPrivateDirectFulfillmentApproval({
+  approval,
+  selectedSupplyId,
+  workerKey,
+}: {
+  approval?: OwnerPrivateDirectFulfillmentApproval | null;
+  selectedSupplyId?: string | null;
+  workerKey?: string | null;
+}) {
+  const expectedSupplyId = selectedSupplyId?.trim();
+
+  if (!expectedSupplyId) {
+    throw new Error("Owner-private direct fulfillment requires selected supply");
+  }
+
+  if (!approval) {
+    throw new Error(
+      "Owner-private direct fulfillment requires auto-approval evidence"
+    );
+  }
+
+  if (
+    approval.mode !== "trusted_worker_auto_approval" ||
+    approval.approvedByOwner !== true
+  ) {
+    throw new Error(
+      "Owner-private direct fulfillment requires trusted worker auto-approval"
+    );
+  }
+
+  if (approval.selectedSupplyId.trim() !== expectedSupplyId) {
+    throw new Error("Owner-private direct approval supply mismatch");
+  }
+
+  const expectedWorkerKey = workerKey?.trim();
+  const approvedWorkerKey = approval.workerKey?.trim();
+  if (
+    expectedWorkerKey &&
+    approvedWorkerKey &&
+    expectedWorkerKey !== approvedWorkerKey
+  ) {
+    throw new Error("Owner-private direct approval worker mismatch");
+  }
 }
 
 export function toPublicRequestPoolEntry(

@@ -672,6 +672,7 @@ components:
         supplyId:
           type: string
           format: uuid
+          format: uuid
         summary:
           type: string
         terms:
@@ -696,6 +697,7 @@ components:
       required:
         - summary
         - lead
+        - ownerPrivateDirectApproval
         - initialStatus
         - metadata
       properties:
@@ -720,12 +722,31 @@ components:
               type: string
         supplyId:
           type: string
+        ownerPrivateDirectApproval:
+          $ref: "#/components/schemas/OwnerPrivateDirectApproval"
         initialStatus:
           enum:
             - planned
         metadata:
           type: object
           additionalProperties: true
+    OwnerPrivateDirectApproval:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - approvedByOwner
+        - selectedSupplyId
+      properties:
+        mode:
+          const: trusted_worker_auto_approval
+        approvedByOwner:
+          const: true
+        selectedSupplyId:
+          type: string
+          format: uuid
+        workerKey:
+          type: string
     NonAuthority:
       type: object
       required:

@@ -13,12 +13,20 @@ const actorRefSchema = z.object({
   handle: z.string().min(1).optional(),
 });
 
+const ownerPrivateDirectApprovalSchema = z.object({
+  mode: z.literal("trusted_worker_auto_approval"),
+  approvedByOwner: z.literal(true),
+  selectedSupplyId: z.string().uuid(),
+  workerKey: z.string().min(1).optional(),
+});
+
 const createFulfillmentSchema = z.object({
   commitmentId: z.string().uuid().optional(),
   summary: z.string().min(1).max(1000),
   lead: actorRefSchema.optional(),
   contributors: z.array(actorRefSchema).max(20).optional(),
   supplyId: z.string().uuid().optional(),
+  ownerPrivateDirectApproval: ownerPrivateDirectApprovalSchema.optional(),
   initialStatus: z.enum(["planned", "ready", "active"]).default("planned"),
   metadata: z.record(z.string(), z.unknown()).optional(),
   idempotencyKey: z.string().uuid().optional(),
@@ -73,6 +81,7 @@ export async function POST(
       lead: body.lead,
       contributors: body.contributors,
       supplyId: body.supplyId,
+      ownerPrivateDirectApproval: body.ownerPrivateDirectApproval,
       initialStatus: body.initialStatus,
       metadata: body.metadata,
       idempotencyKey,
@@ -100,6 +109,11 @@ export async function POST(
         "Request cannot create fulfillment",
         "Accepted commitment required",
         "Owner-private direct fulfillment only",
+        "Owner-private direct fulfillment requires selected supply",
+        "Owner-private direct fulfillment requires auto-approval evidence",
+        "Owner-private direct fulfillment requires trusted worker auto-approval",
+        "Owner-private direct approval supply mismatch",
+        "Owner-private direct approval worker mismatch",
         "Owner-private direct fulfillment requires open request",
         "Owner-private direct fulfillment requires open or funded request",
         "Owner-private direct fulfillment requires open, funded, or active owner request",

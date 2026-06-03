@@ -459,11 +459,11 @@ paths:
                 $ref: "#/components/schemas/WebCommitmentMutation"
   /api/requests/{id}/fulfillments:
     post:
-      summary: Create one durable fulfillment lane from an accepted commitment.
+      summary: Create one durable fulfillment lane from an accepted commitment or explicit owner-private direct approval.
       security:
         - BorealAccountSession: []
         - ResolverBearer: []
-      x-boreal-auth-boundary: Account session or approved resolver runtime. Public or cross-actor work still requires commitment gates.
+      x-boreal-auth-boundary: Account session or approved resolver runtime. Public or cross-actor work still requires commitment gates. Owner-private direct creation without commitmentId requires explicit ownerPrivateDirectApproval and selected Supply evidence.
       x-boreal-required-scopes:
         resolver:
           - fulfillments:create
@@ -1919,6 +1919,8 @@ components:
         supplyId:
           type: string
           format: uuid
+        ownerPrivateDirectApproval:
+          $ref: "#/components/schemas/WebOwnerPrivateDirectApproval"
         initialStatus:
           type: string
           enum:
@@ -1931,6 +1933,26 @@ components:
         idempotencyKey:
           type: string
           format: uuid
+    WebOwnerPrivateDirectApproval:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - approvedByOwner
+        - selectedSupplyId
+      properties:
+        mode:
+          type: string
+          enum:
+            - trusted_worker_auto_approval
+        approvedByOwner:
+          const: true
+        selectedSupplyId:
+          type: string
+          format: uuid
+        workerKey:
+          type: string
+          minLength: 1
     WebFulfillmentMutation:
       type: object
       additionalProperties: false

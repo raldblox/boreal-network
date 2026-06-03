@@ -38,6 +38,7 @@ import {
 import { getBorealWorkerKeyFromSupply } from "@/lib/boreal-workers/starter-catalog";
 import {
   applyRequestPatch,
+  assertOwnerPrivateDirectFulfillmentApproval,
   canUseDirectOwnerPrivateFulfillmentLane,
   type CommitmentKind,
   type CommitmentTerms,
@@ -54,6 +55,7 @@ import {
   type RequestArtifactDocumentKind,
   type RequestArtifactKind,
   type RequestArtifactMetadata,
+  type OwnerPrivateDirectFulfillmentApproval,
   type RequestVerificationArtifactInput,
   type RequestFulfillmentStep,
   type RequestPatch,
@@ -538,6 +540,12 @@ export async function maybeAutoRunPinnedBorealWorkerForRequest({
     summary: `${worker.displayName} started this request.`,
     ...(leadActor ? { lead: leadActor } : {}),
     supplyId: selectedSupply.id,
+    ownerPrivateDirectApproval: {
+      mode: "trusted_worker_auto_approval",
+      approvedByOwner: true,
+      selectedSupplyId: selectedSupply.id,
+      workerKey,
+    },
     initialStatus: "active",
     metadata: workerMetadata,
     source: "system.request.open.auto_run",
@@ -1819,6 +1827,7 @@ export async function createFulfillmentForRequestById({
   lead,
   contributors = [],
   supplyId,
+  ownerPrivateDirectApproval,
   actorResolverClientId,
   initialStatus = "planned",
   metadata,
@@ -1832,6 +1841,7 @@ export async function createFulfillmentForRequestById({
   lead?: RequestActorRef;
   contributors?: RequestActorRef[];
   supplyId?: string;
+  ownerPrivateDirectApproval?: OwnerPrivateDirectFulfillmentApproval;
   actorResolverClientId?: string;
   initialStatus?: "planned" | "ready" | "active";
   metadata?: Record<string, unknown>;
@@ -1866,6 +1876,10 @@ export async function createFulfillmentForRequestById({
 
   if (!commitmentId && !useDirectOwnerPrivateLane) {
     throw new Error("Owner-private direct fulfillment only");
+  }
+
+  if (!commitmentId && !effectiveSupplyId) {
+    throw new Error("Owner-private direct fulfillment requires selected supply");
   }
 
   const isAcceptedCommitmentActor =
@@ -1935,6 +1949,16 @@ export async function createFulfillmentForRequestById({
     ) {
       throw new Error("Supply is not bound to this resolver client");
     }
+  }
+
+  if (!commitmentId && useDirectOwnerPrivateLane) {
+    assertOwnerPrivateDirectFulfillmentApproval({
+      approval: ownerPrivateDirectApproval,
+      selectedSupplyId: effectiveSupplyId,
+      workerKey: getBorealWorkerKeyFromSupply(
+        matchedSupplyRecord ? toSupplyDraft(matchedSupplyRecord) : null
+      ) ?? undefined,
+    });
   }
 
   const normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
@@ -2046,8 +2070,22 @@ export async function createFulfillmentForRequestById({
         ...(createdFulfillment.commitmentId
           ? { commitmentId: createdFulfillment.commitmentId }
           : {}),
+        ...(createdFulfillment.supplyId
+          ? { supplyId: createdFulfillment.supplyId }
+          : {}),
         status: createdFulfillment.status,
         summary: createdFulfillment.summary,
+        authorization: existingCommitment
+          ? {
+              mode: "accepted_commitment",
+              commitmentId: existingCommitment.id,
+            }
+          : {
+              mode: "owner_private_direct",
+              approvalMode: ownerPrivateDirectApproval?.mode,
+              selectedSupplyId: effectiveSupplyId,
+              workerKey: ownerPrivateDirectApproval?.workerKey,
+            },
       },
     },
     occurredAt: now,

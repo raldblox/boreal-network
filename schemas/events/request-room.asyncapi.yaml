@@ -556,6 +556,9 @@ components:
             commitmentId:
               type: string
               format: uuid
+            supplyId:
+              type: string
+              format: uuid
             status:
               type: string
               enum:
@@ -569,9 +572,31 @@ components:
                 - failed
             summary:
               type: string
+            authorization:
+              type: object
+              additionalProperties: false
+              properties:
+                mode:
+                  type: string
+                  enum:
+                    - accepted_commitment
+                    - owner_private_direct
+                commitmentId:
+                  type: string
+                  format: uuid
+                approvalMode:
+                  type: string
+                  enum:
+                    - trusted_worker_auto_approval
+                selectedSupplyId:
+                  type: string
+                  format: uuid
+                workerKey:
+                  type: string
+              required:
+                - mode
           required:
             - id
-            - commitmentId
             - status
             - summary
       required:

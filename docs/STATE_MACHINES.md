@@ -104,7 +104,7 @@ Accepted closure may later project as a public solution surface, but the complet
 - A request in `funding_required` must have an active commitment reference.
 - A request in `funded` or later must have at least one funding or approval event proving the boundary.
 - A request in `in_progress` or later must have an active fulfillment.
-- A request in `in_progress` or later may omit `activeCommitmentId` only when the fulfillment was authorized through the owner-private direct auto-fulfillment lane.
+- A request in `in_progress` or later may omit `activeCommitmentId` only when the fulfillment was authorized through the owner-private direct auto-fulfillment lane with selected supply and explicit route-scoped approval evidence.
 - Optional request grants do not create separate request states; they move through the same `funding_required`, `funded`, fulfillment, delivery, and completion gates when they are required for execution.
 - A public solution surface must not project from a request until the relevant artifact and fulfillment or review path has reached accepted closure.
 - Inspecting a public solution should not change the source request state.
@@ -170,7 +170,7 @@ Accepted closure may later project as a public solution surface, but the complet
 ### Invariants
 
 - A fulfillment should point to exactly one request.
-- A fulfillment should point to the commitment that authorized it, or remain direct-owner authorized for the owner-private desktop lane.
+- A fulfillment should point to the commitment that authorized it, or remain direct-owner authorized for the owner-private direct lane with selected supply and explicit approval evidence.
 - `accepted`, `cancelled`, and `failed` are terminal.
 
 ## `FulfillmentStep`

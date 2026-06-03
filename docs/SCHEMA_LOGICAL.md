@@ -68,7 +68,7 @@ Support buyer-funding aggregates for first-party credit:
 
 - one request can have zero to many fulfillments over time
 - usually one fulfillment lane is active at a time unless the request explicitly supports parallel accepted lanes
-- owner-private direct auto-fulfillment may open one fulfillment without first creating a commitment object
+- owner-private direct auto-fulfillment may open one fulfillment without first creating a commitment object only when the route carries explicit direct-approval evidence and a selected published supply
 
 ### `Fulfillment` -> `FulfillmentStep`
 
@@ -291,7 +291,7 @@ Stores accepted execution truth:
 - selected actor or team
 - optional `supplyId` when execution is bound to one published supply
 - accepted commitment reference when one exists
-- or direct owner-private authorization when desktop auto-resolution starts from the request itself
+- or direct owner-private authorization evidence when desktop, first-party service, or Boreal-managed worker execution starts from the private request itself
 - execution status
 - delivery summary
 
