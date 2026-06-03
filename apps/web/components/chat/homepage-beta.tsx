@@ -13,7 +13,15 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { borealServiceFamilies } from "@/lib/service-catalog";
+import {
+  type HomeBetaWorkCard as WorkCard,
+  type HomeBetaWorkCardFilter as WorkCardFilter,
+  type HomeBetaWorkCardSort as WorkCardSort,
+  type HomeBetaWorkSlot as WorkSlot,
+  type HomeBetaWorkSlotKey as WorkSlotKey,
+  type HomeBetaWorkSlotState as WorkSlotState,
+  homeBetaWorkCards as workCards,
+} from "@/lib/showcase-request-catalog";
 import { cn } from "@/lib/utils";
 import { CreditBalanceLink } from "./credit-balance-link";
 import {
@@ -31,40 +39,6 @@ import {
   SidebarSurfaceTopNav,
   type SurfaceTopNavLink,
 } from "./surface-top-nav";
-
-type WorkSlotKey = "request" | "plan" | "workers" | "funding" | "outcome";
-type WorkSlotState = "complete" | "active" | "missing" | "locked";
-type WorkCardFilter =
-  | "all"
-  | "services"
-  | "needs-plan"
-  | "needs-workers"
-  | "funding"
-  | "in-progress"
-  | "reuse-ready";
-type WorkCardSort = "recommended" | "closest" | "most-missing" | "newest";
-
-type WorkSlot = {
-  detail: string;
-  key: WorkSlotKey;
-  state: WorkSlotState;
-  title: string;
-};
-
-type WorkCard = {
-  cta: string;
-  filters: WorkCardFilter[];
-  href: string;
-  id: string;
-  kind: string;
-  metrics: string[];
-  recommended: number;
-  summary: string;
-  tags: string[];
-  timestamp: number;
-  title: string;
-  slots: WorkSlot[];
-};
 
 const betaTopNavLinks = [
   { href: "/home/beta#cards", label: "Cards" },
@@ -133,301 +107,6 @@ const slotStateMeta = {
   WorkSlotState,
   { className: string; dotClassName: string; label: string }
 >;
-
-function serviceRequestHref(familyKey: string, planKey: string) {
-  return `/?mode=request&serviceFamilyKey=${encodeURIComponent(
-    familyKey,
-  )}&servicePlanKey=${encodeURIComponent(planKey)}`;
-}
-
-const serviceWorkCards: WorkCard[] = borealServiceFamilies
-  .slice(0, 3)
-  .map((family, index) => {
-    const plan = family.plans[0];
-    const recommendedScores = [96, 88, 84];
-
-    return {
-      cta: "Open service workroom",
-      filters: ["services", "funding", "in-progress"],
-      href: serviceRequestHref(family.familyKey, plan.planKey),
-      id: `service-${family.familyKey}-${plan.planKey}`,
-      kind: "Service card",
-      metrics: [plan.price, plan.turnaround, family.providerLabel],
-      recommended: recommendedScores[index] ?? 80,
-      slots: [
-        {
-          detail: "Buyer fills the missing brief fields before launch.",
-          key: "request",
-          state: "active",
-          title: "Service starter request",
-        },
-        {
-          detail: "Preset plan, proof, review, and handoff are known.",
-          key: "plan",
-          state: "complete",
-          title: plan.label,
-        },
-        {
-          detail: family.providerLabel,
-          key: "workers",
-          state: "complete",
-          title: "Known supply path",
-        },
-        {
-          detail: `${plan.price} checkout before execution starts.`,
-          key: "funding",
-          state: "locked",
-          title: "Funds missing piece",
-        },
-        {
-          detail: family.proof.slice(0, 2).join(", "),
-          key: "outcome",
-          state: "missing",
-          title: "Proof lands after run",
-        },
-      ],
-      summary: plan.summary,
-      tags: ["working service", ...family.tags.slice(0, 3)],
-      timestamp: 20260602 - index,
-      title: `${family.title}: ${plan.label}`,
-    };
-  });
-
-const curatedWorkCards: WorkCard[] = [
-  {
-    cta: "Open request workroom",
-    filters: ["needs-plan", "needs-workers", "funding"],
-    href: "/?mode=request",
-    id: "checkout-recovery",
-    kind: "Pressing open request",
-    metrics: ["urgent ops", "payment proof", "owner review"],
-    recommended: 95,
-    slots: [
-      {
-        detail: "Owner explains the broken checkout, recent changes, and risk.",
-        key: "request",
-        state: "complete",
-        title: "Checkout failing before invoices",
-      },
-      {
-        detail: "Needs a rollback-safe diagnosis and test-payment path.",
-        key: "plan",
-        state: "active",
-        title: "Recovery plan missing",
-      },
-      {
-        detail: "Needs web, payment, and verification help.",
-        key: "workers",
-        state: "missing",
-        title: "Specialists not placed",
-      },
-      {
-        detail: "Budget can be attached once the risk path is clear.",
-        key: "funding",
-        state: "locked",
-        title: "Scoped funding",
-      },
-      {
-        detail:
-          "Expected proof: passing checkout, receipt, and rollback notes.",
-        key: "outcome",
-        state: "missing",
-        title: "No accepted proof yet",
-      },
-    ],
-    summary:
-      "A real-world business problem where the request is clear, but the plan, workers, and proof path still need to be assembled.",
-    tags: ["payments", "small business", "urgent"],
-    timestamp: 20260601,
-    title: "Fix a broken checkout before invoices fail",
-  },
-  {
-    cta: "Open campaign workroom",
-    filters: ["needs-workers", "in-progress"],
-    href: "/?mode=request",
-    id: "agent-payment-feedback",
-    kind: "Campaign request",
-    metrics: ["100 testers", "survey proof", "multi-worker"],
-    recommended: 94,
-    slots: [
-      {
-        detail: "Collect real user failures from agent checkout attempts.",
-        key: "request",
-        state: "complete",
-        title: "Agent payment friction map",
-      },
-      {
-        detail: "Survey, evidence rules, and feedback buckets are drafted.",
-        key: "plan",
-        state: "complete",
-        title: "Campaign plan ready",
-      },
-      {
-        detail: "Needs many testers, reviewers, and summarizers.",
-        key: "workers",
-        state: "active",
-        title: "Worker slots open",
-      },
-      {
-        detail: "Reward pool can expand when participation is proven.",
-        key: "funding",
-        state: "active",
-        title: "Participation funding",
-      },
-      {
-        detail: "Target outcome: public failure map and reusable UX fixes.",
-        key: "outcome",
-        state: "missing",
-        title: "Insight report pending",
-      },
-    ],
-    summary:
-      "A campaign-shaped request where many contributors can add survey answers, screenshots, and feedback before Boreal packages the outcome.",
-    tags: ["campaign", "survey", "agents", "x402"],
-    timestamp: 20260531,
-    title: "Map why agent payments fail for normal users",
-  },
-  {
-    cta: "Open workflow workroom",
-    filters: ["needs-plan", "in-progress"],
-    href: "/?mode=request",
-    id: "mcp-adapter-readiness",
-    kind: "Workflow request",
-    metrics: ["MCP/A2A", "sandbox notes", "operator gate"],
-    recommended: 93,
-    slots: [
-      {
-        detail: "Requester wants external agents to use Boreal safely.",
-        key: "request",
-        state: "complete",
-        title: "Adapter readiness pass",
-      },
-      {
-        detail: "Needs route-level mutation tests and rejection cases.",
-        key: "plan",
-        state: "active",
-        title: "Safety plan forming",
-      },
-      {
-        detail: "Protocol implementer and tester still need placement.",
-        key: "workers",
-        state: "missing",
-        title: "Adapter workers missing",
-      },
-      {
-        detail: "No live external-agent credentials in beta scope.",
-        key: "funding",
-        state: "complete",
-        title: "Preflight only",
-      },
-      {
-        detail: "Target: reusable adapter checklist and test evidence.",
-        key: "outcome",
-        state: "missing",
-        title: "Evidence not accepted",
-      },
-    ],
-    summary:
-      "A Boreal-native workflow card for technical work: discovery, preflight, mutation safety, and production rejection before live adapters.",
-    tags: ["agent UX", "MCP", "A2A", "sandbox"],
-    timestamp: 20260530,
-    title: "Prepare safe agent adapters without granting production access",
-  },
-  {
-    cta: "Reuse accepted outcome",
-    filters: ["reuse-ready", "in-progress"],
-    href: "/?mode=request",
-    id: "launch-clip-reuse",
-    kind: "Reuse-ready request",
-    metrics: ["accepted proof", "forkable plan", "credit run"],
-    recommended: 89,
-    slots: [
-      {
-        detail: "Original request asked for reusable launch clips.",
-        key: "request",
-        state: "complete",
-        title: "Launch asset request",
-      },
-      {
-        detail: "Plan can be copied with updated audience and offer.",
-        key: "plan",
-        state: "complete",
-        title: "Reusable plan",
-      },
-      {
-        detail: "Creative worker path is already known.",
-        key: "workers",
-        state: "complete",
-        title: "Known worker lane",
-      },
-      {
-        detail: "New buyer funds their private run request.",
-        key: "funding",
-        state: "active",
-        title: "Run funding needed",
-      },
-      {
-        detail: "Accepted artifacts are visible as proof and reference.",
-        key: "outcome",
-        state: "complete",
-        title: "Outcome accepted",
-      },
-    ],
-    summary:
-      "A completed request pattern that visitors can inspect, understand, and reuse as a new private request with their own constraints.",
-    tags: ["reuse", "creative work", "proof"],
-    timestamp: 20260529,
-    title: "Reuse a proven launch clip workflow for a new offer",
-  },
-  {
-    cta: "Open civic request",
-    filters: ["needs-workers", "needs-plan"],
-    href: "/?mode=request",
-    id: "local-aid-intake",
-    kind: "Public-interest request",
-    metrics: ["volunteer intake", "evidence rules", "handoff"],
-    recommended: 87,
-    slots: [
-      {
-        detail: "Collect local needs, available help, and proof constraints.",
-        key: "request",
-        state: "complete",
-        title: "Neighborhood aid intake",
-      },
-      {
-        detail: "Needs safe triage rules before any assignment.",
-        key: "plan",
-        state: "active",
-        title: "Triage plan missing",
-      },
-      {
-        detail: "Needs verifiers, callers, translators, and coordinators.",
-        key: "workers",
-        state: "missing",
-        title: "Many roles unfilled",
-      },
-      {
-        detail: "No payout until verification and handoff rules are clear.",
-        key: "funding",
-        state: "locked",
-        title: "Guarded funding",
-      },
-      {
-        detail: "Target: verified list, handoff notes, and completion log.",
-        key: "outcome",
-        state: "missing",
-        title: "Outcome not ready",
-      },
-    ],
-    summary:
-      "A pressing request where the value is not one AI answer, but safe intake, distributed human work, and proof-backed handoff.",
-    tags: ["community", "coordination", "human review"],
-    timestamp: 20260528,
-    title: "Coordinate local aid requests without losing verification",
-  },
-];
-
-const workCards = [...serviceWorkCards, ...curatedWorkCards];
 
 function completionScore(card: WorkCard) {
   return card.slots.reduce((score, slot) => {
@@ -655,7 +334,7 @@ function WorkCardRow({ card }: { card: WorkCard }) {
   const missingParts = missingCount(card);
 
   return (
-    <Link className="group block" href={card.href}>
+    <Link className="group block" href={card.primaryAction.href}>
       <article className="overflow-hidden rounded-[32px] border border-border/65 bg-card/48 p-4 transition-colors hover:border-foreground/22 hover:bg-card/66 md:p-5">
         <div className="grid gap-5 xl:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)] xl:items-stretch">
           <div className="flex min-w-0 flex-col">
@@ -704,7 +383,7 @@ function WorkCardRow({ card }: { card: WorkCard }) {
             </div>
 
             <div className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-foreground">
-              {card.cta}
+              {card.primaryAction.label}
               <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
             </div>
           </div>
@@ -718,7 +397,9 @@ function WorkCardRow({ card }: { card: WorkCard }) {
                 </span>
               </div>
               <span className="text-[11px] text-muted-foreground/72">
-                Click opens workroom
+                {card.primaryAction.source === "agentActionCardHints"
+                  ? "Action from request hints"
+                  : "Action from service adapter"}
               </span>
             </div>
             <div className="grid gap-2 md:grid-cols-5">
