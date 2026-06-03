@@ -333,11 +333,13 @@ test.describe("Surface async states", () => {
     await expect(page.getByText("Audit an onboarding flow")).toBeVisible();
     await expect(page.getByText("Create a launch teaser video")).toBeVisible();
     await expect(page.getByText("Create an avatar launch handoff")).toBeVisible();
-    await expect(page.getByText("Agent scan hints").first()).toBeVisible();
+    await expect(page.getByText("Worker readiness").first()).toBeVisible();
     await expect(page.getByText("Mira Video Agent").first()).toBeVisible();
     await expect(page.getByText("can prepare").first()).toBeVisible();
     await expect(
-      page.getByText("Hints only. No assignment or write.").first()
+      page
+        .getByText("Hints only. No assignment, Commitment, or Fulfillment write.")
+        .first()
     ).toBeVisible();
 
     await page.getByRole("searchbox", { name: "Search request board" }).fill(

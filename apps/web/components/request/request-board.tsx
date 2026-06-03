@@ -6,6 +6,7 @@ import {
   Clock3Icon,
   FileCheck2Icon,
   SearchIcon,
+  UserRoundIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -14,11 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResourceList } from "@/components/ui/resource-list";
-import {
-  type NamedAgentBoardReadiness,
-  buildNamedAgentBoardReadiness,
-} from "@/lib/boreal-agents/board-readiness";
 import type { PublicRequestPoolEntry, RequestStatus } from "@/lib/request";
+import {
+  type RequestHumanWorkerReadiness,
+  type RequestWorkerReadiness,
+  buildRequestWorkerReadiness,
+} from "@/lib/request-worker-readiness";
 import { cn, fetcher } from "@/lib/utils";
 import {
   formatSurfaceToken,
@@ -296,10 +298,13 @@ function RequestBoardCard({
     : "route pending";
   const readinessLabel = formatSurfaceToken(request.derived.readiness.state);
   const proofSummary = getProofSummary(request);
-  const agentReadiness = buildNamedAgentBoardReadiness(request);
-  const visibleAgentReadiness = showCompact
-    ? agentReadiness.filter((hint) => hint.readiness === "can_prepare")
-    : agentReadiness;
+  const workerReadiness = buildRequestWorkerReadiness(request);
+  const visibleAgentLanes = showCompact
+    ? workerReadiness.agentLanes.filter(
+        (hint) => hint.readiness === "can_prepare"
+      )
+    : workerReadiness.agentLanes;
+  const showHumanLane = !showCompact || workerReadiness.summary.humanActionable;
 
   return (
     <SurfaceCard asChild interactive>
@@ -335,8 +340,12 @@ function RequestBoardCard({
           />
         </div>
 
-        {visibleAgentReadiness.length > 0 ? (
-          <RequestBoardAgentHints hints={visibleAgentReadiness} />
+        {visibleAgentLanes.length > 0 || showHumanLane ? (
+          <RequestBoardWorkerHints
+            readiness={workerReadiness}
+            showHumanLane={showHumanLane}
+            visibleAgentLanes={visibleAgentLanes}
+          />
         ) : null}
 
         <SurfaceTagList limit={showCompact ? 3 : 5} tags={request.brief.tags} />
@@ -369,34 +378,37 @@ function RequestBoardCard({
   );
 }
 
-function RequestBoardAgentHints({
-  hints,
+function RequestBoardWorkerHints({
+  readiness,
+  showHumanLane,
+  visibleAgentLanes,
 }: {
-  hints: NamedAgentBoardReadiness[];
+  readiness: RequestWorkerReadiness;
+  showHumanLane: boolean;
+  visibleAgentLanes: RequestWorkerReadiness["agentLanes"];
 }) {
-  const readyCount = hints.filter(
-    (hint) => hint.readiness === "can_prepare"
-  ).length;
-
   return (
     <div className="mt-5 rounded-2xl border border-border/60 bg-background/45 p-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/72">
           <BotIcon className="size-3.5" />
-          <span>Agent scan hints</span>
+          <span>Worker readiness</span>
         </div>
         <Badge
           className="rounded-full border-border/60 bg-muted/35 text-foreground/72"
           variant="secondary"
         >
-          {readyCount > 0 ? `${readyCount} can prepare` : "read-only"}
+          {getWorkerReadinessSummaryLabel(readiness)}
         </Badge>
       </div>
       <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
-        Hints only. No assignment or write.
+        Hints only. No assignment, Commitment, or Fulfillment write.
       </p>
       <div className="mt-3 grid gap-2">
-        {hints.map((hint) => (
+        {showHumanLane ? (
+          <HumanWorkerHint humanLane={readiness.humanLane} />
+        ) : null}
+        {visibleAgentLanes.map((hint) => (
           <div
             className="rounded-xl border border-border/55 bg-card/45 p-2.5"
             key={hint.agentKey}
@@ -433,7 +445,7 @@ function RequestBoardAgentHints({
 }
 
 function getAgentHintBadgeClassName(
-  readiness: NamedAgentBoardReadiness["readiness"]
+  readiness: RequestWorkerReadiness["agentLanes"][number]["readiness"]
 ) {
   switch (readiness) {
     case "can_prepare":
@@ -443,6 +455,77 @@ function getAgentHintBadgeClassName(
     case "skip":
       return "border-border/60 bg-muted/35 text-foreground/70";
   }
+}
+
+function HumanWorkerHint({
+  humanLane,
+}: {
+  humanLane: RequestHumanWorkerReadiness;
+}) {
+  return (
+    <div className="rounded-xl border border-border/55 bg-card/45 p-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 truncate text-xs font-medium text-foreground/82">
+            <UserRoundIcon className="size-3.5" />
+            Human worker lane
+          </p>
+          <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
+            {humanLane.reason}
+          </p>
+        </div>
+        <Badge
+          className={cn(
+            "shrink-0 rounded-full border text-[10px]",
+            getHumanHintBadgeClassName(humanLane.state)
+          )}
+          variant="secondary"
+        >
+          {formatSurfaceToken(humanLane.state)}
+        </Badge>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-muted-foreground/75">
+        <span>{humanLane.actionLabel}</span>
+        {humanLane.proposedObject ? (
+          <>
+            <span aria-hidden="true">/</span>
+            <span>{humanLane.proposedObject}</span>
+          </>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function getHumanHintBadgeClassName(
+  readiness: RequestHumanWorkerReadiness["state"]
+) {
+  switch (readiness) {
+    case "human_required":
+      return "border-amber-500/25 bg-amber-500/10 text-amber-800 dark:text-amber-200";
+    case "can_review":
+      return "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200";
+    case "not_requested":
+      return "border-border/60 bg-muted/35 text-foreground/70";
+    case "blocked":
+      return "border-rose-500/25 bg-rose-500/10 text-rose-800 dark:text-rose-200";
+  }
+}
+
+function getWorkerReadinessSummaryLabel(readiness: RequestWorkerReadiness) {
+  if (readiness.summary.humanRequired) {
+    return "human required";
+  }
+
+  if (readiness.summary.agentCanPrepareCount > 0) {
+    return `${readiness.summary.agentCanPrepareCount} agent can prepare`;
+  }
+
+  if (readiness.summary.humanActionable) {
+    return "human can apply";
+  }
+
+  return "read-only";
 }
 
 function RequestStatusBadge({ status }: { status: RequestStatus }) {

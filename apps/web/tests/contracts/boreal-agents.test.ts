@@ -14,6 +14,7 @@ import {
   type NamedAgentBoardRequest,
   buildNamedAgentBoardReadiness,
 } from "@/lib/boreal-agents/board-readiness";
+import { buildRequestWorkerReadiness } from "@/lib/request-worker-readiness";
 
 const routeContext = (agentKey: string) => ({
   params: Promise.resolve({ agentKey }),
@@ -146,6 +147,15 @@ const talaVideoBoardHint = videoBoardHints.find(
 assert.ok(talaVideoBoardHint);
 assert.equal(talaVideoBoardHint.readiness, "target_only");
 
+const videoWorkerReadiness = buildRequestWorkerReadiness(boardVideoRequest);
+assert.equal(videoWorkerReadiness.listingMode, "read_only_no_assignment");
+assert.equal(videoWorkerReadiness.humanLane.state, "not_requested");
+assert.equal(videoWorkerReadiness.summary.agentCanPrepareCount, 1);
+assert.equal(videoWorkerReadiness.summary.shouldWakeAgents, true);
+assert.ok(
+  videoWorkerReadiness.nonAuthority.includes("no_commitment_created")
+);
+
 const humanBoardHints = buildNamedAgentBoardReadiness({
   ...boardVideoRequest,
   id: "req-board-human-001",
@@ -166,6 +176,42 @@ const miraHumanBoardHint = humanBoardHints.find(
 assert.ok(miraHumanBoardHint);
 assert.equal(miraHumanBoardHint.readiness, "skip");
 assert.match(miraHumanBoardHint.reason, /human-led|local-access/);
+
+const humanWorkerReadiness = buildRequestWorkerReadiness({
+  ...boardVideoRequest,
+  id: "req-board-human-worker-001",
+  brief: {
+    ...boardVideoRequest.brief,
+    constraints: {
+      requiresHumanPresence: true,
+    },
+  },
+  seeking: {
+    actorKinds: ["human", "ai_agent"],
+    supplyKinds: ["video_generation"],
+  },
+});
+assert.equal(humanWorkerReadiness.humanLane.state, "human_required");
+assert.deepEqual(humanWorkerReadiness.humanLane.proposedWritesIfAuthorized, [
+  "Commitment",
+  "RequestEvent",
+]);
+assert.equal(humanWorkerReadiness.summary.humanRequired, true);
+assert.equal(humanWorkerReadiness.summary.shouldWakeAgents, false);
+
+const humanOpenWorkerReadiness = buildRequestWorkerReadiness({
+  ...boardVideoRequest,
+  id: "req-board-human-open-001",
+  seeking: {
+    actorKinds: ["human", "ai_agent"],
+    supplyKinds: ["video_generation"],
+  },
+});
+assert.equal(humanOpenWorkerReadiness.humanLane.state, "can_review");
+assert.deepEqual(humanOpenWorkerReadiness.humanLane.proposedWritesIfAuthorized, [
+  "Commitment",
+  "RequestEvent",
+]);
 
 const copyBoardHints = buildNamedAgentBoardReadiness({
   ...boardVideoRequest,
