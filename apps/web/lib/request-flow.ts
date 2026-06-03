@@ -36,6 +36,27 @@ export type RequestFlowNodeField = {
   value: string | string[];
 };
 
+export type RequestFlowNodeActionId =
+  | "make_or_refine_request_plan"
+  | "prepare_worker_application"
+  | "review_worker_delivery"
+  | "inspect_delivery_proof";
+
+export type RequestFlowNodeActionBoundary =
+  | "request_plan_projection"
+  | "worker_application_boundary"
+  | "delivery_review_boundary";
+
+export type RequestFlowNodeAction = {
+  id: RequestFlowNodeActionId;
+  label: string;
+  description: string;
+  targetNodeKind: RequestFlowNodeKind;
+  boundary: RequestFlowNodeActionBoundary;
+  canonicalWritesIfAuthorized: string[];
+  nonAuthority: string[];
+};
+
 export type RequestFlowNodeDescriptor = {
   id: string;
   kind: RequestFlowNodeKind;
@@ -48,6 +69,7 @@ export type RequestFlowNodeDescriptor = {
   summary: string;
   chips: string[];
   details: RequestFlowNodeField[];
+  dragAction: RequestFlowNodeAction;
   position: { x: number; y: number };
   width: number;
 };
@@ -122,6 +144,72 @@ const workroomFlowLayout = {
   laneGapY: 236,
 } as const;
 
+const flowActionNonAuthority = [
+  "drag_hint_only",
+  "no_request_mutation",
+  "no_worker_assignment",
+  "no_commitment_created",
+  "no_fulfillment_started",
+  "no_artifact_published",
+];
+
+export function getRequestFlowNodeAction(
+  kind: RequestFlowNodeKind,
+): RequestFlowNodeAction {
+  switch (kind) {
+    case "request":
+      return {
+        id: "make_or_refine_request_plan",
+        label: "Create or refine plan",
+        description:
+          "Use the request card to make or refine request-owned plan phases before any worker is assigned.",
+        targetNodeKind: "phase",
+        boundary: "request_plan_projection",
+        canonicalWritesIfAuthorized: ["Request"],
+        nonAuthority: [...flowActionNonAuthority],
+      };
+    case "phase":
+    case "stage":
+      return {
+        id: "prepare_worker_application",
+        label: "Prepare worker application",
+        description:
+          "Use a plan card to prepare a human or agent worker application; the authorized route still decides Commitment or direct Fulfillment.",
+        targetNodeKind: "worker",
+        boundary: "worker_application_boundary",
+        canonicalWritesIfAuthorized: [
+          "Commitment",
+          "Fulfillment",
+          "RequestEvent",
+        ],
+        nonAuthority: [...flowActionNonAuthority],
+      };
+    case "worker":
+      return {
+        id: "review_worker_delivery",
+        label: "Review delivery path",
+        description:
+          "Use the worker card to inspect the delivery lane without publishing artifacts or accepting review.",
+        targetNodeKind: "delivery",
+        boundary: "delivery_review_boundary",
+        canonicalWritesIfAuthorized: ["Artifact", "RequestEvent"],
+        nonAuthority: [...flowActionNonAuthority],
+      };
+    case "delivery":
+    case "step":
+      return {
+        id: "inspect_delivery_proof",
+        label: "Inspect delivery proof",
+        description:
+          "Use the delivery card to inspect proof and review state without completing the Request.",
+        targetNodeKind: "delivery",
+        boundary: "delivery_review_boundary",
+        canonicalWritesIfAuthorized: [],
+        nonAuthority: [...flowActionNonAuthority, "no_completion_claim"],
+      };
+  }
+}
+
 export function buildDraftRequestFlowGraph(
   request: BorealRequestDraft,
 ): RequestFlowGraph {
@@ -170,6 +258,7 @@ export function buildDraftRequestFlowGraph(
               : "No proof package required yet.",
         },
       ],
+      dragAction: getRequestFlowNodeAction("request"),
       position: {
         x: draftFlowLayout.request.x,
         y: requestY,
@@ -325,6 +414,7 @@ function buildDraftPlanNode(
             : "No proof package required yet.",
       },
     ],
+    dragAction: getRequestFlowNodeAction("phase"),
     position: {
       x: draftFlowLayout.plan.x,
       y: draftFlowLayout.plan.y + index * draftFlowLayout.laneGapY,
@@ -422,6 +512,7 @@ export function buildTrackedRequestFlowGraph({
               : "No proof gate set.",
         },
       ],
+      dragAction: getRequestFlowNodeAction("request"),
       position: {
         x: workroomFlowLayout.request.x,
         y: primaryNodeY,
@@ -493,6 +584,7 @@ export function buildTrackedRequestFlowGraph({
               : "No proof obligation on this phase.",
         },
       ],
+      dragAction: getRequestFlowNodeAction("phase"),
       position: {
         x: workroomFlowLayout.phaseBase.x,
         y: workroomFlowLayout.phaseBase.y + index * workroomFlowLayout.laneGapY,
@@ -524,6 +616,7 @@ export function buildTrackedRequestFlowGraph({
     summary: workerNode.summary,
     chips: workerNode.chips,
     details: workerNode.details,
+    dragAction: getRequestFlowNodeAction("worker"),
     position: {
       x: workroomFlowLayout.worker.x,
       y: primaryNodeY,
@@ -542,6 +635,7 @@ export function buildTrackedRequestFlowGraph({
     summary: deliveryNode.summary,
     chips: deliveryNode.chips,
     details: deliveryNode.details,
+    dragAction: getRequestFlowNodeAction("delivery"),
     position: {
       x: workroomFlowLayout.delivery.x,
       y: primaryNodeY,

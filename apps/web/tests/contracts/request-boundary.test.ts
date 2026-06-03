@@ -30,6 +30,7 @@ import {
 import {
   buildBuyerFacingDraftPlanSteps,
   buildDraftRequestFlowGraph,
+  getRequestFlowNodeAction,
 } from "@/lib/request-flow";
 import { buildRequestPreflightPreview } from "@/lib/request-preflight";
 import { assertSupplyCanAttachToCommitment } from "@/lib/request-supply-boundary";
@@ -379,6 +380,46 @@ assert.deepEqual(
 assert.deepEqual(
   draftPlanNodes.map((node) => node.summary),
   draftPlanSteps.map((step) => step.summary),
+);
+assert.equal(
+  draftFlowGraph.nodes.every((node) => Boolean(node.dragAction)),
+  true,
+);
+assert.equal(
+  draftFlowGraph.nodes[0]?.dragAction.id,
+  "make_or_refine_request_plan",
+);
+assert.equal(draftFlowGraph.nodes[0]?.dragAction.targetNodeKind, "phase");
+assert.ok(
+  draftFlowGraph.nodes[0]?.dragAction.nonAuthority.includes(
+    "no_worker_assignment",
+  ),
+);
+assert.deepEqual(
+  draftPlanNodes.map((node) => node.dragAction.id),
+  ["prepare_worker_application", "prepare_worker_application"],
+);
+assert.deepEqual(
+  draftPlanNodes.map((node) => node.dragAction.targetNodeKind),
+  ["worker", "worker"],
+);
+assert.deepEqual(
+  [
+    getRequestFlowNodeAction("request").id,
+    getRequestFlowNodeAction("phase").id,
+    getRequestFlowNodeAction("stage").id,
+    getRequestFlowNodeAction("worker").id,
+    getRequestFlowNodeAction("delivery").id,
+    getRequestFlowNodeAction("step").id,
+  ],
+  [
+    "make_or_refine_request_plan",
+    "prepare_worker_application",
+    "prepare_worker_application",
+    "review_worker_delivery",
+    "inspect_delivery_proof",
+    "inspect_delivery_proof",
+  ],
 );
 assert.equal(
   (draftPlanNodes[1]?.position.y ?? 0) - (draftPlanNodes[0]?.position.y ?? 0) >=

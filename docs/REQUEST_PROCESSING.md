@@ -367,6 +367,7 @@ Low-complexity requests should not be turned into microtask plans.
 - Planner outputs should preserve one serious `Request` thread instead of exploding the ask into brittle task trees.
 - Planner outputs must not imply that a real match is attached before matching has actually happened for this request flow.
 - Planner outputs must not imply that a worker is assigned before matching, selection, or fulfillment attachment actually happened.
+- Flow-card drag actions are explicit projection taxonomy: `Request` cards create or refine request-owned plan phases, `phase` or `stage` cards prepare human or agent worker applications, `worker` cards review delivery paths, and `delivery` or `step` cards inspect proof. The drag gesture itself is not a mutation, assignment, `Commitment`, `Fulfillment`, `Artifact`, or completion claim.
 - Planner outputs must preserve embodied, human-required, local-runtime-required, and verification-heavy work as first-class planning realities.
 - Generated summaries, runtime access, or provider execution are not proof of completion by themselves.
 - `digital_product` or near-instant delivery asks should not be inflated into the same fulfillment-heavy request UX when a lighter direct-delivery path is more truthful.

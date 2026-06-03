@@ -318,6 +318,7 @@ Verify:
 - draft flow review should render `Request` plus one or more parallel `Plan` cards and must not show worker or delivery nodes before the request opens
 - draft flow review should reuse the same buyer-facing plan-step projection as the stepper, with numbered plan cards and non-overlapping fixed-height flow nodes
 - flow, stepper, and task-board cards should share the same buyer-facing process-card surface, including status-accent badges, icons, descriptions, checklist rows, tags, and selected-card affordance without generating separate plan content
+- flow-card drag actions should be typed by card kind: `Request` to request-plan projection, `phase` or `stage` to worker application preparation, `worker` to delivery review, and `delivery` or `step` to proof inspection, with every action preserving non-authority flags before any real mutation route
 - editing a user chat message and resending should delete trailing owned messages, append the replacement prompt, show pending generation feedback, and avoid leaving the old assistant answer in the visible timeline
 - chat transcript and edit-resend cleanup endpoints should reject malformed chat or message ids before database access so bad client state is reported as API input failure instead of opaque database failure
 - chat transcript reads should keep draft or private request envelopes owner-only while allowing public opened request envelopes without the owner's private transcript

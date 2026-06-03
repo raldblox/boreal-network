@@ -376,9 +376,14 @@ test.describe("Request chat lifecycle", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Flow review" }).click();
-    await expect(page.getByLabel("Request workflow canvas")).toBeVisible();
-    await expect(page.getByText("Plan 1")).toBeVisible();
-    await expect(page.getByText("Plan 3")).toBeVisible();
+    const flowCanvas = page.getByLabel("Request workflow canvas");
+    await expect(flowCanvas).toBeVisible();
+    await expect(
+      flowCanvas.getByRole("heading", { name: "Plan 1" })
+    ).toBeVisible();
+    await expect(
+      flowCanvas.getByRole("heading", { name: "Plan 3" })
+    ).toBeVisible();
     await expect(page.getByText("Submit photo proof")).toBeVisible();
     await expect(page.getByText("Lead lane opens after approval")).toHaveCount(
       0,

@@ -28,7 +28,6 @@ import {
 import type {
   RequestFlowGraph,
   RequestFlowNodeDescriptor,
-  RequestFlowNodeKind,
   RequestFlowNodeState,
   RequestFlowNodeTone,
 } from "@/lib/request-flow";
@@ -676,44 +675,14 @@ function getWorkflowActionOptions(
     return [];
   }
 
-  const nextKind = getNextWorkflowKind(sourceNode.kind);
+  const nextKind = sourceNode.dragAction.targetNodeKind;
   const candidates = graph.nodes.filter((node) => node.kind === nextKind);
 
   return candidates.map((node) => ({
     nodeId: node.id,
-    title: getWorkflowActionTitle(sourceNode.kind),
-    description: node.summary,
+    title: sourceNode.dragAction.label,
+    description: `${sourceNode.dragAction.description} ${node.summary}`,
   }));
-}
-
-function getNextWorkflowKind(kind: RequestFlowNodeKind): RequestFlowNodeKind {
-  switch (kind) {
-    case "request":
-      return "phase";
-    case "phase":
-    case "stage":
-      return "worker";
-    case "worker":
-      return "delivery";
-    case "delivery":
-    case "step":
-      return "delivery";
-  }
-}
-
-function getWorkflowActionTitle(sourceKind: RequestFlowNodeKind) {
-  switch (sourceKind) {
-    case "request":
-      return "Open the plan";
-    case "phase":
-    case "stage":
-      return "Choose worker route";
-    case "worker":
-      return "Review delivery";
-    case "delivery":
-    case "step":
-      return "Inspect result";
-  }
 }
 
 function getClientPoint(event: MouseEvent | TouchEvent) {
