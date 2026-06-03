@@ -39,7 +39,7 @@ export const createRequestBrief = ({
 }: CreateRequestBriefProps) =>
   tool({
     description:
-      "Create or initialize a durable Boreal Request draft and open its live request brief document. Prefer raw body first. Title or summary may stay blank if the user has not clearly established them yet. Include same-turn structured facts like budget, deadline, location, execution mode, access, or proof requirements when the user explicitly stated them. Only use when the user explicitly wants a new request or wants to turn the current work ask into a Request.",
+      "Create or initialize a durable Boreal Request draft and open its live request brief document. Prefer raw body first. Title or summary may stay blank if the user has not clearly established them yet. Include same-turn structured facts like budget, deadline, location, execution mode, access, proof requirements, seeking.actorKinds, seeking.supplyKinds, and outputKinds when the user explicitly stated them or they are directly implied by the ask. For human/local work, include embodiedConstraints so provider-only agents can skip it. Only use when the user explicitly wants a new request or wants to turn the current work ask into a Request.",
     inputSchema: z.object({
       title: z.string().max(200).optional(),
       summary: z.string().max(1000).optional(),

@@ -455,6 +455,7 @@ Verify:
 - briefing and planning tags reduce wasteful scans by keeping human-required, local-access, witnessed-handoff, field-proof, pickup, delivery, and physical-verification plans away from provider-only agents unless a supporting provider role is explicit
 - named-agent route tests reject public projection summaries whose top-level `seeking.actorKinds`, `brief.constraints`, or execution-kind hints imply human-required or local-access work, even when the request also has a video-generation signal
 - named-agent route tests reject missing or mismatched supply bindings before allowing live application preparation, so prompt-only assets cannot masquerade as worker-backed supply
+- request-briefing prompt contract tests lock scanner-tag requirements for `seeking.actorKinds`, `seeking.supplyKinds`, `brief.outputKinds`, embodied constraints, human or field-capable supply, and generated-media-only `video_generation` tags
 
 ### Supply-management contract tests
 
