@@ -26,6 +26,7 @@
     "contracts:idempotency": "node tests/contracts/run-idempotency-replay-fixtures.mjs",
     "contracts:solution-runs": "node tests/contracts/run-solution-run-fixtures.mjs",
     "contracts:agent-sandbox": "node tests/contracts/run-agent-sandbox-fixtures.mjs",
+    "contracts:in-house-workers": "node tests/contracts/run-in-house-worker-application-profile.mjs",
     "contracts:reusable-prompts": "pnpm --filter @boreal/web exec tsx tests/contracts/reusable-prompt.test.ts",
     "contracts:security-hardening": "node tests/contracts/run-security-hardening-contracts.mjs",
     "evals:request-processing": "node tests/contracts/run-request-processing-evals.mjs",

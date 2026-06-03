@@ -1,0 +1,844 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/in-house-worker-application-profile.schema.json",
+  "title": "InHouseBorealWorkerApplicationProfile",
+  "description": "Machine-readable profile for in-house Boreal workers scanning opened requests, applying through Commitment, and using owner-private direct Fulfillment only under trusted owner-scoped policy.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "sourceDecision",
+    "liveWorkerSet",
+    "namedAgentTemplates",
+    "agentBoilerplate",
+    "briefingQualificationTags",
+    "scannerContract",
+    "applicationPacket",
+    "applicationLanes",
+    "autoApprovalPolicy",
+    "promptAssetBoundary",
+    "canonicalBoundary",
+    "examples"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "in_house_worker_application_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceDecision": {
+      "$ref": "#/$defs/link"
+    },
+    "liveWorkerSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "currentLiveWorkerKeys",
+        "targetOnlyWorkerKeys",
+        "rules"
+      ],
+      "properties": {
+        "currentLiveWorkerKeys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "targetOnlyWorkerKeys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "namedAgentTemplates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/namedAgentTemplate"
+      }
+    },
+    "agentBoilerplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requiredFiles",
+        "requiredContracts",
+        "requiredEnvironment",
+        "taskPipelineRules"
+      ],
+      "properties": {
+        "status": {
+          "const": "template_contract"
+        },
+        "requiredFiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requiredContracts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requiredEnvironment": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/environmentBinding"
+          }
+        },
+        "taskPipelineRules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "briefingQualificationTags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "purpose",
+        "writeTargets",
+        "rules"
+      ],
+      "properties": {
+        "status": {
+          "const": "planner_filter_inputs"
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "writeTargets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "scannerContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "method",
+        "reads",
+        "writes",
+        "cheapFilters",
+        "wakePolicy",
+        "authority"
+      ],
+      "properties": {
+        "status": {
+          "const": "read_only_projection"
+        },
+        "method": {
+          "const": "GET"
+        },
+        "reads": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "writes": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "cheapFilters": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "wakePolicy": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "authority": {
+          "$ref": "#/$defs/nonAuthority"
+        }
+      }
+    },
+    "applicationPacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "requiredFields",
+        "mustReadBeforeSubmit",
+        "mustNotContain"
+      ],
+      "properties": {
+        "status": {
+          "const": "local_until_submitted"
+        },
+        "requiredFields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "mustReadBeforeSubmit": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "mustNotContain": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "applicationLanes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/applicationLane"
+      }
+    },
+    "autoApprovalPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "scope",
+        "allowedEffects",
+        "forbiddenEffects",
+        "requiredGates"
+      ],
+      "properties": {
+        "status": {
+          "const": "owner_scoped_policy"
+        },
+        "scope": {
+          "const": "trusted_first_party_supply_only"
+        },
+        "allowedEffects": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "forbiddenEffects": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requiredGates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "promptAssetBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supportAssetKinds",
+        "cannotBeFrontpageSupplyUntil",
+        "rules"
+      ],
+      "properties": {
+        "supportAssetKinds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cannotBeFrontpageSupplyUntil": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "durableTruthObjects",
+        "profileIsNot",
+        "notRoots",
+        "rules"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "durableTruthObjects": {
+          "type": "array",
+          "minItems": 8,
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "profileIsNot": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "notRoots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/example"
+      }
+    }
+  },
+  "$defs": {
+    "link": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "path",
+        "status"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "canonicalObject": {
+      "type": "string",
+      "enum": [
+        "Actor",
+        "Supply",
+        "Request",
+        "RequestParticipant",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent"
+      ]
+    },
+    "agentStatus": {
+      "type": "string",
+      "enum": [
+        "live_template",
+        "target_template"
+      ]
+    },
+    "environmentBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "requiredFor",
+        "secret"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiredFor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "secret": {
+          "const": true
+        }
+      }
+    },
+    "namedAgentTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agentKey",
+        "uniqueName",
+        "displayName",
+        "status",
+        "apiRoute",
+        "workerKey",
+        "supplyBinding",
+        "modelBindings",
+        "toolBindings",
+        "qualificationTags",
+        "taskPipeline",
+        "nonAuthority"
+      ],
+      "properties": {
+        "agentKey": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "uniqueName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "$ref": "#/$defs/agentStatus"
+        },
+        "apiRoute": {
+          "type": "string",
+          "pattern": "^/api/boreal-agents/[a-z0-9][a-z0-9-]*$"
+        },
+        "workerKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "supplyBinding": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required",
+            "supplyKind",
+            "providerRef"
+          ],
+          "properties": {
+            "required": {
+              "const": true
+            },
+            "supplyKind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "providerRef": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "modelBindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "provider",
+              "purpose",
+              "env",
+              "models"
+            ],
+            "properties": {
+              "provider": {
+                "type": "string",
+                "enum": [
+                  "openai",
+                  "runway"
+                ]
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1
+              },
+              "env": {
+                "type": "string",
+                "minLength": 1
+              },
+              "models": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "toolBindings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "qualificationTags": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "actorKinds",
+            "supplyKinds",
+            "outputKinds",
+            "executionKinds",
+            "skipWhen"
+          ],
+          "properties": {
+            "actorKinds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "supplyKinds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "outputKinds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "executionKinds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "skipWhen": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "taskPipeline": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/agentTaskStep"
+          }
+        },
+        "nonAuthority": {
+          "$ref": "#/$defs/nonAuthority"
+        }
+      }
+    },
+    "agentTaskStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "summary",
+        "canonicalReads",
+        "canonicalWritesIfAuthorized"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "inspect_request",
+            "filter_qualification",
+            "prepare_application",
+            "submit_commitment",
+            "create_owner_private_fulfillment",
+            "run_provider",
+            "publish_artifact",
+            "monitor_or_retry"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "canonicalWritesIfAuthorized": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        }
+      }
+    },
+    "nonAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "permissionGranted",
+        "assignmentCreated",
+        "approvalRecorded",
+        "paymentAuthorized",
+        "durableWriteCreated",
+        "fulfillmentStarted",
+        "artifactPublished",
+        "completionProven"
+      ],
+      "properties": {
+        "permissionGranted": {
+          "const": false
+        },
+        "assignmentCreated": {
+          "const": false
+        },
+        "approvalRecorded": {
+          "const": false
+        },
+        "paymentAuthorized": {
+          "const": false
+        },
+        "durableWriteCreated": {
+          "const": false
+        },
+        "fulfillmentStarted": {
+          "const": false
+        },
+        "artifactPublished": {
+          "const": false
+        },
+        "completionProven": {
+          "const": false
+        }
+      }
+    },
+    "applicationLane": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "appliesWhen",
+        "requires",
+        "canonicalReads",
+        "canonicalWritesIfAuthorized",
+        "forbiddenWrites",
+        "idempotencyRequired",
+        "completionAuthority"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "public_or_cross_actor_commitment_application",
+            "owner_private_direct_worker_fulfillment"
+          ]
+        },
+        "appliesWhen": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requires": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "canonicalReads": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "canonicalWritesIfAuthorized": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "forbiddenWrites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "idempotencyRequired": {
+          "const": true
+        },
+        "completionAuthority": {
+          "const": false
+        }
+      }
+    },
+    "example": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "workerKey",
+        "requestVisibility",
+        "recommendedLane",
+        "expectedCanonicalReads",
+        "expectedCanonicalWritesIfTaken",
+        "notAuthority",
+        "notes"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workerKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requestVisibility": {
+          "type": "string",
+          "enum": [
+            "public",
+            "private"
+          ]
+        },
+        "recommendedLane": {
+          "type": "string",
+          "enum": [
+            "public_or_cross_actor_commitment_application",
+            "owner_private_direct_worker_fulfillment"
+          ]
+        },
+        "expectedCanonicalReads": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "expectedCanonicalWritesIfTaken": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "notAuthority": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

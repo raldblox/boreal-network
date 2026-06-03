@@ -1,0 +1,610 @@
+{
+  "schemaVersion": 1,
+  "status": "in_house_worker_application_profile",
+  "name": "In-house Boreal worker application profile",
+  "description": "A checked profile for Boreal-managed workers that scan opened requests, apply through canonical boundaries, and never treat scanner fit or runtime output as completion proof.",
+  "sourceDecision": {
+    "label": "Decision 0027",
+    "path": "docs/decisions/0027-in-house-boreal-agents-scan-and-apply-as-workers.md",
+    "status": "accepted"
+  },
+  "liveWorkerSet": {
+    "currentLiveWorkerKeys": [
+      "video-generation"
+    ],
+    "targetOnlyWorkerKeys": [
+      "humanizer"
+    ],
+    "rules": [
+      "video-generation is the only live starter worker in this profile.",
+      "humanizer stays target-only until it has a real supply factory, execution contract, proof path, and failure fixtures.",
+      "Do not list prompt-only assets as starter supply."
+    ]
+  },
+  "namedAgentTemplates": [
+    {
+      "agentKey": "mira-video",
+      "uniqueName": "Mira",
+      "displayName": "Mira Video Agent",
+      "status": "live_template",
+      "apiRoute": "/api/boreal-agents/mira-video",
+      "workerKey": "video-generation",
+      "supplyBinding": {
+        "required": true,
+        "supplyKind": "video_generation",
+        "providerRef": "runway/video-generation"
+      },
+      "modelBindings": [
+        {
+          "provider": "openai",
+          "purpose": "brief interpretation, application drafting, proof summary, and recovery planning",
+          "env": "OPENAI_API_KEY",
+          "models": [
+            "configured OpenAI chat route"
+          ]
+        },
+        {
+          "provider": "runway",
+          "purpose": "video generation execution",
+          "env": "RUNWAY_API_KEY",
+          "models": [
+            "Runway Gen-4.5"
+          ]
+        }
+      ],
+      "toolBindings": [
+        "GET /api/requests?scope=public",
+        "GET /api/requests/{id}",
+        "POST /api/requests/{id}/commitments",
+        "POST /api/requests/{id}/fulfillments",
+        "POST /api/requests/{id}/artifacts",
+        "POST /api/fulfillments/{id}/retry"
+      ],
+      "qualificationTags": {
+        "actorKinds": [
+          "agent",
+          "tool"
+        ],
+        "supplyKinds": [
+          "agent_worker",
+          "provider_capability",
+          "video_generation"
+        ],
+        "outputKinds": [
+          "video",
+          "media"
+        ],
+        "executionKinds": [
+          "provider_api",
+          "agent_request_room"
+        ],
+        "skipWhen": [
+          "requiresHumanPresence is true",
+          "requiresLocalAccess is true",
+          "required output is photo_evidence without generated-video scope",
+          "request has no media or video output intent"
+        ]
+      },
+      "taskPipeline": [
+        {
+          "id": "inspect",
+          "kind": "inspect_request",
+          "summary": "Read public-safe or owner-approved request detail and policy before deciding whether Mira should wake.",
+          "canonicalReads": [
+            "Request",
+            "Supply"
+          ],
+          "canonicalWritesIfAuthorized": []
+        },
+        {
+          "id": "qualify",
+          "kind": "filter_qualification",
+          "summary": "Use typed plan tags before any OpenAI or Runway call so human-required plans do not wake this provider worker.",
+          "canonicalReads": [
+            "Request",
+            "Supply"
+          ],
+          "canonicalWritesIfAuthorized": []
+        },
+        {
+          "id": "apply",
+          "kind": "submit_commitment",
+          "summary": "For public or cross-actor requests, submit a Commitment proposal after policy, auth, human review, and idempotency checks.",
+          "canonicalReads": [
+            "Request",
+            "Supply"
+          ],
+          "canonicalWritesIfAuthorized": [
+            "Commitment",
+            "RequestEvent"
+          ]
+        },
+        {
+          "id": "owner-private-start",
+          "kind": "create_owner_private_fulfillment",
+          "summary": "For owner-private selected supply only, create one active Fulfillment lane without claiming delivery.",
+          "canonicalReads": [
+            "Request",
+            "Supply"
+          ],
+          "canonicalWritesIfAuthorized": [
+            "Fulfillment",
+            "RequestEvent"
+          ]
+        },
+        {
+          "id": "provider-run",
+          "kind": "run_provider",
+          "summary": "Run the configured Runway provider task only after an accepted or owner-private fulfillment lane exists.",
+          "canonicalReads": [
+            "Fulfillment"
+          ],
+          "canonicalWritesIfAuthorized": []
+        },
+        {
+          "id": "publish-proof",
+          "kind": "publish_artifact",
+          "summary": "Mirror the generated media into durable storage and publish an Artifact through the request lane.",
+          "canonicalReads": [
+            "Request",
+            "Fulfillment"
+          ],
+          "canonicalWritesIfAuthorized": [
+            "Artifact",
+            "RequestEvent"
+          ]
+        }
+      ],
+      "nonAuthority": {
+        "permissionGranted": false,
+        "assignmentCreated": false,
+        "approvalRecorded": false,
+        "paymentAuthorized": false,
+        "durableWriteCreated": false,
+        "fulfillmentStarted": false,
+        "artifactPublished": false,
+        "completionProven": false
+      }
+    },
+    {
+      "agentKey": "tala-humanizer",
+      "uniqueName": "Tala",
+      "displayName": "Tala Humanizer Agent",
+      "status": "target_template",
+      "apiRoute": "/api/boreal-agents/tala-humanizer",
+      "workerKey": "humanizer",
+      "supplyBinding": {
+        "required": true,
+        "supplyKind": "documentation_support",
+        "providerRef": "boreal/humanizer"
+      },
+      "modelBindings": [
+        {
+          "provider": "openai",
+          "purpose": "humanizer rewrite planning, draft variants, review packet summaries, and tool decision support",
+          "env": "OPENAI_API_KEY",
+          "models": [
+            "configured OpenAI chat route"
+          ]
+        }
+      ],
+      "toolBindings": [
+        "GET /api/requests?scope=public",
+        "GET /api/requests/{id}",
+        "POST /api/requests/{id}/commitments",
+        "POST /api/requests/{id}/artifacts"
+      ],
+      "qualificationTags": {
+        "actorKinds": [
+          "agent",
+          "human"
+        ],
+        "supplyKinds": [
+          "documentation_support",
+          "reporting_support",
+          "human_service"
+        ],
+        "outputKinds": [
+          "draft",
+          "handoff_doc",
+          "verification_note"
+        ],
+        "executionKinds": [
+          "agent_request_room",
+          "hybrid_human_agent"
+        ],
+        "skipWhen": [
+          "requiresHumanPresence is true and no human reviewer lane exists",
+          "request asks for physical proof",
+          "request requires provider media generation",
+          "humanizer supply factory is not implemented"
+        ]
+      },
+      "taskPipeline": [
+        {
+          "id": "inspect",
+          "kind": "inspect_request",
+          "summary": "Read request detail and check that the request is text transformation or human review support, not physical execution.",
+          "canonicalReads": [
+            "Request",
+            "Supply"
+          ],
+          "canonicalWritesIfAuthorized": []
+        },
+        {
+          "id": "qualify",
+          "kind": "filter_qualification",
+          "summary": "Skip human-required proof plans unless a real human service lane is attached.",
+          "canonicalReads": [
+            "Request",
+            "Supply"
+          ],
+          "canonicalWritesIfAuthorized": []
+        },
+        {
+          "id": "apply",
+          "kind": "prepare_application",
+          "summary": "Prepare a local application packet only; this target template cannot submit until the supply factory and tests exist.",
+          "canonicalReads": [
+            "Request",
+            "Supply"
+          ],
+          "canonicalWritesIfAuthorized": []
+        }
+      ],
+      "nonAuthority": {
+        "permissionGranted": false,
+        "assignmentCreated": false,
+        "approvalRecorded": false,
+        "paymentAuthorized": false,
+        "durableWriteCreated": false,
+        "fulfillmentStarted": false,
+        "artifactPublished": false,
+        "completionProven": false
+      }
+    }
+  ],
+  "agentBoilerplate": {
+    "status": "template_contract",
+    "requiredFiles": [
+      "agent definition",
+      "request qualification tags",
+      "task pipeline",
+      "model and provider bindings",
+      "supply factory or support object binding",
+      "route handler under /api/boreal-agents/{agentKey}",
+      "contract fixture",
+      "route-level mutation tests"
+    ],
+    "requiredContracts": [
+      "unique agentKey and uniqueName",
+      "stable apiRoute",
+      "no scanner writes",
+      "public apply writes Commitment",
+      "owner-private direct lane writes Fulfillment only after gates",
+      "prompt-only assets remain support assets"
+    ],
+    "requiredEnvironment": [
+      {
+        "name": "OPENAI_API_KEY",
+        "requiredFor": "OpenAI planning, rewrite, summarization, and multi-step decision support",
+        "secret": true
+      },
+      {
+        "name": "RUNWAY_API_KEY",
+        "requiredFor": "Mira video-generation provider execution",
+        "secret": true
+      }
+    ],
+    "taskPipelineRules": [
+      "An agent may run multiple task steps and tools internally, but only governed routes create durable truth.",
+      "Provider execution must wait for accepted commitment or owner-private direct fulfillment.",
+      "Tool success, model output, provider callback, and local logs do not prove completion.",
+      "Every new agent must declare skip conditions so irrelevant human-required plans do not wake it."
+    ]
+  },
+  "briefingQualificationTags": {
+    "status": "planner_filter_inputs",
+    "purpose": "Help briefing and planning produce typed filters so only plausible named agents wake for a plan.",
+    "writeTargets": [
+      "Request.seeking.actorKinds",
+      "Request.seeking.supplyKinds",
+      "Request.brief.outputKinds",
+      "Request.derived.executionKind",
+      "Request.derived.leadRole",
+      "Request.derived.roleSlots",
+      "Request.derived.matchCandidates"
+    ],
+    "rules": [
+      "Use canon enum fingerprints instead of generic tags when a requested output or worker type is clear.",
+      "When a plan needs physical presence, local access, witnessed handoff, or field proof, prefer human or field-capable tags and skip provider-only agents.",
+      "When a plan is provider-capable media generation, tag video_generation and video so Mira can wake without broad scanning.",
+      "Do not imply assignment from tags; tags only reduce scanner work."
+    ]
+  },
+  "scannerContract": {
+    "status": "read_only_projection",
+    "method": "GET",
+    "reads": [
+      "Request",
+      "Supply"
+    ],
+    "writes": [],
+    "cheapFilters": [
+      "request.status is open or owner-approved for private scan",
+      "request.visibility is public, owned, or explicitly authorized",
+      "supply.status is published",
+      "supply.availability.acceptingRequests is true",
+      "request.seeking.supplyKinds overlaps supply.capability.supplyKinds",
+      "request.brief.outputKinds overlaps supply.capability.outputKinds when output kinds are known",
+      "request.routing.preferredSupplyId matches the worker supply when a private owner-selected lane exists"
+    ],
+    "wakePolicy": [
+      "Wake only workers whose deterministic filters pass.",
+      "Do not run LLM matching across every request.",
+      "Keep opportunity cards local or derived until a governed write occurs."
+    ],
+    "authority": {
+      "permissionGranted": false,
+      "assignmentCreated": false,
+      "approvalRecorded": false,
+      "paymentAuthorized": false,
+      "durableWriteCreated": false,
+      "fulfillmentStarted": false,
+      "artifactPublished": false,
+      "completionProven": false
+    }
+  },
+  "applicationPacket": {
+    "status": "local_until_submitted",
+    "requiredFields": [
+      "requestId",
+      "workerActorRef",
+      "supplyId",
+      "workerKey",
+      "recommendedLane",
+      "capabilityFit",
+      "proposalSummary",
+      "proofPlan",
+      "idempotencyKey"
+    ],
+    "mustReadBeforeSubmit": [
+      "request detail",
+      "agentActionPolicy",
+      "selected Supply",
+      "existing activeRefs",
+      "funding and proof requirements"
+    ],
+    "mustNotContain": [
+      "private prompt internals",
+      "provider secrets",
+      "raw runtime stdout",
+      "unreviewed completion claim",
+      "payment authorization"
+    ]
+  },
+  "applicationLanes": [
+    {
+      "id": "public_or_cross_actor_commitment_application",
+      "appliesWhen": "The request is public or the worker actor is not the private owner of the request.",
+      "requires": [
+        "request-detail agentActionPolicy allows apply_to_request",
+        "route auth or resolver bearer auth",
+        "commitments:propose scope when resolver bearer auth is used",
+        "represented worker approval",
+        "idempotency key"
+      ],
+      "canonicalReads": [
+        "Request",
+        "Supply"
+      ],
+      "canonicalWritesIfAuthorized": [
+        "Commitment",
+        "RequestEvent"
+      ],
+      "forbiddenWrites": [
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction"
+      ],
+      "idempotencyRequired": true,
+      "completionAuthority": false
+    },
+    {
+      "id": "owner_private_direct_worker_fulfillment",
+      "appliesWhen": "The same owner controls one private opened request and one selected published first-party Supply.",
+      "requires": [
+        "private owner-controlled Request",
+        "request status is open, funded, in_progress, or waiting_for_owner",
+        "routing.preferredSupplyId or explicit supplyId points to the selected Supply",
+        "selected Supply belongs to the owner",
+        "selected Supply is published",
+        "resolver binding matches when resolver bearer auth is used",
+        "idempotency key"
+      ],
+      "canonicalReads": [
+        "Request",
+        "Supply"
+      ],
+      "canonicalWritesIfAuthorized": [
+        "Fulfillment",
+        "RequestEvent"
+      ],
+      "forbiddenWrites": [
+        "Artifact",
+        "Transaction"
+      ],
+      "idempotencyRequired": true,
+      "completionAuthority": false
+    }
+  ],
+  "autoApprovalPolicy": {
+    "status": "owner_scoped_policy",
+    "scope": "trusted_first_party_supply_only",
+    "allowedEffects": [
+      "accept a trusted worker application",
+      "create one owner-private direct Fulfillment lane",
+      "attach selected Supply to Fulfillment truth",
+      "emit RequestEvent activity for the boundary crossed"
+    ],
+    "forbiddenEffects": [
+      "apply to anonymous public requests",
+      "apply to cross-owner Supply",
+      "bypass idempotency",
+      "publish Artifact by itself",
+      "authorize payment",
+      "accept review",
+      "complete Request",
+      "silently fall back to another Supply when selected Supply is unavailable"
+    ],
+    "requiredGates": [
+      "owner scope",
+      "trusted first-party supply",
+      "request-specific policy",
+      "selected supply availability",
+      "idempotency"
+    ]
+  },
+  "promptAssetBoundary": {
+    "supportAssetKinds": [
+      "prompt pack",
+      "reusable prompt",
+      "provider prompt",
+      "n8n workflow",
+      "MCP prompt",
+      "skill module"
+    ],
+    "cannotBeFrontpageSupplyUntil": [
+      "owner Actor exists",
+      "capability fingerprints exist",
+      "availability is declared",
+      "publish status is governed",
+      "execution or handoff path exists",
+      "proof requirements exist",
+      "Fulfillment boundary exists",
+      "unsafe-case tests or fixtures exist"
+    ],
+    "rules": [
+      "Prompt-only assets may support worker execution but cannot become buyable Supply by themselves.",
+      "Raw workflow JSON cannot carry Boreal approval, payment, proof, review, or completion authority.",
+      "Provider prompts and runtime traces stay below durable business truth unless promoted into Artifact, FulfillmentStep, or RequestEvent summaries through governed routes."
+    ]
+  },
+  "canonicalBoundary": {
+    "rootObject": "Request",
+    "durableTruthObjects": [
+      "Actor",
+      "Supply",
+      "Request",
+      "RequestParticipant",
+      "Commitment",
+      "Fulfillment",
+      "FulfillmentStep",
+      "Artifact",
+      "Transaction",
+      "RequestEvent"
+    ],
+    "profileIsNot": [
+      "permission grant",
+      "assignment",
+      "approval record",
+      "payment authorization",
+      "fulfillment start",
+      "artifact publication",
+      "completion proof"
+    ],
+    "notRoots": [
+      "AgentStage",
+      "Task",
+      "Workflow",
+      "Job",
+      "Order",
+      "Offer",
+      "Intent"
+    ],
+    "rules": [
+      "Request remains the durable root.",
+      "Worker scan output is read-only opportunity guidance.",
+      "Public or cross-actor applications write Commitment.",
+      "Owner-private direct Fulfillment is the narrow trusted first-party exception.",
+      "Completion still requires Artifact, Fulfillment, RequestEvent, payment when applicable, and owner review truth."
+    ]
+  },
+  "examples": [
+    {
+      "id": "video_generation_public_apply",
+      "workerKey": "video-generation",
+      "requestVisibility": "public",
+      "recommendedLane": "public_or_cross_actor_commitment_application",
+      "expectedCanonicalReads": [
+        "Request",
+        "Supply"
+      ],
+      "expectedCanonicalWritesIfTaken": [
+        "Commitment",
+        "RequestEvent"
+      ],
+      "notAuthority": [
+        "not assignment",
+        "not accepted Commitment",
+        "not Fulfillment start",
+        "not Artifact publication",
+        "not payment authorization",
+        "not completion proof"
+      ],
+      "notes": [
+        "The worker can prepare a proposal after reading request-detail policy.",
+        "The owner must accept before public or cross-actor fulfillment starts."
+      ]
+    },
+    {
+      "id": "video_generation_owner_private_direct",
+      "workerKey": "video-generation",
+      "requestVisibility": "private",
+      "recommendedLane": "owner_private_direct_worker_fulfillment",
+      "expectedCanonicalReads": [
+        "Request",
+        "Supply"
+      ],
+      "expectedCanonicalWritesIfTaken": [
+        "Fulfillment",
+        "RequestEvent"
+      ],
+      "notAuthority": [
+        "not Artifact publication",
+        "not payment authorization",
+        "not review acceptance",
+        "not Request completion"
+      ],
+      "notes": [
+        "The request must be owner-controlled and pinned to the published Boreal-managed supply.",
+        "Auto-approval may create the fulfillment lane but cannot skip proof or review."
+      ]
+    },
+    {
+      "id": "humanizer_target_only",
+      "workerKey": "humanizer",
+      "requestVisibility": "public",
+      "recommendedLane": "public_or_cross_actor_commitment_application",
+      "expectedCanonicalReads": [
+        "Request",
+        "Supply"
+      ],
+      "expectedCanonicalWritesIfTaken": [
+        "Commitment",
+        "RequestEvent"
+      ],
+      "notAuthority": [
+        "not live starter supply",
+        "not assignment",
+        "not Fulfillment start",
+        "not completion proof"
+      ],
+      "notes": [
+        "Humanizer remains target-only until a supply factory, execution contract, proof path, and fixtures exist.",
+        "Do not add catalog-only humanizer supply."
+      ]
+    }
+  ]
+}

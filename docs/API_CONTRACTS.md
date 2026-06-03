@@ -167,6 +167,12 @@ For the first web slice, `Request` create and update must support:
 - resolver runtimes should be able to write commitment and artifact activity through direct request resource endpoints instead of going through chat tool-calling only
 - resolver runtimes should authenticate through a Boreal-issued resolver token, not raw Codex credentials
 
+In-house named Boreal agents should use stable route slots under `/api/boreal-agents/{agentKey}`.
+Each route slot must map one unique agent name, model or provider binding, task pipeline, qualification tag set, and owned supply boundary to existing request-resource routes.
+The per-agent route is a dispatch and preparation surface, not a new authority layer; durable writes still land through `Commitment`, owner-private direct `Fulfillment`, `Artifact`, `Transaction`, or `RequestEvent` routes as applicable.
+`Mira` / `/api/boreal-agents/mira-video` is the first live template for video generation.
+`Tala` / `/api/boreal-agents/tala-humanizer` remains target-only until the humanizer supply factory, execution contract, proof path, and route tests exist.
+
 ### `Commitment`
 
 Should expose:

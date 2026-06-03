@@ -445,6 +445,9 @@ Verify:
 - owner-scoped auto-approval can create or accept only the intended worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to a different supply
 - prompt packs, reusable prompts, workflow JSON, provider prompts, and skills cannot be listed as starter `Supply` without a backing execution profile, capability fingerprints, proof path, and readiness tests
 - `video-generation` remains the only live starter worker until another worker such as humanizer has a real supply factory, execution contract, proof path, and failure fixtures
+- `schemas/json/in-house-worker-application-profile.schema.json`, `fixtures/agent/in-house-worker-application-profile.sample.json`, and `pnpm contracts:in-house-workers` keep the profile machine-readable and enforce scanner, application, auto-approval, prompt-asset, and live-worker boundaries
+- every first-party named agent declares a unique name, stable `/api/boreal-agents/{agentKey}` route, task pipeline, tool bindings, model or provider environment bindings, qualification tags, skip conditions, and contract fixtures
+- briefing and planning tags reduce wasteful scans by keeping human-required, local-access, witnessed-handoff, field-proof, pickup, delivery, and physical-verification plans away from provider-only agents unless a supporting provider role is explicit
 
 ### Supply-management contract tests
 

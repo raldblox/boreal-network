@@ -36,6 +36,11 @@ Do not introduce `AgentStage`, `Task`, `Workflow`, `Job`, `Order`, or `Offer` as
 
 A Boreal-managed human, agent, runtime, provider-backed module, or desktop resolver lane that is represented by an actor context and one or more owned `Supply` records.
 
+`Named Boreal agent`
+
+One first-party Boreal agent with a unique agent key, human-readable name, stable API route, model bindings, tool bindings, task pipeline, qualification tags, and skip conditions.
+The API route template is `/api/boreal-agents/{agentKey}`.
+
 `Worker scanner`
 
 A read-only request-opportunity pass over open request projections, owned requests, or owner-approved private requests.
@@ -77,14 +82,18 @@ Required cheap filters:
 - request status and visibility
 - owner or participant access
 - `seeking.supplyKinds`
+- `seeking.actorKinds`
 - `brief.outputKinds`
 - `derived.routeFamily`
 - `derived.executionKind`
+- `derived.leadRole`
+- `derived.roleSlots`
 - `derived.paymentMode`
 - preferred supply compatibility when present
 - supply availability and published status
 
 LLM or provider calls should happen only after deterministic filters identify a small candidate set.
+For human-required plans, local-access plans, witnessed handoff plans, field proof plans, and other non-substitutable embodied work, provider-only named agents should not wake unless an explicit supporting role is present.
 
 Scanner output is local or derived.
 It is not assignment truth.
@@ -130,6 +139,32 @@ It must not:
 - accept review
 - complete the request
 - silently fall back to a different supply when the selected supply is unavailable
+
+## Named Agent Template Rules
+
+Every first-party Boreal agent should declare:
+
+- unique agent key
+- unique human name
+- stable API route under `/api/boreal-agents/{agentKey}`
+- backing `Supply` or target supply binding
+- model bindings such as `OPENAI_API_KEY`
+- provider bindings such as `RUNWAY_API_KEY` when the agent runs provider execution
+- allowed tools and governed routes
+- task pipeline with typed steps
+- qualification tags for actor kinds, supply kinds, output kinds, execution kinds, and skip conditions
+- contract fixture and route-level tests before production use
+
+Agents may run multiple task steps internally.
+Those task steps may call models and tools, but only request-bound mutation routes may create `Commitment`, `Fulfillment`, `Artifact`, `Transaction`, or `RequestEvent` truth.
+
+The first live named agent template is:
+
+- `Mira` at `/api/boreal-agents/mira-video`, bound to `video-generation`
+
+The first target named agent template is:
+
+- `Tala` at `/api/boreal-agents/tala-humanizer`, blocked until the humanizer supply factory, execution contract, proof path, and fixtures exist
 
 ## Prompt and Workflow Asset Rules
 

@@ -300,6 +300,7 @@ Today, the machine-readable baseline proves:
 - public agent start, action playbook, workflow catalog, UX profile, client kit, tool registry, and readiness profile now point agents to `agentActionCardHints` as request-level render hints while preserving `agentActionPolicy` as the permission gate
 - request, supply, payment, and resolver-auth OpenAPI exports now declare machine-readable auth boundaries: standard OpenAPI `security` requirements for anonymous, account-session, and resolver-bearer access where live routes support them, plus Boreal `x-boreal-required-scopes` extensions for resolver scope conditions
 - one Boreal-managed `video-generation` starter supply exists as the first in-house worker-backed supply lane; broader in-house worker scanning, application packets, and owner auto-approval fixtures remain target work
+- one machine-readable in-house worker application profile now defines named agent templates, including `Mira` as the video-generation route template and `Tala` as target-only humanizer, without making per-agent dispatch routes live authority by itself
 
 ## Target Direction
 
@@ -312,6 +313,7 @@ These are intended next layers, not fully modeled proof yet:
 - richer evidence automation with artifact scanning, checksum verification, private reviewer access, and proof scoring; the current evidence profile is packaging and review guidance only
 - richer execution automation with lane-specific worker dispatch, runtime admission, step updates, provider correlation, and isolated untrusted execution; the current execution profile is descriptive guidance over existing `Fulfillment` and `FulfillmentStep` truth
 - richer in-house Boreal worker scanning and application automation where trusted named agents and humans scan opened requests, apply through `Commitment`, or use owner-private direct `Fulfillment` only when the selected first-party `Supply` and owner policy allow it
+- live per-agent API routes under `/api/boreal-agents/{agentKey}` backed by route-level tests, model/provider credentials, supply ownership checks, scanner filters, and existing request-resource mutation boundaries
 - richer human handoff state in live request rooms, including persisted approval records, review prompts, and escalation inboxes; the current public handoff profile and packet examples are descriptive guidance only
 - richer monitor automation with persisted subscriptions, delivery retries, receiver enrollment, SLA configuration, and monitor inboxes; the current monitoring profile and validation endpoint are descriptive or preflight-only over live cursor polling plus target signed push delivery
 - richer onboarding automation with persisted operator-reviewed production access packets, real isolated write sandbox credentials, revocation enforcement, scope approval, abuse controls, and delegated external-agent auth; the current onboarding, access-review, and handoff-preparation surfaces do not create live authority

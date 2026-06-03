@@ -87,6 +87,10 @@ Rules:
 23. Do not treat runtime access or provider execution as equivalent to completion.
 24. If the request is closer to digital product or instant delivery, do not inflate it into a heavier fulfillment path than the real route requires.
 25. Public or cross-actor request lanes must not inherit owner-private desktop assumptions.
+26. Use typed qualification fingerprints so worker scanners can cheaply decide which named Boreal agents should wake: \`seeking.actorKinds\`, \`seeking.supplyKinds\`, \`brief.outputKinds\`, execution kind, lead role, role slots, and match candidates.
+27. When a request requires human presence, local access, field proof, witnessed handoff, pickup, delivery, or physical verification, prefer human or field-capable tags and do not make provider-only agents look qualified.
+28. When a request is clearly provider-capable media generation, use specific tags such as \`video_generation\` and \`video\` so the video agent can wake without broad scanning.
+29. Qualification tags are scanner filters only. They are not assignment, approval, fulfillment start, payment authority, or completion proof.
 
 Mode split:
 - Request Preflight mode is for forming the Request root object.
@@ -352,6 +356,8 @@ ${JSON.stringify(
 - For public storefront, exterior, or street-facing photo requests, preserve onsite location, timing, and proof, but do not invent or force private access requirements unless restricted access is stated.
 - If the request implies embodied work and critical location, access, timing, or proof fields are missing, create the draft with the explicit ask and leave those missing fields blank. Do not create a fake digital-only request just to satisfy request mode.
 - If a supply is already pinned later in routing, that narrows the route but does not mean the request already has a real match or assigned lane.
+- Write clear actor, supply, output, execution, lead-role, and role-slot signals when the request text supports them so unrelated agents do not scan or spend inference.
+- If the ask is human-required or physical-proof-heavy, tag it for human or field-capable supply instead of waking provider-only agents.
 - Prefer title plus body first. Summary is optional and should stay blank unless it adds real compression.`
     : !activeRequest
       ? ""
@@ -368,6 +374,8 @@ ${JSON.stringify(
 - For public storefront, exterior, or street-facing photo requests, preserve onsite location, timing, and proof, but do not invent or force private access requirements unless restricted access is stated.
 - If the draft implies embodied work, do not rewrite it into a digital-only request. Let missing location, access, timing, or verification fields remain visible through \`derived.missingDetails\`.
 - Use top-level seeking for matching-facing structure, not generated tags.
+- Keep qualification tags specific enough for scanner efficiency: use typed actor kinds, supply kinds, output kinds, execution kind, lead role, role slots, and match candidates only when justified by explicit request facts.
+- Human-required or local-access plans should wake human or field-capable supply before provider-only agents.
 - If \`routing.preferredSupplyId\` exists, treat it as pinned route context only. Do not imply assignment or completion from it alone.`
         : `Open request room rules:
 - This Request is already open. Do not treat it like a draft request.

@@ -17,6 +17,8 @@ Verify that web briefing-workspace submits create or update one draft `Request`,
 Verify that raw request-intake mode creates or updates one draft `Request` from the submitted buyer text without calling LLM briefing, deriving title or summary polish, deriving a body-based key, generating planner phases or roles, retrieving match candidates, classifying execution mode, writing assignment copy, or writing route/proof projections.
 Verify that a raw draft can resume assisted planning on the same `Request` by switching planner mode, preserving the buyer-authored body, and then rebuilding planner projections.
 Verify that preflight preview fields are derived from chat turns and do not become canonical planner or request truth.
+Verify that assisted briefing emits typed qualification fingerprints for actor kinds, supply kinds, output kinds, execution kind, lead role, role slots, and match candidates only when justified by explicit request facts, so named agents can filter before waking.
+Verify that human-required, local-access, witnessed-handoff, field-proof, pickup, delivery, or physical-verification plans do not wake provider-only named agents unless an explicit supporting provider role is present.
 If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.
 Verify that pinned-supply routing context stays outside the buyer-authored brief and does not appear as synthetic prompt text when the request started from a supply selection.
 Verify that selected supply context remains in `routing.preferredSupplyId` or equivalent routing fields instead of being rewritten into buyer-authored brief text.
@@ -252,6 +254,8 @@ From the repo root:
   Validates the v0 public-solution-run fixture: completed public source request, accepted source artifact, private run request, buyer-credit debit, and request-attached transaction truth.
 - `pnpm web:test:agent-discovery`
   Validates the read-only agent discovery package: public agent card, start guide, OpenAPI discovery index, allowlisted OpenAPI/JSON Schema/AsyncAPI exports, and the `Request` root boundary.
+- `pnpm contracts:in-house-workers`
+  Validates the in-house Boreal worker application profile: scanner read-only guarantees, public `Commitment` application boundary, owner-private direct `Fulfillment` exception, auto-approval non-completion limits, prompt-only asset gates, live `video-generation`, and target-only humanizer status.
 - `pnpm evals:request-processing:benchmark`
   Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
 - `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`
