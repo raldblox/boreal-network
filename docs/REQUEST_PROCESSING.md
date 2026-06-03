@@ -73,7 +73,7 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
    A non-mutating preflight preview may summarize captured facts from those chat turns for the buyer.
    The first durable draft should be created only when the brief is ready enough to produce useful plans, the owner explicitly asks to create the request draft, or another explicit create action applies.
    If the owner selects raw request intake, the first send may create or update the same draft `Request` directly from the submitted text without running LLM briefing or planner generation.
-   Raw intake must set the buyer text as request-owned brief input, suppress planner-derived roles, phases, matches, route summaries, and proof-planning projections, and keep the draft resumable by switching `Request.derived.planningMode` back to assisted planning later.
+   Raw intake must set the buyer text as request-owned `brief.body`, leave `brief.title` and `brief.summary` blank unless the buyer explicitly supplied them, avoid body-derived request slugs, suppress planner-derived roles, phases, matches, route summaries, execution classifications, assignment copy, and proof-planning projections, and keep the draft resumable by switching `Request.derived.planningMode` back to assisted planning later.
    Selecting one owned supply from the web supply hub may pin preflight context without creating a `Request`.
    If the buyer uses an explicit create-from-supply action, that may count as the create action for a private request, but it should pin `routing.preferredSupplyId`, seed request-side matching intent from that supply, and still avoid injecting synthetic brief text on the owner's behalf.
    Optional request-briefing assist may restructure a ready brief for clarity, but it must still end in exactly one `create_request_brief` mutation instead of a parallel hidden write path.
@@ -86,7 +86,7 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
    Ids, status, routing, active refs, latest summary, timestamps, and planner projections must remain read-only in that inline edit surface.
    Before `save draft`, request-tool mutation, or `open request`, normalize that draft-input projection back into the same durable `Request`.
    If one user turn explicitly includes brief text plus budget or deadline, the request-brief mutation layer should preserve both the narrative brief and the structured canonical fields in the same write.
-   Title and body are the first readiness-bearing brief fields. `brief.summary` is optional compression and should not be manufactured only to satisfy readiness.
+   Title and body are the first readiness-bearing brief fields for assisted planning. Raw intake may be ready to open with body-only buyer text; `brief.title` and `brief.summary` should not be manufactured only to satisfy readiness.
    Matching-facing structure should prefer top-level `seeking` criteria instead of overloading `brief.tags`.
    Matching-facing fingerprint fields must use canon-locked enum values when they are structured: `brief.outputKinds`, `seeking.actorKinds`, `seeking.supplyKinds`, `seeking.teamMode`, `derived.routeFamily`, `derived.executionKind`, `derived.paymentMode`, `derived.matchingMode`, `derived.leadRole`, `derived.roleSlots[].roleKey`, `derived.phases[].phaseKey`, `derived.embodiedConstraintSet.verificationRequirements`, `derived.verificationPlan.requiredEvidenceClaims`, and `Supply.capability.{supplyKinds, fulfillmentActorKinds, outputKinds, executionChannels}`.
    Unknown fingerprint values should be rejected or normalized away instead of being stored as freeform canonical state.
@@ -406,6 +406,7 @@ These objects are derived and rebuildable, not durable roots:
 - Once a request draft exists, subsequent briefing updates should mutate the same `Request` instead of forking a second durable demand object.
 - Draft-mode manual editing must stay limited to user-editable request-input fields; system-owned fields remain server-owned and rebuildable.
 - `RequestDerived.planningMode` controls whether planner projections are currently generated; raw mode suppresses those projections without changing the durable `Request` root.
+- Raw mode must preserve the buyer-authored body without deriving a title, summary, body-based key, route classification, default execution mode, or planner assignment summary.
 - Planner-visible lead roles, role slots, phase plans, execution profiles, and proof plans must not be treated as buyer-authored brief fields.
 - `RequestDerived.leadRole` and `RequestDerived.roleSlots` remain canonical even when the UI explains them as capability or worker-type language.
 - `RequestDerived.outcomeClaims`, `RequestDerived.matchCandidates`, `RequestDerived.leadRanking`, `RequestDerived.roleMatches`, `RequestDerived.assignmentProposal`, and `RequestDerived.replanReasons` stay read-only planner state and must not be confused for durable buyer-authored or matcher-attached truth.

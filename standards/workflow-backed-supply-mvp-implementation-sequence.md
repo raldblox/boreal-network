@@ -168,7 +168,15 @@ Goal:
 
 - ship one real workflow-backed supply
 
-Implement first:
+Implement first from the current active service lane:
+
+- `Character Call Starter` / `starter-call`
+
+Implement next when the first lane is stable:
+
+- `Founder Avatar Clip Pack` / `sales-reply-pack`
+
+Keep as reference, not as the current first shipped supply lane:
 
 - `Fix My Broken n8n Workflow`
 

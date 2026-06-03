@@ -85,6 +85,7 @@ export type HomeBetaWorkCard = {
   tags: string[];
   timestamp: number;
   title: string;
+  workroomHref: string;
 };
 
 export type ShowcaseRequestSourceKind =
@@ -913,6 +914,10 @@ export function getShowcaseRequestCatalogEntry(requestId: string) {
   return showcaseRequestCatalog.find((entry) => entry.request.id === requestId);
 }
 
+export function showcaseRequestWorkroomHref(requestId: string) {
+  return `/home/beta/${encodeURIComponent(requestId)}`;
+}
+
 export function toHomeBetaWorkCard(
   entry: ShowcaseRequestCatalogEntry,
 ): HomeBetaWorkCard {
@@ -931,6 +936,7 @@ export function toHomeBetaWorkCard(
     tags: request.brief.tags,
     timestamp: Date.parse(request.updatedAt),
     title: request.brief.title,
+    workroomHref: showcaseRequestWorkroomHref(request.id),
   };
 }
 

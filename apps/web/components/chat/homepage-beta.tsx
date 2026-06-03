@@ -334,7 +334,7 @@ function WorkCardRow({ card }: { card: WorkCard }) {
   const missingParts = missingCount(card);
 
   return (
-    <Link className="group block" href={card.primaryAction.href}>
+    <Link className="group block" href={card.workroomHref}>
       <article className="overflow-hidden rounded-[32px] border border-border/65 bg-card/48 p-4 transition-colors hover:border-foreground/22 hover:bg-card/66 md:p-5">
         <div className="grid gap-5 xl:grid-cols-[minmax(260px,0.72fr)_minmax(0,1.28fr)] xl:items-stretch">
           <div className="flex min-w-0 flex-col">

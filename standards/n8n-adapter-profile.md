@@ -213,6 +213,41 @@ If fit is weak, keep the import as operator-only support material.
 }
 ```
 
+## Request-Flow Sidecar Rules
+
+Every n8n import or export that is exposed to product surfaces should include a Boreal request-flow sidecar.
+
+The sidecar should map adapter-safe workflow shape into:
+
+- `RequestFlowStage`
+- `RequestFlowCard`
+- `ParticipantAction`
+- credential slots
+- human checkpoints
+- proof requirements
+- unsupported features
+- lossiness
+- round-trip safety
+
+The sidecar must not create request truth by itself.
+
+Allowed mappings:
+
+- imported workflow shape -> `WorkflowPackVersion.graph.blocks`
+- import review card -> `adapter_mapping_card` at `reuse_export` or `path_planning`
+- buyer service path card -> `action_card` at `path_planning`
+- fulfillment run card -> `action_card` at `execution_progress`
+- proof output card -> `evidence_card` at `proof_submission`
+- export package card -> `adapter_mapping_card` at `reuse_export`
+
+Forbidden mappings:
+
+- n8n execution success -> request completion
+- n8n node status -> canonical lifecycle state
+- n8n credential export -> Boreal credential value
+- n8n workflow id -> `Request` root
+- n8n task or execution -> `FulfillmentStep` unless a governed Boreal route creates the step
+
 ## Execution Rules
 
 The adapter should support:

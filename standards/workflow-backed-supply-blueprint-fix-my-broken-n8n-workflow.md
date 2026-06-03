@@ -2,13 +2,16 @@
 
 ## Status
 
-Draft implementation blueprint
+Reference implementation blueprint
 
 ## Purpose
 
-This file defines the first workflow-backed supply blueprint Boreal should standardize and eventually implement.
+This file defines a reusable workflow-backed n8n repair supply blueprint Boreal may standardize and eventually implement.
 
-It is the recommended first supply because:
+It was an earlier first-supply candidate.
+The current first shipped workflow-backed service lane is governed by [workflow-backed-supply-mvp-implementation-sequence.md](workflow-backed-supply-mvp-implementation-sequence.md) and active first-party service strategy.
+
+This blueprint remains useful because:
 
 - demand is immediate
 - outcome is legible

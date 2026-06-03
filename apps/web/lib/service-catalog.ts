@@ -8,6 +8,15 @@ export type BorealServicePlan = {
   serviceRequestStarter: string;
 };
 
+export type BorealServiceIntake = {
+  kind: "single_text" | "prompt_text" | "asset_plus_prompt";
+  primaryLabel: string;
+  primaryHelper: string;
+  primaryPlaceholder: string;
+  optionalFields: string[];
+  submitLabel: string;
+};
+
 export type BorealServiceFamily = {
   familyKey: string;
   slug: string;
@@ -17,12 +26,87 @@ export type BorealServiceFamily = {
   buyer: string;
   providerLabel: string;
   tags: string[];
+  intake?: BorealServiceIntake;
   process: string[];
   proof: string[];
   plans: BorealServicePlan[];
 };
 
 export const borealServiceFamilies: BorealServiceFamily[] = [
+  {
+    familyKey: "human-editorial-polish",
+    slug: "human-editorial-polish",
+    title: "Human Editorial Polish",
+    eyebrow: "Text-to-request service",
+    summary:
+      "Paste rough text, AI-assisted copy, a post, an email, or a script. Boreal turns it into a tracked edit request and delivers publish-ready text with notes.",
+    buyer:
+      "Founders, operators, creators, students, and teams who have useful text that still reads too generic, stiff, or unfinished.",
+    providerLabel: "Boreal editorial workflow + operator review",
+    tags: ["writing", "editing", "copy polish", "human review"],
+    intake: {
+      kind: "single_text",
+      primaryLabel: "Text to polish",
+      primaryHelper:
+        "Do not write a prompt. Paste the material. Boreal will turn it into a Request, plan the edit, and deliver the final text with proof notes.",
+      primaryPlaceholder:
+        "Paste the rough draft, AI-assisted text, post, email, script, essay section, product copy, or landing page section...",
+      optionalFields: [
+        "Audience",
+        "Tone",
+        "Where it will be published",
+        "What must not change",
+      ],
+      submitLabel: "Pay and polish text",
+    },
+    process: [
+      "Paste the source text and optional audience, tone, channel, or preservation notes.",
+      "Boreal creates a Request with the original text, selected plan, edit goal, proof needs, and credit requirement attached.",
+      "The editorial workflow checks meaning, removes robotic structure, improves flow, and keeps the buyer's intent intact.",
+      "Operator review catches over-polish, unsafe claims, missing context, and obvious meaning drift before delivery.",
+      "Final text, edit notes, and a meaning-preservation check are delivered back inside the Request workroom.",
+    ],
+    proof: [
+      "final polished text",
+      "edit notes",
+      "meaning-preservation check",
+      "delivery receipt",
+    ],
+    plans: [
+      {
+        planKey: "publish-polish",
+        label: "Publish Polish",
+        price: "$1",
+        turnaround: "24 hours",
+        summary:
+          "One short draft polished for clarity, rhythm, and publication readiness while preserving the original meaning.",
+        included: [
+          "up to 1,500 words",
+          "clarity and rhythm pass",
+          "tone cleanup",
+          "edit notes and meaning check",
+        ],
+        serviceRequestStarter:
+          "I want Human Editorial Polish, Publish Polish. Text to polish: . Audience: . Tone: . Where this will be published: . What must not change: . Done means I receive final polished text, edit notes, a meaning-preservation check, and a delivery receipt.",
+      },
+      {
+        planKey: "launch-copy-pass",
+        label: "Launch Copy Pass",
+        price: "$1",
+        turnaround: "2 business days",
+        summary:
+          "A focused polish pass for launch copy, landing sections, product announcements, or social posts that need to sound clearer and less generic.",
+        included: [
+          "headline and body polish",
+          "audience-fit notes",
+          "plain-language cleanup",
+          "final copy plus change notes",
+        ],
+        serviceRequestStarter:
+          "I want Human Editorial Polish, Launch Copy Pass. Text to polish: . Product or offer context: . Target reader: . Tone: . What must not change: . Done means I receive cleaner launch copy, audience-fit notes, edit notes, and a delivery receipt.",
+      },
+    ],
+  },
   {
     familyKey: "character-call-starter",
     slug: "character-call-starter",

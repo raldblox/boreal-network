@@ -717,8 +717,26 @@ const rawRequestDraft = applyRequestPatch(
 
 assert.equal(rawRequestDraft.derived.planningMode, "raw");
 assert.equal(rawRequestDraft.brief.body, rawRequestFixture.requestInput.rawAsk);
+assert.equal(rawRequestDraft.brief.title, rawRequestFixture.expectedDerived.brief.title);
+assert.equal(
+  rawRequestDraft.brief.summary,
+  rawRequestFixture.expectedDerived.brief.summary,
+);
+assert.equal(rawRequestDraft.key.startsWith(rawRequestFixture.expectedDerived.keyPrefix), true);
 assert.equal(rawRequestDraft.derived.readiness.readyForOpen, true);
 assert.equal(rawRequestDraft.derived.readiness.readyForMatch, false);
+assert.deepEqual(
+  rawRequestDraft.derived.executionProfile.executionModes,
+  rawRequestFixture.expectedDerived.executionModes,
+);
+assert.deepEqual(
+  rawRequestDraft.derived.embodiedConstraintSet.executionModes,
+  rawRequestFixture.expectedDerived.executionModes,
+);
+assert.equal(
+  rawRequestDraft.derived.assignmentProposal.summary,
+  rawRequestFixture.expectedDerived.assignmentSummary,
+);
 for (const field of rawRequestFixture.expectedDerived
   .emptyPlannerFields as Array<keyof typeof rawRequestDraft.derived>) {
   assert.deepEqual(rawRequestDraft.derived[field], []);
@@ -744,6 +762,33 @@ assert.equal(rawRequestResumedWithPlanner.derived.planningMode, "assisted");
 assert.equal(rawRequestResumedWithPlanner.id, rawRequestDraft.id);
 assert.equal(rawRequestResumedWithPlanner.brief.body, rawRequestDraft.brief.body);
 assert.equal(rawRequestResumedWithPlanner.derived.phases.length > 0, true);
+
+const rawShortRequestDraft = applyRequestPatch(
+  createInitialRequestDraft({
+    id: "req_raw_short",
+    chatId: "chat_raw_short",
+    documentId: "doc_raw_short",
+    userId: "buyer_1",
+    visibility: "private",
+    createdAt: "2026-06-01T00:00:00.000Z",
+  }),
+  {
+    brief: {
+      body: "i need blockchain dev",
+    },
+    derived: {
+      planningMode: "raw",
+    },
+  },
+  "2026-06-01T00:03:00.000Z",
+);
+
+assert.equal(rawShortRequestDraft.brief.title, "");
+assert.equal(rawShortRequestDraft.brief.summary, "");
+assert.equal(rawShortRequestDraft.brief.body, "i need blockchain dev");
+assert.equal(rawShortRequestDraft.key.startsWith("request-"), true);
+assert.equal(rawShortRequestDraft.key.includes("blockchain"), false);
+assert.deepEqual(rawShortRequestDraft.derived.executionProfile.executionModes, []);
 
 const originalOpenAIKey = process.env.OPENAI_API_KEY;
 delete process.env.OPENAI_API_KEY;

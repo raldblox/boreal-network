@@ -60,6 +60,10 @@ for (const card of homeBetaWorkCards) {
   assert.ok(entry);
   assert.equal(card.request.id, entry.request.id);
   assert.equal(card.slots, entry.flowProjection);
+  assert.equal(
+    card.workroomHref,
+    `/home/beta/${encodeURIComponent(entry.request.id)}`,
+  );
 
   if (entry.source.kind === "service_plan") {
     assert.equal(card.primaryAction.actionId, "start_service_request");

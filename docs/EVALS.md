@@ -14,7 +14,7 @@ A high-scoring match system that mutates too early is still failing.
 Verify that a raw ask becomes the expected brief, optional structured `seeking`, constraints, output kinds, budget shape, and missing-field list.
 Verify that a fuzzy first turn in a chat-only `New request` clarification lane may remain conversational, save private chat history, and ask one focused briefing question without creating a durable `Request`.
 Verify that web briefing-workspace submits create or update one draft `Request`, remain hidden from the visible transcript, preserve the raw composer prompt, and expose missing brief fields in the briefing surface.
-Verify that raw request-intake mode creates or updates one draft `Request` from the submitted buyer text without calling LLM briefing, generating planner phases or roles, retrieving match candidates, or writing route/proof projections.
+Verify that raw request-intake mode creates or updates one draft `Request` from the submitted buyer text without calling LLM briefing, deriving title or summary polish, deriving a body-based key, generating planner phases or roles, retrieving match candidates, classifying execution mode, writing assignment copy, or writing route/proof projections.
 Verify that a raw draft can resume assisted planning on the same `Request` by switching planner mode, preserving the buyer-authored body, and then rebuilding planner projections.
 Verify that preflight preview fields are derived from chat turns and do not become canonical planner or request truth.
 If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.

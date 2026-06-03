@@ -278,7 +278,7 @@ Draft rule:
 - that editable subset is `visibility`, `brief`, `seeking`, `budget`, and `deadline`
 - `brief.summary` is optional compression, not a readiness gate
 - `seeking` may be partial while the request is still being formed
-- raw draft intake may set `derived.planningMode` to `raw` so the request stores buyer-authored text without generated planner projections; assisted planning can later rebuild projections on the same `Request`
+- raw draft intake may set `derived.planningMode` to `raw` so the request stores buyer-authored `brief.body` without generated title, summary, body-derived key, execution classification, assignment copy, or planner projections; assisted planning can later rebuild projections on the same `Request`
 - `routing.preferredSupplyId` may be updated by the owner after open only for private request execution control
 - system-owned fields such as ids, ownership refs, keys, status progression, timestamps, routing, active refs, latest summary, and derived projections stay server-owned and should be shown as a read-only projection outside the editable subset
 

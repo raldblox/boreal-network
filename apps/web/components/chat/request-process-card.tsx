@@ -96,9 +96,9 @@ export function RequestProcessCard({
   const visibleTags = tags.slice(0, density === "flow" ? 3 : 5);
   const hiddenTagCount = Math.max(0, tags.length - visibleTags.length);
   const cardClassName = cn(
-    "group relative w-full overflow-hidden rounded-[18px] border bg-background/96 text-left text-foreground shadow-[0_10px_30px_rgba(15,23,42,0.04)] transition-[border-color,background-color,box-shadow,transform] duration-200",
+    "group relative w-full overflow-hidden rounded-[18px] border bg-background/96 text-left text-foreground shadow-none transition-[border-color,background-color,transform] duration-200",
     density === "flow"
-      ? "h-full p-3.5 shadow-[0_28px_72px_-38px_rgba(0,0,0,0.78)] backdrop-blur-xl"
+      ? "h-full p-3.5 backdrop-blur-xl"
       : density === "task"
         ? "p-3"
         : "p-3.5",
@@ -107,7 +107,7 @@ export function RequestProcessCard({
       : "",
     selected
       ? cn(
-          "border-foreground/28 bg-background shadow-[0_22px_64px_-36px_rgba(0,0,0,0.86)] ring-2 ring-foreground/10",
+          "border-foreground/28 bg-background ring-2 ring-foreground/10",
           tone.selected,
         )
       : "border-border/60 hover:border-foreground/18",
@@ -116,21 +116,13 @@ export function RequestProcessCard({
 
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute inset-y-0 left-0 w-1",
-          tone.accent,
-        )}
-      />
-
       <div className="flex items-start justify-between gap-3 pl-1">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-1.5">
             {badges.map((badge) => (
               <CardBadge badge={badge} key={`badge:${badge.label}`} />
             ))}
-            {status ? <CardBadge badge={status} emphasis /> : null}
+            {status ? <CardBadge badge={status} /> : null}
             {selected ? (
               <CardBadge badge={{ label: "Selected", tone: statusTone }} />
             ) : null}
@@ -236,19 +228,12 @@ export function RequestProcessCard({
   );
 }
 
-function CardBadge({
-  badge,
-  emphasis = false,
-}: {
-  badge: RequestProcessCardBadge;
-  emphasis?: boolean;
-}) {
+function CardBadge({ badge }: { badge: RequestProcessCardBadge }) {
   return (
     <span
       className={cn(
         "max-w-full rounded-full border px-2 py-0.5 text-[9px] font-medium uppercase tracking-[0.13em]",
         getToneClasses(badge.tone ?? "muted").badge,
-        emphasis ? "shadow-[0_8px_22px_-18px_rgba(0,0,0,0.55)]" : "",
       )}
     >
       <span className="line-clamp-1">{badge.label}</span>

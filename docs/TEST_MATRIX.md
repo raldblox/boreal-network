@@ -79,6 +79,19 @@ Verify:
 - raw runtime or resolver identity cannot be treated as supply ownership by itself
 - external-agent scopes should grant the minimum required read or write capability and should not make anonymous public inspection equivalent to mutation authority
 
+### Request-flow taxonomy tests
+
+When the actor-neutral request-flow taxonomy becomes machine-modeled, verify:
+
+- every `RequestFlowStage` has explicit in, out, done-here, not-done-here, authority, next-stage, recovery, and adapter-mapping fields
+- every `RequestFlowCard` references an existing stage and declares whether it is human, agent, system, or hybrid-facing
+- rendering a card never grants permission, records approval, authorizes payment, writes durable history, or proves completion
+- every write-capable action references route auth, participant or owner authority, request-specific policy, idempotency, and canonical write boundaries
+- every completion-facing card references required `Artifact`, `Fulfillment`, `RequestEvent`, `Transaction`, and owner-review truth instead of relying on workflow success or prompt output
+- every n8n import/export mapping declares credential slots, unsupported features, human checkpoints, proof requirements, sidecar requirements, and lossiness
+- raw workflow JSON, n8n nodes, A2A tasks, MCP tools, x402 payloads, and adapter runs never become canonical root objects
+- forbidden root names such as `Work`, `Job`, `Order`, `Issue`, `Offer`, `Intent`, `Task`, `Workflow`, and `Solution` are rejected or limited to documented UI or adapter language
+
 ### Agent-native readiness tests
 
 Verify:
@@ -268,7 +281,7 @@ Verify:
 - web briefing-workspace submits in `New request` mode create or update one draft request through hidden briefing-source turns instead of visible user bubbles or completed draft tool rows
 - pre-open briefing composer keeps the raw submitted prompt visible, disables while loading, and enables resubmission only after the prompt or attachments change
 - `New request` mode creates at most one draft request once the brief is ready enough for useful plans or the buyer explicitly asks to create it
-- raw request planner mode creates or updates one draft request from buyer text without LLM briefing, generated phases, generated roles, candidate matching, route summary, or proof-planning projections
+- raw request planner mode creates or updates one draft request from buyer text without LLM briefing, title or summary polish, body-derived key generation, generated phases, generated roles, candidate matching, execution classification, assignment copy, route summary, or proof-planning projections
 - raw request drafts can switch back to assisted planning on the same `Request`, preserve the buyer-authored body, and rebuild planner projections without forking request history
 - preflight preview fields should be UI projections from chat history and must not create a `Request`, `RequestEvent`, `Artifact`, `Transaction`, planner output, or fulfillment truth
 - selecting one supply from the supply hub may pin preflight context without creating a durable request

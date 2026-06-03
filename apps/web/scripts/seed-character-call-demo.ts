@@ -1,18 +1,19 @@
+import { config } from "dotenv";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
-import { config } from "dotenv";
 import postgres from "postgres";
 import {
   isEmailIdentifier,
   normalizeEmail,
   normalizeUsername,
 } from "../lib/account-auth";
-import { generateHashedPassword } from "../lib/db/utils";
+import { getPostgresJsConnectionUrl } from "../lib/db/connection-url";
 import {
   buyerCreditAccount,
   buyerCreditLedgerEntry,
   user,
 } from "../lib/db/schema";
+import { generateHashedPassword } from "../lib/db/utils";
 import { addMoneyAmounts, normalizeMoneyAmount } from "../lib/payment";
 import { generateUUID } from "../lib/utils";
 
@@ -20,11 +21,11 @@ config({
   path: ".env.local",
 });
 
-const client = postgres(process.env.POSTGRES_URL ?? "", {
+const client = postgres(getPostgresJsConnectionUrl(), {
   prepare: false,
   max: 1,
   idle_timeout: 20,
-  connect_timeout: 15,
+  connect_timeout: 8,
 });
 const db = drizzle(client);
 
@@ -66,7 +67,7 @@ function assertSeedAllowed() {
     process.env.ALLOW_BOREAL_DEMO_SEED !== "true"
   ) {
     throw new Error(
-      "Refusing to seed demo data in production without ALLOW_BOREAL_DEMO_SEED=true."
+      "Refusing to seed demo data in production without ALLOW_BOREAL_DEMO_SEED=true.",
     );
   }
 }
@@ -81,7 +82,7 @@ async function ensureDemoUser({
 
   if (emailMatch && usernameMatch && emailMatch.id !== usernameMatch.id) {
     throw new Error(
-      `Demo email and username already belong to different users: ${emailMatch.id} and ${usernameMatch.id}.`
+      `Demo email and username already belong to different users: ${emailMatch.id} and ${usernameMatch.id}.`,
     );
   }
 
@@ -121,8 +122,8 @@ async function ensureCreditAccount(ownerId: string) {
     .where(
       and(
         eq(buyerCreditAccount.ownerId, ownerId),
-        eq(buyerCreditAccount.currency, "USD")
-      )
+        eq(buyerCreditAccount.currency, "USD"),
+      ),
     )
     .limit(1);
 
@@ -169,8 +170,8 @@ async function ensureDemoCredit({
     .where(
       and(
         eq(buyerCreditLedgerEntry.buyerCreditAccountId, account.id),
-        eq(buyerCreditLedgerEntry.idempotencyKey, idempotencyKey)
-      )
+        eq(buyerCreditLedgerEntry.idempotencyKey, idempotencyKey),
+      ),
     )
     .limit(1);
 
@@ -184,7 +185,7 @@ async function ensureDemoCredit({
 
   const nextAvailableBalance = addMoneyAmounts(
     account.availableBalance,
-    amount
+    amount,
   );
   const nextLifetimeGranted = addMoneyAmounts(account.lifetimeGranted, amount);
   const [updatedAccount] = await db
@@ -272,8 +273,8 @@ async function main() {
         },
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 }
 

@@ -1082,6 +1082,10 @@ export function applyRequestPatch(
   patch: RequestPatch,
   updatedAt: string
 ): BorealRequestDraft {
+  const nextDerivedPlanningMode =
+    patch.derived?.planningMode === undefined
+      ? normalizePlanningMode(currentDraft.derived.planningMode)
+      : normalizePlanningMode(patch.derived.planningMode);
   const nextBrief = normalizeRequestBrief({
     ...currentDraft.brief,
     ...patch.brief,
@@ -1097,6 +1101,8 @@ export function applyRequestPatch(
       patch.brief?.tags === undefined
         ? (currentDraft.brief.tags ?? [])
         : patch.brief.tags,
+  }, {
+    deriveFallbacks: nextDerivedPlanningMode !== "raw",
   });
   const nextSeeking = normalizeSeeking({
     ...currentDraft.seeking,
@@ -1114,10 +1120,6 @@ export function applyRequestPatch(
     ...currentDraft.routing,
     ...patch.routing,
   });
-  const nextDerivedPlanningMode =
-    patch.derived?.planningMode === undefined
-      ? normalizePlanningMode(currentDraft.derived.planningMode)
-      : normalizePlanningMode(patch.derived.planningMode);
   const nextDerivedRouteFamily =
     patch.derived?.routeFamily === undefined
       ? currentDraft.derived.routeFamily
@@ -1163,7 +1165,12 @@ export function applyRequestPatch(
     }),
     latest: normalizeLatest(patch.latest ?? currentDraft.latest),
     updatedAt,
-    key: slugifyRequestKey(nextBrief.title || nextBrief.body, currentDraft.id),
+    key: slugifyRequestKey(
+      nextDerivedPlanningMode === "raw"
+        ? nextBrief.title
+        : nextBrief.title || nextBrief.body,
+      currentDraft.id
+    ),
     derived: {
       ...currentDraft.derived,
       planningMode: nextDerivedPlanningMode,
@@ -1312,8 +1319,8 @@ function createRawRequestPlannerState(): RequestPlannerState {
     roleSlots: [],
     phases: [],
     noMicrotaskExplosion: true,
-    executionProfile: createDefaultExecutionProfile(),
-    embodiedConstraintSet: createDefaultEmbodiedConstraintSet(),
+    executionProfile: createRawExecutionProfile(),
+    embodiedConstraintSet: createRawEmbodiedConstraintSet(),
     verificationPlan: createDefaultVerificationPlan(),
     planCollapseRisk: createDefaultPlanCollapseRisk(),
     clarificationNeeded: createDefaultClarificationNeeded(),
@@ -1321,7 +1328,7 @@ function createRawRequestPlannerState(): RequestPlannerState {
     matchCandidates: [],
     leadRanking: [],
     roleMatches: [],
-    assignmentProposal: createDefaultAssignmentProposal(),
+    assignmentProposal: createRawAssignmentProposal(),
     replanReasons: [],
     embodiedSummary:
       "Raw request mode captured the buyer-authored text without running planner projections.",
@@ -2113,19 +2120,41 @@ export function extractEditableRequestPatchFromContent(
   content: string
 ): Pick<RequestPatch, "visibility" | "brief" | "seeking" | "budget" | "deadline"> {
   const parsed = editableRequestDocumentSchema.parse(JSON.parse(content));
+  const planningMode = normalizePlanningMode(
+    readEditableDocumentPlanningMode(parsed)
+  );
 
   return {
     visibility: parsed.visibility,
-    brief: normalizeEditableBrief(parsed.brief),
+    brief: normalizeEditableBrief(parsed.brief, {
+      deriveFallbacks: planningMode !== "raw",
+    }),
     seeking: normalizeSeeking(parsed.seeking),
     budget: normalizeBudget(parsed.budget),
     deadline: normalizeDeadline(parsed.deadline),
   };
 }
 
-export function getRequestTitle(draft: Pick<BorealRequestDraft, "brief">) {
-  const normalizedBrief = normalizeRequestBrief(draft.brief);
-  return normalizedBrief.title || "Untitled request";
+function readEditableDocumentPlanningMode(
+  parsed: z.infer<typeof editableRequestDocumentSchema>
+): RequestPlanningMode | undefined {
+  const projectedPlanningMode =
+    parsed.projection?.request?.derived?.planningMode ??
+    parsed.normalized?.derived?.planningMode;
+
+  return projectedPlanningMode === "raw" ? "raw" : undefined;
+}
+
+export function getRequestTitle(
+  draft: Pick<BorealRequestDraft, "brief"> & {
+    derived?: Pick<RequestDerived, "planningMode">;
+  }
+) {
+  const planningMode = normalizePlanningMode(draft.derived?.planningMode);
+  const normalizedBrief = normalizeRequestBrief(draft.brief, {
+    deriveFallbacks: planningMode !== "raw",
+  });
+  return normalizedBrief.title || (planningMode === "raw" ? "Raw request" : "Untitled request");
 }
 
 export function slugifyRequestKey(title: string | undefined, id: string): string {
@@ -2143,14 +2172,20 @@ function hasText(value: string | undefined | null): boolean {
 }
 
 export function normalizeRequestBrief(
-  brief: Partial<RequestBrief> | undefined
+  brief: Partial<RequestBrief> | undefined,
+  options: {
+    deriveFallbacks?: boolean;
+  } = {}
 ): RequestBrief {
+  const deriveFallbacks = options.deriveFallbacks ?? true;
   const title = normalizeText(brief?.title);
   const summary = normalizeText(brief?.summary);
   const body = normalizeText(brief?.body);
-  const normalizedTitle = title || deriveRequestTitleFromBody(body);
+  const normalizedTitle =
+    title || (deriveFallbacks ? deriveRequestTitleFromBody(body) : "");
   const normalizedSummary =
-    summary || deriveRequestSummaryFromBody(body, normalizedTitle);
+    summary ||
+    (deriveFallbacks ? deriveRequestSummaryFromBody(body, normalizedTitle) : "");
 
   return {
     title: normalizedTitle,
@@ -2165,9 +2200,12 @@ export function normalizeRequestBrief(
 }
 
 function normalizeEditableBrief(
-  brief: z.infer<typeof requestBriefSchema> | undefined
+  brief: z.infer<typeof requestBriefSchema> | undefined,
+  options?: {
+    deriveFallbacks?: boolean;
+  }
 ): RequestBrief {
-  return normalizeRequestBrief(brief);
+  return normalizeRequestBrief(brief, options);
 }
 
 function deriveRequestTitleFromBody(body: string) {
@@ -2601,10 +2639,37 @@ function createDefaultExecutionProfile(): RequestExecutionProfile {
   };
 }
 
+function createRawExecutionProfile(): RequestExecutionProfile {
+  return {
+    executionModes: [],
+    requiresHumanPresence: false,
+    requiresLocalAccess: false,
+    requiresVerifiedEvidence: false,
+    requiresScheduling: false,
+    requiresGeography: false,
+    riskTier: "low",
+  };
+}
+
 function createDefaultEmbodiedConstraintSet(): RequestEmbodiedConstraintSet {
   return {
     requiresEmbodiedHandling: false,
     executionModes: ["remote_digital"],
+    timeWindows: [],
+    accessRequirements: [],
+    safetyRequirements: [],
+    verificationRequirements: [],
+    requiresHumanPresence: false,
+    requiresLocalAccess: false,
+    requiresVerifiedEvidence: false,
+    requiresWitness: false,
+  };
+}
+
+function createRawEmbodiedConstraintSet(): RequestEmbodiedConstraintSet {
+  return {
+    requiresEmbodiedHandling: false,
+    executionModes: [],
     timeWindows: [],
     accessRequirements: [],
     safetyRequirements: [],
@@ -2646,6 +2711,15 @@ function createDefaultAssignmentProposal(): RequestAssignmentProposal {
     state: "unfilled",
     summary:
       "Planner structure exists, but no real lead or support lane is attached yet.",
+    lead: null,
+    support: [],
+  };
+}
+
+function createRawAssignmentProposal(): RequestAssignmentProposal {
+  return {
+    state: "unfilled",
+    summary: "Raw request mode has not generated planner assignment lanes.",
     lead: null,
     support: [],
   };

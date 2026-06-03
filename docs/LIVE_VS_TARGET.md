@@ -330,6 +330,7 @@ These are intended next layers, not fully modeled proof yet:
 - exact service plan links that resolve stable first-party unlisted supply ids and set `routing.preferredSupplyId` before request opening
 - broader supply discovery, responder reads, and public market publish lanes
 - deeper desktop request-runtime coverage such as participant-scoped engaged-work inboxes, richer fulfillment controls, and durable resolver-session management views
+- actor-neutral request-flow stage and card schemas that make human, agent, system, adapter, and n8n import/export cards share the same in, out, done-here, not-done-here, authority, next-stage, and lossiness requirements before live route behavior changes
 - peer-facing ephemeral realtime lanes beyond the local desktop-main hub
 - peer-capable runtime identity bound through resolver approval without replacing Boreal actor identity
 - regular Boreal web accounts with `username or email + password`, `WebAuthn` MFA, and optional passkey-first login after enrollment, while keeping guest mode and resolver auth as separate identity lanes

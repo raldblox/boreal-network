@@ -27,6 +27,14 @@
   },
   "expectedDerived": {
     "planningMode": "raw",
+    "brief": {
+      "title": "",
+      "summary": "",
+      "body": "need to onsite visit and take picture of any uniqlo storefront anywhere around manila tomorrow"
+    },
+    "keyPrefix": "request-",
+    "assignmentSummary": "Raw request mode has not generated planner assignment lanes.",
+    "executionModes": [],
     "readiness": {
       "readyForOpen": true,
       "readyForMatch": false

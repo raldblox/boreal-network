@@ -290,12 +290,16 @@ export function RequestPlanPanel({
                 ) : (
                   <div className="space-y-1.5">
                     <div className="text-[14px] leading-6 text-foreground">
-                      {isDraftScope
+                      {isRawDraft
+                        ? "Raw request is ready to post."
+                        : isDraftScope
                         ? "These plans are ready to open."
                         : "This baseline path is ready to open."}
                     </div>
                     <div className="text-[13px] leading-5.5 text-muted-foreground">
-                      {isDraftScope
+                      {isRawDraft
+                        ? "Boreal captured the buyer text without planner generation. Routing can start after posting or after assisted planning is resumed."
+                        : isDraftScope
                         ? "Boreal has enough core request structure to open the Request."
                         : "Boreal has enough core request structure to open the request and start route decisions or replies."}
                     </div>
@@ -734,6 +738,7 @@ function EditableRequestBriefCard({
   const [error, setError] = useState<string | null>(null);
   const currentForm = useMemo(() => getEditableBriefForm(request), [request]);
   const [form, setForm] = useState<EditableBriefForm>(currentForm);
+  const isRawDraft = request.derived.planningMode === "raw";
 
   useEffect(() => {
     if (!isEditing) {
@@ -741,7 +746,7 @@ function EditableRequestBriefCard({
     }
   }, [currentForm, isEditing]);
 
-  const titleMissing = form.title.trim().length === 0;
+  const titleMissing = !isRawDraft && form.title.trim().length === 0;
   const bodyMissing = form.body.trim().length === 0;
   const hasChanges =
     JSON.stringify(form) !== JSON.stringify(getEditableBriefForm(request));
@@ -795,7 +800,7 @@ function EditableRequestBriefCard({
           ) : null}
         </div>
         <div className="mt-2.5 space-y-2.5">
-          {!request.brief.title?.trim() ? (
+          {!isRawDraft && !request.brief.title?.trim() ? (
             <RequiredBriefNote
               detail="Add a clear buyer-facing title."
               label="Title missing"
@@ -1487,8 +1492,9 @@ function getUnderstandingItems(request: BorealRequestDraft): PlanFact[] {
 
 function getMissingItems(request: BorealRequestDraft): PlanNeed[] {
   const items: PlanNeed[] = [];
+  const isRawDraft = request.derived.planningMode === "raw";
 
-  if (!request.brief.title?.trim()) {
+  if (!isRawDraft && !request.brief.title?.trim()) {
     items.push({
       label: "Title missing",
       detail: "Add a short buyer-facing title before opening the Request.",

@@ -232,7 +232,7 @@
       ],
       "properties": {
         "planningMode": {
-          "description": "Controls whether request-owned planner projections are generated. Raw mode stores buyer-authored request text without derived plan steps; assisted mode allows planner, matcher, and policy projections to rebuild from the same Request.",
+          "description": "Controls whether request-owned planner projections are generated. Raw mode stores buyer-authored request body text without derived title or summary polish, body-derived keys, execution defaults, assignment copy, or plan steps; assisted mode allows planner, matcher, and policy projections to rebuild from the same Request.",
           "type": "string",
           "enum": [
             "assisted",

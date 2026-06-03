@@ -26,7 +26,7 @@ Do not delete old accepted decisions; amend, supersede, retire, or mark their im
 
 ## State Register
 
-Last reviewed: 2026-05-29.
+Last reviewed: 2026-06-03.
 
 | Decision | State | Implementation state | Current reading | Review trigger |
 | --- | --- | --- | --- | --- |
@@ -55,3 +55,4 @@ Last reviewed: 2026-05-29.
 | [0023-request-grants-and-public-solution-surface.md](0023-request-grants-and-public-solution-surface.md) | `partially_implemented` | Public solution run v0 is modeled; richer grants and marketplace lanes remain bounded. | Still governs grants as optional funding and public solutions as projections with free inspection and paid execution. | Review before grant funding, public-solution, run pricing, payout, or public claim changes. |
 | [0024-agent-protocol-gateway-topology.md](0024-agent-protocol-gateway-topology.md) | `accepted` | Gateway and package workspaces are not created yet. | Future MCP/A2A adapters should live behind an agent gateway over existing HTTP contracts, not inside web as a second truth layer. | Review before creating protocol gateway/package workspaces or live MCP/A2A adapters. |
 | [0025-agent-isolated-write-sandbox-boundary.md](0025-agent-isolated-write-sandbox-boundary.md) | `accepted` | Live isolated write sandbox credentials are not created yet. | Future write-capable agent sandboxing must use a segregated non-production environment over Boreal's canonical contracts, with revocable scoped credentials and no production authority. | Review before issuing sandbox credentials, adding sandbox write routes, or enabling write-capable MCP/A2A/x402 agent paths. |
+| [0026-actor-neutral-request-flow-stage-card-taxonomy.md](0026-actor-neutral-request-flow-stage-card-taxonomy.md) | `accepted` | Strategy taxonomy exists; schema, fixtures, and code remain target. | Shared request-flow stages and cards must be actor-neutral across humans, agents, systems, and adapter mappings. | Review before adding request-flow card schemas, changing `agentActionCardHints`, or adding n8n import/export routes. |

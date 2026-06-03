@@ -30,7 +30,7 @@ export const surfaceCardTitleClassName =
 export const surfaceBodyClassName =
   "max-w-2xl text-[15px] leading-8 text-muted-foreground";
 
-export const surfaceSectionClassName = "border-t border-border/60 pt-10 md:pt-12";
+export const surfaceSectionClassName = "pt-10 md:pt-12";
 
 export const surfaceCardClassName =
   "rounded-[28px] border border-border/60 bg-transparent px-6 py-6 md:px-7 md:py-7";

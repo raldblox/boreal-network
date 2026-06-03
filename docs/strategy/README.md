@@ -28,7 +28,7 @@ If a strategy doc implies a change to canon, update canon first or in the same p
 
 ## State Register
 
-Last reviewed: 2026-06-01.
+Last reviewed: 2026-06-03.
 
 Use `../DOC_LIFECYCLE.md` for state definitions.
 Strategy docs are downstream of canon and should not override live-versus-target boundaries.
@@ -42,6 +42,8 @@ Strategy docs are downstream of canon and should not override live-versus-target
 | [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md) | `active` | UX blueprint | Current revamp blueprint for request board, workroom, account, credits, supply, and public solutions. | Review before major web IA or request-room changes. |
 | [REQUEST_WORKROOM_V2_UX_PLAN.md](REQUEST_WORKROOM_V2_UX_PLAN.md) | `active` | Focused workroom UX plan | Current implementation guidance for request workroom cards, flow orientation, right object viewer, supply search, activity, artifacts, and reusable path iteration. | Review before changing request tracker, flow canvas, activity, artifacts, or supply routing UI. |
 | [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md) | `active` | V1 UX plan | Current guidance for request-owned Path Builder surfaces. | Review when Path Builder implementation lands or changes scope. |
+| [REQUEST_FLOW_STAGE_CARD_TAXONOMY.md](REQUEST_FLOW_STAGE_CARD_TAXONOMY.md) | `active` | Discovery and feasibility profile | Current actor-neutral taxonomy guidance for human and agent request-flow stages, cards, authority gates, and n8n mapping feasibility. | Review before adding request-flow card schemas, shared card catalogs, or n8n import/export behavior. |
+| [REQUEST_FLOW_TAXONOMY_ALIGNMENT_AUDIT.md](REQUEST_FLOW_TAXONOMY_ALIGNMENT_AUDIT.md) | `active` | Alignment audit | Current codebase audit for request-flow, service, supply, workflow, stepper, task-board, matching-lab, and drag-action taxonomy drift. | Review before changing flow cards, drag actions, service cards, workflow imports, or task/step projections. |
 | [AGENT_NATIVE_USAGE_BLUEPRINT.md](AGENT_NATIVE_USAGE_BLUEPRINT.md) | `active` | Agent usage blueprint | Current guidance for agent discovery, agent UX, protocol mapping, requester/solver/monitor roles, and agent-ready roadmap. | Review before adding agent discovery, MCP, A2A, agent auth, x402, or public agent-write surfaces. |
 | [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md) | `pilot_active` | Long-running gate plan | Current durable queue for pilot, self-serve buyer, curated supply, and public-market readiness. | Review in every patch that completes or changes a gate item. |
 | [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md) | `pilot_active` | Gate 1 verification checklist | Current narrow pilot verification checklist; not broad marketplace proof. | Review before any public or semi-public pilot demo. |
@@ -57,6 +59,7 @@ Related canon:
 - [../REQUEST_UX_NOTES.md](../REQUEST_UX_NOTES.md) - End-to-end request UX guardrails from intake through proof and resolution
 - [../decisions/0016-open-request-room-as-monitored-workroom.md](../decisions/0016-open-request-room-as-monitored-workroom.md) - Accepted open request room behavior boundary
 - [../decisions/0018-request-flow-view-as-process-projection.md](../decisions/0018-request-flow-view-as-process-projection.md) - Accepted request flow view behavior boundary
+- [../decisions/0026-actor-neutral-request-flow-stage-card-taxonomy.md](../decisions/0026-actor-neutral-request-flow-stage-card-taxonomy.md) - Accepted actor-neutral stage and card taxonomy boundary
 
 ## Suggested Read Order
 
@@ -70,14 +73,16 @@ Related canon:
 8. [REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md](REQUEST_BOARD_AND_WORKROOM_REVAMP_BLUEPRINT.md)
 9. [REQUEST_WORKROOM_V2_UX_PLAN.md](REQUEST_WORKROOM_V2_UX_PLAN.md)
 10. [PATH_BUILDER_V1_UX_PLAN.md](PATH_BUILDER_V1_UX_PLAN.md)
-11. [AGENT_NATIVE_USAGE_BLUEPRINT.md](AGENT_NATIVE_USAGE_BLUEPRINT.md)
-12. [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
-13. [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
-14. [PUBLIC_PILOT_OPERATOR_RUNBOOK.md](PUBLIC_PILOT_OPERATOR_RUNBOOK.md)
-15. [PUBLIC_PILOT_OBSERVABILITY.md](PUBLIC_PILOT_OBSERVABILITY.md)
-16. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
-17. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
-18. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
+11. [REQUEST_FLOW_STAGE_CARD_TAXONOMY.md](REQUEST_FLOW_STAGE_CARD_TAXONOMY.md)
+12. [REQUEST_FLOW_TAXONOMY_ALIGNMENT_AUDIT.md](REQUEST_FLOW_TAXONOMY_ALIGNMENT_AUDIT.md)
+13. [AGENT_NATIVE_USAGE_BLUEPRINT.md](AGENT_NATIVE_USAGE_BLUEPRINT.md)
+14. [SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md](SELF_SERVE_MARKETPLACE_LAUNCH_PLAN.md)
+15. [PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md](PUBLIC_PILOT_SMOKE_TEST_CHECKLIST.md)
+16. [PUBLIC_PILOT_OPERATOR_RUNBOOK.md](PUBLIC_PILOT_OPERATOR_RUNBOOK.md)
+17. [PUBLIC_PILOT_OBSERVABILITY.md](PUBLIC_PILOT_OBSERVABILITY.md)
+18. [FIRST_PARTY_SERVICE_SUPPLY_SKUS.md](FIRST_PARTY_SERVICE_SUPPLY_SKUS.md)
+19. [UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md](UNLISTED_SERVICE_LINKS_AND_FIRST_PARTY_CREDITS_SPEC.md)
+20. [360_PRODUCT_QUALITY_CHECKLIST.md](360_PRODUCT_QUALITY_CHECKLIST.md)
 
 ## Working Rule
 

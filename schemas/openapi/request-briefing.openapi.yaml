@@ -114,10 +114,12 @@ paths:
                     - assisted
                     - raw
                   default: assisted
+                  description: Raw stores buyer text without LLM briefing, title or summary polish, body-derived keys, planner output, execution classification, assignment copy, or proof planning.
                 rawBody:
                   type: string
                   minLength: 1
                   maxLength: 2000
+                  description: Buyer-authored body text for raw intake. It is stored as the request brief body without deriving title or summary fields.
       responses:
         "200":
           description: The newly created or existing request draft.
@@ -2110,6 +2112,7 @@ components:
               enum:
                 - assisted
                 - raw
+              description: Raw suppresses title or summary polish, body-derived keys, planner output, execution classification, assignment copy, matching, route summary, and proof-planning projections.
             routeFamily:
               $ref: "#/components/schemas/BorealRequestRouteFamily"
             executionKind:
