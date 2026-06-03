@@ -4,7 +4,10 @@ import {
   getBorealAgentTemplate,
   listBorealAgentTemplates,
 } from "@/lib/boreal-agents/registry";
-import { prepareBorealAgentApplication } from "@/lib/boreal-agents/application";
+import {
+  type BorealAgentPrepareApplicationInput,
+  prepareBorealAgentApplication,
+} from "@/lib/boreal-agents/application";
 
 const routeContext = (agentKey: string) => ({
   params: Promise.resolve({ agentKey }),
@@ -17,7 +20,7 @@ const jsonRequest = (body: unknown) =>
     body: JSON.stringify(body),
   });
 
-const videoPrepareInput = {
+const videoPrepareInput: BorealAgentPrepareApplicationInput = {
   action: "prepare_application",
   request: {
     id: "req-video-001",
@@ -45,7 +48,7 @@ const videoPrepareInput = {
     capabilityTags: ["video"],
     providerRef: "runway/video-generation",
   },
-} as const;
+};
 
 const templates = listBorealAgentTemplates();
 assert.equal(templates.length, 2);
@@ -112,6 +115,10 @@ async function main() {
     "Idempotency-Key",
   ]);
   assert.equal(publicPrepare.applicationPacket.mutationCall.body.kind, "proposal");
+  assert.equal(
+    publicPrepare.applicationPacket.mutationCall.body.supplyId,
+    "11111111-1111-4111-8111-111111111111"
+  );
   assert.equal(
     publicPrepare.applicationPacket.mutationCall.body.terms.amountMode,
     "open"

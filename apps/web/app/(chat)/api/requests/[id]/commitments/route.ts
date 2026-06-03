@@ -45,6 +45,7 @@ const createCommitmentSchema = z.object({
   kind: z
     .enum(["quote", "proposal", "assignment", "milestone", "acceptance"])
     .default("proposal"),
+  supplyId: z.string().uuid().optional(),
   summary: z.string().min(1).max(1000),
   terms: commitmentTermsSchema,
   idempotencyKey: z.string().uuid().optional(),
@@ -91,7 +92,11 @@ export async function POST(
     const result = await proposeCommitmentForRequestById({
       requestId: id,
       actorUserId: actor.userId,
+      ...(actor.kind === "resolver"
+        ? { actorResolverClientId: actor.resolverClientId }
+        : {}),
       kind: body.kind,
+      supplyId: body.supplyId,
       summary: body.summary,
       terms: body.terms,
       idempotencyKey,
@@ -113,6 +118,21 @@ export async function POST(
         "bad_request:api",
         "Only open requests can accept commitments."
       ).toResponse();
+    }
+
+    if (error instanceof Error && error.message === "Supply not found") {
+      return new ChatbotError("not_found:database").toResponse();
+    }
+
+    if (
+      error instanceof Error &&
+      [
+        "Published supply required",
+        "Supply does not belong to commitment actor",
+        "Supply is not bound to this resolver client",
+      ].includes(error.message)
+    ) {
+      return new ChatbotError("bad_request:api", error.message).toResponse();
     }
 
     return new ChatbotError(

@@ -258,6 +258,7 @@ function buildCommitmentMutationCall({
     requiredHeaders: ["Idempotency-Key"],
     body: {
       kind: "proposal",
+      ...(input.supply?.id ? { supplyId: input.supply.id } : {}),
       summary: `${template.displayName} can apply as ${template.workerKey}: ${deliverableSummary}`,
       terms: {
         fundingRequired: false,

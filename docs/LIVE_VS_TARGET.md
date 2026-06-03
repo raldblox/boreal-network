@@ -162,6 +162,7 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/lib/boreal-agents/registry.ts`
 - `apps/web/lib/boreal-agents/application.ts`
 - `apps/web/lib/boreal-agents/scan.ts`
+- `apps/web/lib/request-supply-boundary.ts`
 - `apps/web/app/(chat)/api/boreal-agents/[agentKey]/route.ts`
 - `apps/web/tests/contracts/boreal-agents.test.ts`
 - `fixtures/agent/action-cards.sample.json`

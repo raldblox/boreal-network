@@ -84,6 +84,7 @@ Verify that queued first-party provider tasks keep their task id on the active f
 Verify that public or cross-actor lanes do not inherit owner-private desktop assumptions when planner, matcher, or policy outputs are evaluated.
 Verify that in-house Boreal worker scanning is read-only and produces only opportunity guidance, not assignment, approval, fulfillment start, artifact publication, durable history, payment authority, or completion truth.
 Verify that public or cross-actor in-house worker application proposes a `Commitment` before fulfillment, while owner-private direct worker fulfillment remains limited to owner-controlled private requests with selected published first-party supply.
+Verify that public or cross-actor worker applications attach selected supply through `Commitment.supplyId`, while owner-private direct lanes attach selected supply through `Fulfillment.supplyId`.
 Verify that owner-scoped auto-approval can create or accept only the next worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to another supply.
 Verify that prompt-only assets are rejected as starter supply until a backing execution profile, capability fingerprints, proof path, and readiness tests exist.
 Verify that request-grant funding, solver payout, reviewer compensation, and solution-run writes stay attached to a `Request` through `Transaction` records.

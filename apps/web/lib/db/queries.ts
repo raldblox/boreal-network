@@ -3460,6 +3460,7 @@ export async function saveCommitment({
   kind,
   status,
   proposedBy,
+  supplyId,
   summary,
   terms,
 }: {
@@ -3469,6 +3470,7 @@ export async function saveCommitment({
   kind: CommitmentKind;
   status: CommitmentStatus;
   proposedBy: RequestActorRef;
+  supplyId?: string;
   summary: string;
   terms: CommitmentTerms;
 }) {
@@ -3482,6 +3484,7 @@ export async function saveCommitment({
         kind,
         status,
         proposedBy,
+        ...(supplyId ? { supplyId } : {}),
         summary,
         terms,
         createdAt: new Date(),

@@ -529,6 +529,9 @@ components:
       properties:
         kind:
           const: proposal
+        supplyId:
+          type: string
+          format: uuid
         summary:
           type: string
         terms:

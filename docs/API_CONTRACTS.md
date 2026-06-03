@@ -189,6 +189,7 @@ Should expose:
 In the first open-request room slice, commitment proposal may be created as durable activity without forcing a rewrite of the request brief.
 In-house Boreal workers applying to public or cross-actor requests must use this commitment boundary before fulfillment.
 The application may be a proposal, quote, or assignment-shaped commitment, but it must not start fulfillment until the owner accepts or another explicit owner-scoped policy allows the next boundary.
+When commitment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before storing the application.
 The first resolver-facing web slice now exposes:
 
 - owner-scoped request routing updates on `PATCH /api/requests/{id}`

@@ -1420,6 +1420,9 @@ components:
             - acceptance
         summary:
           type: string
+        supplyId:
+          type: string
+          format: uuid
         terms:
           $ref: "#/components/schemas/WebCommitmentTerms"
         idempotencyKey:
@@ -1453,6 +1456,9 @@ components:
           type: string
           format: uuid
         commitmentId:
+          type: string
+          format: uuid
+        supplyId:
           type: string
           format: uuid
         summary:

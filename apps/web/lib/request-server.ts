@@ -73,6 +73,7 @@ import {
   deriveCandidatePoolOrder,
   type RequestMatchCandidate,
 } from "@/lib/request-planner";
+import { assertSupplyCanAttachToCommitment } from "@/lib/request-supply-boundary";
 import type { ChatMessage } from "@/lib/types";
 import { generateUUID } from "@/lib/utils";
 
@@ -1082,12 +1083,14 @@ export async function proposeCommitmentForRequest({
   chatId,
   actorUserId,
   kind,
+  supplyId,
   summary,
   terms,
 }: {
   chatId: string;
   actorUserId: string;
   kind: CommitmentKind;
+  supplyId?: string;
   summary: string;
   terms: CommitmentTerms;
 }) {
@@ -1100,6 +1103,7 @@ export async function proposeCommitmentForRequest({
     requestId: existingRequest.id,
     actorUserId,
     kind,
+    supplyId,
     summary,
     terms,
     source: "tool.propose_commitment",
@@ -1109,7 +1113,9 @@ export async function proposeCommitmentForRequest({
 export async function proposeCommitmentForRequestById({
   requestId,
   actorUserId,
+  actorResolverClientId,
   kind,
+  supplyId,
   summary,
   terms,
   idempotencyKey,
@@ -1117,7 +1123,9 @@ export async function proposeCommitmentForRequestById({
 }: {
   requestId: string;
   actorUserId: string;
+  actorResolverClientId?: string;
   kind: CommitmentKind;
+  supplyId?: string;
   summary: string;
   terms: CommitmentTerms;
   idempotencyKey?: string;
@@ -1138,6 +1146,23 @@ export async function proposeCommitmentForRequestById({
   }
 
   const actor = toHumanActorRef(actorUserId);
+  const resolvedSupplyId = supplyId?.trim() || undefined;
+  const matchedSupplyRecord = resolvedSupplyId
+    ? await getSupplyById({ id: resolvedSupplyId })
+    : null;
+
+  if (resolvedSupplyId && !matchedSupplyRecord) {
+    throw new Error("Supply not found");
+  }
+
+  if (matchedSupplyRecord) {
+    assertSupplyCanAttachToCommitment({
+      actorResolverClientId,
+      actorUserId,
+      supply: matchedSupplyRecord,
+    });
+  }
+
   const now = new Date();
   const normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
 
@@ -1157,6 +1182,9 @@ export async function proposeCommitmentForRequestById({
         return {
           requestId: requestDraft.id,
           commitmentId: existingCommitment.id,
+          ...(existingCommitment.supplyId
+            ? { supplyId: existingCommitment.supplyId }
+            : {}),
           summary: existingCommitment.summary,
           status: existingCommitment.status,
           terms: existingCommitment.terms,
@@ -1176,6 +1204,7 @@ export async function proposeCommitmentForRequestById({
     kind,
     status: "proposed",
     proposedBy: actor,
+    ...(matchedSupplyRecord ? { supplyId: matchedSupplyRecord.id } : {}),
     summary,
     terms,
   });
@@ -1203,6 +1232,9 @@ export async function proposeCommitmentForRequestById({
       id: createdCommitment.id,
       kind: createdCommitment.kind,
       status: createdCommitment.status,
+      ...(createdCommitment.supplyId
+        ? { supplyId: createdCommitment.supplyId }
+        : {}),
       summary: createdCommitment.summary,
       terms: createdCommitment.terms,
     },
@@ -1226,6 +1258,9 @@ export async function proposeCommitmentForRequestById({
   return {
     requestId: requestDraft.id,
     commitmentId: createdCommitment.id,
+    ...(createdCommitment.supplyId
+      ? { supplyId: createdCommitment.supplyId }
+      : {}),
     summary: createdCommitment.summary,
     status: createdCommitment.status,
     terms: createdCommitment.terms,

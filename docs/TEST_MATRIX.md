@@ -342,6 +342,7 @@ Verify:
 - direct commitment accept endpoints should honor idempotency keys on retry
 - direct fulfillment create and update endpoints should honor idempotency keys on retry
 - owner-facing workroom actions should be able to roleplay a public request through commitment proposal, commitment acceptance, fulfillment creation, proof artifact publication, delivery, and owner acceptance without bypassing the canonical endpoints
+- direct commitment proposal with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows
 - direct fulfillment create should require an accepted commitment
 - direct fulfillment create may omit commitment only for owned private requests driven by the same owner through the desktop auto-resolution lane
 - direct fulfillment create with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows

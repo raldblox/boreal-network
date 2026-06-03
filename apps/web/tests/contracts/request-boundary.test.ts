@@ -31,6 +31,7 @@ import {
   buildDraftRequestFlowGraph,
 } from "@/lib/request-flow";
 import { buildRequestPreflightPreview } from "@/lib/request-preflight";
+import { assertSupplyCanAttachToCommitment } from "@/lib/request-supply-boundary";
 
 assert.equal(
   chatMessagesQuerySchema.safeParse({ chatId: "undefined" }).success,
@@ -415,6 +416,57 @@ assert.equal(
     request: makeDraft({ visibility: "private" }),
   }),
   false,
+);
+
+assert.doesNotThrow(() =>
+  assertSupplyCanAttachToCommitment({
+    actorUserId: "worker_1",
+    actorResolverClientId: "resolver_1",
+    supply: {
+      ownerId: "worker_1",
+      status: "published",
+      bindings: {
+        resolverClientId: "resolver_1",
+      },
+    },
+  })
+);
+assert.throws(
+  () =>
+    assertSupplyCanAttachToCommitment({
+      actorUserId: "worker_1",
+      supply: {
+        ownerId: "other_worker",
+        status: "published",
+      },
+    }),
+  /Supply does not belong to commitment actor/
+);
+assert.throws(
+  () =>
+    assertSupplyCanAttachToCommitment({
+      actorUserId: "worker_1",
+      supply: {
+        ownerId: "worker_1",
+        status: "draft",
+      },
+    }),
+  /Published supply required/
+);
+assert.throws(
+  () =>
+    assertSupplyCanAttachToCommitment({
+      actorUserId: "worker_1",
+      actorResolverClientId: "resolver_2",
+      supply: {
+        ownerId: "worker_1",
+        status: "published",
+        bindings: {
+          resolverClientId: "resolver_1",
+        },
+      },
+    }),
+  /Supply is not bound to this resolver client/
 );
 
 assert.equal(
