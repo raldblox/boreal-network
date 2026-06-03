@@ -396,6 +396,64 @@ assert.ok(
 );
 assert.deepEqual(humanRequiredPrepare.scanner.canonicalWrites, []);
 
+const publicProjectionHumanPrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    request: {
+      ...videoPrepareInput.request,
+      id: "req-public-human-actor-001",
+      derived: {
+        seeking: {
+          supplyKinds: ["video_generation"],
+        },
+      },
+      seeking: {
+        actorKinds: ["human", "ai_agent"],
+        supplyKinds: ["video_generation"],
+      },
+    },
+  },
+  template: mira,
+});
+assert.equal(publicProjectionHumanPrepare.qualification.allowedToWake, false);
+assert.ok(
+  publicProjectionHumanPrepare.qualification.rejectedBy.includes(
+    "human_required_boundary"
+  )
+);
+
+const publicProjectionBriefConstraintPrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    request: {
+      ...videoPrepareInput.request,
+      id: "req-public-brief-constraint-001",
+      brief: {
+        ...videoPrepareInput.request.brief,
+        constraints: {
+          requiresLocalAccess: true,
+        },
+      },
+      constraints: undefined,
+      derived: {
+        seeking: {
+          supplyKinds: ["video_generation"],
+        },
+      },
+    },
+  },
+  template: mira,
+});
+assert.equal(
+  publicProjectionBriefConstraintPrepare.qualification.allowedToWake,
+  false
+);
+assert.ok(
+  publicProjectionBriefConstraintPrepare.qualification.rejectedBy.includes(
+    "human_required_boundary"
+  )
+);
+
 const talaPrepare = prepareBorealAgentApplication({
   input: videoPrepareInput,
   template: tala,

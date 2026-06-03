@@ -6,12 +6,23 @@ const briefSchema = z
     title: z.string().optional(),
     summary: z.string().optional(),
     body: z.string().optional(),
+    constraints: z.record(z.unknown()).optional(),
     outputKinds: z.array(z.string()).optional(),
   })
   .passthrough();
 
+const seekingSchema = z
+  .object({
+    actorKinds: z.array(z.string()).optional(),
+    supplyKinds: z.array(z.string()).optional(),
+  })
+  .passthrough()
+  .optional();
+
 const derivedSchema = z
   .object({
+    executionKind: z.string().nullable().optional(),
+    routeSummary: z.string().nullable().optional(),
     seeking: z
       .object({
         supplyKinds: z.array(z.string()).optional(),
@@ -35,6 +46,7 @@ export const borealAgentRequestSummarySchema = z
     visibility: z.enum(["public", "private"]),
     status: z.string().optional(),
     brief: briefSchema.optional(),
+    seeking: seekingSchema,
     derived: derivedSchema,
     constraints: z
       .object({
@@ -174,7 +186,10 @@ function evaluateQualification({
 
 function hasVideoGenerationSignal(input: BorealAgentPrepareApplicationInput) {
   const outputKinds = input.request.brief?.outputKinds ?? [];
-  const supplyKinds = input.request.derived?.seeking?.supplyKinds ?? [];
+  const supplyKinds = [
+    ...(input.request.derived?.seeking?.supplyKinds ?? []),
+    ...(input.request.seeking?.supplyKinds ?? []),
+  ];
   const text = [
     input.request.brief?.title,
     input.request.brief?.summary,
@@ -197,11 +212,31 @@ function isVideoLike(value: string) {
 }
 
 function requiresHumanWork(input: BorealAgentPrepareApplicationInput) {
+  const actorKinds = input.request.seeking?.actorKinds ?? [];
+  const executionKind = input.request.derived?.executionKind ?? "";
+  const briefConstraints = input.request.brief?.constraints ?? {};
+
   return Boolean(
     input.request.derived?.executionProfile?.requiresHumanPresence ||
       input.request.derived?.executionProfile?.requiresLocalAccess ||
       input.request.constraints?.requiresHumanPresence ||
-      input.request.constraints?.requiresLocalAccess
+      input.request.constraints?.requiresLocalAccess ||
+      briefConstraints.requiresHumanPresence === true ||
+      briefConstraints.requiresLocalAccess === true ||
+      actorKinds.some(isHumanActorKind) ||
+      isHumanOrLocalExecutionKind(executionKind)
+  );
+}
+
+function isHumanActorKind(value: string) {
+  return value.toLowerCase().replace(/[-\s]+/g, "_").includes("human");
+}
+
+function isHumanOrLocalExecutionKind(value: string) {
+  const normalized = value.toLowerCase().replace(/[-\s]+/g, "_");
+
+  return ["human", "field", "local", "embodied", "onsite"].some((token) =>
+    normalized.includes(token)
   );
 }
 
