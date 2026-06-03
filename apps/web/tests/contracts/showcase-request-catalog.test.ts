@@ -17,6 +17,36 @@ const expectedSlotKeys = [
 assert.equal(showcaseRequestCatalog.length, 8);
 assert.equal(homeBetaWorkCards.length, showcaseRequestCatalog.length);
 
+const humanEditorialEntry = showcaseRequestCatalog.find(
+  (entry) => entry.catalogKey === "service/human-editorial-polish/publish-polish",
+);
+assert.ok(humanEditorialEntry);
+assert.deepEqual(humanEditorialEntry.request.seeking.actorKinds, [
+  "human",
+  "agent",
+]);
+assert.deepEqual(humanEditorialEntry.request.seeking.supplyKinds, [
+  "human_service",
+  "documentation_support",
+  "operator",
+]);
+assert.equal(
+  (humanEditorialEntry.request.seeking.supplyKinds ?? []).includes(
+    "provider_capability",
+  ),
+  false,
+);
+assert.deepEqual(humanEditorialEntry.request.brief.outputKinds, [
+  "draft",
+  "handoff_doc",
+  "verification_note",
+]);
+assert.equal(
+  humanEditorialEntry.request.brief.constraints?.serviceAttachmentMode,
+  "request_starter_no_supply_attached",
+);
+assert.equal(humanEditorialEntry.request.derived.executionKind, "hybrid_human_agent");
+
 const ids = new Set<string>();
 const catalogKeys = new Set<string>();
 

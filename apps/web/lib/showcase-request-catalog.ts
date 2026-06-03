@@ -278,11 +278,11 @@ function showcaseEntry(seed: ShowcaseEntrySeed): ShowcaseRequestCatalogEntry {
   };
 }
 
-function serviceSeeking(): RequestSeeking {
+function serviceSeeking(family: BorealServiceFamily): RequestSeeking {
   return {
-    actorKinds: ["human", "agent", "tool"],
-    notes: "preset plan, operator review, provider run, buyer approval",
-    supplyKinds: ["provider_capability", "operator"],
+    actorKinds: family.requestDefaults.actorKinds,
+    notes: family.requestDefaults.attachmentRules.join(" "),
+    supplyKinds: family.requestDefaults.supplyKinds,
     teamMode: "solo_or_team",
   };
 }
@@ -357,10 +357,10 @@ function serviceCatalogEntries(): ShowcaseRequestCatalogEntry[] {
         createdAt: "2026-05-28T04:00:00.000Z",
         deadline: { notes: plan.turnaround },
         derived: {
-          executionKind: "provider_api",
-          matchingMode: "preferred_supply_direct",
+          executionKind: family.requestDefaults.executionKind,
+          matchingMode: family.requestDefaults.matchingMode,
           missingDetails: ["buyer-specific brief fields", "funding"],
-          paymentMode: "fixed_request",
+          paymentMode: family.requestDefaults.paymentMode,
           planningMode: "assisted",
           readiness: {
             readyForMatch: false,
@@ -369,7 +369,7 @@ function serviceCatalogEntries(): ShowcaseRequestCatalogEntry[] {
             summary:
               "The reusable service path is known; buyer-specific details and checkout are still needed.",
           },
-          routeFamily: "direct_specialist",
+          routeFamily: family.requestDefaults.routeFamily,
           routeSummary: family.providerLabel,
         },
         id: requestId,
@@ -378,7 +378,7 @@ function serviceCatalogEntries(): ShowcaseRequestCatalogEntry[] {
           lastEventAt: updatedAt,
           summary: "Service plan projected into a request starter.",
         },
-        seeking: serviceSeeking(),
+        seeking: serviceSeeking(family),
         status: "funding_required",
         updatedAt,
         brief: {
@@ -387,10 +387,11 @@ function serviceCatalogEntries(): ShowcaseRequestCatalogEntry[] {
           )}`,
           constraints: {
             proof: family.proof,
+            serviceAttachmentMode: family.requestDefaults.attachmentMode,
             serviceFamilyKey: family.familyKey,
             servicePlanKey: plan.planKey,
           },
-          outputKinds: ["handoff_doc", "delivery_confirmation"],
+          outputKinds: family.requestDefaults.outputKinds,
           summary: plan.summary,
           tags: ["working service", ...family.tags.slice(0, 3)],
           title: `${family.title}: ${plan.label}`,

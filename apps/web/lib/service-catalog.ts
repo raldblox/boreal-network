@@ -1,3 +1,13 @@
+import type {
+  BorealActorKind,
+  BorealOutputKind,
+  BorealRequestExecutionKind,
+  BorealRequestMatchingMode,
+  BorealRequestPaymentMode,
+  BorealRequestRouteFamily,
+  BorealSupplyKind,
+} from "./matching-fingerprints";
+
 export type BorealServicePlan = {
   planKey: string;
   label: string;
@@ -17,6 +27,18 @@ export type BorealServiceIntake = {
   submitLabel: string;
 };
 
+export type BorealServiceRequestDefaults = {
+  actorKinds: BorealActorKind[];
+  attachmentMode: "request_starter_no_supply_attached";
+  attachmentRules: string[];
+  executionKind: BorealRequestExecutionKind;
+  matchingMode: BorealRequestMatchingMode;
+  outputKinds: BorealOutputKind[];
+  paymentMode: BorealRequestPaymentMode;
+  routeFamily: BorealRequestRouteFamily;
+  supplyKinds: BorealSupplyKind[];
+};
+
 export type BorealServiceFamily = {
   familyKey: string;
   slug: string;
@@ -29,6 +51,7 @@ export type BorealServiceFamily = {
   intake?: BorealServiceIntake;
   process: string[];
   proof: string[];
+  requestDefaults: BorealServiceRequestDefaults;
   plans: BorealServicePlan[];
 };
 
@@ -72,6 +95,21 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       "meaning-preservation check",
       "delivery receipt",
     ],
+    requestDefaults: {
+      actorKinds: ["human", "agent"],
+      attachmentMode: "request_starter_no_supply_attached",
+      attachmentRules: [
+        "Service card starts a Request draft only.",
+        "No humanizer worker or Supply is attached from the listing.",
+        "Operator review and proof attach later through governed request routing.",
+      ],
+      executionKind: "hybrid_human_agent",
+      matchingMode: "preferred_supply_direct",
+      outputKinds: ["draft", "handoff_doc", "verification_note"],
+      paymentMode: "fixed_request",
+      routeFamily: "direct_specialist",
+      supplyKinds: ["human_service", "documentation_support", "operator"],
+    },
     plans: [
       {
         planKey: "publish-polish",
@@ -131,6 +169,21 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       "session-launch handoff",
       "delivery receipt",
     ],
+    requestDefaults: {
+      actorKinds: ["human", "agent", "tool"],
+      attachmentMode: "request_starter_no_supply_attached",
+      attachmentRules: [
+        "Service card starts a Request draft or checkout flow.",
+        "Runway handoff supply is attached only after checkout or request routing.",
+        "Session credentials remain ephemeral and are not durable request truth.",
+      ],
+      executionKind: "provider_api",
+      matchingMode: "preferred_supply_direct",
+      outputKinds: ["handoff_doc", "delivery_confirmation"],
+      paymentMode: "fixed_request",
+      routeFamily: "direct_specialist",
+      supplyKinds: ["provider_capability", "operator"],
+    },
     plans: [
       {
         planKey: "starter-call",
@@ -205,6 +258,21 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       "script and prompt handoff",
       "delivery receipt",
     ],
+    requestDefaults: {
+      actorKinds: ["human", "agent", "tool"],
+      attachmentMode: "request_starter_no_supply_attached",
+      attachmentRules: [
+        "Service card starts a Request draft only.",
+        "Video-generation supply attachment waits for checkout or request routing.",
+        "Provider execution waits for accepted commitment or owner-private fulfillment.",
+      ],
+      executionKind: "provider_api",
+      matchingMode: "preferred_supply_direct",
+      outputKinds: ["media", "video", "handoff_doc"],
+      paymentMode: "fixed_request",
+      routeFamily: "direct_specialist",
+      supplyKinds: ["provider_capability", "video_generation", "operator"],
+    },
     plans: [
       {
         planKey: "sales-reply-pack",
@@ -248,6 +316,21 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       "caption pack",
       "posting notes",
     ],
+    requestDefaults: {
+      actorKinds: ["human", "agent", "tool"],
+      attachmentMode: "request_starter_no_supply_attached",
+      attachmentRules: [
+        "Service card starts a Request draft only.",
+        "Character production worker or provider supply attaches later.",
+        "Reusable character guidance is an Artifact only after proof submission.",
+      ],
+      executionKind: "hybrid_human_agent",
+      matchingMode: "preferred_supply_direct",
+      outputKinds: ["media", "video", "handoff_doc"],
+      paymentMode: "fixed_request",
+      routeFamily: "direct_specialist",
+      supplyKinds: ["provider_capability", "documentation_support", "operator"],
+    },
     plans: [
       {
         planKey: "character-seed-pack",
@@ -307,6 +390,21 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       "trend rationale",
       "posting map",
     ],
+    requestDefaults: {
+      actorKinds: ["human", "agent", "tool"],
+      attachmentMode: "request_starter_no_supply_attached",
+      attachmentRules: [
+        "Service card starts a Request draft only.",
+        "Trend production supply is not assigned from the listing.",
+        "Captions and posting notes become Artifacts only after execution proof.",
+      ],
+      executionKind: "hybrid_human_agent",
+      matchingMode: "preferred_supply_direct",
+      outputKinds: ["media", "video", "handoff_doc"],
+      paymentMode: "fixed_request",
+      routeFamily: "direct_specialist",
+      supplyKinds: ["provider_capability", "documentation_support", "operator"],
+    },
     plans: [
       {
         planKey: "trend-signal-12",

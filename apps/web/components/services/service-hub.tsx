@@ -129,6 +129,9 @@ function ServiceFamilyCard({ family }: { family: BorealServiceFamily }) {
           {family.summary}
         </SurfaceCardDescription>
         <SurfaceTagList limit={3} tags={family.tags} />
+        <div className="mt-5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/72">
+          Request starter · no worker assigned
+        </div>
         <div className="mt-auto pt-8 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           From {family.plans[0]?.price ?? "quote"}
         </div>
@@ -170,6 +173,10 @@ function ServiceFamilyDetail({ family }: { family: BorealServiceFamily }) {
           </p>
           <p className="mt-4 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             {family.providerLabel}
+          </p>
+          <p className="mt-4 text-xs leading-6 text-muted-foreground">
+            {family.requestDefaults.attachmentRules[1] ??
+              "No worker or Supply is attached from the listing."}
           </p>
         </div>
       </section>
