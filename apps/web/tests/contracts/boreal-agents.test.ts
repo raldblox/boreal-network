@@ -8,6 +8,10 @@ import {
   type BorealAgentPrepareApplicationInput,
   prepareBorealAgentApplication,
 } from "@/lib/boreal-agents/application";
+import {
+  type NamedAgentBoardRequest,
+  buildNamedAgentBoardReadiness,
+} from "@/lib/boreal-agents/board-readiness";
 
 const routeContext = (agentKey: string) => ({
   params: Promise.resolve({ agentKey }),
@@ -72,6 +76,104 @@ const tala = getBorealAgentTemplate("tala-humanizer");
 assert.ok(tala);
 assert.equal(tala.uniqueName, "Tala");
 assert.equal(tala.status, "target_template");
+
+const boardVideoRequest = {
+  id: "req-board-video-001",
+  status: "open",
+  brief: {
+    title: "Create a launch teaser video",
+    summary: "Turn approved notes into a short public clip.",
+    body: "Generate one launch teaser video with review handoff.",
+    constraints: {},
+    outputKinds: ["video"],
+  },
+  seeking: {
+    actorKinds: ["ai_agent"],
+    supplyKinds: ["video_generation"],
+  },
+  derived: {
+    executionKind: "provider_api",
+    routeSummary: "Video generation with proof review.",
+  },
+} satisfies NamedAgentBoardRequest;
+
+const videoBoardHints = buildNamedAgentBoardReadiness(boardVideoRequest);
+const miraVideoBoardHint = videoBoardHints.find(
+  (hint) => hint.agentKey === "mira-video"
+);
+assert.ok(miraVideoBoardHint);
+assert.equal(miraVideoBoardHint.readiness, "can_prepare");
+assert.equal(miraVideoBoardHint.proposedObject, "Commitment");
+assert.deepEqual(miraVideoBoardHint.proposedWritesIfAuthorized, [
+  "Commitment",
+  "RequestEvent",
+]);
+assert.ok(
+  miraVideoBoardHint.nonAuthority.includes("not_matching_or_assignment")
+);
+const talaVideoBoardHint = videoBoardHints.find(
+  (hint) => hint.agentKey === "tala-humanizer"
+);
+assert.ok(talaVideoBoardHint);
+assert.equal(talaVideoBoardHint.readiness, "target_only");
+
+const humanBoardHints = buildNamedAgentBoardReadiness({
+  ...boardVideoRequest,
+  id: "req-board-human-001",
+  brief: {
+    ...boardVideoRequest.brief,
+    constraints: {
+      requiresHumanPresence: true,
+    },
+  },
+  seeking: {
+    actorKinds: ["human", "ai_agent"],
+    supplyKinds: ["video_generation"],
+  },
+});
+const miraHumanBoardHint = humanBoardHints.find(
+  (hint) => hint.agentKey === "mira-video"
+);
+assert.ok(miraHumanBoardHint);
+assert.equal(miraHumanBoardHint.readiness, "skip");
+assert.match(miraHumanBoardHint.reason, /human-led|local-access/);
+
+const copyBoardHints = buildNamedAgentBoardReadiness({
+  ...boardVideoRequest,
+  id: "req-board-copy-001",
+  brief: {
+    ...boardVideoRequest.brief,
+    title: "Rewrite onboarding copy",
+    summary: "Polish product language.",
+    body: "Preserve facts and improve the copy.",
+    outputKinds: ["text"],
+  },
+  seeking: {
+    actorKinds: ["ai_agent"],
+    supplyKinds: ["documentation_support"],
+  },
+  derived: {
+    executionKind: "agent_request_room",
+    routeSummary: "Documentation support with owner review.",
+  },
+});
+const miraCopyBoardHint = copyBoardHints.find(
+  (hint) => hint.agentKey === "mira-video"
+);
+assert.ok(miraCopyBoardHint);
+assert.equal(miraCopyBoardHint.readiness, "skip");
+assert.match(miraCopyBoardHint.reason, /No public video-generation signal/);
+
+const closedBoardHints = buildNamedAgentBoardReadiness({
+  ...boardVideoRequest,
+  status: "completed",
+});
+const miraClosedBoardHint = closedBoardHints.find(
+  (hint) => hint.agentKey === "mira-video"
+);
+assert.ok(miraClosedBoardHint);
+assert.equal(miraClosedBoardHint.readiness, "skip");
+assert.match(miraClosedBoardHint.reason, /not open/);
 
 async function main() {
   const getMiraResponse = await GET(

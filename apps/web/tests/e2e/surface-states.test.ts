@@ -68,6 +68,57 @@ const publicRequestResponse = {
       updatedAt: "2026-05-26T10:00:00.000Z",
     },
     {
+      id: "req_launch_teaser",
+      key: "launch-teaser-video",
+      status: "open",
+      visibility: "public",
+      brief: {
+        title: "Create a launch teaser video",
+        summary: "Turn approved product notes into a short launch clip.",
+        body: "Generate one public launch teaser video with review handoff.",
+        constraints: {},
+        outputKinds: ["video"],
+        tags: ["video", "launch"],
+      },
+      seeking: {
+        actorKinds: ["ai_agent"],
+        supplyKinds: ["video_generation"],
+        teamMode: "single",
+        notes: "",
+      },
+      budget: null,
+      deadline: null,
+      activeRefs: {
+        acceptedArtifactId: null,
+        activeCommitmentId: null,
+        activeFulfillmentId: null,
+        latestArtifactId: null,
+        latestTransactionId: null,
+      },
+      latest: {
+        eventId: null,
+        eventType: null,
+        message: null,
+        at: null,
+      },
+      derived: {
+        routeFamily: "digital",
+        executionKind: "provider_api",
+        paymentMode: "buyer_credit",
+        matchingMode: "open_pool",
+        missingDetails: [],
+        readiness: {
+          readyForOpen: true,
+          readyForMatch: true,
+          state: "ready_to_match",
+          summary: "Ready for worker applications.",
+        },
+        routeSummary: "Video generation with proof-backed review.",
+      },
+      createdAt: "2026-05-25T10:00:00.000Z",
+      updatedAt: "2026-05-28T10:00:00.000Z",
+    },
+    {
       id: "req_avatar_handoff",
       key: "avatar-launch-handoff",
       status: "open",
@@ -276,11 +327,18 @@ test.describe("Surface async states", () => {
 
     await expect(
       page.getByRole("heading", {
-        name: "See what people are trying to get done.",
+        name: "Browse the work people are trying to get done.",
       })
     ).toBeVisible();
     await expect(page.getByText("Audit an onboarding flow")).toBeVisible();
+    await expect(page.getByText("Create a launch teaser video")).toBeVisible();
     await expect(page.getByText("Create an avatar launch handoff")).toBeVisible();
+    await expect(page.getByText("Agent scan hints").first()).toBeVisible();
+    await expect(page.getByText("Mira Video Agent").first()).toBeVisible();
+    await expect(page.getByText("can prepare").first()).toBeVisible();
+    await expect(
+      page.getByText("Hints only. No assignment or write.").first()
+    ).toBeVisible();
 
     await page.getByRole("searchbox", { name: "Search request board" }).fill(
       "avatar"
@@ -288,10 +346,15 @@ test.describe("Surface async states", () => {
 
     await expect(page.getByText("Create an avatar launch handoff")).toBeVisible();
     await expect(page.getByText("Audit an onboarding flow")).toBeHidden();
+    await expect(
+      page.getByText("Public projection points to human-led or local-access")
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "Needs details" }).click();
     await expect(page.getByText("Create an avatar launch handoff")).toBeVisible();
-    await expect(page.getByText("Clarify the ask before planning.")).toBeVisible();
+    await expect(
+      page.getByText("Clarify the ask before plans compete.")
+    ).toBeVisible();
 
     await page.getByRole("searchbox", { name: "Search request board" }).fill("");
     await page.getByRole("button", { name: "All statuses" }).click();

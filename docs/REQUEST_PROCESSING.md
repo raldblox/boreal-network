@@ -215,6 +215,7 @@ Public or cross-actor execution should still prefer:
 In-house Boreal agents and humans follow the same worker-application rule:
 
 - scan opened requests through public-safe, owned, or owner-approved request projections
+- show public-board scan hints only from already-loaded public-safe projection fields, with wake, skip, and target-only labels treated as UX guidance rather than worker activation
 - apply through `Commitment` when the worker is public or cross-actor
 - use owner-private direct `Fulfillment` only when the owner, request, and selected first-party `Supply` satisfy the direct-lane gates
 - prepare application packets may include the governed `POST /api/requests/{id}/commitments` or `POST /api/requests/{id}/fulfillments` payload shape, but only the target route may submit and authorize that mutation

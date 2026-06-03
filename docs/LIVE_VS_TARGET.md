@@ -311,6 +311,7 @@ Today, the machine-readable baseline proves:
 - request, supply, payment, and resolver-auth OpenAPI exports now declare machine-readable auth boundaries: standard OpenAPI `security` requirements for anonymous, account-session, and resolver-bearer access where live routes support them, plus Boreal `x-boreal-required-scopes` extensions for resolver scope conditions
 - one Boreal-managed `video-generation` starter supply exists as the first in-house worker-backed supply lane; broader in-house worker scanning, application packets, and owner auto-approval fixtures remain target work
 - one machine-readable in-house worker application profile now defines named agent templates, including `Mira` as the video-generation route template and `Tala` as target-only humanizer; public agent discovery now lists those named templates; and one live preparation-only per-agent route surface can read those templates, scan caller-supplied request summaries for wake or skip decisions, and prepare non-mutating application packets with governed mutation-call sketches for existing commitment or owner-private fulfillment routes
+- the reusable public request board now renders named-agent scan hints from already-loaded public-safe request projection fields, showing Mira can-prepare, skip, and Tala target-only states without assignment, private fetches, provider calls, or durable writes
 
 ## Target Direction
 

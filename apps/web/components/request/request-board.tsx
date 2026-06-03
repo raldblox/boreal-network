@@ -2,6 +2,7 @@
 
 import {
   ArrowRightIcon,
+  BotIcon,
   Clock3Icon,
   FileCheck2Icon,
   SearchIcon,
@@ -13,6 +14,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResourceList } from "@/components/ui/resource-list";
+import {
+  type NamedAgentBoardReadiness,
+  buildNamedAgentBoardReadiness,
+} from "@/lib/boreal-agents/board-readiness";
 import type { PublicRequestPoolEntry, RequestStatus } from "@/lib/request";
 import { cn, fetcher } from "@/lib/utils";
 import {
@@ -291,6 +296,10 @@ function RequestBoardCard({
     : "route pending";
   const readinessLabel = formatSurfaceToken(request.derived.readiness.state);
   const proofSummary = getProofSummary(request);
+  const agentReadiness = buildNamedAgentBoardReadiness(request);
+  const visibleAgentReadiness = showCompact
+    ? agentReadiness.filter((hint) => hint.readiness === "can_prepare")
+    : agentReadiness;
 
   return (
     <SurfaceCard asChild interactive>
@@ -326,6 +335,10 @@ function RequestBoardCard({
           />
         </div>
 
+        {visibleAgentReadiness.length > 0 ? (
+          <RequestBoardAgentHints hints={visibleAgentReadiness} />
+        ) : null}
+
         <SurfaceTagList limit={showCompact ? 3 : 5} tags={request.brief.tags} />
 
         <div className="mt-5 flex flex-wrap gap-2">
@@ -354,6 +367,82 @@ function RequestBoardCard({
       </article>
     </SurfaceCard>
   );
+}
+
+function RequestBoardAgentHints({
+  hints,
+}: {
+  hints: NamedAgentBoardReadiness[];
+}) {
+  const readyCount = hints.filter(
+    (hint) => hint.readiness === "can_prepare"
+  ).length;
+
+  return (
+    <div className="mt-5 rounded-2xl border border-border/60 bg-background/45 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/72">
+          <BotIcon className="size-3.5" />
+          <span>Agent scan hints</span>
+        </div>
+        <Badge
+          className="rounded-full border-border/60 bg-muted/35 text-foreground/72"
+          variant="secondary"
+        >
+          {readyCount > 0 ? `${readyCount} can prepare` : "read-only"}
+        </Badge>
+      </div>
+      <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+        Hints only. No assignment or write.
+      </p>
+      <div className="mt-3 grid gap-2">
+        {hints.map((hint) => (
+          <div
+            className="rounded-xl border border-border/55 bg-card/45 p-2.5"
+            key={hint.agentKey}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-xs font-medium text-foreground/82">
+                  {hint.displayName}
+                </p>
+                <p className="mt-1 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
+                  {hint.reason}
+                </p>
+              </div>
+              <Badge
+                className={cn(
+                  "shrink-0 rounded-full border text-[10px]",
+                  getAgentHintBadgeClassName(hint.readiness)
+                )}
+                variant="secondary"
+              >
+                {formatSurfaceToken(hint.readiness)}
+              </Badge>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-muted-foreground/75">
+              <span>{hint.actionLabel}</span>
+              <span aria-hidden="true">/</span>
+              <span>{hint.apiRoute}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function getAgentHintBadgeClassName(
+  readiness: NamedAgentBoardReadiness["readiness"]
+) {
+  switch (readiness) {
+    case "can_prepare":
+      return "border-emerald-500/25 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200";
+    case "target_only":
+      return "border-blue-500/25 bg-blue-500/10 text-blue-800 dark:text-blue-200";
+    case "skip":
+      return "border-border/60 bg-muted/35 text-foreground/70";
+  }
 }
 
 function RequestStatusBadge({ status }: { status: RequestStatus }) {

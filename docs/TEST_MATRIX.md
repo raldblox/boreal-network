@@ -450,6 +450,7 @@ Verify:
 - every first-party named agent declares a unique name, stable `/api/boreal-agents/{agentKey}` route, task pipeline, tool bindings, model or provider environment bindings, qualification tags, skip conditions, and contract fixtures
 - public agent discovery exposes the first-party named agents and their preparation-only route mode through the agent card and start guide
 - `GET /api/boreal-agents/{agentKey}` and `POST /api/boreal-agents/{agentKey}` route tests keep the named-agent route preparation-only: template reads, caller-supplied request scans, application packets, and governed mutation-call sketches may be prepared, but matching, assignment, `Request`, `Commitment`, `Fulfillment`, `FulfillmentStep`, `Artifact`, `Transaction`, provider calls, and `RequestEvent` writes must stay behind separate authorized mutation routes
+- public request board tests render named-agent scan hints from public-safe projection fields, including can-prepare, skip-human-or-local, skip-no-fit, and target-only cases, without per-card private fetches or mutations
 - briefing and planning tags reduce wasteful scans by keeping human-required, local-access, witnessed-handoff, field-proof, pickup, delivery, and physical-verification plans away from provider-only agents unless a supporting provider role is explicit
 
 ### Supply-management contract tests
