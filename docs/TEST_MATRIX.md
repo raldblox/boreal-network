@@ -433,6 +433,19 @@ Verify:
 - public request-pool projections should include public-safe action affordances, with `run_public_solution` present only when completed public solution truth exists through `activeRefs.acceptedArtifactId`
 - the request plan panel should expose typed matching fingerprints plus `matchCandidates`, `leadRanking`, `roleMatches`, and `assignmentProposal` as read-only derived projections rather than editable buyer-authored fields
 
+### In-house worker application tests
+
+Verify:
+
+- in-house Boreal worker scanners read open, owned, or owner-approved request projections without mutating `Request`, `Commitment`, `Fulfillment`, `Artifact`, `Transaction`, or `RequestEvent` truth
+- worker fit scores and opportunity cards do not imply assignment, owner approval, payment authority, fulfillment start, artifact publication, review acceptance, or completion proof
+- public or cross-actor worker application writes `Commitment` plus `RequestEvent` and requires route auth, request policy, and idempotency
+- public or cross-actor direct `Fulfillment` creation remains rejected before accepted commitment truth
+- owner-private direct worker fulfillment requires a private owner-controlled request and one selected published owned first-party `Supply`
+- owner-scoped auto-approval can create or accept only the intended worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to a different supply
+- prompt packs, reusable prompts, workflow JSON, provider prompts, and skills cannot be listed as starter `Supply` without a backing execution profile, capability fingerprints, proof path, and readiness tests
+- `video-generation` remains the only live starter worker until another worker such as humanizer has a real supply factory, execution contract, proof path, and failure fixtures
+
 ### Supply-management contract tests
 
 Verify:

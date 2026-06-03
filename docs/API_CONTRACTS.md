@@ -141,6 +141,7 @@ For the first web slice, `Request` create and update must support:
 - request detail reads include `agentActionPolicy`, a derived actor-specific envelope that marks each request-bound agent action as allowed, allowed with idempotency, blocked, or target-only for the current anonymous, session, or resolver actor
 - request detail reads include actor-specific `agentActionCardHints` derived from `agentActionPolicy` so an agent can render apply, submit, monitor, run, and optimize cards without treating the card as permission, approval, payment authority, durable history, or completion proof
 - public agent discovery resources should point agents to `agentActionCardHints` for human-facing cards and to `agentActionPolicy` plus governed route contracts for authority
+- in-house Boreal worker scanners may read public-safe, owned, or owner-approved request projections as opportunity inputs, but scanner output is not assignment, approval, spend authority, fulfillment start, durable history, or completion proof
 - public-safe detail reads for one request by id
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/analyze` inspection over public or owned scratch-chat user text messages
 - free `POST /api/chats/{chatId}/messages/{messageId}/reusable-prompt/runs` execution that creates or reuses one private scratch chat, stores source chat/message provenance on the forked user message, runs the filled prompt, and does not create a `Request`, debit credits, or write `Transaction` truth in V1
@@ -176,6 +177,8 @@ Should expose:
 - supersede
 
 In the first open-request room slice, commitment proposal may be created as durable activity without forcing a rewrite of the request brief.
+In-house Boreal workers applying to public or cross-actor requests must use this commitment boundary before fulfillment.
+The application may be a proposal, quote, or assignment-shaped commitment, but it must not start fulfillment until the owner accepts or another explicit owner-scoped policy allows the next boundary.
 The first resolver-facing web slice now exposes:
 
 - owner-scoped request routing updates on `PATCH /api/requests/{id}`
@@ -211,6 +214,7 @@ Owned private resolver lanes may create fulfillment without `commitmentId` when 
 Owner-private first-party service lanes may create direct fulfillment from `open`, `funded`, `in_progress`, or `waiting_for_owner` when the same owner is driving a selected first-party supply lane.
 When fulfillment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before opening the lane.
 Owner-private Boreal-managed web workers may also open one direct fulfillment lane after `open_request`, but the provider-facing payload should stay reduced to worker-specific prompt and execution inputs instead of the entire request object.
+Owner-scoped auto-approval may create or accept the next worker boundary only for trusted first-party supply, and it must still stop before artifact publication, payment authorization, owner review, or request completion.
 Retryable internal worker or storage handoff failures should move that same fulfillment lane to `blocked`, preserve the worker input and provider recovery metadata, and resume through `POST /api/fulfillments/{id}/retry` instead of terminally failing the request immediately.
 Queued provider work is not itself a failure: the same retry endpoint may check an `active` first-party worker fulfillment that already has a saved provider task id, keeping the lane `active` until a stored artifact is ready or a real recoverable handoff failure occurs.
 

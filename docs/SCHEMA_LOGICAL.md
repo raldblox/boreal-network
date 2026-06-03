@@ -62,6 +62,7 @@ Support buyer-funding aggregates for first-party credit:
 
 - one request can have many commitments
 - only some commitments become active or accepted
+- public or cross-actor worker applications are modeled as commitments, not as a separate application root
 
 ### `Request` -> `Fulfillment`
 
@@ -109,6 +110,7 @@ Stores current truth:
 - visibility
 - lifecycle status
 - optional source and binding metadata
+- optional first-party worker metadata when a Boreal-managed worker backs the supply
 
 Visibility rule:
 
@@ -426,6 +428,7 @@ Derived views may include:
 
 - request inboxes
 - matching projections
+- in-house worker opportunity cards and fit rankings
 - reputation summaries
 - supply search documents
 - payout dashboards

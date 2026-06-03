@@ -100,6 +100,36 @@ Matcher outputs may include:
 - confidence scores
 - ranking explanations
 
+### Worker scanner tools
+
+Worker scanner tools are read-only.
+They rank opened or owner-approved requests against in-house Boreal worker supply capability.
+
+First set:
+
+- `scan_open_requests_for_worker_fit`
+- `rank_worker_opportunities`
+- `prepare_worker_application_packet`
+
+Scanner outputs may include:
+
+- request ids and public-safe summaries
+- owned or owner-approved request detail refs
+- supply fit explanations
+- local opportunity cards
+- recommended application kind
+- missing authority, scope, proof, payment, or approval gates
+
+Scanner outputs must not include:
+
+- assignment truth
+- owner approval
+- payment authority
+- fulfillment start
+- artifact publication
+- durable request history
+- completion proof
+
 ### Policy tools
 
 Policy tools are read-only.
@@ -200,6 +230,9 @@ Every mutation call should return:
 - Local runtime availability is a worker modality and trust signal, not proof of completion by itself.
 - Public or external execution lanes must not inherit owner-private desktop assumptions.
 - Human-required, embodied, verification-heavy, and local-runtime-dependent work should remain first-class planning realities instead of being flattened into digital-only execution.
+- In-house Boreal worker scanner output is opportunity guidance only. Public or cross-actor application still writes `Commitment`; owner-private direct fulfillment remains the bounded exception for trusted first-party supply.
+- Owner-scoped auto-approval may create or accept the next execution boundary, but it must not publish artifacts, authorize payment, accept review, or complete the request.
+- Prompt packs, reusable prompts, workflow definitions, provider prompts, and skills may support worker execution, but they must not be published as starter `Supply` without a backing owner, capability, availability, fulfillment, and proof path.
 
 ## Planner and policy prompt context
 

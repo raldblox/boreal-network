@@ -80,6 +80,10 @@ Verify that request closure is blocked when required embodied steps or proof obl
 Verify that retryable first-party worker failures move fulfillment to `blocked`, preserve worker recovery metadata, and resume the same lane instead of forcing a fresh request.
 Verify that queued first-party provider tasks keep their task id on the active fulfillment lane, can be checked again through the same lane, and do not masquerade as completion before a durable artifact lands.
 Verify that public or cross-actor lanes do not inherit owner-private desktop assumptions when planner, matcher, or policy outputs are evaluated.
+Verify that in-house Boreal worker scanning is read-only and produces only opportunity guidance, not assignment, approval, fulfillment start, artifact publication, durable history, payment authority, or completion truth.
+Verify that public or cross-actor in-house worker application proposes a `Commitment` before fulfillment, while owner-private direct worker fulfillment remains limited to owner-controlled private requests with selected published first-party supply.
+Verify that owner-scoped auto-approval can create or accept only the next worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to another supply.
+Verify that prompt-only assets are rejected as starter supply until a backing execution profile, capability fingerprints, proof path, and readiness tests exist.
 Verify that request-grant funding, solver payout, reviewer compensation, and solution-run writes stay attached to a `Request` through `Transaction` records.
 Verify that public solution surfaces are projected only from completed requests with accepted artifacts, not from chat summaries or unreviewed drafts.
 Verify that viewing a public solution does not emit credit-debit or transaction writes.

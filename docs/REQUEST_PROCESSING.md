@@ -118,6 +118,8 @@ Do not expose feasibility grids, supply paths, role candidates, worker lanes, de
 10. Team assembly
    Match optional collaborator slots only after a credible lead route exists, except bounded direct-tool routes.
    The lead-first matching pipeline and the current fingerprint catalog are documented in [MATCHING_ENGINE.md](MATCHING_ENGINE.md).
+   In-house Boreal worker scanning happens only as a read-only opportunity pass over opened or owner-approved requests.
+   It may wake likely workers and prepare local application cards, but it must not assign workers, create approval, start fulfillment, publish proof, or complete the request.
 11. Commitment drafting
    Produce the commercial shape Boreal wants the owner to review.
 12. Funding gate
@@ -209,6 +211,14 @@ Checking that task again should keep the same lane `active` while the provider i
 Public or cross-actor execution should still prefer:
 
 - `Request` -> `Commitment` -> `Fulfillment` -> `Artifact`
+
+In-house Boreal agents and humans follow the same worker-application rule:
+
+- scan opened requests through public-safe, owned, or owner-approved request projections
+- apply through `Commitment` when the worker is public or cross-actor
+- use owner-private direct `Fulfillment` only when the owner, request, and selected first-party `Supply` satisfy the direct-lane gates
+- treat auto-approval as owner-scoped boundary creation, not assignment, artifact publication, payment authority, review acceptance, or completion
+- keep prompt packs, provider prompts, workflow definitions, and skills below `Supply` unless a real executable supply profile exists
 
 If a resolver runtime does not share chat context, it should prefer direct request resource APIs for these writes instead of going through the chat mutation layer.
 That runtime should authenticate with a Boreal-issued resolver token after explicit web approval, not by treating raw Codex auth as the request actor.
@@ -425,6 +435,8 @@ These objects are derived and rebuildable, not durable roots:
 - ephemeral realtime signals should stay outside default durable history unless promoted
 - direct resolver APIs and chat mutation tools should map to the same durable request-side writes
 - owner-private desktop auto-resolution creates one fulfillment directly without creating a commitment object first when desktop owner policy enables it
+- in-house Boreal worker scanners are read-only opportunity projections and must not be treated as assignment or completion truth
+- in-house Boreal worker applications write `Commitment` for public or cross-actor lanes, while owner-private direct worker lanes remain the narrow exception
 - non-substitutable embodied work must not be downgraded into a digital-only plan or generated summary
 - matching, assignment, and completion must not be implied before the real route, proof, and closure conditions are satisfied
 - requests that require human presence, local access, or verification-heavy completion should not resolve until the required proof path is represented explicitly
