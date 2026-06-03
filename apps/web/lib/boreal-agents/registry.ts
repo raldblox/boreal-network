@@ -33,6 +33,27 @@ export type BorealAgentTaskStep = {
   canonicalWritesIfAuthorized: string[];
 };
 
+export type BorealAgentFramework = {
+  id: "boreal_named_agent_v1";
+  version: 1;
+  routePattern: "/api/boreal-agents/{agentKey}";
+  routeMode: "preparation_only";
+  supportedActions: ReadonlyArray<
+    "read_template" | "scan_request_candidates" | "prepare_application"
+  >;
+  boilerplateFiles: readonly string[];
+  taskPipelineRules: readonly string[];
+  nonAuthority: ReadonlyArray<
+    | "no_matching_or_assignment"
+    | "no_commitment_created"
+    | "no_fulfillment_started"
+    | "no_provider_call"
+    | "no_artifact_published"
+    | "no_payment_authorized"
+    | "no_completion_claim"
+  >;
+};
+
 export type BorealAgentTemplate = {
   agentKey: string;
   uniqueName: string;
@@ -40,6 +61,7 @@ export type BorealAgentTemplate = {
   status: BorealAgentStatus;
   apiRoute: string;
   workerKey: string;
+  framework: BorealAgentFramework;
   supplyBinding: {
     required: true;
     supplyKind: string;
@@ -58,9 +80,13 @@ export type BorealAgentTemplateValidationIssue = {
     | "duplicate_api_route"
     | "duplicate_unique_name"
     | "invalid_agent_key"
+    | "missing_framework"
+    | "missing_framework_action"
+    | "missing_framework_boilerplate"
     | "missing_model_binding"
     | "missing_required_task"
     | "missing_supply_binding"
+    | "unstable_framework_route"
     | "unknown_canonical_write"
     | "unstable_api_route";
   message: string;
@@ -84,6 +110,43 @@ const requiredTaskKinds: BorealAgentTaskKind[] = [
   "filter_qualification",
   "prepare_application",
 ];
+
+const requiredFrameworkActions: BorealAgentFramework["supportedActions"] = [
+  "read_template",
+  "scan_request_candidates",
+  "prepare_application",
+];
+
+const requiredFrameworkBoilerplateFiles = [
+  "apps/web/lib/boreal-agents/registry.ts",
+  "apps/web/app/(chat)/api/boreal-agents/[agentKey]/route.ts",
+  "apps/web/tests/contracts/boreal-agents.test.ts",
+  "fixtures/agent/in-house-worker-application-profile.sample.json",
+] as const;
+
+export const borealNamedAgentFrameworkV1 = {
+  id: "boreal_named_agent_v1",
+  version: 1,
+  routePattern: "/api/boreal-agents/{agentKey}",
+  routeMode: "preparation_only",
+  supportedActions: [...requiredFrameworkActions],
+  boilerplateFiles: [...requiredFrameworkBoilerplateFiles],
+  taskPipelineRules: [
+    "Inspect and filter qualification before any model or provider work.",
+    "Prepare application packets only; governed routes own durable writes.",
+    "Provider execution waits for Commitment acceptance or owner-private direct Fulfillment.",
+    "Tool success, model output, provider callback, or local log is not completion proof.",
+  ],
+  nonAuthority: [
+    "no_matching_or_assignment",
+    "no_commitment_created",
+    "no_fulfillment_started",
+    "no_provider_call",
+    "no_artifact_published",
+    "no_payment_authorized",
+    "no_completion_claim",
+  ],
+} as const satisfies BorealAgentFramework;
 
 export function createBorealAgentApiRoute(agentKey: string) {
   return `/api/boreal-agents/${agentKey}`;
@@ -165,6 +228,49 @@ export function validateBorealAgentTemplateCatalog(
       });
     }
 
+    if (!template.framework) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "missing_framework",
+        message: `${template.agentKey} must declare the named-agent framework contract.`,
+      });
+    } else {
+      if (
+        template.framework.id !== "boreal_named_agent_v1" ||
+        template.framework.version !== 1 ||
+        template.framework.routeMode !== "preparation_only" ||
+        template.framework.routePattern !== "/api/boreal-agents/{agentKey}"
+      ) {
+        issues.push({
+          agentKey: template.agentKey,
+          code: "unstable_framework_route",
+          message: `${template.agentKey} must use boreal_named_agent_v1 preparation-only route framework.`,
+        });
+      }
+
+      const actionSet = new Set(template.framework.supportedActions);
+      for (const action of requiredFrameworkActions) {
+        if (!actionSet.has(action)) {
+          issues.push({
+            agentKey: template.agentKey,
+            code: "missing_framework_action",
+            message: `${template.agentKey} framework must support ${action}.`,
+          });
+        }
+      }
+
+      const boilerplateSet = new Set(template.framework.boilerplateFiles);
+      for (const file of requiredFrameworkBoilerplateFiles) {
+        if (!boilerplateSet.has(file)) {
+          issues.push({
+            agentKey: template.agentKey,
+            code: "missing_framework_boilerplate",
+            message: `${template.agentKey} framework must reference ${file}.`,
+          });
+        }
+      }
+    }
+
     if (
       !template.supplyBinding.required ||
       !template.supplyBinding.supplyKind ||
@@ -220,6 +326,7 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
     status: "live_template",
     apiRoute: createBorealAgentApiRoute("mira-video"),
     workerKey: "video-generation",
+    framework: borealNamedAgentFrameworkV1,
     supplyBinding: {
       required: true,
       supplyKind: "video_generation",
@@ -325,6 +432,7 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
     status: "target_template",
     apiRoute: createBorealAgentApiRoute("tala-humanizer"),
     workerKey: "humanizer",
+    framework: borealNamedAgentFrameworkV1,
     supplyBinding: {
       required: true,
       supplyKind: "documentation_support",

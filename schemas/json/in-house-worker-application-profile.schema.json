@@ -616,6 +616,7 @@
         "status",
         "apiRoute",
         "workerKey",
+        "framework",
         "supplyBinding",
         "modelBindings",
         "toolBindings",
@@ -646,6 +647,9 @@
         "workerKey": {
           "type": "string",
           "minLength": 1
+        },
+        "framework": {
+          "$ref": "#/$defs/agentFramework"
         },
         "supplyBinding": {
           "type": "object",
@@ -772,6 +776,95 @@
         },
         "nonAuthority": {
           "$ref": "#/$defs/nonAuthority"
+        }
+      }
+    },
+    "agentFramework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version",
+        "routePattern",
+        "routeMode",
+        "supportedActions",
+        "boilerplateFiles",
+        "taskPipelineRules",
+        "nonAuthority"
+      ],
+      "properties": {
+        "id": {
+          "const": "boreal_named_agent_v1"
+        },
+        "version": {
+          "const": 1
+        },
+        "routePattern": {
+          "const": "/api/boreal-agents/{agentKey}"
+        },
+        "routeMode": {
+          "const": "preparation_only"
+        },
+        "supportedActions": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "enum": [
+              "read_template",
+              "scan_request_candidates",
+              "prepare_application"
+            ]
+          },
+          "allOf": [
+            {
+              "contains": {
+                "const": "read_template"
+              }
+            },
+            {
+              "contains": {
+                "const": "scan_request_candidates"
+              }
+            },
+            {
+              "contains": {
+                "const": "prepare_application"
+              }
+            }
+          ]
+        },
+        "boilerplateFiles": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "taskPipelineRules": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "nonAuthority": {
+          "type": "array",
+          "minItems": 7,
+          "items": {
+            "type": "string",
+            "enum": [
+              "no_matching_or_assignment",
+              "no_commitment_created",
+              "no_fulfillment_started",
+              "no_provider_call",
+              "no_artifact_published",
+              "no_payment_authorized",
+              "no_completion_claim"
+            ]
+          }
         }
       }
     },

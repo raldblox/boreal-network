@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { POST, GET } from "@/app/(chat)/api/boreal-agents/[agentKey]/route";
 import {
+  borealNamedAgentFrameworkV1,
   createBorealAgentApiRoute,
   getBorealAgentTemplate,
   listBorealAgentTemplates,
@@ -66,6 +67,24 @@ assert.ok(
   templates.every((agent) => agent.apiRoute.endsWith(agent.agentKey)),
   "agent route must be stable and agent-key scoped"
 );
+assert.ok(
+  templates.every(
+    (agent) =>
+      agent.framework.id === "boreal_named_agent_v1" &&
+      agent.framework.version === 1 &&
+      agent.framework.routeMode === "preparation_only"
+  ),
+  "agent templates must share the named-agent framework contract"
+);
+assert.deepEqual(
+  borealNamedAgentFrameworkV1.supportedActions,
+  ["read_template", "scan_request_candidates", "prepare_application"]
+);
+assert.ok(
+  borealNamedAgentFrameworkV1.boilerplateFiles.includes(
+    "apps/web/app/(chat)/api/boreal-agents/[agentKey]/route.ts"
+  )
+);
 
 const mira = getBorealAgentTemplate("mira-video");
 assert.ok(mira);
@@ -105,6 +124,35 @@ assert.ok(
 );
 assert.ok(
   invalidCatalogIssues.some((issue) => issue.code === "missing_required_task")
+);
+const invalidFrameworkIssues = validateBorealAgentTemplateCatalog([
+  {
+    ...mira,
+    agentKey: "bad-framework",
+    uniqueName: "Bad Framework",
+    apiRoute: createBorealAgentApiRoute("bad-framework"),
+    framework: {
+      ...mira.framework,
+      routePattern: "/api/not-boreal-agents/{agentKey}" as never,
+      supportedActions: ["read_template"],
+      boilerplateFiles: [],
+    },
+  },
+]);
+assert.ok(
+  invalidFrameworkIssues.some(
+    (issue) => issue.code === "unstable_framework_route"
+  )
+);
+assert.ok(
+  invalidFrameworkIssues.some(
+    (issue) => issue.code === "missing_framework_action"
+  )
+);
+assert.ok(
+  invalidFrameworkIssues.some(
+    (issue) => issue.code === "missing_framework_boilerplate"
+  )
 );
 
 const boardVideoRequest = {
@@ -258,6 +306,13 @@ async function main() {
   assert.equal(getMiraResponse.status, 200);
   const getMiraBody = await getMiraResponse.json();
   assert.equal(getMiraBody.template.uniqueName, "Mira");
+  assert.equal(getMiraBody.template.framework.id, "boreal_named_agent_v1");
+  assert.equal(getMiraBody.template.framework.routeMode, "preparation_only");
+  assert.ok(
+    getMiraBody.template.framework.nonAuthority.includes(
+      "no_completion_claim"
+    )
+  );
   assert.equal(getMiraBody.authority.routeMode, "preparation_only");
   assert.equal(getMiraBody.authority.canCreateFulfillment, false);
 
@@ -273,6 +328,8 @@ async function main() {
   );
   assert.equal(publicPrepareResponse.status, 200);
   const publicPrepare = await publicPrepareResponse.json();
+  assert.equal(publicPrepare.agent.framework.id, "boreal_named_agent_v1");
+  assert.equal(publicPrepare.agent.framework.routeMode, "preparation_only");
   assert.equal(publicPrepare.qualification.allowedToWake, true);
   assert.ok(
     publicPrepare.qualification.reasons.includes(
@@ -395,6 +452,8 @@ async function main() {
   assert.equal(scanResponse.status, 200);
   const scanBody = await scanResponse.json();
   assert.equal(scanBody.kind, "boreal_agent_scan_result");
+  assert.equal(scanBody.agent.framework.id, "boreal_named_agent_v1");
+  assert.equal(scanBody.agent.framework.routeMode, "preparation_only");
   assert.equal(scanBody.scan.rankingMode, "none_no_matching_or_assignment");
   assert.equal(scanBody.scan.requestCount, 3);
   assert.equal(scanBody.scan.wakeCount, 1);

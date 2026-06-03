@@ -95,6 +95,7 @@ components:
         - status
         - apiRoute
         - workerKey
+        - framework
         - supplyBinding
         - modelBindings
         - toolBindings
@@ -115,6 +116,8 @@ components:
           type: string
         workerKey:
           type: string
+        framework:
+          $ref: "#/components/schemas/AgentFramework"
         supplyBinding:
           type: object
           required:
@@ -187,6 +190,52 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AgentTaskStep"
+    AgentFramework:
+      type: object
+      required:
+        - id
+        - version
+        - routePattern
+        - routeMode
+        - supportedActions
+        - boilerplateFiles
+        - taskPipelineRules
+        - nonAuthority
+      properties:
+        id:
+          const: boreal_named_agent_v1
+        version:
+          const: 1
+        routePattern:
+          const: /api/boreal-agents/{agentKey}
+        routeMode:
+          const: preparation_only
+        supportedActions:
+          type: array
+          items:
+            enum:
+              - read_template
+              - scan_request_candidates
+              - prepare_application
+        boilerplateFiles:
+          type: array
+          items:
+            type: string
+        taskPipelineRules:
+          type: array
+          items:
+            type: string
+        nonAuthority:
+          type: array
+          items:
+            enum:
+              - no_matching_or_assignment
+              - no_commitment_created
+              - no_fulfillment_started
+              - no_provider_call
+              - no_artifact_published
+              - no_payment_authorized
+              - no_completion_claim
     AgentTaskStep:
       type: object
       required:

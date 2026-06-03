@@ -136,12 +136,19 @@ async function main() {
   assert.equal(agentCard.name, "Boreal Network");
   assert.equal(namedBorealAgents.status, "live_named_agent_templates");
   assert.equal(namedBorealAgents.routeMode, "preparation_only");
+  assert.equal(
+    namedBorealAgents.actions.includes("read_template"),
+    true
+  );
   assert.equal(namedBorealAgents.agents.length, 2);
   assert.equal(
     namedBorealAgents.agents.some(
       (agent) =>
         agent.uniqueName === "Mira" &&
         agent.apiRoute === "/api/boreal-agents/mira-video" &&
+        agent.framework.id === "boreal_named_agent_v1" &&
+        agent.framework.routeMode === "preparation_only" &&
+        agent.framework.supportedActions.includes("prepare_application") &&
         agent.status === "live_template" &&
         agent.modelProviders.includes("runway")
     ),
@@ -153,9 +160,14 @@ async function main() {
   );
   assert.equal(
     agentCard.namedBorealAgents.agents.some(
-      (agent: { uniqueName: string; apiRoute: string }) =>
+      (agent: {
+        uniqueName: string;
+        apiRoute: string;
+        framework: { id: string };
+      }) =>
         agent.uniqueName === "Tala" &&
-        agent.apiRoute === "/api/boreal-agents/tala-humanizer"
+        agent.apiRoute === "/api/boreal-agents/tala-humanizer" &&
+        agent.framework.id === "boreal_named_agent_v1"
     ),
     true
   );

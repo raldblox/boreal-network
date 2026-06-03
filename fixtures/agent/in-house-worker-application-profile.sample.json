@@ -29,6 +29,38 @@
       "status": "live_template",
       "apiRoute": "/api/boreal-agents/mira-video",
       "workerKey": "video-generation",
+      "framework": {
+        "id": "boreal_named_agent_v1",
+        "version": 1,
+        "routePattern": "/api/boreal-agents/{agentKey}",
+        "routeMode": "preparation_only",
+        "supportedActions": [
+          "read_template",
+          "scan_request_candidates",
+          "prepare_application"
+        ],
+        "boilerplateFiles": [
+          "apps/web/lib/boreal-agents/registry.ts",
+          "apps/web/app/(chat)/api/boreal-agents/[agentKey]/route.ts",
+          "apps/web/tests/contracts/boreal-agents.test.ts",
+          "fixtures/agent/in-house-worker-application-profile.sample.json"
+        ],
+        "taskPipelineRules": [
+          "Inspect and filter qualification before any model or provider work.",
+          "Prepare application packets only; governed routes own durable writes.",
+          "Provider execution waits for Commitment acceptance or owner-private direct Fulfillment.",
+          "Tool success, model output, provider callback, or local log is not completion proof."
+        ],
+        "nonAuthority": [
+          "no_matching_or_assignment",
+          "no_commitment_created",
+          "no_fulfillment_started",
+          "no_provider_call",
+          "no_artifact_published",
+          "no_payment_authorized",
+          "no_completion_claim"
+        ]
+      },
       "supplyBinding": {
         "required": true,
         "supplyKind": "video_generation",
@@ -173,6 +205,38 @@
       "status": "target_template",
       "apiRoute": "/api/boreal-agents/tala-humanizer",
       "workerKey": "humanizer",
+      "framework": {
+        "id": "boreal_named_agent_v1",
+        "version": 1,
+        "routePattern": "/api/boreal-agents/{agentKey}",
+        "routeMode": "preparation_only",
+        "supportedActions": [
+          "read_template",
+          "scan_request_candidates",
+          "prepare_application"
+        ],
+        "boilerplateFiles": [
+          "apps/web/lib/boreal-agents/registry.ts",
+          "apps/web/app/(chat)/api/boreal-agents/[agentKey]/route.ts",
+          "apps/web/tests/contracts/boreal-agents.test.ts",
+          "fixtures/agent/in-house-worker-application-profile.sample.json"
+        ],
+        "taskPipelineRules": [
+          "Inspect and filter qualification before any model or provider work.",
+          "Prepare application packets only; governed routes own durable writes.",
+          "Provider execution waits for Commitment acceptance or owner-private direct Fulfillment.",
+          "Tool success, model output, provider callback, or local log is not completion proof."
+        ],
+        "nonAuthority": [
+          "no_matching_or_assignment",
+          "no_commitment_created",
+          "no_fulfillment_started",
+          "no_provider_call",
+          "no_artifact_published",
+          "no_payment_authorized",
+          "no_completion_claim"
+        ]
+      },
       "supplyBinding": {
         "required": true,
         "supplyKind": "documentation_support",
@@ -277,6 +341,7 @@
       "route-level mutation tests"
     ],
     "requiredContracts": [
+      "shared boreal_named_agent_v1 framework",
       "unique agentKey and uniqueName",
       "stable apiRoute",
       "no scanner writes",

@@ -132,6 +132,11 @@ export function prepareBorealAgentApplication({
       status: template.status,
       workerKey: template.workerKey,
       apiRoute: template.apiRoute,
+      framework: {
+        id: template.framework.id,
+        version: template.framework.version,
+        routeMode: template.framework.routeMode,
+      },
     },
     request: {
       id: input.request.id,

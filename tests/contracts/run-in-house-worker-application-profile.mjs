@@ -94,6 +94,41 @@ function validateProfile(profile, errors) {
   assert(tala, "profile must define Tala humanizer target agent", errors);
   assert(mira?.uniqueName === "Mira", "Mira must have a unique name", errors);
   assert(mira?.apiRoute === "/api/boreal-agents/mira-video", "Mira must have a stable API route", errors);
+  assert(mira?.framework?.id === "boreal_named_agent_v1", "Mira must declare the named-agent framework", errors);
+  assert(mira?.framework?.version === 1, "Mira framework version must be 1", errors);
+  assert(mira?.framework?.routePattern === "/api/boreal-agents/{agentKey}", "Mira framework must preserve the route pattern", errors);
+  assert(mira?.framework?.routeMode === "preparation_only", "Mira framework must be preparation-only", errors);
+  includesAll(
+    mira?.framework?.supportedActions,
+    ["read_template", "scan_request_candidates", "prepare_application"],
+    "Mira framework supported actions",
+    errors
+  );
+  includesAll(
+    mira?.framework?.boilerplateFiles,
+    [
+      "apps/web/lib/boreal-agents/registry.ts",
+      "apps/web/app/(chat)/api/boreal-agents/[agentKey]/route.ts",
+      "apps/web/tests/contracts/boreal-agents.test.ts",
+      "fixtures/agent/in-house-worker-application-profile.sample.json"
+    ],
+    "Mira framework boilerplate files",
+    errors
+  );
+  includesAll(
+    mira?.framework?.nonAuthority,
+    [
+      "no_matching_or_assignment",
+      "no_commitment_created",
+      "no_fulfillment_started",
+      "no_provider_call",
+      "no_artifact_published",
+      "no_payment_authorized",
+      "no_completion_claim"
+    ],
+    "Mira framework non-authority",
+    errors
+  );
   assert(mira?.status === "live_template", "Mira must be the live template", errors);
   assert(mira?.workerKey === "video-generation", "Mira must bind to video-generation", errors);
   assert(
@@ -138,6 +173,8 @@ function validateProfile(profile, errors) {
   );
   assert(tala?.uniqueName === "Tala", "Tala must have a unique name", errors);
   assert(tala?.apiRoute === "/api/boreal-agents/tala-humanizer", "Tala must have a stable API route", errors);
+  assert(tala?.framework?.id === "boreal_named_agent_v1", "Tala must declare the named-agent framework", errors);
+  assert(tala?.framework?.routeMode === "preparation_only", "Tala framework must be preparation-only", errors);
   assert(tala?.status === "target_template", "Tala must stay target-only", errors);
   assert(tala?.workerKey === "humanizer", "Tala must bind to humanizer target", errors);
   assert(
@@ -155,6 +192,15 @@ function validateProfile(profile, errors) {
       "route-level mutation tests"
     ],
     "agent boilerplate files",
+    errors
+  );
+  includesAll(
+    profile.agentBoilerplate?.requiredContracts,
+    [
+      "shared boreal_named_agent_v1 framework",
+      "stable apiRoute"
+    ],
+    "agent boilerplate contracts",
     errors
   );
   includesAll(

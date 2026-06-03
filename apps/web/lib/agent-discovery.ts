@@ -866,7 +866,7 @@ export function buildNamedBorealAgentDiscovery() {
     status: "live_named_agent_templates",
     routeMode: "preparation_only",
     routePattern: "/api/boreal-agents/{agentKey}",
-    actions: ["scan_request_candidates", "prepare_application"],
+    actions: ["read_template", "scan_request_candidates", "prepare_application"],
     nonAuthority: [
       "worker assignment",
       "owner approval",
@@ -886,6 +886,7 @@ export function buildNamedBorealAgentDiscovery() {
       workerKey: agent.workerKey,
       apiRoute: agent.apiRoute,
       url: absoluteUrl(agent.apiRoute),
+      framework: agent.framework,
       supplyKind: agent.supplyBinding.supplyKind,
       providerRef: agent.supplyBinding.providerRef,
       modelProviders: agent.modelBindings.map((binding) => binding.provider),
