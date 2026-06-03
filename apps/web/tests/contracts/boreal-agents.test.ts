@@ -250,6 +250,43 @@ async function main() {
   assert.deepEqual(publicPrepare.applicationPacket.mutationCall.requiredHeaders, [
     "Idempotency-Key",
   ]);
+  assert.equal(
+    publicPrepare.applicationPacket.submissionPreflight.endpoint,
+    "/agents/actions/preflight"
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.submissionPreflight.actionId,
+    "apply_to_request"
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.submissionPreflight.requiredStatus,
+    "preflight_passed"
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.submissionPreflight.requiredInput
+      .hasIdempotencyKey,
+    true
+  );
+  assert.deepEqual(
+    publicPrepare.applicationPacket.submissionPreflight.requiredInput
+      .requestedScopes,
+    ["commitments:propose"]
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.submissionPreflight.routePolicyRecheck
+      .ownerPrivateAutoApprovalRequired,
+    false
+  );
+  assert.ok(
+    publicPrepare.applicationPacket.submissionPreflight.mustReadBeforeSubmit.includes(
+      "agentActionPolicy"
+    )
+  );
+  assert.ok(
+    publicPrepare.applicationPacket.submissionPreflight.forbiddenClaimsBeforeAuthorizedMutation.includes(
+      "worker assigned"
+    )
+  );
   assert.equal(publicPrepare.applicationPacket.mutationCall.body.kind, "proposal");
   assert.equal(
     publicPrepare.applicationPacket.mutationCall.body.supplyId,
@@ -327,6 +364,11 @@ async function main() {
   assert.equal(
     scanBody.candidates[0].applicationPacket.mutationCall.route,
     "/api/requests/req-video-001/commitments"
+  );
+  assert.equal(
+    scanBody.candidates[0].applicationPacket.submissionPreflight
+      .requiredBeforeMutation,
+    true
   );
   assert.equal(scanBody.candidates[1].allowedToWake, false);
   assert.ok(
@@ -457,6 +499,21 @@ assert.equal(
 assert.equal(
   privatePrepare.applicationPacket.mutationCall.body.metadata.prepareOnly,
   true
+);
+assert.equal(
+  privatePrepare.applicationPacket.submissionPreflight.routePolicyRecheck
+    .ownerPrivateAutoApprovalRequired,
+  true
+);
+assert.equal(
+  privatePrepare.applicationPacket.submissionPreflight.routePolicyRecheck
+    .mutationScopeIfResolverBearer,
+  "fulfillments:create"
+);
+assert.ok(
+  privatePrepare.applicationPacket.submissionPreflight.forbiddenClaimsBeforeAuthorizedMutation.includes(
+    "artifact published"
+  )
 );
 
 const privateSelectedSupplyMismatchPrepare = prepareBorealAgentApplication({

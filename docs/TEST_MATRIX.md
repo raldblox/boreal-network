@@ -151,6 +151,7 @@ Verify:
 - `/.well-known/agent-card.json` exposes only public-safe identity, endpoint, capability, auth, and skill metadata
 - the public agent card and `/openapi.json` expose the same action catalog for inspect, make request, apply, submit, monitor, run, and optimize intents
 - the public agent action preflight endpoint validates pass and fail shapes for inspect, make-request, apply, submit, monitor, run, and optimize prerequisites before real governed routes are attempted
+- named Boreal agent `prepare_application` and `scan_request_candidates` packets must carry a `submissionPreflight` handoff requiring `/agents/actions/preflight`, `apply_to_request`, represented actor, idempotency, selected `Supply`, `agentActionPolicy`, and lane-specific route-policy rechecks before any sketched `Commitment` or `Fulfillment` route can be attempted
 - the public agent card and `/openapi.json` link to the workflow catalog and keep workflows below `Request` truth
 - each catalog action names canonical reads, canonical writes, availability, auth boundary, standard contract links, and guardrails
 - public request projections expose request-level `agentActionAffordances` that map concrete request ids to inspect, apply, submit, monitor, run, and optimize affordances without exposing owner-only routing or granting mutation authority

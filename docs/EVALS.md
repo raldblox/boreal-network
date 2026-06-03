@@ -87,6 +87,7 @@ Verify that in-house Boreal worker scanning is read-only and produces only oppor
 Verify that public or cross-actor in-house worker application proposes a `Commitment` before fulfillment, while owner-private direct worker fulfillment remains limited to owner-controlled private requests with selected published first-party supply.
 Verify that owner-private direct worker fulfillment is not recommended from private visibility alone; request-specific trusted-worker auto-approval, eligible status, allowed worker key, and selected supply proof must all be present.
 Verify that public or cross-actor worker applications attach selected supply through `Commitment.supplyId`, while owner-private direct lanes attach selected supply through `Fulfillment.supplyId`.
+Verify that named Boreal agent application packets include `submissionPreflight` requiring `/agents/actions/preflight`, `apply_to_request`, represented actor evidence, idempotency, selected `Supply`, `agentActionPolicy`, and lane-specific route-policy rechecks before any sketched mutation route can be attempted.
 Verify that owner-scoped auto-approval can create or accept only the next worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to another supply.
 Verify that prompt-only assets are rejected as starter supply until a backing execution profile, capability fingerprints, proof path, and readiness tests exist.
 Verify that request-grant funding, solver payout, reviewer compensation, and solution-run writes stay attached to a `Request` through `Transaction` records.
@@ -260,7 +261,7 @@ From the repo root:
 - `pnpm contracts:in-house-workers`
   Validates the in-house Boreal worker application profile: scanner read-only guarantees, public `Commitment` application boundary, owner-private direct `Fulfillment` exception, auto-approval non-completion limits, prompt-only asset gates, live `video-generation`, and target-only humanizer status.
 - `pnpm web:test:boreal-agents`
-  Validates the named Boreal agent route surface: unique `Mira` and `Tala` route templates, `Mira` video-generation qualification, caller-supplied request scan wake or skip behavior, human-required scanner skip behavior, target-only humanizer behavior, governed mutation-call sketches for commitment or owner-private fulfillment routes, and preparation-only packets that do not match, assign, create commitments, start fulfillments, publish artifacts, write events, create transactions, or call providers.
+  Validates the named Boreal agent route surface: unique `Mira` and `Tala` route templates, `Mira` video-generation qualification, caller-supplied request scan wake or skip behavior, human-required scanner skip behavior, target-only humanizer behavior, governed mutation-call sketches for commitment or owner-private fulfillment routes, required `submissionPreflight` handoffs, and preparation-only packets that do not match, assign, create commitments, start fulfillments, publish artifacts, write events, create transactions, or call providers.
 - `pnpm evals:request-processing:benchmark`
   Runs the deterministic multi-system benchmark pack and prints aggregate metrics.
 - `node tests/contracts/run-request-processing-benchmark.mjs --write-json <path> --write-markdown <path> --write-tex <path>`

@@ -506,6 +506,7 @@ components:
         - supplyBinding
         - durableWriteStatus
         - requiredNextAction
+        - submissionPreflight
         - mutationCall
         - proposedCanonicalWrites
         - proposedObject
@@ -524,6 +525,8 @@ components:
           const: not_created_prepare_only
         requiredNextAction:
           const: submit_through_authorized_mutation_route
+        submissionPreflight:
+          $ref: "#/components/schemas/SubmissionPreflight"
         mutationCall:
           $ref: "#/components/schemas/PreparedMutationCall"
         proposedCanonicalWrites:
@@ -538,6 +541,96 @@ components:
           enum:
             - explicit_owner_acceptance_required
             - trusted_worker_auto_approval_required
+    SubmissionPreflight:
+      type: object
+      required:
+        - endpoint
+        - actionId
+        - requiredStatus
+        - requiredBeforeMutation
+        - requiredInput
+        - routePolicyRecheck
+        - mustReadBeforeSubmit
+        - forbiddenClaimsBeforeAuthorizedMutation
+        - nonAuthority
+      properties:
+        endpoint:
+          const: /agents/actions/preflight
+        actionId:
+          const: apply_to_request
+        requiredStatus:
+          const: preflight_passed
+        requiredBeforeMutation:
+          const: true
+        requiredInput:
+          type: object
+          required:
+            - schemaVersion
+            - requestId
+            - representedActor
+            - hasHumanApproval
+            - hasIdempotencyKey
+            - requestedScopes
+            - payloadSummaryRequired
+          properties:
+            schemaVersion:
+              const: 1
+            requestId:
+              type: string
+            representedActor:
+              type: object
+              required:
+                - kind
+                - reference
+              properties:
+                kind:
+                  const: agent
+                reference:
+                  type: string
+                  pattern: "^boreal-agent:"
+            hasHumanApproval:
+              const: true
+            hasIdempotencyKey:
+              const: true
+            requestedScopes:
+              type: array
+              items:
+                type: string
+              contains:
+                const: commitments:propose
+            payloadSummaryRequired:
+              const: true
+        routePolicyRecheck:
+          type: object
+          required:
+            - requestDetailRequired
+            - agentActionPolicyRequired
+            - selectedSupplyRequired
+            - ownerPrivateAutoApprovalRequired
+            - mutationScopeIfResolverBearer
+          properties:
+            requestDetailRequired:
+              const: true
+            agentActionPolicyRequired:
+              const: true
+            selectedSupplyRequired:
+              type: boolean
+            ownerPrivateAutoApprovalRequired:
+              type: boolean
+            mutationScopeIfResolverBearer:
+              enum:
+                - commitments:propose
+                - fulfillments:create
+        mustReadBeforeSubmit:
+          type: array
+          items:
+            type: string
+        forbiddenClaimsBeforeAuthorizedMutation:
+          type: array
+          items:
+            type: string
+        nonAuthority:
+          type: string
     PreparedMutationCall:
       type: object
       required:

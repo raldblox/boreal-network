@@ -368,6 +368,44 @@
       "proofPlan",
       "idempotencyKey"
     ],
+    "submissionPreflight": {
+      "endpoint": "/agents/actions/preflight",
+      "actionId": "apply_to_request",
+      "requiredStatus": "preflight_passed",
+      "requiredBeforeMutation": true,
+      "requiredInput": {
+        "schemaVersion": 1,
+        "representedActor": {
+          "kind": "agent",
+          "referencePattern": "boreal-agent:{agentKey}"
+        },
+        "hasHumanApproval": true,
+        "hasIdempotencyKey": true,
+        "requestedScopes": [
+          "commitments:propose"
+        ],
+        "payloadSummaryRequired": true
+      },
+      "routePolicyRecheck": {
+        "requestDetailRequired": true,
+        "agentActionPolicyRequired": true,
+        "selectedSupplyRequired": true,
+        "ownerPrivateAutoApprovalRequiredForDirectLane": true,
+        "mutationScopeIfResolverBearer": [
+          "commitments:propose",
+          "fulfillments:create"
+        ]
+      },
+      "forbiddenClaimsBeforeAuthorizedMutation": [
+        "owner approval recorded",
+        "worker assigned",
+        "commitment created",
+        "fulfillment started",
+        "artifact published",
+        "payment authorized",
+        "request completed"
+      ]
+    },
     "mustReadBeforeSubmit": [
       "request detail",
       "agentActionPolicy",

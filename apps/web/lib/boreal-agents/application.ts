@@ -392,6 +392,7 @@ function buildApplicationPacket({
     supplyBinding: template.supplyBinding,
     durableWriteStatus: "not_created_prepare_only",
     requiredNextAction: "submit_through_authorized_mutation_route",
+    submissionPreflight: buildSubmissionPreflight({ input, lane, template }),
   } as const;
 
   if (lane === "owner_private_direct_worker_fulfillment") {
@@ -411,6 +412,65 @@ function buildApplicationPacket({
     proposedObject: "Commitment",
     ownerApprovalMode: "explicit_owner_acceptance_required",
   };
+}
+
+function buildSubmissionPreflight({
+  input,
+  lane,
+  template,
+}: {
+  input: BorealAgentPrepareApplicationInput;
+  lane: string;
+  template: BorealAgentTemplate;
+}) {
+  const directOwnerPrivate =
+    lane === "owner_private_direct_worker_fulfillment";
+
+  return {
+    endpoint: "/agents/actions/preflight",
+    actionId: "apply_to_request",
+    requiredStatus: "preflight_passed",
+    requiredBeforeMutation: true,
+    requiredInput: {
+      schemaVersion: 1,
+      requestId: input.request.id,
+      representedActor: {
+        kind: "agent",
+        reference: `boreal-agent:${template.agentKey}`,
+      },
+      hasHumanApproval: true,
+      hasIdempotencyKey: true,
+      requestedScopes: ["commitments:propose"],
+      payloadSummaryRequired: true,
+    },
+    routePolicyRecheck: {
+      requestDetailRequired: true,
+      agentActionPolicyRequired: true,
+      selectedSupplyRequired: template.supplyBinding.required,
+      ownerPrivateAutoApprovalRequired: directOwnerPrivate,
+      mutationScopeIfResolverBearer: directOwnerPrivate
+        ? "fulfillments:create"
+        : "commitments:propose",
+    },
+    mustReadBeforeSubmit: [
+      "request detail",
+      "agentActionPolicy",
+      "selected Supply",
+      "existing activeRefs",
+      "funding and proof requirements",
+    ],
+    forbiddenClaimsBeforeAuthorizedMutation: [
+      "owner approval recorded",
+      "worker assigned",
+      "commitment created",
+      "fulfillment started",
+      "artifact published",
+      "payment authorized",
+      "request completed",
+    ],
+    nonAuthority:
+      "Passing preparation is not enough to submit. Run action preflight and re-check the live route policy before the authorized mutation route is attempted.",
+  } as const;
 }
 
 function buildCommitmentMutationCall({
