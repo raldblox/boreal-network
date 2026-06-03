@@ -37,6 +37,8 @@ export type NamedAgentBoardReadiness = {
   apiRoute: string;
   workerKey: string;
   supplyKind: string;
+  promotionState: BorealAgentTemplate["promotionGates"]["state"];
+  promotionBlockers: string[];
   readiness: NamedAgentBoardReadinessState;
   reason: string;
   actionLabel: string;
@@ -78,9 +80,13 @@ function buildTemplateBoardReadiness({
   template: BorealAgentTemplate;
 }): NamedAgentBoardReadiness {
   if (template.status === "target_template") {
+    const blockers = template.promotionGates.openBlockers;
     return boardHint({
       readiness: "target_only",
-      reason: "Target-only until this worker supply and proof path are live.",
+      reason:
+        blockers.length > 0
+          ? `Target-only: ${blockers[0]}.`
+          : "Target-only until this worker supply and proof path are live.",
       actionLabel: "Target only",
       request,
       template,
@@ -173,6 +179,8 @@ function boardHint({
     apiRoute: template.apiRoute,
     workerKey: template.workerKey,
     supplyKind: template.supplyBinding.supplyKind,
+    promotionState: template.promotionGates.state,
+    promotionBlockers: [...template.promotionGates.openBlockers],
     readiness,
     reason,
     actionLabel,

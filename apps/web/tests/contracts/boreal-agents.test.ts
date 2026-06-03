@@ -76,6 +76,19 @@ assert.ok(
   ),
   "agent templates must share the named-agent framework contract"
 );
+assert.ok(
+  templates.every(
+    (agent) =>
+      agent.promotionGates.requiredEvidence.includes("supply_factory") &&
+      agent.promotionGates.requiredEvidence.includes("execution_contract") &&
+      agent.promotionGates.requiredEvidence.includes("proof_path") &&
+      agent.promotionGates.requiredEvidence.includes("failure_fixtures") &&
+      agent.promotionGates.requiredEvidence.includes(
+        "route_level_mutation_tests"
+      )
+  ),
+  "agent templates must declare full promotion evidence gates"
+);
 assert.deepEqual(
   borealNamedAgentFrameworkV1.supportedActions,
   ["read_template", "scan_request_candidates", "prepare_application"]
@@ -91,6 +104,8 @@ assert.ok(mira);
 assert.equal(mira.apiRoute, createBorealAgentApiRoute("mira-video"));
 assert.equal(mira.uniqueName, "Mira");
 assert.equal(mira.status, "live_template");
+assert.equal(mira.promotionGates.state, "live_backed");
+assert.deepEqual(mira.promotionGates.openBlockers, []);
 assert.ok(mira.modelBindings.some((binding) => binding.provider === "openai"));
 assert.ok(mira.modelBindings.some((binding) => binding.provider === "runway"));
 assert.ok(mira.taskPipeline.some((task) => task.kind === "run_provider"));
@@ -101,6 +116,12 @@ assert.ok(tala);
 assert.equal(tala.apiRoute, createBorealAgentApiRoute("tala-humanizer"));
 assert.equal(tala.uniqueName, "Tala");
 assert.equal(tala.status, "target_template");
+assert.equal(tala.promotionGates.state, "target_blocked");
+assert.ok(
+  tala.promotionGates.openBlockers.includes(
+    "humanizer supply factory is not implemented"
+  )
+);
 
 const invalidCatalogIssues = validateBorealAgentTemplateCatalog([
   mira,
@@ -154,6 +175,58 @@ assert.ok(
     (issue) => issue.code === "missing_framework_boilerplate"
   )
 );
+const invalidLivePromotionIssues = validateBorealAgentTemplateCatalog([
+  {
+    ...mira,
+    agentKey: "bad-live-promotion",
+    uniqueName: "Bad Live Promotion",
+    apiRoute: createBorealAgentApiRoute("bad-live-promotion"),
+    promotionGates: {
+      ...mira.promotionGates,
+      state: "target_blocked",
+      openBlockers: ["missing supply factory"],
+    },
+  },
+]);
+assert.ok(
+  invalidLivePromotionIssues.some(
+    (issue) => issue.code === "live_template_not_backed"
+  )
+);
+assert.ok(
+  invalidLivePromotionIssues.some(
+    (issue) => issue.code === "live_template_has_blockers"
+  )
+);
+const invalidTargetPromotionIssues = validateBorealAgentTemplateCatalog([
+  {
+    ...tala,
+    agentKey: "bad-target-promotion",
+    uniqueName: "Bad Target Promotion",
+    apiRoute: createBorealAgentApiRoute("bad-target-promotion"),
+    promotionGates: {
+      ...tala.promotionGates,
+      state: "live_backed",
+      requiredEvidence: ["supply_factory"],
+      openBlockers: [],
+    },
+  },
+]);
+assert.ok(
+  invalidTargetPromotionIssues.some(
+    (issue) => issue.code === "target_template_not_blocked"
+  )
+);
+assert.ok(
+  invalidTargetPromotionIssues.some(
+    (issue) => issue.code === "target_template_missing_blockers"
+  )
+);
+assert.ok(
+  invalidTargetPromotionIssues.some(
+    (issue) => issue.code === "missing_promotion_evidence"
+  )
+);
 
 const boardVideoRequest = {
   id: "req-board-video-001",
@@ -194,6 +267,12 @@ const talaVideoBoardHint = videoBoardHints.find(
 );
 assert.ok(talaVideoBoardHint);
 assert.equal(talaVideoBoardHint.readiness, "target_only");
+assert.equal(talaVideoBoardHint.promotionState, "target_blocked");
+assert.ok(
+  talaVideoBoardHint.promotionBlockers.includes(
+    "humanizer supply factory is not implemented"
+  )
+);
 
 const videoWorkerReadiness = buildRequestWorkerReadiness(boardVideoRequest);
 assert.equal(videoWorkerReadiness.listingMode, "read_only_no_assignment");
@@ -308,6 +387,7 @@ async function main() {
   assert.equal(getMiraBody.template.uniqueName, "Mira");
   assert.equal(getMiraBody.template.framework.id, "boreal_named_agent_v1");
   assert.equal(getMiraBody.template.framework.routeMode, "preparation_only");
+  assert.equal(getMiraBody.template.promotionGates.state, "live_backed");
   assert.ok(
     getMiraBody.template.framework.nonAuthority.includes(
       "no_completion_claim"
@@ -330,6 +410,8 @@ async function main() {
   const publicPrepare = await publicPrepareResponse.json();
   assert.equal(publicPrepare.agent.framework.id, "boreal_named_agent_v1");
   assert.equal(publicPrepare.agent.framework.routeMode, "preparation_only");
+  assert.equal(publicPrepare.agent.promotion.state, "live_backed");
+  assert.deepEqual(publicPrepare.agent.promotion.openBlockers, []);
   assert.equal(publicPrepare.qualification.allowedToWake, true);
   assert.ok(
     publicPrepare.qualification.reasons.includes(
@@ -454,6 +536,7 @@ async function main() {
   assert.equal(scanBody.kind, "boreal_agent_scan_result");
   assert.equal(scanBody.agent.framework.id, "boreal_named_agent_v1");
   assert.equal(scanBody.agent.framework.routeMode, "preparation_only");
+  assert.equal(scanBody.agent.promotion.state, "live_backed");
   assert.equal(scanBody.scan.rankingMode, "none_no_matching_or_assignment");
   assert.equal(scanBody.scan.requestCount, 3);
   assert.equal(scanBody.scan.wakeCount, 1);
@@ -494,6 +577,12 @@ async function main() {
   );
   assert.equal(targetScanResponse.status, 200);
   const targetScanBody = await targetScanResponse.json();
+  assert.equal(targetScanBody.agent.promotion.state, "target_blocked");
+  assert.ok(
+    targetScanBody.agent.promotion.openBlockers.includes(
+      "humanizer supply factory is not implemented"
+    )
+  );
   assert.equal(targetScanBody.scan.wakeCount, 0);
   assert.ok(
     targetScanBody.candidates[0].rejectedBy.includes("target_template_not_live")

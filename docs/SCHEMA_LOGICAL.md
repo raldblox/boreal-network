@@ -429,6 +429,7 @@ Derived views may include:
 - request inboxes
 - matching projections
 - in-house worker opportunity cards and fit rankings
+- named-agent promotion gate summaries
 - reputation summaries
 - supply search documents
 - payout dashboards

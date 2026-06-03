@@ -150,6 +150,7 @@ Every first-party Boreal agent should declare:
 - backing `Supply` or target supply binding
 - model bindings such as `OPENAI_API_KEY`
 - provider bindings such as `RUNWAY_API_KEY` when the agent runs provider execution
+- promotion gates declaring `live_backed` or `target_blocked` plus required evidence for supply factory, execution contract, proof path, failure fixtures, and route-level mutation tests
 - allowed tools and governed routes
 - task pipeline with typed steps
 - qualification tags for actor kinds, supply kinds, output kinds, execution kinds, and skip conditions
@@ -157,6 +158,9 @@ Every first-party Boreal agent should declare:
 
 Agents may run multiple task steps internally.
 Those task steps may call models and tools, but only request-bound mutation routes may create `Commitment`, `Fulfillment`, `Artifact`, `Transaction`, or `RequestEvent` truth.
+
+Live named-agent templates must have no open promotion blockers.
+Target named-agent templates must list their blockers in machine-readable promotion gates so public boards can show target-only status without implying readiness or waking the worker.
 
 The first live named agent template is:
 

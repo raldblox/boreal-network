@@ -61,6 +61,54 @@
           "no_completion_claim"
         ]
       },
+      "promotionGates": {
+        "state": "live_backed",
+        "requiredEvidence": [
+          "supply_factory",
+          "execution_contract",
+          "proof_path",
+          "failure_fixtures",
+          "route_level_mutation_tests"
+        ],
+        "evidenceRefs": [
+          {
+            "kind": "supply_factory",
+            "label": "Boreal worker starter supply factory",
+            "path": "apps/web/lib/boreal-workers/registry.ts",
+            "status": "implemented"
+          },
+          {
+            "kind": "execution_contract",
+            "label": "Runway-backed video generation worker",
+            "path": "apps/web/lib/boreal-workers/video-generation.ts",
+            "status": "implemented"
+          },
+          {
+            "kind": "proof_path",
+            "label": "Generated media artifact builder and blob mirror",
+            "path": "apps/web/lib/boreal-workers/video-generation.ts",
+            "status": "implemented"
+          },
+          {
+            "kind": "failure_fixtures",
+            "label": "First-party worker blocked retry fixture",
+            "path": "fixtures/fulfillment/pilot-blocked-retry-artifact-revision.json",
+            "status": "tested"
+          },
+          {
+            "kind": "route_level_mutation_tests",
+            "label": "Owner-private fulfillment and worker mismatch guards",
+            "path": "apps/web/tests/contracts/request-boundary.test.ts",
+            "status": "tested"
+          }
+        ],
+        "openBlockers": [],
+        "rules": [
+          "Live means a real Supply factory and worker execution contract exist.",
+          "Scanner readiness still cannot assign, create commitments, start fulfillments, call providers, publish artifacts, or claim completion.",
+          "Provider execution waits for accepted Commitment or owner-private direct Fulfillment."
+        ]
+      },
       "supplyBinding": {
         "required": true,
         "supplyKind": "video_generation",
@@ -237,6 +285,60 @@
           "no_completion_claim"
         ]
       },
+      "promotionGates": {
+        "state": "target_blocked",
+        "requiredEvidence": [
+          "supply_factory",
+          "execution_contract",
+          "proof_path",
+          "failure_fixtures",
+          "route_level_mutation_tests"
+        ],
+        "evidenceRefs": [
+          {
+            "kind": "supply_factory",
+            "label": "Humanizer starter supply factory",
+            "path": "apps/web/lib/boreal-workers/registry.ts",
+            "status": "missing"
+          },
+          {
+            "kind": "execution_contract",
+            "label": "Humanizer worker execution contract",
+            "path": "apps/web/lib/boreal-workers/humanizer.ts",
+            "status": "missing"
+          },
+          {
+            "kind": "proof_path",
+            "label": "Humanizer artifact proof path",
+            "path": "apps/web/lib/boreal-workers/humanizer.ts",
+            "status": "missing"
+          },
+          {
+            "kind": "failure_fixtures",
+            "label": "Humanizer unsafe and recoverable failure fixtures",
+            "path": "fixtures/agent/in-house-worker-application-profile.sample.json",
+            "status": "target_required"
+          },
+          {
+            "kind": "route_level_mutation_tests",
+            "label": "Humanizer route-level mutation tests",
+            "path": "apps/web/tests/contracts/boreal-agents.test.ts",
+            "status": "target_required"
+          }
+        ],
+        "openBlockers": [
+          "humanizer supply factory is not implemented",
+          "humanizer execution contract is not implemented",
+          "humanizer proof path is not implemented",
+          "humanizer failure fixtures do not exist",
+          "humanizer mutating route tests do not exist"
+        ],
+        "rules": [
+          "Target templates can be discovered and read, but scanner output must stay target_only.",
+          "Do not list prompt-only humanizer assets as starter Supply.",
+          "Promotion requires all evidence refs to move out of missing or target_required status."
+        ]
+      },
       "supplyBinding": {
         "required": true,
         "supplyKind": "documentation_support",
@@ -344,6 +446,7 @@
       "shared boreal_named_agent_v1 framework",
       "unique agentKey and uniqueName",
       "stable apiRoute",
+      "promotion gates define live_backed or target_blocked",
       "no scanner writes",
       "public apply writes Commitment",
       "owner-private direct lane writes Fulfillment only after gates",

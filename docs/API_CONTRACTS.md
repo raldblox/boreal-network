@@ -171,7 +171,8 @@ For the first web slice, `Request` create and update must support:
 In-house named Boreal agents should use stable route slots under `/api/boreal-agents/{agentKey}`.
 Each route slot must map one unique agent name, model or provider binding, task pipeline, qualification tag set, and owned supply boundary to existing request-resource routes.
 Each template must declare the shared `boreal_named_agent_v1` framework contract with version, route pattern, preparation-only route mode, supported actions, boilerplate file refs, task-pipeline rules, and non-authority flags so new agents can be copied without drifting into hidden writes.
-The named-agent registry should be built through the shared template helper so duplicate names, duplicate routes, unstable agent keys, unstable framework settings, missing framework actions, missing boilerplate refs, missing model bindings, missing supply bindings, missing required tasks, and unknown canonical writes fail before the template is exposed.
+Each template must also declare promotion gates with `live_backed` or `target_blocked` state, required evidence, evidence refs, open blockers, and rules.
+The named-agent registry should be built through the shared template helper so duplicate names, duplicate routes, unstable agent keys, unstable framework settings, missing framework actions, missing boilerplate refs, missing promotion gates, invalid live or target blockers, missing model bindings, missing supply bindings, missing required tasks, and unknown canonical writes fail before the template is exposed.
 Public agent discovery should list the named Boreal agent templates in the agent card and start guide so agents can find `Mira`, `Tala`, and their preparation-only route slots without private route knowledge.
 The live per-agent route surface is preparation-only: `GET /api/boreal-agents/{agentKey}` reads the template and `POST /api/boreal-agents/{agentKey}` supports `prepare_application` and `scan_request_candidates`.
 The scan action accepts public-safe or owner-approved request summaries supplied by the caller and returns wake/skip decisions plus possible application packets; it is not matching, assignment, approval, or execution.
@@ -184,7 +185,7 @@ Every prepared application packet must also include `submissionPreflight` that p
 That sketch is route guidance only; the named-agent route does not submit it or bypass the target route's auth, scope, ownership, policy, supply, status, or idempotency gates.
 These routes do not mutate `Request`, create `Commitment`, start `Fulfillment`, call providers, publish `Artifact`, authorize `Transaction`, assign `Supply`, or write `RequestEvent`; durable writes still land through existing request-resource routes as applicable.
 `Mira` / `/api/boreal-agents/mira-video` is the first live preparation template for video generation.
-`Tala` / `/api/boreal-agents/tala-humanizer` remains target-only until the humanizer supply factory, execution contract, proof path, and mutating route tests exist.
+`Tala` / `/api/boreal-agents/tala-humanizer` remains target-only with machine-readable promotion blockers until the humanizer supply factory, execution contract, proof path, failure fixtures, and mutating route tests exist.
 
 ### `Commitment`
 

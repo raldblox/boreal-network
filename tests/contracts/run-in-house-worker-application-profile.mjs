@@ -64,6 +64,8 @@ function validateSchema(schema, errors) {
   assert(schema.$defs?.nonAuthority?.properties?.durableWriteCreated?.const === false, "scanner non-authority must lock durableWriteCreated false", errors);
   assert(schema.$defs?.applicationLane?.properties?.idempotencyRequired?.const === true, "application lanes must require idempotency", errors);
   assert(schema.$defs?.applicationLane?.properties?.completionAuthority?.const === false, "application lanes must lock completionAuthority false", errors);
+  assert(schema.$defs?.agentPromotionGates?.properties?.state?.enum?.includes("live_backed"), "schema must define live_backed promotion state", errors);
+  assert(schema.$defs?.agentPromotionGates?.properties?.state?.enum?.includes("target_blocked"), "schema must define target_blocked promotion state", errors);
   includesAll(
     schema.$defs?.canonicalObject?.enum,
     [...canonicalObjects],
@@ -129,6 +131,27 @@ function validateProfile(profile, errors) {
     "Mira framework non-authority",
     errors
   );
+  assert(mira?.promotionGates?.state === "live_backed", "Mira promotion gates must be live_backed", errors);
+  equalsSet(mira?.promotionGates?.openBlockers, [], "Mira promotion blockers", errors);
+  includesAll(
+    mira?.promotionGates?.requiredEvidence,
+    [
+      "supply_factory",
+      "execution_contract",
+      "proof_path",
+      "failure_fixtures",
+      "route_level_mutation_tests"
+    ],
+    "Mira promotion evidence",
+    errors
+  );
+  assert(
+    mira?.promotionGates?.evidenceRefs?.some(
+      (ref) => ref.kind === "supply_factory" && ref.status === "implemented"
+    ),
+    "Mira promotion gates must reference an implemented supply factory",
+    errors
+  );
   assert(mira?.status === "live_template", "Mira must be the live template", errors);
   assert(mira?.workerKey === "video-generation", "Mira must bind to video-generation", errors);
   assert(
@@ -177,6 +200,19 @@ function validateProfile(profile, errors) {
   assert(tala?.framework?.routeMode === "preparation_only", "Tala framework must be preparation-only", errors);
   assert(tala?.status === "target_template", "Tala must stay target-only", errors);
   assert(tala?.workerKey === "humanizer", "Tala must bind to humanizer target", errors);
+  assert(tala?.promotionGates?.state === "target_blocked", "Tala promotion gates must be target_blocked", errors);
+  assert(
+    tala?.promotionGates?.openBlockers?.includes("humanizer supply factory is not implemented"),
+    "Tala promotion gates must list the missing supply factory",
+    errors
+  );
+  assert(
+    tala?.promotionGates?.evidenceRefs?.some(
+      (ref) => ref.kind === "execution_contract" && ref.status === "missing"
+    ),
+    "Tala promotion gates must mark the execution contract missing",
+    errors
+  );
   assert(
     tala?.qualificationTags?.skipWhen?.some((rule) => rule.includes("supply factory is not implemented")),
     "Tala must stay blocked until its supply factory exists",
@@ -198,7 +234,8 @@ function validateProfile(profile, errors) {
     profile.agentBoilerplate?.requiredContracts,
     [
       "shared boreal_named_agent_v1 framework",
-      "stable apiRoute"
+      "stable apiRoute",
+      "promotion gates define live_backed or target_blocked"
     ],
     "agent boilerplate contracts",
     errors
@@ -378,6 +415,7 @@ function validateDocs(profile, errors) {
   assert(standard.includes("scanner reads do not mutate durable truth"), "standard must include scanner read-only test guidance", errors);
   assert(standard.includes("public application writes `Commitment` plus `RequestEvent`"), "standard must include public application write guidance", errors);
   assert(standard.includes("/api/boreal-agents/{agentKey}"), "standard must name the per-agent API route template", errors);
+  assert(standard.includes("promotion gates"), "standard must include promotion gate guidance", errors);
   assert(standard.includes("human-required plans"), "standard must describe human-required plan scan reduction", errors);
   assert(
     profile.promptAssetBoundary.rules.some((rule) => rule.includes("Prompt-only assets")),

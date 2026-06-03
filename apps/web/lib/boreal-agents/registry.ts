@@ -54,6 +54,26 @@ export type BorealAgentFramework = {
   >;
 };
 
+export type BorealAgentPromotionEvidenceKind =
+  | "supply_factory"
+  | "execution_contract"
+  | "proof_path"
+  | "failure_fixtures"
+  | "route_level_mutation_tests";
+
+export type BorealAgentPromotionGates = {
+  state: "live_backed" | "target_blocked";
+  requiredEvidence: ReadonlyArray<BorealAgentPromotionEvidenceKind>;
+  evidenceRefs: ReadonlyArray<{
+    kind: BorealAgentPromotionEvidenceKind;
+    label: string;
+    path: string;
+    status: "implemented" | "tested" | "missing" | "target_required";
+  }>;
+  openBlockers: readonly string[];
+  rules: readonly string[];
+};
+
 export type BorealAgentTemplate = {
   agentKey: string;
   uniqueName: string;
@@ -62,6 +82,7 @@ export type BorealAgentTemplate = {
   apiRoute: string;
   workerKey: string;
   framework: BorealAgentFramework;
+  promotionGates: BorealAgentPromotionGates;
   supplyBinding: {
     required: true;
     supplyKind: string;
@@ -84,8 +105,14 @@ export type BorealAgentTemplateValidationIssue = {
     | "missing_framework_action"
     | "missing_framework_boilerplate"
     | "missing_model_binding"
+    | "missing_promotion_evidence"
+    | "missing_promotion_gates"
     | "missing_required_task"
     | "missing_supply_binding"
+    | "target_template_missing_blockers"
+    | "target_template_not_blocked"
+    | "live_template_has_blockers"
+    | "live_template_not_backed"
     | "unstable_framework_route"
     | "unknown_canonical_write"
     | "unstable_api_route";
@@ -123,6 +150,14 @@ const requiredFrameworkBoilerplateFiles = [
   "apps/web/tests/contracts/boreal-agents.test.ts",
   "fixtures/agent/in-house-worker-application-profile.sample.json",
 ] as const;
+
+export const requiredAgentPromotionEvidence = [
+  "supply_factory",
+  "execution_contract",
+  "proof_path",
+  "failure_fixtures",
+  "route_level_mutation_tests",
+] as const satisfies readonly BorealAgentPromotionEvidenceKind[];
 
 export const borealNamedAgentFrameworkV1 = {
   id: "boreal_named_agent_v1",
@@ -271,6 +306,69 @@ export function validateBorealAgentTemplateCatalog(
       }
     }
 
+    if (!template.promotionGates) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "missing_promotion_gates",
+        message: `${template.agentKey} must declare live-versus-target promotion gates.`,
+      });
+    } else {
+      const evidenceSet = new Set(template.promotionGates.requiredEvidence);
+      for (const evidence of requiredAgentPromotionEvidence) {
+        if (!evidenceSet.has(evidence)) {
+          issues.push({
+            agentKey: template.agentKey,
+            code: "missing_promotion_evidence",
+            message: `${template.agentKey} promotion gates must require ${evidence}.`,
+          });
+        }
+      }
+
+      if (
+        template.status === "live_template" &&
+        template.promotionGates.state !== "live_backed"
+      ) {
+        issues.push({
+          agentKey: template.agentKey,
+          code: "live_template_not_backed",
+          message: `${template.agentKey} live template must use live_backed promotion state.`,
+        });
+      }
+
+      if (
+        template.status === "live_template" &&
+        template.promotionGates.openBlockers.length > 0
+      ) {
+        issues.push({
+          agentKey: template.agentKey,
+          code: "live_template_has_blockers",
+          message: `${template.agentKey} live template cannot have open promotion blockers.`,
+        });
+      }
+
+      if (
+        template.status === "target_template" &&
+        template.promotionGates.state !== "target_blocked"
+      ) {
+        issues.push({
+          agentKey: template.agentKey,
+          code: "target_template_not_blocked",
+          message: `${template.agentKey} target template must use target_blocked promotion state.`,
+        });
+      }
+
+      if (
+        template.status === "target_template" &&
+        template.promotionGates.openBlockers.length === 0
+      ) {
+        issues.push({
+          agentKey: template.agentKey,
+          code: "target_template_missing_blockers",
+          message: `${template.agentKey} target template must list open promotion blockers.`,
+        });
+      }
+    }
+
     if (
       !template.supplyBinding.required ||
       !template.supplyBinding.supplyKind ||
@@ -327,6 +425,48 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
     apiRoute: createBorealAgentApiRoute("mira-video"),
     workerKey: "video-generation",
     framework: borealNamedAgentFrameworkV1,
+    promotionGates: {
+      state: "live_backed",
+      requiredEvidence: [...requiredAgentPromotionEvidence],
+      evidenceRefs: [
+        {
+          kind: "supply_factory",
+          label: "Boreal worker starter supply factory",
+          path: "apps/web/lib/boreal-workers/registry.ts",
+          status: "implemented",
+        },
+        {
+          kind: "execution_contract",
+          label: "Runway-backed video generation worker",
+          path: "apps/web/lib/boreal-workers/video-generation.ts",
+          status: "implemented",
+        },
+        {
+          kind: "proof_path",
+          label: "Generated media artifact builder and blob mirror",
+          path: "apps/web/lib/boreal-workers/video-generation.ts",
+          status: "implemented",
+        },
+        {
+          kind: "failure_fixtures",
+          label: "First-party worker blocked retry fixture",
+          path: "fixtures/fulfillment/pilot-blocked-retry-artifact-revision.json",
+          status: "tested",
+        },
+        {
+          kind: "route_level_mutation_tests",
+          label: "Owner-private fulfillment and worker mismatch guards",
+          path: "apps/web/tests/contracts/request-boundary.test.ts",
+          status: "tested",
+        },
+      ],
+      openBlockers: [],
+      rules: [
+        "Live means a real Supply factory and worker execution contract exist.",
+        "Scanner readiness still cannot assign, create commitments, start fulfillments, call providers, publish artifacts, or claim completion.",
+        "Provider execution waits for accepted Commitment or owner-private direct Fulfillment.",
+      ],
+    },
     supplyBinding: {
       required: true,
       supplyKind: "video_generation",
@@ -433,6 +573,54 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
     apiRoute: createBorealAgentApiRoute("tala-humanizer"),
     workerKey: "humanizer",
     framework: borealNamedAgentFrameworkV1,
+    promotionGates: {
+      state: "target_blocked",
+      requiredEvidence: [...requiredAgentPromotionEvidence],
+      evidenceRefs: [
+        {
+          kind: "supply_factory",
+          label: "Humanizer starter supply factory",
+          path: "apps/web/lib/boreal-workers/registry.ts",
+          status: "missing",
+        },
+        {
+          kind: "execution_contract",
+          label: "Humanizer worker execution contract",
+          path: "apps/web/lib/boreal-workers/humanizer.ts",
+          status: "missing",
+        },
+        {
+          kind: "proof_path",
+          label: "Humanizer artifact proof path",
+          path: "apps/web/lib/boreal-workers/humanizer.ts",
+          status: "missing",
+        },
+        {
+          kind: "failure_fixtures",
+          label: "Humanizer unsafe and recoverable failure fixtures",
+          path: "fixtures/agent/in-house-worker-application-profile.sample.json",
+          status: "target_required",
+        },
+        {
+          kind: "route_level_mutation_tests",
+          label: "Humanizer route-level mutation tests",
+          path: "apps/web/tests/contracts/boreal-agents.test.ts",
+          status: "target_required",
+        },
+      ],
+      openBlockers: [
+        "humanizer supply factory is not implemented",
+        "humanizer execution contract is not implemented",
+        "humanizer proof path is not implemented",
+        "humanizer failure fixtures do not exist",
+        "humanizer mutating route tests do not exist",
+      ],
+      rules: [
+        "Target templates can be discovered and read, but scanner output must stay target_only.",
+        "Do not list prompt-only humanizer assets as starter Supply.",
+        "Promotion requires all evidence refs to move out of missing or target_required status.",
+      ],
+    },
     supplyBinding: {
       required: true,
       supplyKind: "documentation_support",

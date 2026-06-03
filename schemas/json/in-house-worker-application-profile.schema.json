@@ -617,12 +617,67 @@
         "apiRoute",
         "workerKey",
         "framework",
+        "promotionGates",
         "supplyBinding",
         "modelBindings",
         "toolBindings",
         "qualificationTags",
         "taskPipeline",
         "nonAuthority"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "live_template"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "promotionGates": {
+                "properties": {
+                  "state": {
+                    "const": "live_backed"
+                  },
+                  "openBlockers": {
+                    "maxItems": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "target_template"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "promotionGates": {
+                "properties": {
+                  "state": {
+                    "const": "target_blocked"
+                  },
+                  "openBlockers": {
+                    "minItems": 1
+                  }
+                }
+              }
+            }
+          }
+        }
       ],
       "properties": {
         "agentKey": {
@@ -650,6 +705,9 @@
         },
         "framework": {
           "$ref": "#/$defs/agentFramework"
+        },
+        "promotionGates": {
+          "$ref": "#/$defs/agentPromotionGates"
         },
         "supplyBinding": {
           "type": "object",
@@ -776,6 +834,121 @@
         },
         "nonAuthority": {
           "$ref": "#/$defs/nonAuthority"
+        }
+      }
+    },
+    "agentPromotionEvidenceKind": {
+      "type": "string",
+      "enum": [
+        "supply_factory",
+        "execution_contract",
+        "proof_path",
+        "failure_fixtures",
+        "route_level_mutation_tests"
+      ]
+    },
+    "agentPromotionGates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "requiredEvidence",
+        "evidenceRefs",
+        "openBlockers",
+        "rules"
+      ],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": [
+            "live_backed",
+            "target_blocked"
+          ]
+        },
+        "requiredEvidence": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "$ref": "#/$defs/agentPromotionEvidenceKind"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "const": "supply_factory"
+              }
+            },
+            {
+              "contains": {
+                "const": "execution_contract"
+              }
+            },
+            {
+              "contains": {
+                "const": "proof_path"
+              }
+            },
+            {
+              "contains": {
+                "const": "failure_fixtures"
+              }
+            },
+            {
+              "contains": {
+                "const": "route_level_mutation_tests"
+              }
+            }
+          ]
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "label",
+              "path",
+              "status"
+            ],
+            "properties": {
+              "kind": {
+                "$ref": "#/$defs/agentPromotionEvidenceKind"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "implemented",
+                  "tested",
+                  "missing",
+                  "target_required"
+                ]
+              }
+            }
+          }
+        },
+        "openBlockers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },

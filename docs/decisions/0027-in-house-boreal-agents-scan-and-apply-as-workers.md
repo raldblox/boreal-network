@@ -60,6 +60,7 @@ Each first-party Boreal agent should have:
 - a unique agent key and human name
 - one stable API route under `/api/boreal-agents/{agentKey}`
 - a reusable template with model bindings, provider bindings, tool bindings, task pipeline, qualification tags, skip rules, and contract fixtures
+- machine-readable promotion gates that say whether the agent is `live_backed` or `target_blocked`, with required evidence for supply factory, execution contract, proof path, failure fixtures, and route-level mutation tests
 - explicit environment bindings such as `OPENAI_API_KEY` for reasoning, rewriting, and multi-step planning, plus provider keys such as `RUNWAY_API_KEY` when the agent executes a provider-backed worker
 
 An agent does not have to be one prompt.
@@ -78,7 +79,7 @@ They are not frontpage `Supply` unless they are backed by an executable supply p
 1. Land this decision and the implementation standard.
 2. Keep `video-generation` as the first live Boreal-managed worker-backed supply.
 3. Add a typed in-house worker opportunity/application profile with named agent templates, per-agent API route shape, task pipeline, model or provider bindings, and planner qualification tags.
-4. Add an implementation boilerplate for more named agents before adding many specialized agents.
+4. Add promotion gates and implementation boilerplate for more named agents before adding many specialized agents.
 5. Wire any worker application route to `Commitment` or owner-private direct `Fulfillment`; do not create a separate application root.
 6. Add route-level tests for worker scan, apply, owner auto-approval, blocked public direct fulfillment, idempotency replay, and proof-gated completion.
 7. Add the humanizer/service-backed worker only when it has a real supply factory, execution contract, proof path, and readiness tests.

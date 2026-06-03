@@ -887,6 +887,7 @@ export function buildNamedBorealAgentDiscovery() {
       apiRoute: agent.apiRoute,
       url: absoluteUrl(agent.apiRoute),
       framework: agent.framework,
+      promotionGates: agent.promotionGates,
       supplyKind: agent.supplyBinding.supplyKind,
       providerRef: agent.supplyBinding.providerRef,
       modelProviders: agent.modelBindings.map((binding) => binding.provider),

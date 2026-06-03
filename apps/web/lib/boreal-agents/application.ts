@@ -137,6 +137,10 @@ export function prepareBorealAgentApplication({
         version: template.framework.version,
         routeMode: template.framework.routeMode,
       },
+      promotion: {
+        state: template.promotionGates.state,
+        openBlockers: [...template.promotionGates.openBlockers],
+      },
     },
     request: {
       id: input.request.id,

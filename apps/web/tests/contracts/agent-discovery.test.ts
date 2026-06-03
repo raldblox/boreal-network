@@ -149,6 +149,8 @@ async function main() {
         agent.framework.id === "boreal_named_agent_v1" &&
         agent.framework.routeMode === "preparation_only" &&
         agent.framework.supportedActions.includes("prepare_application") &&
+        agent.promotionGates.state === "live_backed" &&
+        agent.promotionGates.openBlockers.length === 0 &&
         agent.status === "live_template" &&
         agent.modelProviders.includes("runway")
     ),
@@ -164,10 +166,15 @@ async function main() {
         uniqueName: string;
         apiRoute: string;
         framework: { id: string };
+        promotionGates: { state: string; openBlockers: readonly string[] };
       }) =>
         agent.uniqueName === "Tala" &&
         agent.apiRoute === "/api/boreal-agents/tala-humanizer" &&
-        agent.framework.id === "boreal_named_agent_v1"
+        agent.framework.id === "boreal_named_agent_v1" &&
+        agent.promotionGates.state === "target_blocked" &&
+        agent.promotionGates.openBlockers.includes(
+          "humanizer supply factory is not implemented"
+        )
     ),
     true
   );

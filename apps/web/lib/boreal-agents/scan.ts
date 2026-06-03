@@ -72,6 +72,10 @@ export function scanBorealAgentRequestCandidates({
         version: template.framework.version,
         routeMode: template.framework.routeMode,
       },
+      promotion: {
+        state: template.promotionGates.state,
+        openBlockers: [...template.promotionGates.openBlockers],
+      },
     },
     scan: {
       mode: input.scanMode,

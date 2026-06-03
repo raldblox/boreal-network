@@ -96,6 +96,7 @@ components:
         - apiRoute
         - workerKey
         - framework
+        - promotionGates
         - supplyBinding
         - modelBindings
         - toolBindings
@@ -118,6 +119,8 @@ components:
           type: string
         framework:
           $ref: "#/components/schemas/AgentFramework"
+        promotionGates:
+          $ref: "#/components/schemas/AgentPromotionGates"
         supplyBinding:
           type: object
           required:
@@ -236,6 +239,63 @@ components:
               - no_artifact_published
               - no_payment_authorized
               - no_completion_claim
+    AgentPromotionGates:
+      type: object
+      required:
+        - state
+        - requiredEvidence
+        - evidenceRefs
+        - openBlockers
+        - rules
+      properties:
+        state:
+          enum:
+            - live_backed
+            - target_blocked
+        requiredEvidence:
+          type: array
+          items:
+            enum:
+              - supply_factory
+              - execution_contract
+              - proof_path
+              - failure_fixtures
+              - route_level_mutation_tests
+        evidenceRefs:
+          type: array
+          items:
+            type: object
+            required:
+              - kind
+              - label
+              - path
+              - status
+            properties:
+              kind:
+                enum:
+                  - supply_factory
+                  - execution_contract
+                  - proof_path
+                  - failure_fixtures
+                  - route_level_mutation_tests
+              label:
+                type: string
+              path:
+                type: string
+              status:
+                enum:
+                  - implemented
+                  - tested
+                  - missing
+                  - target_required
+        openBlockers:
+          type: array
+          items:
+            type: string
+        rules:
+          type: array
+          items:
+            type: string
     AgentTaskStep:
       type: object
       required:
