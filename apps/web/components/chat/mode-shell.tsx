@@ -1,7 +1,7 @@
 "use client";
 
-import type { User } from "next-auth";
 import { usePathname, useSearchParams } from "next/navigation";
+import type { User } from "next-auth";
 import { OpenRequestsHub } from "@/components/request/open-requests-hub";
 import { ServiceHub } from "@/components/services/service-hub";
 import { SupplyHub } from "../supply/hub";
@@ -18,7 +18,7 @@ export function ModeShell({ user: _user }: { user?: User | null }) {
     return <HomePage />;
   }
 
-  if (pathname === "/home/alpha") {
+  if (pathname === "/home/alpha" || pathname === "/home/beta") {
     return null;
   }
 

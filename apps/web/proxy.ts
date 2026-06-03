@@ -26,6 +26,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/twitter-image");
   const isPublicSeoView =
     pathname === "/architecture" ||
+    pathname === "/home/alpha" ||
+    pathname === "/home/beta" ||
     pathname === "/problem-intel" ||
     pathname === "/services" ||
     pathname.startsWith("/services/");
@@ -100,7 +102,7 @@ export async function proxy(request: NextRequest) {
     );
 
     return NextResponse.redirect(
-      new URL(`${base}/api/auth/guest?redirectUrl=${redirectUrl}`, request.url)
+      new URL(`${base}/api/auth/guest?redirectUrl=${redirectUrl}`, request.url),
     );
   }
 

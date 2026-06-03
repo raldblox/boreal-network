@@ -6,7 +6,7 @@ import type {
 
 export const seoSiteName = "Boreal";
 export const seoSiteUrl = new URL(
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://boreal.work"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://boreal.work",
 );
 export const seoDefaultTitle = "Boreal - Requests into completed work";
 export const seoTitleTemplate = "%s | Boreal";
@@ -31,6 +31,7 @@ export const seoKeywords = [
 
 export const publicSeoRoutes = [
   "/",
+  "/home/beta",
   "/open-requests",
   "/services",
   "/download/boreal-desktop",
@@ -189,7 +190,7 @@ export function serviceFamilyPath(family: BorealServiceFamily) {
 
 export function servicePlanPath(
   family: BorealServiceFamily,
-  plan: BorealServicePlan
+  plan: BorealServicePlan,
 ) {
   return `/services/${family.slug}/${plan.planKey}`;
 }

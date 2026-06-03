@@ -147,6 +147,8 @@ These are already backed by machine-readable artifacts or deterministic fixtures
 - `apps/web/app/agents/write-sandbox/prepare/route.ts`
 - `apps/web/app/agents/sandbox.md/route.ts`
 - `apps/web/app/agents/sandbox.json/route.ts`
+- `apps/web/app/(chat)/home/beta/page.tsx`
+- `apps/web/components/chat/homepage-beta.tsx`
 - `apps/web/app/.well-known/agent-card.json/route.ts`
 - `apps/web/app/openapi.json/route.ts`
 - `apps/web/app/openapi/[contract]/route.ts`
@@ -218,6 +220,7 @@ Today, the machine-readable baseline proves:
 - one target-only `/agents/write-sandbox.json` profile exists for decision `0025`, defining the future isolated non-production write-sandbox boundary, credential requirements, process order, minimum flow coverage, activation gates, and non-authority limits without making sandbox write credentials or mutating sandbox routes live
 - one public `POST /agents/write-sandbox/prepare` route and `schemas/json/agent-write-sandbox-preparation.schema.json` check a proposed decision `0025` activation plan for environment, credential, production-rejection, route-enforcement, fixture, human-UX, payment, completion, and operator-handoff gates before review without issuing credentials, creating a live sandbox, granting production access, authorizing payment, proving completion, submitting review state, or writing durable history
 - one desktop runtime can connect to Boreal web through resolver device approval, browse public and owned requests, and drive direct commitment, artifact, and fulfillment writes through scoped bearer auth
+- one beta homepage candidate can render requests, services, campaigns, and reusable outcomes as UI-level Boreal work cards with visible request, plan, worker, funding, and outcome slots without replacing `Request`, `Supply`, `Commitment`, `Fulfillment`, `Transaction`, or `Artifact` canon
 - one owned and private request may enter a direct desktop auto-fulfillment lane without a commitment object through a desktop auto-resolve policy, while public or cross-actor work still preserves the commitment gate
 - one private request may carry an owner-scoped preferred supply, and one resolver-approved desktop may read owned supplies and bind direct auto-fulfillment to a published owned supply when the request override or desktop default selects it
 - one `Supply` can be expressed as a durable capability object
