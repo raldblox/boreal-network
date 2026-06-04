@@ -220,6 +220,7 @@ Those defaults shape the starter `Request` projection; they do not promote the s
 When a service plan pre-fills a request composer, the routing context should be visible in the starter text, including attachment mode and no-assignment boundary, rather than hidden as silent mutation authority.
 The briefing layer should treat a visible `Service routing context:` block as Boreal-supplied route-facing starter defaults, not buyer-authored scope, assignment truth, proof, or completion.
 It may persist explicit canon values from that block into `seeking.actorKinds`, `seeking.supplyKinds`, `brief.outputKinds`, and route-facing constraints such as `serviceFamilyKey`, `servicePlanKey`, and `serviceAttachmentMode`.
+The request-briefing mutation normalizer should hydrate those values deterministically when the visible service block is present so the route does not rely only on model obedience.
 If the attachment mode is `request_starter_no_supply_attached`, worker selection and `Supply` attachment remain pending until checkout or request routing creates the appropriate `Commitment` or `Fulfillment` boundary.
 Human-service starters should keep human or agent actor tags and service-support supply kinds, such as `human_service`, `documentation_support`, and `operator`, so provider-only named agents skip unless a separate generated-media role is explicit.
 

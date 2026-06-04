@@ -1,0 +1,33 @@
+{
+  "fixtureType": "request_briefing_service_routing_context",
+  "scenarioId": "service-human-editorial-polish-defaults-v1",
+  "description": "Human Editorial Polish service starter context seeds route-facing request defaults without attaching a worker or supply.",
+  "requestInput": {
+    "serviceFamilyKey": "human-editorial-polish",
+    "servicePlanKey": "publish-polish"
+  },
+  "expectedExtraction": {
+    "seeking": {
+      "actorKinds": ["human", "agent"],
+      "supplyKinds": ["human_service", "documentation_support", "operator"]
+    },
+    "outputKinds": ["draft", "handoff_doc", "verification_note"],
+    "constraints": {
+      "serviceFamilyKey": "human-editorial-polish",
+      "servicePlanKey": "publish-polish",
+      "serviceAttachmentMode": "request_starter_no_supply_attached",
+      "serviceExecutionKind": "hybrid_human_agent",
+      "serviceRouteFamily": "direct_specialist"
+    }
+  },
+  "negativeAssertions": [
+    "routing.preferredSupplyId is absent",
+    "derived.executionKind is absent",
+    "activeRefs are absent",
+    "worker assignment is absent",
+    "Supply attachment is absent",
+    "Fulfillment start is absent",
+    "Artifact proof is absent",
+    "completion claim is absent"
+  ]
+}

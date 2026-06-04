@@ -24,6 +24,7 @@ import {
   persistRequestPatch,
 } from "@/lib/request-server";
 import type { ChatMessage } from "@/lib/types";
+import { hydrateServiceRoutingContextDefaults } from "./request-briefing-service-context";
 
 const looseStringSchema = z.string();
 const looseStringListSchema = z.array(z.string());
@@ -138,7 +139,7 @@ export async function applyRequestBriefPatch({
   };
 }
 
-function hydrateExplicitStructuredFields(patch: RequestPatch): RequestPatch {
+export function hydrateExplicitStructuredFields(patch: RequestPatch): RequestPatch {
   const briefText = [
     patch.brief?.title,
     patch.brief?.summary,
@@ -148,27 +149,34 @@ function hydrateExplicitStructuredFields(patch: RequestPatch): RequestPatch {
     .join("\n");
   const inferredBudget =
     patch.budget === undefined ? inferBudgetFromText(briefText) : undefined;
+  const patchWithServiceContext = hydrateServiceRoutingContextDefaults(patch);
 
   return {
-    ...patch,
-    ...(patch.seeking !== undefined
+    ...patchWithServiceContext,
+    ...(patchWithServiceContext.seeking !== undefined
       ? {
           seeking: sanitizeRequestSeekingInput(
-            patch.seeking as z.infer<typeof requestSeekingInputSchema>,
+            patchWithServiceContext.seeking as z.infer<
+              typeof requestSeekingInputSchema
+            >,
           ),
         }
       : {}),
-    ...(patch.budget !== undefined
+    ...(patchWithServiceContext.budget !== undefined
       ? {
           budget: sanitizeRequestBudgetInput(
-            patch.budget as z.infer<typeof requestBudgetInputSchema>,
+            patchWithServiceContext.budget as z.infer<
+              typeof requestBudgetInputSchema
+            >,
           ),
         }
       : {}),
-    ...(patch.deadline !== undefined
+    ...(patchWithServiceContext.deadline !== undefined
       ? {
           deadline: sanitizeRequestDeadlineInput(
-            patch.deadline as z.infer<typeof requestDeadlineInputSchema>,
+            patchWithServiceContext.deadline as z.infer<
+              typeof requestDeadlineInputSchema
+            >,
           ),
         }
       : {}),
