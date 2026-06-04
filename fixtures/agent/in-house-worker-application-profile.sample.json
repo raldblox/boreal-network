@@ -10,14 +10,13 @@
   },
   "liveWorkerSet": {
     "currentLiveWorkerKeys": [
-      "video-generation"
-    ],
-    "targetOnlyWorkerKeys": [
+      "video-generation",
       "humanizer"
     ],
+    "targetOnlyWorkerKeys": [],
     "rules": [
-      "video-generation is the only live starter worker in this profile.",
-      "humanizer stays target-only until it has a real supply factory and route-level mutation tests.",
+      "video-generation and humanizer are the current live starter workers in this profile.",
+      "humanizer is live-backed by a real supply factory, OpenAI execution contract, document proof path, failure fixtures, and route-level preparation tests.",
       "Do not list prompt-only assets as starter supply."
     ]
   },
@@ -252,7 +251,7 @@
       "agentKey": "tala-humanizer",
       "uniqueName": "Tala",
       "displayName": "Tala Humanizer Agent",
-      "status": "target_template",
+      "status": "live_template",
       "apiRoute": "/api/boreal-agents/tala-humanizer",
       "workerKey": "humanizer",
       "framework": {
@@ -288,7 +287,7 @@
         ]
       },
       "promotionGates": {
-        "state": "target_blocked",
+        "state": "live_backed",
         "requiredEvidence": [
           "supply_factory",
           "execution_contract",
@@ -301,7 +300,7 @@
             "kind": "supply_factory",
             "label": "Humanizer starter supply factory",
             "path": "apps/web/lib/boreal-workers/registry.ts",
-            "status": "missing"
+            "status": "implemented"
           },
           {
             "kind": "execution_contract",
@@ -325,17 +324,14 @@
             "kind": "route_level_mutation_tests",
             "label": "Humanizer route-level mutation tests",
             "path": "apps/web/tests/contracts/boreal-agents.test.ts",
-            "status": "target_required"
+            "status": "tested"
           }
         ],
-        "openBlockers": [
-          "humanizer supply factory is not implemented",
-          "humanizer mutating route tests do not exist"
-        ],
+        "openBlockers": [],
         "rules": [
-          "Target templates can be discovered and read, but scanner output must stay target_only.",
+          "Live means a real Supply factory and worker execution contract exist.",
           "Do not list prompt-only humanizer assets as starter Supply.",
-          "Promotion requires all evidence refs to move out of missing or target_required status."
+          "Provider execution waits for accepted Commitment or owner-private direct Fulfillment."
         ]
       },
       "supplyBinding": {
@@ -357,7 +353,9 @@
         "GET /api/requests?scope=public",
         "GET /api/requests/{id}",
         "POST /api/requests/{id}/commitments",
-        "POST /api/requests/{id}/artifacts"
+        "POST /api/requests/{id}/fulfillments",
+        "POST /api/requests/{id}/artifacts",
+        "POST /api/fulfillments/{id}/retry"
       ],
       "qualificationTags": {
         "actorKinds": [
@@ -382,7 +380,7 @@
           "requiresHumanPresence is true and no human reviewer lane exists",
           "request asks for physical proof",
           "request requires provider media generation",
-          "humanizer supply factory is not implemented"
+          "request has no documentation-support or text-polish signal"
         ]
       },
       "taskPipeline": [
@@ -409,12 +407,50 @@
         {
           "id": "apply",
           "kind": "prepare_application",
-          "summary": "Prepare a local application packet only; this target template cannot submit until the supply factory and tests exist.",
+          "summary": "Prepare a Commitment application for public work or owner-private Fulfillment packet for trusted direct work.",
           "canonicalReads": [
             "Request",
             "Supply"
           ],
+          "canonicalWritesIfAuthorized": [
+            "Commitment",
+            "RequestEvent"
+          ]
+        },
+        {
+          "id": "owner-private-start",
+          "kind": "create_owner_private_fulfillment",
+          "summary": "For owner-private selected supply only, create one active Fulfillment lane without claiming delivery.",
+          "canonicalReads": [
+            "Request",
+            "Supply"
+          ],
+          "canonicalWritesIfAuthorized": [
+            "Fulfillment",
+            "RequestEvent"
+          ]
+        },
+        {
+          "id": "provider-run",
+          "kind": "run_provider",
+          "summary": "Run the configured OpenAI rewrite task only after an accepted or owner-private fulfillment lane exists.",
+          "canonicalReads": [
+            "Fulfillment"
+          ],
           "canonicalWritesIfAuthorized": []
+        },
+        {
+          "id": "publish-proof",
+          "kind": "publish_artifact",
+          "summary": "Publish the document-backed delivery as an Artifact through the request lane.",
+          "canonicalReads": [
+            "Request",
+            "Fulfillment"
+          ],
+          "canonicalWritesIfAuthorized": [
+            "Artifact",
+            "RequestEvent"
+          ]
         }
       ],
       "nonAuthority": {
@@ -843,7 +879,7 @@
       ]
     },
     {
-      "id": "humanizer_target_only",
+      "id": "humanizer_public_apply",
       "workerKey": "humanizer",
       "requestVisibility": "public",
       "recommendedLane": "public_or_cross_actor_commitment_application",
@@ -856,14 +892,16 @@
         "RequestEvent"
       ],
       "notAuthority": [
-        "not live starter supply",
         "not assignment",
+        "not accepted Commitment",
         "not Fulfillment start",
+        "not Artifact publication",
+        "not payment authorization",
         "not completion proof"
       ],
       "notes": [
-        "Humanizer remains target-only until a supply factory and route-level mutation tests exist.",
-        "Do not add catalog-only humanizer supply."
+        "Tala can prepare a proposal when a published Boreal Humanizer supply is selected.",
+        "Owner acceptance is still required before fulfillment and provider execution."
       ]
     }
   ]

@@ -100,7 +100,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       attachmentMode: "request_starter_no_supply_attached",
       attachmentRules: [
         "Service card starts a Request draft only.",
-        "No humanizer worker or Supply is attached from the listing.",
+        "No worker or Supply is assigned from the listing.",
         "Operator review and proof attach later through governed request routing.",
       ],
       executionKind: "hybrid_human_agent",

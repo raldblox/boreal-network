@@ -1,5 +1,6 @@
 import type { BorealRequestDraft } from "@/lib/request";
 import type { BorealWorkerDefinition } from "./types";
+import { createHumanizerSupplyDraft, humanizerWorker } from "./humanizer";
 import {
   createVideoGenerationSupplyDraft,
   videoGenerationWorker,
@@ -7,6 +8,7 @@ import {
 
 const borealWorkers: readonly BorealWorkerDefinition<any, any>[] = [
   videoGenerationWorker,
+  humanizerWorker,
 ];
 
 export function listBorealWorkers() {
@@ -42,4 +44,5 @@ export function rankBorealWorkersForRequest(request: BorealRequestDraft) {
 
 export const borealWorkerSupplyFactories = {
   "video-generation": createVideoGenerationSupplyDraft,
+  humanizer: createHumanizerSupplyDraft,
 } as const;

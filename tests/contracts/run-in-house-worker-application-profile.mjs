@@ -80,10 +80,16 @@ function validateProfile(profile, errors) {
   assert(profile.status === "in_house_worker_application_profile", "fixture status must be in_house_worker_application_profile", errors);
   assert(profile.sourceDecision?.path === decisionPath, "fixture must point at decision 0027", errors);
 
-  equalsSet(profile.liveWorkerSet?.currentLiveWorkerKeys, ["video-generation"], "live worker set", errors);
-  assert(
-    (profile.liveWorkerSet?.targetOnlyWorkerKeys ?? []).includes("humanizer"),
-    "humanizer must stay target-only in this profile",
+  equalsSet(
+    profile.liveWorkerSet?.currentLiveWorkerKeys,
+    ["video-generation", "humanizer"],
+    "live worker set",
+    errors
+  );
+  equalsSet(
+    profile.liveWorkerSet?.targetOnlyWorkerKeys,
+    [],
+    "target-only worker set",
     errors
   );
 
@@ -94,7 +100,7 @@ function validateProfile(profile, errors) {
   const mira = namedAgents.get("mira-video");
   const tala = namedAgents.get("tala-humanizer");
   assert(mira, "profile must define Mira video agent", errors);
-  assert(tala, "profile must define Tala humanizer target agent", errors);
+  assert(tala, "profile must define Tala humanizer agent", errors);
   assert(mira?.uniqueName === "Mira", "Mira must have a unique name", errors);
   assert(mira?.apiRoute === "/api/boreal-agents/mira-video", "Mira must have a stable API route", errors);
   assert(mira?.framework?.id === "boreal_named_agent_v1", "Mira must declare the named-agent framework", errors);
@@ -199,12 +205,15 @@ function validateProfile(profile, errors) {
   assert(tala?.apiRoute === "/api/boreal-agents/tala-humanizer", "Tala must have a stable API route", errors);
   assert(tala?.framework?.id === "boreal_named_agent_v1", "Tala must declare the named-agent framework", errors);
   assert(tala?.framework?.routeMode === "preparation_only", "Tala framework must be preparation-only", errors);
-  assert(tala?.status === "target_template", "Tala must stay target-only", errors);
-  assert(tala?.workerKey === "humanizer", "Tala must bind to humanizer target", errors);
-  assert(tala?.promotionGates?.state === "target_blocked", "Tala promotion gates must be target_blocked", errors);
+  assert(tala?.status === "live_template", "Tala must be live", errors);
+  assert(tala?.workerKey === "humanizer", "Tala must bind to humanizer", errors);
+  assert(tala?.promotionGates?.state === "live_backed", "Tala promotion gates must be live_backed", errors);
+  equalsSet(tala?.promotionGates?.openBlockers, [], "Tala promotion blockers", errors);
   assert(
-    tala?.promotionGates?.openBlockers?.includes("humanizer supply factory is not implemented"),
-    "Tala promotion gates must list the missing supply factory",
+    tala?.promotionGates?.evidenceRefs?.some(
+      (ref) => ref.kind === "supply_factory" && ref.status === "implemented"
+    ),
+    "Tala promotion gates must reference an implemented supply factory",
     errors
   );
   assert(
@@ -231,25 +240,27 @@ function validateProfile(profile, errors) {
     "Tala promotion gates must point at tested humanizer failure fixtures",
     errors
   );
-  includesAll(
-    tala?.promotionGates?.openBlockers,
-    [
-      "humanizer supply factory is not implemented",
-      "humanizer mutating route tests do not exist"
-    ],
-    "Tala open promotion blockers",
-    errors
-  );
   assert(
-    !(tala?.promotionGates?.openBlockers ?? []).includes(
-      "humanizer failure fixtures do not exist"
+    tala?.promotionGates?.evidenceRefs?.some(
+      (ref) =>
+        ref.kind === "route_level_mutation_tests" &&
+        ref.path === "apps/web/tests/contracts/boreal-agents.test.ts" &&
+        ref.status === "tested"
     ),
-    "Tala open blockers must not list tested failure fixtures as missing",
+    "Tala promotion gates must point at tested route-level preparation tests",
     errors
   );
-  assert(
-    tala?.qualificationTags?.skipWhen?.some((rule) => rule.includes("supply factory is not implemented")),
-    "Tala must stay blocked until its supply factory exists",
+  includesAll(
+    (tala?.taskPipeline ?? []).map((step) => step.kind),
+    [
+      "inspect_request",
+      "filter_qualification",
+      "prepare_application",
+      "create_owner_private_fulfillment",
+      "run_provider",
+      "publish_artifact"
+    ],
+    "Tala task pipeline",
     errors
   );
   equalsSet(
@@ -444,7 +455,7 @@ function validateProfile(profile, errors) {
   const examples = byId(profile.examples);
   assert(examples.has("video_generation_public_apply"), "fixture must include public video-generation apply example", errors);
   assert(examples.has("video_generation_owner_private_direct"), "fixture must include owner-private video-generation direct example", errors);
-  assert(examples.has("humanizer_target_only"), "fixture must include target-only humanizer example", errors);
+  assert(examples.has("humanizer_public_apply"), "fixture must include live humanizer public apply example", errors);
 
   equalsSet(
     examples.get("video_generation_public_apply")?.expectedCanonicalWritesIfTaken,
@@ -458,9 +469,10 @@ function validateProfile(profile, errors) {
     "owner-private video-generation example writes",
     errors
   );
-  assert(
-    examples.get("humanizer_target_only")?.notAuthority?.includes("not live starter supply"),
-    "humanizer example must say it is not live starter supply",
+  includesAll(
+    examples.get("humanizer_public_apply")?.expectedCanonicalWritesIfTaken,
+    ["Commitment", "RequestEvent"],
+    "public humanizer example writes",
     errors
   );
 }
@@ -473,11 +485,11 @@ function validateHumanizerFailureFixtures(fixture, errors) {
     errors
   );
   assert(fixture.workerKey === "humanizer", "humanizer failure fixture must bind humanizer", errors);
-  assert(fixture.targetOnly === true, "humanizer failure fixture must stay target-only", errors);
+  assert(fixture.targetOnly === false, "humanizer failure fixture must reflect live promotion", errors);
+  assert(fixture.liveStarterSupply === true, "humanizer failure fixture must mark live starter supply", errors);
   includesAll(
     fixture.nonAuthority,
     [
-      "not live starter supply",
       "not owner approval",
       "not payment authority",
       "not request completion"
@@ -526,8 +538,8 @@ function validateHumanizerFailureFixtures(fixture, errors) {
     inventionScenario?.expected?.mustPreserve,
     [
       "typed humanizer execution contract",
-      "no starter supply factory",
-      "no route-level mutation tests"
+      "live starter supply factory",
+      "route-level preparation tests"
     ],
     "humanizer live-feature preservation",
     errors
@@ -551,7 +563,7 @@ function validateDocs(profile, errors) {
   const decision = readText(decisionPath);
   const standard = readText(standardPath);
   assert(decision.includes("typed in-house worker opportunity/application profile"), "decision 0027 must name the typed profile follow-on", errors);
-  assert(decision.includes("humanizer should not be listed as a starter worker"), "decision 0027 must keep humanizer target-only", errors);
+  assert(decision.includes("humanizer is listed as a live starter worker only after"), "decision 0027 must document humanizer live promotion gates", errors);
   assert(standard.includes("scanner reads do not mutate durable truth"), "standard must include scanner read-only test guidance", errors);
   assert(standard.includes("public application writes `Commitment` plus `RequestEvent`"), "standard must include public application write guidance", errors);
   assert(standard.includes("/api/boreal-agents/{agentKey}"), "standard must name the per-agent API route template", errors);

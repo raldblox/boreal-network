@@ -13,6 +13,18 @@ export const borealWorkerStarterCatalog = [
     tryPrompt:
       "Create a 10-second launch teaser video with clean product motion, confident pacing, and a premium cinematic tone.",
   },
+  {
+    workerKey: "humanizer",
+    title: "Humanizer",
+    providerLabel: "OpenAI",
+    summary:
+      "Rewrite launch copy, briefs, handoff notes, and review packets without inventing shipped facts.",
+    description:
+      "Boreal-managed text polish with OpenAI routing and document-backed delivery artifacts.",
+    inputModes: ["Source text", "Tone guidance"],
+    tryPrompt:
+      "Rewrite this launch copy in plain language, preserve every concrete fact, and leave owner review required.",
+  },
 ] as const;
 
 export type BorealWorkerStarter = (typeof borealWorkerStarterCatalog)[number];
@@ -73,6 +85,9 @@ export function getBorealWorkerKeyFromSupply(
   if (providerRef === "runway/video-generation") {
     return "video-generation";
   }
+  if (providerRef === "boreal/humanizer") {
+    return "humanizer";
+  }
 
   const capabilityKinds = supply.capability.supplyKinds.map((kind) =>
     kind.trim().toLowerCase()
@@ -84,6 +99,12 @@ export function getBorealWorkerKeyFromSupply(
   const profileTags = supply.profile.tags.map((tag) => tag.trim().toLowerCase());
   if (profileTags.includes("video_generation")) {
     return "video-generation";
+  }
+  if (
+    profileTags.includes("humanizer") ||
+    profileTags.includes("text_polish")
+  ) {
+    return "humanizer";
   }
 
   const fingerprint = [

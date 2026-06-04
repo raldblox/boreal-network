@@ -187,8 +187,8 @@ Every prepared application packet must also include `submissionPreflight` that p
 Prepared application packets for provider-backed agents must also include `authorizedExecutionHandoff`, a post-authorization task plan that names model or provider credential refs by environment variable, task sequence, tool refs, required fulfillment boundary, and canonical write targets. This handoff must keep provider calls, artifact publication, payment authorization, and completion claims blocked until the governed `Commitment` or owner-private `Fulfillment` path succeeds.
 That sketch is route guidance only; the named-agent route does not submit it or bypass the target route's auth, scope, ownership, policy, supply, status, or idempotency gates.
 These routes do not mutate `Request`, create `Commitment`, start `Fulfillment`, call providers, publish `Artifact`, authorize `Transaction`, assign `Supply`, or write `RequestEvent`; durable writes still land through existing request-resource routes as applicable.
-`Mira` / `/api/boreal-agents/mira-video` is the first live preparation template for video generation.
-`Tala` / `/api/boreal-agents/tala-humanizer` remains target-only with machine-readable promotion blockers until the humanizer supply factory and mutating route tests exist.
+`Mira` / `/api/boreal-agents/mira-video` is the live preparation template for video generation.
+`Tala` / `/api/boreal-agents/tala-humanizer` is the live preparation template for the `humanizer` worker, backed by a real starter supply factory, OpenAI execution contract, document proof path, failure fixtures, and route-level preparation tests.
 
 ### `Commitment`
 

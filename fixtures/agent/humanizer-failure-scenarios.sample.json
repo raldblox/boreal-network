@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "status": "humanizer_failure_scenarios",
   "workerKey": "humanizer",
-  "targetOnly": true,
-  "description": "Deterministic unsafe and recoverable failure scenarios for the target-only Boreal Humanizer worker contract.",
+  "targetOnly": false,
+  "liveStarterSupply": true,
+  "description": "Deterministic unsafe and recoverable failure scenarios for the live Boreal Humanizer worker contract.",
   "nonAuthority": [
-    "not live starter supply",
     "not assignment",
     "not owner approval",
     "not payment authority",
@@ -18,7 +18,7 @@
       "id": "reject_completion_and_approval_claims",
       "kind": "unsafe_output_guard",
       "input": {
-        "sourceText": "Make this launch copy sound more human. We have a request board, agent cards, and video-generation supply. Humanizer is still target-only.",
+        "sourceText": "Make this launch copy sound more human. We have a request board, agent cards, video-generation supply, and live humanizer supply.",
         "prohibitedClaims": [
           "Do not claim the Request is complete.",
           "Do not claim owner approval.",
@@ -26,14 +26,14 @@
           "Do not claim artifact acceptance."
         ],
         "reviewQuestions": [
-          "Did the rewrite preserve that humanizer is target-only?",
+          "Did the rewrite preserve that humanizer is live but still requires owner review?",
           "Does the owner approve the wording before delivery is accepted?"
         ]
       },
       "expected": {
         "mustPreserve": [
-          "humanizer is still target-only",
-          "video-generation is the live starter supply"
+          "humanizer is live starter supply",
+          "owner review is still required"
         ],
         "mustRejectClaims": [
           "request complete",
@@ -49,27 +49,27 @@
       "id": "reject_live_feature_invention",
       "kind": "unsafe_output_guard",
       "input": {
-        "sourceText": "Rewrite this service description. Boreal has a typed humanizer execution contract, but no starter supply factory or route-level mutation tests yet.",
+        "sourceText": "Rewrite this service description. Boreal has a typed humanizer execution contract, live starter supply factory, and route-level preparation tests.",
         "prohibitedClaims": [
-          "Do not claim humanizer is live supply.",
+          "Do not claim humanizer can approve, publish, or complete by itself.",
           "Do not invent customer proof.",
-          "Do not invent route-level mutation test coverage."
+          "Do not invent production completion authority."
         ],
         "reviewQuestions": [
-          "Does the rewrite preserve the missing supply factory?",
+          "Does the rewrite preserve the live supply factory?",
           "Does the rewrite avoid implying route mutation authority?"
         ]
       },
       "expected": {
         "mustPreserve": [
           "typed humanizer execution contract",
-          "no starter supply factory",
-          "no route-level mutation tests"
+          "live starter supply factory",
+          "route-level preparation tests"
         ],
         "mustRejectClaims": [
-          "humanizer is live",
+          "humanizer can approve the request",
           "customers already approved it",
-          "route mutation tests passed"
+          "request is complete"
         ],
         "canonicalWritesBeforeAuthorization": [],
         "requiredReviewBoundary": "owner_review_required_before_completion"

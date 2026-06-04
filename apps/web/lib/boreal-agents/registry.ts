@@ -661,19 +661,19 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
     agentKey: "tala-humanizer",
     uniqueName: "Tala",
     displayName: "Tala Humanizer Agent",
-    status: "target_template",
+    status: "live_template",
     apiRoute: createBorealAgentApiRoute("tala-humanizer"),
     workerKey: "humanizer",
     framework: borealNamedAgentFrameworkV1,
     promotionGates: {
-      state: "target_blocked",
+      state: "live_backed",
       requiredEvidence: [...requiredAgentPromotionEvidence],
       evidenceRefs: [
         {
           kind: "supply_factory",
           label: "Humanizer starter supply factory",
           path: "apps/web/lib/boreal-workers/registry.ts",
-          status: "missing",
+          status: "implemented",
         },
         {
           kind: "execution_contract",
@@ -697,17 +697,14 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
           kind: "route_level_mutation_tests",
           label: "Humanizer route-level mutation tests",
           path: "apps/web/tests/contracts/boreal-agents.test.ts",
-          status: "target_required",
+          status: "tested",
         },
       ],
-      openBlockers: [
-        "humanizer supply factory is not implemented",
-        "humanizer mutating route tests do not exist",
-      ],
+      openBlockers: [],
       rules: [
-        "Target templates can be discovered and read, but scanner output must stay target_only.",
+        "Live means a real Supply factory and worker execution contract exist.",
         "Do not list prompt-only humanizer assets as starter Supply.",
-        "Promotion requires all evidence refs to move out of missing or target_required status.",
+        "Provider execution waits for accepted Commitment or owner-private direct Fulfillment.",
       ],
     },
     supplyBinding: {
@@ -727,7 +724,9 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
       "GET /api/requests?scope=public",
       "GET /api/requests/{id}",
       "POST /api/requests/{id}/commitments",
+      "POST /api/requests/{id}/fulfillments",
       "POST /api/requests/{id}/artifacts",
+      "POST /api/fulfillments/{id}/retry",
     ],
     qualificationTags: {
       actorKinds: ["agent", "human"],
@@ -742,7 +741,7 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
         "requiresHumanPresence is true and no human reviewer lane exists",
         "request asks for physical proof",
         "request requires provider media generation",
-        "humanizer supply factory is not implemented",
+        "request has no documentation-support or text-polish signal",
       ],
     },
     taskPipeline: [
@@ -757,7 +756,7 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
         id: "filter-qualification",
         kind: "filter_qualification",
         summary:
-          "Accept only text polish and humanizer requests once the supply factory exists.",
+          "Accept only text polish and documentation-support requests with a real humanizer Supply binding.",
         canonicalReads: ["Request", "Supply"],
         canonicalWritesIfAuthorized: [],
       },
@@ -765,9 +764,37 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
         id: "prepare-application",
         kind: "prepare_application",
         summary:
-          "Draft a Commitment application without claiming direct execution authority.",
+          "Draft a Commitment application for public work or owner-private fulfillment packet for trusted direct work.",
         canonicalReads: ["Request", "Supply"],
         canonicalWritesIfAuthorized: ["Commitment", "RequestEvent"],
+      },
+      {
+        id: "owner-private-start",
+        kind: "create_owner_private_fulfillment",
+        summary:
+          "Create fulfillment only when the owner selected direct trusted worker auto-approval.",
+        canonicalReads: ["Request", "Commitment"],
+        canonicalWritesIfAuthorized: [
+          "Fulfillment",
+          "FulfillmentStep",
+          "RequestEvent",
+        ],
+      },
+      {
+        id: "provider-run",
+        kind: "run_provider",
+        summary:
+          "Call OpenAI after approval and attach model execution metadata to fulfillment state.",
+        canonicalReads: ["Fulfillment", "FulfillmentStep"],
+        canonicalWritesIfAuthorized: ["FulfillmentStep", "RequestEvent"],
+      },
+      {
+        id: "publish-proof",
+        kind: "publish_artifact",
+        summary:
+          "Publish final document delivery as Artifact and leave owner review explicit.",
+        canonicalReads: ["Fulfillment", "FulfillmentStep"],
+        canonicalWritesIfAuthorized: ["Artifact", "RequestEvent"],
       },
     ],
   },

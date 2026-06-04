@@ -162,13 +162,10 @@ Those task steps may call models and tools, but only request-bound mutation rout
 Live named-agent templates must have no open promotion blockers.
 Target named-agent templates must list their blockers in machine-readable promotion gates so public boards can show target-only status without implying readiness or waking the worker.
 
-The first live named agent template is:
+The first live named agent templates are:
 
 - `Mira` at `/api/boreal-agents/mira-video`, bound to `video-generation`
-
-The first target named agent template is:
-
-- `Tala` at `/api/boreal-agents/tala-humanizer`, blocked until the humanizer supply factory and route-level mutation tests exist
+- `Tala` at `/api/boreal-agents/tala-humanizer`, bound to `humanizer`
 
 ## Prompt and Workflow Asset Rules
 
@@ -196,7 +193,7 @@ Live first worker:
 
 Launch-next target:
 
-- humanizer or service-backed content transformation, only after a real worker factory, supply profile, route-level mutation tests, and promotion review exist
+- additional service-backed content transformation workers, only after a real worker factory, supply profile, route-level mutation tests, and promotion review exist
 
 Non-goal for this standard:
 

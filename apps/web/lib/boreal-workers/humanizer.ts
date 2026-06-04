@@ -3,12 +3,19 @@ import { z } from "zod";
 import type { BorealRequestDraft } from "@/lib/request";
 import { getLanguageModel } from "@/lib/ai/providers";
 import {
+  applySupplyPatch,
+  createInitialSupplyDraft,
+  type BorealSupplyDraft,
+  type SupplyPatch,
+} from "@/lib/supply";
+import {
   BorealWorkerRecoverableError,
   borealWorkerDocumentArtifactDescriptorSchema,
   borealWorkerStoredDocumentAssetSchema,
   type BorealWorkerCommitmentDraft,
   type BorealWorkerDefinition,
   type BorealWorkerStoredAsset,
+  type BorealWorkerSupplyMetadata,
   parseBorealWorkerResult,
 } from "./types";
 
@@ -133,7 +140,7 @@ function buildHumanizerTerms(
       deliverableSummary:
         "One document-backed text delivery that preserves buyer facts and keeps owner review required before completion.",
       paymentNotes:
-        "Target-only until supply factory and route-level mutation tests are promoted.",
+        "Owner acceptance is required before fulfillment starts; owner review remains required before completion.",
     },
   };
 }
@@ -184,10 +191,10 @@ export const humanizerWorker: BorealWorkerDefinition<
   HumanizerWorkerResult
 > = {
   workerKey: "humanizer",
-  version: "0.1-target",
+  version: "1",
   displayName: "Boreal Humanizer",
   description:
-    "Target-only OpenAI-backed text polish worker with document-backed artifact output.",
+    "OpenAI-backed text polish worker with document-backed artifact output.",
   provider: {
     providerRef: "boreal/humanizer",
     service: "openai",
@@ -202,7 +209,7 @@ export const humanizerWorker: BorealWorkerDefinition<
     pathPrefix: "boreal-workers/humanizer",
   },
   autoPropose: {
-    enabled: false,
+    enabled: true,
     requireAcceptance: true,
   },
   io: {
@@ -252,7 +259,7 @@ export const humanizerWorker: BorealWorkerDefinition<
       summary:
         "Text rewrite and editorial polish for request briefs, launch copy, handoff notes, and review packets.",
       description:
-        "Target-only Boreal-managed humanizer lane backed by OpenAI routing and document-backed artifact delivery.",
+        "Boreal-managed humanizer lane backed by OpenAI routing and document-backed artifact delivery.",
       tags: [
         "boreal_worker",
         "humanizer",
@@ -267,13 +274,13 @@ export const humanizerWorker: BorealWorkerDefinition<
       executionChannels: ["request_room", "api"],
     },
     availability: {
-      acceptingRequests: false,
+      acceptingRequests: true,
       responseTimeHours: 4,
     },
     pricing: {
       mode: "quote",
       notes:
-        "Target-only until the supply factory and route-level mutation tests exist.",
+        "Quote first when source quality, review depth, or iteration count is still open.",
     },
     bindings: {
       providerRef: "boreal/humanizer",
@@ -407,9 +414,60 @@ export const humanizerWorker: BorealWorkerDefinition<
     }
   },
   metadata: {
-    targetOnly: true,
-    notStarterSupply: true,
     modelFallbacks: HUMANIZER_FALLBACK_MODEL_IDS,
     outputStorage: "document",
   },
 };
+
+export function buildHumanizerSupplyPatch(): SupplyPatch {
+  const metadata: BorealWorkerSupplyMetadata = {
+    borealWorker: {
+      workerKey: humanizerWorker.workerKey,
+      version: humanizerWorker.version,
+      displayName: humanizerWorker.displayName,
+      description: humanizerWorker.description,
+      provider: humanizerWorker.provider,
+      executionMode: humanizerWorker.executionMode,
+      storage: humanizerWorker.storage,
+      autoPropose: humanizerWorker.autoPropose,
+    },
+  };
+
+  return {
+    profile: humanizerWorker.supply.profile,
+    capability: humanizerWorker.supply.capability,
+    availability: humanizerWorker.supply.availability,
+    pricing: humanizerWorker.supply.pricing,
+    source: {
+      kind: "provider",
+    },
+    bindings: humanizerWorker.supply.bindings,
+    metadata,
+  };
+}
+
+export function createHumanizerSupplyDraft({
+  id,
+  userId,
+  createdAt,
+}: {
+  id: string;
+  userId: string;
+  createdAt: string;
+}): BorealSupplyDraft {
+  const baseDraft = createInitialSupplyDraft({
+    id,
+    userId,
+    preset: "agent_worker",
+    createdAt,
+  });
+
+  return applySupplyPatch(
+    baseDraft,
+    {
+      ...buildHumanizerSupplyPatch(),
+      visibility: "unlisted",
+    },
+    createdAt
+  );
+}

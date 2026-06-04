@@ -171,10 +171,8 @@ async function main() {
         agent.uniqueName === "Tala" &&
         agent.apiRoute === "/api/boreal-agents/tala-humanizer" &&
         agent.framework.id === "boreal_named_agent_v1" &&
-        agent.promotionGates.state === "target_blocked" &&
-        agent.promotionGates.openBlockers.includes(
-          "humanizer supply factory is not implemented"
-        )
+        agent.promotionGates.state === "live_backed" &&
+        agent.promotionGates.openBlockers.length === 0
     ),
     true
   );

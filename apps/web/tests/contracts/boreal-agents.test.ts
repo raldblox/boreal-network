@@ -62,6 +62,39 @@ const videoPrepareInput: BorealAgentPrepareApplicationInput = {
   },
 };
 
+const humanizerPrepareInput: BorealAgentPrepareApplicationInput = {
+  action: "prepare_application",
+  request: {
+    id: "req-humanizer-001",
+    visibility: "public",
+    status: "open",
+    brief: {
+      title: "Humanize launch copy",
+      summary: "Need a humanizer pass on public launch copy.",
+      body: "Polish the language, preserve facts, and keep owner review required.",
+      outputKinds: ["draft"],
+    },
+    derived: {
+      seeking: {
+        supplyKinds: ["documentation_support"],
+      },
+      executionProfile: {
+        requiresHumanPresence: false,
+        requiresLocalAccess: false,
+      },
+    },
+  },
+  supply: {
+    id: "22222222-2222-4222-8222-222222222222",
+    kind: "documentation_support",
+    status: "published",
+    supplyKinds: ["documentation_support"],
+    outputKinds: ["draft", "handoff_doc", "verification_note"],
+    capabilityTags: ["draft", "handoff_doc", "verification_note"],
+    providerRef: "boreal/humanizer",
+  },
+};
+
 const templates = listBorealAgentTemplates();
 assert.equal(templates.length, 2);
 assert.equal(new Set(templates.map((agent) => agent.agentKey)).size, 2);
@@ -119,8 +152,9 @@ const tala = getBorealAgentTemplate("tala-humanizer");
 assert.ok(tala);
 assert.equal(tala.apiRoute, createBorealAgentApiRoute("tala-humanizer"));
 assert.equal(tala.uniqueName, "Tala");
-assert.equal(tala.status, "target_template");
-assert.equal(tala.promotionGates.state, "target_blocked");
+assert.equal(tala.status, "live_template");
+assert.equal(tala.promotionGates.state, "live_backed");
+assert.deepEqual(tala.promotionGates.openBlockers, []);
 assert.deepEqual(tala.qualificationTags.actorKinds, ["agent", "human"]);
 assert.deepEqual(tala.qualificationTags.supplyKinds, [
   "documentation_support",
@@ -136,11 +170,9 @@ assert.deepEqual(tala.qualificationTags.executionKinds, [
   "agent_request_room",
   "hybrid_human_agent",
 ]);
-assert.ok(
-  tala.promotionGates.openBlockers.includes(
-    "humanizer supply factory is not implemented"
-  )
-);
+assert.ok(tala.modelBindings.some((binding) => binding.provider === "openai"));
+assert.ok(tala.taskPipeline.some((task) => task.kind === "run_provider"));
+assert.ok(tala.taskPipeline.some((task) => task.kind === "publish_artifact"));
 
 const invalidCatalogIssues = validateBorealAgentTemplateCatalog([
   mira,
@@ -217,14 +249,26 @@ assert.ok(
     (issue) => issue.code === "live_template_has_blockers"
   )
 );
+const syntheticTargetTemplate = {
+  ...tala,
+  agentKey: "synthetic-target",
+  uniqueName: "Synthetic Target",
+  status: "target_template" as const,
+  apiRoute: createBorealAgentApiRoute("synthetic-target"),
+  promotionGates: {
+    ...tala.promotionGates,
+    state: "target_blocked" as const,
+    openBlockers: ["missing supply factory"],
+  },
+};
 const invalidTargetPromotionIssues = validateBorealAgentTemplateCatalog([
   {
-    ...tala,
+    ...syntheticTargetTemplate,
     agentKey: "bad-target-promotion",
     uniqueName: "Bad Target Promotion",
     apiRoute: createBorealAgentApiRoute("bad-target-promotion"),
     promotionGates: {
-      ...tala.promotionGates,
+      ...syntheticTargetTemplate.promotionGates,
       state: "live_backed",
       requiredEvidence: ["supply_factory"],
       openBlockers: [],
@@ -320,12 +364,12 @@ const talaVideoBoardHint = videoBoardHints.find(
   (hint) => hint.agentKey === "tala-humanizer"
 );
 assert.ok(talaVideoBoardHint);
-assert.equal(talaVideoBoardHint.readiness, "target_only");
-assert.equal(talaVideoBoardHint.promotionState, "target_blocked");
-assert.ok(
-  talaVideoBoardHint.promotionBlockers.includes(
-    "humanizer supply factory is not implemented"
-  )
+assert.equal(talaVideoBoardHint.readiness, "skip");
+assert.equal(talaVideoBoardHint.promotionState, "live_backed");
+assert.deepEqual(talaVideoBoardHint.promotionBlockers, []);
+assert.match(
+  talaVideoBoardHint.reason,
+  /media generation|text-polish|documentation-support/
 );
 
 const videoWorkerReadiness = buildRequestWorkerReadiness(boardVideoRequest);
@@ -491,6 +535,16 @@ const miraCopyBoardHint = copyBoardHints.find(
 assert.ok(miraCopyBoardHint);
 assert.equal(miraCopyBoardHint.readiness, "skip");
 assert.match(miraCopyBoardHint.reason, /No public video-generation signal/);
+const talaCopyBoardHint = copyBoardHints.find(
+  (hint) => hint.agentKey === "tala-humanizer"
+);
+assert.ok(talaCopyBoardHint);
+assert.equal(talaCopyBoardHint.readiness, "can_prepare");
+assert.equal(talaCopyBoardHint.proposedObject, "Commitment");
+assert.deepEqual(talaCopyBoardHint.proposedWritesIfAuthorized, [
+  "Commitment",
+  "RequestEvent",
+]);
 
 const closedBoardHints = buildNamedAgentBoardReadiness({
   ...boardVideoRequest,
@@ -521,6 +575,19 @@ async function main() {
   );
   assert.equal(getMiraBody.authority.routeMode, "preparation_only");
   assert.equal(getMiraBody.authority.canCreateFulfillment, false);
+
+  const getTalaResponse = await GET(
+    new Request("http://localhost/api/boreal-agents/tala-humanizer"),
+    routeContext("tala-humanizer")
+  );
+  assert.equal(getTalaResponse.status, 200);
+  const getTalaBody = await getTalaResponse.json();
+  assert.equal(getTalaBody.template.uniqueName, "Tala");
+  assert.equal(getTalaBody.template.status, "live_template");
+  assert.equal(getTalaBody.template.promotionGates.state, "live_backed");
+  assert.deepEqual(getTalaBody.template.promotionGates.openBlockers, []);
+  assert.equal(getTalaBody.authority.routeMode, "preparation_only");
+  assert.equal(getTalaBody.authority.canCallProvider, false);
 
   const unknownResponse = await GET(
     new Request("http://localhost/api/boreal-agents/unknown"),
@@ -690,6 +757,80 @@ async function main() {
   assert.deepEqual(publicPrepare.scanner.canonicalWrites, []);
   assert.equal(publicPrepare.nonAuthority.canCreateCommitment, false);
 
+  const publicHumanizerPrepareResponse = await POST(
+    jsonRequest(humanizerPrepareInput),
+    routeContext("tala-humanizer")
+  );
+  assert.equal(publicHumanizerPrepareResponse.status, 200);
+  const publicHumanizerPrepare = await publicHumanizerPrepareResponse.json();
+  assert.equal(publicHumanizerPrepare.agent.uniqueName, "Tala");
+  assert.equal(publicHumanizerPrepare.agent.status, "live_template");
+  assert.equal(publicHumanizerPrepare.agent.promotion.state, "live_backed");
+  assert.deepEqual(publicHumanizerPrepare.agent.promotion.openBlockers, []);
+  assert.equal(publicHumanizerPrepare.qualification.allowedToWake, true);
+  assert.ok(
+    publicHumanizerPrepare.qualification.reasons.includes(
+      "humanizer_text_signal_detected"
+    )
+  );
+  assert.equal(
+    publicHumanizerPrepare.qualification.recommendedLane,
+    "public_or_cross_actor_commitment_application"
+  );
+  assert.deepEqual(
+    publicHumanizerPrepare.applicationPacket.proposedCanonicalWrites,
+    ["Commitment", "RequestEvent"]
+  );
+  assert.equal(publicHumanizerPrepare.applicationPacket.proposedObject, "Commitment");
+  assert.equal(
+    publicHumanizerPrepare.applicationPacket.mutationCall.route,
+    "/api/requests/req-humanizer-001/commitments"
+  );
+  assert.equal(
+    publicHumanizerPrepare.applicationPacket.mutationCall.body.supplyId,
+    "22222222-2222-4222-8222-222222222222"
+  );
+  assert.equal(
+    validateAgentActionPreflight(
+      publicHumanizerPrepare.applicationPacket.submissionPreflight
+        .preflightRequest
+    ).status,
+    "preflight_passed"
+  );
+  assert.equal(
+    publicHumanizerPrepare.applicationPacket.authorizedExecutionHandoff
+      .providerCallsAllowedBeforeFulfillment,
+    false
+  );
+  assert.equal(
+    publicHumanizerPrepare.applicationPacket.authorizedExecutionHandoff
+      .secretValuesIncluded,
+    false
+  );
+  assert.ok(
+    publicHumanizerPrepare.applicationPacket.authorizedExecutionHandoff.requiredCredentialRefs.some(
+      (credential: { provider: string; env: string; secretValueIncluded: boolean }) =>
+        credential.provider === "openai" &&
+        credential.env === "OPENAI_API_KEY" &&
+        credential.secretValueIncluded === false
+    )
+  );
+  assert.equal(
+    publicHumanizerPrepare.applicationPacket.authorizedExecutionHandoff.requiredCredentialRefs.some(
+      (credential: { provider: string }) => credential.provider === "runway"
+    ),
+    false
+  );
+  assert.ok(
+    publicHumanizerPrepare.taskPipeline.some(
+      (task: { kind: string; state: string }) =>
+        task.kind === "run_provider" &&
+        task.state === "blocked_until_authorized_fulfillment_exists"
+    )
+  );
+  assert.deepEqual(publicHumanizerPrepare.scanner.canonicalWrites, []);
+  assert.equal(publicHumanizerPrepare.nonAuthority.canCallProvider, false);
+
   const pausedSupplyPrepare = prepareBorealAgentApplication({
     input: {
       ...videoPrepareInput,
@@ -807,25 +948,40 @@ async function main() {
     scanBody.candidates[3].rejectedBy.includes("no_video_generation_signal")
   );
 
-  const targetScanResponse = await POST(
+  const humanizerScanResponse = await POST(
     jsonRequest({
       action: "scan_request_candidates",
-      requests: [videoPrepareInput.request],
-      supply: videoPrepareInput.supply,
+      requests: [videoPrepareInput.request, humanizerPrepareInput.request],
+      supply: humanizerPrepareInput.supply,
     }),
     routeContext("tala-humanizer")
   );
-  assert.equal(targetScanResponse.status, 200);
-  const targetScanBody = await targetScanResponse.json();
-  assert.equal(targetScanBody.agent.promotion.state, "target_blocked");
+  assert.equal(humanizerScanResponse.status, 200);
+  const humanizerScanBody = await humanizerScanResponse.json();
+  assert.equal(humanizerScanBody.agent.promotion.state, "live_backed");
+  assert.deepEqual(humanizerScanBody.agent.promotion.openBlockers, []);
+  assert.equal(humanizerScanBody.scan.requestCount, 2);
+  assert.equal(humanizerScanBody.scan.wakeCount, 1);
+  assert.equal(humanizerScanBody.scan.skipCount, 1);
+  assert.equal(humanizerScanBody.candidates[0].allowedToWake, false);
   assert.ok(
-    targetScanBody.agent.promotion.openBlockers.includes(
-      "humanizer supply factory is not implemented"
+    humanizerScanBody.candidates[0].rejectedBy.includes(
+      "no_humanizer_text_signal"
     )
   );
-  assert.equal(targetScanBody.scan.wakeCount, 0);
-  assert.ok(
-    targetScanBody.candidates[0].rejectedBy.includes("target_template_not_live")
+  assert.equal(humanizerScanBody.candidates[1].allowedToWake, true);
+  assert.deepEqual(
+    humanizerScanBody.candidates[1].proposedCanonicalWritesIfAuthorized,
+    ["Commitment", "RequestEvent"]
+  );
+  assert.equal(
+    humanizerScanBody.candidates[1].applicationPacket.mutationCall.route,
+    "/api/requests/req-humanizer-001/commitments"
+  );
+  assert.equal(
+    humanizerScanBody.candidates[1].applicationPacket.authorizedExecutionHandoff
+      .providerCallsAllowedBeforeFulfillment,
+    false
   );
 
   const invalidResponse = await POST(
@@ -1269,18 +1425,94 @@ assert.ok(
   )
 );
 
-const talaPrepare = prepareBorealAgentApplication({
+const talaVideoPrepare = prepareBorealAgentApplication({
   input: videoPrepareInput,
   template: tala,
 });
-assert.equal(talaPrepare.qualification.allowedToWake, false);
+assert.equal(talaVideoPrepare.qualification.allowedToWake, false);
 assert.ok(
-  talaPrepare.qualification.rejectedBy.includes("target_template_not_live")
+  talaVideoPrepare.qualification.rejectedBy.includes(
+    "no_humanizer_text_signal"
+  )
+);
+
+const talaPublicPrepare = prepareBorealAgentApplication({
+  input: humanizerPrepareInput,
+  template: tala,
+});
+assert.equal(talaPublicPrepare.qualification.allowedToWake, true);
+assert.equal(
+  talaPublicPrepare.applicationPacket.authorizedExecutionHandoff.status,
+  "blocked_until_authorized_fulfillment_exists"
+);
+assert.equal(
+  talaPublicPrepare.applicationPacket.authorizedExecutionHandoff
+    .providerCallsAllowedBeforeFulfillment,
+  false
 );
 assert.ok(
-  talaPrepare.taskPipeline.every(
-    (task: { state: string }) => task.state === "target_only"
+  talaPublicPrepare.taskPipeline.some(
+    (task: { kind: string; state: string }) =>
+      task.kind === "publish_artifact" &&
+      task.state === "blocked_until_authorized_fulfillment_exists"
   )
+);
+
+const talaPrivatePrepare = prepareBorealAgentApplication({
+  input: {
+    ...humanizerPrepareInput,
+    request: {
+      ...humanizerPrepareInput.request,
+      visibility: "private",
+      routing: {
+        preferredSupplyId: "22222222-2222-4222-8222-222222222222",
+      },
+      ownerApproval: {
+        trustedWorkerAutoApproval: true,
+        allowedWorkerKeys: ["humanizer"],
+        selectedSupplyId: "22222222-2222-4222-8222-222222222222",
+      },
+    },
+  },
+  template: tala,
+});
+assert.equal(talaPrivatePrepare.qualification.allowedToWake, true);
+assert.equal(
+  talaPrivatePrepare.qualification.recommendedLane,
+  "owner_private_direct_worker_fulfillment"
+);
+assert.deepEqual(talaPrivatePrepare.applicationPacket.proposedCanonicalWrites, [
+  "Fulfillment",
+  "FulfillmentStep",
+  "RequestEvent",
+]);
+assert.equal(talaPrivatePrepare.applicationPacket.proposedObject, "Fulfillment");
+assert.equal(
+  talaPrivatePrepare.applicationPacket.mutationCall.route,
+  "/api/requests/req-humanizer-001/fulfillments"
+);
+assert.equal(
+  talaPrivatePrepare.applicationPacket.mutationCall.body.supplyId,
+  "22222222-2222-4222-8222-222222222222"
+);
+const talaPrivateDirectApproval =
+  talaPrivatePrepare.applicationPacket.mutationCall.body
+    .ownerPrivateDirectApproval;
+assert.ok(talaPrivateDirectApproval);
+assert.equal(
+  talaPrivateDirectApproval.workerKey,
+  "humanizer"
+);
+assert.equal(
+  validateAgentActionPreflight(
+    talaPrivatePrepare.applicationPacket.submissionPreflight.preflightRequest
+  ).status,
+  "preflight_passed"
+);
+assert.equal(
+  talaPrivatePrepare.applicationPacket.submissionPreflight.routePolicyRecheck
+    .ownerPrivateAutoApprovalRequired,
+  true
 );
 
 main()

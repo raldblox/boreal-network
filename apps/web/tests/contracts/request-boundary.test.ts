@@ -5,10 +5,12 @@ import { selectChatModelRoute } from "@/lib/ai/model-routing";
 import { composerChatModels, isComposerChatModelId } from "@/lib/ai/models";
 import { getModelProviderRouteEntries } from "@/lib/ai/providers";
 import {
+  createHumanizerSupplyDraft,
   humanizerWorker,
   humanizerWorkerArtifactSchema,
 } from "@/lib/boreal-workers/humanizer";
 import { listBorealWorkers } from "@/lib/boreal-workers/registry";
+import { getBorealWorkerKeyFromSupply } from "@/lib/boreal-workers/starter-catalog";
 import {
   borealWorkerArtifactDescriptorSchema,
   borealWorkerStoredAssetSchema,
@@ -249,7 +251,41 @@ function makeDraft(
 
 assert.equal(
   listBorealWorkers().some((worker) => worker.workerKey === "humanizer"),
-  false,
+  true,
+);
+const humanizerStarterSupply = createHumanizerSupplyDraft({
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  userId: "worker_1",
+  createdAt: "2026-06-04T00:00:00.000Z",
+});
+assert.equal(humanizerStarterSupply.profile.displayName, "Boreal Humanizer");
+assert.equal(humanizerStarterSupply.status, "draft");
+assert.equal(humanizerStarterSupply.visibility, "unlisted");
+assert.equal(humanizerStarterSupply.availability.acceptingRequests, true);
+assert.deepEqual(humanizerStarterSupply.capability.outputKinds, [
+  "draft",
+  "handoff_doc",
+  "verification_note",
+]);
+assert.equal(getBorealWorkerKeyFromSupply(humanizerStarterSupply), "humanizer");
+assert.equal(
+  getBorealWorkerKeyFromSupply({
+    key: "generic-docs",
+    profile: {
+      displayName: "Generic documentation support",
+      summary: "Manual documentation help.",
+      tags: ["documentation_support"],
+    },
+    capability: {
+      supplyKinds: ["documentation_support"],
+      fulfillmentActorKinds: ["human"],
+      outputKinds: ["draft"],
+      executionChannels: ["request_room"],
+    },
+    bindings: {},
+    metadata: {},
+  }),
+  null,
 );
 const humanizerDraft = makeDraft({
   id: "77777777-7777-4777-8777-777777777777",
@@ -639,6 +675,27 @@ assert.doesNotThrow(() =>
       },
       bindings: {
         resolverClientId: "resolver_1",
+      },
+    },
+  })
+);
+assert.doesNotThrow(() =>
+  assertSupplyCanAttachToCommitment({
+    actorUserId: "worker_1",
+    request: {
+      brief: {
+        outputKinds: ["draft"],
+      },
+      seeking: {
+        supplyKinds: ["documentation_support"],
+      },
+    },
+    supply: {
+      ownerId: "worker_1",
+      status: "published",
+      capability: {
+        outputKinds: ["draft", "handoff_doc", "verification_note"],
+        supplyKinds: ["agent_worker", "documentation_support"],
       },
     },
   })

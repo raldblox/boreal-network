@@ -65,6 +65,21 @@ const videoTextSignals = [
   "render",
 ];
 
+const humanizerTextSignals = [
+  "humanize",
+  "humanizer",
+  "rewrite",
+  "polish",
+  "copy",
+  "editorial",
+  "tone",
+  "plain language",
+  "make this clearer",
+  "make it sound human",
+  "launch copy",
+  "website copy",
+];
+
 export function buildNamedAgentBoardReadiness(
   request: NamedAgentBoardRequest
 ): NamedAgentBoardReadiness[] {
@@ -106,6 +121,10 @@ function buildTemplateBoardReadiness({
 
   if (template.agentKey === "mira-video") {
     return buildMiraBoardReadiness({ request, template });
+  }
+
+  if (template.agentKey === "tala-humanizer") {
+    return buildTalaBoardReadiness({ request, template });
   }
 
   return boardHint({
@@ -157,6 +176,57 @@ function buildMiraBoardReadiness({
   });
 }
 
+function buildTalaBoardReadiness({
+  request,
+  template,
+}: {
+  request: NamedAgentBoardRequest;
+  template: BorealAgentTemplate;
+}) {
+  if (hasHumanOrLocalSignal(request)) {
+    return boardHint({
+      readiness: "skip",
+      reason:
+        "Public projection points to human-led or local-access execution; the humanizer worker must skip.",
+      actionLabel: "Skip request",
+      request,
+      template,
+    });
+  }
+
+  if (hasVideoSignal(request)) {
+    return boardHint({
+      readiness: "skip",
+      reason:
+        "Request points to media generation; the humanizer worker should not wake.",
+      actionLabel: "Skip request",
+      request,
+      template,
+    });
+  }
+
+  if (!hasHumanizerSignal(request)) {
+    return boardHint({
+      readiness: "skip",
+      reason: "No public text-polish or documentation-support signal is present for this agent.",
+      actionLabel: "Skip request",
+      request,
+      template,
+    });
+  }
+
+  return boardHint({
+    readiness: "can_prepare",
+    reason:
+      "Tala can prepare a governed text-polish application packet; the mutation route still owns auth and idempotency.",
+    actionLabel: "Prepare application packet",
+    request,
+    template,
+    proposedObject: "Commitment",
+    proposedWritesIfAuthorized: ["Commitment", "RequestEvent"],
+  });
+}
+
 function boardHint({
   actionLabel,
   proposedObject = null,
@@ -189,6 +259,27 @@ function boardHint({
     proposedWritesIfAuthorized,
     nonAuthority: [...boardNonAuthority],
   };
+}
+
+function hasHumanizerSignal(request: NamedAgentBoardRequest) {
+  const outputKinds = request.brief.outputKinds ?? [];
+  const supplyKinds = request.seeking?.supplyKinds ?? [];
+  const text = normalizeSignalText([
+    request.brief.title,
+    request.brief.summary,
+    request.brief.body,
+    request.derived?.routeSummary,
+  ]);
+
+  return (
+    outputKinds.some((kind) =>
+      hasToken(kind, ["draft", "handoff_doc", "verification_note", "text"])
+    ) ||
+    supplyKinds.some((kind) =>
+      hasToken(kind, ["documentation_support", "reporting_support"])
+    ) ||
+    humanizerTextSignals.some((signal) => text.includes(signal))
+  );
 }
 
 function hasVideoSignal(request: NamedAgentBoardRequest) {

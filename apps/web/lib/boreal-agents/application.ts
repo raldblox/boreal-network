@@ -245,7 +245,12 @@ function evaluateQualification({
   }
 
   if (template.agentKey === "tala-humanizer") {
-    rejectedBy.push("supply_factory_not_implemented");
+    const humanizerSignal = hasHumanizerSignal(input);
+    if (humanizerSignal) {
+      reasons.push("humanizer_text_signal_detected");
+    } else {
+      rejectedBy.push("no_humanizer_text_signal");
+    }
   }
 
   const allowedToWake = rejectedBy.length === 0;
@@ -392,6 +397,54 @@ function hasVideoGenerationSignal(input: BorealAgentPrepareApplicationInput) {
 function isVideoLike(value: string) {
   const normalized = value.toLowerCase();
   return normalized === "video" || normalized === "media";
+}
+
+const humanizerTextSignals = [
+  "humanize",
+  "humanizer",
+  "rewrite",
+  "polish",
+  "copy",
+  "editorial",
+  "tone",
+  "plain language",
+  "make this clearer",
+  "make it sound human",
+  "launch copy",
+  "website copy",
+];
+
+function hasHumanizerSignal(input: BorealAgentPrepareApplicationInput) {
+  const outputKinds = input.request.brief?.outputKinds ?? [];
+  const supplyKinds = [
+    ...(input.request.derived?.seeking?.supplyKinds ?? []),
+    ...(input.request.seeking?.supplyKinds ?? []),
+  ];
+  const text = [
+    input.request.brief?.title,
+    input.request.brief?.summary,
+    input.request.brief?.body,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    outputKinds.some(isVideoLike) ||
+    supplyKinds.some((kind) => kind === "video_generation")
+  ) {
+    return false;
+  }
+
+  return (
+    outputKinds.some((kind) =>
+      ["draft", "handoff_doc", "verification_note"].includes(kind)
+    ) ||
+    supplyKinds.some((kind) =>
+      ["documentation_support", "reporting_support"].includes(kind)
+    ) ||
+    humanizerTextSignals.some((signal) => text.includes(signal))
+  );
 }
 
 function requiresHumanWork(input: BorealAgentPrepareApplicationInput) {
