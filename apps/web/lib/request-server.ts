@@ -75,7 +75,10 @@ import {
   deriveCandidatePoolOrder,
   type RequestMatchCandidate,
 } from "@/lib/request-planner";
-import { assertSupplyCanAttachToCommitment } from "@/lib/request-supply-boundary";
+import {
+  assertSupplyCanAttachToCommitment,
+  assertSupplyMatchesRequest,
+} from "@/lib/request-supply-boundary";
 import type { ChatMessage } from "@/lib/types";
 import { generateUUID } from "@/lib/utils";
 
@@ -1167,6 +1170,7 @@ export async function proposeCommitmentForRequestById({
     assertSupplyCanAttachToCommitment({
       actorResolverClientId,
       actorUserId,
+      request: requestDraft,
       supply: matchedSupplyRecord,
     });
   }
@@ -1949,6 +1953,11 @@ export async function createFulfillmentForRequestById({
     ) {
       throw new Error("Supply is not bound to this resolver client");
     }
+
+    assertSupplyMatchesRequest({
+      request: requestDraft,
+      supply: matchedSupplyRecord,
+    });
   }
 
   if (!commitmentId && useDirectOwnerPrivateLane) {

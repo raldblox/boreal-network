@@ -351,9 +351,11 @@ Verify:
 - direct fulfillment create and update endpoints should honor idempotency keys on retry
 - owner-facing workroom actions should be able to roleplay a public request through commitment proposal, commitment acceptance, fulfillment creation, proof artifact publication, delivery, and owner acceptance without bypassing the canonical endpoints
 - direct commitment proposal with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows
+- direct commitment proposal with `supplyId` should reject owned and published supply rows that do not overlap the request structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present
 - direct fulfillment create should require an accepted commitment
 - direct fulfillment create may omit commitment only for owned private requests driven by the same owner through the desktop auto-resolution lane
 - direct fulfillment create with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows
+- direct fulfillment create with `supplyId` should reject owned and published supply rows that do not overlap the request structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present
 - owner-private direct fulfillment create may attach one valid `routing.preferredSupplyId` when no explicit `supplyId` was passed
 - owner-private first-party service fulfillment may be created from an `open`, `funded`, `in_progress`, or `waiting_for_owner` request without creating a second root object
 - accepted responder lanes should be able to create fulfillment after owner acceptance
@@ -451,6 +453,7 @@ Verify:
 - public or cross-actor worker application writes `Commitment` plus `RequestEvent` and requires route auth, request policy, and idempotency
 - public or cross-actor direct `Fulfillment` creation remains rejected before accepted commitment truth
 - owner-private direct worker fulfillment requires a private owner-controlled request and one selected published owned first-party `Supply`
+- route-level supply attachment tests reject selected supplies that are owned and published but do not overlap request structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present
 - named-agent preparation must reject owner-private direct fulfillment when explicit trusted-worker auto-approval, allowed worker key, eligible status, or selected supply proof is missing or mismatched
 - owner-scoped auto-approval can create or accept only the intended worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to a different supply
 - prompt packs, reusable prompts, workflow JSON, provider prompts, and skills cannot be listed as starter `Supply` without a backing execution profile, capability fingerprints, proof path, and readiness tests

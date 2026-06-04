@@ -130,6 +130,8 @@ export async function POST(
         "Published supply required",
         "Supply does not belong to commitment actor",
         "Supply is not bound to this resolver client",
+        "Supply does not match request supply kinds",
+        "Supply does not match request output kinds",
       ].includes(error.message)
     ) {
       return new ChatbotError("bad_request:api", error.message).toResponse();

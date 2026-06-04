@@ -201,7 +201,7 @@ Should expose:
 In the first open-request room slice, commitment proposal may be created as durable activity without forcing a rewrite of the request brief.
 In-house Boreal workers applying to public or cross-actor requests must use this commitment boundary before fulfillment.
 The application may be a proposal, quote, or assignment-shaped commitment, but it must not start fulfillment until the owner accepts or another explicit owner-scoped policy allows the next boundary.
-When commitment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before storing the application.
+When commitment create includes `supplyId`, the server should validate ownership, `published` status, resolver binding compatibility, and request-fit overlap against structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present before storing the application.
 The first resolver-facing web slice now exposes:
 
 - owner-scoped request routing updates on `PATCH /api/requests/{id}`
@@ -234,9 +234,9 @@ The first resolver-facing web slice now exposes:
 
 Accepted responder lanes may create fulfillment after owner acceptance.
 Owned private resolver lanes may create fulfillment without `commitmentId` only when the same Boreal owner is authorizing direct execution, a selected `Supply` is present through `supplyId` or `routing.preferredSupplyId`, and the request body carries `ownerPrivateDirectApproval` with `mode=trusted_worker_auto_approval`, `approvedByOwner=true`, the selected supply id, and the worker key when known.
-The `ownerPrivateDirectApproval` body object is route-scoped approval evidence, not a new durable `Request` root field; the fulfillment route still re-checks owner, visibility, status, supply ownership, published supply status, resolver binding, idempotency, and active fulfillment gates before writing `Fulfillment` truth.
+The `ownerPrivateDirectApproval` body object is route-scoped approval evidence, not a new durable `Request` root field; the fulfillment route still re-checks owner, visibility, status, supply ownership, published supply status, resolver binding, request-fit overlap, idempotency, and active fulfillment gates before writing `Fulfillment` truth.
 Owner-private first-party service lanes may create direct fulfillment from `open`, `funded`, `in_progress`, or `waiting_for_owner` when the same owner is driving a selected first-party supply lane and the same route-scoped approval evidence is present.
-When fulfillment create includes `supplyId`, the server should validate ownership, `published` status, and resolver binding compatibility before opening the lane.
+When fulfillment create includes `supplyId`, the server should validate ownership, `published` status, resolver binding compatibility, and request-fit overlap against structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present before opening the lane.
 Owner-private Boreal-managed web workers may also open one direct fulfillment lane after `open_request`, but the provider-facing payload should stay reduced to worker-specific prompt and execution inputs instead of the entire request object.
 Owner-scoped auto-approval may create or accept the next worker boundary only for trusted first-party supply, and it must still stop before artifact publication, payment authorization, owner review, or request completion.
 Retryable internal worker or storage handoff failures should move that same fulfillment lane to `blocked`, preserve the worker input and provider recovery metadata, and resume through `POST /api/fulfillments/{id}/retry` instead of terminally failing the request immediately.

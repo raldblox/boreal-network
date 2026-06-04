@@ -239,6 +239,7 @@ In-house Boreal agents and humans follow the same worker-application rule:
 - every prepared application packet must carry a `submissionPreflight` handoff requiring `/agents/actions/preflight`, `apply_to_request` for public or cross-actor `Commitment` application or `create_owner_private_fulfillment` for owner-private direct `Fulfillment`, represented actor evidence, idempotency, request detail, `agentActionPolicy`, selected `Supply`, active refs, funding, proof, and lane-specific route-policy rechecks before any sketched mutation route is attempted
 - no-commitment `POST /api/requests/{id}/fulfillments` must require route-scoped `ownerPrivateDirectApproval` evidence plus selected `Supply` proof; private visibility or owner session alone is not enough to open direct fulfillment
 - selected worker `Supply` should attach at the `Commitment.supplyId` boundary for public or cross-actor applications and at `Fulfillment.supplyId` for owner-private direct lanes
+- selected worker `Supply` attachment must re-check owner, `published` status, resolver binding, and request-fit overlap against structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present
 - treat auto-approval as owner-scoped boundary creation, not assignment, artifact publication, payment authority, review acceptance, or completion
 - keep prompt packs, provider prompts, workflow definitions, and skills below `Supply` unless a real executable supply profile exists
 

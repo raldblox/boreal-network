@@ -510,9 +510,21 @@ assert.doesNotThrow(() =>
   assertSupplyCanAttachToCommitment({
     actorUserId: "worker_1",
     actorResolverClientId: "resolver_1",
+    request: {
+      brief: {
+        outputKinds: ["delivery"],
+      },
+      seeking: {
+        supplyKinds: ["human_service"],
+      },
+    },
     supply: {
       ownerId: "worker_1",
       status: "published",
+      capability: {
+        outputKinds: ["delivery"],
+        supplyKinds: ["human_service"],
+      },
       bindings: {
         resolverClientId: "resolver_1",
       },
@@ -555,6 +567,44 @@ assert.throws(
       },
     }),
   /Supply is not bound to this resolver client/
+);
+assert.throws(
+  () =>
+    assertSupplyCanAttachToCommitment({
+      actorUserId: "worker_1",
+      request: {
+        seeking: {
+          supplyKinds: ["video_generation"],
+        },
+      },
+      supply: {
+        ownerId: "worker_1",
+        status: "published",
+        capability: {
+          supplyKinds: ["documentation_support"],
+        },
+      },
+    }),
+  /Supply does not match request supply kinds/
+);
+assert.throws(
+  () =>
+    assertSupplyCanAttachToCommitment({
+      actorUserId: "worker_1",
+      request: {
+        brief: {
+          outputKinds: ["video"],
+        },
+      },
+      supply: {
+        ownerId: "worker_1",
+        status: "published",
+        capability: {
+          outputKinds: ["handoff_doc"],
+        },
+      },
+    }),
+  /Supply does not match request output kinds/
 );
 
 assert.equal(
