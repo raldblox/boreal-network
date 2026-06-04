@@ -41,6 +41,7 @@
     "web:test:agent-discovery": "pnpm --filter @boreal/web test:agent-discovery",
     "web:test:agent-sandbox-production-boundary": "pnpm --filter @boreal/web test:agent-sandbox-production-boundary",
     "web:test:boreal-agents": "pnpm --filter @boreal/web test:boreal-agents",
+    "web:test:request-fulfillment-route-boundary": "pnpm --filter @boreal/web test:request-fulfillment-route-boundary",
     "contracts:validate": "node tests/contracts/validate-contract-artifacts.mjs"
   },
   "devDependencies": {
