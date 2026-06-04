@@ -220,6 +220,17 @@ function makeDraft(
       outcomeClaims: [],
       leadRanking: [],
       roleMatches: [],
+      workerEligibility: testWorkerEligibility({
+        humanRequired: true,
+        policy: "human_first_skip_agents",
+        preferredActorKinds: ["human"],
+        preferredOutputKinds: ["delivery"],
+        preferredSupplyKinds: ["human_service"],
+        roleKeys: ["human_lead"],
+        shouldWakeAgents: false,
+        skipProviderOnlyAgents: true,
+        skipReasons: ["human_required_boundary", "human_actor_kind"],
+      }),
       assignmentProposal: { state: "not_started" },
       replanReasons: ["internal_replan_reason_should_not_project"],
       missingDetails: [],
@@ -247,6 +258,36 @@ function makeDraft(
     updatedAt: "2026-05-29T00:00:00.000Z",
     ...overrides,
   } as BorealRequestDraft;
+}
+
+function testWorkerEligibility(
+  overrides: Partial<
+    BorealRequestDraft["derived"]["workerEligibility"]
+  > = {},
+): BorealRequestDraft["derived"]["workerEligibility"] {
+  return {
+    source: "planner_projection",
+    policy: "no_agent_signal",
+    humanRequired: false,
+    shouldWakeAgents: false,
+    skipProviderOnlyAgents: true,
+    preferredActorKinds: [],
+    preferredSupplyKinds: [],
+    preferredOutputKinds: [],
+    roleKeys: [],
+    wakeSignals: [],
+    skipReasons: ["no_agent_qualification_signal"],
+    nonAuthority: [
+      "not_matching_or_assignment",
+      "no_supply_assigned",
+      "no_commitment_created",
+      "no_fulfillment_started",
+      "no_provider_call",
+      "no_payment_authorized",
+      "no_request_event_written",
+    ],
+    ...overrides,
+  };
 }
 
 assert.equal(
@@ -355,6 +396,11 @@ assert.equal("matchCandidates" in publicProjection.derived, false);
 assert.equal("leadRanking" in publicProjection.derived, false);
 assert.equal("assignmentProposal" in publicProjection.derived, false);
 assert.equal(publicProjection.derived.routeSummary, "Human-led pilot lane");
+assert.equal(
+  publicProjection.derived.workerEligibility?.policy,
+  "human_first_skip_agents",
+);
+assert.equal(publicProjection.derived.workerEligibility?.shouldWakeAgents, false);
 assert.equal(publicProjection.agentActionCardHints.subject.type, "Request");
 assert.equal(publicProjection.agentActionCardHints.subject.id, publicProjection.id);
 assert.equal(publicProjection.agentActionCardHints.roleHint, "public_request");
@@ -1049,6 +1095,148 @@ assert.equal(
   ),
   true,
 );
+assert.equal(
+  storefrontDraft.derived.workerEligibility.policy,
+  "human_first_skip_agents",
+);
+assert.equal(storefrontDraft.derived.workerEligibility.humanRequired, true);
+assert.equal(storefrontDraft.derived.workerEligibility.shouldWakeAgents, false);
+assert.equal(
+  storefrontDraft.derived.workerEligibility.skipProviderOnlyAgents,
+  true,
+);
+assert.ok(
+  storefrontDraft.derived.workerEligibility.skipReasons.includes(
+    "human_required_boundary",
+  ),
+);
+
+const generatedVideoDraft = applyRequestPatch(
+  createInitialRequestDraft({
+    id: "req_generated_video",
+    chatId: "chat_generated_video",
+    documentId: "doc_generated_video",
+    userId: "buyer_1",
+    visibility: "public",
+    createdAt: "2026-06-01T00:00:00.000Z",
+  }),
+  {
+    brief: {
+      body: "Generate a short product teaser video from our launch copy and assets.",
+      outputKinds: ["video"],
+    },
+    seeking: {
+      actorKinds: ["agent"],
+      supplyKinds: ["video_generation", "provider_capability"],
+    },
+    derived: {
+      executionKind: "provider_api",
+      matchingMode: "preferred_supply_tool",
+      routeFamily: "direct_tool",
+    },
+  },
+  "2026-06-01T00:04:00.000Z",
+);
+
+assert.equal(
+  generatedVideoDraft.derived.workerEligibility.policy,
+  "wake_named_agents",
+);
+assert.equal(generatedVideoDraft.derived.workerEligibility.humanRequired, false);
+assert.equal(generatedVideoDraft.derived.workerEligibility.shouldWakeAgents, true);
+assert.equal(
+  generatedVideoDraft.derived.workerEligibility.skipProviderOnlyAgents,
+  false,
+);
+assert.ok(
+  generatedVideoDraft.derived.workerEligibility.wakeSignals.includes(
+    "supply:video_generation",
+  ),
+);
+assert.ok(
+  generatedVideoDraft.derived.workerEligibility.wakeSignals.includes(
+    "execution:provider_api",
+  ),
+);
+
+const humanLedVideoSupportDraft = applyRequestPatch(
+  createInitialRequestDraft({
+    id: "req_human_led_video_support",
+    chatId: "chat_human_led_video_support",
+    documentId: "doc_human_led_video_support",
+    userId: "buyer_1",
+    visibility: "public",
+    createdAt: "2026-06-01T00:00:00.000Z",
+  }),
+  {
+    brief: {
+      body: "Have a human producer review the script, then generate a short product teaser video from approved assets.",
+      outputKinds: ["video"],
+    },
+    seeking: {
+      actorKinds: ["human", "agent"],
+      supplyKinds: ["human_service", "video_generation"],
+    },
+    derived: {
+      executionKind: "hybrid_human_agent",
+      routeFamily: "worker_market",
+    },
+  },
+  "2026-06-01T00:04:30.000Z",
+);
+
+assert.equal(
+  humanLedVideoSupportDraft.derived.workerEligibility.policy,
+  "human_first_agent_support",
+);
+assert.equal(
+  humanLedVideoSupportDraft.derived.workerEligibility.humanRequired,
+  true,
+);
+assert.equal(
+  humanLedVideoSupportDraft.derived.workerEligibility.shouldWakeAgents,
+  true,
+);
+assert.equal(
+  humanLedVideoSupportDraft.derived.workerEligibility.skipProviderOnlyAgents,
+  false,
+);
+
+const humanizerAgentDraft = applyRequestPatch(
+  createInitialRequestDraft({
+    id: "req_humanizer_agent",
+    chatId: "chat_humanizer_agent",
+    documentId: "doc_humanizer_agent",
+    userId: "buyer_1",
+    visibility: "public",
+    createdAt: "2026-06-01T00:00:00.000Z",
+  }),
+  {
+    brief: {
+      body: "Polish this launch copy so it sounds human without inventing shipped features.",
+      outputKinds: ["draft"],
+    },
+    seeking: {
+      actorKinds: ["agent"],
+      supplyKinds: ["documentation_support"],
+    },
+    derived: {
+      executionKind: "agent_request_room",
+      routeFamily: "direct_specialist",
+    },
+  },
+  "2026-06-01T00:05:00.000Z",
+);
+
+assert.equal(
+  humanizerAgentDraft.derived.workerEligibility.policy,
+  "wake_named_agents",
+);
+assert.ok(
+  humanizerAgentDraft.derived.workerEligibility.wakeSignals.includes(
+    "supply:documentation_support",
+  ),
+);
 
 const rawRequestFixture = JSON.parse(
   readFileSync(
@@ -1096,6 +1284,8 @@ assert.equal(
   rawRequestDraft.derived.assignmentProposal.summary,
   rawRequestFixture.expectedDerived.assignmentSummary,
 );
+assert.equal(rawRequestDraft.derived.workerEligibility.policy, "raw_not_planned");
+assert.equal(rawRequestDraft.derived.workerEligibility.shouldWakeAgents, false);
 for (const field of rawRequestFixture.expectedDerived
   .emptyPlannerFields as Array<keyof typeof rawRequestDraft.derived>) {
   assert.deepEqual(rawRequestDraft.derived[field], []);

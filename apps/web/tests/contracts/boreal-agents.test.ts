@@ -1018,6 +1018,14 @@ async function main() {
             derived: {
               executionKind: "provider_api",
               routeSummary: "Provider-backed video generation.",
+              workerEligibility: {
+                policy: "wake_named_agents",
+                humanRequired: false,
+                shouldWakeAgents: true,
+                skipProviderOnlyAgents: false,
+                wakeSignals: ["supply:video_generation", "output:video"],
+                skipReasons: [],
+              },
             },
             agentActionAffordances: {
               subject: { id: "req-public-video-001" },
@@ -1045,12 +1053,95 @@ async function main() {
             derived: {
               executionKind: "onsite_visit",
               routeSummary: "Human field inspection required.",
+              workerEligibility: {
+                policy: "human_first_skip_agents",
+                humanRequired: true,
+                shouldWakeAgents: false,
+                skipProviderOnlyAgents: true,
+                wakeSignals: [],
+                skipReasons: ["human_required_boundary"],
+              },
             },
             agentActionAffordances: {
               subject: { id: "req-public-human-required" },
             },
             agentActionCardHints: {
               subject: { id: "req-public-human-required" },
+            },
+          },
+          {
+            id: "req-public-no-agent-signal",
+            status: "open",
+            visibility: "public",
+            brief: {
+              title: "Clarify office checklist",
+              summary: "Buyer needs a clearer checklist before routing.",
+              body: "Help me figure out what to ask for before workers apply.",
+              constraints: {},
+              outputKinds: ["delivery"],
+              tags: ["briefing"],
+            },
+            seeking: {
+              actorKinds: [],
+              supplyKinds: [],
+            },
+            derived: {
+              executionKind: null,
+              routeSummary: "Request needs more planning before worker scans.",
+              workerEligibility: {
+                policy: "no_agent_signal",
+                humanRequired: false,
+                shouldWakeAgents: false,
+                skipProviderOnlyAgents: true,
+                wakeSignals: [],
+                skipReasons: ["no_agent_qualification_signal"],
+              },
+            },
+            agentActionAffordances: {
+              subject: { id: "req-public-no-agent-signal" },
+            },
+            agentActionCardHints: {
+              subject: { id: "req-public-no-agent-signal" },
+            },
+          },
+          {
+            id: "req-public-human-agent-support",
+            status: "open",
+            visibility: "public",
+            brief: {
+              title: "Human-approved product teaser",
+              summary:
+                "Human producer approves direction before generated video support.",
+              body: "Have a human producer approve the script, then generate a short teaser video.",
+              constraints: {},
+              outputKinds: ["video"],
+              tags: ["video"],
+            },
+            seeking: {
+              actorKinds: ["human", "agent"],
+              supplyKinds: ["human_service", "video_generation"],
+            },
+            derived: {
+              executionKind: "hybrid_human_agent",
+              routeSummary: "Human-led request with explicit generated-video support.",
+              workerEligibility: {
+                policy: "human_first_agent_support",
+                humanRequired: true,
+                shouldWakeAgents: true,
+                skipProviderOnlyAgents: false,
+                wakeSignals: [
+                  "actor:agent",
+                  "supply:video_generation",
+                  "output:video",
+                ],
+                skipReasons: [],
+              },
+            },
+            agentActionAffordances: {
+              subject: { id: "req-public-human-agent-support" },
+            },
+            agentActionCardHints: {
+              subject: { id: "req-public-human-agent-support" },
             },
           },
         ] as any,
@@ -1069,10 +1160,10 @@ async function main() {
   );
   assert.equal(publicOpenRequestScan.publicRequestSource.bounded, true);
   assert.equal(publicOpenRequestScan.publicRequestSource.hasMore, true);
-  assert.equal(publicOpenRequestScan.publicRequestSource.requestCount, 2);
-  assert.equal(publicOpenRequestScan.scan.requestCount, 2);
-  assert.equal(publicOpenRequestScan.scan.wakeCount, 1);
-  assert.equal(publicOpenRequestScan.scan.skipCount, 1);
+  assert.equal(publicOpenRequestScan.publicRequestSource.requestCount, 4);
+  assert.equal(publicOpenRequestScan.scan.requestCount, 4);
+  assert.equal(publicOpenRequestScan.scan.wakeCount, 2);
+  assert.equal(publicOpenRequestScan.scan.skipCount, 2);
   assert.equal(publicOpenRequestScan.candidates[0].allowedToWake, true);
   assert.ok(publicOpenRequestScan.candidates[0].applicationPacket);
   assert.equal(
@@ -1085,6 +1176,13 @@ async function main() {
       "human_required_boundary"
     )
   );
+  assert.equal(publicOpenRequestScan.candidates[2].allowedToWake, false);
+  assert.ok(
+    publicOpenRequestScan.candidates[2].rejectedBy.includes(
+      "planner_worker_eligibility_no_agent_signal"
+    )
+  );
+  assert.equal(publicOpenRequestScan.candidates[3].allowedToWake, true);
   assert.deepEqual(publicOpenRequestScan.scanner.canonicalWrites, []);
   assert.ok(
     publicOpenRequestScan.scanner.nonAuthority.includes(

@@ -59,6 +59,17 @@ const derivedSchema = z
       })
       .passthrough()
       .optional(),
+    workerEligibility: z
+      .object({
+        policy: z.string().optional(),
+        humanRequired: z.boolean().optional(),
+        shouldWakeAgents: z.boolean().optional(),
+        skipProviderOnlyAgents: z.boolean().optional(),
+        wakeSignals: z.array(z.string()).optional(),
+        skipReasons: z.array(z.string()).optional(),
+      })
+      .passthrough()
+      .optional(),
   })
   .passthrough()
   .optional();
@@ -216,6 +227,10 @@ function evaluateQualification({
     input,
     template,
   });
+  const workerEligibility = input.request.derived?.workerEligibility;
+  const plannerAllowsAgentSupport =
+    workerEligibility?.humanRequired === true &&
+    workerEligibility.shouldWakeAgents === true;
   reasons.push(...supplyBinding.reasons);
   rejectedBy.push(...supplyBinding.rejectedBy);
 
@@ -223,9 +238,17 @@ function evaluateQualification({
     rejectedBy.push("target_template_not_live");
   }
 
-  const humanRequired = requiresHumanWork(input);
+  const humanRequired = requiresHumanWork(input) && !plannerAllowsAgentSupport;
   if (humanRequired) {
     rejectedBy.push("human_required_boundary");
+  }
+
+  if (
+    !humanRequired &&
+    workerEligibility?.shouldWakeAgents === false &&
+    workerEligibility.policy
+  ) {
+    rejectedBy.push(`planner_worker_eligibility_${workerEligibility.policy}`);
   }
 
   if (
@@ -390,6 +413,12 @@ function hasVideoGenerationSignal(input: BorealAgentPrepareApplicationInput) {
   return (
     outputKinds.some(isVideoLike) ||
     supplyKinds.some((kind) => kind === "video_generation") ||
+    input.request.derived?.workerEligibility?.wakeSignals?.includes(
+      "supply:video_generation",
+    ) ||
+    input.request.derived?.workerEligibility?.wakeSignals?.includes(
+      "output:video",
+    ) ||
     /\b(video|teaser|clip|reel)\b/.test(text)
   );
 }
@@ -442,6 +471,12 @@ function hasHumanizerSignal(input: BorealAgentPrepareApplicationInput) {
     ) ||
     supplyKinds.some((kind) =>
       ["documentation_support", "reporting_support"].includes(kind)
+    ) ||
+    input.request.derived?.workerEligibility?.wakeSignals?.includes(
+      "supply:documentation_support",
+    ) ||
+    input.request.derived?.workerEligibility?.wakeSignals?.includes(
+      "output:draft",
     ) ||
     humanizerTextSignals.some((signal) => text.includes(signal))
   );

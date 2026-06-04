@@ -219,6 +219,7 @@ These may exist, but they are not canonical roots:
 - `RequestDraft`
 - `RoutePlan`
 - `MatchCandidate`
+- `WorkerEligibility`
 - `ReputationSnapshot`
 - `Projection`
 - `SearchIndexDocument`
@@ -227,6 +228,9 @@ These may exist, but they are not canonical roots:
 
 Derived objects may be deleted and rebuilt.
 Canonical objects may not.
+
+`WorkerEligibility` is planner-owned guidance under `Request.derived`.
+It may tell public boards or named Boreal agents whether to wake, skip, or route human-first, but it is not assignment, `Supply` attachment, `Commitment`, `Fulfillment`, payment authority, `RequestEvent` history, or completion truth.
 
 ## Naming Rules
 

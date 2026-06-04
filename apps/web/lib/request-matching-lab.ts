@@ -603,6 +603,7 @@ function buildRequestMatcherActualOutput({
       roleSlots: draft.derived.roleSlots,
       noMicrotaskExplosion: draft.derived.noMicrotaskExplosion,
       outcomeClaims: draft.derived.outcomeClaims,
+      workerEligibility: draft.derived.workerEligibility,
     },
     matching: {
       candidatePool: draft.derived.candidatePool ?? [],

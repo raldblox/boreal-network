@@ -11,6 +11,7 @@ import type {
   RequestRoleSlot,
   RequestTeamMode,
   RequestVerificationPlan,
+  RequestWorkerEligibility,
 } from "./request";
 import type {
   BorealOutputKind,
@@ -25,6 +26,7 @@ import {
   borealActorKinds,
   borealOutputKinds,
   borealRequestEvidenceClaims,
+  borealRequestExecutionKinds,
   borealRequestExecutionModes,
   borealSupplyKinds,
   borealRequestRoleKeys,
@@ -114,6 +116,7 @@ export type RequestPlannerState = {
   matchCandidates: RequestMatchCandidate[];
   leadRanking: RequestLeadRankingEntry[];
   roleMatches: RequestRoleMatch[];
+  workerEligibility: RequestWorkerEligibility;
   assignmentProposal: RequestAssignmentProposal;
   replanReasons: string[];
   embodiedSummary: string;
@@ -173,6 +176,11 @@ export function deriveRequestPlannerState(
     clarificationNeeded: embodiedPlanning.clarificationNeeded,
     roleMatches,
   });
+  const workerEligibility = deriveWorkerEligibility({
+    draft,
+    embodiedPlanning,
+    structuralPlanning,
+  });
 
   return {
     leadRole: structuralPlanning.leadRole,
@@ -188,6 +196,7 @@ export function deriveRequestPlannerState(
     matchCandidates,
     leadRanking,
     roleMatches,
+    workerEligibility,
     assignmentProposal,
     replanReasons,
     embodiedSummary: embodiedPlanning.summary,
@@ -588,6 +597,290 @@ function deriveStructuralPlanningState(
     phases,
     noMicrotaskExplosion: true,
   };
+}
+
+const workerEligibilityNonAuthority = [
+  "not_matching_or_assignment",
+  "no_supply_assigned",
+  "no_commitment_created",
+  "no_fulfillment_started",
+  "no_provider_call",
+  "no_payment_authorized",
+  "no_request_event_written",
+] as const;
+
+const agentWakeSupplyKinds = new Set<BorealSupplyKind>([
+  "agent_worker",
+  "ai_automation",
+  "automation_builder",
+  "digital_product",
+  "documentation_support",
+  "provider_capability",
+  "runtime_executor",
+  "video_generation",
+]);
+
+const hardHumanOrLocalSupplyKinds = new Set<BorealSupplyKind>([
+  "field_inspection",
+  "field_verification",
+  "hardware_ops",
+  "human_service",
+  "local_runner",
+  "pickup_dropoff",
+]);
+
+const agentWakeOutputKinds = new Set<BorealOutputKind>([
+  "automation_build",
+  "draft",
+  "file",
+  "handoff_doc",
+  "media",
+  "migration_plan",
+  "verification_note",
+  "video",
+  "workflow_build",
+  "workflow_map",
+]);
+
+const physicalProofOutputKinds = new Set<BorealOutputKind>([
+  "delivery_confirmation",
+  "handoff_receipt",
+  "inspection_report",
+  "photo_evidence",
+  "serial_inventory",
+  "signature",
+]);
+
+const physicalEvidenceClaims = new Set<BorealRequestEvidenceClaim>([
+  "delivery_confirmation",
+  "handoff_signature",
+  "photo_proof",
+  "serial_number_capture",
+  "timestamped_photos",
+]);
+
+function deriveWorkerEligibility({
+  draft,
+  embodiedPlanning,
+  structuralPlanning,
+}: {
+  draft: Pick<BorealRequestDraft, "brief" | "seeking" | "derived">;
+  embodiedPlanning: {
+    executionProfile: RequestExecutionProfile;
+    embodiedConstraintSet: RequestEmbodiedConstraintSet;
+    verificationPlan: RequestVerificationPlan;
+  };
+  structuralPlanning: {
+    leadRole?: BorealRequestRoleKey;
+    roleSlots: RequestRoleSlot[];
+  };
+}): RequestWorkerEligibility {
+  const actorKinds = normalizeActorKinds(draft.seeking.actorKinds);
+  const supplyKinds = collapseGenericPlanningSupplyKinds(
+    normalizeFingerprintArray(draft.seeking.supplyKinds, borealSupplyKinds),
+  );
+  const outputKinds = normalizeFingerprintArray(
+    draft.brief.outputKinds,
+    borealOutputKinds,
+  );
+  const executionKind = normalizeFingerprintValue(
+    draft.derived.executionKind,
+    borealRequestExecutionKinds,
+  );
+  const roleKeys = uniqueStringArray(
+    structuralPlanning.roleSlots.map((slot) => slot.roleKey),
+  ) as BorealRequestRoleKey[];
+  const roleActorKinds = uniqueStringArray(
+    structuralPlanning.roleSlots.flatMap((slot) => slot.requiredActorKinds),
+  ) as RequestActorKind[];
+  const preferredActorKinds = uniqueStringArray([
+    ...actorKinds,
+    ...roleActorKinds,
+  ]) as RequestActorKind[];
+  const humanRequiredSignals = collectPlannerHumanRequiredSignals({
+    actorKinds: preferredActorKinds,
+    embodiedPlanning,
+    executionKind,
+    outputKinds,
+    supplyKinds,
+  });
+  const wakeSignals = collectPlannerAgentWakeSignals({
+    actorKinds: preferredActorKinds,
+    executionKind,
+    outputKinds,
+    roleSlots: structuralPlanning.roleSlots,
+    supplyKinds,
+  });
+  const humanRequired = humanRequiredSignals.length > 0;
+  const hasAgentWakeSignal = wakeSignals.length > 0;
+  const policy = humanRequired
+    ? hasAgentWakeSignal
+      ? "human_first_agent_support"
+      : "human_first_skip_agents"
+    : hasAgentWakeSignal
+      ? "wake_named_agents"
+      : "no_agent_signal";
+  const skipReasons = policy === "human_first_skip_agents"
+    ? ["human_required_boundary", ...humanRequiredSignals]
+    : policy === "no_agent_signal"
+      ? ["no_agent_qualification_signal"]
+      : [];
+
+  return {
+    source: "planner_projection",
+    policy,
+    humanRequired,
+    shouldWakeAgents:
+      policy === "wake_named_agents" || policy === "human_first_agent_support",
+    skipProviderOnlyAgents:
+      policy === "human_first_skip_agents" || policy === "no_agent_signal",
+    preferredActorKinds,
+    preferredSupplyKinds: supplyKinds,
+    preferredOutputKinds: outputKinds,
+    roleKeys,
+    wakeSignals,
+    skipReasons: uniqueStringArray(skipReasons),
+    nonAuthority: [...workerEligibilityNonAuthority],
+  };
+}
+
+function collectPlannerHumanRequiredSignals({
+  actorKinds,
+  embodiedPlanning,
+  executionKind,
+  outputKinds,
+  supplyKinds,
+}: {
+  actorKinds: RequestActorKind[];
+  embodiedPlanning: {
+    executionProfile: RequestExecutionProfile;
+    embodiedConstraintSet: RequestEmbodiedConstraintSet;
+    verificationPlan: RequestVerificationPlan;
+  };
+  executionKind: string | undefined;
+  outputKinds: BorealOutputKind[];
+  supplyKinds: BorealSupplyKind[];
+}) {
+  const signals: string[] = [];
+
+  if (actorKinds.includes("human")) {
+    signals.push("human_actor_kind");
+  }
+
+  if (supplyKinds.some((kind) => hardHumanOrLocalSupplyKinds.has(kind))) {
+    signals.push("human_or_local_supply_kind");
+  }
+
+  if (outputKinds.some((kind) => physicalProofOutputKinds.has(kind))) {
+    signals.push("physical_proof_output_kind");
+  }
+
+  if (
+    executionKind &&
+    ["human", "field", "local", "embodied", "onsite"].some((token) =>
+      executionKind.includes(token),
+    )
+  ) {
+    signals.push("human_or_local_execution_kind");
+  }
+
+  if (embodiedPlanning.executionProfile.requiresHumanPresence) {
+    signals.push("execution_profile_requires_human_presence");
+  }
+
+  if (embodiedPlanning.executionProfile.requiresLocalAccess) {
+    signals.push("execution_profile_requires_local_access");
+  }
+
+  if (embodiedPlanning.embodiedConstraintSet.requiresEmbodiedHandling) {
+    signals.push("embodied_handling_required");
+  }
+
+  if (embodiedPlanning.embodiedConstraintSet.requiresHumanPresence) {
+    signals.push("embodied_requires_human_presence");
+  }
+
+  if (embodiedPlanning.embodiedConstraintSet.requiresLocalAccess) {
+    signals.push("embodied_requires_local_access");
+  }
+
+  if (embodiedPlanning.embodiedConstraintSet.requiresWitness) {
+    signals.push("embodied_requires_witness");
+  }
+
+  if (embodiedPlanning.verificationPlan.mustHaveLocationSignal) {
+    signals.push("verification_requires_location_signal");
+  }
+
+  if (embodiedPlanning.verificationPlan.mustHaveSignature) {
+    signals.push("verification_requires_signature");
+  }
+
+  if (
+    embodiedPlanning.verificationPlan.requiredEvidenceClaims.some((claim) =>
+      physicalEvidenceClaims.has(claim),
+    )
+  ) {
+    signals.push("physical_evidence_claim");
+  }
+
+  return uniqueStringArray(signals);
+}
+
+function collectPlannerAgentWakeSignals({
+  actorKinds,
+  executionKind,
+  outputKinds,
+  roleSlots,
+  supplyKinds,
+}: {
+  actorKinds: RequestActorKind[];
+  executionKind: string | undefined;
+  outputKinds: BorealOutputKind[];
+  roleSlots: RequestRoleSlot[];
+  supplyKinds: BorealSupplyKind[];
+}) {
+  const signals: string[] = [];
+
+  if (actorKinds.includes("agent")) {
+    signals.push("actor:agent");
+  }
+
+  for (const supplyKind of supplyKinds) {
+    if (agentWakeSupplyKinds.has(supplyKind)) {
+      signals.push(`supply:${supplyKind}`);
+    }
+  }
+
+  for (const outputKind of outputKinds) {
+    if (agentWakeOutputKinds.has(outputKind)) {
+      signals.push(`output:${outputKind}`);
+    }
+  }
+
+  if (
+    executionKind &&
+    [
+      "agent_request_room",
+      "hybrid_tool_room",
+      "provider_api",
+      "runtime_request_room",
+    ].includes(executionKind)
+  ) {
+    signals.push(`execution:${executionKind}`);
+  }
+
+  if (
+    roleSlots.some((slot) => slot.requiredActorKinds.includes("agent"))
+  ) {
+    signals.push("role_slot:agent_capable");
+  }
+
+  return uniqueStringArray(signals);
+}
+
+function uniqueStringArray(values: string[]) {
+  return Array.from(new Set(values.filter((value) => value.length > 0)));
 }
 
 function deriveOutcomeClaims({

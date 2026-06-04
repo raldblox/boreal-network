@@ -72,6 +72,9 @@ export function buildRequestWorkerReadiness(
     (lane) => lane.readiness === "can_prepare"
   ).length;
   const humanRequired = humanLane.state === "human_required";
+  const plannerAllowsAgentSupport =
+    request.derived?.workerEligibility?.policy === "human_first_agent_support" &&
+    request.derived.workerEligibility.shouldWakeAgents === true;
 
   return {
     schemaVersion: 1,
@@ -84,7 +87,9 @@ export function buildRequestWorkerReadiness(
       humanActionable:
         humanLane.state === "can_review" || humanLane.state === "human_required",
       humanRequired,
-      shouldWakeAgents: !humanRequired && agentCanPrepareCount > 0,
+      shouldWakeAgents:
+        (!humanRequired || plannerAllowsAgentSupport) &&
+        agentCanPrepareCount > 0,
     },
     nonAuthority: [...workerReadinessNonAuthority],
   };

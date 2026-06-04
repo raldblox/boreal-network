@@ -28,6 +28,11 @@ export type NamedAgentBoardRequest = {
   derived?: {
     executionKind?: string | null;
     routeSummary?: string | null;
+    workerEligibility?: {
+      policy?: string | null;
+      shouldWakeAgents?: boolean;
+      wakeSignals?: readonly string[] | null;
+    } | null;
   } | null;
 };
 
@@ -143,11 +148,22 @@ function buildMiraBoardReadiness({
   request: NamedAgentBoardRequest;
   template: BorealAgentTemplate;
 }) {
-  if (hasHumanOrLocalSignal(request)) {
+  if (hasHumanOrLocalSignal(request) && !hasPlannerAgentSupport(request)) {
     return boardHint({
       readiness: "skip",
       reason:
         "Public projection points to human-led or local-access execution; provider-only agents must skip.",
+      actionLabel: "Skip request",
+      request,
+      template,
+    });
+  }
+
+  if (hasPlannerAgentSkip(request)) {
+    return boardHint({
+      readiness: "skip",
+      reason:
+        "Planner worker eligibility does not wake named agents for this request.",
       actionLabel: "Skip request",
       request,
       template,
@@ -183,11 +199,22 @@ function buildTalaBoardReadiness({
   request: NamedAgentBoardRequest;
   template: BorealAgentTemplate;
 }) {
-  if (hasHumanOrLocalSignal(request)) {
+  if (hasHumanOrLocalSignal(request) && !hasPlannerAgentSupport(request)) {
     return boardHint({
       readiness: "skip",
       reason:
         "Public projection points to human-led or local-access execution; the humanizer worker must skip.",
+      actionLabel: "Skip request",
+      request,
+      template,
+    });
+  }
+
+  if (hasPlannerAgentSkip(request)) {
+    return boardHint({
+      readiness: "skip",
+      reason:
+        "Planner worker eligibility does not wake named agents for this request.",
       actionLabel: "Skip request",
       request,
       template,
@@ -264,6 +291,7 @@ function boardHint({
 function hasHumanizerSignal(request: NamedAgentBoardRequest) {
   const outputKinds = request.brief.outputKinds ?? [];
   const supplyKinds = request.seeking?.supplyKinds ?? [];
+  const wakeSignals = request.derived?.workerEligibility?.wakeSignals ?? [];
   const text = normalizeSignalText([
     request.brief.title,
     request.brief.summary,
@@ -278,6 +306,9 @@ function hasHumanizerSignal(request: NamedAgentBoardRequest) {
     supplyKinds.some((kind) =>
       hasToken(kind, ["documentation_support", "reporting_support"])
     ) ||
+    wakeSignals.some((signal) =>
+      hasToken(signal, ["documentation_support", "draft"])
+    ) ||
     humanizerTextSignals.some((signal) => text.includes(signal))
   );
 }
@@ -285,6 +316,7 @@ function hasHumanizerSignal(request: NamedAgentBoardRequest) {
 function hasVideoSignal(request: NamedAgentBoardRequest) {
   const outputKinds = request.brief.outputKinds ?? [];
   const supplyKinds = request.seeking?.supplyKinds ?? [];
+  const wakeSignals = request.derived?.workerEligibility?.wakeSignals ?? [];
   const text = normalizeSignalText([
     request.brief.title,
     request.brief.summary,
@@ -295,6 +327,9 @@ function hasVideoSignal(request: NamedAgentBoardRequest) {
   return (
     outputKinds.some((kind) => hasToken(kind, ["video", "media"])) ||
     supplyKinds.some((kind) => hasToken(kind, ["video_generation"])) ||
+    wakeSignals.some((signal) =>
+      hasToken(signal, ["video_generation", "video"])
+    ) ||
     videoTextSignals.some((signal) => text.includes(signal))
   );
 }
@@ -303,6 +338,19 @@ function hasHumanOrLocalSignal(request: NamedAgentBoardRequest) {
   return requiresHumanOrLocalWorker(request, {
     includeHumanActorKind: true,
   });
+}
+
+function hasPlannerAgentSkip(request: NamedAgentBoardRequest) {
+  return request.derived?.workerEligibility?.shouldWakeAgents === false;
+}
+
+function hasPlannerAgentSupport(request: NamedAgentBoardRequest) {
+  const workerEligibility = request.derived?.workerEligibility;
+
+  return (
+    workerEligibility?.shouldWakeAgents === true &&
+    workerEligibility.policy === "human_first_agent_support"
+  );
 }
 
 function normalizeSignalText(values: Array<string | null | undefined>) {

@@ -220,6 +220,7 @@
         "outcomeClaims",
         "leadRanking",
         "roleMatches",
+        "workerEligibility",
         "assignmentProposal",
         "replanReasons",
         "missingDetails",
@@ -559,6 +560,104 @@
                 ]
               },
               "summary": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "workerEligibility": {
+          "description": "Planner-owned, rebuildable scanner guidance for humans and named agents. It is not matching, assignment, approval, Supply attachment, Fulfillment start, provider execution, payment authority, RequestEvent history, or completion truth.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "policy",
+            "humanRequired",
+            "shouldWakeAgents",
+            "skipProviderOnlyAgents",
+            "preferredActorKinds",
+            "preferredSupplyKinds",
+            "preferredOutputKinds",
+            "roleKeys",
+            "wakeSignals",
+            "skipReasons",
+            "nonAuthority"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": [
+                "planner_projection"
+              ]
+            },
+            "policy": {
+              "type": "string",
+              "enum": [
+                "wake_named_agents",
+                "human_first_agent_support",
+                "human_first_skip_agents",
+                "no_agent_signal",
+                "raw_not_planned"
+              ]
+            },
+            "humanRequired": {
+              "type": "boolean"
+            },
+            "shouldWakeAgents": {
+              "type": "boolean"
+            },
+            "skipProviderOnlyAgents": {
+              "type": "boolean"
+            },
+            "preferredActorKinds": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "common.schema.json#/$defs/actorKind"
+              }
+            },
+            "preferredSupplyKinds": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "common.schema.json#/$defs/supplyKind"
+              }
+            },
+            "preferredOutputKinds": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "common.schema.json#/$defs/outputKind"
+              }
+            },
+            "roleKeys": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "common.schema.json#/$defs/requestRoleKey"
+              }
+            },
+            "wakeSignals": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "skipReasons": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "nonAuthority": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
                 "type": "string",
                 "minLength": 1
               }

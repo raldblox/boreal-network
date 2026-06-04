@@ -153,6 +153,7 @@ export function publicRequestPoolEntryToBorealAgentRequestSummary(
     derived: {
       executionKind: request.derived.executionKind,
       routeSummary: request.derived.routeSummary,
+      workerEligibility: request.derived.workerEligibility,
       seeking: {
         supplyKinds: request.seeking.supplyKinds ?? [],
       },

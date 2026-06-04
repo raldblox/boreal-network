@@ -401,6 +401,34 @@ export function compareActual(fixture, actual, actualPath) {
     }
   }
 
+  if (fixture.expectedPlanning.workerEligibility) {
+    const expectedEligibility = fixture.expectedPlanning.workerEligibility;
+    const actualEligibility = planning.workerEligibility || {};
+    for (const key of [
+      "policy",
+      "humanRequired",
+      "shouldWakeAgents",
+      "skipProviderOnlyAgents"
+    ]) {
+      if (key in expectedEligibility && !deepEqual(actualEligibility[key], expectedEligibility[key])) {
+        errors.push(`${label}: planning.workerEligibility.${key} mismatch`);
+      }
+    }
+
+    for (const [actualKey, expectedValues] of [
+      ["preferredActorKinds", expectedEligibility.preferredActorKinds],
+      ["preferredSupplyKinds", expectedEligibility.preferredSupplyKinds],
+      ["preferredOutputKinds", expectedEligibility.preferredOutputKinds],
+      ["roleKeys", expectedEligibility.roleKeys],
+      ["wakeSignals", expectedEligibility.wakeSignalsInclude],
+      ["skipReasons", expectedEligibility.skipReasonsInclude]
+    ]) {
+      if (Array.isArray(expectedValues) && !includesAll(actualEligibility[actualKey] || [], expectedValues)) {
+        errors.push(`${label}: planning.workerEligibility.${actualKey} missing expected values`);
+      }
+    }
+  }
+
   const leadRanking = matching.leadRanking || [];
   if (!Array.isArray(leadRanking) || leadRanking.length === 0) {
     errors.push(`${label}: matching.leadRanking must be a non-empty array`);

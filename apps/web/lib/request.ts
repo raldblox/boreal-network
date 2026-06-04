@@ -193,6 +193,28 @@ export type RequestRoleSlot = {
   summary?: string;
 };
 
+export type RequestWorkerEligibilityPolicy =
+  | "wake_named_agents"
+  | "human_first_agent_support"
+  | "human_first_skip_agents"
+  | "no_agent_signal"
+  | "raw_not_planned";
+
+export type RequestWorkerEligibility = {
+  source: "planner_projection";
+  policy: RequestWorkerEligibilityPolicy;
+  humanRequired: boolean;
+  shouldWakeAgents: boolean;
+  skipProviderOnlyAgents: boolean;
+  preferredActorKinds: RequestActorKind[];
+  preferredSupplyKinds: RequestSupplyKind[];
+  preferredOutputKinds: RequestOutputKind[];
+  roleKeys: RequestRoleKey[];
+  wakeSignals: string[];
+  skipReasons: string[];
+  nonAuthority: string[];
+};
+
 export type RequestPhasePlan = {
   phaseKey: RequestPhaseKey;
   title: string;
@@ -216,6 +238,7 @@ export type RequestDerived = {
   outcomeClaims: RequestOutcomeClaim[];
   leadRanking: RequestLeadRankingEntry[];
   roleMatches: RequestRoleMatch[];
+  workerEligibility: RequestWorkerEligibility;
   assignmentProposal: RequestAssignmentProposal;
   replanReasons: string[];
   missingDetails: string[];
@@ -593,6 +616,7 @@ export type PublicRequestPoolEntry = {
     missingDetails: string[];
     readiness: RequestReadiness;
     routeSummary: string | null;
+    workerEligibility?: RequestWorkerEligibility;
   };
   agentActionAffordances: RequestAgentActionAffordanceSet;
   agentActionCardHints: RequestAgentActionCardHintSet;
@@ -830,6 +854,7 @@ type RequestDocumentObject = {
     outcomeClaims: RequestOutcomeClaim[];
     leadRanking: RequestLeadRankingEntry[];
     roleMatches: RequestRoleMatch[];
+    workerEligibility: RequestWorkerEligibility;
     assignmentProposal: RequestAssignmentProposal;
     replanReasons: string[];
     missingDetails: string[];
@@ -1059,6 +1084,7 @@ export function createInitialRequestDraft({
       outcomeClaims: [],
       leadRanking: [],
       roleMatches: [],
+      workerEligibility: createDefaultWorkerEligibility(),
       assignmentProposal: createDefaultAssignmentProposal(),
       replanReasons: [],
       missingDetails: [],
@@ -1302,6 +1328,7 @@ export function deriveRequestState(
     outcomeClaims: plannerState.outcomeClaims,
     leadRanking: plannerState.leadRanking,
     roleMatches: plannerState.roleMatches,
+    workerEligibility: plannerState.workerEligibility,
     assignmentProposal: plannerState.assignmentProposal,
     replanReasons: plannerState.replanReasons,
     missingDetails: Array.from(new Set(missingDetails)),
@@ -1335,6 +1362,10 @@ function createRawRequestPlannerState(): RequestPlannerState {
     matchCandidates: [],
     leadRanking: [],
     roleMatches: [],
+    workerEligibility: createDefaultWorkerEligibility({
+      policy: "raw_not_planned",
+      skipReasons: ["raw_planning_mode"],
+    }),
     assignmentProposal: createRawAssignmentProposal(),
     replanReasons: [],
     embodiedSummary:
@@ -1446,6 +1477,7 @@ export function toPublicRequestPoolEntry(
       missingDetails: draft.derived.missingDetails,
       readiness: draft.derived.readiness,
       routeSummary: draft.derived.routeSummary ?? null,
+      workerEligibility: draft.derived.workerEligibility,
     },
     agentActionAffordances,
     agentActionCardHints: buildRequestAgentActionCardHints(agentActionAffordances),
@@ -2588,6 +2620,7 @@ function toRequestDerivedProjection(
     outcomeClaims: derived.outcomeClaims,
     leadRanking: derived.leadRanking,
     roleMatches: derived.roleMatches,
+    workerEligibility: derived.workerEligibility,
     assignmentProposal: derived.assignmentProposal,
     replanReasons: derived.replanReasons,
     missingDetails: derived.missingDetails,
@@ -2700,6 +2733,37 @@ function createRawExecutionProfile(): RequestExecutionProfile {
     requiresScheduling: false,
     requiresGeography: false,
     riskTier: "low",
+  };
+}
+
+function createDefaultWorkerEligibility({
+  policy = "no_agent_signal",
+  skipReasons = ["no_agent_qualification_signal"],
+}: {
+  policy?: RequestWorkerEligibilityPolicy;
+  skipReasons?: string[];
+} = {}): RequestWorkerEligibility {
+  return {
+    source: "planner_projection",
+    policy,
+    humanRequired: false,
+    shouldWakeAgents: false,
+    skipProviderOnlyAgents: true,
+    preferredActorKinds: [],
+    preferredSupplyKinds: [],
+    preferredOutputKinds: [],
+    roleKeys: [],
+    wakeSignals: [],
+    skipReasons,
+    nonAuthority: [
+      "not_matching_or_assignment",
+      "no_supply_assigned",
+      "no_commitment_created",
+      "no_fulfillment_started",
+      "no_provider_call",
+      "no_payment_authorized",
+      "no_request_event_written",
+    ],
   };
 }
 

@@ -88,7 +88,7 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
    If one user turn explicitly includes brief text plus budget or deadline, the request-brief mutation layer should preserve both the narrative brief and the structured canonical fields in the same write.
    Title and body are the first readiness-bearing brief fields for assisted planning. Raw intake may be ready to open with body-only buyer text; `brief.title` and `brief.summary` should not be manufactured only to satisfy readiness.
    Matching-facing structure should prefer top-level `seeking` criteria instead of overloading `brief.tags`.
-   Matching-facing fingerprint fields must use canon-locked enum values when they are structured: `brief.outputKinds`, `seeking.actorKinds`, `seeking.supplyKinds`, `seeking.teamMode`, `derived.routeFamily`, `derived.executionKind`, `derived.paymentMode`, `derived.matchingMode`, `derived.leadRole`, `derived.roleSlots[].roleKey`, `derived.phases[].phaseKey`, `derived.embodiedConstraintSet.verificationRequirements`, `derived.verificationPlan.requiredEvidenceClaims`, and `Supply.capability.{supplyKinds, fulfillmentActorKinds, outputKinds, executionChannels}`.
+   Matching-facing fingerprint fields must use canon-locked enum values when they are structured: `brief.outputKinds`, `seeking.actorKinds`, `seeking.supplyKinds`, `seeking.teamMode`, `derived.routeFamily`, `derived.executionKind`, `derived.paymentMode`, `derived.matchingMode`, `derived.leadRole`, `derived.roleSlots[].roleKey`, `derived.phases[].phaseKey`, `derived.workerEligibility.preferredActorKinds`, `derived.workerEligibility.preferredSupplyKinds`, `derived.workerEligibility.preferredOutputKinds`, `derived.workerEligibility.roleKeys`, `derived.embodiedConstraintSet.verificationRequirements`, `derived.verificationPlan.requiredEvidenceClaims`, and `Supply.capability.{supplyKinds, fulfillmentActorKinds, outputKinds, executionChannels}`.
    Unknown fingerprint values should be rejected or normalized away instead of being stored as freeform canonical state.
    Request-briefing tool input may arrive as loose model-generated strings or string lists, but durable writes must normalize them into the canon enum catalog. Cross-catalog values such as `written_report` belong in evidence claims or verification requirements, not `brief.outputKinds`.
    If the ask implies onsite work, field inspection, pickup or dropoff, witnessed handoff, local access, or other non-substitutable human execution, the decision layer should derive explicit embodied execution and verification requirements instead of flattening the request into digital-only work.
@@ -104,7 +104,7 @@ If a future feature needs public plan comparison, ranked submissions, or solver 
 9. Fulfillment planning
    For medium or high complexity work, derive a `RoutePlan` with `RoleSlot` and `PhasePlan` outputs.
    When embodied or verification-heavy work is detected, also derive an `ExecutionProfile`, `EmbodiedConstraintSet`, `VerificationPlan`, and `PlanCollapseRisk` summary as read-only planning outputs before execution begins.
-   The same read-only planner projection may also derive `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `assignmentProposal`, and `replanReasons` so the request can show how close it is to executable truth without pretending matching or assignment already happened.
+   The same read-only planner projection may also derive `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `workerEligibility`, `assignmentProposal`, and `replanReasons` so the request can show how close it is to executable truth without pretending matching, agent wake, or assignment already happened.
    Those planning outputs may project onto `Request.derived`, but they remain system-owned, rebuildable, and non-editable by the buyer.
 
 In buyer-facing draft preflight, the chat should not stop at a completed tool-call artifact.
@@ -228,6 +228,7 @@ In-house Boreal agents and humans follow the same worker-application rule:
 
 - scan opened requests through public-safe, owned, or owner-approved request projections
 - allow bounded `scan_public_open_requests` reads over live public open-request projections, returning only wake or skip guidance and preparation packets
+- respect `Request.derived.workerEligibility` when present, so human-required, raw, or no-agent-signal plans can skip provider-only or named-agent wake before spending inference unless the planner marks an explicit supporting agent role
 - render open-request listing readiness as one read-only human lane plus named-agent wake, skip, and target-only hints, never as worker assignment or route authorization
 - show public-board scan hints only from already-loaded public-safe projection fields, with wake, skip, and target-only labels treated as UX guidance rather than worker activation
 - require every named agent template to declare the shared `boreal_named_agent_v1` framework, stable route pattern, supported preparation actions, boilerplate files, task-pipeline rules, and non-authority flags before it can be discovered or copied for a new worker
@@ -430,6 +431,7 @@ These objects are derived and rebuildable, not durable roots:
 - `RequestDerived.matchCandidates`
 - `RequestDerived.leadRanking`
 - `RequestDerived.roleMatches`
+- `RequestDerived.workerEligibility`
 - `RequestDerived.assignmentProposal`
 - `RequestDerived.replanReasons`
 
@@ -445,7 +447,8 @@ These objects are derived and rebuildable, not durable roots:
 - Raw mode must preserve the buyer-authored body without deriving a title, summary, body-based key, route classification, default execution mode, or planner assignment summary.
 - Planner-visible lead roles, role slots, phase plans, execution profiles, and proof plans must not be treated as buyer-authored brief fields.
 - `RequestDerived.leadRole` and `RequestDerived.roleSlots` remain canonical even when the UI explains them as capability or worker-type language.
-- `RequestDerived.outcomeClaims`, `RequestDerived.matchCandidates`, `RequestDerived.leadRanking`, `RequestDerived.roleMatches`, `RequestDerived.assignmentProposal`, and `RequestDerived.replanReasons` stay read-only planner state and must not be confused for durable buyer-authored or matcher-attached truth.
+- `RequestDerived.outcomeClaims`, `RequestDerived.matchCandidates`, `RequestDerived.leadRanking`, `RequestDerived.roleMatches`, `RequestDerived.workerEligibility`, `RequestDerived.assignmentProposal`, and `RequestDerived.replanReasons` stay read-only planner state and must not be confused for durable buyer-authored, worker-assigned, or matcher-attached truth.
+- `RequestDerived.workerEligibility` is scanner guidance only. It may say whether humans are required, named agents should wake, provider-only agents should skip, explicit human-first agent support is present, and which canonical fingerprints caused that decision; it must not assign `Supply`, create `Commitment`, start `Fulfillment`, call providers, authorize payment, write `RequestEvent`, or prove completion.
 - `RequestDerived.matchCandidates` is the request-owned snapshot of retrieved candidate fit, while `leadRanking` and `roleMatches` remain the planner's interpreted reading of that snapshot plus pinned or attached route truth.
 - `brief.summary` may stay blank without blocking `ready_to_open` when title and body are already present.
 - `brief.tags` may exist as optional labels, but matching prep should prefer `seeking`.

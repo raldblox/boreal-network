@@ -17,8 +17,9 @@ Verify that web briefing-workspace submits create or update one draft `Request`,
 Verify that raw request-intake mode creates or updates one draft `Request` from the submitted buyer text without calling LLM briefing, deriving title or summary polish, deriving a body-based key, generating planner phases or roles, retrieving match candidates, classifying execution mode, writing assignment copy, or writing route/proof projections.
 Verify that a raw draft can resume assisted planning on the same `Request` by switching planner mode, preserving the buyer-authored body, and then rebuilding planner projections.
 Verify that preflight preview fields are derived from chat turns and do not become canonical planner or request truth.
-Verify that assisted briefing emits typed qualification fingerprints for actor kinds, supply kinds, output kinds, execution kind, lead role, role slots, and match candidates only when justified by explicit request facts, so named agents can filter before waking.
+Verify that assisted briefing emits typed qualification fingerprints for actor kinds, supply kinds, output kinds, execution kind, lead role, role slots, `workerEligibility`, and match candidates only when justified by explicit request facts, so named agents can filter before waking.
 Verify that human-required, local-access, witnessed-handoff, field-proof, pickup, delivery, or physical-verification plans do not wake provider-only named agents unless an explicit supporting provider role is present.
+Verify that planner-derived `workerEligibility` sets human-first skip, human-first agent-support, raw-not-planned, no-agent-signal, or wake-named-agents policies from canonical request fingerprints instead of prose-only labels.
 Verify that request-briefing prompts tell the model to persist scanner qualification tags into `seeking.actorKinds`, `seeking.supplyKinds`, `brief.outputKinds`, and embodied constraints instead of leaving them as prose-only hints.
 Verify that service-card `Service routing context:` blocks are interpreted by the prompt and deterministic request-briefing normalizer as route-facing starter defaults that can seed structured actor, supply, output, service-family, service-plan, and attachment-mode fields, while `request_starter_no_supply_attached` keeps worker assignment, `Supply` attachment, fulfillment, proof, payment, and completion claims out of the created request.
 If a request-briefing assist or optimizer profile is active, verify that it improves brief readability for terse asks without changing the explicit facts.
@@ -87,6 +88,7 @@ Verify that queued first-party provider tasks keep their task id on the active f
 Verify that public or cross-actor lanes do not inherit owner-private desktop assumptions when planner, matcher, or policy outputs are evaluated.
 Verify that in-house Boreal worker scanning is read-only and produces only opportunity guidance, not assignment, approval, fulfillment start, artifact publication, durable history, payment authority, or completion truth.
 Verify that `scan_public_open_requests` uses the live public open-request projection as input, stays bounded by limit and cursor fields, and returns only wake or skip guidance plus preparation packets without mutating request truth.
+Verify that named-agent board and scan paths respect `Request.derived.workerEligibility.shouldWakeAgents === false` when present before preparing application packets.
 Verify that public open-request listings distinguish human-required, human-can-apply, agent-can-prepare, skip, and target-only worker readiness as read-only hints without per-card private fetches, assignment, commitment creation, fulfillment start, payment authority, or provider execution.
 Verify that actionable human lanes expose an `apply_to_request` preflight handoff for `Commitment` proposals while still forbidding worker-assigned, commitment-created, fulfillment-started, artifact-published, payment-authorized, and completion claims before the authorized mutation route succeeds.
 Verify that public or cross-actor in-house worker application proposes a `Commitment` before fulfillment, while owner-private direct worker fulfillment remains limited to owner-controlled private requests with selected published first-party supply.
@@ -169,6 +171,7 @@ Recommended subfields:
 - `planning.leadRole`
 - `planning.phases[]`
 - `planning.roleSlots[]`
+- `planning.workerEligibility`
 - `planning.noMicrotaskExplosion`
 - `planning.outcomeClaims[]`
 - `matching.leadRanking[]`
@@ -184,7 +187,7 @@ Recommended subfields:
 
 Contract rule:
 
-- enum-backed fingerprint fields such as `outputKinds`, `supplyKinds`, `executionChannels`, `routeFamily`, `executionKind`, `paymentMode`, `matchingMode`, `leadRole`, `roleSlots[].roleKey`, `phases[].phaseKey`, and evidence-claim lists must stay inside the canon catalog
+- enum-backed fingerprint fields such as `outputKinds`, `supplyKinds`, `executionChannels`, `routeFamily`, `executionKind`, `paymentMode`, `matchingMode`, `leadRole`, `roleSlots[].roleKey`, `phases[].phaseKey`, `workerEligibility.preferredActorKinds`, `workerEligibility.preferredSupplyKinds`, `workerEligibility.preferredOutputKinds`, `workerEligibility.roleKeys`, and evidence-claim lists must stay inside the canon catalog
 - an unknown fingerprint value is a contract failure, not a soft warning
 
 ## Benchmark Pack
@@ -271,7 +274,7 @@ From the repo root:
 - `pnpm contracts:in-house-workers`
   Validates the in-house Boreal worker application profile: scanner read-only guarantees, public `Commitment` application boundary, owner-private direct `Fulfillment` exception, auto-approval non-completion limits, prompt-only asset gates, live `video-generation`, live `humanizer`, and named-agent promotion gates.
 - `pnpm web:test:boreal-agents`
-  Validates the named Boreal agent route surface: unique `Mira` and `Tala` route templates, shared framework id/version, preparation-only route mode, boilerplate refs, `live_backed` promotion gates, `Mira` video-generation qualification, `Tala` humanizer qualification, caller-supplied request scan wake or skip behavior, human-required scanner skip behavior, governed mutation-call sketches for commitment or owner-private fulfillment routes, required `submissionPreflight` handoffs with runnable `preflightRequest` bodies, authorized execution handoffs for post-fulfillment task/provider sequencing, and preparation-only packets that do not match, assign, create commitments, start fulfillments, publish artifacts, write events, create transactions, or call providers.
+  Validates the named Boreal agent route surface: unique `Mira` and `Tala` route templates, shared framework id/version, preparation-only route mode, boilerplate refs, `live_backed` promotion gates, `Mira` video-generation qualification, `Tala` humanizer qualification, caller-supplied request scan wake or skip behavior, public projection `workerEligibility` skip behavior, human-required scanner skip behavior, governed mutation-call sketches for commitment or owner-private fulfillment routes, required `submissionPreflight` handoffs with runnable `preflightRequest` bodies, authorized execution handoffs for post-fulfillment task/provider sequencing, and preparation-only packets that do not match, assign, create commitments, start fulfillments, publish artifacts, write events, create transactions, or call providers.
 - `pnpm --filter @boreal/web exec tsx tests/contracts/showcase-request-catalog.test.ts`
   Validates beta work-card taxonomy for service request starters, open request listings, reuse-ready requests, canonical `Request` root, worker attachment state, next boundary, explicit in/out scope, service-family request defaults, and visible service prefill boundary text such as Human Editorial Polish projecting to `human_service` plus `documentation_support` instead of generic provider supply.
 - `pnpm evals:request-processing:benchmark`

@@ -39,6 +39,12 @@ export type BorealQualificationRequest = {
       mustHaveLocationSignal?: boolean;
       mustHaveSignature?: boolean;
     } | null;
+    workerEligibility?: {
+      policy?: string | null;
+      humanRequired?: boolean;
+      skipProviderOnlyAgents?: boolean;
+      skipReasons?: MaybeArray;
+    } | null;
   } | null;
   constraints?: Record<string, unknown> | null;
 };
@@ -128,6 +134,7 @@ export function collectHumanOrLocalQualificationSignals(
   ];
   const outputKinds = stringArray(request.brief?.outputKinds);
   const executionKind = request.derived?.executionKind ?? "";
+  const workerEligibility = request.derived?.workerEligibility;
   const executionModes = [
     ...stringArray(request.derived?.executionProfile?.executionModes),
     ...stringArray(request.derived?.embodiedConstraintSet?.executionModes),
@@ -162,6 +169,21 @@ export function collectHumanOrLocalQualificationSignals(
 
   if (isHumanOrLocalExecutionKind(executionKind)) {
     signals.add("human_or_local_execution_kind");
+  }
+
+  if (workerEligibility?.humanRequired) {
+    signals.add("worker_eligibility_human_required");
+  }
+
+  if (workerEligibility?.policy === "human_first_skip_agents") {
+    signals.add("worker_eligibility_human_first_skip_agents");
+  }
+
+  if (
+    workerEligibility?.skipProviderOnlyAgents &&
+    stringArray(workerEligibility.skipReasons).includes("human_required_boundary")
+  ) {
+    signals.add("worker_eligibility_provider_skip_boundary");
   }
 
   if (executionModes.some((mode) => embodiedExecutionModes.has(mode))) {
