@@ -6,7 +6,13 @@ import {
   getServicePlan,
 } from "@/lib/service-catalog";
 import { hydrateServiceRoutingContextDefaults } from "@/lib/ai/tools/request-briefing-service-context";
-import type { RequestPatch } from "@/lib/request";
+import {
+  applyRequestPatch,
+  createInitialRequestDraft,
+  type RequestPatch,
+  type RequestSupplyKind,
+  type RequestWorkerEligibility,
+} from "@/lib/request";
 
 const fixturePath = process.cwd().replace(/\\/g, "/").endsWith("/apps/web")
   ? "../../fixtures/request/service-routing-context-normalizer.json"
@@ -21,6 +27,7 @@ const cases = fixture.cases as Array<{
     servicePlanKey: string;
   };
   expectedExtraction: ExpectedExtraction;
+  expectedWorkerEligibility: ExpectedWorkerEligibility;
 }>;
 
 type ExpectedExtraction = {
@@ -30,6 +37,15 @@ type ExpectedExtraction = {
   };
   outputKinds: string[];
   constraints: Record<string, string>;
+};
+
+type ExpectedWorkerEligibility = {
+  policy: RequestWorkerEligibility["policy"];
+  humanRequired: boolean;
+  shouldWakeAgents: boolean;
+  skipProviderOnlyAgents: boolean;
+  preferredSupplyKindsContain: RequestSupplyKind[];
+  wakeSignalsContain: string[];
 };
 
 assert.ok(Array.isArray(cases));
@@ -103,6 +119,63 @@ for (const testCase of cases) {
     serviceStartedPatch.activeRefs,
     undefined,
     `${testCase.scenarioId} does not attach active refs`,
+  );
+
+  const serviceStartedDraft = applyRequestPatch(
+    createInitialRequestDraft({
+      id: `req-${testCase.scenarioId}`,
+      chatId: `chat-${testCase.scenarioId}`,
+      documentId: `doc-${testCase.scenarioId}`,
+      userId: "buyer_1",
+      visibility: "public",
+      createdAt: "2026-06-04T00:00:00.000Z",
+    }),
+    serviceStartedPatch,
+    "2026-06-04T00:01:00.000Z",
+  );
+  assert.equal(
+    serviceStartedDraft.derived.workerEligibility.policy,
+    testCase.expectedWorkerEligibility.policy,
+    `${testCase.scenarioId} worker policy`,
+  );
+  assert.equal(
+    serviceStartedDraft.derived.workerEligibility.humanRequired,
+    testCase.expectedWorkerEligibility.humanRequired,
+    `${testCase.scenarioId} human required`,
+  );
+  assert.equal(
+    serviceStartedDraft.derived.workerEligibility.shouldWakeAgents,
+    testCase.expectedWorkerEligibility.shouldWakeAgents,
+    `${testCase.scenarioId} should wake agents`,
+  );
+  assert.equal(
+    serviceStartedDraft.derived.workerEligibility.skipProviderOnlyAgents,
+    testCase.expectedWorkerEligibility.skipProviderOnlyAgents,
+    `${testCase.scenarioId} provider-only skip`,
+  );
+  for (const expectedSupplyKind of testCase.expectedWorkerEligibility
+    .preferredSupplyKindsContain) {
+    assert.ok(
+      serviceStartedDraft.derived.workerEligibility.preferredSupplyKinds.includes(
+        expectedSupplyKind,
+      ),
+      `${testCase.scenarioId} preferred supply ${expectedSupplyKind}`,
+    );
+  }
+  for (const expectedWakeSignal of testCase.expectedWorkerEligibility
+    .wakeSignalsContain) {
+    assert.ok(
+      serviceStartedDraft.derived.workerEligibility.wakeSignals.includes(
+        expectedWakeSignal,
+      ),
+      `${testCase.scenarioId} wake signal ${expectedWakeSignal}`,
+    );
+  }
+  assert.ok(
+    serviceStartedDraft.derived.workerEligibility.nonAuthority.includes(
+      "no_supply_assigned",
+    ),
+    `${testCase.scenarioId} worker eligibility is not assignment`,
   );
 }
 

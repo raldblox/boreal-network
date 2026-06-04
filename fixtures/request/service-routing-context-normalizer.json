@@ -22,6 +22,14 @@
           "serviceExecutionKind": "hybrid_human_agent",
           "serviceRouteFamily": "direct_specialist"
         }
+      },
+      "expectedWorkerEligibility": {
+        "policy": "human_first_agent_support",
+        "humanRequired": true,
+        "shouldWakeAgents": true,
+        "skipProviderOnlyAgents": false,
+        "preferredSupplyKindsContain": ["documentation_support", "operator"],
+        "wakeSignalsContain": ["actor:agent", "supply:documentation_support"]
       }
     },
     {
@@ -44,6 +52,14 @@
           "serviceExecutionKind": "provider_api",
           "serviceRouteFamily": "direct_specialist"
         }
+      },
+      "expectedWorkerEligibility": {
+        "policy": "human_first_agent_support",
+        "humanRequired": true,
+        "shouldWakeAgents": true,
+        "skipProviderOnlyAgents": false,
+        "preferredSupplyKindsContain": ["video_generation", "operator"],
+        "wakeSignalsContain": ["actor:agent", "supply:video_generation", "output:video"]
       }
     },
     {
@@ -66,6 +82,14 @@
           "serviceExecutionKind": "provider_api",
           "serviceRouteFamily": "direct_specialist"
         }
+      },
+      "expectedWorkerEligibility": {
+        "policy": "human_first_agent_support",
+        "humanRequired": true,
+        "shouldWakeAgents": true,
+        "skipProviderOnlyAgents": false,
+        "preferredSupplyKindsContain": ["operator"],
+        "wakeSignalsContain": ["actor:agent", "output:handoff_doc"]
       }
     }
   ],
