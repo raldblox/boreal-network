@@ -1,25 +1,74 @@
 {
   "fixtureType": "request_briefing_service_routing_context",
-  "scenarioId": "service-human-editorial-polish-defaults-v1",
-  "description": "Human Editorial Polish service starter context seeds route-facing request defaults without attaching a worker or supply.",
-  "requestInput": {
-    "serviceFamilyKey": "human-editorial-polish",
-    "servicePlanKey": "publish-polish"
-  },
-  "expectedExtraction": {
-    "seeking": {
-      "actorKinds": ["human", "agent"],
-      "supplyKinds": ["human_service", "documentation_support", "operator"]
+  "description": "Service starter context seeds route-facing request defaults without attaching a worker or supply.",
+  "cases": [
+    {
+      "scenarioId": "service-human-editorial-polish-defaults-v1",
+      "description": "Human Editorial Polish projects as human service plus documentation support.",
+      "requestInput": {
+        "serviceFamilyKey": "human-editorial-polish",
+        "servicePlanKey": "publish-polish"
+      },
+      "expectedExtraction": {
+        "seeking": {
+          "actorKinds": ["human", "agent"],
+          "supplyKinds": ["human_service", "documentation_support", "operator"]
+        },
+        "outputKinds": ["draft", "handoff_doc", "verification_note"],
+        "constraints": {
+          "serviceFamilyKey": "human-editorial-polish",
+          "servicePlanKey": "publish-polish",
+          "serviceAttachmentMode": "request_starter_no_supply_attached",
+          "serviceExecutionKind": "hybrid_human_agent",
+          "serviceRouteFamily": "direct_specialist"
+        }
+      }
     },
-    "outputKinds": ["draft", "handoff_doc", "verification_note"],
-    "constraints": {
-      "serviceFamilyKey": "human-editorial-polish",
-      "servicePlanKey": "publish-polish",
-      "serviceAttachmentMode": "request_starter_no_supply_attached",
-      "serviceExecutionKind": "hybrid_human_agent",
-      "serviceRouteFamily": "direct_specialist"
+    {
+      "scenarioId": "service-founder-avatar-video-defaults-v1",
+      "description": "Founder Avatar Clip Pack projects as provider-capable video generation plus operator review.",
+      "requestInput": {
+        "serviceFamilyKey": "founder-avatar-clip-pack",
+        "servicePlanKey": "sales-reply-pack"
+      },
+      "expectedExtraction": {
+        "seeking": {
+          "actorKinds": ["human", "agent", "tool"],
+          "supplyKinds": ["provider_capability", "video_generation", "operator"]
+        },
+        "outputKinds": ["media", "video", "handoff_doc"],
+        "constraints": {
+          "serviceFamilyKey": "founder-avatar-clip-pack",
+          "servicePlanKey": "sales-reply-pack",
+          "serviceAttachmentMode": "request_starter_no_supply_attached",
+          "serviceExecutionKind": "provider_api",
+          "serviceRouteFamily": "direct_specialist"
+        }
+      }
+    },
+    {
+      "scenarioId": "service-character-call-provider-defaults-v1",
+      "description": "Character Call Starter projects provider handoff defaults without inventing video-generation fit.",
+      "requestInput": {
+        "serviceFamilyKey": "character-call-starter",
+        "servicePlanKey": "starter-call"
+      },
+      "expectedExtraction": {
+        "seeking": {
+          "actorKinds": ["human", "agent", "tool"],
+          "supplyKinds": ["provider_capability", "operator"]
+        },
+        "outputKinds": ["handoff_doc", "delivery_confirmation"],
+        "constraints": {
+          "serviceFamilyKey": "character-call-starter",
+          "servicePlanKey": "starter-call",
+          "serviceAttachmentMode": "request_starter_no_supply_attached",
+          "serviceExecutionKind": "provider_api",
+          "serviceRouteFamily": "direct_specialist"
+        }
+      }
     }
-  },
+  ],
   "negativeAssertions": [
     "routing.preferredSupplyId is absent",
     "derived.executionKind is absent",

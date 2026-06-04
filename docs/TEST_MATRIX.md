@@ -302,7 +302,7 @@ Verify:
 - service request starter cards should show service path known but worker or `Supply` attachment pending until checkout or request routing, and must not count the worker slot as completed
 - service families should carry typed request defaults so Human Editorial Polish projects as `human_service` plus `documentation_support`, not generic `provider_capability` or live worker supply
 - service plan request prefill should include visible routing context and no-assignment boundary text instead of silently granting worker, `Supply`, `Fulfillment`, or `Artifact` authority
-- request-briefing prompt and normalizer contract tests should keep `Service routing context:` as route-facing starter defaults that may seed structured actor, supply, output, service-family, service-plan, and attachment-mode fields without becoming buyer-authored scope, worker assignment, `Supply` attachment, proof, payment authority, or completion truth
+- request-briefing prompt and normalizer contract tests should keep `Service routing context:` as route-facing starter defaults that may seed structured actor, supply, output, service-family, service-plan, and attachment-mode fields without becoming buyer-authored scope, worker assignment, `Supply` attachment, proof, payment authority, or completion truth; coverage should include human-service, provider-video, and provider-handoff service starters
 - request-briefing assist or optimizer profiles in request mode must still create at most one draft request on first send
 - request draft extraction is deterministic for canonical fixtures
 - request-briefing assist or optimizer profiles may improve wording clarity but must not invent budget, deadline, deliverables, actor requirements, or constraints
