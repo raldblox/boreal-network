@@ -1,3 +1,14 @@
+import {
+  borealActorKinds,
+  borealOutputKinds,
+  borealRequestExecutionKinds,
+  borealSupplyKinds,
+  type BorealActorKind,
+  type BorealOutputKind,
+  type BorealRequestExecutionKind,
+  type BorealSupplyKind,
+} from "@/lib/matching-fingerprints";
+
 export type BorealAgentStatus = "live_template" | "target_template";
 
 export type BorealAgentTaskKind =
@@ -18,10 +29,10 @@ export type BorealAgentModelBinding = {
 };
 
 export type BorealAgentQualificationTags = {
-  actorKinds: string[];
-  supplyKinds: string[];
-  outputKinds: string[];
-  executionKinds: string[];
+  actorKinds: BorealActorKind[];
+  supplyKinds: BorealSupplyKind[];
+  outputKinds: BorealOutputKind[];
+  executionKinds: BorealRequestExecutionKind[];
   skipWhen: string[];
 };
 
@@ -85,7 +96,7 @@ export type BorealAgentTemplate = {
   promotionGates: BorealAgentPromotionGates;
   supplyBinding: {
     required: true;
-    supplyKind: string;
+    supplyKind: BorealSupplyKind;
     providerRef: string;
   };
   modelBindings: BorealAgentModelBinding[];
@@ -111,10 +122,14 @@ export type BorealAgentTemplateValidationIssue = {
     | "missing_supply_binding"
     | "target_template_missing_blockers"
     | "target_template_not_blocked"
+    | "unknown_actor_kind"
     | "live_template_has_blockers"
     | "live_template_not_backed"
     | "unstable_framework_route"
     | "unknown_canonical_write"
+    | "unknown_execution_kind"
+    | "unknown_output_kind"
+    | "unknown_supply_kind"
     | "unstable_api_route";
   message: string;
 };
@@ -137,6 +152,11 @@ const requiredTaskKinds: BorealAgentTaskKind[] = [
   "filter_qualification",
   "prepare_application",
 ];
+
+const canonicalActorKindSet = new Set<string>(borealActorKinds);
+const canonicalSupplyKindSet = new Set<string>(borealSupplyKinds);
+const canonicalOutputKindSet = new Set<string>(borealOutputKinds);
+const canonicalExecutionKindSet = new Set<string>(borealRequestExecutionKinds);
 
 const requiredFrameworkActions: BorealAgentFramework["supportedActions"] = [
   "read_template",
@@ -380,6 +400,46 @@ export function validateBorealAgentTemplateCatalog(
         message: `${template.agentKey} must declare a required supply binding.`,
       });
     }
+    if (!canonicalSupplyKindSet.has(template.supplyBinding.supplyKind)) {
+      issues.push({
+        agentKey: template.agentKey,
+        code: "unknown_supply_kind",
+        message: `${template.agentKey} supply binding uses unknown supply kind ${template.supplyBinding.supplyKind}.`,
+      });
+    }
+
+    validateCanonicalTagList({
+      agentKey: template.agentKey,
+      allowedValues: canonicalActorKindSet,
+      code: "unknown_actor_kind",
+      issues,
+      label: "actor kind",
+      values: template.qualificationTags.actorKinds,
+    });
+    validateCanonicalTagList({
+      agentKey: template.agentKey,
+      allowedValues: canonicalSupplyKindSet,
+      code: "unknown_supply_kind",
+      issues,
+      label: "supply kind",
+      values: template.qualificationTags.supplyKinds,
+    });
+    validateCanonicalTagList({
+      agentKey: template.agentKey,
+      allowedValues: canonicalOutputKindSet,
+      code: "unknown_output_kind",
+      issues,
+      label: "output kind",
+      values: template.qualificationTags.outputKinds,
+    });
+    validateCanonicalTagList({
+      agentKey: template.agentKey,
+      allowedValues: canonicalExecutionKindSet,
+      code: "unknown_execution_kind",
+      issues,
+      label: "execution kind",
+      values: template.qualificationTags.executionKinds,
+    });
 
     if (template.modelBindings.length === 0) {
       issues.push({
@@ -414,6 +474,38 @@ export function validateBorealAgentTemplateCatalog(
   }
 
   return issues;
+}
+
+function validateCanonicalTagList({
+  agentKey,
+  allowedValues,
+  code,
+  issues,
+  label,
+  values,
+}: {
+  agentKey: string;
+  allowedValues: Set<string>;
+  code: Extract<
+    BorealAgentTemplateValidationIssue["code"],
+    | "unknown_actor_kind"
+    | "unknown_execution_kind"
+    | "unknown_output_kind"
+    | "unknown_supply_kind"
+  >;
+  issues: BorealAgentTemplateValidationIssue[];
+  label: string;
+  values: readonly string[];
+}) {
+  for (const value of values) {
+    if (!allowedValues.has(value)) {
+      issues.push({
+        agentKey,
+        code,
+        message: `${agentKey} qualification tag uses unknown ${label} ${value}.`,
+      });
+    }
+  }
 }
 
 export const borealAgentTemplates = defineBorealAgentCatalog([
@@ -641,15 +733,19 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
       "POST /api/requests/{id}/artifacts",
     ],
     qualificationTags: {
-      actorKinds: ["agent"],
-      supplyKinds: ["agent_worker", "documentation_support", "humanizer"],
-      outputKinds: ["text", "copy", "documentation"],
-      executionKinds: ["agent_request_room"],
+      actorKinds: ["agent", "human"],
+      supplyKinds: [
+        "documentation_support",
+        "reporting_support",
+        "human_service",
+      ],
+      outputKinds: ["draft", "handoff_doc", "verification_note"],
+      executionKinds: ["agent_request_room", "hybrid_human_agent"],
       skipWhen: [
-        "requires_human_presence",
-        "requires_local_access",
-        "requires_provider_media_generation",
-        "supply_factory_not_implemented",
+        "requiresHumanPresence is true and no human reviewer lane exists",
+        "request asks for physical proof",
+        "request requires provider media generation",
+        "humanizer supply factory is not implemented",
       ],
     },
     taskPipeline: [

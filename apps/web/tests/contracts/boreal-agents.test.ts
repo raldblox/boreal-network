@@ -117,6 +117,21 @@ assert.equal(tala.apiRoute, createBorealAgentApiRoute("tala-humanizer"));
 assert.equal(tala.uniqueName, "Tala");
 assert.equal(tala.status, "target_template");
 assert.equal(tala.promotionGates.state, "target_blocked");
+assert.deepEqual(tala.qualificationTags.actorKinds, ["agent", "human"]);
+assert.deepEqual(tala.qualificationTags.supplyKinds, [
+  "documentation_support",
+  "reporting_support",
+  "human_service",
+]);
+assert.deepEqual(tala.qualificationTags.outputKinds, [
+  "draft",
+  "handoff_doc",
+  "verification_note",
+]);
+assert.deepEqual(tala.qualificationTags.executionKinds, [
+  "agent_request_room",
+  "hybrid_human_agent",
+]);
 assert.ok(
   tala.promotionGates.openBlockers.includes(
     "humanizer supply factory is not implemented"
@@ -225,6 +240,41 @@ assert.ok(
 assert.ok(
   invalidTargetPromotionIssues.some(
     (issue) => issue.code === "missing_promotion_evidence"
+  )
+);
+const invalidQualificationTagIssues = validateBorealAgentTemplateCatalog([
+  {
+    ...tala,
+    agentKey: "bad-qualification-tags",
+    uniqueName: "Bad Qualification Tags",
+    apiRoute: createBorealAgentApiRoute("bad-qualification-tags"),
+    qualificationTags: {
+      actorKinds: ["bot"] as never,
+      supplyKinds: ["humanizer"] as never,
+      outputKinds: ["copy"] as never,
+      executionKinds: ["prompt_only"] as never,
+      skipWhen: tala.qualificationTags.skipWhen,
+    },
+  },
+]);
+assert.ok(
+  invalidQualificationTagIssues.some(
+    (issue) => issue.code === "unknown_actor_kind"
+  )
+);
+assert.ok(
+  invalidQualificationTagIssues.some(
+    (issue) => issue.code === "unknown_supply_kind"
+  )
+);
+assert.ok(
+  invalidQualificationTagIssues.some(
+    (issue) => issue.code === "unknown_output_kind"
+  )
+);
+assert.ok(
+  invalidQualificationTagIssues.some(
+    (issue) => issue.code === "unknown_execution_kind"
   )
 );
 

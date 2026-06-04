@@ -722,8 +722,7 @@
               "const": true
             },
             "supplyKind": {
-              "type": "string",
-              "minLength": 1
+              "$ref": "#/$defs/borealSupplyKind"
             },
             "providerRef": {
               "type": "string",
@@ -791,29 +790,25 @@
             "actorKinds": {
               "type": "array",
               "items": {
-                "type": "string",
-                "minLength": 1
+                "$ref": "#/$defs/borealActorKind"
               }
             },
             "supplyKinds": {
               "type": "array",
               "items": {
-                "type": "string",
-                "minLength": 1
+                "$ref": "#/$defs/borealSupplyKind"
               }
             },
             "outputKinds": {
               "type": "array",
               "items": {
-                "type": "string",
-                "minLength": 1
+                "$ref": "#/$defs/borealOutputKind"
               }
             },
             "executionKinds": {
               "type": "array",
               "items": {
-                "type": "string",
-                "minLength": 1
+                "$ref": "#/$defs/borealRequestExecutionKind"
               }
             },
             "skipWhen": {
@@ -836,6 +831,82 @@
           "$ref": "#/$defs/nonAuthority"
         }
       }
+    },
+    "borealActorKind": {
+      "type": "string",
+      "enum": [
+        "human",
+        "agent",
+        "tool",
+        "organization",
+        "runtime"
+      ]
+    },
+    "borealSupplyKind": {
+      "type": "string",
+      "enum": [
+        "agent_worker",
+        "ai_automation",
+        "automation_builder",
+        "desktop_runtime",
+        "digital_product",
+        "documentation_support",
+        "field_inspection",
+        "field_verification",
+        "generalist",
+        "hardware_ops",
+        "human_service",
+        "local_runner",
+        "migration_lead",
+        "operations_build",
+        "operations_support",
+        "operator",
+        "pickup_dropoff",
+        "provider_capability",
+        "qa_documentation",
+        "reporting_support",
+        "runtime_executor",
+        "team_service",
+        "video_generation"
+      ]
+    },
+    "borealOutputKind": {
+      "type": "string",
+      "enum": [
+        "automation_build",
+        "delivery",
+        "delivery_confirmation",
+        "draft",
+        "file",
+        "handoff_doc",
+        "handoff_receipt",
+        "inspection_report",
+        "issue_log",
+        "media",
+        "migration_plan",
+        "operator_training",
+        "photo_evidence",
+        "serial_inventory",
+        "signature",
+        "verification_note",
+        "video",
+        "workflow_build",
+        "workflow_map"
+      ]
+    },
+    "borealRequestExecutionKind": {
+      "type": "string",
+      "enum": [
+        "instant_delivery",
+        "hybrid_tool_room",
+        "provider_api",
+        "local_runtime",
+        "hybrid_human_agent",
+        "human_request_room",
+        "agent_request_room",
+        "runtime_request_room",
+        "specialist_request_room"
+      ]
     },
     "agentPromotionEvidenceKind": {
       "type": "string",

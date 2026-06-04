@@ -218,6 +218,30 @@ function validateProfile(profile, errors) {
     "Tala must stay blocked until its supply factory exists",
     errors
   );
+  equalsSet(
+    tala?.qualificationTags?.actorKinds,
+    ["agent", "human"],
+    "Tala canonical actor qualification tags",
+    errors
+  );
+  equalsSet(
+    tala?.qualificationTags?.supplyKinds,
+    ["documentation_support", "reporting_support", "human_service"],
+    "Tala canonical supply qualification tags",
+    errors
+  );
+  equalsSet(
+    tala?.qualificationTags?.outputKinds,
+    ["draft", "handoff_doc", "verification_note"],
+    "Tala canonical output qualification tags",
+    errors
+  );
+  equalsSet(
+    tala?.qualificationTags?.executionKinds,
+    ["agent_request_room", "hybrid_human_agent"],
+    "Tala canonical execution qualification tags",
+    errors
+  );
 
   includesAll(
     profile.agentBoilerplate?.requiredFiles,
