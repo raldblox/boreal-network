@@ -15,6 +15,12 @@ for (const required of [
   "role slots",
   "match candidates",
   "provider-only agents",
+  "service routing context",
+  "route-facing starter defaults",
+  "servicefamilykey",
+  "serviceplankey",
+  "serviceattachmentmode",
+  "request_starter_no_supply_attached",
   "requireshumanpresence",
   "requireslocalaccess",
   "field_inspection",
@@ -32,6 +38,17 @@ assert.match(
   /do not tag human-required photo capture, onsite filming, delivery proof, or verification evidence as provider-only/
 );
 assert.match(prompt, /qualification tags are scanner filters only/);
+assert.match(prompt, /not buyer-authored scope or assignment truth/);
+assert.match(
+  prompt,
+  /copy only explicit canon values into structured fields/
+);
+assert.match(
+  prompt,
+  /keep worker and `supply` attachment pending/
+);
+assert.match(prompt, /human editorial polish/);
+assert.match(prompt, /provider-only video agents skip/);
 
 const preDraftPrompt = systemPrompt({
   requestHints: {
@@ -49,6 +66,9 @@ assert.match(preDraftPrompt, /scanner qualification tags/);
 assert.match(preDraftPrompt, /provider-only generated media/);
 assert.match(preDraftPrompt, /not field evidence/);
 assert.match(preDraftPrompt, /human or field-capable/);
+assert.match(preDraftPrompt, /service routing context/);
+assert.match(preDraftPrompt, /route-facing starter defaults/);
+assert.match(preDraftPrompt, /not treat it as worker assignment or proof/);
 
 console.log("Request briefing prompt scanner-tag contract passed.");
 

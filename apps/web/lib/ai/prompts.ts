@@ -92,6 +92,10 @@ Rules:
 28. When a request is clearly provider-capable generated media, and not field photo or video evidence, use specific tags such as \`video_generation\` and \`video\` so the video agent can wake without broad scanning.
 29. Do not tag human-required photo capture, onsite filming, delivery proof, or verification evidence as provider-only \`video_generation\` unless a separate generated-video role is explicitly requested.
 30. Qualification tags are scanner filters only. They are not assignment, approval, fulfillment start, payment authority, or completion proof.
+31. When the latest ask includes a Boreal \`Service routing context:\` block, treat that block as Boreal-supplied route-facing starter defaults, not buyer-authored scope or assignment truth.
+32. For service routing context, copy only explicit canon values into structured fields: \`seeking.actorKinds\`, \`seeking.supplyKinds\`, \`brief.outputKinds\`, and \`brief.constraints.serviceFamilyKey\`, \`servicePlanKey\`, or \`serviceAttachmentMode\` when present.
+33. If \`serviceAttachmentMode\` is \`request_starter_no_supply_attached\`, keep worker and \`Supply\` attachment pending. Do not imply matching, worker assignment, \`Fulfillment\`, \`Artifact\`, payment authority, or completion from the service card.
+34. Human service starters such as Human Editorial Polish should preserve \`human_service\`, \`documentation_support\`, \`operator\`, and human or agent actor tags so provider-only video agents skip unless a separate generated-video role is explicit.
 
 Mode split:
 - Request Preflight mode is for forming the Request root object.
@@ -355,6 +359,7 @@ ${JSON.stringify(
 - Do not invent missing facts.
 - If the same turn explicitly states budget, deadline, seeking details, execution mode, service location, access needs, proof requirements, or scanner qualification tags, include them in the same \`createRequestBrief\` call.
 - Human/local work should set human or field-capable \`seeking.actorKinds\`, \`seeking.supplyKinds\`, \`brief.outputKinds\`, and embodied constraints when explicit; provider-only generated media should use \`video_generation\` only when it is not field evidence.
+- If the latest turn includes a Boreal \`Service routing context:\` block, treat it as route-facing starter defaults: persist explicit actor, supply, output, family, plan, and attachment-mode fields, but do not treat it as worker assignment or proof.
 - For public storefront, exterior, or street-facing photo requests, preserve onsite location, timing, and proof, but do not invent or force private access requirements unless restricted access is stated.
 - If the request implies embodied work and critical location, access, timing, or proof fields are missing, create the draft with the explicit ask and leave those missing fields blank. Do not create a fake digital-only request just to satisfy request mode.
 - If a supply is already pinned later in routing, that narrows the route but does not mean the request already has a real match or assigned lane.
@@ -374,6 +379,7 @@ ${JSON.stringify(
 - If the user explicitly stated budget or deadline in the same turn, do not leave those structured fields null.
 - If the user explicitly stated execution mode, service location, access, time-window, safety, or proof requirements, persist them in request constraints instead of leaving them only in prose.
 - If the user explicitly clarified actor, supply, output, human/local, field-proof, or generated-media qualification, persist the typed scanner tags in \`seeking.actorKinds\`, \`seeking.supplyKinds\`, \`brief.outputKinds\`, and embodied constraints instead of leaving them only in prose.
+- If the draft was started from a service card with \`Service routing context:\`, keep \`serviceFamilyKey\`, \`servicePlanKey\`, and \`serviceAttachmentMode\` as route-facing constraints and keep \`request_starter_no_supply_attached\` from becoming assignment or \`Supply\` attachment truth.
 - For public storefront, exterior, or street-facing photo requests, preserve onsite location, timing, and proof, but do not invent or force private access requirements unless restricted access is stated.
 - If the draft implies embodied work, do not rewrite it into a digital-only request. Let missing location, access, timing, or verification fields remain visible through \`derived.missingDetails\`.
 - Use top-level seeking for matching-facing structure, not generated tags.

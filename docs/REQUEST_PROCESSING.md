@@ -218,6 +218,10 @@ Service request starters may show a known plan or service path, but they must no
 Service families should define typed request defaults for actor kinds, supply kinds, output kinds, execution kind, matching mode, payment mode, route family, and attachment mode.
 Those defaults shape the starter `Request` projection; they do not promote the service itself into a live worker-backed `Supply`.
 When a service plan pre-fills a request composer, the routing context should be visible in the starter text, including attachment mode and no-assignment boundary, rather than hidden as silent mutation authority.
+The briefing layer should treat a visible `Service routing context:` block as Boreal-supplied route-facing starter defaults, not buyer-authored scope, assignment truth, proof, or completion.
+It may persist explicit canon values from that block into `seeking.actorKinds`, `seeking.supplyKinds`, `brief.outputKinds`, and route-facing constraints such as `serviceFamilyKey`, `servicePlanKey`, and `serviceAttachmentMode`.
+If the attachment mode is `request_starter_no_supply_attached`, worker selection and `Supply` attachment remain pending until checkout or request routing creates the appropriate `Commitment` or `Fulfillment` boundary.
+Human-service starters should keep human or agent actor tags and service-support supply kinds, such as `human_service`, `documentation_support`, and `operator`, so provider-only named agents skip unless a separate generated-media role is explicit.
 
 In-house Boreal agents and humans follow the same worker-application rule:
 
