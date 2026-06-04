@@ -161,6 +161,8 @@
         "skipWhen": [
           "requiresHumanPresence is true",
           "requiresLocalAccess is true",
+          "field_inspection or pickup_dropoff supply is required",
+          "handoff_signature or timestamped_photos proof is required",
           "required output is photo_evidence without generated-video scope",
           "request has no media or video output intent"
         ]

@@ -3,6 +3,7 @@ import {
   type BorealAgentTemplate,
   listBorealAgentTemplates,
 } from "./registry";
+import { requiresHumanOrLocalWorker } from "./request-qualification";
 
 export type NamedAgentBoardReadinessState =
   | "can_prepare"
@@ -208,25 +209,9 @@ function hasVideoSignal(request: NamedAgentBoardRequest) {
 }
 
 function hasHumanOrLocalSignal(request: NamedAgentBoardRequest) {
-  const actorKinds = request.seeking?.actorKinds ?? [];
-  const executionKind = request.derived?.executionKind ?? "";
-  const constraints = request.brief.constraints ?? {};
-  const text = normalizeSignalText([
-    request.seeking?.notes,
-    request.derived?.routeSummary,
-    executionKind,
-  ]);
-
-  return (
-    actorKinds.some((kind) => hasToken(kind, ["human"])) ||
-    hasToken(executionKind, ["human", "field", "local", "embodied"]) ||
-    text.includes("onsite") ||
-    text.includes("on-site") ||
-    text.includes("local access") ||
-    text.includes("human presence") ||
-    constraints.requiresHumanPresence === true ||
-    constraints.requiresLocalAccess === true
-  );
+  return requiresHumanOrLocalWorker(request, {
+    includeHumanActorKind: true,
+  });
 }
 
 function normalizeSignalText(values: Array<string | null | undefined>) {

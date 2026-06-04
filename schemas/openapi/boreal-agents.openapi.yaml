@@ -439,12 +439,53 @@ components:
         brief:
           type: object
           additionalProperties: true
+          properties:
+            outputKinds:
+              type: array
+              items:
+                type: string
+            constraints:
+              $ref: "#/components/schemas/RequestQualificationConstraints"
         seeking:
           type: object
           additionalProperties: true
+          properties:
+            actorKinds:
+              type: array
+              items:
+                type: string
+            supplyKinds:
+              type: array
+              items:
+                type: string
+            notes:
+              type: string
         derived:
           type: object
           additionalProperties: true
+          properties:
+            executionKind:
+              type:
+                - string
+                - "null"
+            routeSummary:
+              type:
+                - string
+                - "null"
+            seeking:
+              type: object
+              additionalProperties: true
+              properties:
+                supplyKinds:
+                  type: array
+                  items:
+                    type: string
+            executionProfile:
+              $ref: "#/components/schemas/RequestQualificationExecutionProfile"
+            embodiedConstraintSet:
+              $ref: "#/components/schemas/RequestQualificationEmbodiedConstraintSet"
+            verificationPlan:
+              $ref: "#/components/schemas/RequestQualificationVerificationPlan"
         routing:
           type: object
           additionalProperties: true
@@ -468,8 +509,83 @@ components:
                 - string
                 - "null"
         constraints:
-          type: object
-          additionalProperties: true
+          $ref: "#/components/schemas/RequestQualificationConstraints"
+    RequestQualificationConstraints:
+      type: object
+      additionalProperties: true
+      properties:
+        requiresHumanPresence:
+          type: boolean
+        requiresLocalAccess:
+          type: boolean
+        requiresVerifiedEvidence:
+          type: boolean
+        requiresFieldProof:
+          type: boolean
+        requiresPhysicalVerification:
+          type: boolean
+        requiresPickup:
+          type: boolean
+        requiresDropoff:
+          type: boolean
+        requiresDelivery:
+          type: boolean
+        requiresWitness:
+          type: boolean
+        verificationRequirements:
+          type: array
+          items:
+            type: string
+    RequestQualificationExecutionProfile:
+      type: object
+      additionalProperties: true
+      properties:
+        executionModes:
+          type: array
+          items:
+            type: string
+        requiresHumanPresence:
+          type: boolean
+        requiresLocalAccess:
+          type: boolean
+        requiresVerifiedEvidence:
+          type: boolean
+    RequestQualificationEmbodiedConstraintSet:
+      type: object
+      additionalProperties: true
+      properties:
+        executionModes:
+          type: array
+          items:
+            type: string
+        verificationRequirements:
+          type: array
+          items:
+            type: string
+        requiresHumanPresence:
+          type: boolean
+        requiresLocalAccess:
+          type: boolean
+        requiresVerifiedEvidence:
+          type: boolean
+        requiresWitness:
+          type: boolean
+    RequestQualificationVerificationPlan:
+      type: object
+      additionalProperties: true
+      properties:
+        requiredArtifactKinds:
+          type: array
+          items:
+            type: string
+        requiredEvidenceClaims:
+          type: array
+          items:
+            type: string
+        mustHaveLocationSignal:
+          type: boolean
+        mustHaveSignature:
+          type: boolean
     SupplySummaryInput:
       type: object
       additionalProperties: false
@@ -478,6 +594,16 @@ components:
           type: string
         kind:
           type: string
+        status:
+          type: string
+        supplyKinds:
+          type: array
+          items:
+            type: string
+        outputKinds:
+          type: array
+          items:
+            type: string
         capabilityTags:
           type: array
           items:

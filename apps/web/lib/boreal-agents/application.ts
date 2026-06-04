@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BorealAgentTemplate } from "@/lib/boreal-agents/registry";
+import { requiresHumanOrLocalWorker } from "@/lib/boreal-agents/request-qualification";
 
 const briefSchema = z
   .object({
@@ -31,8 +32,30 @@ const derivedSchema = z
       .optional(),
     executionProfile: z
       .object({
+        executionModes: z.array(z.string()).optional(),
         requiresHumanPresence: z.boolean().optional(),
         requiresLocalAccess: z.boolean().optional(),
+        requiresVerifiedEvidence: z.boolean().optional(),
+      })
+      .passthrough()
+      .optional(),
+    embodiedConstraintSet: z
+      .object({
+        executionModes: z.array(z.string()).optional(),
+        verificationRequirements: z.array(z.string()).optional(),
+        requiresHumanPresence: z.boolean().optional(),
+        requiresLocalAccess: z.boolean().optional(),
+        requiresVerifiedEvidence: z.boolean().optional(),
+        requiresWitness: z.boolean().optional(),
+      })
+      .passthrough()
+      .optional(),
+    verificationPlan: z
+      .object({
+        requiredArtifactKinds: z.array(z.string()).optional(),
+        requiredEvidenceClaims: z.array(z.string()).optional(),
+        mustHaveLocationSignal: z.boolean().optional(),
+        mustHaveSignature: z.boolean().optional(),
       })
       .passthrough()
       .optional(),
@@ -70,6 +93,14 @@ export const borealAgentRequestSummarySchema = z
       .object({
         requiresHumanPresence: z.boolean().optional(),
         requiresLocalAccess: z.boolean().optional(),
+        requiresVerifiedEvidence: z.boolean().optional(),
+        requiresFieldProof: z.boolean().optional(),
+        requiresPhysicalVerification: z.boolean().optional(),
+        requiresPickup: z.boolean().optional(),
+        requiresDropoff: z.boolean().optional(),
+        requiresDelivery: z.boolean().optional(),
+        requiresWitness: z.boolean().optional(),
+        verificationRequirements: z.array(z.string()).optional(),
       })
       .passthrough()
       .optional(),
@@ -364,32 +395,9 @@ function isVideoLike(value: string) {
 }
 
 function requiresHumanWork(input: BorealAgentPrepareApplicationInput) {
-  const actorKinds = input.request.seeking?.actorKinds ?? [];
-  const executionKind = input.request.derived?.executionKind ?? "";
-  const briefConstraints = input.request.brief?.constraints ?? {};
-
-  return Boolean(
-    input.request.derived?.executionProfile?.requiresHumanPresence ||
-      input.request.derived?.executionProfile?.requiresLocalAccess ||
-      input.request.constraints?.requiresHumanPresence ||
-      input.request.constraints?.requiresLocalAccess ||
-      briefConstraints.requiresHumanPresence === true ||
-      briefConstraints.requiresLocalAccess === true ||
-      actorKinds.some(isHumanActorKind) ||
-      isHumanOrLocalExecutionKind(executionKind)
-  );
-}
-
-function isHumanActorKind(value: string) {
-  return value.toLowerCase().replace(/[-\s]+/g, "_").includes("human");
-}
-
-function isHumanOrLocalExecutionKind(value: string) {
-  const normalized = value.toLowerCase().replace(/[-\s]+/g, "_");
-
-  return ["human", "field", "local", "embodied", "onsite"].some((token) =>
-    normalized.includes(token)
-  );
+  return requiresHumanOrLocalWorker(input.request, {
+    includeHumanActorKind: true,
+  });
 }
 
 function buildApplicationPacket({

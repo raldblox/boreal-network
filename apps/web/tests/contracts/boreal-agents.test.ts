@@ -358,6 +358,25 @@ assert.ok(miraHumanBoardHint);
 assert.equal(miraHumanBoardHint.readiness, "skip");
 assert.match(miraHumanBoardHint.reason, /human-led|local-access/);
 
+const fieldProofBoardHints = buildNamedAgentBoardReadiness({
+  ...boardVideoRequest,
+  id: "req-board-field-proof-001",
+  brief: {
+    ...boardVideoRequest.brief,
+    outputKinds: ["video", "photo_evidence"],
+  },
+  seeking: {
+    actorKinds: ["ai_agent"],
+    supplyKinds: ["video_generation", "field_inspection"],
+  },
+});
+const miraFieldProofBoardHint = fieldProofBoardHints.find(
+  (hint) => hint.agentKey === "mira-video"
+);
+assert.ok(miraFieldProofBoardHint);
+assert.equal(miraFieldProofBoardHint.readiness, "skip");
+assert.match(miraFieldProofBoardHint.reason, /human-led|local-access/);
+
 const humanWorkerReadiness = buildRequestWorkerReadiness({
   ...boardVideoRequest,
   id: "req-board-human-worker-001",
@@ -399,6 +418,21 @@ assert.ok(humanWorkerReadiness.nonAuthority.includes("no_supply_assigned"));
 assert.ok(humanWorkerReadiness.nonAuthority.includes("no_payment_authorized"));
 assert.equal(humanWorkerReadiness.summary.humanRequired, true);
 assert.equal(humanWorkerReadiness.summary.shouldWakeAgents, false);
+
+const fieldProofWorkerReadiness = buildRequestWorkerReadiness({
+  ...boardVideoRequest,
+  id: "req-board-field-proof-worker-001",
+  brief: {
+    ...boardVideoRequest.brief,
+    outputKinds: ["video", "photo_evidence"],
+  },
+  seeking: {
+    actorKinds: ["ai_agent"],
+    supplyKinds: ["video_generation", "field_verification"],
+  },
+});
+assert.equal(fieldProofWorkerReadiness.humanLane.state, "human_required");
+assert.equal(fieldProofWorkerReadiness.summary.shouldWakeAgents, false);
 
 const humanOpenWorkerReadiness = buildRequestWorkerReadiness({
   ...boardVideoRequest,
@@ -687,6 +721,18 @@ async function main() {
         },
         {
           ...videoPrepareInput.request,
+          id: "req-video-field-proof",
+          brief: {
+            ...videoPrepareInput.request.brief,
+            outputKinds: ["video", "photo_evidence"],
+          },
+          seeking: {
+            actorKinds: ["ai_agent"],
+            supplyKinds: ["video_generation", "field_inspection"],
+          },
+        },
+        {
+          ...videoPrepareInput.request,
           id: "req-copy-001",
           brief: {
             title: "Rewrite website copy",
@@ -716,9 +762,9 @@ async function main() {
   assert.equal(scanBody.agent.framework.routeMode, "preparation_only");
   assert.equal(scanBody.agent.promotion.state, "live_backed");
   assert.equal(scanBody.scan.rankingMode, "none_no_matching_or_assignment");
-  assert.equal(scanBody.scan.requestCount, 3);
+  assert.equal(scanBody.scan.requestCount, 4);
   assert.equal(scanBody.scan.wakeCount, 1);
-  assert.equal(scanBody.scan.skipCount, 2);
+  assert.equal(scanBody.scan.skipCount, 3);
   assert.deepEqual(scanBody.scanner.canonicalWrites, []);
   assert.equal(scanBody.nonAuthority.canAssignWorker, false);
   assert.equal(scanBody.candidates[0].request.id, "req-video-001");
@@ -754,7 +800,11 @@ async function main() {
   );
   assert.equal(scanBody.candidates[2].allowedToWake, false);
   assert.ok(
-    scanBody.candidates[2].rejectedBy.includes("no_video_generation_signal")
+    scanBody.candidates[2].rejectedBy.includes("human_required_boundary")
+  );
+  assert.equal(scanBody.candidates[3].allowedToWake, false);
+  assert.ok(
+    scanBody.candidates[3].rejectedBy.includes("no_video_generation_signal")
   );
 
   const targetScanResponse = await POST(
@@ -1079,6 +1129,100 @@ assert.equal(
 );
 assert.ok(
   publicProjectionBriefConstraintPrepare.qualification.rejectedBy.includes(
+    "human_required_boundary"
+  )
+);
+
+const publicProjectionExecutionKindPrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    request: {
+      ...videoPrepareInput.request,
+      id: "req-public-execution-kind-001",
+      derived: {
+        seeking: {
+          supplyKinds: ["video_generation"],
+        },
+        executionKind: "local_runtime",
+      },
+    },
+  },
+  template: mira,
+});
+assert.equal(
+  publicProjectionExecutionKindPrepare.qualification.allowedToWake,
+  false
+);
+assert.ok(
+  publicProjectionExecutionKindPrepare.qualification.rejectedBy.includes(
+    "human_required_boundary"
+  )
+);
+
+const publicProjectionPickupPrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    request: {
+      ...videoPrepareInput.request,
+      id: "req-public-pickup-001",
+      brief: {
+        ...videoPrepareInput.request.brief,
+        outputKinds: ["video", "handoff_receipt"],
+      },
+      seeking: {
+        actorKinds: ["ai_agent"],
+        supplyKinds: ["video_generation", "pickup_dropoff"],
+      },
+      derived: {
+        executionProfile: {
+          executionModes: ["pickup_dropoff", "witnessed_handoff"],
+        },
+        embodiedConstraintSet: {
+          executionModes: ["pickup_dropoff", "witnessed_handoff"],
+          verificationRequirements: [
+            "handoff_signature",
+            "delivery_confirmation",
+          ],
+          requiresWitness: true,
+        },
+      },
+    },
+  },
+  template: mira,
+});
+assert.equal(publicProjectionPickupPrepare.qualification.allowedToWake, false);
+assert.ok(
+  publicProjectionPickupPrepare.qualification.rejectedBy.includes(
+    "human_required_boundary"
+  )
+);
+
+const publicProjectionVerifiedEvidencePrepare = prepareBorealAgentApplication({
+  input: {
+    ...videoPrepareInput,
+    request: {
+      ...videoPrepareInput.request,
+      id: "req-public-verified-evidence-001",
+      derived: {
+        seeking: {
+          supplyKinds: ["video_generation"],
+        },
+        verificationPlan: {
+          requiredEvidenceClaims: ["timestamped_photos"],
+          mustHaveLocationSignal: true,
+          mustHaveSignature: false,
+        },
+      },
+    },
+  },
+  template: mira,
+});
+assert.equal(
+  publicProjectionVerifiedEvidencePrepare.qualification.allowedToWake,
+  false
+);
+assert.ok(
+  publicProjectionVerifiedEvidencePrepare.qualification.rejectedBy.includes(
     "human_required_boundary"
   )
 );

@@ -3,6 +3,7 @@ import {
   type NamedAgentBoardRequest,
   buildNamedAgentBoardReadiness,
 } from "./boreal-agents/board-readiness";
+import { requiresHumanOrLocalWorker } from "./boreal-agents/request-qualification";
 
 export type RequestHumanWorkerReadinessState =
   | "can_review"
@@ -191,27 +192,9 @@ function hasHumanActorSignal(request: NamedAgentBoardRequest) {
 }
 
 function hasHumanOrLocalSignal(request: NamedAgentBoardRequest) {
-  const executionKind = request.derived?.executionKind ?? "";
-  const constraints = request.brief.constraints ?? {};
-  const text = normalizeSignalText([
-    request.seeking?.notes,
-    request.derived?.routeSummary,
-    executionKind,
-  ]);
-
-  return (
-    hasToken(executionKind, ["human", "field", "local", "embodied"]) ||
-    text.includes("onsite") ||
-    text.includes("on-site") ||
-    text.includes("local access") ||
-    text.includes("human presence") ||
-    constraints.requiresHumanPresence === true ||
-    constraints.requiresLocalAccess === true
-  );
-}
-
-function normalizeSignalText(values: Array<string | null | undefined>) {
-  return values.filter(Boolean).join(" ").toLowerCase();
+  return requiresHumanOrLocalWorker(request, {
+    includeHumanActorKind: false,
+  });
 }
 
 function hasToken(value: string, tokens: string[]) {
