@@ -1680,6 +1680,7 @@ POST /api/boreal-agents/{agentKey}
 
 Accepted POST actions are \`scan_request_candidates\` and \`prepare_application\`.
 The resulting mutation-call sketch must be submitted through the existing authorized \`Commitment\` or owner-private \`Fulfillment\` route before any durable work state changes.
+Prepared application packets include \`submissionPreflight.preflightRequest\`, a validation-only request body that should be posted to \`${agentDiscoveryPaths.agentActionPreflight}\` before attempting the sketched mutation route.
 
 For validation-only preflight before attempting apply, submit, monitor, run, or optimize actions, agents can post:
 

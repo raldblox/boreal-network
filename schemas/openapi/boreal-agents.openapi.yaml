@@ -726,6 +726,7 @@ components:
         - requiredStatus
         - requiredBeforeMutation
         - requiredInput
+        - preflightRequest
         - routePolicyRecheck
         - mustReadBeforeSubmit
         - forbiddenClaimsBeforeAuthorizedMutation
@@ -782,6 +783,86 @@ components:
               minItems: 1
             payloadSummaryRequired:
               const: true
+            requestFit:
+              type: object
+              required:
+                - selectedSupplyId
+                - selectedSupplyStatus
+                - requestSupplyKinds
+                - requestOutputKinds
+                - selectedSupplyKinds
+                - selectedOutputKinds
+              properties:
+                selectedSupplyId:
+                  type: string
+                selectedSupplyStatus:
+                  enum:
+                    - draft
+                    - published
+                    - paused
+                    - retired
+                requestSupplyKinds:
+                  type: array
+                  items:
+                    type: string
+                requestOutputKinds:
+                  type: array
+                  items:
+                    type: string
+                selectedSupplyKinds:
+                  type: array
+                  items:
+                    type: string
+                selectedOutputKinds:
+                  type: array
+                  items:
+                    type: string
+        preflightRequest:
+          type: object
+          required:
+            - schemaVersion
+            - actionId
+            - requestId
+            - representedActor
+            - hasHumanApproval
+            - hasIdempotencyKey
+            - requestedScopes
+            - payloadSummary
+            - requestFit
+          properties:
+            schemaVersion:
+              const: 1
+            actionId:
+              enum:
+                - apply_to_request
+                - create_owner_private_fulfillment
+            requestId:
+              type: string
+            representedActor:
+              type: object
+              required:
+                - kind
+                - reference
+              properties:
+                kind:
+                  const: agent
+                reference:
+                  type: string
+                  pattern: "^boreal-agent:"
+            hasHumanApproval:
+              const: true
+            hasIdempotencyKey:
+              const: true
+            requestedScopes:
+              type: array
+              items:
+                type: string
+                enum:
+                  - commitments:propose
+                  - fulfillments:create
+              minItems: 1
+            payloadSummary:
+              type: string
             requestFit:
               type: object
               required:

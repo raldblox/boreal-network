@@ -4067,6 +4067,7 @@ async function main() {
   assert.match(startGuide, /Mira Video Agent/);
   assert.match(startGuide, /\/api\/boreal-agents\/mira-video/);
   assert.match(startGuide, /scan_request_candidates/);
+  assert.match(startGuide, /submissionPreflight\.preflightRequest/);
   assert.match(startGuide, /GET \/agents\/access-review\.json/);
   assert.match(startGuide, /GET \/agents\/auth\.json/);
   assert.match(startGuide, /POST \/agents\/auth\/prepare/);

@@ -462,6 +462,25 @@ function buildRequestFit(input: BorealAgentPrepareApplicationInput) {
   };
 }
 
+function buildPreflightPayloadSummary({
+  input,
+  directOwnerPrivate,
+  template,
+}: {
+  input: BorealAgentPrepareApplicationInput;
+  directOwnerPrivate: boolean;
+  template: BorealAgentTemplate;
+}) {
+  const laneSummary = directOwnerPrivate
+    ? "owner-private direct Fulfillment preparation"
+    : "Commitment proposal preparation";
+  const supplySummary = input.supply?.id
+    ? ` using selected Supply ${input.supply.id}`
+    : "";
+
+  return `${template.uniqueName} ${laneSummary} for Request ${input.request.id}${supplySummary}.`;
+}
+
 function buildSubmissionPreflight({
   input,
   lane,
@@ -479,6 +498,16 @@ function buildSubmissionPreflight({
   const requestedScopes = directOwnerPrivate
     ? ["fulfillments:create"]
     : ["commitments:propose"];
+  const requestFit = buildRequestFit(input);
+  const representedActor = {
+    kind: "agent",
+    reference: `boreal-agent:${template.agentKey}`,
+  };
+  const payloadSummary = buildPreflightPayloadSummary({
+    directOwnerPrivate,
+    input,
+    template,
+  });
 
   return {
     endpoint: "/agents/actions/preflight",
@@ -488,15 +517,23 @@ function buildSubmissionPreflight({
     requiredInput: {
       schemaVersion: 1,
       requestId: input.request.id,
-      representedActor: {
-        kind: "agent",
-        reference: `boreal-agent:${template.agentKey}`,
-      },
+      representedActor,
       hasHumanApproval: true,
       hasIdempotencyKey: true,
       requestedScopes,
       payloadSummaryRequired: true,
-      requestFit: buildRequestFit(input),
+      requestFit,
+    },
+    preflightRequest: {
+      schemaVersion: 1,
+      actionId,
+      requestId: input.request.id,
+      representedActor,
+      hasHumanApproval: true,
+      hasIdempotencyKey: true,
+      requestedScopes,
+      payloadSummary,
+      requestFit,
     },
     routePolicyRecheck: {
       requestDetailRequired: true,

@@ -280,7 +280,9 @@
                 "directLaneRequestedScopes",
                 "payloadSummaryRequired",
                 "requestFitRequired",
-                "requestFitRequiredFields"
+                "requestFitRequiredFields",
+                "preflightRequestTemplateRequired",
+                "preflightRequestRequiredFields"
               ],
               "properties": {
                 "schemaVersion": {
@@ -355,6 +357,37 @@
                       "requestOutputKinds",
                       "selectedSupplyKinds",
                       "selectedOutputKinds"
+                    ]
+                  }
+                },
+                "preflightRequestTemplateRequired": {
+                  "const": true
+                },
+                "preflightRequestRequiredFields": {
+                  "type": "array",
+                  "minItems": 9,
+                  "allOf": [
+                    { "contains": { "const": "schemaVersion" } },
+                    { "contains": { "const": "actionId" } },
+                    { "contains": { "const": "requestId" } },
+                    { "contains": { "const": "representedActor" } },
+                    { "contains": { "const": "hasHumanApproval" } },
+                    { "contains": { "const": "hasIdempotencyKey" } },
+                    { "contains": { "const": "requestedScopes" } },
+                    { "contains": { "const": "payloadSummary" } },
+                    { "contains": { "const": "requestFit" } }
+                  ],
+                  "items": {
+                    "enum": [
+                      "schemaVersion",
+                      "actionId",
+                      "requestId",
+                      "representedActor",
+                      "hasHumanApproval",
+                      "hasIdempotencyKey",
+                      "requestedScopes",
+                      "payloadSummary",
+                      "requestFit"
                     ]
                   }
                 }

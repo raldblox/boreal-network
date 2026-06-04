@@ -565,6 +565,18 @@
           "requestOutputKinds",
           "selectedSupplyKinds",
           "selectedOutputKinds"
+        ],
+        "preflightRequestTemplateRequired": true,
+        "preflightRequestRequiredFields": [
+          "schemaVersion",
+          "actionId",
+          "requestId",
+          "representedActor",
+          "hasHumanApproval",
+          "hasIdempotencyKey",
+          "requestedScopes",
+          "payloadSummary",
+          "requestFit"
         ]
       },
       "routePolicyRecheck": {

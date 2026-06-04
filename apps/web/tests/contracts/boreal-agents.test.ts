@@ -15,6 +15,7 @@ import {
   type NamedAgentBoardRequest,
   buildNamedAgentBoardReadiness,
 } from "@/lib/boreal-agents/board-readiness";
+import { validateAgentActionPreflight } from "@/lib/agent-action-preflight";
 import { buildRequestWorkerReadiness } from "@/lib/request-worker-readiness";
 
 const routeContext = (agentKey: string) => ({
@@ -559,6 +560,22 @@ async function main() {
       selectedOutputKinds: ["video"],
     }
   );
+  assert.deepEqual(
+    publicPrepare.applicationPacket.submissionPreflight.preflightRequest
+      .requestFit,
+    publicPrepare.applicationPacket.submissionPreflight.requiredInput.requestFit
+  );
+  assert.match(
+    publicPrepare.applicationPacket.submissionPreflight.preflightRequest
+      .payloadSummary,
+    /Commitment proposal preparation/
+  );
+  assert.equal(
+    validateAgentActionPreflight(
+      publicPrepare.applicationPacket.submissionPreflight.preflightRequest
+    ).status,
+    "preflight_passed"
+  );
   assert.equal(
     publicPrepare.applicationPacket.submissionPreflight.routePolicyRecheck
       .ownerPrivateAutoApprovalRequired,
@@ -676,6 +693,13 @@ async function main() {
     scanBody.candidates[0].applicationPacket.submissionPreflight
       .requiredBeforeMutation,
     true
+  );
+  assert.equal(
+    validateAgentActionPreflight(
+      scanBody.candidates[0].applicationPacket.submissionPreflight
+        .preflightRequest
+    ).status,
+    "preflight_passed"
   );
   assert.equal(scanBody.candidates[1].allowedToWake, false);
   assert.ok(
@@ -850,6 +874,17 @@ assert.equal(
   privatePrepare.applicationPacket.submissionPreflight.requiredInput.requestFit
     .selectedSupplyStatus,
   "published"
+);
+assert.match(
+  privatePrepare.applicationPacket.submissionPreflight.preflightRequest
+    .payloadSummary,
+  /owner-private direct Fulfillment preparation/
+);
+assert.equal(
+  validateAgentActionPreflight(
+    privatePrepare.applicationPacket.submissionPreflight.preflightRequest
+  ).status,
+  "preflight_passed"
 );
 assert.equal(
   privatePrepare.applicationPacket.submissionPreflight.routePolicyRecheck
