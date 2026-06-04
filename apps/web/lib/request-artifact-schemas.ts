@@ -73,6 +73,18 @@ export const artifactExternalRefContainerInputSchema = z.object({
   previewDocumentId: z.string().uuid().optional(),
 });
 
+export const artifactDocumentContainerInputSchema = z.object({
+  kind: z.literal("document"),
+  documentId: z.string().uuid(),
+  documentKind: artifactDocumentKindInputSchema,
+  mediaKind: artifactMediaKindInputSchema.optional(),
+  mimeType: z.string().min(1).max(200).optional(),
+  filename: z.string().min(1).max(260).optional(),
+  byteSize: z.number().int().nonnegative().optional(),
+  sha256: z.string().min(1).max(128).optional(),
+  sourceUri: z.string().url().optional(),
+});
+
 export const artifactObjectRefContainerInputSchema = z.object({
   kind: z.literal("object_ref"),
   objectKey: z.string().min(1).max(512),
@@ -86,3 +98,14 @@ export const artifactObjectRefContainerInputSchema = z.object({
   previewDocumentId: z.string().uuid().optional(),
   sourceUri: z.string().url().optional(),
 });
+
+export const artifactReferenceContainerInputSchema = z.union([
+  artifactExternalRefContainerInputSchema,
+  artifactObjectRefContainerInputSchema,
+]);
+
+export const artifactContainerInputSchema = z.union([
+  artifactDocumentContainerInputSchema,
+  artifactExternalRefContainerInputSchema,
+  artifactObjectRefContainerInputSchema,
+]);

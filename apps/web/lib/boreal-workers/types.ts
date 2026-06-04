@@ -5,6 +5,9 @@ import type {
   CommitmentTerms,
   RequestArtifactKind,
   RequestArtifactMediaKind,
+  RequestArtifactDocumentKind,
+  RequestArtifactMetadata,
+  RequestExternalRefArtifactContainer,
   RequestObjectRefArtifactContainer,
 } from "@/lib/request";
 import type {
@@ -15,9 +18,11 @@ import type {
   SupplyProfile,
 } from "@/lib/supply";
 import {
+  artifactDocumentKindInputSchema,
   artifactKindInputSchema,
   artifactMediaKindInputSchema,
-  artifactObjectRefContainerInputSchema,
+  artifactReferenceContainerInputSchema,
+  requestArtifactMetadataInputSchema,
 } from "@/lib/request-artifact-schemas";
 import {
   borealActorKindSchema,
@@ -172,39 +177,105 @@ export const borealWorkerCommitmentDraftSchema = z
   })
   .strict();
 
-export type BorealWorkerArtifactDescriptor = {
+type BorealWorkerArtifactDescriptorBase = {
   artifactKind: RequestArtifactKind;
   mediaKind?: RequestArtifactMediaKind;
   title: string;
   summary?: string;
-  container: RequestObjectRefArtifactContainer;
+  metadata?: RequestArtifactMetadata;
 };
 
-export const borealWorkerArtifactDescriptorSchema = z
+export type BorealWorkerReferenceArtifactDescriptor =
+  BorealWorkerArtifactDescriptorBase & {
+    container:
+      | RequestExternalRefArtifactContainer
+      | RequestObjectRefArtifactContainer;
+  };
+
+export type BorealWorkerDocumentArtifactDescriptor =
+  BorealWorkerArtifactDescriptorBase & {
+    content: string;
+    documentKind: RequestArtifactDocumentKind;
+  };
+
+export type BorealWorkerArtifactDescriptor =
+  | BorealWorkerReferenceArtifactDescriptor
+  | BorealWorkerDocumentArtifactDescriptor;
+
+const borealWorkerArtifactDescriptorBaseSchema = z
   .object({
     artifactKind: artifactKindInputSchema,
     mediaKind: artifactMediaKindInputSchema.optional(),
     title: z.string().min(1).max(260),
     summary: z.string().min(1).max(1000).optional(),
-    container: artifactObjectRefContainerInputSchema,
+    metadata: requestArtifactMetadataInputSchema.optional(),
   })
   .strict();
 
-export type BorealWorkerStoredAsset = {
+export const borealWorkerReferenceArtifactDescriptorSchema =
+  borealWorkerArtifactDescriptorBaseSchema
+    .extend({
+      container: artifactReferenceContainerInputSchema,
+    })
+    .strict();
+
+export const borealWorkerDocumentArtifactDescriptorSchema =
+  borealWorkerArtifactDescriptorBaseSchema
+    .extend({
+      content: z.string().min(1),
+      documentKind: artifactDocumentKindInputSchema,
+    })
+    .strict();
+
+export const borealWorkerArtifactDescriptorSchema = z.union([
+  borealWorkerReferenceArtifactDescriptorSchema,
+  borealWorkerDocumentArtifactDescriptorSchema,
+]);
+
+export type BorealWorkerStoredReferenceAsset = {
   title: string;
   summary?: string;
-  container: RequestObjectRefArtifactContainer;
+  container:
+    | RequestExternalRefArtifactContainer
+    | RequestObjectRefArtifactContainer;
   sourceUrl?: string;
 };
 
-export const borealWorkerStoredAssetSchema = z
+export type BorealWorkerStoredDocumentAsset = {
+  title: string;
+  summary?: string;
+  content: string;
+  documentKind: RequestArtifactDocumentKind;
+  sourceUrl?: string;
+};
+
+export type BorealWorkerStoredAsset =
+  | BorealWorkerStoredReferenceAsset
+  | BorealWorkerStoredDocumentAsset;
+
+export const borealWorkerStoredReferenceAssetSchema = z
   .object({
     title: z.string().min(1).max(260),
     summary: z.string().min(1).max(1000).optional(),
-    container: artifactObjectRefContainerInputSchema,
+    container: artifactReferenceContainerInputSchema,
     sourceUrl: z.string().url().optional(),
   })
   .strict();
+
+export const borealWorkerStoredDocumentAssetSchema = z
+  .object({
+    title: z.string().min(1).max(260),
+    summary: z.string().min(1).max(1000).optional(),
+    content: z.string().min(1),
+    documentKind: artifactDocumentKindInputSchema,
+    sourceUrl: z.string().url().optional(),
+  })
+  .strict();
+
+export const borealWorkerStoredAssetSchema = z.union([
+  borealWorkerStoredReferenceAssetSchema,
+  borealWorkerStoredDocumentAssetSchema,
+]);
 
 export type BorealWorkerRecoveryStage =
   | "provider_poll"

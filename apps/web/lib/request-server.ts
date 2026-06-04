@@ -645,7 +645,15 @@ async function publishBorealWorkerStoredAsset({
       title: artifactDescriptor.title,
       summary: artifactDescriptor.summary,
       fulfillmentId,
-      container: artifactDescriptor.container,
+      metadata: artifactDescriptor.metadata,
+      ...("content" in artifactDescriptor
+        ? {
+            content: artifactDescriptor.content,
+            documentKind: artifactDescriptor.documentKind,
+          }
+        : {
+            container: artifactDescriptor.container,
+          }),
       source,
     });
   } catch (error) {

@@ -368,6 +368,10 @@ Artifact publication should support:
 - object-storage references for app-managed or provider-managed blob keys
 - optional `fulfillmentId` and `stepId` when one artifact belongs to a selected execution lane
 
+First-party Boreal worker artifact descriptors should preserve that same split.
+Text-like worker outputs should hand the artifact route document content plus `documentKind`; media, file, and provider-backed blobs should hand it an `external_ref` or `object_ref` container.
+The worker descriptor is not completion authority by itself.
+
 Object-storage media artifacts may be previewed through a request-scoped media read route only after request-read authorization succeeds; the preview route must not expose private blob keys as public URLs.
 
 ## Resolver Auth Surface

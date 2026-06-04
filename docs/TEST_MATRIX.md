@@ -374,6 +374,7 @@ Verify:
 - execution-grade artifacts should require an accepted commitment or active fulfillment role instead of arbitrary public responder access
 - artifact publication should accept both document-backed content and richer external or object reference containers
 - artifact publication should preserve optional `fulfillmentId` and `stepId` lane bindings when provided
+- first-party worker artifact descriptor tests should accept document-backed content for text-like worker deliveries, accept external or object references for provider-backed assets, and keep worker handoff separate from completion authority
 - video media artifacts should render an authorized inline preview from the stable object reference without exposing private storage as buyer-authored brief text
 - generated plans, summaries, or chat text should not satisfy embodied proof obligations by themselves
 - request grants should remain optional funding attached through participant, commitment, transaction, and event truth instead of creating a new root object
@@ -460,6 +461,7 @@ Verify:
 - owner-scoped auto-approval can create or accept only the intended worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to a different supply
 - prompt packs, reusable prompts, workflow JSON, provider prompts, and skills cannot be listed as starter `Supply` without a backing execution profile, capability fingerprints, proof path, and readiness tests
 - `video-generation` remains the only live starter worker until another worker such as humanizer has a real supply factory, execution contract, proof path, and failure fixtures
+- first-party worker contract tests keep the generic worker artifact descriptor document-capable while still requiring `video-generation` to publish video through an object reference
 - `schemas/json/in-house-worker-application-profile.schema.json`, `fixtures/agent/in-house-worker-application-profile.sample.json`, and `pnpm contracts:in-house-workers` keep the profile machine-readable and enforce scanner, application, auto-approval, prompt-asset, and live-worker boundaries
 - named-agent promotion gates must make `Mira` `live_backed` with no open blockers and `Tala` `target_blocked` with blockers for missing humanizer supply factory, execution contract, proof path, failure fixtures, and mutating route tests
 - every first-party named agent declares a unique name, stable `/api/boreal-agents/{agentKey}` route, shared `boreal_named_agent_v1` framework contract, task pipeline, tool bindings, model or provider environment bindings, qualification tags, skip conditions, and contract fixtures

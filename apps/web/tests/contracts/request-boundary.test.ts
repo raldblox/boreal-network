@@ -5,6 +5,13 @@ import { selectChatModelRoute } from "@/lib/ai/model-routing";
 import { composerChatModels, isComposerChatModelId } from "@/lib/ai/models";
 import { getModelProviderRouteEntries } from "@/lib/ai/providers";
 import {
+  borealWorkerArtifactDescriptorSchema,
+  borealWorkerStoredAssetSchema,
+} from "@/lib/boreal-workers/types";
+import {
+  videoGenerationWorkerArtifactSchema,
+} from "@/lib/boreal-workers/video-generation";
+import {
   chatDeleteQuerySchema,
   chatMessagesQuerySchema,
   deleteTrailingMessagesSchema,
@@ -101,6 +108,52 @@ assert.equal(
     id: "66666666-6666-4666-8666-666666666666",
   }).success,
   true,
+);
+
+const documentBackedWorkerAsset = borealWorkerStoredAssetSchema.parse({
+  title: "Humanized launch copy",
+  summary: "Document-backed first-party worker output.",
+  content: "Plain-language launch copy that preserves buyer facts.",
+  documentKind: "text",
+});
+assert.equal("content" in documentBackedWorkerAsset, true);
+const documentBackedWorkerArtifact = borealWorkerArtifactDescriptorSchema.parse({
+  artifactKind: "delivery",
+  title: "Humanized launch copy",
+  summary: "Document-backed worker delivery with review-safe metadata.",
+  content: "Plain-language launch copy that preserves buyer facts.",
+  documentKind: "text",
+  metadata: {
+    evidenceClaims: ["owner review required before completion"],
+  },
+});
+assert.equal("content" in documentBackedWorkerArtifact, true);
+assert.equal(
+  documentBackedWorkerArtifact.metadata?.evidenceClaims?.[0],
+  "owner review required before completion",
+);
+const objectBackedWorkerArtifact = borealWorkerArtifactDescriptorSchema.parse({
+  artifactKind: "media",
+  mediaKind: "video",
+  title: "Launch teaser video",
+  container: {
+    kind: "object_ref",
+    objectKey: "boreal-workers/video-generation/req/video.mp4",
+    storageProvider: "vercel_blob",
+    mediaKind: "video",
+    mimeType: "video/mp4",
+  },
+});
+assert.equal("container" in objectBackedWorkerArtifact, true);
+assert.equal(
+  videoGenerationWorkerArtifactSchema.safeParse(objectBackedWorkerArtifact)
+    .success,
+  true,
+);
+assert.equal(
+  videoGenerationWorkerArtifactSchema.safeParse(documentBackedWorkerArtifact)
+    .success,
+  false,
 );
 
 function makeDraft(

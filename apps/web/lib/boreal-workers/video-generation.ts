@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BorealRequestDraft } from "@/lib/request";
+import { artifactObjectRefContainerInputSchema } from "@/lib/request-artifact-schemas";
 import {
   waitForRunwayTaskOutput,
   executeRunwayVideoTask,
@@ -14,14 +15,14 @@ import {
 import { mirrorRemoteObjectToBlob } from "./storage";
 import {
   BorealWorkerRecoverableError,
-  borealWorkerArtifactDescriptorSchema,
+  borealWorkerReferenceArtifactDescriptorSchema,
   type BorealWorkerCommitmentDraft,
   type BorealWorkerDefinition,
   type BorealWorkerStoredAsset,
   type BorealWorkerSupplyMetadata,
   parseBorealWorkerFulfillmentMetadata,
   parseBorealWorkerResult,
-  borealWorkerStoredAssetSchema,
+  borealWorkerStoredReferenceAssetSchema,
 } from "./types";
 
 const videoGenerationWorkerBaseInputSchema = z
@@ -53,36 +54,38 @@ export type VideoGenerationWorkerInput = z.infer<
   typeof videoGenerationWorkerInputSchema
 >;
 
+export const videoGenerationWorkerStoredAssetSchema =
+  borealWorkerStoredReferenceAssetSchema
+  .extend({
+    container: artifactObjectRefContainerInputSchema.extend({
+      mediaKind: z.literal("video").optional(),
+    }),
+  })
+  .strict();
+
+export const videoGenerationWorkerArtifactSchema =
+  borealWorkerReferenceArtifactDescriptorSchema
+  .extend({
+    artifactKind: z.literal("media"),
+    mediaKind: z.literal("video"),
+    container: artifactObjectRefContainerInputSchema.extend({
+      mediaKind: z.literal("video").optional(),
+    }),
+  })
+  .strict();
+
 export const videoGenerationWorkerResultSchema = z
   .object({
     providerTaskId: z.string().min(1).max(200),
     providerStatus: z.enum(["queued", "running", "completed"]),
     sourceVideoUrl: z.string().url().optional(),
-    storedAsset: borealWorkerStoredAssetSchema.optional(),
+    storedAsset: videoGenerationWorkerStoredAssetSchema.optional(),
   })
   .strict();
 
 export type VideoGenerationWorkerResult = z.infer<
   typeof videoGenerationWorkerResultSchema
 >;
-
-export const videoGenerationWorkerStoredAssetSchema = borealWorkerStoredAssetSchema
-  .extend({
-    container: borealWorkerStoredAssetSchema.shape.container.extend({
-      mediaKind: z.literal("video").optional(),
-    }),
-  })
-  .strict();
-
-export const videoGenerationWorkerArtifactSchema = borealWorkerArtifactDescriptorSchema
-  .extend({
-    artifactKind: z.literal("media"),
-    mediaKind: z.literal("video"),
-    container: borealWorkerArtifactDescriptorSchema.shape.container.extend({
-      mediaKind: z.literal("video").optional(),
-    }),
-  })
-  .strict();
 
 const videoGenerationKeywords = [
   "video",

@@ -311,6 +311,7 @@ Every mutation call should return:
 - Desktop request-bound execution should pass the selected `Request` and optional `Fulfillment` lane into the local runtime as context, while keeping the local transcript out of default durable Boreal history.
 - Desktop request-bound execution must treat public or external tracked request lanes as untrusted: block `danger-full-access`, keep network off, clear extra writable roots, and prefer a dedicated request workspace under `.boreal-work`.
 - `publish_artifact` should accept either document-backed content or a stable external or object reference, plus optional `fulfillmentId` and `stepId`.
+- First-party worker artifact handoff should use document content for text-like outputs and external or object references for media or provider-backed blobs; the handoff does not prove completion without the governed artifact write and later review boundary.
 - `resolve_request` or equivalent closure actions should fail or escalate when required embodied steps or proof obligations are still missing.
 
 ## First Implementation Target
