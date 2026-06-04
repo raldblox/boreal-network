@@ -807,6 +807,8 @@ components:
         - agentKey
         - workerKey
         - supplyBinding
+        - packetStatus
+        - qualificationGate
         - durableWriteStatus
         - requiredNextAction
         - submissionPreflight
@@ -825,10 +827,18 @@ components:
         supplyBinding:
           type: object
           additionalProperties: true
+        packetStatus:
+          enum:
+            - ready_for_submission_preflight
+            - blocked_until_qualified
+        qualificationGate:
+          $ref: "#/components/schemas/QualificationGate"
         durableWriteStatus:
           const: not_created_prepare_only
         requiredNextAction:
-          const: submit_through_authorized_mutation_route
+          enum:
+            - run_submission_preflight_before_authorized_mutation
+            - fix_qualification_before_submission_preflight
         submissionPreflight:
           $ref: "#/components/schemas/SubmissionPreflight"
         authorizedExecutionHandoff:
@@ -847,6 +857,42 @@ components:
           enum:
             - explicit_owner_acceptance_required
             - trusted_worker_auto_approval_required
+    QualificationGate:
+      type: object
+      required:
+        - status
+        - allowedToWake
+        - recommendedLaneWhenAllowed
+        - canRunSubmissionPreflight
+        - canAttemptMutationSketchBeforePreflight
+        - blockedReasons
+        - requiredBeforePreflight
+        - nonAuthority
+      properties:
+        status:
+          enum:
+            - passed
+            - blocked
+        allowedToWake:
+          type: boolean
+        recommendedLaneWhenAllowed:
+          enum:
+            - public_or_cross_actor_commitment_application
+            - owner_private_direct_worker_fulfillment
+        canRunSubmissionPreflight:
+          type: boolean
+        canAttemptMutationSketchBeforePreflight:
+          const: false
+        blockedReasons:
+          type: array
+          items:
+            type: string
+        requiredBeforePreflight:
+          type: array
+          items:
+            type: string
+        nonAuthority:
+          type: string
     AuthorizedExecutionHandoff:
       type: object
       required:

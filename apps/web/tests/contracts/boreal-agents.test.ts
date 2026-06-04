@@ -657,6 +657,25 @@ async function main() {
     publicPrepare.qualification.recommendedLane,
     "public_or_cross_actor_commitment_application"
   );
+  assert.equal(
+    publicPrepare.applicationPacket.packetStatus,
+    "ready_for_submission_preflight"
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.requiredNextAction,
+    "run_submission_preflight_before_authorized_mutation"
+  );
+  assert.deepEqual(publicPrepare.applicationPacket.qualificationGate, {
+    status: "passed",
+    allowedToWake: true,
+    recommendedLaneWhenAllowed: "public_or_cross_actor_commitment_application",
+    canRunSubmissionPreflight: true,
+    canAttemptMutationSketchBeforePreflight: false,
+    blockedReasons: [],
+    requiredBeforePreflight: [],
+    nonAuthority:
+      "This packet is ready for validation-only action preflight, not mutation submission.",
+  });
   assert.deepEqual(publicPrepare.applicationPacket.proposedCanonicalWrites, [
     "Commitment",
     "RequestEvent",
@@ -1277,6 +1296,23 @@ assert.ok(
   )
 );
 assert.equal(
+  privateWithoutAutoApprovalPrepare.applicationPacket.packetStatus,
+  "blocked_until_qualified"
+);
+assert.equal(
+  privateWithoutAutoApprovalPrepare.applicationPacket.requiredNextAction,
+  "fix_qualification_before_submission_preflight"
+);
+assert.equal(
+  privateWithoutAutoApprovalPrepare.applicationPacket.qualificationGate
+    .canRunSubmissionPreflight,
+  false
+);
+assert.ok(
+  privateWithoutAutoApprovalPrepare.applicationPacket.qualificationGate
+    .blockedReasons.includes("owner_auto_approval_not_enabled")
+);
+assert.equal(
   privateWithoutAutoApprovalPrepare.applicationPacket.proposedObject,
   "Commitment"
 );
@@ -1317,6 +1353,18 @@ assert.ok(
 assert.equal(
   privatePrepare.qualification.recommendedLane,
   "owner_private_direct_worker_fulfillment"
+);
+assert.equal(
+  privatePrepare.applicationPacket.packetStatus,
+  "ready_for_submission_preflight"
+);
+assert.deepEqual(
+  privatePrepare.applicationPacket.qualificationGate.blockedReasons,
+  []
+);
+assert.equal(
+  privatePrepare.applicationPacket.qualificationGate.canRunSubmissionPreflight,
+  true
 );
 assert.deepEqual(privatePrepare.applicationPacket.proposedCanonicalWrites, [
   "Fulfillment",
@@ -1653,6 +1701,29 @@ assert.equal(missingSupplyPrepare.qualification.allowedToWake, false);
 assert.ok(
   missingSupplyPrepare.qualification.rejectedBy.includes(
     "missing_required_supply_binding"
+  )
+);
+assert.equal(
+  missingSupplyPrepare.applicationPacket.packetStatus,
+  "blocked_until_qualified"
+);
+assert.equal(
+  missingSupplyPrepare.applicationPacket.requiredNextAction,
+  "fix_qualification_before_submission_preflight"
+);
+assert.equal(
+  missingSupplyPrepare.applicationPacket.qualificationGate
+    .canRunSubmissionPreflight,
+  false
+);
+assert.ok(
+  missingSupplyPrepare.applicationPacket.qualificationGate.blockedReasons.includes(
+    "missing_required_supply_binding"
+  )
+);
+assert.ok(
+  missingSupplyPrepare.applicationPacket.qualificationGate.requiredBeforePreflight.includes(
+    "verify qualification.allowedToWake=true"
   )
 );
 assert.equal(

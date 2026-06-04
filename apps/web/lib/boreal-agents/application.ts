@@ -204,7 +204,12 @@ export function prepareBorealAgentApplication({
       canonicalWrites: [],
       sideEffects: [],
     },
-    applicationPacket: buildApplicationPacket({ input, lane, template }),
+    applicationPacket: buildApplicationPacket({
+      evaluation,
+      input,
+      lane,
+      template,
+    }),
     taskPipeline: template.taskPipeline.map((task) => ({
       ...task,
       state: stateForTask({ lane, taskKind: task.kind, template }),
@@ -489,10 +494,12 @@ function requiresHumanWork(input: BorealAgentPrepareApplicationInput) {
 }
 
 function buildApplicationPacket({
+  evaluation,
   input,
   lane,
   template,
 }: {
+  evaluation: ReturnType<typeof evaluateQualification>;
   input: BorealAgentPrepareApplicationInput;
   lane: string;
   template: BorealAgentTemplate;
@@ -502,8 +509,14 @@ function buildApplicationPacket({
     agentKey: template.agentKey,
     workerKey: template.workerKey,
     supplyBinding: template.supplyBinding,
+    packetStatus: evaluation.allowedToWake
+      ? "ready_for_submission_preflight"
+      : "blocked_until_qualified",
+    qualificationGate: buildQualificationGate({ evaluation, lane }),
     durableWriteStatus: "not_created_prepare_only",
-    requiredNextAction: "submit_through_authorized_mutation_route",
+    requiredNextAction: evaluation.allowedToWake
+      ? "run_submission_preflight_before_authorized_mutation"
+      : "fix_qualification_before_submission_preflight",
     submissionPreflight: buildSubmissionPreflight({ input, lane, template }),
     authorizedExecutionHandoff: buildAuthorizedExecutionHandoff({
       lane,
@@ -528,6 +541,33 @@ function buildApplicationPacket({
     proposedObject: "Commitment",
     ownerApprovalMode: "explicit_owner_acceptance_required",
   };
+}
+
+function buildQualificationGate({
+  evaluation,
+  lane,
+}: {
+  evaluation: ReturnType<typeof evaluateQualification>;
+  lane: string;
+}) {
+  return {
+    status: evaluation.allowedToWake ? "passed" : "blocked",
+    allowedToWake: evaluation.allowedToWake,
+    recommendedLaneWhenAllowed: lane,
+    canRunSubmissionPreflight: evaluation.allowedToWake,
+    canAttemptMutationSketchBeforePreflight: false,
+    blockedReasons: [...evaluation.rejectedBy],
+    requiredBeforePreflight: evaluation.allowedToWake
+      ? []
+      : [
+          "resolve every qualification.rejectedBy reason",
+          "rerun prepare_application",
+          "verify qualification.allowedToWake=true",
+        ],
+    nonAuthority: evaluation.allowedToWake
+      ? "This packet is ready for validation-only action preflight, not mutation submission."
+      : "This packet is blocked guidance only. Do not run submission preflight or call the sketched mutation route until qualification passes.",
+  } as const;
 }
 
 function normalizeStrings(values: readonly (string | undefined)[]) {
