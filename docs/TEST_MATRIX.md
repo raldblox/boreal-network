@@ -86,6 +86,7 @@ When the actor-neutral request-flow taxonomy becomes machine-modeled, verify:
 - every `RequestFlowStage` has explicit in, out, done-here, not-done-here, authority, next-stage, recovery, and adapter-mapping fields
 - every `RequestFlowCard` references an existing stage and declares whether it is human, agent, system, or hybrid-facing
 - rendering a card never grants permission, records approval, authorizes payment, writes durable history, or proves completion
+- drag or connection affordances may expose a virtual next-card handoff when the target card is not present yet, but that option must stay read-only and carry the same non-authority flags as visible-card actions
 - every write-capable action references route auth, participant or owner authority, request-specific policy, idempotency, and canonical write boundaries
 - every completion-facing card references required `Artifact`, `Fulfillment`, `RequestEvent`, `Transaction`, and owner-review truth instead of relying on workflow success or prompt output
 - every n8n import/export mapping declares credential slots, unsupported features, human checkpoints, proof requirements, sidecar requirements, and lossiness

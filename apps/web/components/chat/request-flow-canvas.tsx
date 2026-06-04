@@ -31,6 +31,7 @@ import type {
   RequestFlowNodeState,
   RequestFlowNodeTone,
 } from "@/lib/request-flow";
+import { getRequestFlowActionOptions } from "@/lib/request-flow";
 import { cn } from "@/lib/utils";
 
 type RequestFlowCanvasProps = {
@@ -615,7 +616,7 @@ function WorkflowActionSearchPanel({
   const sourceNode = graph.nodes.find(
     (node) => node.id === pendingAction.sourceId,
   );
-  const options = getWorkflowActionOptions(graph, sourceNode);
+  const options = getRequestFlowActionOptions(graph, pendingAction.sourceId);
 
   if (!sourceNode || options.length === 0) {
     return null;
@@ -643,7 +644,7 @@ function WorkflowActionSearchPanel({
         {options.map((option) => (
           <button
             className="flex w-full flex-col items-start px-4 py-3 text-left transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-status-success/50"
-            key={option.nodeId}
+            key={`${option.actionId}:${option.nodeId}:${option.virtualTarget}`}
             onClick={() => onChooseNode(option.nodeId)}
             type="button"
           >
@@ -665,24 +666,6 @@ function WorkflowActionSearchPanel({
       </button>
     </div>
   );
-}
-
-function getWorkflowActionOptions(
-  graph: RequestFlowGraph,
-  sourceNode: RequestFlowNodeDescriptor | undefined,
-) {
-  if (!sourceNode) {
-    return [];
-  }
-
-  const nextKind = sourceNode.dragAction.targetNodeKind;
-  const candidates = graph.nodes.filter((node) => node.kind === nextKind);
-
-  return candidates.map((node) => ({
-    nodeId: node.id,
-    title: sourceNode.dragAction.label,
-    description: `${sourceNode.dragAction.description} ${node.summary}`,
-  }));
 }
 
 function getClientPoint(event: MouseEvent | TouchEvent) {

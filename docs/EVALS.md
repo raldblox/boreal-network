@@ -37,6 +37,7 @@ Verify that draft plans omit worker, delivery, supply path, role-candidate, capa
 Verify that raw draft review shows captured request and open readiness only, with no fallback plan steps or planner-pending phase.
 Verify that draft flow review renders only the `Request` plus one or more parallel `Plan` cards before the request opens.
 Verify that flow-card drag actions stay typed by card kind and read-only: `Request` to plan projection, plan or stage to worker application preparation, worker to delivery review, and delivery or step to proof inspection without mutating `Request`, creating `Commitment`, starting `Fulfillment`, publishing `Artifact`, or claiming completion.
+Verify that when a typed drag action points to a card kind that is not present yet, the UI may expose a virtual preparation handoff, but that handoff must keep the same non-authority flags and must not create the missing card, assign a worker, or call a mutation route.
 Verify that inline draft edits can change only buyer-authored brief fields, buyer-authored constraints, budget, and deadline while derived planner fields stay read-only.
 Verify that opened-request owner support chat can continue from private briefing history without exposing that transcript to public responders or converting every support turn into request activity.
 

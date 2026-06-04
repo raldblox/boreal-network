@@ -44,6 +44,7 @@ import {
 import {
   buildBuyerFacingDraftPlanSteps,
   buildDraftRequestFlowGraph,
+  getRequestFlowActionOptions,
   getRequestFlowNodeAction,
 } from "@/lib/request-flow";
 import { buildRequestPreflightPreview } from "@/lib/request-preflight";
@@ -597,6 +598,55 @@ assert.deepEqual(
   draftPlanNodes.map((node) => node.dragAction.targetNodeKind),
   ["worker", "worker"],
 );
+const requestFlowActionOptions = getRequestFlowActionOptions(
+  draftFlowGraph,
+  "request",
+);
+assert.equal(requestFlowActionOptions.length, 2);
+assert.deepEqual(
+  requestFlowActionOptions.map((option) => option.nodeId),
+  draftPlanNodes.map((node) => node.id),
+);
+assert.deepEqual(
+  requestFlowActionOptions.map((option) => option.virtualTarget),
+  [false, false],
+);
+assert.deepEqual(
+  requestFlowActionOptions.map((option) => option.targetNodeKind),
+  ["phase", "phase"],
+);
+const firstPlanActionOptions = getRequestFlowActionOptions(
+  draftFlowGraph,
+  draftPlanNodes[0]?.id ?? "",
+);
+assert.equal(firstPlanActionOptions.length, 1);
+assert.equal(firstPlanActionOptions[0]?.actionId, "prepare_worker_application");
+assert.equal(firstPlanActionOptions[0]?.targetNodeKind, "worker");
+assert.equal(firstPlanActionOptions[0]?.virtualTarget, true);
+assert.equal(firstPlanActionOptions[0]?.nodeId, draftPlanNodes[0]?.id);
+assert.equal(
+  firstPlanActionOptions[0]?.boundary,
+  "worker_application_boundary",
+);
+assert.deepEqual(firstPlanActionOptions[0]?.canonicalWritesIfAuthorized, [
+  "Commitment",
+  "Fulfillment",
+  "RequestEvent",
+]);
+for (const nonAuthority of [
+  "no_request_mutation",
+  "no_worker_assignment",
+  "no_commitment_created",
+  "no_fulfillment_started",
+  "no_artifact_published",
+]) {
+  assert.ok(firstPlanActionOptions[0]?.nonAuthority.includes(nonAuthority));
+}
+assert.match(
+  firstPlanActionOptions[0]?.description ?? "",
+  /target worker card is not present yet/i,
+);
+assert.deepEqual(getRequestFlowActionOptions(draftFlowGraph, "missing"), []);
 assert.deepEqual(
   [
     getRequestFlowNodeAction("request").id,

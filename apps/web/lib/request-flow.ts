@@ -86,6 +86,18 @@ export type RequestFlowGraph = {
   initialSelectedNodeId: string;
 };
 
+export type RequestFlowActionOption = {
+  actionId: RequestFlowNodeActionId;
+  boundary: RequestFlowNodeActionBoundary;
+  canonicalWritesIfAuthorized: string[];
+  description: string;
+  nodeId: string;
+  nonAuthority: string[];
+  targetNodeKind: RequestFlowNodeKind;
+  title: string;
+  virtualTarget: boolean;
+};
+
 type RequestFlowProcessNode = Pick<
   RequestFlowNodeDescriptor,
   | "state"
@@ -208,6 +220,51 @@ export function getRequestFlowNodeAction(
         nonAuthority: [...flowActionNonAuthority, "no_completion_claim"],
       };
   }
+}
+
+export function getRequestFlowActionOptions(
+  graph: RequestFlowGraph,
+  sourceNodeId: string,
+): RequestFlowActionOption[] {
+  const sourceNode = graph.nodes.find((node) => node.id === sourceNodeId);
+  if (!sourceNode) {
+    return [];
+  }
+
+  const action = sourceNode.dragAction;
+  const targetNodes = graph.nodes.filter(
+    (node) => node.kind === action.targetNodeKind,
+  );
+
+  if (targetNodes.length === 0) {
+    return [
+      {
+        actionId: action.id,
+        boundary: action.boundary,
+        canonicalWritesIfAuthorized: [...action.canonicalWritesIfAuthorized],
+        description: `${action.description} The target ${formatLabel(
+          action.targetNodeKind,
+        )} card is not present yet; this is only a preparation handoff.`,
+        nodeId: sourceNode.id,
+        nonAuthority: [...action.nonAuthority],
+        targetNodeKind: action.targetNodeKind,
+        title: action.label,
+        virtualTarget: true,
+      },
+    ];
+  }
+
+  return targetNodes.map((node) => ({
+    actionId: action.id,
+    boundary: action.boundary,
+    canonicalWritesIfAuthorized: [...action.canonicalWritesIfAuthorized],
+    description: `${action.description} ${node.summary}`,
+    nodeId: node.id,
+    nonAuthority: [...action.nonAuthority],
+    targetNodeKind: action.targetNodeKind,
+    title: action.label,
+    virtualTarget: false,
+  }));
 }
 
 export function buildDraftRequestFlowGraph(
