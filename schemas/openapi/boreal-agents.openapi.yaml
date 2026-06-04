@@ -1327,6 +1327,7 @@ components:
           format: uuid
         workerKey:
           type: string
+          description: Required when the selected Supply maps to a Boreal-managed worker.
     NonAuthority:
       type: object
       required:

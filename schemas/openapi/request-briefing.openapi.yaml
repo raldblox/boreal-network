@@ -1953,6 +1953,7 @@ components:
         workerKey:
           type: string
           minLength: 1
+          description: Required when the selected Supply maps to a Boreal-managed worker.
     WebFulfillmentMutation:
       type: object
       additionalProperties: false

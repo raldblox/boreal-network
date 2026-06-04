@@ -123,6 +123,7 @@ export async function POST(
         "Owner-private direct fulfillment requires auto-approval evidence",
         "Owner-private direct fulfillment requires trusted worker auto-approval",
         "Owner-private direct approval supply mismatch",
+        "Owner-private direct approval worker key required",
         "Owner-private direct approval worker mismatch",
         "Owner-private direct fulfillment requires open request",
         "Owner-private direct fulfillment requires open or funded request",

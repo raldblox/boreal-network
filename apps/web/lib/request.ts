@@ -1429,6 +1429,10 @@ export function assertOwnerPrivateDirectFulfillmentApproval({
 
   const expectedWorkerKey = workerKey?.trim();
   const approvedWorkerKey = approval.workerKey?.trim();
+  if (expectedWorkerKey && !approvedWorkerKey) {
+    throw new Error("Owner-private direct approval worker key required");
+  }
+
   if (
     expectedWorkerKey &&
     approvedWorkerKey &&

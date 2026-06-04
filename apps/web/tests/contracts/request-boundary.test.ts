@@ -692,6 +692,19 @@ assert.throws(
         mode: "trusted_worker_auto_approval",
         approvedByOwner: true,
         selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+      },
+      selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+      workerKey: "video-generation",
+    }),
+  /approval worker key required/
+);
+assert.throws(
+  () =>
+    assertOwnerPrivateDirectFulfillmentApproval({
+      approval: {
+        mode: "trusted_worker_auto_approval",
+        approvedByOwner: true,
+        selectedSupplyId: "11111111-1111-4111-8111-111111111111",
         workerKey: "humanizer",
       },
       selectedSupplyId: "11111111-1111-4111-8111-111111111111",
