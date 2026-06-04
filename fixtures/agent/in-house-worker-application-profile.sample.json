@@ -36,6 +36,7 @@
         "supportedActions": [
           "read_template",
           "scan_request_candidates",
+          "scan_public_open_requests",
           "prepare_application"
         ],
         "boilerplateFiles": [
@@ -262,6 +263,7 @@
         "supportedActions": [
           "read_template",
           "scan_request_candidates",
+          "scan_public_open_requests",
           "prepare_application"
         ],
         "boilerplateFiles": [
@@ -540,7 +542,8 @@
       "supply.availability.acceptingRequests is true",
       "request.seeking.supplyKinds overlaps supply.capability.supplyKinds",
       "request.brief.outputKinds overlaps supply.capability.outputKinds when output kinds are known",
-      "request.routing.preferredSupplyId matches the worker supply when a private owner-selected lane exists"
+      "request.routing.preferredSupplyId matches the worker supply when a private owner-selected lane exists",
+      "scan_public_open_requests respects public projection limit and cursor fields before wake evaluation"
     ],
     "wakePolicy": [
       "Wake only workers whose deterministic filters pass.",

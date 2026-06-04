@@ -109,7 +109,12 @@ function validateProfile(profile, errors) {
   assert(mira?.framework?.routeMode === "preparation_only", "Mira framework must be preparation-only", errors);
   includesAll(
     mira?.framework?.supportedActions,
-    ["read_template", "scan_request_candidates", "prepare_application"],
+    [
+      "read_template",
+      "scan_request_candidates",
+      "scan_public_open_requests",
+      "prepare_application"
+    ],
     "Mira framework supported actions",
     errors
   );

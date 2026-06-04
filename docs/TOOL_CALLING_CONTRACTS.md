@@ -104,11 +104,13 @@ Matcher outputs may include:
 
 Worker scanner tools are read-only.
 They rank opened or owner-approved requests against in-house Boreal worker supply capability.
+The live named-agent route may perform a bounded `scan_public_open_requests` read over public open-request projections before returning wake or skip packets, but the result is still scanner output only.
 
 First set:
 
 - `scan_open_requests_for_worker_fit`
 - `rank_worker_opportunities`
+- `scan_public_open_requests`
 - `prepare_worker_application_packet`
 
 Scanner outputs may include:

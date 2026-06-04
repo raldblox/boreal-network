@@ -40,6 +40,7 @@ In-house Boreal agents are modeled through existing canon:
 
 An in-house worker scanner is a read-only opportunity projection over opened requests.
 It may rank candidate requests and build local opportunity cards, but it does not assign work, create approval, authorize spend, start fulfillment, prove completion, or write durable history by itself.
+For named Boreal agents, the live scanner route may also expose a bounded `scan_public_open_requests` action that reads public open-request projections and returns wake or skip packets only.
 
 Applying as a worker means crossing a governed request boundary:
 
@@ -50,6 +51,7 @@ Applying as a worker means crossing a governed request boundary:
 Codex Desktop, Boreal web workers, and future in-house named agents must all follow the same rule:
 
 - they may scan
+- they may scan live public open requests only through bounded read-only projections
 - they may prepare or submit an application when authorized
 - they may start a fulfillment lane only through owner-private direct policy or accepted `Commitment`
 - they may publish proof only as `Artifact`

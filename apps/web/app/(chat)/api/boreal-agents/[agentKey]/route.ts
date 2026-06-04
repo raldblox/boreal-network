@@ -8,7 +8,9 @@ import {
   prepareBorealAgentApplication,
 } from "@/lib/boreal-agents/application";
 import {
+  borealAgentScanPublicOpenRequestsSchema,
   borealAgentScanCandidatesSchema,
+  scanBorealAgentPublicOpenRequests,
   scanBorealAgentRequestCandidates,
 } from "@/lib/boreal-agents/scan";
 
@@ -76,6 +78,30 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json(
       scanBorealAgentRequestCandidates({
+        input: parsed.data,
+        template,
+      })
+    );
+  }
+
+  if (isRecord(rawBody) && rawBody.action === "scan_public_open_requests") {
+    const parsed = borealAgentScanPublicOpenRequestsSchema.safeParse(rawBody);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "invalid_boreal_agent_public_scan_input",
+          issues: parsed.error.issues,
+        },
+        { status: 400 }
+      );
+    }
+
+    const { getPublicOpenRequests } = await import("@/lib/db/queries");
+
+    return NextResponse.json(
+      await scanBorealAgentPublicOpenRequests({
+        fetchPublicOpenRequests: getPublicOpenRequests,
         input: parsed.data,
         template,
       })

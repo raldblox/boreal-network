@@ -50,7 +50,10 @@ export type BorealAgentFramework = {
   routePattern: "/api/boreal-agents/{agentKey}";
   routeMode: "preparation_only";
   supportedActions: ReadonlyArray<
-    "read_template" | "scan_request_candidates" | "prepare_application"
+    | "read_template"
+    | "scan_request_candidates"
+    | "scan_public_open_requests"
+    | "prepare_application"
   >;
   boilerplateFiles: readonly string[];
   taskPipelineRules: readonly string[];
@@ -161,6 +164,7 @@ const canonicalExecutionKindSet = new Set<string>(borealRequestExecutionKinds);
 const requiredFrameworkActions: BorealAgentFramework["supportedActions"] = [
   "read_template",
   "scan_request_candidates",
+  "scan_public_open_requests",
   "prepare_application",
 ];
 

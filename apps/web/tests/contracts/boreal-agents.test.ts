@@ -11,6 +11,7 @@ import {
   type BorealAgentPrepareApplicationInput,
   prepareBorealAgentApplication,
 } from "@/lib/boreal-agents/application";
+import { scanBorealAgentPublicOpenRequests } from "@/lib/boreal-agents/scan";
 import {
   type NamedAgentBoardRequest,
   buildNamedAgentBoardReadiness,
@@ -128,7 +129,12 @@ assert.ok(
 );
 assert.deepEqual(
   borealNamedAgentFrameworkV1.supportedActions,
-  ["read_template", "scan_request_candidates", "prepare_application"]
+  [
+    "read_template",
+    "scan_request_candidates",
+    "scan_public_open_requests",
+    "prepare_application",
+  ]
 );
 assert.ok(
   borealNamedAgentFrameworkV1.boilerplateFiles.includes(
@@ -984,6 +990,110 @@ async function main() {
     false
   );
 
+  const publicOpenRequestScan = await scanBorealAgentPublicOpenRequests({
+    fetchPublicOpenRequests: async (input) => {
+      assert.equal(input.limit, 3);
+      assert.equal(input.startingAfter, null);
+      assert.equal(input.endingBefore, null);
+
+      return {
+        hasMore: true,
+        requests: [
+          {
+            id: "req-public-video-001",
+            status: "open",
+            visibility: "public",
+            brief: {
+              title: "Create a launch teaser video",
+              summary: "Need a short product reel.",
+              body: "Create a launch clip from product notes.",
+              constraints: {},
+              outputKinds: ["video"],
+              tags: ["launch"],
+            },
+            seeking: {
+              actorKinds: ["agent"],
+              supplyKinds: ["video_generation"],
+            },
+            derived: {
+              executionKind: "provider_api",
+              routeSummary: "Provider-backed video generation.",
+            },
+            agentActionAffordances: {
+              subject: { id: "req-public-video-001" },
+            },
+            agentActionCardHints: {
+              subject: { id: "req-public-video-001" },
+            },
+          },
+          {
+            id: "req-public-human-required",
+            status: "open",
+            visibility: "public",
+            brief: {
+              title: "Inspect storefront signage",
+              summary: "Need timestamped photos from the location.",
+              body: "Go onsite and collect photo proof.",
+              constraints: { requiresHumanPresence: true },
+              outputKinds: ["photo_evidence"],
+              tags: ["field"],
+            },
+            seeking: {
+              actorKinds: ["human"],
+              supplyKinds: ["field_inspection"],
+            },
+            derived: {
+              executionKind: "onsite_visit",
+              routeSummary: "Human field inspection required.",
+            },
+            agentActionAffordances: {
+              subject: { id: "req-public-human-required" },
+            },
+            agentActionCardHints: {
+              subject: { id: "req-public-human-required" },
+            },
+          },
+        ] as any,
+      };
+    },
+    input: {
+      action: "scan_public_open_requests",
+      limit: 3,
+      supply: videoPrepareInput.supply,
+    },
+    template: mira!,
+  });
+  assert.equal(
+    publicOpenRequestScan.kind,
+    "boreal_agent_public_open_request_scan_result"
+  );
+  assert.equal(publicOpenRequestScan.publicRequestSource.bounded, true);
+  assert.equal(publicOpenRequestScan.publicRequestSource.hasMore, true);
+  assert.equal(publicOpenRequestScan.publicRequestSource.requestCount, 2);
+  assert.equal(publicOpenRequestScan.scan.requestCount, 2);
+  assert.equal(publicOpenRequestScan.scan.wakeCount, 1);
+  assert.equal(publicOpenRequestScan.scan.skipCount, 1);
+  assert.equal(publicOpenRequestScan.candidates[0].allowedToWake, true);
+  assert.ok(publicOpenRequestScan.candidates[0].applicationPacket);
+  assert.equal(
+    publicOpenRequestScan.candidates[0].applicationPacket.mutationCall.route,
+    "/api/requests/req-public-video-001/commitments"
+  );
+  assert.equal(publicOpenRequestScan.candidates[1].allowedToWake, false);
+  assert.ok(
+    publicOpenRequestScan.candidates[1].rejectedBy.includes(
+      "human_required_boundary"
+    )
+  );
+  assert.deepEqual(publicOpenRequestScan.scanner.canonicalWrites, []);
+  assert.ok(
+    publicOpenRequestScan.scanner.nonAuthority.includes(
+      "does not assign worker"
+    )
+  );
+  assert.equal(publicOpenRequestScan.nonAuthority.canAssignWorker, false);
+  assert.equal(publicOpenRequestScan.nonAuthority.canCreateCommitment, false);
+
   const invalidResponse = await POST(
     jsonRequest({
       action: "finish_request",
@@ -992,6 +1102,21 @@ async function main() {
     routeContext("mira-video")
   );
   assert.equal(invalidResponse.status, 400);
+
+  const invalidPublicScanResponse = await POST(
+    jsonRequest({
+      action: "scan_public_open_requests",
+      limit: 0,
+      supply: videoPrepareInput.supply,
+    }),
+    routeContext("mira-video")
+  );
+  assert.equal(invalidPublicScanResponse.status, 400);
+  const invalidPublicScanBody = await invalidPublicScanResponse.json();
+  assert.equal(
+    invalidPublicScanBody.error,
+    "invalid_boreal_agent_public_scan_input"
+  );
 }
 
 const privateWithoutAutoApprovalPrepare = prepareBorealAgentApplication({

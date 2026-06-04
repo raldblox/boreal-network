@@ -5,6 +5,7 @@ import {
   prepareBorealAgentApplication,
 } from "@/lib/boreal-agents/application";
 import type { BorealAgentTemplate } from "@/lib/boreal-agents/registry";
+import type { PublicRequestPoolEntry } from "@/lib/request";
 
 export const borealAgentScanCandidatesSchema = z
   .object({
@@ -20,6 +21,35 @@ export const borealAgentScanCandidatesSchema = z
 export type BorealAgentScanCandidatesInput = z.infer<
   typeof borealAgentScanCandidatesSchema
 >;
+
+export const borealAgentScanPublicOpenRequestsSchema = z
+  .object({
+    action: z.literal("scan_public_open_requests"),
+    supply: borealAgentSupplySummarySchema,
+    limit: z.number().int().min(1).max(50).default(10),
+    startingAfter: z.string().min(1).nullable().optional(),
+    endingBefore: z.string().min(1).nullable().optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.startingAfter && value.endingBefore) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Only one of startingAfter or endingBefore can be provided.",
+        path: ["startingAfter"],
+      });
+    }
+  });
+
+export type BorealAgentScanPublicOpenRequestsInput = z.infer<
+  typeof borealAgentScanPublicOpenRequestsSchema
+>;
+
+type PublicOpenRequestFetcher = (input: {
+  limit: number;
+  startingAfter: string | null;
+  endingBefore: string | null;
+}) => Promise<{ requests: PublicRequestPoolEntry[]; hasMore: boolean }>;
 
 export function scanBorealAgentRequestCandidates({
   input,
@@ -97,6 +127,96 @@ export function scanBorealAgentRequestCandidates({
       canCreateFulfillment: false,
       canCallProvider: false,
       requiresSeparateAuthorizedMutation: true,
+    },
+  };
+}
+
+export function publicRequestPoolEntryToBorealAgentRequestSummary(
+  request: PublicRequestPoolEntry
+) {
+  return borealAgentRequestSummarySchema.parse({
+    id: request.id,
+    visibility: "public",
+    status: request.status,
+    brief: {
+      title: request.brief.title,
+      summary: request.brief.summary,
+      body: request.brief.body,
+      constraints: request.brief.constraints,
+      outputKinds: request.brief.outputKinds,
+    },
+    seeking: {
+      actorKinds: request.seeking.actorKinds ?? [],
+      supplyKinds: request.seeking.supplyKinds ?? [],
+      notes: request.seeking.notes,
+    },
+    derived: {
+      executionKind: request.derived.executionKind,
+      routeSummary: request.derived.routeSummary,
+      seeking: {
+        supplyKinds: request.seeking.supplyKinds ?? [],
+      },
+    },
+    constraints: request.brief.constraints,
+    publicProjection: {
+      source: "GET /api/requests?scope=public",
+      agentActionAffordances: request.agentActionAffordances,
+      agentActionCardHints: request.agentActionCardHints,
+    },
+  });
+}
+
+export async function scanBorealAgentPublicOpenRequests({
+  fetchPublicOpenRequests,
+  input,
+  template,
+}: {
+  fetchPublicOpenRequests: PublicOpenRequestFetcher;
+  input: BorealAgentScanPublicOpenRequestsInput;
+  template: BorealAgentTemplate;
+}) {
+  const publicRequests = await fetchPublicOpenRequests({
+    limit: input.limit,
+    startingAfter: input.startingAfter ?? null,
+    endingBefore: input.endingBefore ?? null,
+  });
+  const scanResult = scanBorealAgentRequestCandidates({
+    input: {
+      action: "scan_request_candidates",
+      requests: publicRequests.requests.map(
+        publicRequestPoolEntryToBorealAgentRequestSummary
+      ),
+      supply: input.supply,
+      scanMode: "public_request_pool",
+    },
+    template,
+  });
+
+  return {
+    ...scanResult,
+    kind: "boreal_agent_public_open_request_scan_result",
+    publicRequestSource: {
+      route: "GET /api/requests?scope=public",
+      bounded: true,
+      limit: input.limit,
+      startingAfter: input.startingAfter ?? null,
+      endingBefore: input.endingBefore ?? null,
+      hasMore: publicRequests.hasMore,
+      requestCount: publicRequests.requests.length,
+    },
+    scanner: {
+      ...scanResult.scanner,
+      source: "live_public_open_request_projection",
+      nonAuthority: [
+        "does not assign worker",
+        "does not attach Supply",
+        "does not create Commitment",
+        "does not start Fulfillment",
+        "does not publish Artifact",
+        "does not authorize payment",
+        "does not create RequestEvent",
+        "does not prove completion",
+      ],
     },
   };
 }

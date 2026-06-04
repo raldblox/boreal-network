@@ -1180,12 +1180,13 @@
         },
         "supportedActions": {
           "type": "array",
-          "minItems": 3,
+          "minItems": 4,
           "items": {
             "type": "string",
             "enum": [
               "read_template",
               "scan_request_candidates",
+              "scan_public_open_requests",
               "prepare_application"
             ]
           },
@@ -1198,6 +1199,11 @@
             {
               "contains": {
                 "const": "scan_request_candidates"
+              }
+            },
+            {
+              "contains": {
+                "const": "scan_public_open_requests"
               }
             },
             {

@@ -866,7 +866,12 @@ export function buildNamedBorealAgentDiscovery() {
     status: "live_named_agent_templates",
     routeMode: "preparation_only",
     routePattern: "/api/boreal-agents/{agentKey}",
-    actions: ["read_template", "scan_request_candidates", "prepare_application"],
+    actions: [
+      "read_template",
+      "scan_request_candidates",
+      "scan_public_open_requests",
+      "prepare_application",
+    ],
     nonAuthority: [
       "worker assignment",
       "owner approval",
@@ -1664,7 +1669,7 @@ Request detail reads include \`agentActionPolicy\`: an actor-specific derived po
 ## Named Boreal Agents
 
 Boreal's first in-house agent templates are discoverable but preparation-only.
-They can scan caller-supplied request summaries and prepare application packets, including governed mutation-call sketches for existing request-resource routes.
+They can scan caller-supplied request summaries, run bounded scans over live public open-request projections, and prepare application packets, including governed mutation-call sketches for existing request-resource routes.
 They do not assign workers, record owner approval, create commitments, start fulfillments, call providers, publish artifacts, authorize payments, write durable history, or prove completion.
 
 | Agent | Status | Route | Worker | Supply | Provider |
@@ -1678,7 +1683,7 @@ GET /api/boreal-agents/{agentKey}
 POST /api/boreal-agents/{agentKey}
 \`\`\`
 
-Accepted POST actions are \`scan_request_candidates\` and \`prepare_application\`.
+Accepted POST actions are \`scan_request_candidates\`, \`scan_public_open_requests\`, and \`prepare_application\`.
 The resulting mutation-call sketch must be submitted through the existing authorized \`Commitment\` or owner-private \`Fulfillment\` route before any durable work state changes.
 Prepared application packets include \`submissionPreflight.preflightRequest\`, a validation-only request body that should be posted to \`${agentDiscoveryPaths.agentActionPreflight}\` before attempting the sketched mutation route.
 

@@ -152,7 +152,7 @@ Verify:
 - `/.well-known/agent-card.json` exposes only public-safe identity, endpoint, capability, auth, and skill metadata
 - the public agent card and `/openapi.json` expose the same action catalog for inspect, make request, apply, submit, monitor, run, and optimize intents
 - the public agent action preflight endpoint validates pass and fail shapes for inspect, make-request, apply, owner-private direct fulfillment, submit, monitor, run, and optimize prerequisites before real governed routes are attempted, including selected published `Supply` and request-fit fingerprint checks for application actions
-- named Boreal agent `prepare_application` and `scan_request_candidates` packets must carry a lane-specific `submissionPreflight` handoff requiring `/agents/actions/preflight`, `apply_to_request` for commitment applications or `create_owner_private_fulfillment` for owner-private direct fulfillment, represented actor, idempotency, visible `requestFit`, a concrete `preflightRequest` body, selected `Supply`, `agentActionPolicy`, and lane-specific route-policy rechecks before any sketched `Commitment` or `Fulfillment` route can be attempted
+- named Boreal agent `prepare_application`, `scan_request_candidates`, and `scan_public_open_requests` packets must carry a lane-specific `submissionPreflight` handoff requiring `/agents/actions/preflight`, `apply_to_request` for commitment applications or `create_owner_private_fulfillment` for owner-private direct fulfillment, represented actor, idempotency, visible `requestFit`, a concrete `preflightRequest` body, selected `Supply`, `agentActionPolicy`, and lane-specific route-policy rechecks before any sketched `Commitment` or `Fulfillment` route can be attempted
 - named Boreal agent packets must carry `authorizedExecutionHandoff` for multi-step model, provider, tool, proof, and retry sequencing while keeping provider calls blocked before authorized fulfillment and excluding secret values
 - no-commitment direct fulfillment creation must reject missing `ownerPrivateDirectApproval`, missing selected `Supply`, selected-supply mismatch, and worker-key mismatch before creating `Fulfillment`, `FulfillmentStep`, or `RequestEvent` truth
 - the public agent card and `/openapi.json` link to the workflow catalog and keep workflows below `Request` truth
@@ -452,6 +452,7 @@ Verify:
 Verify:
 
 - in-house Boreal worker scanners read open, owned, or owner-approved request projections without mutating `Request`, `Commitment`, `Fulfillment`, `Artifact`, `Transaction`, or `RequestEvent` truth
+- `scan_public_open_requests` on `/api/boreal-agents/{agentKey}` reads only bounded public open-request projections and returns wake or skip packets without assigning workers, attaching `Supply`, or creating durable writes
 - worker fit scores and opportunity cards do not imply assignment, owner approval, payment authority, fulfillment start, artifact publication, review acceptance, or completion proof
 - public or cross-actor worker application writes `Commitment` plus `RequestEvent` and requires route auth, request policy, and idempotency
 - public or cross-actor direct `Fulfillment` creation remains rejected before accepted commitment truth

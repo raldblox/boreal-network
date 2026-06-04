@@ -46,6 +46,7 @@ The API route template is `/api/boreal-agents/{agentKey}`.
 A read-only request-opportunity pass over open request projections, owned requests, or owner-approved private requests.
 It may compute local fit scores and local opportunity cards.
 It does not mutate canonical objects.
+The live per-agent route may expose `scan_public_open_requests` as a bounded read over public open-request projections, but the result remains scanner output and does not attach supply or create an application.
 
 `Worker application`
 
@@ -91,6 +92,8 @@ Required cheap filters:
 - `derived.paymentMode`
 - preferred supply compatibility when present
 - supply availability and published status
+
+For named agents, `scan_public_open_requests` should use the public request projection as its only live data source, honor its limit and cursor inputs, and then map each request into the same wake or skip evaluation used by caller-supplied candidate scans.
 
 LLM or provider calls should happen only after deterministic filters identify a small candidate set.
 For human-required plans, local-access plans, witnessed handoff plans, field proof plans, and other non-substitutable embodied work, provider-only named agents should not wake unless an explicit supporting role is present.

@@ -227,6 +227,7 @@ Human-service starters should keep human or agent actor tags and service-support
 In-house Boreal agents and humans follow the same worker-application rule:
 
 - scan opened requests through public-safe, owned, or owner-approved request projections
+- allow bounded `scan_public_open_requests` reads over live public open-request projections, returning only wake or skip guidance and preparation packets
 - render open-request listing readiness as one read-only human lane plus named-agent wake, skip, and target-only hints, never as worker assignment or route authorization
 - show public-board scan hints only from already-loaded public-safe projection fields, with wake, skip, and target-only labels treated as UX guidance rather than worker activation
 - require every named agent template to declare the shared `boreal_named_agent_v1` framework, stable route pattern, supported preparation actions, boilerplate files, task-pipeline rules, and non-authority flags before it can be discovered or copied for a new worker
