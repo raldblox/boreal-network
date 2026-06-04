@@ -837,6 +837,15 @@ They do not create live objects, spend money, approve resolver access, or grant
 mutation authority.
 Mock bearer tokens, mock sessions, sample webhook secrets, and sample object ids
 from `/agents/sandbox.json` must not be accepted by production endpoints.
+Production mutation routes that touch request drafts, request routing,
+commitments, fulfillments, artifacts, solution runs, request transactions, or
+buyer credits share a sandbox-credential boundary guard. If a caller sends a
+mock sandbox bearer, mock sandbox session, sandbox cookie value, or explicit
+sandbox context header to those routes, the route returns
+`application/problem+json` with code
+`agent_sandbox_credential_rejected`; the response keeps permission,
+production access, durable write, `RequestEvent`, payment, and completion flags
+false before actor resolution or body parsing.
 `pnpm contracts:agent-sandbox` validates the checked
 `fixtures/agent/sandbox-manifest.sample.json` fixture against the public
 sandbox contract, required flow coverage, idempotency samples, cursor samples,

@@ -5,6 +5,7 @@ import {
   toRequestDraft,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
+import { rejectAgentSandboxCredentialOnProductionRoute } from "@/lib/agent-sandbox-production-boundary";
 import { recordDirectRequestTransaction } from "@/lib/payment-server";
 import {
   getRequestActorContext,
@@ -99,6 +100,15 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "POST /api/requests/{id}/transactions",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const actor = await getRequestActorContext(request);
 
   if (!actor) {

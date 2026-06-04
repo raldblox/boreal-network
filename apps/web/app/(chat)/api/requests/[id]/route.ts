@@ -4,6 +4,7 @@ import {
   toRequestDraft,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
+import { rejectAgentSandboxCredentialOnProductionRoute } from "@/lib/agent-sandbox-production-boundary";
 import {
   buildRequestAgentActionCardHints,
   buildRequestAgentActionPolicy,
@@ -166,6 +167,15 @@ export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "PATCH /api/requests/{id}",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const actor = await getRequestActorContext(request);
   if (!actor) {
     return new ChatbotError("unauthorized:chat").toResponse();

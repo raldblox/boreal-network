@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ChatbotError } from "@/lib/errors";
+import { rejectAgentSandboxCredentialOnProductionRoute } from "@/lib/agent-sandbox-production-boundary";
 import { getRequestActorContext } from "@/lib/resolver-session";
 import { createPublicSolutionRunRequest } from "@/lib/solution-runs-server";
 
@@ -90,6 +91,15 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "POST /api/requests/{id}/solution-runs",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const actor = await getRequestActorContext(request);
   if (!actor || actor.kind !== "session") {
     return new ChatbotError("unauthorized:chat").toResponse();

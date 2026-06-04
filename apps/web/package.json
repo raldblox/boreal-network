@@ -28,6 +28,7 @@
     "test:request-boundaries": "tsx tests/contracts/request-boundary.test.ts",
     "test:request-briefing-prompt": "tsx tests/contracts/request-briefing-prompt.test.ts",
     "test:agent-discovery": "tsx tests/contracts/agent-discovery.test.ts",
+    "test:agent-sandbox-production-boundary": "tsx tests/contracts/agent-sandbox-production-boundary.test.ts",
     "test:boreal-agents": "tsx tests/contracts/boreal-agents.test.ts"
   },
   "dependencies": {

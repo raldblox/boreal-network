@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ChatbotError } from "@/lib/errors";
+import { rejectAgentSandboxCredentialOnProductionRoute } from "@/lib/agent-sandbox-production-boundary";
 import { createPendingBuyerCreditTopUp } from "@/lib/payment-server";
 import { getRequestActorContext } from "@/lib/resolver-session";
 
@@ -17,6 +18,15 @@ const topUpSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "POST /api/buyer-credits/topups",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const actor = await getRequestActorContext(request);
 
   if (!actor) {

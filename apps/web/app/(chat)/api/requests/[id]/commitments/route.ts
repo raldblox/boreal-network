@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { proposeCommitmentForRequestById } from "@/lib/request-server";
 import { ChatbotError } from "@/lib/errors";
+import { rejectAgentSandboxCredentialOnProductionRoute } from "@/lib/agent-sandbox-production-boundary";
 import {
   getRequestActorContext,
   hasResolverScope,
@@ -55,6 +56,15 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "POST /api/requests/{id}/commitments",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const { id } = await context.params;
   const actor = await getRequestActorContext(request);
 

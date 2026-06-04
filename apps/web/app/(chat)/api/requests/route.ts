@@ -12,6 +12,7 @@ import {
   toRequestDraft,
 } from "@/lib/db/queries";
 import { ChatbotError } from "@/lib/errors";
+import { rejectAgentSandboxCredentialOnProductionRoute } from "@/lib/agent-sandbox-production-boundary";
 import {
   createOrUpdateRawRequestDraftForChat,
   ensureRequestDraftForChat,
@@ -203,6 +204,15 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "POST /api/requests",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const actor = await getRequestActorContext(request);
   if (!actor || actor.kind !== "session") {
     return new ChatbotError("unauthorized:chat").toResponse();
@@ -285,6 +295,15 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "PATCH /api/requests",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const actor = await getRequestActorContext(request);
   if (!actor || actor.kind !== "session") {
     return new ChatbotError("unauthorized:chat").toResponse();

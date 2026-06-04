@@ -7,6 +7,7 @@ import {
   requestArtifactMetadataInputSchema,
 } from "@/lib/request-artifact-schemas";
 import { ChatbotError } from "@/lib/errors";
+import { rejectAgentSandboxCredentialOnProductionRoute } from "@/lib/agent-sandbox-production-boundary";
 import { publishArtifactForRequestById } from "@/lib/request-server";
 import {
   getRequestActorContext,
@@ -44,6 +45,15 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "POST /api/requests/{id}/artifacts",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const { id } = await context.params;
   const actor = await getRequestActorContext(request);
 

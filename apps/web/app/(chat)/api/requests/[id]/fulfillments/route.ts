@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ChatbotError } from "@/lib/errors";
+import { rejectAgentSandboxCredentialOnProductionRoute } from "@/lib/agent-sandbox-production-boundary";
 import { createFulfillmentForRequestById } from "@/lib/request-server";
 import {
   getRequestActorContext,
@@ -36,6 +37,15 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const sandboxCredentialRejection =
+    rejectAgentSandboxCredentialOnProductionRoute({
+      request,
+      route: "POST /api/requests/{id}/fulfillments",
+    });
+  if (sandboxCredentialRejection) {
+    return sandboxCredentialRejection;
+  }
+
   const { id } = await context.params;
   const actor = await getRequestActorContext(request);
 

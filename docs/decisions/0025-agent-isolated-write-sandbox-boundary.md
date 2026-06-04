@@ -165,4 +165,9 @@ The first implementation patch should update at least:
 - sandbox route or environment tests
 - public readiness and onboarding profiles
 
-Until that patch exists, Boreal has a contract-only sandbox, replay validation, and production-access packet review path, but no live isolated write sandbox credentials.
+Boreal now has a contract-only sandbox, replay validation,
+production-access packet review path, and a live production-route guard that
+rejects mock sandbox credential signals before production mutation auth or
+writes. Boreal still has no live isolated write sandbox credentials, sandbox
+credential issuance or revocation, seeded sandbox write dataset, or live
+write-capable MCP/A2A/x402 adapters.
