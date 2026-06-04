@@ -278,7 +278,9 @@
                 "hasIdempotencyKey",
                 "requestedScopes",
                 "directLaneRequestedScopes",
-                "payloadSummaryRequired"
+                "payloadSummaryRequired",
+                "requestFitRequired",
+                "requestFitRequiredFields"
               ],
               "properties": {
                 "schemaVersion": {
@@ -330,6 +332,31 @@
                 },
                 "payloadSummaryRequired": {
                   "const": true
+                },
+                "requestFitRequired": {
+                  "const": true
+                },
+                "requestFitRequiredFields": {
+                  "type": "array",
+                  "minItems": 6,
+                  "allOf": [
+                    { "contains": { "const": "selectedSupplyId" } },
+                    { "contains": { "const": "selectedSupplyStatus" } },
+                    { "contains": { "const": "requestSupplyKinds" } },
+                    { "contains": { "const": "requestOutputKinds" } },
+                    { "contains": { "const": "selectedSupplyKinds" } },
+                    { "contains": { "const": "selectedOutputKinds" } }
+                  ],
+                  "items": {
+                    "enum": [
+                      "selectedSupplyId",
+                      "selectedSupplyStatus",
+                      "requestSupplyKinds",
+                      "requestOutputKinds",
+                      "selectedSupplyKinds",
+                      "selectedOutputKinds"
+                    ]
+                  }
                 }
               }
             },

@@ -1698,7 +1698,15 @@ Content-Type: application/json
   "hasHumanApproval": true,
   "hasIdempotencyKey": true,
   "requestedScopes": ["commitments:propose"],
-  "payloadSummary": "Commitment proposal for one public Request."
+  "payloadSummary": "Commitment proposal for one public Request.",
+  "requestFit": {
+    "selectedSupplyId": "supply_video_generation_001",
+    "selectedSupplyStatus": "published",
+    "requestSupplyKinds": ["video_generation"],
+    "requestOutputKinds": ["video"],
+    "selectedSupplyKinds": ["video_generation"],
+    "selectedOutputKinds": ["video"]
+  }
 }
 \`\`\`
 
@@ -4068,6 +4076,7 @@ export function buildOpenApiDiscoveryIndex() {
                 "inspect_public_requests",
                 "make_request_for_human",
                 "apply_to_request",
+                "create_owner_private_fulfillment",
                 "submit_artifact",
                 "monitor_request",
                 "run_public_solution",
@@ -4090,6 +4099,34 @@ export function buildOpenApiDiscoveryIndex() {
               items: { type: "string" },
             },
             payloadSummary: { type: "string" },
+            requestFit: {
+              type: "object",
+              description:
+                "Visible request and selected Supply fingerprints used to fail fast before attempting apply_to_request or create_owner_private_fulfillment.",
+              additionalProperties: false,
+              properties: {
+                selectedSupplyId: { type: "string" },
+                selectedSupplyStatus: {
+                  enum: ["draft", "published", "paused", "retired"],
+                },
+                requestSupplyKinds: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                requestOutputKinds: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                selectedSupplyKinds: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                selectedOutputKinds: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+              },
+            },
           },
           additionalProperties: false,
         },

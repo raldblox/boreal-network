@@ -2926,6 +2926,14 @@ async function main() {
     hasIdempotencyKey: true,
     requestedScopes: ["commitments:propose"],
     payloadSummary: "Commitment proposal for one public request.",
+    requestFit: {
+      selectedSupplyId: "supply_video_generation_001",
+      selectedSupplyStatus: "published",
+      requestSupplyKinds: ["video_generation"],
+      requestOutputKinds: ["video"],
+      selectedSupplyKinds: ["video_generation"],
+      selectedOutputKinds: ["video"],
+    },
   });
   assert.equal(applyPreflight.status, "preflight_passed");
   assert.equal(
@@ -2947,6 +2955,42 @@ async function main() {
     true,
   );
 
+  const mismatchedApplyPreflight = validateAgentActionPreflight({
+    schemaVersion: 1,
+    actionId: "apply_to_request",
+    requestId: "req_public_video_001",
+    representedActor: {
+      kind: "resolver_agent",
+      reference: "agent:portfolio-builder",
+    },
+    hasHumanApproval: true,
+    hasIdempotencyKey: true,
+    requestedScopes: ["commitments:propose"],
+    payloadSummary: "Commitment proposal for one public request.",
+    requestFit: {
+      selectedSupplyId: "supply_docs_001",
+      selectedSupplyStatus: "published",
+      requestSupplyKinds: ["video_generation"],
+      requestOutputKinds: ["video"],
+      selectedSupplyKinds: ["documentation_support"],
+      selectedOutputKinds: ["handoff_doc"],
+    },
+  });
+  assert.equal(mismatchedApplyPreflight.status, "preflight_failed");
+  assert.equal(
+    mismatchedApplyPreflight.missingRequirements.includes(
+      "requestFit.selectedSupplyKinds overlaps requestSupplyKinds"
+    ),
+    true,
+  );
+  assert.equal(
+    mismatchedApplyPreflight.missingRequirements.includes(
+      "requestFit.selectedOutputKinds overlaps requestOutputKinds"
+    ),
+    true,
+  );
+  assert.equal(mismatchedApplyPreflight.durableWriteCreated, false);
+
   const ownerPrivateFulfillmentPreflight = validateAgentActionPreflight({
     schemaVersion: 1,
     actionId: "create_owner_private_fulfillment",
@@ -2960,6 +3004,14 @@ async function main() {
     requestedScopes: ["fulfillments:create"],
     payloadSummary:
       "Owner-private direct fulfillment with selected Supply and ownerPrivateDirectApproval.",
+    requestFit: {
+      selectedSupplyId: "supply_video_generation_001",
+      selectedSupplyStatus: "published",
+      requestSupplyKinds: ["video_generation"],
+      requestOutputKinds: ["video"],
+      selectedSupplyKinds: ["video_generation"],
+      selectedOutputKinds: ["video"],
+    },
   });
   assert.equal(ownerPrivateFulfillmentPreflight.status, "preflight_passed");
   assert.equal(
@@ -4256,6 +4308,26 @@ async function main() {
     true,
   );
   assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas,
+      "AgentActionPreflightRequest"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex.components.schemas.AgentActionPreflightRequest.properties.actionId.enum.includes(
+      "create_owner_private_fulfillment"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas.AgentActionPreflightRequest.properties,
+      "requestFit"
+    ),
+    true,
+  );
+  assert.equal(
     Object.hasOwn(discoveryIndex.components.schemas, "AgentClientKit"),
     true,
   );
@@ -5435,6 +5507,14 @@ async function main() {
         hasIdempotencyKey: true,
         requestedScopes: ["commitments:propose"],
         payloadSummary: "Commitment proposal for one public request.",
+        requestFit: {
+          selectedSupplyId: "supply_video_generation_001",
+          selectedSupplyStatus: "published",
+          requestSupplyKinds: ["video_generation"],
+          requestOutputKinds: ["video"],
+          selectedSupplyKinds: ["video_generation"],
+          selectedOutputKinds: ["video"],
+        },
       }),
       headers: { "content-type": "application/json" },
       method: "POST",

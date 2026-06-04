@@ -751,6 +751,7 @@ components:
             - hasIdempotencyKey
             - requestedScopes
             - payloadSummaryRequired
+            - requestFit
           properties:
             schemaVersion:
               const: 1
@@ -781,6 +782,40 @@ components:
               minItems: 1
             payloadSummaryRequired:
               const: true
+            requestFit:
+              type: object
+              required:
+                - selectedSupplyId
+                - selectedSupplyStatus
+                - requestSupplyKinds
+                - requestOutputKinds
+                - selectedSupplyKinds
+                - selectedOutputKinds
+              properties:
+                selectedSupplyId:
+                  type: string
+                selectedSupplyStatus:
+                  enum:
+                    - draft
+                    - published
+                    - paused
+                    - retired
+                requestSupplyKinds:
+                  type: array
+                  items:
+                    type: string
+                requestOutputKinds:
+                  type: array
+                  items:
+                    type: string
+                selectedSupplyKinds:
+                  type: array
+                  items:
+                    type: string
+                selectedOutputKinds:
+                  type: array
+                  items:
+                    type: string
         routePolicyRecheck:
           type: object
           required:

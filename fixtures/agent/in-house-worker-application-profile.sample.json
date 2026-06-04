@@ -556,7 +556,16 @@
         "directLaneRequestedScopes": [
           "fulfillments:create"
         ],
-        "payloadSummaryRequired": true
+        "payloadSummaryRequired": true,
+        "requestFitRequired": true,
+        "requestFitRequiredFields": [
+          "selectedSupplyId",
+          "selectedSupplyStatus",
+          "requestSupplyKinds",
+          "requestOutputKinds",
+          "selectedSupplyKinds",
+          "selectedOutputKinds"
+        ]
       },
       "routePolicyRecheck": {
         "requestDetailRequired": true,

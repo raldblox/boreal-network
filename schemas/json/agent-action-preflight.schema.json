@@ -98,6 +98,47 @@
         "payloadSummary": {
           "type": "string",
           "minLength": 1
+        },
+        "requestFit": {
+          "$ref": "#/$defs/requestFit"
+        }
+      }
+    },
+    "requestFit": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Visible request and selected Supply fingerprints used to fail fast before attempting apply_to_request or create_owner_private_fulfillment. Authoritative checks still happen on the governed mutation routes.",
+      "properties": {
+        "selectedSupplyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selectedSupplyStatus": {
+          "$ref": "common.schema.json#/$defs/supplyStatus"
+        },
+        "requestSupplyKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/supplyKind"
+          }
+        },
+        "requestOutputKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/outputKind"
+          }
+        },
+        "selectedSupplyKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/supplyKind"
+          }
+        },
+        "selectedOutputKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/outputKind"
+          }
         }
       }
     },

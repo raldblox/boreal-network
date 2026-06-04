@@ -53,6 +53,9 @@ const videoPrepareInput: BorealAgentPrepareApplicationInput = {
   supply: {
     id: "11111111-1111-4111-8111-111111111111",
     kind: "video_generation",
+    status: "published",
+    supplyKinds: ["video_generation"],
+    outputKinds: ["video"],
     capabilityTags: ["video"],
     providerRef: "runway/video-generation",
   },
@@ -545,6 +548,17 @@ async function main() {
       .requestedScopes,
     ["commitments:propose"]
   );
+  assert.deepEqual(
+    publicPrepare.applicationPacket.submissionPreflight.requiredInput.requestFit,
+    {
+      selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+      selectedSupplyStatus: "published",
+      requestSupplyKinds: ["video_generation"],
+      requestOutputKinds: ["video"],
+      selectedSupplyKinds: ["video_generation"],
+      selectedOutputKinds: ["video"],
+    }
+  );
   assert.equal(
     publicPrepare.applicationPacket.submissionPreflight.routePolicyRecheck
       .ownerPrivateAutoApprovalRequired,
@@ -582,6 +596,23 @@ async function main() {
   );
   assert.deepEqual(publicPrepare.scanner.canonicalWrites, []);
   assert.equal(publicPrepare.nonAuthority.canCreateCommitment, false);
+
+  const pausedSupplyPrepare = prepareBorealAgentApplication({
+    input: {
+      ...videoPrepareInput,
+      supply: {
+        ...videoPrepareInput.supply,
+        status: "paused",
+      },
+    },
+    template: mira!,
+  });
+  assert.equal(pausedSupplyPrepare.qualification.allowedToWake, false);
+  assert.ok(
+    pausedSupplyPrepare.qualification.rejectedBy.includes(
+      "selected_supply_not_published"
+    )
+  );
 
   const scanResponse = await POST(
     jsonRequest({
@@ -814,6 +845,11 @@ assert.deepEqual(
   privatePrepare.applicationPacket.submissionPreflight.requiredInput
     .requestedScopes,
   ["fulfillments:create"]
+);
+assert.equal(
+  privatePrepare.applicationPacket.submissionPreflight.requiredInput.requestFit
+    .selectedSupplyStatus,
+  "published"
 );
 assert.equal(
   privatePrepare.applicationPacket.submissionPreflight.routePolicyRecheck

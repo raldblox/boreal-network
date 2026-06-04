@@ -80,6 +80,9 @@ export const borealAgentSupplySummarySchema = z
   .object({
     id: z.string().optional(),
     kind: z.string().optional(),
+    status: z.string().optional(),
+    supplyKinds: z.array(z.string()).optional(),
+    outputKinds: z.array(z.string()).optional(),
     capabilityTags: z.array(z.string()).optional(),
     providerRef: z.string().optional(),
   })
@@ -244,6 +247,10 @@ function evaluateSupplyBinding({
   if (!input.supply?.id) {
     rejectedBy.push("missing_required_supply_binding");
     return { reasons, rejectedBy };
+  }
+
+  if (input.supply.status !== "published") {
+    rejectedBy.push("selected_supply_not_published");
   }
 
   if (input.supply.kind !== template.supplyBinding.supplyKind) {
@@ -423,6 +430,38 @@ function buildApplicationPacket({
   };
 }
 
+function normalizeStrings(values: readonly (string | undefined)[]) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+}
+
+function buildRequestFit(input: BorealAgentPrepareApplicationInput) {
+  return {
+    ...(input.supply?.id ? { selectedSupplyId: input.supply.id } : {}),
+    ...(input.supply?.status
+      ? { selectedSupplyStatus: input.supply.status }
+      : {}),
+    requestSupplyKinds: normalizeStrings([
+      ...(input.request.derived?.seeking?.supplyKinds ?? []),
+      ...(input.request.seeking?.supplyKinds ?? []),
+    ]),
+    requestOutputKinds: normalizeStrings(input.request.brief?.outputKinds ?? []),
+    selectedSupplyKinds: normalizeStrings([
+      input.supply?.kind,
+      ...(input.supply?.supplyKinds ?? []),
+    ]),
+    selectedOutputKinds: normalizeStrings([
+      ...(input.supply?.outputKinds ?? []),
+      ...(input.supply?.capabilityTags ?? []),
+    ]),
+  };
+}
+
 function buildSubmissionPreflight({
   input,
   lane,
@@ -457,6 +496,7 @@ function buildSubmissionPreflight({
       hasIdempotencyKey: true,
       requestedScopes,
       payloadSummaryRequired: true,
+      requestFit: buildRequestFit(input),
     },
     routePolicyRecheck: {
       requestDetailRequired: true,

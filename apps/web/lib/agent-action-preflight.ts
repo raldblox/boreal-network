@@ -18,6 +18,14 @@ export type AgentActionPreflightRequest = {
   hasIdempotencyKey?: boolean;
   requestedScopes?: string[];
   payloadSummary?: string;
+  requestFit?: {
+    selectedSupplyId?: string;
+    selectedSupplyStatus?: string;
+    requestSupplyKinds?: string[];
+    requestOutputKinds?: string[];
+    selectedSupplyKinds?: string[];
+    selectedOutputKinds?: string[];
+  };
 };
 
 export type AgentActionPreflightResult = {
@@ -175,6 +183,10 @@ const preflightIsNot = [
 ] as const;
 
 const acceptedActionIds = Object.keys(actionPreflightRules);
+const selectedSupplyFitActionIds: readonly AgentActionId[] = [
+  "apply_to_request",
+  "create_owner_private_fulfillment",
+];
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -195,9 +207,111 @@ function getStringArray(value: unknown) {
     return [];
   }
 
-  return value.filter(
-    (item): item is string => typeof item === "string" && item.length > 0
-  );
+  return value
+    .filter(
+      (item): item is string =>
+        typeof item === "string" && item.trim().length > 0
+    )
+    .map((item) => item.trim());
+}
+
+function normalizeStringSet(values: readonly string[]) {
+  return Array.from(new Set(values));
+}
+
+function valuesOverlap(
+  leftValues: readonly string[],
+  rightValues: readonly string[],
+) {
+  const rightSet = new Set(rightValues);
+  return leftValues.some((value) => rightSet.has(value));
+}
+
+function normalizeRequestFit(value: unknown) {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    selectedSupplyId: getString(value.selectedSupplyId),
+    selectedSupplyStatus: getString(value.selectedSupplyStatus),
+    requestSupplyKinds: normalizeStringSet(
+      getStringArray(value.requestSupplyKinds),
+    ),
+    requestOutputKinds: normalizeStringSet(
+      getStringArray(value.requestOutputKinds),
+    ),
+    selectedSupplyKinds: normalizeStringSet(
+      getStringArray(value.selectedSupplyKinds),
+    ),
+    selectedOutputKinds: normalizeStringSet(
+      getStringArray(value.selectedOutputKinds),
+    ),
+  };
+}
+
+function validateSelectedSupplyRequestFit({
+  actionId,
+  missingRequirements,
+  requestFit,
+}: {
+  actionId: AgentActionId | undefined;
+  missingRequirements: string[];
+  requestFit: ReturnType<typeof normalizeRequestFit>;
+}) {
+  if (!actionId || !selectedSupplyFitActionIds.includes(actionId)) {
+    return;
+  }
+
+  if (!requestFit?.selectedSupplyId) {
+    addMissing(missingRequirements, "requestFit.selectedSupplyId");
+  }
+
+  if (requestFit?.selectedSupplyStatus !== "published") {
+    addMissing(missingRequirements, "requestFit.selectedSupplyStatus=published");
+  }
+
+  if (
+    (requestFit?.requestSupplyKinds.length ?? 0) > 0 &&
+    (requestFit?.selectedSupplyKinds.length ?? 0) === 0
+  ) {
+    addMissing(missingRequirements, "requestFit.selectedSupplyKinds");
+  }
+
+  if (
+    (requestFit?.requestSupplyKinds.length ?? 0) > 0 &&
+    (requestFit?.selectedSupplyKinds.length ?? 0) > 0 &&
+    !valuesOverlap(
+      requestFit?.requestSupplyKinds ?? [],
+      requestFit?.selectedSupplyKinds ?? [],
+    )
+  ) {
+    addMissing(
+      missingRequirements,
+      "requestFit.selectedSupplyKinds overlaps requestSupplyKinds",
+    );
+  }
+
+  if (
+    (requestFit?.requestOutputKinds.length ?? 0) > 0 &&
+    (requestFit?.selectedOutputKinds.length ?? 0) === 0
+  ) {
+    addMissing(missingRequirements, "requestFit.selectedOutputKinds");
+  }
+
+  if (
+    (requestFit?.requestOutputKinds.length ?? 0) > 0 &&
+    (requestFit?.selectedOutputKinds.length ?? 0) > 0 &&
+    !valuesOverlap(
+      requestFit?.requestOutputKinds ?? [],
+      requestFit?.selectedOutputKinds ?? [],
+    )
+  ) {
+    addMissing(
+      missingRequirements,
+      "requestFit.selectedOutputKinds overlaps requestOutputKinds",
+    );
+  }
 }
 
 function addMissing(missingRequirements: string[], requirement: string) {
@@ -220,6 +334,7 @@ function normalizeInput(input: unknown) {
       payloadSummary: undefined,
       representedActor: undefined,
       requestedScopes: [],
+      requestFit: undefined,
       requestId: undefined,
       schemaVersion: undefined,
     };
@@ -241,6 +356,7 @@ function normalizeInput(input: unknown) {
     payloadSummary: getString(input.payloadSummary),
     representedActor,
     requestedScopes: getStringArray(input.requestedScopes),
+    requestFit: normalizeRequestFit(input.requestFit),
     requestId: getString(input.requestId),
     schemaVersion: input.schemaVersion,
   };
@@ -294,6 +410,12 @@ export function validateAgentActionPreflight(
       addMissing(missingRequirements, `requestedScopes includes ${scope}`);
     }
   }
+
+  validateSelectedSupplyRequestFit({
+    actionId,
+    missingRequirements,
+    requestFit: normalized.requestFit,
+  });
 
   const warnings = [
     "Action preflight is validation-only and creates no durable Boreal business truth.",
