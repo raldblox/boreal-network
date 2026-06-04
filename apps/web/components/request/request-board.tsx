@@ -492,6 +492,12 @@ function HumanWorkerHint({
             <span>{humanLane.proposedObject}</span>
           </>
         ) : null}
+        {humanLane.applicationPreflight ? (
+          <>
+            <span aria-hidden="true">/</span>
+            <span>{humanLane.applicationPreflight.actionId} preflight</span>
+          </>
+        ) : null}
       </div>
     </div>
   );

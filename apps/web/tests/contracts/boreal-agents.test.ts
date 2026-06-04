@@ -373,6 +373,26 @@ assert.deepEqual(humanWorkerReadiness.humanLane.proposedWritesIfAuthorized, [
   "Commitment",
   "RequestEvent",
 ]);
+assert.equal(
+  humanWorkerReadiness.humanLane.applicationPreflight?.endpoint,
+  "/agents/actions/preflight"
+);
+assert.equal(
+  humanWorkerReadiness.humanLane.applicationPreflight?.actionId,
+  "apply_to_request"
+);
+assert.deepEqual(
+  humanWorkerReadiness.humanLane.applicationPreflight?.requiredInput
+    .requestedScopes,
+  ["commitments:propose"]
+);
+assert.ok(
+  humanWorkerReadiness.humanLane.applicationPreflight?.forbiddenClaimsBeforeAuthorizedMutation.includes(
+    "worker assigned"
+  )
+);
+assert.ok(humanWorkerReadiness.nonAuthority.includes("no_supply_assigned"));
+assert.ok(humanWorkerReadiness.nonAuthority.includes("no_payment_authorized"));
 assert.equal(humanWorkerReadiness.summary.humanRequired, true);
 assert.equal(humanWorkerReadiness.summary.shouldWakeAgents, false);
 
@@ -389,6 +409,24 @@ assert.deepEqual(humanOpenWorkerReadiness.humanLane.proposedWritesIfAuthorized, 
   "Commitment",
   "RequestEvent",
 ]);
+assert.equal(
+  humanOpenWorkerReadiness.humanLane.applicationPreflight?.actionId,
+  "apply_to_request"
+);
+assert.equal(
+  humanOpenWorkerReadiness.humanLane.applicationPreflight
+    ?.requiredBeforeMutation,
+  true
+);
+assert.equal(
+  humanOpenWorkerReadiness.humanLane.applicationPreflight?.proposedObject,
+  "Commitment"
+);
+assert.deepEqual(
+  humanOpenWorkerReadiness.humanLane.applicationPreflight
+    ?.proposedCanonicalWrites,
+  ["Commitment", "RequestEvent"]
+);
 
 const copyBoardHints = buildNamedAgentBoardReadiness({
   ...boardVideoRequest,

@@ -16,7 +16,25 @@ export type RequestHumanWorkerReadiness = {
   reason: string;
   proposedObject: "Commitment" | null;
   proposedWritesIfAuthorized: string[];
+  applicationPreflight: RequestHumanApplicationPreflight | null;
   nonAuthority: string[];
+};
+
+export type RequestHumanApplicationPreflight = {
+  endpoint: "/agents/actions/preflight";
+  actionId: "apply_to_request";
+  requiredBeforeMutation: true;
+  proposedObject: "Commitment";
+  proposedCanonicalWrites: ["Commitment", "RequestEvent"];
+  requiredInput: {
+    representedActorKind: "human";
+    hasHumanApproval: true;
+    hasIdempotencyKey: true;
+    requestedScopes: ["commitments:propose"];
+    payloadSummaryRequired: true;
+  };
+  forbiddenClaimsBeforeAuthorizedMutation: string[];
+  nonAuthority: string;
 };
 
 export type RequestWorkerReadiness = {
@@ -36,9 +54,11 @@ export type RequestWorkerReadiness = {
 
 const workerReadinessNonAuthority = [
   "not_matching_or_assignment",
+  "no_supply_assigned",
   "no_commitment_created",
   "no_fulfillment_started",
   "no_provider_call",
+  "no_payment_authorized",
   "no_request_event_written",
 ];
 
@@ -88,6 +108,7 @@ function buildHumanWorkerReadiness(
         "The request asks for human presence, local access, or human-led execution.",
       proposedObject: "Commitment",
       proposedWritesIfAuthorized: ["Commitment", "RequestEvent"],
+      applicationPreflight: buildHumanApplicationPreflight(),
     });
   }
 
@@ -99,6 +120,7 @@ function buildHumanWorkerReadiness(
         "The request is open to human workers, but no worker is assigned from the listing.",
       proposedObject: "Commitment",
       proposedWritesIfAuthorized: ["Commitment", "RequestEvent"],
+      applicationPreflight: buildHumanApplicationPreflight(),
     });
   }
 
@@ -111,12 +133,14 @@ function buildHumanWorkerReadiness(
 
 function humanLane({
   actionLabel,
+  applicationPreflight = null,
   proposedObject = null,
   proposedWritesIfAuthorized = [],
   reason,
   state,
 }: {
   actionLabel: string;
+  applicationPreflight?: RequestHumanApplicationPreflight | null;
   proposedObject?: "Commitment" | null;
   proposedWritesIfAuthorized?: string[];
   reason: string;
@@ -128,7 +152,35 @@ function humanLane({
     reason,
     proposedObject,
     proposedWritesIfAuthorized,
+    applicationPreflight,
     nonAuthority: [...workerReadinessNonAuthority],
+  };
+}
+
+function buildHumanApplicationPreflight(): RequestHumanApplicationPreflight {
+  return {
+    endpoint: "/agents/actions/preflight",
+    actionId: "apply_to_request",
+    requiredBeforeMutation: true,
+    proposedObject: "Commitment",
+    proposedCanonicalWrites: ["Commitment", "RequestEvent"],
+    requiredInput: {
+      representedActorKind: "human",
+      hasHumanApproval: true,
+      hasIdempotencyKey: true,
+      requestedScopes: ["commitments:propose"],
+      payloadSummaryRequired: true,
+    },
+    forbiddenClaimsBeforeAuthorizedMutation: [
+      "worker assigned",
+      "commitment created",
+      "fulfillment started",
+      "artifact published",
+      "payment authorized",
+      "request completed",
+    ],
+    nonAuthority:
+      "Human lane readiness is a board hint only. Run action preflight and submit through the governed commitment route before any durable write.",
   };
 }
 
