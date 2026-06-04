@@ -469,6 +469,42 @@ assert.ok(humanWorkerReadiness.nonAuthority.includes("no_payment_authorized"));
 assert.equal(humanWorkerReadiness.summary.humanRequired, true);
 assert.equal(humanWorkerReadiness.summary.shouldWakeAgents, false);
 
+const humanAgentSupportWorkerReadiness = buildRequestWorkerReadiness({
+  ...boardVideoRequest,
+  id: "req-board-human-agent-support-001",
+  seeking: {
+    actorKinds: ["human", "agent"],
+    supplyKinds: ["human_service", "video_generation"],
+  },
+  derived: {
+    executionKind: "hybrid_human_agent",
+    routeSummary: "Human-led request with generated-video support.",
+    workerEligibility: {
+      policy: "human_first_agent_support",
+      humanRequired: true,
+      shouldWakeAgents: true,
+      skipProviderOnlyAgents: false,
+      wakeSignals: ["actor:agent", "supply:video_generation", "output:video"],
+      skipReasons: [],
+    },
+  },
+});
+assert.equal(
+  humanAgentSupportWorkerReadiness.humanLane.state,
+  "human_required"
+);
+assert.equal(
+  humanAgentSupportWorkerReadiness.summary.agentSupportExplicit,
+  true
+);
+assert.equal(humanAgentSupportWorkerReadiness.summary.humanRequired, true);
+assert.equal(humanAgentSupportWorkerReadiness.summary.agentCanPrepareCount, 1);
+assert.equal(humanAgentSupportWorkerReadiness.summary.shouldWakeAgents, true);
+assert.equal(
+  humanAgentSupportWorkerReadiness.summary.workerEligibilityPolicy,
+  "human_first_agent_support"
+);
+
 const fieldProofWorkerReadiness = buildRequestWorkerReadiness({
   ...boardVideoRequest,
   id: "req-board-field-proof-worker-001",

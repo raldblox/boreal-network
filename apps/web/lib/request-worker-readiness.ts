@@ -46,9 +46,11 @@ export type RequestWorkerReadiness = {
   agentLanes: NamedAgentBoardReadiness[];
   summary: {
     agentCanPrepareCount: number;
+    agentSupportExplicit: boolean;
     humanActionable: boolean;
     humanRequired: boolean;
     shouldWakeAgents: boolean;
+    workerEligibilityPolicy: string | null;
   };
   nonAuthority: string[];
 };
@@ -84,12 +86,15 @@ export function buildRequestWorkerReadiness(
     agentLanes,
     summary: {
       agentCanPrepareCount,
+      agentSupportExplicit: plannerAllowsAgentSupport,
       humanActionable:
         humanLane.state === "can_review" || humanLane.state === "human_required",
       humanRequired,
       shouldWakeAgents:
         (!humanRequired || plannerAllowsAgentSupport) &&
         agentCanPrepareCount > 0,
+      workerEligibilityPolicy:
+        request.derived?.workerEligibility?.policy ?? null,
     },
     nonAuthority: [...workerReadinessNonAuthority],
   };

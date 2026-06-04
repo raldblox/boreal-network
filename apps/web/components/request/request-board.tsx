@@ -519,6 +519,13 @@ function getHumanHintBadgeClassName(
 }
 
 function getWorkerReadinessSummaryLabel(readiness: RequestWorkerReadiness) {
+  if (
+    readiness.summary.agentSupportExplicit &&
+    readiness.summary.agentCanPrepareCount > 0
+  ) {
+    return "human + agent support";
+  }
+
   if (readiness.summary.humanRequired) {
     return "human required";
   }
@@ -642,6 +649,12 @@ function getRequestSearchText(request: PublicRequestPoolEntry) {
       request.derived.matchingMode,
       request.derived.readiness.summary,
       request.derived.missingDetails.join(" "),
+      request.derived.workerEligibility?.policy,
+      request.derived.workerEligibility?.policy
+        ? formatSurfaceToken(request.derived.workerEligibility.policy)
+        : null,
+      request.derived.workerEligibility?.wakeSignals?.join(" "),
+      request.derived.workerEligibility?.skipReasons?.join(" "),
     ]
       .filter(Boolean)
       .join(" ")

@@ -30,8 +30,11 @@ export type NamedAgentBoardRequest = {
     routeSummary?: string | null;
     workerEligibility?: {
       policy?: string | null;
+      humanRequired?: boolean;
       shouldWakeAgents?: boolean;
+      skipProviderOnlyAgents?: boolean;
       wakeSignals?: readonly string[] | null;
+      skipReasons?: readonly string[] | null;
     } | null;
   } | null;
 };

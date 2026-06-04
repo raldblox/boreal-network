@@ -81,8 +81,8 @@ const publicRequestResponse = {
         tags: ["video", "launch"],
       },
       seeking: {
-        actorKinds: ["ai_agent"],
-        supplyKinds: ["video_generation"],
+        actorKinds: ["human", "agent"],
+        supplyKinds: ["human_service", "video_generation"],
         teamMode: "single",
         notes: "",
       },
@@ -114,6 +114,27 @@ const publicRequestResponse = {
           summary: "Ready for worker applications.",
         },
         routeSummary: "Video generation with proof-backed review.",
+        workerEligibility: {
+          policy: "human_first_agent_support",
+          humanRequired: true,
+          shouldWakeAgents: true,
+          skipProviderOnlyAgents: false,
+          preferredActorKinds: ["human", "agent"],
+          preferredSupplyKinds: ["human_service", "video_generation"],
+          preferredOutputKinds: ["video"],
+          roleKeys: ["human_lead", "video_generation"],
+          wakeSignals: ["actor:agent", "supply:video_generation", "output:video"],
+          skipReasons: [],
+          nonAuthority: [
+            "not_matching_or_assignment",
+            "no_supply_assigned",
+            "no_commitment_created",
+            "no_fulfillment_started",
+            "no_provider_call",
+            "no_payment_authorized",
+            "no_request_event_written",
+          ],
+        },
       },
       createdAt: "2026-05-25T10:00:00.000Z",
       updatedAt: "2026-05-28T10:00:00.000Z",
@@ -336,11 +357,20 @@ test.describe("Surface async states", () => {
     await expect(page.getByText("Worker readiness").first()).toBeVisible();
     await expect(page.getByText("Mira Video Agent").first()).toBeVisible();
     await expect(page.getByText("can prepare").first()).toBeVisible();
+    await expect(page.getByText("human + agent support")).toBeVisible();
     await expect(
       page
         .getByText("Hints only. No assignment, Commitment, or Fulfillment write.")
         .first()
     ).toBeVisible();
+
+    await page
+      .getByRole("searchbox", { name: "Search request board" })
+      .fill("agent support");
+
+    await expect(page.getByText("Create a launch teaser video")).toBeVisible();
+    await expect(page.getByText("Audit an onboarding flow")).toBeHidden();
+    await expect(page.getByText("Create an avatar launch handoff")).toBeHidden();
 
     await page.getByRole("searchbox", { name: "Search request board" }).fill(
       "avatar"
@@ -349,7 +379,9 @@ test.describe("Surface async states", () => {
     await expect(page.getByText("Create an avatar launch handoff")).toBeVisible();
     await expect(page.getByText("Audit an onboarding flow")).toBeHidden();
     await expect(
-      page.getByText("Public projection points to human-led or local-access")
+      page
+        .getByText("Public projection points to human-led or local-access")
+        .first()
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Needs details" }).click();
