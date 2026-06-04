@@ -5,6 +5,11 @@ import { selectChatModelRoute } from "@/lib/ai/model-routing";
 import { composerChatModels, isComposerChatModelId } from "@/lib/ai/models";
 import { getModelProviderRouteEntries } from "@/lib/ai/providers";
 import {
+  humanizerWorker,
+  humanizerWorkerArtifactSchema,
+} from "@/lib/boreal-workers/humanizer";
+import { listBorealWorkers } from "@/lib/boreal-workers/registry";
+import {
   borealWorkerArtifactDescriptorSchema,
   borealWorkerStoredAssetSchema,
 } from "@/lib/boreal-workers/types";
@@ -241,6 +246,60 @@ function makeDraft(
     ...overrides,
   } as BorealRequestDraft;
 }
+
+assert.equal(
+  listBorealWorkers().some((worker) => worker.workerKey === "humanizer"),
+  false,
+);
+const humanizerDraft = makeDraft({
+  id: "77777777-7777-4777-8777-777777777777",
+  brief: {
+    title: "Humanize launch copy",
+    summary: "Polish the launch copy without inventing shipped features.",
+    body: "We need this copy clearer, more founder-led, and more human.",
+    outputKinds: ["draft"],
+    tags: ["copy"],
+  },
+  seeking: {
+    actorKinds: ["agent"],
+    supplyKinds: ["documentation_support"],
+    teamMode: "solo_or_team",
+    notes: "Audience is early buyers.",
+  },
+});
+assert.equal(humanizerWorker.score(humanizerDraft) > 0, true);
+const humanizerInput = humanizerWorker.buildInput(humanizerDraft);
+assert.equal(humanizerInput.requestId, humanizerDraft.id);
+assert.equal(humanizerInput.requestedTone, "founder_clear");
+const humanizerArtifact = humanizerWorker.buildArtifact({
+  title: "Humanize launch copy - humanized draft",
+  summary: "Owner review required.",
+  content: "Boreal turns buyer requests into completed work.",
+  documentKind: "text",
+});
+assert.equal("content" in humanizerArtifact, true);
+assert.equal(
+  humanizerWorkerArtifactSchema.safeParse(humanizerArtifact).success,
+  true,
+);
+assert.equal(
+  humanizerWorker.score(
+    makeDraft({
+      brief: {
+        title: "Create a launch video",
+        summary: "Generate media.",
+        body: "Need a video clip.",
+        outputKinds: ["video"],
+        tags: ["video"],
+      },
+      seeking: {
+        actorKinds: ["agent"],
+        supplyKinds: ["video_generation"],
+      },
+    }),
+  ),
+  0,
+);
 
 const publicProjection = toPublicRequestPoolEntry(makeDraft());
 

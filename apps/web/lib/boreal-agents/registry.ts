@@ -679,13 +679,13 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
           kind: "execution_contract",
           label: "Humanizer worker execution contract",
           path: "apps/web/lib/boreal-workers/humanizer.ts",
-          status: "missing",
+          status: "implemented",
         },
         {
           kind: "proof_path",
           label: "Humanizer artifact proof path",
           path: "apps/web/lib/boreal-workers/humanizer.ts",
-          status: "missing",
+          status: "implemented",
         },
         {
           kind: "failure_fixtures",
@@ -702,8 +702,6 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
       ],
       openBlockers: [
         "humanizer supply factory is not implemented",
-        "humanizer execution contract is not implemented",
-        "humanizer proof path is not implemented",
         "humanizer failure fixtures do not exist",
         "humanizer mutating route tests do not exist",
       ],

@@ -208,9 +208,16 @@ function validateProfile(profile, errors) {
   );
   assert(
     tala?.promotionGates?.evidenceRefs?.some(
-      (ref) => ref.kind === "execution_contract" && ref.status === "missing"
+      (ref) => ref.kind === "execution_contract" && ref.status === "implemented"
     ),
-    "Tala promotion gates must mark the execution contract missing",
+    "Tala promotion gates must mark the execution contract implemented",
+    errors
+  );
+  assert(
+    tala?.promotionGates?.evidenceRefs?.some(
+      (ref) => ref.kind === "proof_path" && ref.status === "implemented"
+    ),
+    "Tala promotion gates must mark the proof path implemented",
     errors
   );
   assert(
