@@ -684,6 +684,7 @@ components:
         - durableWriteStatus
         - requiredNextAction
         - submissionPreflight
+        - authorizedExecutionHandoff
         - mutationCall
         - proposedCanonicalWrites
         - proposedObject
@@ -704,6 +705,8 @@ components:
           const: submit_through_authorized_mutation_route
         submissionPreflight:
           $ref: "#/components/schemas/SubmissionPreflight"
+        authorizedExecutionHandoff:
+          $ref: "#/components/schemas/AuthorizedExecutionHandoff"
         mutationCall:
           $ref: "#/components/schemas/PreparedMutationCall"
         proposedCanonicalWrites:
@@ -718,6 +721,114 @@ components:
           enum:
             - explicit_owner_acceptance_required
             - trusted_worker_auto_approval_required
+    AuthorizedExecutionHandoff:
+      type: object
+      required:
+        - status
+        - activationBoundary
+        - providerCallsAllowedBeforeFulfillment
+        - secretValuesIncluded
+        - requiredCredentialRefs
+        - taskSequence
+        - requiredBeforeProviderRun
+        - canonicalBoundary
+        - nonAuthority
+      properties:
+        status:
+          enum:
+            - blocked_until_authorized_fulfillment_exists
+            - target_only
+        activationBoundary:
+          enum:
+            - accepted_commitment_then_fulfillment_route_success
+            - owner_private_direct_fulfillment_route_success
+        providerCallsAllowedBeforeFulfillment:
+          const: false
+        secretValuesIncluded:
+          const: false
+        requiredCredentialRefs:
+          type: array
+          items:
+            type: object
+            required:
+              - provider
+              - env
+              - purpose
+              - models
+              - secretValueIncluded
+            properties:
+              provider:
+                enum:
+                  - openai
+                  - runway
+              env:
+                type: string
+              purpose:
+                type: string
+              models:
+                type: array
+                items:
+                  type: string
+              secretValueIncluded:
+                const: false
+        taskSequence:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - kind
+              - state
+              - summary
+              - canonicalReads
+              - canonicalWritesIfAuthorized
+              - toolRefs
+            properties:
+              id:
+                type: string
+              kind:
+                type: string
+              state:
+                type: string
+              summary:
+                type: string
+              canonicalReads:
+                type: array
+                items:
+                  type: string
+              canonicalWritesIfAuthorized:
+                type: array
+                items:
+                  type: string
+              toolRefs:
+                type: array
+                items:
+                  type: string
+        requiredBeforeProviderRun:
+          type: array
+          items:
+            type: string
+        canonicalBoundary:
+          type: object
+          required:
+            - rootObject
+            - executionTruthObject
+            - stepTruthObject
+            - artifactTruthObject
+            - eventTruthObject
+          properties:
+            rootObject:
+              const: Request
+            executionTruthObject:
+              const: Fulfillment
+            stepTruthObject:
+              const: FulfillmentStep
+            artifactTruthObject:
+              const: Artifact
+            eventTruthObject:
+              const: RequestEvent
+        nonAuthority:
+          type: string
     SubmissionPreflight:
       type: object
       required:

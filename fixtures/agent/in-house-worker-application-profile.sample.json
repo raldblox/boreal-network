@@ -606,6 +606,33 @@
       "existing activeRefs",
       "funding and proof requirements"
     ],
+    "authorizedExecutionHandoff": {
+      "status": "blocked_until_authorized_fulfillment_exists",
+      "providerCallsAllowedBeforeFulfillment": false,
+      "secretValuesIncluded": false,
+      "requiredCredentialRefs": [
+        "OPENAI_API_KEY",
+        "RUNWAY_API_KEY"
+      ],
+      "taskSequenceRequired": true,
+      "requiredBeforeProviderRun": [
+        "submissionPreflight.status=preflight_passed",
+        "authorized Commitment or Fulfillment boundary exists",
+        "active Fulfillment id is available",
+        "selected Supply is still request-bound"
+      ],
+      "canonicalWriteBoundaries": [
+        "FulfillmentStep",
+        "Artifact",
+        "RequestEvent"
+      ],
+      "forbiddenBeforeFulfillment": [
+        "provider call",
+        "artifact publication",
+        "payment authorization",
+        "completion proof"
+      ]
+    },
     "mustNotContain": [
       "private prompt internals",
       "provider secrets",

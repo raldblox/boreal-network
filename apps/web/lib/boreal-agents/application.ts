@@ -409,6 +409,10 @@ function buildApplicationPacket({
     durableWriteStatus: "not_created_prepare_only",
     requiredNextAction: "submit_through_authorized_mutation_route",
     submissionPreflight: buildSubmissionPreflight({ input, lane, template }),
+    authorizedExecutionHandoff: buildAuthorizedExecutionHandoff({
+      lane,
+      template,
+    }),
   } as const;
 
   if (lane === "owner_private_direct_worker_fulfillment") {
@@ -563,6 +567,98 @@ function buildSubmissionPreflight({
     nonAuthority:
       "Passing preparation is not enough to submit. Run action preflight and re-check the live route policy before the authorized mutation route is attempted.",
   } as const;
+}
+
+function buildAuthorizedExecutionHandoff({
+  lane,
+  template,
+}: {
+  lane: string;
+  template: BorealAgentTemplate;
+}) {
+  const directOwnerPrivate =
+    lane === "owner_private_direct_worker_fulfillment";
+
+  return {
+    status:
+      template.status === "live_template"
+        ? "blocked_until_authorized_fulfillment_exists"
+        : "target_only",
+    activationBoundary: directOwnerPrivate
+      ? "owner_private_direct_fulfillment_route_success"
+      : "accepted_commitment_then_fulfillment_route_success",
+    providerCallsAllowedBeforeFulfillment: false,
+    secretValuesIncluded: false,
+    requiredCredentialRefs: template.modelBindings.map((binding) => ({
+      provider: binding.provider,
+      env: binding.env,
+      purpose: binding.purpose,
+      models: [...binding.models],
+      secretValueIncluded: false,
+    })),
+    taskSequence: template.taskPipeline.map((task) => ({
+      id: task.id,
+      kind: task.kind,
+      state: stateForTask({
+        lane,
+        taskKind: task.kind,
+        template,
+      }),
+      summary: task.summary,
+      canonicalReads: [...task.canonicalReads],
+      canonicalWritesIfAuthorized: [...task.canonicalWritesIfAuthorized],
+      toolRefs: toolRefsForTask({ taskKind: task.kind, template }),
+    })),
+    requiredBeforeProviderRun: [
+      "submissionPreflight.status=preflight_passed",
+      directOwnerPrivate
+        ? "authorized owner-private Fulfillment route succeeded"
+        : "Commitment accepted and authorized Fulfillment route succeeded",
+      "active Fulfillment id is available",
+      "selected Supply is still the request-bound supply",
+      "idempotency and retry metadata are ready",
+    ],
+    canonicalBoundary: {
+      rootObject: "Request",
+      executionTruthObject: "Fulfillment",
+      stepTruthObject: "FulfillmentStep",
+      artifactTruthObject: "Artifact",
+      eventTruthObject: "RequestEvent",
+    },
+    nonAuthority:
+      "This handoff is a post-authorization execution plan only. It does not call providers, start fulfillment, publish artifacts, authorize payment, or prove completion.",
+  } as const;
+}
+
+function toolRefsForTask({
+  taskKind,
+  template,
+}: {
+  taskKind: string;
+  template: BorealAgentTemplate;
+}) {
+  switch (taskKind) {
+    case "inspect_request":
+      return template.toolBindings.filter((tool) =>
+        tool.startsWith("GET /api/requests")
+      );
+    case "prepare_application":
+    case "submit_commitment":
+      return template.toolBindings.filter((tool) =>
+        tool.includes("/commitments")
+      );
+    case "create_owner_private_fulfillment":
+    case "run_provider":
+    case "monitor_or_retry":
+      return template.toolBindings.filter(
+        (tool) =>
+          tool.includes("/fulfillments") || tool.includes("/retry")
+      );
+    case "publish_artifact":
+      return template.toolBindings.filter((tool) => tool.includes("/artifacts"));
+    default:
+      return [];
+  }
 }
 
 function buildCommitmentMutationCall({

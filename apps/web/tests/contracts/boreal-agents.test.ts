@@ -591,6 +591,48 @@ async function main() {
       "worker assigned"
     )
   );
+  assert.equal(
+    publicPrepare.applicationPacket.authorizedExecutionHandoff.status,
+    "blocked_until_authorized_fulfillment_exists"
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.authorizedExecutionHandoff
+      .providerCallsAllowedBeforeFulfillment,
+    false
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.authorizedExecutionHandoff
+      .secretValuesIncluded,
+    false
+  );
+  assert.equal(
+    publicPrepare.applicationPacket.authorizedExecutionHandoff.activationBoundary,
+    "accepted_commitment_then_fulfillment_route_success"
+  );
+  assert.ok(
+    publicPrepare.applicationPacket.authorizedExecutionHandoff.requiredCredentialRefs.some(
+      (credential: { provider: string; env: string; secretValueIncluded: boolean }) =>
+        credential.provider === "openai" &&
+        credential.env === "OPENAI_API_KEY" &&
+        credential.secretValueIncluded === false
+    )
+  );
+  assert.ok(
+    publicPrepare.applicationPacket.authorizedExecutionHandoff.requiredCredentialRefs.some(
+      (credential: { provider: string; env: string; secretValueIncluded: boolean }) =>
+        credential.provider === "runway" &&
+        credential.env === "RUNWAY_API_KEY" &&
+        credential.secretValueIncluded === false
+    )
+  );
+  assert.ok(
+    publicPrepare.applicationPacket.authorizedExecutionHandoff.taskSequence.some(
+      (task: { kind: string; state: string; toolRefs: string[] }) =>
+        task.kind === "run_provider" &&
+        task.state === "blocked_until_authorized_fulfillment_exists" &&
+        task.toolRefs.some((tool) => tool.includes("/fulfillments"))
+    )
+  );
   assert.equal(publicPrepare.applicationPacket.mutationCall.body.kind, "proposal");
   assert.equal(
     publicPrepare.applicationPacket.mutationCall.body.supplyId,
@@ -700,6 +742,11 @@ async function main() {
         .preflightRequest
     ).status,
     "preflight_passed"
+  );
+  assert.equal(
+    scanBody.candidates[0].applicationPacket.authorizedExecutionHandoff
+      .providerCallsAllowedBeforeFulfillment,
+    false
   );
   assert.equal(scanBody.candidates[1].allowedToWake, false);
   assert.ok(
@@ -890,6 +937,15 @@ assert.equal(
   privatePrepare.applicationPacket.submissionPreflight.routePolicyRecheck
     .mutationScopeIfResolverBearer,
   "fulfillments:create"
+);
+assert.equal(
+  privatePrepare.applicationPacket.authorizedExecutionHandoff.activationBoundary,
+  "owner_private_direct_fulfillment_route_success"
+);
+assert.ok(
+  privatePrepare.applicationPacket.authorizedExecutionHandoff.requiredBeforeProviderRun.includes(
+    "authorized owner-private Fulfillment route succeeded"
+  )
 );
 assert.ok(
   privatePrepare.applicationPacket.submissionPreflight.forbiddenClaimsBeforeAuthorizedMutation.includes(

@@ -222,6 +222,7 @@
         "requiredFields",
         "submissionPreflight",
         "mustReadBeforeSubmit",
+        "authorizedExecutionHandoff",
         "mustNotContain"
       ],
       "properties": {
@@ -446,6 +447,74 @@
           "items": {
             "type": "string",
             "minLength": 1
+          }
+        },
+        "authorizedExecutionHandoff": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "providerCallsAllowedBeforeFulfillment",
+            "secretValuesIncluded",
+            "requiredCredentialRefs",
+            "taskSequenceRequired",
+            "requiredBeforeProviderRun",
+            "canonicalWriteBoundaries",
+            "forbiddenBeforeFulfillment"
+          ],
+          "properties": {
+            "status": {
+              "const": "blocked_until_authorized_fulfillment_exists"
+            },
+            "providerCallsAllowedBeforeFulfillment": {
+              "const": false
+            },
+            "secretValuesIncluded": {
+              "const": false
+            },
+            "requiredCredentialRefs": {
+              "type": "array",
+              "allOf": [
+                { "contains": { "const": "OPENAI_API_KEY" } },
+                { "contains": { "const": "RUNWAY_API_KEY" } }
+              ],
+              "items": {
+                "enum": [
+                  "OPENAI_API_KEY",
+                  "RUNWAY_API_KEY"
+                ]
+              }
+            },
+            "taskSequenceRequired": {
+              "const": true
+            },
+            "requiredBeforeProviderRun": {
+              "type": "array",
+              "minItems": 4,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "canonicalWriteBoundaries": {
+              "type": "array",
+              "minItems": 3,
+              "items": {
+                "enum": [
+                  "FulfillmentStep",
+                  "Artifact",
+                  "RequestEvent"
+                ]
+              }
+            },
+            "forbiddenBeforeFulfillment": {
+              "type": "array",
+              "minItems": 4,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
           }
         },
         "mustNotContain": {
