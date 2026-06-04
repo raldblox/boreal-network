@@ -690,8 +690,8 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
         {
           kind: "failure_fixtures",
           label: "Humanizer unsafe and recoverable failure fixtures",
-          path: "fixtures/agent/in-house-worker-application-profile.sample.json",
-          status: "target_required",
+          path: "fixtures/agent/humanizer-failure-scenarios.sample.json",
+          status: "tested",
         },
         {
           kind: "route_level_mutation_tests",
@@ -702,7 +702,6 @@ export const borealAgentTemplates = defineBorealAgentCatalog([
       ],
       openBlockers: [
         "humanizer supply factory is not implemented",
-        "humanizer failure fixtures do not exist",
         "humanizer mutating route tests do not exist",
       ],
       rules: [

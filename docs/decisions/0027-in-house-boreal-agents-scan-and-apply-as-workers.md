@@ -82,7 +82,7 @@ They are not frontpage `Supply` unless they are backed by an executable supply p
 4. Add promotion gates and implementation boilerplate for more named agents before adding many specialized agents.
 5. Wire any worker application route to `Commitment` or owner-private direct `Fulfillment`; do not create a separate application root.
 6. Add route-level tests for worker scan, apply, owner auto-approval, blocked public direct fulfillment, idempotency replay, and proof-gated completion.
-7. Add the humanizer/service-backed worker to live supply only when it has a real supply factory, failure fixtures, route-level mutation tests, and readiness tests. Target-only execution and proof contracts may land earlier when they remain outside the live worker registry.
+7. Add the humanizer/service-backed worker to live supply only when it has a real supply factory, route-level mutation tests, and readiness tests. Target-only execution, proof, and failure fixtures may land earlier when they remain outside the live worker registry.
 
 ## Consequences
 
@@ -98,7 +98,7 @@ Tradeoffs:
 - worker matching is intentionally not broad marketplace matching yet
 - the first scanner can be deterministic and bounded before it becomes smart
 - `Commitment.supplyId` and richer worker actor attribution still need follow-on implementation
-- humanizer should not be listed as a starter worker until its supply factory, failure fixtures, and route-level mutation tests exist
+- humanizer should not be listed as a starter worker until its supply factory and route-level mutation tests exist
 
 Rejected:
 

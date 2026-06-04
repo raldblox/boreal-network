@@ -17,7 +17,7 @@
     ],
     "rules": [
       "video-generation is the only live starter worker in this profile.",
-      "humanizer stays target-only until it has a real supply factory, failure fixtures, and route-level mutation tests.",
+      "humanizer stays target-only until it has a real supply factory and route-level mutation tests.",
       "Do not list prompt-only assets as starter supply."
     ]
   },
@@ -318,8 +318,8 @@
           {
             "kind": "failure_fixtures",
             "label": "Humanizer unsafe and recoverable failure fixtures",
-            "path": "fixtures/agent/in-house-worker-application-profile.sample.json",
-            "status": "target_required"
+            "path": "fixtures/agent/humanizer-failure-scenarios.sample.json",
+            "status": "tested"
           },
           {
             "kind": "route_level_mutation_tests",
@@ -330,7 +330,6 @@
         ],
         "openBlockers": [
           "humanizer supply factory is not implemented",
-          "humanizer failure fixtures do not exist",
           "humanizer mutating route tests do not exist"
         ],
         "rules": [
@@ -863,7 +862,7 @@
         "not completion proof"
       ],
       "notes": [
-        "Humanizer remains target-only until a supply factory, failure fixtures, and route-level mutation tests exist.",
+        "Humanizer remains target-only until a supply factory and route-level mutation tests exist.",
         "Do not add catalog-only humanizer supply."
       ]
     }

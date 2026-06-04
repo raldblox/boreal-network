@@ -6,6 +6,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 
 const schemaPath = "schemas/json/in-house-worker-application-profile.schema.json";
 const fixturePath = "fixtures/agent/in-house-worker-application-profile.sample.json";
+const humanizerFailureFixturePath = "fixtures/agent/humanizer-failure-scenarios.sample.json";
 const decisionPath = "docs/decisions/0027-in-house-boreal-agents-scan-and-apply-as-workers.md";
 const standardPath = "standards/in-house-boreal-worker-application-lane.md";
 
@@ -218,6 +219,32 @@ function validateProfile(profile, errors) {
       (ref) => ref.kind === "proof_path" && ref.status === "implemented"
     ),
     "Tala promotion gates must mark the proof path implemented",
+    errors
+  );
+  assert(
+    tala?.promotionGates?.evidenceRefs?.some(
+      (ref) =>
+        ref.kind === "failure_fixtures" &&
+        ref.path === humanizerFailureFixturePath &&
+        ref.status === "tested"
+    ),
+    "Tala promotion gates must point at tested humanizer failure fixtures",
+    errors
+  );
+  includesAll(
+    tala?.promotionGates?.openBlockers,
+    [
+      "humanizer supply factory is not implemented",
+      "humanizer mutating route tests do not exist"
+    ],
+    "Tala open promotion blockers",
+    errors
+  );
+  assert(
+    !(tala?.promotionGates?.openBlockers ?? []).includes(
+      "humanizer failure fixtures do not exist"
+    ),
+    "Tala open blockers must not list tested failure fixtures as missing",
     errors
   );
   assert(
@@ -438,6 +465,88 @@ function validateProfile(profile, errors) {
   );
 }
 
+function validateHumanizerFailureFixtures(fixture, errors) {
+  assert(fixture.schemaVersion === 1, "humanizer failure fixture schemaVersion must be 1", errors);
+  assert(
+    fixture.status === "humanizer_failure_scenarios",
+    "humanizer failure fixture must lock status",
+    errors
+  );
+  assert(fixture.workerKey === "humanizer", "humanizer failure fixture must bind humanizer", errors);
+  assert(fixture.targetOnly === true, "humanizer failure fixture must stay target-only", errors);
+  includesAll(
+    fixture.nonAuthority,
+    [
+      "not live starter supply",
+      "not owner approval",
+      "not payment authority",
+      "not request completion"
+    ],
+    "humanizer failure fixture non-authority",
+    errors
+  );
+
+  const scenarios = byId(fixture.scenarios);
+  includesAll(
+    Array.from(scenarios.keys()),
+    [
+      "reject_completion_and_approval_claims",
+      "reject_live_feature_invention",
+      "recover_model_failure_as_rerun_worker"
+    ],
+    "humanizer failure scenario ids",
+    errors
+  );
+
+  for (const scenario of fixture.scenarios ?? []) {
+    equalsSet(
+      scenario.expected?.canonicalWritesBeforeAuthorization,
+      [],
+      `${scenario.id} canonical writes before authorization`,
+      errors
+    );
+    assert(
+      scenario.expected?.requiredReviewBoundary ===
+        "owner_review_required_before_completion",
+      `${scenario.id} must require owner review before completion`,
+      errors
+    );
+  }
+
+  const completionScenario = scenarios.get("reject_completion_and_approval_claims");
+  includesAll(
+    completionScenario?.expected?.mustRejectClaims,
+    ["request complete", "owner approved", "payment authorized", "artifact accepted"],
+    "humanizer completion-claim rejection",
+    errors
+  );
+
+  const inventionScenario = scenarios.get("reject_live_feature_invention");
+  includesAll(
+    inventionScenario?.expected?.mustPreserve,
+    [
+      "typed humanizer execution contract",
+      "no starter supply factory",
+      "no route-level mutation tests"
+    ],
+    "humanizer live-feature preservation",
+    errors
+  );
+
+  const recoveryScenario = scenarios.get("recover_model_failure_as_rerun_worker");
+  assert(recoveryScenario?.expected?.retryable === true, "humanizer failure must be retryable", errors);
+  assert(
+    recoveryScenario?.expected?.recoveryStage === "rerun_worker",
+    "humanizer failure must recover at rerun_worker",
+    errors
+  );
+  assert(
+    recoveryScenario?.input?.simulatedError?.providerStatus === "failed",
+    "humanizer failure fixture must simulate provider failure",
+    errors
+  );
+}
+
 function validateDocs(profile, errors) {
   const decision = readText(decisionPath);
   const standard = readText(standardPath);
@@ -458,9 +567,11 @@ function validateDocs(profile, errors) {
 const errors = [];
 const schema = readJson(schemaPath);
 const profile = readJson(fixturePath);
+const humanizerFailureFixtures = readJson(humanizerFailureFixturePath);
 
 validateSchema(schema, errors);
 validateProfile(profile, errors);
+validateHumanizerFailureFixtures(humanizerFailureFixtures, errors);
 validateDocs(profile, errors);
 
 if (errors.length > 0) {

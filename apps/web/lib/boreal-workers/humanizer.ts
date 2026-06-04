@@ -133,7 +133,7 @@ function buildHumanizerTerms(
       deliverableSummary:
         "One document-backed text delivery that preserves buyer facts and keeps owner review required before completion.",
       paymentNotes:
-        "Target-only until supply factory, failure fixtures, and route-level mutation tests are promoted.",
+        "Target-only until supply factory and route-level mutation tests are promoted.",
     },
   };
 }
@@ -273,7 +273,7 @@ export const humanizerWorker: BorealWorkerDefinition<
     pricing: {
       mode: "quote",
       notes:
-        "Target-only until the supply factory, failure fixtures, and route-level mutation tests exist.",
+        "Target-only until the supply factory and route-level mutation tests exist.",
     },
     bindings: {
       providerRef: "boreal/humanizer",

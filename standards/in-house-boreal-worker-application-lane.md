@@ -168,7 +168,7 @@ The first live named agent template is:
 
 The first target named agent template is:
 
-- `Tala` at `/api/boreal-agents/tala-humanizer`, blocked until the humanizer supply factory, failure fixtures, and route-level mutation tests exist
+- `Tala` at `/api/boreal-agents/tala-humanizer`, blocked until the humanizer supply factory and route-level mutation tests exist
 
 ## Prompt and Workflow Asset Rules
 
@@ -196,7 +196,7 @@ Live first worker:
 
 Launch-next target:
 
-- humanizer or service-backed content transformation, only after a real worker factory, supply profile, failure fixtures, route-level mutation tests, and promotion review exist
+- humanizer or service-backed content transformation, only after a real worker factory, supply profile, route-level mutation tests, and promotion review exist
 
 Non-goal for this standard:
 
