@@ -192,6 +192,17 @@ for (const card of homeBetaWorkCards) {
   assert.ok(card.taxonomy.outOfScope.length > 0);
   assert.ok(card.taxonomy.requestFlow.doneHere.length > 0);
   assert.ok(card.taxonomy.requestFlow.notDoneHere.length > 0);
+  assert.equal(card.workerReadiness.schemaVersion, 1);
+  assert.equal(card.workerReadiness.requestId, card.request.id);
+  assert.equal(card.workerReadiness.listingMode, "read_only_no_assignment");
+  assert.equal(
+    card.workerReadiness.nonAuthority.includes("no_supply_assigned"),
+    true,
+  );
+  assert.equal(
+    card.workerReadiness.nonAuthority.includes("no_commitment_created"),
+    true,
+  );
   assert.equal(
     card.taxonomy.requestFlow.nextActionIntents.includes(
       card.primaryAction.requestFlowActionIntentId,

@@ -9,6 +9,10 @@ import {
   type RequestSeeking,
   type RequestStatus,
 } from "./request";
+import {
+  buildRequestWorkerReadiness,
+  type RequestWorkerReadiness,
+} from "./request-worker-readiness";
 import type {
   RequestFlowActorMode,
   RequestFlowAuthorityBoundary,
@@ -148,6 +152,7 @@ export type HomeBetaWorkCard = {
   taxonomy: HomeBetaWorkCardTaxonomy;
   timestamp: number;
   title: string;
+  workerReadiness: RequestWorkerReadiness;
   workroomHref: string;
 };
 
@@ -1022,6 +1027,7 @@ export function toHomeBetaWorkCard(
     taxonomy: deriveWorkCardTaxonomy(entry),
     timestamp: Date.parse(request.updatedAt),
     title: request.brief.title,
+    workerReadiness: buildRequestWorkerReadiness(request),
     workroomHref: showcaseRequestWorkroomHref(request.id),
   };
 }

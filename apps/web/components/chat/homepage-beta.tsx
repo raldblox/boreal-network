@@ -395,6 +395,21 @@ function WorkCardRow({ card }: { card: WorkCard }) {
               ))}
             </div>
 
+            <div className="mt-5 rounded-2xl border border-border/60 bg-background/38 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/72">
+                  <UserCheckIcon className="size-3.5" />
+                  Worker readiness
+                </div>
+                <Badge className="rounded-full border-border/60 bg-muted/35 text-foreground/72">
+                  {getWorkerReadinessLabel(card)}
+                </Badge>
+              </div>
+              <p className="mt-2 line-clamp-2 text-[11px] leading-5 text-muted-foreground">
+                {getWorkerReadinessDetail(card)}
+              </p>
+            </div>
+
             <div className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-foreground">
               {card.primaryAction.label}
               <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
@@ -429,6 +444,63 @@ function WorkCardRow({ card }: { card: WorkCard }) {
       </article>
     </Link>
   );
+}
+
+function getWorkerReadinessLabel(card: WorkCard) {
+  if (card.taxonomy.listingKind === "service_request_starter") {
+    return "draft first";
+  }
+
+  if (card.taxonomy.listingKind === "reuse_ready_listing") {
+    return "new run request";
+  }
+
+  const readiness = card.workerReadiness;
+
+  if (
+    readiness.summary.agentSupportExplicit &&
+    readiness.summary.agentCanPrepareCount > 0
+  ) {
+    return "human + agent";
+  }
+
+  if (readiness.summary.humanRequired) {
+    return "human required";
+  }
+
+  if (readiness.summary.agentCanPrepareCount > 0) {
+    return `${readiness.summary.agentCanPrepareCount} agent ready`;
+  }
+
+  if (readiness.summary.humanActionable) {
+    return "human can apply";
+  }
+
+  return "read-only";
+}
+
+function getWorkerReadinessDetail(card: WorkCard) {
+  if (card.taxonomy.listingKind === "service_request_starter") {
+    return "No worker or Supply attaches from this listing; the buyer opens a Request first.";
+  }
+
+  if (card.taxonomy.listingKind === "reuse_ready_listing") {
+    return "Viewing stays free; running the solution starts a new request-bound execution path.";
+  }
+
+  const readyAgent = card.workerReadiness.agentLanes.find(
+    (lane) => lane.readiness === "can_prepare",
+  );
+
+  if (readyAgent) {
+    return `${readyAgent.displayName} can prepare an application; preflight still runs before any write.`;
+  }
+
+  if (card.workerReadiness.summary.humanActionable) {
+    return `${card.workerReadiness.humanLane.actionLabel}; Commitment preflight is required before any write.`;
+  }
+
+  return "Listing hints stay read-only: no worker assignment, Commitment, or Fulfillment is created here.";
 }
 
 function WorkSlotTile({ index, slot }: { index: number; slot: WorkSlot }) {
