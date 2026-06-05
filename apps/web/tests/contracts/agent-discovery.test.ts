@@ -2933,6 +2933,7 @@ async function main() {
       selectedOutputKinds: ["video"],
     },
     requestFlowContext: {
+      source: "request_constraints",
       entryStageId: "request_intake",
       cardKind: "action_card",
       planStageIds: [
@@ -3049,6 +3050,7 @@ async function main() {
       selectedOutputKinds: ["video"],
     },
     requestFlowContext: {
+      source: "made_up_source",
       entryStageId: "made_up_stage",
       cardKind: "made_up_card",
       planStageIds: ["request_intake", "unknown_stage"],
@@ -3058,6 +3060,12 @@ async function main() {
     },
   });
   assert.equal(invalidRequestFlowContextPreflight.status, "preflight_failed");
+  assert.equal(
+    invalidRequestFlowContextPreflight.missingRequirements.includes(
+      "requestFlowContext.source known"
+    ),
+    true,
+  );
   assert.equal(
     invalidRequestFlowContextPreflight.missingRequirements.includes(
       "requestFlowContext.entryStageId known"
@@ -4435,6 +4443,12 @@ async function main() {
     true,
   );
   assert.equal(
+    discoveryIndex.components.schemas.AgentActionPreflightRequest.properties.requestFlowContext.properties.source.enum.includes(
+      "request_constraints"
+    ),
+    true,
+  );
+  assert.equal(
     discoveryIndex.components.schemas.AgentActionPreflightRequest.properties.requestFlowContext.properties.entryStageId.enum.includes(
       "request_intake"
     ),
@@ -5208,6 +5222,16 @@ async function main() {
   );
   assert.match(resolverAuthOpenApi, /x-boreal-auth-boundary:/);
   assert.match(resolverAuthOpenApi, /rate-limited before pending resolver records/);
+
+  const borealAgentsOpenApiAsset = findOpenApiAsset("boreal-agents.yaml");
+  assert.ok(borealAgentsOpenApiAsset);
+  const borealAgentsOpenApi = await readDiscoveryAsset(
+    borealAgentsOpenApiAsset,
+  );
+  assert.match(borealAgentsOpenApi, /scan_public_open_requests/);
+  assert.match(borealAgentsOpenApi, /ScanPublicOpenRequestsRequest/);
+  assert.match(borealAgentsOpenApi, /requestFlowContext/);
+  assert.match(borealAgentsOpenApi, /RequestFlowContext/);
 
   for (const asset of allAgentDiscoveryAssets) {
     const content = await readDiscoveryAsset(asset);

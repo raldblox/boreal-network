@@ -40,6 +40,7 @@ paths:
               oneOf:
                 - $ref: "#/components/schemas/PrepareApplicationRequest"
                 - $ref: "#/components/schemas/ScanRequestCandidatesRequest"
+                - $ref: "#/components/schemas/ScanPublicOpenRequestsRequest"
       responses:
         "200":
           description: Preparation-only application or scan result.
@@ -219,6 +220,7 @@ components:
             enum:
               - read_template
               - scan_request_candidates
+              - scan_public_open_requests
               - prepare_application
         boilerplateFiles:
           type: array
@@ -421,6 +423,29 @@ components:
           enum:
             - public_request_pool
             - owner_approved_pool
+    ScanPublicOpenRequestsRequest:
+      type: object
+      required:
+        - action
+      additionalProperties: false
+      properties:
+        action:
+          const: scan_public_open_requests
+        supply:
+          $ref: "#/components/schemas/SupplySummaryInput"
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+        startingAfter:
+          type:
+            - string
+            - "null"
+        endingBefore:
+          type:
+            - string
+            - "null"
     RequestSummaryInput:
       type: object
       required:
@@ -715,7 +740,9 @@ components:
         - nonAuthority
       properties:
         kind:
-          const: boreal_agent_scan_result
+          enum:
+            - boreal_agent_scan_result
+            - boreal_agent_public_open_request_scan_result
         agent:
           type: object
           additionalProperties: true
@@ -781,6 +808,38 @@ components:
                 oneOf:
                   - $ref: "#/components/schemas/ApplicationPacket"
                   - type: "null"
+        publicRequestSource:
+          type: object
+          required:
+            - route
+            - bounded
+            - limit
+            - startingAfter
+            - endingBefore
+            - hasMore
+            - requestCount
+          properties:
+            route:
+              const: GET /api/requests?scope=public
+            bounded:
+              const: true
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 50
+            startingAfter:
+              type:
+                - string
+                - "null"
+            endingBefore:
+              type:
+                - string
+                - "null"
+            hasMore:
+              type: boolean
+            requestCount:
+              type: integer
+              minimum: 0
         scanner:
           type: object
           required:
@@ -807,6 +866,7 @@ components:
         - agentKey
         - workerKey
         - supplyBinding
+        - requestFlowContext
         - packetStatus
         - qualificationGate
         - durableWriteStatus
@@ -827,6 +887,8 @@ components:
         supplyBinding:
           type: object
           additionalProperties: true
+        requestFlowContext:
+          $ref: "#/components/schemas/RequestFlowContext"
         packetStatus:
           enum:
             - ready_for_submission_preflight
@@ -1036,6 +1098,7 @@ components:
             - requestedScopes
             - payloadSummaryRequired
             - requestFit
+            - requestFlowContext
           properties:
             schemaVersion:
               const: 1
@@ -1100,6 +1163,8 @@ components:
                   type: array
                   items:
                     type: string
+            requestFlowContext:
+              $ref: "#/components/schemas/RequestFlowContext"
         preflightRequest:
           type: object
           required:
@@ -1112,6 +1177,7 @@ components:
             - requestedScopes
             - payloadSummary
             - requestFit
+            - requestFlowContext
           properties:
             schemaVersion:
               const: 1
@@ -1180,6 +1246,8 @@ components:
                   type: array
                   items:
                     type: string
+            requestFlowContext:
+              $ref: "#/components/schemas/RequestFlowContext"
         routePolicyRecheck:
           type: object
           required:
@@ -1211,6 +1279,85 @@ components:
             type: string
         nonAuthority:
           type: string
+    RequestFlowContext:
+      type: object
+      additionalProperties: false
+      description: Route-facing request-flow guidance from request constraints. It is not permission, assignment, selected-Supply attachment, fulfillment start, artifact publication, payment authority, proof, or completion truth.
+      properties:
+        source:
+          enum:
+            - request_constraints
+        entryStageId:
+          oneOf:
+            - $ref: "#/components/schemas/RequestFlowStageId"
+            - type: "null"
+        cardKind:
+          oneOf:
+            - $ref: "#/components/schemas/RequestFlowCardKind"
+            - type: "null"
+        planStageIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequestFlowStageId"
+        nextActionIntents:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequestFlowActionIntent"
+        presetPlanStageIds:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequestFlowStageId"
+        presetPlanRequiredBeforeExecution:
+          type: array
+          items:
+            type: string
+        nextCanonicalBoundary:
+          enum:
+            - Request
+            - Commitment
+            - Fulfillment
+            - Artifact
+            - NewRequestFromArtifact
+        nonAuthority:
+          type: array
+          items:
+            type: string
+    RequestFlowStageId:
+      enum:
+        - request_intake
+        - draft_review
+        - path_planning
+        - commitment_review
+        - funding_authorization
+        - fulfillment_handoff
+        - execution_progress
+        - proof_submission
+        - owner_review
+        - settlement_closeout
+        - monitoring
+        - recovery
+        - reuse_export
+    RequestFlowCardKind:
+      enum:
+        - status_card
+        - decision_card
+        - action_card
+        - evidence_card
+        - handoff_card
+        - payment_card
+        - recovery_card
+        - adapter_mapping_card
+    RequestFlowActionIntent:
+      enum:
+        - create_request_draft
+        - propose_commitment
+        - authorize_funding
+        - attach_selected_supply
+        - start_governed_fulfillment
+        - submit_artifact
+        - monitor_activity
+        - create_private_run_request
+        - optimize_request_brief
     PreparedMutationCall:
       type: object
       required:

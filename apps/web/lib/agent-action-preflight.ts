@@ -31,6 +31,7 @@ export type AgentActionPreflightRequest = {
     selectedOutputKinds?: string[];
   };
   requestFlowContext?: {
+    source?: string;
     entryStageId?: string | null;
     cardKind?: string | null;
     planStageIds?: string[];
@@ -207,6 +208,7 @@ const requestFlowContextActionIds: readonly AgentActionId[] = [
   "submit_artifact",
   "optimize_request_brief",
 ];
+const requestFlowContextSources = ["request_constraints"] as const;
 const requestFlowActionIntents = [
   "create_request_draft",
   "propose_commitment",
@@ -303,6 +305,7 @@ function normalizeRequestFlowContext(value: unknown) {
   }
 
   return {
+    source: getString(value.source),
     entryStageId: getString(value.entryStageId),
     cardKind: getString(value.cardKind),
     planStageIds: normalizeStringSet(getStringArray(value.planStageIds)),
@@ -402,6 +405,13 @@ function validateRequestFlowContext({
       missingRequirements,
       "requestFlowContext used only with request-flow-aware actions",
     );
+  }
+
+  if (
+    requestFlowContext.source &&
+    !requestFlowContextSources.includes(requestFlowContext.source as never)
+  ) {
+    addMissing(missingRequirements, "requestFlowContext.source known");
   }
 
   if (

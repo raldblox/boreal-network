@@ -282,6 +282,8 @@
                 "payloadSummaryRequired",
                 "requestFitRequired",
                 "requestFitRequiredFields",
+                "requestFlowContextRequired",
+                "requestFlowContextRequiredFields",
                 "preflightRequestTemplateRequired",
                 "preflightRequestRequiredFields"
               ],
@@ -361,12 +363,43 @@
                     ]
                   }
                 },
+                "requestFlowContextRequired": {
+                  "const": true
+                },
+                "requestFlowContextRequiredFields": {
+                  "type": "array",
+                  "minItems": 9,
+                  "allOf": [
+                    { "contains": { "const": "source" } },
+                    { "contains": { "const": "entryStageId" } },
+                    { "contains": { "const": "cardKind" } },
+                    { "contains": { "const": "planStageIds" } },
+                    { "contains": { "const": "nextActionIntents" } },
+                    { "contains": { "const": "presetPlanStageIds" } },
+                    { "contains": { "const": "presetPlanRequiredBeforeExecution" } },
+                    { "contains": { "const": "nextCanonicalBoundary" } },
+                    { "contains": { "const": "nonAuthority" } }
+                  ],
+                  "items": {
+                    "enum": [
+                      "source",
+                      "entryStageId",
+                      "cardKind",
+                      "planStageIds",
+                      "nextActionIntents",
+                      "presetPlanStageIds",
+                      "presetPlanRequiredBeforeExecution",
+                      "nextCanonicalBoundary",
+                      "nonAuthority"
+                    ]
+                  }
+                },
                 "preflightRequestTemplateRequired": {
                   "const": true
                 },
                 "preflightRequestRequiredFields": {
                   "type": "array",
-                  "minItems": 9,
+                  "minItems": 10,
                   "allOf": [
                     { "contains": { "const": "schemaVersion" } },
                     { "contains": { "const": "actionId" } },
@@ -376,7 +409,8 @@
                     { "contains": { "const": "hasIdempotencyKey" } },
                     { "contains": { "const": "requestedScopes" } },
                     { "contains": { "const": "payloadSummary" } },
-                    { "contains": { "const": "requestFit" } }
+                    { "contains": { "const": "requestFit" } },
+                    { "contains": { "const": "requestFlowContext" } }
                   ],
                   "items": {
                     "enum": [
@@ -388,7 +422,8 @@
                       "hasIdempotencyKey",
                       "requestedScopes",
                       "payloadSummary",
-                      "requestFit"
+                      "requestFit",
+                      "requestFlowContext"
                     ]
                   }
                 }

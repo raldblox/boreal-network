@@ -9,6 +9,7 @@ const fixturePath = "fixtures/agent/in-house-worker-application-profile.sample.j
 const humanizerFailureFixturePath = "fixtures/agent/humanizer-failure-scenarios.sample.json";
 const decisionPath = "docs/decisions/0027-in-house-boreal-agents-scan-and-apply-as-workers.md";
 const standardPath = "standards/in-house-boreal-worker-application-lane.md";
+const borealAgentsOpenApiPath = "schemas/openapi/boreal-agents.openapi.yaml";
 
 const canonicalObjects = new Set([
   "Actor",
@@ -71,6 +72,29 @@ function validateSchema(schema, errors) {
     schema.$defs?.canonicalObject?.enum,
     [...canonicalObjects],
     "schema canonical object enum",
+    errors
+  );
+}
+
+function validateStaticOpenApi(openApiText, errors) {
+  assert(
+    openApiText.includes("scan_public_open_requests"),
+    "Boreal agents OpenAPI must expose scan_public_open_requests",
+    errors
+  );
+  assert(
+    openApiText.includes("ScanPublicOpenRequestsRequest"),
+    "Boreal agents OpenAPI must define ScanPublicOpenRequestsRequest",
+    errors
+  );
+  assert(
+    openApiText.includes("requestFlowContext"),
+    "Boreal agents OpenAPI must include requestFlowContext",
+    errors
+  );
+  assert(
+    openApiText.includes("RequestFlowContext"),
+    "Boreal agents OpenAPI must define RequestFlowContext",
     errors
   );
 }
@@ -385,6 +409,36 @@ function validateProfile(profile, errors) {
     "direct fulfillment preflight scopes",
     errors
   );
+  assert(
+    profile.applicationPacket?.submissionPreflight?.requiredInput
+      ?.requestFlowContextRequired === true,
+    "submission preflight must require requestFlowContext",
+    errors
+  );
+  includesAll(
+    profile.applicationPacket?.submissionPreflight?.requiredInput
+      ?.requestFlowContextRequiredFields,
+    [
+      "source",
+      "entryStageId",
+      "cardKind",
+      "planStageIds",
+      "nextActionIntents",
+      "presetPlanStageIds",
+      "presetPlanRequiredBeforeExecution",
+      "nextCanonicalBoundary",
+      "nonAuthority"
+    ],
+    "request-flow context required fields",
+    errors
+  );
+  includesAll(
+    profile.applicationPacket?.submissionPreflight?.requiredInput
+      ?.preflightRequestRequiredFields,
+    ["requestFit", "requestFlowContext"],
+    "preflight request required fields",
+    errors
+  );
 
   equalsSet(
     directLane?.canonicalWritesIfAuthorized,
@@ -585,11 +639,13 @@ const errors = [];
 const schema = readJson(schemaPath);
 const profile = readJson(fixturePath);
 const humanizerFailureFixtures = readJson(humanizerFailureFixturePath);
+const borealAgentsOpenApi = readText(borealAgentsOpenApiPath);
 
 validateSchema(schema, errors);
 validateProfile(profile, errors);
 validateHumanizerFailureFixtures(humanizerFailureFixtures, errors);
 validateDocs(profile, errors);
+validateStaticOpenApi(borealAgentsOpenApi, errors);
 
 if (errors.length > 0) {
   console.error("In-house worker application profile contract failed:");

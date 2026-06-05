@@ -1727,6 +1727,7 @@ Content-Type: application/json
     "selectedOutputKinds": ["video"]
   },
   "requestFlowContext": {
+    "source": "request_constraints",
     "entryStageId": "request_intake",
     "cardKind": "action_card",
     "planStageIds": [
@@ -4174,6 +4175,9 @@ export function buildOpenApiDiscoveryIndex() {
                 "Route-facing request-flow guidance from request constraints. Validation-only; not permission, assignment, payment authority, proof, or completion truth.",
               additionalProperties: false,
               properties: {
+                source: {
+                  enum: ["request_constraints"],
+                },
                 entryStageId: {
                   enum: [...requestFlowStageIds],
                 },

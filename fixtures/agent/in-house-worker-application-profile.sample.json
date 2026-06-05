@@ -604,6 +604,18 @@
           "selectedSupplyKinds",
           "selectedOutputKinds"
         ],
+        "requestFlowContextRequired": true,
+        "requestFlowContextRequiredFields": [
+          "source",
+          "entryStageId",
+          "cardKind",
+          "planStageIds",
+          "nextActionIntents",
+          "presetPlanStageIds",
+          "presetPlanRequiredBeforeExecution",
+          "nextCanonicalBoundary",
+          "nonAuthority"
+        ],
         "preflightRequestTemplateRequired": true,
         "preflightRequestRequiredFields": [
           "schemaVersion",
@@ -614,7 +626,8 @@
           "hasIdempotencyKey",
           "requestedScopes",
           "payloadSummary",
-          "requestFit"
+          "requestFit",
+          "requestFlowContext"
         ]
       },
       "routePolicyRecheck": {

@@ -792,6 +792,10 @@ async function main() {
       .requestFlowContext,
     publicPrepare.applicationPacket.requestFlowContext
   );
+  assert.equal(
+    publicPrepare.applicationPacket.requestFlowContext.source,
+    "request_constraints"
+  );
   assert.deepEqual(
     publicPrepare.applicationPacket.submissionPreflight.preflightRequest
       .requestFlowContext,

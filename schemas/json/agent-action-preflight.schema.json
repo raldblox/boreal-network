@@ -101,6 +101,9 @@
         },
         "requestFit": {
           "$ref": "#/$defs/requestFit"
+        },
+        "requestFlowContext": {
+          "$ref": "#/$defs/requestFlowContext"
         }
       }
     },
@@ -141,6 +144,132 @@
           }
         }
       }
+    },
+    "requestFlowContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Route-facing request-flow guidance copied from request constraints for validation-only preflight. It is not permission, worker assignment, Supply attachment, Fulfillment start, Artifact publication, payment authority, proof, or completion truth.",
+      "properties": {
+        "source": {
+          "enum": [
+            "request_constraints"
+          ]
+        },
+        "entryStageId": {
+          "anyOf": [
+            {
+              "$ref": "request-flow-stage-card-taxonomy.schema.json#/$defs/stageId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cardKind": {
+          "anyOf": [
+            {
+              "$ref": "request-flow-stage-card-taxonomy.schema.json#/$defs/cardKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "planStageIds": {
+          "type": "array",
+          "items": {
+            "$ref": "request-flow-stage-card-taxonomy.schema.json#/$defs/stageId"
+          }
+        },
+        "nextActionIntents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/requestFlowActionIntent"
+          }
+        },
+        "presetPlanStageIds": {
+          "type": "array",
+          "items": {
+            "$ref": "request-flow-stage-card-taxonomy.schema.json#/$defs/stageId"
+          }
+        },
+        "presetPlanRequiredBeforeExecution": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "nextCanonicalBoundary": {
+          "$ref": "#/$defs/requestFlowCanonicalBoundary"
+        },
+        "nonAuthority": {
+          "type": "array",
+          "allOf": [
+            {
+              "contains": {
+                "const": "request_flow_context_is_not_permission"
+              }
+            },
+            {
+              "contains": {
+                "const": "no_worker_assignment_from_context"
+              }
+            },
+            {
+              "contains": {
+                "const": "no_supply_attachment_from_context"
+              }
+            },
+            {
+              "contains": {
+                "const": "no_fulfillment_started_from_context"
+              }
+            },
+            {
+              "contains": {
+                "const": "no_artifact_published_from_context"
+              }
+            },
+            {
+              "contains": {
+                "const": "no_payment_authorized_from_context"
+              }
+            },
+            {
+              "contains": {
+                "const": "no_completion_proof_from_context"
+              }
+            }
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "requestFlowActionIntent": {
+      "enum": [
+        "create_request_draft",
+        "propose_commitment",
+        "authorize_funding",
+        "attach_selected_supply",
+        "start_governed_fulfillment",
+        "submit_artifact",
+        "monitor_activity",
+        "create_private_run_request",
+        "optimize_request_brief"
+      ]
+    },
+    "requestFlowCanonicalBoundary": {
+      "enum": [
+        "Request",
+        "Commitment",
+        "Fulfillment",
+        "Artifact",
+        "NewRequestFromArtifact"
+      ]
     },
     "preflightResponse": {
       "type": "object",
