@@ -300,7 +300,7 @@ Verify:
 - request creation with `preferredSupplyId` should return the draft with seeded `seeking` and worker-facing output defaults when those fields were still empty
 - owner-private preferred-supply draft seeding may also add truthful route-facing derived defaults such as candidate pool, route family, execution kind, payment mode, matching mode, and route summary
 - supply-started draft requests should not auto-open the raw request-object panel before the owner writes the worker prompt
-- home beta work cards should expose a typed taxonomy with `Request` as canonical root, listing kind, worker attachment state, next canonical boundary, and explicit in/out scope
+- home beta work cards should expose a typed taxonomy with `Request` as canonical root, listing kind, worker attachment state, next canonical boundary, explicit in/out scope, shared request-flow stage/card binding, actor modes, authority boundary, and next action intents
 - `pnpm web:test:request-flow-taxonomy` should keep the actor-neutral request-flow taxonomy schema, fixture, TypeScript profile, public schema registry, closed stage/card enums, authority gates, write/idempotency requirements, and n8n sidecar/lossiness rules aligned before drag-to-mutate or import/export behavior can be added
 - service request starter cards should show service path known but worker or `Supply` attachment pending until checkout or request routing, and must not count the worker slot as completed
 - service families should carry typed request defaults so Human Editorial Polish projects as `human_service` plus `documentation_support`, not generic `provider_capability` or live worker supply

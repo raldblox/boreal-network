@@ -184,9 +184,13 @@ Aligned:
 - selected service context is represented through `Supply` and request routing.
 - workflow-backed provider lanes stay below `Supply` and `Fulfillment`.
 
+Implemented:
+
+- beta work-card projections now bind service starters, open request listings, and reuse-ready listings to shared request-flow stage/card/action-intent metadata.
+
 Gap:
 
-- service cards do not yet declare request-flow stage/card metadata.
+- individual service family and preset plan definitions do not yet declare their own reusable request-flow stage/card metadata.
 - service-request starter copy must stay buyer-confirmed and must not become fake buyer-authored brief text.
 - exact plan links still need stable unlisted supply ids before full live target behavior.
 

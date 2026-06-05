@@ -102,6 +102,20 @@ for (const card of homeBetaWorkCards) {
   assert.equal(card.taxonomy.sourceKind, entry.source.kind);
   assert.ok(card.taxonomy.inScope.length > 0);
   assert.ok(card.taxonomy.outOfScope.length > 0);
+  assert.ok(card.taxonomy.requestFlow.doneHere.length > 0);
+  assert.ok(card.taxonomy.requestFlow.notDoneHere.length > 0);
+  assert.equal(
+    card.taxonomy.requestFlow.nextActionIntents.includes(
+      card.primaryAction.requestFlowActionIntentId,
+    ),
+    true,
+  );
+  assert.equal(
+    card.taxonomy.requestFlow.authorityBoundary.nonAuthority.includes(
+      "listing_card_is_not_permission",
+    ),
+    true,
+  );
   assert.equal(
     card.workroomHref,
     `/home/beta/${encodeURIComponent(entry.request.id)}`,
@@ -109,9 +123,19 @@ for (const card of homeBetaWorkCards) {
 
   if (entry.source.kind === "service_plan") {
     assert.equal(card.primaryAction.actionId, "start_service_request");
+    assert.equal(
+      card.primaryAction.requestFlowActionIntentId,
+      "create_request_draft",
+    );
     assert.equal(card.primaryAction.source, "showcaseServiceAdapter");
     assert.equal(card.primaryAction.method, "LOCAL_DRAFT");
     assert.equal(card.taxonomy.listingKind, "service_request_starter");
+    assert.equal(card.taxonomy.requestFlow.stageId, "request_intake");
+    assert.equal(card.taxonomy.requestFlow.cardKind, "action_card");
+    assert.equal(
+      card.taxonomy.requestFlow.authorityBoundary.permissionSource,
+      "owner_approval",
+    );
     assert.equal(
       card.taxonomy.workerAttachment,
       "service_path_known_supply_not_attached",
@@ -150,15 +174,35 @@ for (const card of homeBetaWorkCards) {
 
   if (entry.request.status === "open") {
     assert.equal(card.primaryAction.actionId, "apply_to_request");
+    assert.equal(
+      card.primaryAction.requestFlowActionIntentId,
+      "propose_commitment",
+    );
     assert.equal(card.primaryAction.label, "Prepare proposal");
+    assert.equal(card.taxonomy.requestFlow.stageId, "commitment_review");
+    assert.equal(card.taxonomy.requestFlow.cardKind, "action_card");
+    assert.equal(
+      card.taxonomy.requestFlow.authorityBoundary.permissionSource,
+      "agentActionPolicy",
+    );
     assert.equal(card.taxonomy.nextCanonicalBoundary, "Commitment");
   }
 
   if (entry.request.status === "completed") {
     assert.equal(card.primaryAction.actionId, "run_public_solution");
+    assert.equal(
+      card.primaryAction.requestFlowActionIntentId,
+      "create_private_run_request",
+    );
     assert.equal(card.primaryAction.label, "Prepare paid run");
     assert.equal(card.filters.includes("reuse-ready"), true);
     assert.equal(card.taxonomy.listingKind, "reuse_ready_listing");
+    assert.equal(card.taxonomy.requestFlow.stageId, "reuse_export");
+    assert.equal(card.taxonomy.requestFlow.cardKind, "action_card");
+    assert.equal(
+      card.taxonomy.requestFlow.authorityBoundary.permissionSource,
+      "account_session",
+    );
     assert.equal(card.taxonomy.nextCanonicalBoundary, "NewRequestFromArtifact");
   }
 }

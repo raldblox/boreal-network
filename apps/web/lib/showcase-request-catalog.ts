@@ -9,6 +9,12 @@ import {
   type RequestSeeking,
   type RequestStatus,
 } from "./request";
+import type {
+  RequestFlowActorMode,
+  RequestFlowAuthorityBoundary,
+  RequestFlowCardKind,
+  RequestFlowStageId,
+} from "./request-flow-taxonomy";
 import {
   type BorealServiceFamily,
   type BorealServicePlan,
@@ -65,6 +71,25 @@ export type HomeBetaNextCanonicalBoundary =
   | "Artifact"
   | "NewRequestFromArtifact";
 
+export type HomeBetaRequestFlowActionIntentId =
+  | "inspect_public_request"
+  | "create_request_draft"
+  | "propose_commitment"
+  | "submit_artifact"
+  | "monitor_activity"
+  | "create_private_run_request"
+  | "optimize_request_brief";
+
+export type HomeBetaRequestFlowTaxonomyBinding = {
+  stageId: RequestFlowStageId;
+  cardKind: RequestFlowCardKind;
+  actorModes: RequestFlowActorMode[];
+  authorityBoundary: RequestFlowAuthorityBoundary;
+  doneHere: readonly string[];
+  notDoneHere: readonly string[];
+  nextActionIntents: HomeBetaRequestFlowActionIntentId[];
+};
+
 export type HomeBetaWorkCardTaxonomy = {
   canonicalRoot: "Request";
   sourceKind: ShowcaseRequestSourceKind;
@@ -73,6 +98,7 @@ export type HomeBetaWorkCardTaxonomy = {
   workerAttachment: HomeBetaWorkerAttachmentState;
   workerAttachmentLabel: string;
   nextCanonicalBoundary: HomeBetaNextCanonicalBoundary;
+  requestFlow: HomeBetaRequestFlowTaxonomyBinding;
   inScope: readonly string[];
   outOfScope: readonly string[];
 };
@@ -103,6 +129,7 @@ export type HomeBetaPrimaryAction = {
   href: string;
   label: string;
   method: "GET" | "POST" | "LOCAL_DRAFT";
+  requestFlowActionIntentId: HomeBetaRequestFlowActionIntentId;
   source: "agentActionCardHints" | "showcaseServiceAdapter";
 };
 
@@ -203,6 +230,15 @@ const actorSupplyLabels: Record<string, string> = {
   team_service: "team service",
   video_generation: "video generation",
 };
+
+const listingTaxonomyNonAuthority = [
+  "listing_card_is_not_permission",
+  "no_worker_assignment_from_listing",
+  "no_commitment_created_from_listing",
+  "no_fulfillment_started_from_listing",
+  "no_payment_authorized_from_listing",
+  "no_completion_proof_from_listing",
+];
 
 function serviceRequestHref({
   familyKey,
@@ -983,6 +1019,17 @@ function deriveWorkCardTaxonomy(
   entry: ShowcaseRequestCatalogEntry,
 ): HomeBetaWorkCardTaxonomy {
   if (entry.source.kind === "service_plan") {
+    const inScope = [
+      "start a buyer-owned Request draft",
+      "preserve selected service family and plan metadata",
+      "collect missing brief and checkout inputs",
+    ];
+    const outOfScope = [
+      "not a published Supply listing",
+      "no worker assignment from the card",
+      "no Fulfillment or Artifact exists before request routing",
+    ];
+
     return {
       canonicalRoot: "Request",
       sourceKind: entry.source.kind,
@@ -991,20 +1038,40 @@ function deriveWorkCardTaxonomy(
       workerAttachment: "service_path_known_supply_not_attached",
       workerAttachmentLabel: "No worker attached yet",
       nextCanonicalBoundary: "Request",
-      inScope: [
-        "start a buyer-owned Request draft",
-        "preserve selected service family and plan metadata",
-        "collect missing brief and checkout inputs",
-      ],
-      outOfScope: [
-        "not a published Supply listing",
-        "no worker assignment from the card",
-        "no Fulfillment or Artifact exists before request routing",
-      ],
+      requestFlow: {
+        stageId: "request_intake",
+        cardKind: "action_card",
+        actorModes: deriveRequestFlowActorModes(entry.request),
+        authorityBoundary: {
+          permissionSource: "owner_approval",
+          requiredGates: [
+            "buyer chooses service starter",
+            "owner approves draft before opening",
+            "checkout before execution",
+          ],
+          nonAuthority: [...listingTaxonomyNonAuthority],
+        },
+        doneHere: inScope,
+        notDoneHere: outOfScope,
+        nextActionIntents: ["create_request_draft"],
+      },
+      inScope,
+      outOfScope,
     };
   }
 
   if (entry.source.kind === "reuse_ready_request") {
+    const inScope = [
+      "inspect accepted public artifact",
+      "prepare a new private run request",
+      "preserve source artifact provenance",
+    ];
+    const outOfScope = [
+      "do not mutate the original completed Request",
+      "do not treat reuse as free execution",
+      "do not skip credit or request creation gates",
+    ];
+
     return {
       canonicalRoot: "Request",
       sourceKind: entry.source.kind,
@@ -1013,16 +1080,28 @@ function deriveWorkCardTaxonomy(
       workerAttachment: "completed_artifact_available",
       workerAttachmentLabel: "Accepted artifact available",
       nextCanonicalBoundary: "NewRequestFromArtifact",
-      inScope: [
-        "inspect accepted public artifact",
-        "prepare a new private run request",
-        "preserve source artifact provenance",
-      ],
-      outOfScope: [
-        "do not mutate the original completed Request",
-        "do not treat reuse as free execution",
-        "do not skip credit or request creation gates",
-      ],
+      requestFlow: {
+        stageId: "reuse_export",
+        cardKind: "action_card",
+        actorModes: deriveRequestFlowActorModes(entry.request),
+        authorityBoundary: {
+          permissionSource: "account_session",
+          requiredGates: [
+            "buyer account session",
+            "payment or credit authority",
+            "new private Request from accepted Artifact",
+          ],
+          nonAuthority: [
+            ...listingTaxonomyNonAuthority,
+            "source_request_not_mutated",
+          ],
+        },
+        doneHere: inScope,
+        notDoneHere: outOfScope,
+        nextActionIntents: ["create_private_run_request"],
+      },
+      inScope,
+      outOfScope,
     };
   }
 
@@ -1040,6 +1119,19 @@ function deriveWorkCardTaxonomy(
     entry.request.status === "in_progress" ||
     entry.request.status === "waiting_for_owner" ||
     entry.request.status === "delivered";
+  const inScope = [
+    "inspect public Request projection",
+    "prepare a worker application or response",
+    "preserve Request as the durable work thread",
+  ];
+  const outOfScope = [
+    "no worker assignment from listing",
+    "no hidden owner approval",
+    "no Fulfillment before Commitment or owner-private policy",
+  ];
+  const stageId = hasActiveWorkerLane
+    ? "fulfillment_handoff"
+    : "commitment_review";
 
   return {
     canonicalRoot: "Request",
@@ -1053,17 +1145,70 @@ function deriveWorkCardTaxonomy(
       ? "Worker lane active"
       : "Application needed",
     nextCanonicalBoundary: hasActiveWorkerLane ? "Artifact" : "Commitment",
-    inScope: [
-      "inspect public Request projection",
-      "prepare a worker application or response",
-      "preserve Request as the durable work thread",
-    ],
-    outOfScope: [
-      "no worker assignment from listing",
-      "no hidden owner approval",
-      "no Fulfillment before Commitment or owner-private policy",
-    ],
+    requestFlow: {
+      stageId,
+      cardKind: hasActiveWorkerLane ? "handoff_card" : "action_card",
+      actorModes: deriveRequestFlowActorModes(entry.request),
+      authorityBoundary: {
+        permissionSource: "agentActionPolicy",
+        requiredGates: hasActiveWorkerLane
+          ? ["active Commitment or Fulfillment policy", "artifact route policy"]
+          : [
+              "represented actor approval",
+              "agentActionPolicy allows apply_to_request",
+              "idempotency key for Commitment writes",
+            ],
+        nonAuthority: [...listingTaxonomyNonAuthority],
+      },
+      doneHere: inScope,
+      notDoneHere: outOfScope,
+      nextActionIntents: hasActiveWorkerLane
+        ? ["submit_artifact", "monitor_activity"]
+        : ["propose_commitment"],
+    },
+    inScope,
+    outOfScope,
   };
+}
+
+function deriveRequestFlowActorModes(
+  request: Pick<PublicRequestPoolEntry, "seeking">
+): RequestFlowActorMode[] {
+  const actorKinds = (request.seeking.actorKinds ?? []).map((kind) =>
+    kind.toLowerCase()
+  );
+  const modes = new Set<RequestFlowActorMode>();
+
+  if (
+    actorKinds.some(
+      (kind) => kind.includes("human") || kind.includes("organization")
+    )
+  ) {
+    modes.add("human");
+  }
+
+  if (
+    actorKinds.some(
+      (kind) =>
+        kind.includes("agent") ||
+        kind.includes("tool") ||
+        kind.includes("runtime")
+    )
+  ) {
+    modes.add("agent");
+  }
+
+  if (
+    actorKinds.some((kind) => kind.includes("runtime") || kind.includes("tool"))
+  ) {
+    modes.add("system");
+  }
+
+  if (modes.size > 1) {
+    modes.add("hybrid");
+  }
+
+  return modes.size > 0 ? Array.from(modes) : ["human"];
 }
 
 function deriveWorkCardFilters(
@@ -1124,6 +1269,7 @@ function selectPrimaryAction(
       }),
       label: "Start service request",
       method: "LOCAL_DRAFT",
+      requestFlowActionIntentId: "create_request_draft",
       source: "showcaseServiceAdapter",
     };
   }
@@ -1142,6 +1288,7 @@ function selectPrimaryAction(
       }),
       label: "Open request detail",
       method: "GET",
+      requestFlowActionIntentId: "inspect_public_request",
       source: "agentActionCardHints",
     };
   }
@@ -1154,8 +1301,30 @@ function selectPrimaryAction(
     }),
     label: preferredHint.ctaLabel,
     method: preferredHint.method,
+    requestFlowActionIntentId: mapRequestFlowActionIntentId(
+      preferredHint.actionId
+    ),
     source: "agentActionCardHints",
   };
+}
+
+function mapRequestFlowActionIntentId(
+  actionId: RequestAgentActionAffordanceId
+): HomeBetaRequestFlowActionIntentId {
+  switch (actionId) {
+    case "inspect_public_requests":
+      return "inspect_public_request";
+    case "apply_to_request":
+      return "propose_commitment";
+    case "submit_artifact":
+      return "submit_artifact";
+    case "monitor_request":
+      return "monitor_activity";
+    case "run_public_solution":
+      return "create_private_run_request";
+    case "optimize_request_brief":
+      return "optimize_request_brief";
+  }
 }
 
 function getPreferredRequestActionId(
