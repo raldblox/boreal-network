@@ -36,7 +36,7 @@ type ExpectedExtraction = {
     supplyKinds: string[];
   };
   outputKinds: string[];
-  constraints: Record<string, string>;
+  constraints: Record<string, string | string[]>;
 };
 
 type ExpectedWorkerEligibility = {
@@ -104,6 +104,38 @@ for (const testCase of cases) {
     serviceStartedPatch.brief?.constraints?.serviceRouteFamily,
     testCase.expectedExtraction.constraints.serviceRouteFamily,
     `${testCase.scenarioId} serviceRouteFamily`,
+  );
+  assert.equal(
+    serviceStartedPatch.brief?.constraints?.requestFlowEntryStageId,
+    testCase.expectedExtraction.constraints.requestFlowEntryStageId,
+    `${testCase.scenarioId} requestFlowEntryStageId`,
+  );
+  assert.equal(
+    serviceStartedPatch.brief?.constraints?.requestFlowCardKind,
+    testCase.expectedExtraction.constraints.requestFlowCardKind,
+    `${testCase.scenarioId} requestFlowCardKind`,
+  );
+  assert.deepEqual(
+    serviceStartedPatch.brief?.constraints?.requestFlowPlanStageIds,
+    testCase.expectedExtraction.constraints.requestFlowPlanStageIds,
+    `${testCase.scenarioId} requestFlowPlanStageIds`,
+  );
+  assert.deepEqual(
+    serviceStartedPatch.brief?.constraints?.requestFlowNextActionIntents,
+    testCase.expectedExtraction.constraints.requestFlowNextActionIntents,
+    `${testCase.scenarioId} requestFlowNextActionIntents`,
+  );
+  assert.deepEqual(
+    serviceStartedPatch.brief?.constraints?.requestFlowPresetPlanStageIds,
+    testCase.expectedExtraction.constraints.requestFlowPresetPlanStageIds,
+    `${testCase.scenarioId} requestFlowPresetPlanStageIds`,
+  );
+  assert.deepEqual(
+    serviceStartedPatch.brief?.constraints
+      ?.requestFlowPresetPlanRequiredBeforeExecution,
+    testCase.expectedExtraction.constraints
+      .requestFlowPresetPlanRequiredBeforeExecution,
+    `${testCase.scenarioId} requestFlowPresetPlanRequiredBeforeExecution`,
   );
   assert.equal(
     serviceStartedPatch.routing?.preferredSupplyId,

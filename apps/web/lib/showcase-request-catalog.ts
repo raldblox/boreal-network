@@ -433,6 +433,8 @@ function serviceCatalogEntries(): ShowcaseRequestCatalogEntry[] {
               family.requestDefaults.requestFlow.nextActionIntents,
             requestFlowPlanStageIds:
               family.requestDefaults.requestFlow.planStageIds,
+            requestFlowPresetPlanRequiredBeforeExecution:
+              plan.requestFlow.requiredBeforeExecution,
             requestFlowPresetPlanStageIds: plan.requestFlow.stageIds,
             serviceAttachmentMode: family.requestDefaults.attachmentMode,
             serviceFamilyKey: family.familyKey,

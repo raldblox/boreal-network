@@ -20,7 +20,29 @@
           "servicePlanKey": "publish-polish",
           "serviceAttachmentMode": "request_starter_no_supply_attached",
           "serviceExecutionKind": "hybrid_human_agent",
-          "serviceRouteFamily": "direct_specialist"
+          "serviceRouteFamily": "direct_specialist",
+          "requestFlowEntryStageId": "request_intake",
+          "requestFlowCardKind": "action_card",
+          "requestFlowPlanStageIds": [
+            "request_intake",
+            "path_planning",
+            "funding_authorization",
+            "fulfillment_handoff",
+            "proof_submission"
+          ],
+          "requestFlowNextActionIntents": ["create_request_draft"],
+          "requestFlowPresetPlanStageIds": [
+            "path_planning",
+            "funding_authorization",
+            "fulfillment_handoff",
+            "proof_submission"
+          ],
+          "requestFlowPresetPlanRequiredBeforeExecution": [
+            "buyer-specific brief fields are complete",
+            "checkout or payment authority is recorded",
+            "selected Supply passes route policy",
+            "Commitment or owner-private fulfillment gate succeeds"
+          ]
         }
       },
       "expectedWorkerEligibility": {
@@ -50,7 +72,29 @@
           "servicePlanKey": "sales-reply-pack",
           "serviceAttachmentMode": "request_starter_no_supply_attached",
           "serviceExecutionKind": "provider_api",
-          "serviceRouteFamily": "direct_specialist"
+          "serviceRouteFamily": "direct_specialist",
+          "requestFlowEntryStageId": "request_intake",
+          "requestFlowCardKind": "action_card",
+          "requestFlowPlanStageIds": [
+            "request_intake",
+            "path_planning",
+            "funding_authorization",
+            "fulfillment_handoff",
+            "proof_submission"
+          ],
+          "requestFlowNextActionIntents": ["create_request_draft"],
+          "requestFlowPresetPlanStageIds": [
+            "path_planning",
+            "funding_authorization",
+            "fulfillment_handoff",
+            "proof_submission"
+          ],
+          "requestFlowPresetPlanRequiredBeforeExecution": [
+            "buyer-specific brief fields are complete",
+            "checkout or payment authority is recorded",
+            "selected Supply passes route policy",
+            "Commitment or owner-private fulfillment gate succeeds"
+          ]
         }
       },
       "expectedWorkerEligibility": {
@@ -80,7 +124,29 @@
           "servicePlanKey": "starter-call",
           "serviceAttachmentMode": "request_starter_no_supply_attached",
           "serviceExecutionKind": "provider_api",
-          "serviceRouteFamily": "direct_specialist"
+          "serviceRouteFamily": "direct_specialist",
+          "requestFlowEntryStageId": "request_intake",
+          "requestFlowCardKind": "action_card",
+          "requestFlowPlanStageIds": [
+            "request_intake",
+            "path_planning",
+            "funding_authorization",
+            "fulfillment_handoff",
+            "proof_submission"
+          ],
+          "requestFlowNextActionIntents": ["create_request_draft"],
+          "requestFlowPresetPlanStageIds": [
+            "path_planning",
+            "funding_authorization",
+            "fulfillment_handoff",
+            "proof_submission"
+          ],
+          "requestFlowPresetPlanRequiredBeforeExecution": [
+            "buyer-specific brief fields are complete",
+            "checkout or payment authority is recorded",
+            "selected Supply passes route policy",
+            "Commitment or owner-private fulfillment gate succeeds"
+          ]
         }
       },
       "expectedWorkerEligibility": {

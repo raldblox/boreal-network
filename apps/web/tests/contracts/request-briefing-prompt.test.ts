@@ -20,6 +20,12 @@ for (const required of [
   "servicefamilykey",
   "serviceplankey",
   "serviceattachmentmode",
+  "requestflowentrystageid",
+  "requestflowcardkind",
+  "requestflowplanstageids",
+  "requestflownextactionintents",
+  "requestflowpresetplanstageids",
+  "requestflowpresetplanrequiredbeforeexecution",
   "request_starter_no_supply_attached",
   "requireshumanpresence",
   "requireslocalaccess",
@@ -68,6 +74,7 @@ assert.match(preDraftPrompt, /not field evidence/);
 assert.match(preDraftPrompt, /human or field-capable/);
 assert.match(preDraftPrompt, /service routing context/);
 assert.match(preDraftPrompt, /route-facing starter defaults/);
+assert.match(preDraftPrompt, /stage\/card\/action/);
 assert.match(preDraftPrompt, /not treat it as worker assignment or proof/);
 
 console.log("Request briefing prompt scanner-tag contract passed.");

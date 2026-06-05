@@ -74,6 +74,16 @@ assert.deepEqual(
   humanEditorialEntry.request.brief.constraints?.requestFlowNextActionIntents,
   ["create_request_draft"],
 );
+assert.deepEqual(
+  humanEditorialEntry.request.brief.constraints
+    ?.requestFlowPresetPlanRequiredBeforeExecution,
+  [
+    "buyer-specific brief fields are complete",
+    "checkout or payment authority is recorded",
+    "selected Supply passes route policy",
+    "Commitment or owner-private fulfillment gate succeeds",
+  ],
+);
 
 for (const family of borealServiceFamilies) {
   const requestFlow = family.requestDefaults.requestFlow;

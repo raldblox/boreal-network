@@ -13,6 +13,16 @@ import type {
   RequestPatch,
   RequestSupplyKind,
 } from "@/lib/request";
+import {
+  requestFlowCardKinds,
+  requestFlowStageIds,
+  type RequestFlowCardKind,
+  type RequestFlowStageId,
+} from "@/lib/request-flow-taxonomy";
+
+const serviceStarterActionIntents = ["create_request_draft"] as const;
+
+type ServiceStarterActionIntent = (typeof serviceStarterActionIntents)[number];
 
 type ServiceRoutingContextDefaults = {
   serviceFamilyKey?: string;
@@ -23,6 +33,12 @@ type ServiceRoutingContextDefaults = {
   outputKinds: RequestOutputKind[];
   serviceExecutionKind?: string;
   serviceRouteFamily?: string;
+  requestFlowEntryStageId?: RequestFlowStageId;
+  requestFlowCardKind?: RequestFlowCardKind;
+  requestFlowPlanStageIds: RequestFlowStageId[];
+  requestFlowNextActionIntents: ServiceStarterActionIntent[];
+  requestFlowPresetPlanStageIds: RequestFlowStageId[];
+  requestFlowPresetPlanRequiredBeforeExecution: string[];
 };
 
 export function hydrateServiceRoutingContextDefaults(
@@ -51,6 +67,33 @@ export function hydrateServiceRoutingContextDefaults(
       : {}),
     ...(serviceContext.serviceRouteFamily
       ? { serviceRouteFamily: serviceContext.serviceRouteFamily }
+      : {}),
+    ...(serviceContext.requestFlowEntryStageId
+      ? { requestFlowEntryStageId: serviceContext.requestFlowEntryStageId }
+      : {}),
+    ...(serviceContext.requestFlowCardKind
+      ? { requestFlowCardKind: serviceContext.requestFlowCardKind }
+      : {}),
+    ...(serviceContext.requestFlowPlanStageIds.length > 0
+      ? { requestFlowPlanStageIds: serviceContext.requestFlowPlanStageIds }
+      : {}),
+    ...(serviceContext.requestFlowNextActionIntents.length > 0
+      ? {
+          requestFlowNextActionIntents:
+            serviceContext.requestFlowNextActionIntents,
+        }
+      : {}),
+    ...(serviceContext.requestFlowPresetPlanStageIds.length > 0
+      ? {
+          requestFlowPresetPlanStageIds:
+            serviceContext.requestFlowPresetPlanStageIds,
+        }
+      : {}),
+    ...(serviceContext.requestFlowPresetPlanRequiredBeforeExecution.length > 0
+      ? {
+          requestFlowPresetPlanRequiredBeforeExecution:
+            serviceContext.requestFlowPresetPlanRequiredBeforeExecution,
+        }
       : {}),
   };
   const outputKinds = mergeUniqueValues(
@@ -135,6 +178,29 @@ function parseServiceRoutingContext(
     values.get("service_family"),
   );
   const servicePlanKey = normalizeServiceContextText(values.get("service_plan"));
+  const requestFlowEntryStageId = normalizeFingerprintValue(
+    values.get("request_flow_entry_stage"),
+    [...requestFlowStageIds],
+  );
+  const requestFlowCardKind = normalizeFingerprintValue(
+    values.get("request_flow_card_kind"),
+    [...requestFlowCardKinds],
+  );
+  const requestFlowPlanStageIds = normalizeFingerprintArray(
+    splitServiceContextList(values.get("request_flow_plan_stages")),
+    [...requestFlowStageIds],
+  );
+  const requestFlowNextActionIntents = normalizeFingerprintArray(
+    splitServiceContextList(values.get("request_flow_next_intents")),
+    [...serviceStarterActionIntents],
+  );
+  const requestFlowPresetPlanStageIds = normalizeFingerprintArray(
+    splitServiceContextList(values.get("preset_plan_stages")),
+    [...requestFlowStageIds],
+  );
+  const requestFlowPresetPlanRequiredBeforeExecution = normalizeStringList(
+    splitServiceContextList(values.get("preset_plan_requires_before_execution")),
+  );
 
   if (
     !serviceFamilyKey &&
@@ -144,7 +210,13 @@ function parseServiceRoutingContext(
     supplyKinds.length === 0 &&
     outputKinds.length === 0 &&
     !serviceExecutionKind &&
-    !serviceRouteFamily
+    !serviceRouteFamily &&
+    !requestFlowEntryStageId &&
+    !requestFlowCardKind &&
+    requestFlowPlanStageIds.length === 0 &&
+    requestFlowNextActionIntents.length === 0 &&
+    requestFlowPresetPlanStageIds.length === 0 &&
+    requestFlowPresetPlanRequiredBeforeExecution.length === 0
   ) {
     return null;
   }
@@ -158,6 +230,12 @@ function parseServiceRoutingContext(
     outputKinds,
     ...(serviceExecutionKind ? { serviceExecutionKind } : {}),
     ...(serviceRouteFamily ? { serviceRouteFamily } : {}),
+    ...(requestFlowEntryStageId ? { requestFlowEntryStageId } : {}),
+    ...(requestFlowCardKind ? { requestFlowCardKind } : {}),
+    requestFlowPlanStageIds,
+    requestFlowNextActionIntents,
+    requestFlowPresetPlanStageIds,
+    requestFlowPresetPlanRequiredBeforeExecution,
   };
 }
 
@@ -183,16 +261,6 @@ function mergeUniqueValues<T extends string>(
   secondValues: readonly T[],
 ): T[] {
   return Array.from(new Set([...firstValues, ...secondValues]));
-}
-
-function normalizeMaybeStringList(
-  value: string | string[] | undefined,
-): string[] {
-  if (typeof value === "string") {
-    return normalizeStringList([value]);
-  }
-
-  return normalizeStringList(value);
 }
 
 function normalizeStringList(values: string[] | undefined): string[] {
