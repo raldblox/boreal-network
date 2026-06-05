@@ -42,7 +42,7 @@ No reviewed surface replaces `Request`, `Supply`, `Commitment`, `Fulfillment`, `
 The main gaps are:
 
 - some projections still use local names such as `task` and `workflow` without a shared taxonomy binding
-- service, workflow, stepper, task-board, and matching-lab cards do not yet all declare `stageId`, `cardKind`, actor modes, authority, in/out, done-here, not-done-here, or next actions
+- workflow, stepper, task-board, and matching-lab cards do not yet all declare `stageId`, `cardKind`, actor modes, authority, in/out, done-here, not-done-here, or next actions
 - drag actions are UI selection hints, not first-class `ParticipantAction` intents
 - n8n import/export support does not yet emit a Boreal request-flow sidecar
 - some older standards still present the n8n repair SKU as the first shipped supply, while current strategy and code point at Runway-backed first-party service lanes
@@ -187,16 +187,16 @@ Aligned:
 Implemented:
 
 - beta work-card projections now bind service starters, open request listings, and reuse-ready listings to shared request-flow stage/card/action-intent metadata.
+- service family and preset plan definitions now declare reusable request-flow entry, plan-stage, authority, done-here, not-done-here, pre-execution, and action-intent metadata.
 
 Gap:
 
-- individual service family and preset plan definitions do not yet declare their own reusable request-flow stage/card metadata.
 - service-request starter copy must stay buyer-confirmed and must not become fake buyer-authored brief text.
 - exact plan links still need stable unlisted supply ids before full live target behavior.
 
 Required next step:
 
-- each service family and preset plan should declare the request-flow stages it can enter: `request_intake`, `draft_review`, `path_planning`, `commitment_review`, `funding_authorization`, and `fulfillment_handoff`.
+- stable service plan links should resolve first-party unlisted supply ids and preserve buyer-confirmed copy boundaries before full live target behavior.
 
 ### Workflow Packs And n8n Adapter
 

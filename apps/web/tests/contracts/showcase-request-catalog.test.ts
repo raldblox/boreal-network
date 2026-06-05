@@ -3,6 +3,10 @@ import {
   homeBetaWorkCards,
   showcaseRequestCatalog,
 } from "@/lib/showcase-request-catalog";
+import {
+  borealServiceFamilies,
+  buildServiceRequestStarterText,
+} from "@/lib/service-catalog";
 
 const uuidLikePattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -52,8 +56,82 @@ assert.match(
 );
 assert.match(
   humanEditorialEntry.request.brief.body ?? "",
+  /Request-flow entry stage: request_intake/,
+);
+assert.match(
+  humanEditorialEntry.request.brief.body ?? "",
+  /Request-flow next intents: create_request_draft/,
+);
+assert.match(
+  humanEditorialEntry.request.brief.body ?? "",
   /does not assign a worker, attach Supply, start Fulfillment/,
 );
+assert.equal(
+  humanEditorialEntry.request.brief.constraints?.requestFlowEntryStageId,
+  "request_intake",
+);
+assert.deepEqual(
+  humanEditorialEntry.request.brief.constraints?.requestFlowNextActionIntents,
+  ["create_request_draft"],
+);
+
+for (const family of borealServiceFamilies) {
+  const requestFlow = family.requestDefaults.requestFlow;
+  assert.equal(requestFlow.entryStageId, "request_intake");
+  assert.equal(requestFlow.cardKind, "action_card");
+  assert.equal(requestFlow.nextActionIntents.includes("create_request_draft"), true);
+  assert.equal(requestFlow.planStageIds.includes("funding_authorization"), true);
+  assert.equal(requestFlow.planStageIds.includes("fulfillment_handoff"), true);
+  assert.equal(requestFlow.planStageIds.includes("proof_submission"), true);
+  assert.equal(
+    requestFlow.authorityBoundary.permissionSource,
+    "owner_approval",
+  );
+  assert.equal(
+    requestFlow.authorityBoundary.nonAuthority.includes(
+      "no_worker_assignment_from_listing",
+    ),
+    true,
+  );
+  assert.equal(
+    requestFlow.authorityBoundary.nonAuthority.includes(
+      "no_fulfillment_started_from_listing",
+    ),
+    true,
+  );
+  assert.equal(
+    requestFlow.notDoneHere.includes("publish Artifact"),
+    true,
+  );
+
+  for (const plan of family.plans) {
+    assert.equal(plan.requestFlow.cardKind, "status_card");
+    assert.equal(plan.requestFlow.stageIds.includes("path_planning"), true);
+    assert.equal(
+      plan.requestFlow.stageIds.includes("funding_authorization"),
+      true,
+    );
+    assert.equal(
+      plan.requestFlow.stageIds.includes("fulfillment_handoff"),
+      true,
+    );
+    assert.equal(plan.requestFlow.stageIds.includes("proof_submission"), true);
+    assert.equal(
+      plan.requestFlow.plannedActionIntents.includes("authorize_funding"),
+      true,
+    );
+    assert.equal(
+      plan.requestFlow.requiredBeforeExecution.includes(
+        "selected Supply passes route policy",
+      ),
+      true,
+    );
+
+    const starterText = buildServiceRequestStarterText({ family, plan });
+    assert.match(starterText, /Request-flow plan stages:/);
+    assert.match(starterText, /Preset plan requires before execution:/);
+  }
+}
 
 const ids = new Set<string>();
 const catalogKeys = new Set<string>();

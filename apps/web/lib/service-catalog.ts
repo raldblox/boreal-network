@@ -7,6 +7,40 @@ import type {
   BorealRequestRouteFamily,
   BorealSupplyKind,
 } from "./matching-fingerprints";
+import type {
+  RequestFlowActorMode,
+  RequestFlowAuthorityBoundary,
+  RequestFlowCardKind,
+  RequestFlowStageId,
+} from "./request-flow-taxonomy";
+
+export type BorealServiceStarterActionIntentId = "create_request_draft";
+
+export type BorealServicePlanActionIntentId =
+  | "authorize_funding"
+  | "attach_selected_supply"
+  | "start_governed_fulfillment"
+  | "submit_artifact";
+
+export type BorealServiceRequestFlowMetadata = {
+  actorModes: readonly RequestFlowActorMode[];
+  authorityBoundary: RequestFlowAuthorityBoundary;
+  cardKind: RequestFlowCardKind;
+  doneHere: readonly string[];
+  entryStageId: RequestFlowStageId;
+  notDoneHere: readonly string[];
+  nextActionIntents: readonly BorealServiceStarterActionIntentId[];
+  planStageIds: readonly RequestFlowStageId[];
+};
+
+export type BorealServicePlanRequestFlowMetadata = {
+  cardKind: RequestFlowCardKind;
+  doneHere: readonly string[];
+  notDoneHere: readonly string[];
+  plannedActionIntents: readonly BorealServicePlanActionIntentId[];
+  requiredBeforeExecution: readonly string[];
+  stageIds: readonly RequestFlowStageId[];
+};
 
 export type BorealServicePlan = {
   planKey: string;
@@ -15,6 +49,7 @@ export type BorealServicePlan = {
   turnaround: string;
   summary: string;
   included: string[];
+  requestFlow: BorealServicePlanRequestFlowMetadata;
   serviceRequestStarter: string;
 };
 
@@ -35,6 +70,7 @@ export type BorealServiceRequestDefaults = {
   matchingMode: BorealRequestMatchingMode;
   outputKinds: BorealOutputKind[];
   paymentMode: BorealRequestPaymentMode;
+  requestFlow: BorealServiceRequestFlowMetadata;
   routeFamily: BorealRequestRouteFamily;
   supplyKinds: BorealSupplyKind[];
 };
@@ -54,6 +90,104 @@ export type BorealServiceFamily = {
   requestDefaults: BorealServiceRequestDefaults;
   plans: BorealServicePlan[];
 };
+
+const serviceRequestFlowPlanStageIds = [
+  "request_intake",
+  "path_planning",
+  "funding_authorization",
+  "fulfillment_handoff",
+  "proof_submission",
+] as const satisfies readonly RequestFlowStageId[];
+
+const serviceRequestStarterNonAuthority = [
+  "listing_card_is_not_permission",
+  "request_starter_is_not_supply",
+  "no_worker_assignment_from_listing",
+  "no_supply_attachment_from_listing",
+  "no_commitment_created_from_listing",
+  "no_fulfillment_started_from_listing",
+  "no_payment_authorized_from_listing",
+  "no_artifact_published_from_listing",
+  "no_completion_proof_from_listing",
+] as const;
+
+const serviceRequestStarterDoneHere = [
+  "start or update a buyer-owned Request draft",
+  "preserve service family and plan metadata",
+  "name missing brief and checkout inputs",
+] as const;
+
+const serviceRequestStarterNotDoneHere = [
+  "publish Supply",
+  "assign a worker",
+  "create Commitment",
+  "start Fulfillment",
+  "publish Artifact",
+  "authorize payment",
+  "prove completion",
+] as const;
+
+const servicePlanDoneHere = [
+  "describe known service scope",
+  "name expected proof outputs",
+  "show the governed execution path",
+] as const;
+
+const servicePlanNotDoneHere = [
+  "buyer-specific approval is not recorded",
+  "Supply is not attached",
+  "Fulfillment is not started",
+  "Artifact proof is not published",
+  "completion is not accepted",
+] as const;
+
+const servicePlanRequiredBeforeExecution = [
+  "buyer-specific brief fields are complete",
+  "checkout or payment authority is recorded",
+  "selected Supply passes route policy",
+  "Commitment or owner-private fulfillment gate succeeds",
+] as const;
+
+function serviceRequestFlow(
+  actorModes: readonly RequestFlowActorMode[],
+): BorealServiceRequestFlowMetadata {
+  return {
+    actorModes,
+    authorityBoundary: {
+      permissionSource: "owner_approval",
+      requiredGates: [
+        "buyer chooses service starter",
+        "owner approves draft before opening",
+        "checkout before execution",
+      ],
+      nonAuthority: serviceRequestStarterNonAuthority,
+    },
+    cardKind: "action_card",
+    doneHere: serviceRequestStarterDoneHere,
+    entryStageId: "request_intake",
+    notDoneHere: serviceRequestStarterNotDoneHere,
+    nextActionIntents: ["create_request_draft"],
+    planStageIds: serviceRequestFlowPlanStageIds,
+  };
+}
+
+function servicePlanRequestFlow(): BorealServicePlanRequestFlowMetadata {
+  return {
+    cardKind: "status_card",
+    doneHere: servicePlanDoneHere,
+    notDoneHere: servicePlanNotDoneHere,
+    plannedActionIntents: [
+      "authorize_funding",
+      "attach_selected_supply",
+      "start_governed_fulfillment",
+      "submit_artifact",
+    ],
+    requiredBeforeExecution: servicePlanRequiredBeforeExecution,
+    stageIds: serviceRequestFlowPlanStageIds.filter(
+      (stageId) => stageId !== "request_intake",
+    ),
+  };
+}
 
 export const borealServiceFamilies: BorealServiceFamily[] = [
   {
@@ -107,6 +241,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       matchingMode: "preferred_supply_direct",
       outputKinds: ["draft", "handoff_doc", "verification_note"],
       paymentMode: "fixed_request",
+      requestFlow: serviceRequestFlow(["human", "agent", "hybrid"]),
       routeFamily: "direct_specialist",
       supplyKinds: ["human_service", "documentation_support", "operator"],
     },
@@ -124,6 +259,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "tone cleanup",
           "edit notes and meaning check",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want Human Editorial Polish, Publish Polish. Text to polish: . Audience: . Tone: . Where this will be published: . What must not change: . Done means I receive final polished text, edit notes, a meaning-preservation check, and a delivery receipt.",
       },
@@ -140,6 +276,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "plain-language cleanup",
           "final copy plus change notes",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want Human Editorial Polish, Launch Copy Pass. Text to polish: . Product or offer context: . Target reader: . Tone: . What must not change: . Done means I receive cleaner launch copy, audience-fit notes, edit notes, and a delivery receipt.",
       },
@@ -181,6 +318,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       matchingMode: "preferred_supply_direct",
       outputKinds: ["handoff_doc", "delivery_confirmation"],
       paymentMode: "fixed_request",
+      requestFlow: serviceRequestFlow(["human", "agent", "system", "hybrid"]),
       routeFamily: "direct_specialist",
       supplyKinds: ["provider_capability", "operator"],
     },
@@ -198,6 +336,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "persona and safety boundaries",
           "session-launch handoff",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want the Character Call Starter, Starter Call. The character name is: . The call goal is: . The personality should be: . Allowed topics are: . Blocked topics are: . I can upload one approved reference image. Done means I receive a working character-call handoff, persona sheet, test notes, and delivery receipt.",
       },
@@ -214,6 +353,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "2 reviewed test calls",
           "lead-note handoff template",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want the Character Call Starter, AI Sales Avatar Test. The product or offer URL is: . The target buyer is: . The avatar tone should be: . The FAQ or sales notes are: . Done means I receive a product-aware live avatar handoff, reviewed test-call notes, and lead-note template.",
       },
@@ -230,6 +370,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "1 reviewed test call",
           "feedback summary template",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want the Character Call Starter, Practice Room Avatar. The practice scenario is: . The goal is: . The difficulty should be: . The avatar should act like: . Done means I receive a live roleplay avatar handoff, scenario prompt, test-call notes, and feedback summary template.",
       },
@@ -270,6 +411,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       matchingMode: "preferred_supply_direct",
       outputKinds: ["media", "video", "handoff_doc"],
       paymentMode: "fixed_request",
+      requestFlow: serviceRequestFlow(["human", "agent", "system", "hybrid"]),
       routeFamily: "direct_specialist",
       supplyKinds: ["provider_capability", "video_generation", "operator"],
     },
@@ -287,6 +429,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "captioned and clean exports",
           "one revision pass",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want the Founder Avatar Clip Pack, Sales Reply Pack. The offer is: . The audience is: . The tone should be: . I can provide these reference assets: . Done means I receive ready-to-post clips, captions, and delivery notes.",
       },
@@ -328,6 +471,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       matchingMode: "preferred_supply_direct",
       outputKinds: ["media", "video", "handoff_doc"],
       paymentMode: "fixed_request",
+      requestFlow: serviceRequestFlow(["human", "agent", "system", "hybrid"]),
       routeFamily: "direct_specialist",
       supplyKinds: ["provider_capability", "documentation_support", "operator"],
     },
@@ -345,6 +489,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "voice and style notes",
           "handoff sheet",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want the Character Host Trend Pack, Character Seed Pack. The niche is: . The character should feel like: . The clips should talk about: . Done means I receive three sample clips, a character sheet, and usage notes.",
       },
@@ -361,6 +506,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "caption pack",
           "character bible",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want the Character Host Trend Pack, Character Host 10. The niche is: . The host persona is: . The target audience is: . Done means I receive ten ready clips, captions, scripts, and a character bible.",
       },
@@ -402,6 +548,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
       matchingMode: "preferred_supply_direct",
       outputKinds: ["media", "video", "handoff_doc"],
       paymentMode: "fixed_request",
+      requestFlow: serviceRequestFlow(["human", "agent", "system", "hybrid"]),
       routeFamily: "direct_specialist",
       supplyKinds: ["provider_capability", "documentation_support", "operator"],
     },
@@ -419,6 +566,7 @@ export const borealServiceFamilies: BorealServiceFamily[] = [
           "caption pack",
           "posting sequence",
         ],
+        requestFlow: servicePlanRequestFlow(),
         serviceRequestStarter:
           "I want the Trend Seed Reel Pack, Trend Signal 12. The niche is: . The audience is: . The content examples or competitors are: . Done means I receive twelve ready-to-post clips, captions, and posting notes.",
       },
@@ -481,6 +629,12 @@ export function buildServiceRequestStarterText({
     `- Output kinds: ${family.requestDefaults.outputKinds.join(", ")}`,
     `- Execution kind: ${family.requestDefaults.executionKind}`,
     `- Route family: ${family.requestDefaults.routeFamily}`,
+    `- Request-flow entry stage: ${family.requestDefaults.requestFlow.entryStageId}`,
+    `- Request-flow card kind: ${family.requestDefaults.requestFlow.cardKind}`,
+    `- Request-flow plan stages: ${family.requestDefaults.requestFlow.planStageIds.join(", ")}`,
+    `- Request-flow next intents: ${family.requestDefaults.requestFlow.nextActionIntents.join(", ")}`,
+    `- Preset plan stages: ${plan.requestFlow.stageIds.join(", ")}`,
+    `- Preset plan requires before execution: ${plan.requestFlow.requiredBeforeExecution.join(", ")}`,
     "- Boundary: this starts or updates a Request; it does not assign a worker, attach Supply, start Fulfillment, publish Artifact, or prove completion by itself.",
   ].join("\n");
 }

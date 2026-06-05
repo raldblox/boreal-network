@@ -20,6 +20,7 @@ import {
   type BorealServicePlan,
   buildServiceRequestStarterText,
   borealServiceFamilies,
+  getServicePlan,
 } from "./service-catalog";
 
 export type HomeBetaWorkSlotKey =
@@ -425,6 +426,14 @@ function serviceCatalogEntries(): ShowcaseRequestCatalogEntry[] {
           })}\n\nProcess: ${family.process.join(" ")}`,
           constraints: {
             proof: family.proof,
+            requestFlowCardKind: family.requestDefaults.requestFlow.cardKind,
+            requestFlowEntryStageId:
+              family.requestDefaults.requestFlow.entryStageId,
+            requestFlowNextActionIntents:
+              family.requestDefaults.requestFlow.nextActionIntents,
+            requestFlowPlanStageIds:
+              family.requestDefaults.requestFlow.planStageIds,
+            requestFlowPresetPlanStageIds: plan.requestFlow.stageIds,
             serviceAttachmentMode: family.requestDefaults.attachmentMode,
             serviceFamilyKey: family.familyKey,
             servicePlanKey: plan.planKey,
@@ -1019,6 +1028,12 @@ function deriveWorkCardTaxonomy(
   entry: ShowcaseRequestCatalogEntry,
 ): HomeBetaWorkCardTaxonomy {
   if (entry.source.kind === "service_plan") {
+    const servicePlan = getServicePlan({
+      familyKey: entry.source.serviceFamilyKey,
+      planKey: entry.source.servicePlanKey,
+    });
+    const serviceRequestFlow =
+      servicePlan?.family.requestDefaults.requestFlow;
     const inScope = [
       "start a buyer-owned Request draft",
       "preserve selected service family and plan metadata",
@@ -1039,21 +1054,27 @@ function deriveWorkCardTaxonomy(
       workerAttachmentLabel: "No worker attached yet",
       nextCanonicalBoundary: "Request",
       requestFlow: {
-        stageId: "request_intake",
-        cardKind: "action_card",
-        actorModes: deriveRequestFlowActorModes(entry.request),
-        authorityBoundary: {
-          permissionSource: "owner_approval",
-          requiredGates: [
-            "buyer chooses service starter",
-            "owner approves draft before opening",
-            "checkout before execution",
-          ],
-          nonAuthority: [...listingTaxonomyNonAuthority],
-        },
-        doneHere: inScope,
-        notDoneHere: outOfScope,
-        nextActionIntents: ["create_request_draft"],
+        stageId: serviceRequestFlow?.entryStageId ?? "request_intake",
+        cardKind: serviceRequestFlow?.cardKind ?? "action_card",
+        actorModes: serviceRequestFlow
+          ? [...serviceRequestFlow.actorModes]
+          : deriveRequestFlowActorModes(entry.request),
+        authorityBoundary: serviceRequestFlow
+          ? serviceRequestFlow.authorityBoundary
+          : {
+              permissionSource: "owner_approval",
+              requiredGates: [
+                "buyer chooses service starter",
+                "owner approves draft before opening",
+                "checkout before execution",
+              ],
+              nonAuthority: [...listingTaxonomyNonAuthority],
+            },
+        doneHere: serviceRequestFlow?.doneHere ?? inScope,
+        notDoneHere: serviceRequestFlow?.notDoneHere ?? outOfScope,
+        nextActionIntents: serviceRequestFlow
+          ? [...serviceRequestFlow.nextActionIntents]
+          : ["create_request_draft"],
       },
       inScope,
       outOfScope,
