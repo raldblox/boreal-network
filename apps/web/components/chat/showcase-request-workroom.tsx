@@ -17,7 +17,11 @@ import type {
   HomeBetaWorkSlotState,
   ShowcaseRequestCatalogEntry,
 } from "@/lib/showcase-request-catalog";
-import { toHomeBetaWorkCard } from "@/lib/showcase-request-catalog";
+import {
+  getHomeBetaWorkerReadinessDetail,
+  getHomeBetaWorkerReadinessLabel,
+  toHomeBetaWorkCard,
+} from "@/lib/showcase-request-catalog";
 import { cn } from "@/lib/utils";
 import { formatSurfaceToken, SurfaceTagList } from "./surface-card";
 import {
@@ -261,6 +265,43 @@ export function ShowcaseRequestWorkroom({
                       </ul>
                     </div>
                   ) : null}
+
+                  <div className="mt-5 rounded-2xl border border-border/60 bg-background/35 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/72">
+                        <UserCheckIcon className="size-3.5" />
+                        Worker readiness
+                      </div>
+                      <Badge className="rounded-full border-border/60 bg-muted/35 text-foreground/72">
+                        {getHomeBetaWorkerReadinessLabel(card)}
+                      </Badge>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                      {getHomeBetaWorkerReadinessDetail(card)}
+                    </p>
+                    <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                      <FactRow
+                        label="Agent lanes"
+                        value={`${card.workerReadiness.summary.agentCanPrepareCount} can prepare`}
+                      />
+                      <FactRow
+                        label="Human lane"
+                        value={formatSurfaceToken(
+                          card.workerReadiness.humanLane.state,
+                        )}
+                      />
+                      <FactRow
+                        label="Listing mode"
+                        value={formatSurfaceToken(
+                          card.workerReadiness.listingMode,
+                        )}
+                      />
+                      <FactRow
+                        label="Authority"
+                        value="read-only hint"
+                      />
+                    </dl>
+                  </div>
                 </div>
 
                 <div className="rounded-[28px] border border-border/65 bg-card/45 p-5">

@@ -1008,6 +1008,72 @@ export function showcaseRequestWorkroomHref(requestId: string) {
   return `/home/beta/${encodeURIComponent(requestId)}`;
 }
 
+type HomeBetaWorkerReadinessCard = Pick<
+  HomeBetaWorkCard,
+  "taxonomy" | "workerReadiness"
+>;
+
+export function getHomeBetaWorkerReadinessLabel(
+  card: HomeBetaWorkerReadinessCard,
+) {
+  if (card.taxonomy.listingKind === "service_request_starter") {
+    return "draft first";
+  }
+
+  if (card.taxonomy.listingKind === "reuse_ready_listing") {
+    return "new run request";
+  }
+
+  const readiness = card.workerReadiness;
+
+  if (
+    readiness.summary.agentSupportExplicit &&
+    readiness.summary.agentCanPrepareCount > 0
+  ) {
+    return "human + agent";
+  }
+
+  if (readiness.summary.humanRequired) {
+    return "human required";
+  }
+
+  if (readiness.summary.agentCanPrepareCount > 0) {
+    return `${readiness.summary.agentCanPrepareCount} agent ready`;
+  }
+
+  if (readiness.summary.humanActionable) {
+    return "human can apply";
+  }
+
+  return "read-only";
+}
+
+export function getHomeBetaWorkerReadinessDetail(
+  card: HomeBetaWorkerReadinessCard,
+) {
+  if (card.taxonomy.listingKind === "service_request_starter") {
+    return "No worker or Supply attaches from this listing; the buyer opens a Request first.";
+  }
+
+  if (card.taxonomy.listingKind === "reuse_ready_listing") {
+    return "Viewing stays free; running the solution starts a new request-bound execution path.";
+  }
+
+  const readyAgent = card.workerReadiness.agentLanes.find(
+    (lane) => lane.readiness === "can_prepare",
+  );
+
+  if (readyAgent) {
+    return `${readyAgent.displayName} can prepare an application; preflight still runs before any write.`;
+  }
+
+  if (card.workerReadiness.summary.humanActionable) {
+    return `${card.workerReadiness.humanLane.actionLabel}; Commitment preflight is required before any write.`;
+  }
+
+  return "Listing hints stay read-only: no worker assignment, Commitment, or Fulfillment is created here.";
+}
+
 export function toHomeBetaWorkCard(
   entry: ShowcaseRequestCatalogEntry,
 ): HomeBetaWorkCard {

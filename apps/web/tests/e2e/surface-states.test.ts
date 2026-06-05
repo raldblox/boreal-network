@@ -195,6 +195,43 @@ const publicRequestResponse = {
 };
 
 test.describe("Surface async states", () => {
+  test("home beta carries worker readiness into showcase workrooms", async ({
+    page,
+  }) => {
+    await page.goto("/home/beta");
+
+    await expect(
+      page.getByRole("heading", {
+        name: "Explore what Boreal can turn into completed work.",
+      })
+    ).toBeVisible();
+    await expect(page.getByText("Worker readiness").first()).toBeVisible();
+    await expect(page.getByText("draft first").first()).toBeVisible();
+    await expect(
+      page
+        .getByText(
+          "No worker or Supply attaches from this listing; the buyer opens a Request first."
+        )
+        .first()
+    ).toBeVisible();
+
+    await page
+      .locator("a")
+      .filter({ hasText: "Human Editorial Polish: Publish Polish" })
+      .first()
+      .click();
+
+    await expect(
+      page.getByRole("heading", {
+        name: "Human Editorial Polish: Publish Polish",
+      })
+    ).toBeVisible();
+    await expect(page.getByText("Worker readiness").first()).toBeVisible();
+    await expect(page.getByText("Agent lanes")).toBeVisible();
+    await expect(page.getByText("Listing mode")).toBeVisible();
+    await expect(page.getByText("read-only hint")).toBeVisible();
+  });
+
   test("supply hub exposes an accessible loading state", async ({ page }) => {
     let releaseSupplies: () => void = () => {};
     const suppliesLoaded = new Promise<void>((resolve) => {

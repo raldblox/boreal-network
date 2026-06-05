@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import {
+  getHomeBetaWorkerReadinessDetail,
+  getHomeBetaWorkerReadinessLabel,
   homeBetaWorkCards,
   showcaseRequestCatalog,
 } from "@/lib/showcase-request-catalog";
@@ -203,6 +205,8 @@ for (const card of homeBetaWorkCards) {
     card.workerReadiness.nonAuthority.includes("no_commitment_created"),
     true,
   );
+  assert.equal(getHomeBetaWorkerReadinessLabel(card).length > 0, true);
+  assert.equal(getHomeBetaWorkerReadinessDetail(card).length > 0, true);
   assert.equal(
     card.taxonomy.requestFlow.nextActionIntents.includes(
       card.primaryAction.requestFlowActionIntentId,
@@ -221,6 +225,11 @@ for (const card of homeBetaWorkCards) {
   );
 
   if (entry.source.kind === "service_plan") {
+    assert.equal(getHomeBetaWorkerReadinessLabel(card), "draft first");
+    assert.match(
+      getHomeBetaWorkerReadinessDetail(card),
+      /No worker or Supply attaches from this listing/,
+    );
     assert.equal(card.primaryAction.actionId, "start_service_request");
     assert.equal(
       card.primaryAction.requestFlowActionIntentId,
@@ -272,6 +281,10 @@ for (const card of homeBetaWorkCards) {
   );
 
   if (entry.request.status === "open") {
+    assert.match(
+      getHomeBetaWorkerReadinessDetail(card),
+      /preflight.*before any write|Commitment preflight is required/,
+    );
     assert.equal(card.primaryAction.actionId, "apply_to_request");
     assert.equal(
       card.primaryAction.requestFlowActionIntentId,
