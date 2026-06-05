@@ -4860,6 +4860,11 @@ async function main() {
     "schemas/json/request.schema.json",
   );
   assert.equal(
+    findJsonSchemaAsset("request-flow-stage-card-taxonomy.schema.json")
+      ?.sourcePath,
+    "schemas/json/request-flow-stage-card-taxonomy.schema.json",
+  );
+  assert.equal(
     findJsonSchemaAsset("agent-access-review.schema.json")?.sourcePath,
     "schemas/json/agent-access-review.schema.json",
   );

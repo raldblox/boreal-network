@@ -1,0 +1,661 @@
+{
+  "schemaVersion": 1,
+  "status": "contract_taxonomy_profile",
+  "name": "Boreal request-flow stage and card taxonomy sample",
+  "description": "Representative actor-neutral taxonomy sample for request-flow stages, cards, authority gates, and n8n adapter mapping boundaries.",
+  "canonicalBoundary": {
+    "rootObject": "Request",
+    "stageAndCardAre": "projection_taxonomy",
+    "notRootObjects": [
+      "Work",
+      "Job",
+      "Order",
+      "Issue",
+      "Offer",
+      "Intent",
+      "Task",
+      "Workflow",
+      "Solution"
+    ],
+    "nonAuthority": [
+      "stage is not lifecycle state",
+      "card is not permission",
+      "fit score is not assignment",
+      "workflow shape is not Boreal truth",
+      "adapter export is not credential export",
+      "proof packet is not owner acceptance",
+      "payment success is not completion proof"
+    ]
+  },
+  "closedEnums": {
+    "stageIds": [
+      "request_intake",
+      "draft_review",
+      "path_planning",
+      "commitment_review",
+      "funding_authorization",
+      "fulfillment_handoff",
+      "execution_progress",
+      "proof_submission",
+      "owner_review",
+      "settlement_closeout",
+      "monitoring",
+      "recovery",
+      "reuse_export"
+    ],
+    "cardKinds": [
+      "status_card",
+      "decision_card",
+      "action_card",
+      "evidence_card",
+      "handoff_card",
+      "payment_card",
+      "recovery_card",
+      "adapter_mapping_card"
+    ],
+    "actorModes": [
+      "human",
+      "agent",
+      "system",
+      "hybrid"
+    ],
+    "canonicalObjects": [
+      "Actor",
+      "Supply",
+      "Request",
+      "RequestParticipant",
+      "Commitment",
+      "Fulfillment",
+      "FulfillmentStep",
+      "Artifact",
+      "Transaction",
+      "RequestEvent"
+    ],
+    "actionMethods": [
+      "GET",
+      "POST",
+      "LOCAL_DRAFT",
+      "ADAPTER_EXPORT"
+    ]
+  },
+  "stageCatalog": [
+    {
+      "id": "draft_review",
+      "label": "Draft review",
+      "phase": "owner_review",
+      "canonicalProjection": "RequestFlowStage",
+      "actorModes": [
+        "human",
+        "agent",
+        "hybrid"
+      ],
+      "canonicalReads": [
+        "Actor",
+        "Request"
+      ],
+      "allowedCanonicalWrites": [
+        "Request",
+        "RequestEvent"
+      ],
+      "forbiddenWrites": [
+        "Commitment",
+        "Fulfillment",
+        "Transaction",
+        "Artifact"
+      ],
+      "entryCriteria": [
+        "draft Request exists"
+      ],
+      "exitCriteria": [
+        "owner approves open action or keeps draft local"
+      ],
+      "doneHere": [
+        "make the draft understandable",
+        "prepare owner-approved edits"
+      ],
+      "notDoneHere": [
+        "public routing without approval",
+        "commitment",
+        "fulfillment",
+        "payment"
+      ],
+      "requiredAuthority": [
+        "owner approval for durable mutation"
+      ],
+      "requiredEvidence": [
+        "readiness summary when available"
+      ],
+      "nextStageIds": [
+        "path_planning",
+        "commitment_review",
+        "recovery"
+      ],
+      "failureModes": [
+        "missing owner approval",
+        "draft changes unsupported by input"
+      ],
+      "recoveryStageId": "recovery",
+      "adapterMappingPolicy": "none",
+      "schemaVersion": 1
+    },
+    {
+      "id": "commitment_review",
+      "label": "Commitment review",
+      "phase": "commercial_approval",
+      "canonicalProjection": "RequestFlowStage",
+      "actorModes": [
+        "human",
+        "agent",
+        "hybrid"
+      ],
+      "canonicalReads": [
+        "Actor",
+        "Supply",
+        "Request",
+        "Commitment"
+      ],
+      "allowedCanonicalWrites": [
+        "Commitment",
+        "RequestEvent"
+      ],
+      "forbiddenWrites": [
+        "Fulfillment",
+        "Artifact",
+        "Transaction"
+      ],
+      "entryCriteria": [
+        "open Request and proposal context are present"
+      ],
+      "exitCriteria": [
+        "Commitment is proposed, accepted, rejected, expired, or superseded"
+      ],
+      "doneHere": [
+        "prepare or resolve the commercial approval boundary"
+      ],
+      "notDoneHere": [
+        "fulfillment start",
+        "payment settlement",
+        "completion"
+      ],
+      "requiredAuthority": [
+        "account session or resolver scope",
+        "request policy",
+        "idempotency key for write routes"
+      ],
+      "requiredEvidence": [
+        "scope",
+        "price",
+        "timeline",
+        "proof terms"
+      ],
+      "nextStageIds": [
+        "funding_authorization",
+        "fulfillment_handoff",
+        "recovery"
+      ],
+      "failureModes": [
+        "missing scope",
+        "missing idempotency",
+        "policy rejection"
+      ],
+      "recoveryStageId": "recovery",
+      "adapterMappingPolicy": "none",
+      "schemaVersion": 1
+    },
+    {
+      "id": "reuse_export",
+      "label": "Reuse export",
+      "phase": "adapter_or_reuse_packaging",
+      "canonicalProjection": "RequestFlowStage",
+      "actorModes": [
+        "human",
+        "agent",
+        "system",
+        "hybrid"
+      ],
+      "canonicalReads": [
+        "Request",
+        "Artifact",
+        "Supply"
+      ],
+      "allowedCanonicalWrites": [
+        "Request"
+      ],
+      "forbiddenWrites": [
+        "Transaction",
+        "RequestEvent"
+      ],
+      "entryCriteria": [
+        "completed request and accepted artifact exist"
+      ],
+      "exitCriteria": [
+        "new request seed or adapter-safe export package is prepared"
+      ],
+      "doneHere": [
+        "prepare reuse or adapter package"
+      ],
+      "notDoneHere": [
+        "mutate source request",
+        "export credentials",
+        "production run",
+        "prove new run completion"
+      ],
+      "requiredAuthority": [
+        "review before export or new run"
+      ],
+      "requiredEvidence": [
+        "source artifact provenance"
+      ],
+      "nextStageIds": [
+        "request_intake",
+        "path_planning",
+        "fulfillment_handoff"
+      ],
+      "failureModes": [
+        "missing accepted artifact",
+        "credential leakage risk",
+        "lossiness not recorded"
+      ],
+      "recoveryStageId": "recovery",
+      "adapterMappingPolicy": "adapter_safe_shape_only",
+      "schemaVersion": 1
+    }
+  ],
+  "cardTemplates": [
+    {
+      "id": "draft_review.owner_approval",
+      "stageId": "draft_review",
+      "cardKind": "decision_card",
+      "surface": "hybrid",
+      "actorModes": [
+        "human",
+        "agent",
+        "hybrid"
+      ],
+      "participantRoles": [
+        "request_owner",
+        "drafting_agent"
+      ],
+      "in": [
+        "draft Request",
+        "readiness summary",
+        "missing details"
+      ],
+      "out": [
+        "owner-approved open action or draft updates"
+      ],
+      "primaryAction": {
+        "id": "open_request",
+        "label": "Open request after owner approval",
+        "method": "POST",
+        "route": "/api/requests/{requestId}/open",
+        "targetAdapter": null,
+        "requiredScopes": [
+          "requests:write"
+        ],
+        "idempotencyRequired": true,
+        "canonicalWritesIfAuthorized": [
+          "Request",
+          "RequestEvent"
+        ]
+      },
+      "supportingActions": [
+        {
+          "id": "optimize_request_brief",
+          "label": "Suggest draft improvements",
+          "method": "LOCAL_DRAFT",
+          "route": null,
+          "targetAdapter": null,
+          "requiredScopes": [],
+          "idempotencyRequired": false,
+          "canonicalWritesIfAuthorized": []
+        }
+      ],
+      "requiredBeforeAction": [
+        "show owner-readable diff",
+        "confirm owner approval"
+      ],
+      "safeRenderClaims": [
+        "draft is reviewable",
+        "no public route exists until owner approval"
+      ],
+      "unsafeClaims": [
+        "request is open",
+        "worker is assigned",
+        "payment is authorized"
+      ],
+      "doneHere": [
+        "human sees what will become the request",
+        "agent can prepare a reviewable draft"
+      ],
+      "notDoneHere": [
+        "no commitment",
+        "no payment",
+        "no fulfillment",
+        "no proof"
+      ],
+      "authorityBoundary": {
+        "permissionSource": "owner_approval",
+        "requiredGates": [
+          "owner approval",
+          "route policy",
+          "idempotency key"
+        ],
+        "nonAuthority": [
+          "card rendering is not approval",
+          "draft text is not RequestEvent history"
+        ]
+      },
+      "handoffBoundary": {
+        "required": true,
+        "stopWhen": [
+          "owner has not approved"
+        ],
+        "handoffTo": [
+          "request_owner"
+        ]
+      },
+      "next": {
+        "stageIds": [
+          "path_planning",
+          "commitment_review",
+          "recovery"
+        ],
+        "handoffRequired": true,
+        "safeFallbackStageId": "recovery"
+      },
+      "adapterExportPolicy": {
+        "exportableToN8n": false,
+        "sidecarRequired": true,
+        "stripCredentials": true,
+        "lossinessRequired": true,
+        "unsupportedWithoutReview": [
+          "credentials",
+          "approval records",
+          "payment authority",
+          "durable request history",
+          "completion truth"
+        ]
+      },
+      "schemaVersion": 1
+    },
+    {
+      "id": "commitment_review.proposal",
+      "stageId": "commitment_review",
+      "cardKind": "action_card",
+      "surface": "hybrid",
+      "actorModes": [
+        "human",
+        "agent",
+        "hybrid"
+      ],
+      "participantRoles": [
+        "request_owner",
+        "solver",
+        "supply_operator"
+      ],
+      "in": [
+        "open Request",
+        "solver context",
+        "scope",
+        "price",
+        "timeline"
+      ],
+      "out": [
+        "proposed Commitment",
+        "owner review handoff"
+      ],
+      "primaryAction": {
+        "id": "propose_commitment",
+        "label": "Propose commitment",
+        "method": "POST",
+        "route": "/api/requests/{requestId}/commitments",
+        "targetAdapter": null,
+        "requiredScopes": [
+          "commitments:propose"
+        ],
+        "idempotencyRequired": true,
+        "canonicalWritesIfAuthorized": [
+          "Commitment",
+          "RequestEvent"
+        ]
+      },
+      "supportingActions": [
+        {
+          "id": "monitor_activity",
+          "label": "Monitor request activity",
+          "method": "GET",
+          "route": "/api/requests/{requestId}/activity",
+          "targetAdapter": null,
+          "requiredScopes": [],
+          "idempotencyRequired": false,
+          "canonicalWritesIfAuthorized": []
+        }
+      ],
+      "requiredBeforeAction": [
+        "read request detail",
+        "check agentActionPolicy",
+        "confirm represented actor approval",
+        "send idempotency key"
+      ],
+      "safeRenderClaims": [
+        "proposal can be prepared",
+        "Commitment writes happen only through the governed route"
+      ],
+      "unsafeClaims": [
+        "solver is assigned",
+        "Fulfillment started",
+        "payment settled",
+        "request completed"
+      ],
+      "doneHere": [
+        "proposal is prepared or submitted"
+      ],
+      "notDoneHere": [
+        "no assignment until accepted",
+        "no fulfillment start",
+        "no payment settlement",
+        "no completion"
+      ],
+      "authorityBoundary": {
+        "permissionSource": "agentActionPolicy",
+        "requiredGates": [
+          "account session or resolver scope",
+          "request policy",
+          "idempotency key"
+        ],
+        "nonAuthority": [
+          "fit score is not permission",
+          "card state is not assignment"
+        ]
+      },
+      "handoffBoundary": {
+        "required": true,
+        "stopWhen": [
+          "represented actor has not approved",
+          "policy blocks the action"
+        ],
+        "handoffTo": [
+          "solver",
+          "request_owner"
+        ]
+      },
+      "next": {
+        "stageIds": [
+          "commitment_review",
+          "funding_authorization",
+          "fulfillment_handoff"
+        ],
+        "handoffRequired": true,
+        "safeFallbackStageId": "recovery"
+      },
+      "adapterExportPolicy": {
+        "exportableToN8n": false,
+        "sidecarRequired": true,
+        "stripCredentials": true,
+        "lossinessRequired": true,
+        "unsupportedWithoutReview": [
+          "credentials",
+          "approval records",
+          "payment authority",
+          "durable request history",
+          "completion truth"
+        ]
+      },
+      "schemaVersion": 1
+    },
+    {
+      "id": "reuse_export.n8n_sidecar",
+      "stageId": "reuse_export",
+      "cardKind": "adapter_mapping_card",
+      "surface": "hybrid",
+      "actorModes": [
+        "agent",
+        "system",
+        "hybrid"
+      ],
+      "participantRoles": [
+        "operator",
+        "adapter_builder"
+      ],
+      "in": [
+        "completed Request",
+        "accepted Artifact",
+        "adapter-safe workflow graph"
+      ],
+      "out": [
+        "n8n workflow JSON",
+        "Boreal sidecar",
+        "lossiness report"
+      ],
+      "primaryAction": {
+        "id": "export_workflow_pack",
+        "label": "Prepare n8n export package",
+        "method": "ADAPTER_EXPORT",
+        "route": null,
+        "targetAdapter": "n8n",
+        "requiredScopes": [],
+        "idempotencyRequired": false,
+        "canonicalWritesIfAuthorized": []
+      },
+      "supportingActions": [],
+      "requiredBeforeAction": [
+        "strip credentials",
+        "include sidecar",
+        "record lossiness",
+        "require review"
+      ],
+      "safeRenderClaims": [
+        "adapter package is reviewable",
+        "Boreal-only truth stays in the sidecar"
+      ],
+      "unsafeClaims": [
+        "credentials exported",
+        "production run started",
+        "new request completed",
+        "payment authorized"
+      ],
+      "doneHere": [
+        "export package is prepared for review"
+      ],
+      "notDoneHere": [
+        "no credential export",
+        "no production run",
+        "no request mutation",
+        "no payment authorization",
+        "no completion"
+      ],
+      "authorityBoundary": {
+        "permissionSource": "adapter_review",
+        "requiredGates": [
+          "operator review",
+          "credential stripping",
+          "lossiness report"
+        ],
+        "nonAuthority": [
+          "n8n workflow shape is not Boreal truth",
+          "sidecar is not approval"
+        ]
+      },
+      "handoffBoundary": {
+        "required": true,
+        "stopWhen": [
+          "lossiness is unreviewed",
+          "credential slot is ambiguous"
+        ],
+        "handoffTo": [
+          "operator",
+          "request_owner"
+        ]
+      },
+      "next": {
+        "stageIds": [
+          "reuse_export",
+          "fulfillment_handoff",
+          "recovery"
+        ],
+        "handoffRequired": true,
+        "safeFallbackStageId": "recovery"
+      },
+      "adapterExportPolicy": {
+        "exportableToN8n": true,
+        "sidecarRequired": true,
+        "stripCredentials": true,
+        "lossinessRequired": true,
+        "unsupportedWithoutReview": [
+          "credentials",
+          "approval records",
+          "payment authority",
+          "durable request history",
+          "completion truth"
+        ]
+      },
+      "schemaVersion": 1
+    }
+  ],
+  "adapterMappingPolicies": [
+    {
+      "adapterKind": "n8n",
+      "direction": "export",
+      "source": "WorkflowPackVersion.graph.blocks plus Boreal sidecar",
+      "target": "n8n workflow JSON plus Boreal request-flow sidecar",
+      "stageId": "reuse_export",
+      "cardIds": [
+        "reuse_export.n8n_sidecar"
+      ],
+      "actionIds": [
+        "export_workflow_pack"
+      ],
+      "workflowBlockKinds": [
+        "manual_trigger",
+        "webhook",
+        "action_node",
+        "proof_placeholder"
+      ],
+      "credentialSlots": [
+        "placeholder_only"
+      ],
+      "humanCheckpoints": [
+        "operator review",
+        "request owner review when source context is private"
+      ],
+      "proofRequirements": [
+        "accepted Artifact provenance",
+        "lossiness report"
+      ],
+      "unsupportedFeatures": [
+        "live credentials",
+        "pinned data",
+        "payment authority",
+        "completion truth"
+      ],
+      "lossiness": [
+        "Boreal approval records stay outside raw workflow JSON",
+        "payment and completion semantics stay in governed Boreal routes"
+      ],
+      "roundTripSafe": false,
+      "sidecarRequired": true,
+      "stripCredentials": true
+    }
+  ]
+}

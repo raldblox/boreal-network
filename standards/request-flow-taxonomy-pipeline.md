@@ -86,7 +86,7 @@ It only describes where the card appears.
 
 Every card or node must map to one `RequestFlowStage`.
 
-Allowed stage ids are defined in the strategy taxonomy:
+Allowed stage ids are defined in the strategy taxonomy and mirrored in `schemas/json/request-flow-stage-card-taxonomy.schema.json` plus `apps/web/lib/request-flow-taxonomy.ts`:
 
 - `request_intake`
 - `draft_review`
@@ -379,4 +379,3 @@ Before merging any taxonomy-sensitive behavior, verify:
 - support objects stay below canonical roots
 - tests or test-matrix coverage exists
 - docs, schemas, fixtures, and TypeScript stay in sync when behavior changes
-

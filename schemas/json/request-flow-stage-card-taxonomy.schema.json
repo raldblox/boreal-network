@@ -1,0 +1,640 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boreal.work/schemas/json/request-flow-stage-card-taxonomy.schema.json",
+  "title": "RequestFlowStageCardTaxonomy",
+  "description": "Actor-neutral request-flow stage and card taxonomy profile for humans, agents, systems, and adapter mappings without creating a new durable root object or mutation authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "status",
+    "name",
+    "description",
+    "canonicalBoundary",
+    "closedEnums",
+    "stageCatalog",
+    "cardTemplates",
+    "adapterMappingPolicies"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "const": "contract_taxonomy_profile"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "canonicalBoundary": {
+      "$ref": "#/$defs/canonicalBoundary"
+    },
+    "closedEnums": {
+      "$ref": "#/$defs/closedEnums"
+    },
+    "stageCatalog": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stage"
+      }
+    },
+    "cardTemplates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/cardTemplate"
+      }
+    },
+    "adapterMappingPolicies": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/adapterMappingPolicy"
+      }
+    }
+  },
+  "$defs": {
+    "stageId": {
+      "enum": [
+        "request_intake",
+        "draft_review",
+        "path_planning",
+        "commitment_review",
+        "funding_authorization",
+        "fulfillment_handoff",
+        "execution_progress",
+        "proof_submission",
+        "owner_review",
+        "settlement_closeout",
+        "monitoring",
+        "recovery",
+        "reuse_export"
+      ]
+    },
+    "cardKind": {
+      "enum": [
+        "status_card",
+        "decision_card",
+        "action_card",
+        "evidence_card",
+        "handoff_card",
+        "payment_card",
+        "recovery_card",
+        "adapter_mapping_card"
+      ]
+    },
+    "actorMode": {
+      "enum": [
+        "human",
+        "agent",
+        "system",
+        "hybrid"
+      ]
+    },
+    "canonicalObject": {
+      "enum": [
+        "Actor",
+        "Supply",
+        "Request",
+        "RequestParticipant",
+        "Commitment",
+        "Fulfillment",
+        "FulfillmentStep",
+        "Artifact",
+        "Transaction",
+        "RequestEvent"
+      ]
+    },
+    "actionMethod": {
+      "enum": [
+        "GET",
+        "POST",
+        "LOCAL_DRAFT",
+        "ADAPTER_EXPORT"
+      ]
+    },
+    "stringList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "possiblyEmptyStringList": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "canonicalObjectList": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/canonicalObject"
+      }
+    },
+    "canonicalBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rootObject",
+        "stageAndCardAre",
+        "notRootObjects",
+        "nonAuthority"
+      ],
+      "properties": {
+        "rootObject": {
+          "const": "Request"
+        },
+        "stageAndCardAre": {
+          "const": "projection_taxonomy"
+        },
+        "notRootObjects": {
+          "$ref": "#/$defs/stringList"
+        },
+        "nonAuthority": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "closedEnums": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stageIds",
+        "cardKinds",
+        "actorModes",
+        "canonicalObjects",
+        "actionMethods"
+      ],
+      "properties": {
+        "stageIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stageId"
+          }
+        },
+        "cardKinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/cardKind"
+          }
+        },
+        "actorModes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/actorMode"
+          }
+        },
+        "canonicalObjects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/canonicalObject"
+          }
+        },
+        "actionMethods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/actionMethod"
+          }
+        }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "phase",
+        "canonicalProjection",
+        "actorModes",
+        "canonicalReads",
+        "allowedCanonicalWrites",
+        "forbiddenWrites",
+        "entryCriteria",
+        "exitCriteria",
+        "doneHere",
+        "notDoneHere",
+        "requiredAuthority",
+        "requiredEvidence",
+        "nextStageIds",
+        "failureModes",
+        "recoveryStageId",
+        "adapterMappingPolicy",
+        "schemaVersion"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/stageId"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "phase": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalProjection": {
+          "const": "RequestFlowStage"
+        },
+        "actorModes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/actorMode"
+          }
+        },
+        "canonicalReads": {
+          "$ref": "#/$defs/canonicalObjectList"
+        },
+        "allowedCanonicalWrites": {
+          "$ref": "#/$defs/canonicalObjectList"
+        },
+        "forbiddenWrites": {
+          "$ref": "#/$defs/stringList"
+        },
+        "entryCriteria": {
+          "$ref": "#/$defs/stringList"
+        },
+        "exitCriteria": {
+          "$ref": "#/$defs/stringList"
+        },
+        "doneHere": {
+          "$ref": "#/$defs/stringList"
+        },
+        "notDoneHere": {
+          "$ref": "#/$defs/stringList"
+        },
+        "requiredAuthority": {
+          "$ref": "#/$defs/possiblyEmptyStringList"
+        },
+        "requiredEvidence": {
+          "$ref": "#/$defs/possiblyEmptyStringList"
+        },
+        "nextStageIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stageId"
+          }
+        },
+        "failureModes": {
+          "$ref": "#/$defs/stringList"
+        },
+        "recoveryStageId": {
+          "const": "recovery"
+        },
+        "adapterMappingPolicy": {
+          "enum": [
+            "none",
+            "sidecar_required",
+            "adapter_safe_shape_only"
+          ]
+        },
+        "schemaVersion": {
+          "const": 1
+        }
+      }
+    },
+    "participantAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "label",
+        "method",
+        "route",
+        "targetAdapter",
+        "requiredScopes",
+        "idempotencyRequired",
+        "canonicalWritesIfAuthorized"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "$ref": "#/$defs/actionMethod"
+        },
+        "route": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "targetAdapter": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "n8n",
+            "mcp",
+            "a2a",
+            "x402",
+            null
+          ]
+        },
+        "requiredScopes": {
+          "$ref": "#/$defs/possiblyEmptyStringList"
+        },
+        "idempotencyRequired": {
+          "type": "boolean"
+        },
+        "canonicalWritesIfAuthorized": {
+          "$ref": "#/$defs/canonicalObjectList"
+        }
+      }
+    },
+    "authorityBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "permissionSource",
+        "requiredGates",
+        "nonAuthority"
+      ],
+      "properties": {
+        "permissionSource": {
+          "enum": [
+            "read_only",
+            "agentActionPolicy",
+            "governed_route_policy",
+            "owner_approval",
+            "account_session",
+            "resolver_bearer_scope",
+            "adapter_review"
+          ]
+        },
+        "requiredGates": {
+          "$ref": "#/$defs/stringList"
+        },
+        "nonAuthority": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "handoffBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "stopWhen",
+        "handoffTo"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "stopWhen": {
+          "$ref": "#/$defs/stringList"
+        },
+        "handoffTo": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "nextBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stageIds",
+        "handoffRequired",
+        "safeFallbackStageId"
+      ],
+      "properties": {
+        "stageIds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stageId"
+          }
+        },
+        "handoffRequired": {
+          "type": "boolean"
+        },
+        "safeFallbackStageId": {
+          "$ref": "#/$defs/stageId"
+        }
+      }
+    },
+    "adapterExportPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exportableToN8n",
+        "sidecarRequired",
+        "stripCredentials",
+        "lossinessRequired",
+        "unsupportedWithoutReview"
+      ],
+      "properties": {
+        "exportableToN8n": {
+          "type": "boolean"
+        },
+        "sidecarRequired": {
+          "type": "boolean"
+        },
+        "stripCredentials": {
+          "type": "boolean"
+        },
+        "lossinessRequired": {
+          "type": "boolean"
+        },
+        "unsupportedWithoutReview": {
+          "$ref": "#/$defs/stringList"
+        }
+      }
+    },
+    "cardTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "stageId",
+        "cardKind",
+        "surface",
+        "actorModes",
+        "participantRoles",
+        "in",
+        "out",
+        "primaryAction",
+        "supportingActions",
+        "requiredBeforeAction",
+        "safeRenderClaims",
+        "unsafeClaims",
+        "doneHere",
+        "notDoneHere",
+        "authorityBoundary",
+        "handoffBoundary",
+        "next",
+        "adapterExportPolicy",
+        "schemaVersion"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+$"
+        },
+        "stageId": {
+          "$ref": "#/$defs/stageId"
+        },
+        "cardKind": {
+          "$ref": "#/$defs/cardKind"
+        },
+        "surface": {
+          "enum": [
+            "human",
+            "agent",
+            "system",
+            "hybrid"
+          ]
+        },
+        "actorModes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/actorMode"
+          }
+        },
+        "participantRoles": {
+          "$ref": "#/$defs/stringList"
+        },
+        "in": {
+          "$ref": "#/$defs/stringList"
+        },
+        "out": {
+          "$ref": "#/$defs/stringList"
+        },
+        "primaryAction": {
+          "$ref": "#/$defs/participantAction"
+        },
+        "supportingActions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/participantAction"
+          }
+        },
+        "requiredBeforeAction": {
+          "$ref": "#/$defs/stringList"
+        },
+        "safeRenderClaims": {
+          "$ref": "#/$defs/stringList"
+        },
+        "unsafeClaims": {
+          "$ref": "#/$defs/stringList"
+        },
+        "doneHere": {
+          "$ref": "#/$defs/stringList"
+        },
+        "notDoneHere": {
+          "$ref": "#/$defs/stringList"
+        },
+        "authorityBoundary": {
+          "$ref": "#/$defs/authorityBoundary"
+        },
+        "handoffBoundary": {
+          "$ref": "#/$defs/handoffBoundary"
+        },
+        "next": {
+          "$ref": "#/$defs/nextBoundary"
+        },
+        "adapterExportPolicy": {
+          "$ref": "#/$defs/adapterExportPolicy"
+        },
+        "schemaVersion": {
+          "const": 1
+        }
+      }
+    },
+    "adapterMappingPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adapterKind",
+        "direction",
+        "source",
+        "target",
+        "stageId",
+        "cardIds",
+        "actionIds",
+        "workflowBlockKinds",
+        "credentialSlots",
+        "humanCheckpoints",
+        "proofRequirements",
+        "unsupportedFeatures",
+        "lossiness",
+        "roundTripSafe",
+        "sidecarRequired",
+        "stripCredentials"
+      ],
+      "properties": {
+        "adapterKind": {
+          "const": "n8n"
+        },
+        "direction": {
+          "enum": [
+            "import",
+            "export"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stageId": {
+          "$ref": "#/$defs/stageId"
+        },
+        "cardIds": {
+          "$ref": "#/$defs/stringList"
+        },
+        "actionIds": {
+          "$ref": "#/$defs/stringList"
+        },
+        "workflowBlockKinds": {
+          "$ref": "#/$defs/stringList"
+        },
+        "credentialSlots": {
+          "$ref": "#/$defs/stringList"
+        },
+        "humanCheckpoints": {
+          "$ref": "#/$defs/stringList"
+        },
+        "proofRequirements": {
+          "$ref": "#/$defs/stringList"
+        },
+        "unsupportedFeatures": {
+          "$ref": "#/$defs/stringList"
+        },
+        "lossiness": {
+          "$ref": "#/$defs/stringList"
+        },
+        "roundTripSafe": {
+          "const": false
+        },
+        "sidecarRequired": {
+          "const": true
+        },
+        "stripCredentials": {
+          "const": true
+        }
+      }
+    }
+  }
+}

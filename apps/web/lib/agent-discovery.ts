@@ -469,6 +469,15 @@ export const jsonSchemaDiscoveryAssets = [
   {
     contentType: "application/schema+json; charset=utf-8",
     description:
+      "Actor-neutral request-flow stage and card taxonomy schema for human, agent, system, and adapter render/action surfaces without granting authority.",
+    routePath: "/schemas/request-flow-stage-card-taxonomy.schema.json",
+    sourcePath: "schemas/json/request-flow-stage-card-taxonomy.schema.json",
+    standard: "json_schema",
+    title: "Request-flow stage/card taxonomy",
+  },
+  {
+    contentType: "application/schema+json; charset=utf-8",
+    description:
       "Contract-only agent sandbox manifest schema for deterministic mock identities, payloads, flow samples, and replay scenarios.",
     routePath: "/schemas/agent-sandbox.schema.json",
     sourcePath: "schemas/json/agent-sandbox.schema.json",

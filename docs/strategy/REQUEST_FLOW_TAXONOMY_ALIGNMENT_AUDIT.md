@@ -289,6 +289,8 @@ These names are allowed only inside bounded surfaces:
 
 ### P0: Add shared taxonomy pipeline before app mutations
 
+Initial schema, fixture, TypeScript profile, and contract test now exist for the shared taxonomy boundary.
+
 Do not add drag-to-mutate behavior until the source card can declare:
 
 - stage id
@@ -302,7 +304,7 @@ Do not add drag-to-mutate behavior until the source card can declare:
 
 ### P1: Add schema, fixture, and TypeScript definitions
 
-Next implementation files should be:
+Initial implementation files now exist:
 
 - `schemas/json/request-flow-stage-card-taxonomy.schema.json`
 - `fixtures/request/request-flow-stage-card-taxonomy.sample.json`
@@ -364,4 +366,3 @@ Pause implementation and return to canon if a future patch:
 - lets service plan copy become unconfirmed buyer-authored brief text
 - lets n8n export include credentials, payment authority, approvals, proof acceptance, or request event history
 - creates new request roots for generated sub-work that should be `FulfillmentStep`
-

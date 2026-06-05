@@ -5,7 +5,7 @@ Last reviewed: 2026-06-03
 Owner: root canon / strategy
 Workstream: `root-canon`
 Change class: Class A alignment and Class C projection guidance
-Implementation state: discovery and feasibility profile; no machine-readable schema, live endpoint, or import/export route yet
+Implementation state: schema-backed contract profile; no live mutation route, import route, or export route yet
 
 ## Purpose
 
@@ -25,7 +25,7 @@ The goal is to make every request-flow card explicit about:
 
 ## Current Conclusion
 
-The taxonomy is feasible and needed, but it should start as a request-flow profile, not as live schema or routes.
+The taxonomy is feasible and needed, and it now starts as a schema-backed request-flow profile, not as live mutation, import, or export routes.
 
 Safe conclusion:
 
@@ -36,7 +36,7 @@ Safe conclusion:
 
 Not safe to claim yet:
 
-- live neutral card schema exists
+- live neutral mutation cards are wired into production route behavior
 - n8n round-trip is production-ready
 - agent cards and human cards already share one canonical machine-readable profile
 - workflow execution can prove request completion by itself
@@ -459,7 +459,7 @@ Next:
 
 ## Type-Safety Requirements
 
-The future schema and TypeScript layer should enforce these rules:
+The schema and TypeScript layer should preserve these rules:
 
 - stage ids are a closed enum
 - card ids are a closed enum or generated stable ids with a stage prefix
@@ -476,7 +476,7 @@ The future schema and TypeScript layer should enforce these rules:
 - `Workflow` may appear only as adapter/support language
 - `Solution` may appear only as public projection UI language
 
-Suggested future files:
+Implemented contract/profile files:
 
 - `schemas/json/request-flow-stage-card-taxonomy.schema.json`
 - `fixtures/request/request-flow-stage-card-taxonomy.sample.json`
@@ -602,9 +602,11 @@ Done when:
 
 - actor-neutral boundary is accepted
 - n8n import/export feasibility is explicit
-- future schema and tests are scoped
+- schema-backed contract profile and tests are scoped
 
 ### Slice 2: Schema and Fixture
+
+Status: initial contract profile implemented.
 
 Add:
 
@@ -620,6 +622,8 @@ Acceptance:
 - n8n mappings require sidecar and lossiness fields
 
 ### Slice 3: TypeScript Catalog
+
+Status: initial stage/card profile implemented; action-id unions remain future generated catalog work.
 
 Add:
 

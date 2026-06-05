@@ -108,11 +108,10 @@ Accepted mapping boundary:
 The implementation order is:
 
 1. keep this decision and the strategy taxonomy doc as the alignment layer
-2. add a JSON Schema and fixture for the actor-neutral taxonomy
-3. add TypeScript types and canonical definition data
-4. map current request flow UI and `agentActionCardHints` onto the shared profile without breaking existing routes
-5. add n8n import/export sidecar rules on top of `WorkflowPackVersion`
-6. add contract tests that reject unknown stages, missing gates, unsafe card authority, and lossy n8n mappings without explicit lossiness records
+2. keep the JSON Schema, fixture, and TypeScript profile aligned for the actor-neutral taxonomy
+3. map current request flow UI and `agentActionCardHints` onto the shared profile without breaking existing routes
+4. add n8n import/export sidecar rules on top of `WorkflowPackVersion`
+5. add contract tests that reject unknown stages, missing gates, unsafe card authority, and lossy n8n mappings without explicit lossiness records
 
 ## Consequences
 
@@ -137,7 +136,7 @@ The implementation order is:
 - a shared taxonomy adds structure before implementation velocity
 - n8n round-trip will be intentionally lossy for Boreal-only semantics
 - existing agent-specific route names may remain for compatibility while the neutral layer is introduced
-- the safest next patch is schema and fixture work, not live import/export activation
+- the safest next patches bind current projections to the schema-backed taxonomy, not live import/export activation
 
 ## Implementation Notes
 
