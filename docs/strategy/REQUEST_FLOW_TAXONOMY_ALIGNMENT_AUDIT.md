@@ -313,7 +313,9 @@ Initial implementation files now exist:
 
 ### P1: Bind current graph descriptors to taxonomy
 
-`RequestFlowNodeDescriptor` should gain a taxonomy binding before new flow actions are added.
+Status: initial binding implemented for current request-flow graph descriptors.
+
+`RequestFlowNodeDescriptor` now carries the shared taxonomy binding before new flow actions are added.
 
 Minimum binding:
 
@@ -324,6 +326,8 @@ Minimum binding:
 - `doneHere`
 - `notDoneHere`
 - `nextActionIntents`
+
+Current action-option generation also stops when a node's `dragAction.id` is not listed in `taxonomy.nextActionIntents`, so local node-kind inference cannot silently override the taxonomy.
 
 ### P1: Replace local drag-title inference
 

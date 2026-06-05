@@ -46,6 +46,7 @@ import {
   buildDraftRequestFlowGraph,
   getRequestFlowActionOptions,
   getRequestFlowNodeAction,
+  getRequestFlowNodeTaxonomy,
 } from "@/lib/request-flow";
 import { buildRequestPreflightPreview } from "@/lib/request-preflight";
 import { assertSupplyCanAttachToCommitment } from "@/lib/request-supply-boundary";
@@ -581,6 +582,29 @@ assert.equal(
   true,
 );
 assert.equal(
+  draftFlowGraph.nodes.every((node) =>
+    node.taxonomy.nextActionIntents.includes(node.dragAction.id)
+  ),
+  true,
+);
+assert.equal(
+  draftFlowGraph.nodes.every((node) =>
+    node.taxonomy.authorityBoundary.nonAuthority.includes(
+      "card_taxonomy_is_not_permission"
+    )
+  ),
+  true,
+);
+assert.equal(draftFlowGraph.nodes[0]?.taxonomy.stageId, "draft_review");
+assert.deepEqual(
+  draftPlanNodes.map((node) => node.taxonomy.stageId),
+  ["path_planning", "path_planning"],
+);
+assert.deepEqual(
+  draftPlanNodes.map((node) => node.taxonomy.cardKind),
+  ["action_card", "action_card"],
+);
+assert.equal(
   draftFlowGraph.nodes[0]?.dragAction.id,
   "make_or_refine_request_plan",
 );
@@ -615,6 +639,21 @@ assert.deepEqual(
   requestFlowActionOptions.map((option) => option.targetNodeKind),
   ["phase", "phase"],
 );
+const taxonomyBlockedGraph = {
+  ...draftFlowGraph,
+  nodes: draftFlowGraph.nodes.map((node, index) =>
+    index === 0
+      ? {
+          ...node,
+          taxonomy: {
+            ...node.taxonomy,
+            nextActionIntents: [],
+          },
+        }
+      : node
+  ),
+};
+assert.deepEqual(getRequestFlowActionOptions(taxonomyBlockedGraph, "request"), []);
 const firstPlanActionOptions = getRequestFlowActionOptions(
   draftFlowGraph,
   draftPlanNodes[0]?.id ?? "",
@@ -663,6 +702,24 @@ assert.deepEqual(
     "review_worker_delivery",
     "inspect_delivery_proof",
     "inspect_delivery_proof",
+  ],
+);
+assert.deepEqual(
+  [
+    getRequestFlowNodeTaxonomy("request").stageId,
+    getRequestFlowNodeTaxonomy("phase").stageId,
+    getRequestFlowNodeTaxonomy("stage").stageId,
+    getRequestFlowNodeTaxonomy("worker").stageId,
+    getRequestFlowNodeTaxonomy("delivery").stageId,
+    getRequestFlowNodeTaxonomy("step").stageId,
+  ],
+  [
+    "draft_review",
+    "path_planning",
+    "path_planning",
+    "fulfillment_handoff",
+    "proof_submission",
+    "proof_submission",
   ],
 );
 assert.equal(

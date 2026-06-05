@@ -6,6 +6,12 @@ import type {
   RequestRoleKey,
   RequestStatus,
 } from "./request";
+import type {
+  RequestFlowActorMode,
+  RequestFlowAuthorityBoundary,
+  RequestFlowCardKind,
+  RequestFlowStageId,
+} from "./request-flow-taxonomy";
 import type { BorealSupplyDraft } from "./supply";
 
 export type RequestFlowNodeKind =
@@ -57,9 +63,20 @@ export type RequestFlowNodeAction = {
   nonAuthority: string[];
 };
 
+export type RequestFlowNodeTaxonomy = {
+  stageId: RequestFlowStageId;
+  cardKind: RequestFlowCardKind;
+  actorModes: RequestFlowActorMode[];
+  authorityBoundary: RequestFlowAuthorityBoundary;
+  doneHere: string[];
+  notDoneHere: string[];
+  nextActionIntents: RequestFlowNodeActionId[];
+};
+
 export type RequestFlowNodeDescriptor = {
   id: string;
   kind: RequestFlowNodeKind;
+  taxonomy: RequestFlowNodeTaxonomy;
   state: RequestFlowNodeState;
   tone: RequestFlowNodeTone;
   laneLabel: string;
@@ -165,6 +182,143 @@ const flowActionNonAuthority = [
   "no_artifact_published",
 ];
 
+const flowTaxonomyNonAuthority = [
+  "node_taxonomy_only",
+  "card_taxonomy_is_not_permission",
+  "no_mutation_from_rendering",
+  "no_assignment_from_drag_hint",
+];
+
+const requestFlowNodeTaxonomyByKind = {
+  request: {
+    stageId: "draft_review",
+    cardKind: "decision_card",
+    actorModes: ["human", "agent", "hybrid"],
+    authorityBoundary: {
+      permissionSource: "owner_approval",
+      requiredGates: ["owner approval", "route policy"],
+      nonAuthority: [...flowTaxonomyNonAuthority],
+    },
+    doneHere: ["review Request draft", "prepare request-owned plan changes"],
+    notDoneHere: [
+      "no public opening without owner approval",
+      "no worker assignment",
+      "no Commitment",
+      "no Fulfillment",
+      "no payment",
+      "no proof",
+    ],
+    nextActionIntents: ["make_or_refine_request_plan"],
+  },
+  phase: {
+    stageId: "path_planning",
+    cardKind: "action_card",
+    actorModes: ["human", "agent", "hybrid"],
+    authorityBoundary: {
+      permissionSource: "agentActionPolicy",
+      requiredGates: ["represented actor approval", "request policy"],
+      nonAuthority: [...flowTaxonomyNonAuthority],
+    },
+    doneHere: ["explain the viable request path", "prepare worker application context"],
+    notDoneHere: [
+      "no worker assignment",
+      "no Commitment acceptance",
+      "no Fulfillment start",
+      "no completion",
+    ],
+    nextActionIntents: ["prepare_worker_application"],
+  },
+  stage: {
+    stageId: "path_planning",
+    cardKind: "action_card",
+    actorModes: ["human", "agent", "hybrid"],
+    authorityBoundary: {
+      permissionSource: "agentActionPolicy",
+      requiredGates: ["represented actor approval", "request policy"],
+      nonAuthority: [...flowTaxonomyNonAuthority],
+    },
+    doneHere: ["explain the viable request path", "prepare worker application context"],
+    notDoneHere: [
+      "no worker assignment",
+      "no Commitment acceptance",
+      "no Fulfillment start",
+      "no completion",
+    ],
+    nextActionIntents: ["prepare_worker_application"],
+  },
+  worker: {
+    stageId: "fulfillment_handoff",
+    cardKind: "handoff_card",
+    actorModes: ["human", "agent", "system", "hybrid"],
+    authorityBoundary: {
+      permissionSource: "governed_route_policy",
+      requiredGates: ["accepted Commitment or owner-private approval", "selected Supply"],
+      nonAuthority: [...flowTaxonomyNonAuthority],
+    },
+    doneHere: ["inspect worker lane readiness", "review delivery path context"],
+    notDoneHere: [
+      "no Artifact publication",
+      "no owner acceptance",
+      "no payment settlement",
+      "no completion",
+    ],
+    nextActionIntents: ["review_worker_delivery"],
+  },
+  delivery: {
+    stageId: "proof_submission",
+    cardKind: "evidence_card",
+    actorModes: ["human", "agent", "hybrid"],
+    authorityBoundary: {
+      permissionSource: "governed_route_policy",
+      requiredGates: ["artifact policy", "proof review"],
+      nonAuthority: [...flowTaxonomyNonAuthority, "proof_card_is_not_acceptance"],
+    },
+    doneHere: ["inspect delivery proof", "prepare review context"],
+    notDoneHere: [
+      "no owner acceptance",
+      "no payment settlement",
+      "no completion proof by itself",
+    ],
+    nextActionIntents: ["inspect_delivery_proof"],
+  },
+  step: {
+    stageId: "proof_submission",
+    cardKind: "evidence_card",
+    actorModes: ["human", "agent", "hybrid"],
+    authorityBoundary: {
+      permissionSource: "governed_route_policy",
+      requiredGates: ["artifact policy", "proof review"],
+      nonAuthority: [...flowTaxonomyNonAuthority, "proof_card_is_not_acceptance"],
+    },
+    doneHere: ["inspect delivery proof", "prepare review context"],
+    notDoneHere: [
+      "no owner acceptance",
+      "no payment settlement",
+      "no completion proof by itself",
+    ],
+    nextActionIntents: ["inspect_delivery_proof"],
+  },
+} satisfies Record<RequestFlowNodeKind, RequestFlowNodeTaxonomy>;
+
+export function getRequestFlowNodeTaxonomy(
+  kind: RequestFlowNodeKind,
+): RequestFlowNodeTaxonomy {
+  const taxonomy = requestFlowNodeTaxonomyByKind[kind];
+
+  return {
+    ...taxonomy,
+    actorModes: [...taxonomy.actorModes],
+    authorityBoundary: {
+      ...taxonomy.authorityBoundary,
+      requiredGates: [...taxonomy.authorityBoundary.requiredGates],
+      nonAuthority: [...taxonomy.authorityBoundary.nonAuthority],
+    },
+    doneHere: [...taxonomy.doneHere],
+    notDoneHere: [...taxonomy.notDoneHere],
+    nextActionIntents: [...taxonomy.nextActionIntents],
+  };
+}
+
 export function getRequestFlowNodeAction(
   kind: RequestFlowNodeKind,
 ): RequestFlowNodeAction {
@@ -232,6 +386,10 @@ export function getRequestFlowActionOptions(
   }
 
   const action = sourceNode.dragAction;
+  if (!sourceNode.taxonomy.nextActionIntents.includes(action.id)) {
+    return [];
+  }
+
   const targetNodes = graph.nodes.filter(
     (node) => node.kind === action.targetNodeKind,
   );
@@ -281,6 +439,7 @@ export function buildDraftRequestFlowGraph(
     {
       id: "request",
       kind: "request",
+      taxonomy: getRequestFlowNodeTaxonomy("request"),
       state: request.derived.readiness.readyForOpen ? "done" : "current",
       stateLabel: request.derived.readiness.readyForOpen ? "ready" : "drafting",
       tone: "green",
@@ -430,6 +589,7 @@ function buildDraftPlanNode(
   return {
     id: `plan:${step.phaseKey}:${index}`,
     kind: "phase",
+    taxonomy: getRequestFlowNodeTaxonomy("phase"),
     state: needsClarification
       ? "blocked"
       : request.derived.readiness.readyForOpen
@@ -525,6 +685,7 @@ export function buildTrackedRequestFlowGraph({
     {
       id: "request",
       kind: "request",
+      taxonomy: getRequestFlowNodeTaxonomy("request"),
       state: deriveRequestLifecycleState(request.status),
       stateLabel:
         request.status === "completed"
@@ -595,6 +756,7 @@ export function buildTrackedRequestFlowGraph({
     nodes.push({
       id: phaseId,
       kind: "phase",
+      taxonomy: getRequestFlowNodeTaxonomy("phase"),
       state: phaseState,
       tone: getProcessNodeTone(phaseState, "blue"),
       stateLabel: phaseState === "done" ? "done" : undefined,
@@ -664,6 +826,7 @@ export function buildTrackedRequestFlowGraph({
   nodes.push({
     id: "worker",
     kind: "worker",
+    taxonomy: getRequestFlowNodeTaxonomy("worker"),
     state: workerNode.state,
     stateLabel: workerNode.stateLabel,
     tone: workerNode.tone,
@@ -683,6 +846,7 @@ export function buildTrackedRequestFlowGraph({
   nodes.push({
     id: "delivery",
     kind: "delivery",
+    taxonomy: getRequestFlowNodeTaxonomy("delivery"),
     state: deliveryNode.state,
     stateLabel: deliveryNode.stateLabel,
     tone: deliveryNode.tone,

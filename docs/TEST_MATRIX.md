@@ -85,6 +85,7 @@ For the actor-neutral request-flow taxonomy machine model, verify:
 
 - every `RequestFlowStage` has explicit in, out, done-here, not-done-here, authority, next-stage, recovery, and adapter-mapping fields
 - every `RequestFlowCard` references an existing stage and declares whether it is human, agent, system, or hybrid-facing
+- every current `RequestFlowNodeDescriptor` carries a taxonomy binding with `stageId`, `cardKind`, `actorModes`, authority boundary, done/not-done scope, and `nextActionIntents`
 - rendering a card never grants permission, records approval, authorizes payment, writes durable history, or proves completion
 - drag or connection affordances may expose a virtual next-card handoff when the target card is not present yet, but that option must stay read-only and carry the same non-authority flags as visible-card actions
 - every write-capable action references route auth, participant or owner authority, request-specific policy, idempotency, and canonical write boundaries
