@@ -504,11 +504,13 @@ function buildApplicationPacket({
   lane: string;
   template: BorealAgentTemplate;
 }) {
+  const requestFlowContext = buildRequestFlowContext({ input, lane });
   const base = {
     requestId: input.request.id,
     agentKey: template.agentKey,
     workerKey: template.workerKey,
     supplyBinding: template.supplyBinding,
+    requestFlowContext,
     packetStatus: evaluation.allowedToWake
       ? "ready_for_submission_preflight"
       : "blocked_until_qualified",
@@ -639,6 +641,7 @@ function buildSubmissionPreflight({
     ? ["fulfillments:create"]
     : ["commitments:propose"];
   const requestFit = buildRequestFit(input);
+  const requestFlowContext = buildRequestFlowContext({ input, lane });
   const representedActor = {
     kind: "agent",
     reference: `boreal-agent:${template.agentKey}`,
@@ -663,6 +666,7 @@ function buildSubmissionPreflight({
       requestedScopes,
       payloadSummaryRequired: true,
       requestFit,
+      requestFlowContext,
     },
     preflightRequest: {
       schemaVersion: 1,
@@ -674,6 +678,7 @@ function buildSubmissionPreflight({
       requestedScopes,
       payloadSummary,
       requestFit,
+      requestFlowContext,
     },
     routePolicyRecheck: {
       requestDetailRequired: true,
@@ -688,6 +693,7 @@ function buildSubmissionPreflight({
       "request detail",
       "agentActionPolicy",
       "selected Supply",
+      "request flow context and pre-execution gates",
       "existing activeRefs",
       "funding and proof requirements",
     ],
@@ -703,6 +709,68 @@ function buildSubmissionPreflight({
     nonAuthority:
       "Passing preparation is not enough to submit. Run action preflight and re-check the live route policy before the authorized mutation route is attempted.",
   } as const;
+}
+
+function buildRequestFlowContext({
+  input,
+  lane,
+}: {
+  input: BorealAgentPrepareApplicationInput;
+  lane: string;
+}) {
+  const constraints = {
+    ...(input.request.constraints ?? {}),
+    ...(input.request.brief?.constraints ?? {}),
+  };
+
+  return {
+    source: "request_constraints",
+    entryStageId:
+      getStringConstraint(constraints.requestFlowEntryStageId) ?? null,
+    cardKind: getStringConstraint(constraints.requestFlowCardKind) ?? null,
+    planStageIds: getStringArrayConstraint(
+      constraints.requestFlowPlanStageIds,
+    ),
+    nextActionIntents: getStringArrayConstraint(
+      constraints.requestFlowNextActionIntents,
+    ),
+    presetPlanStageIds: getStringArrayConstraint(
+      constraints.requestFlowPresetPlanStageIds,
+    ),
+    presetPlanRequiredBeforeExecution: getStringArrayConstraint(
+      constraints.requestFlowPresetPlanRequiredBeforeExecution,
+    ),
+    nextCanonicalBoundary:
+      lane === "owner_private_direct_worker_fulfillment"
+        ? "Fulfillment"
+        : "Commitment",
+    nonAuthority: [
+      "request_flow_context_is_not_permission",
+      "pre_execution_gate_text_is_not_owner_approval",
+      "no_worker_assignment_from_context",
+      "no_supply_attachment_from_context",
+      "no_fulfillment_started_from_context",
+      "no_artifact_published_from_context",
+      "no_payment_authorized_from_context",
+      "no_completion_proof_from_context",
+    ],
+  } as const;
+}
+
+function getStringConstraint(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0
+    ? value.trim()
+    : undefined;
+}
+
+function getStringArrayConstraint(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return normalizeStrings(
+    value.filter((item): item is string => typeof item === "string"),
+  );
 }
 
 function buildAuthorizedExecutionHandoff({

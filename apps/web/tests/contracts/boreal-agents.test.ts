@@ -40,6 +40,30 @@ const videoPrepareInput: BorealAgentPrepareApplicationInput = {
       title: "Create a launch teaser video",
       summary: "Need a short founder reel from approved product notes.",
       body: "Generate a tight launch clip with proof and review handoff.",
+      constraints: {
+        requestFlowEntryStageId: "request_intake",
+        requestFlowCardKind: "action_card",
+        requestFlowPlanStageIds: [
+          "request_intake",
+          "path_planning",
+          "funding_authorization",
+          "fulfillment_handoff",
+          "proof_submission",
+        ],
+        requestFlowNextActionIntents: ["create_request_draft"],
+        requestFlowPresetPlanStageIds: [
+          "path_planning",
+          "funding_authorization",
+          "fulfillment_handoff",
+          "proof_submission",
+        ],
+        requestFlowPresetPlanRequiredBeforeExecution: [
+          "buyer-specific brief fields are complete",
+          "checkout or payment authority is recorded",
+          "selected Supply passes route policy",
+          "Commitment or owner-private fulfillment gate succeeds",
+        ],
+      },
       outputKinds: ["video"],
     },
     derived: {
@@ -665,6 +689,42 @@ async function main() {
     publicPrepare.applicationPacket.requiredNextAction,
     "run_submission_preflight_before_authorized_mutation"
   );
+  assert.deepEqual(publicPrepare.applicationPacket.requestFlowContext, {
+    source: "request_constraints",
+    entryStageId: "request_intake",
+    cardKind: "action_card",
+    planStageIds: [
+      "request_intake",
+      "path_planning",
+      "funding_authorization",
+      "fulfillment_handoff",
+      "proof_submission",
+    ],
+    nextActionIntents: ["create_request_draft"],
+    presetPlanStageIds: [
+      "path_planning",
+      "funding_authorization",
+      "fulfillment_handoff",
+      "proof_submission",
+    ],
+    presetPlanRequiredBeforeExecution: [
+      "buyer-specific brief fields are complete",
+      "checkout or payment authority is recorded",
+      "selected Supply passes route policy",
+      "Commitment or owner-private fulfillment gate succeeds",
+    ],
+    nextCanonicalBoundary: "Commitment",
+    nonAuthority: [
+      "request_flow_context_is_not_permission",
+      "pre_execution_gate_text_is_not_owner_approval",
+      "no_worker_assignment_from_context",
+      "no_supply_attachment_from_context",
+      "no_fulfillment_started_from_context",
+      "no_artifact_published_from_context",
+      "no_payment_authorized_from_context",
+      "no_completion_proof_from_context",
+    ],
+  });
   assert.deepEqual(publicPrepare.applicationPacket.qualificationGate, {
     status: "passed",
     allowedToWake: true,
@@ -727,6 +787,16 @@ async function main() {
       .requestFit,
     publicPrepare.applicationPacket.submissionPreflight.requiredInput.requestFit
   );
+  assert.deepEqual(
+    publicPrepare.applicationPacket.submissionPreflight.requiredInput
+      .requestFlowContext,
+    publicPrepare.applicationPacket.requestFlowContext
+  );
+  assert.deepEqual(
+    publicPrepare.applicationPacket.submissionPreflight.preflightRequest
+      .requestFlowContext,
+    publicPrepare.applicationPacket.requestFlowContext
+  );
   assert.match(
     publicPrepare.applicationPacket.submissionPreflight.preflightRequest
       .payloadSummary,
@@ -746,6 +816,11 @@ async function main() {
   assert.ok(
     publicPrepare.applicationPacket.submissionPreflight.mustReadBeforeSubmit.includes(
       "agentActionPolicy"
+    )
+  );
+  assert.ok(
+    publicPrepare.applicationPacket.submissionPreflight.mustReadBeforeSubmit.includes(
+      "request flow context and pre-execution gates"
     )
   );
   assert.ok(
