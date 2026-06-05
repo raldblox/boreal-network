@@ -41,8 +41,8 @@ No reviewed surface replaces `Request`, `Supply`, `Commitment`, `Fulfillment`, `
 
 The main gaps are:
 
-- projections use local names such as `phase`, `stage`, `step`, `task`, and `workflow` without a shared taxonomy binding
-- cards do not yet declare `stageId`, `cardKind`, actor modes, authority, in/out, done-here, not-done-here, or next actions
+- some projections still use local names such as `task` and `workflow` without a shared taxonomy binding
+- service, workflow, stepper, task-board, and matching-lab cards do not yet all declare `stageId`, `cardKind`, actor modes, authority, in/out, done-here, not-done-here, or next actions
 - drag actions are UI selection hints, not first-class `ParticipantAction` intents
 - n8n import/export support does not yet emit a Boreal request-flow sidecar
 - some older standards still present the n8n repair SKU as the first shipped supply, while current strategy and code point at Runway-backed first-party service lanes
@@ -71,13 +71,12 @@ Aligned:
 
 Gap:
 
-- nodes lack a neutral taxonomy binding.
-- connector drag does not know whether the source is a request card, plan card, worker card, proof card, payment card, or recovery card.
-- connector drag cannot distinguish "make a plan", "choose or assign a worker route", "propose commitment", "start fulfillment", "submit proof", or "recover blocker" as typed action intents.
+- current request-flow graph nodes now carry a neutral taxonomy binding.
+- connector drag still exposes only the starter action set, not the fuller taxonomy action-intent catalog for commitment, fulfillment, payment, proof, or recovery variants.
 
 Required next step:
 
-- add a shared `RequestFlowTaxonomyBinding` to graph descriptors before adding new drag mutations.
+- bind richer action-intent definitions to the descriptor taxonomy before adding new drag mutations.
 
 ### Request Path Builder And Stepper Projections
 

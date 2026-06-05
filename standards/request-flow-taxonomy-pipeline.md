@@ -128,9 +128,9 @@ Every card must declare actor modes:
 - `agent`
 - `system`
 - `hybrid`
-- `adapter`
 
 Actor mode is not authority.
+Adapters are mapped through `adapter_mapping_card` and adapter mapping policy, not as an actor mode.
 
 Every mutating action must separately declare:
 
@@ -263,7 +263,7 @@ type RequestFlowTaxonomyBinding = {
 };
 ```
 
-This should become schema-backed before live drag mutations depend on it.
+This is now schema-backed for the initial request-flow profile; live drag mutations must still wait for route-level policy binding.
 
 ## Drag Action Standard
 
