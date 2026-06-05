@@ -809,6 +809,14 @@ async function main() {
     "preflight_passed"
   );
   assert.equal(
+    validateAgentActionPreflight(
+      publicPrepare.applicationPacket.submissionPreflight.preflightRequest
+    ).warnings.some((warning) =>
+      warning.includes("requestFlowContext is route-facing guidance only")
+    ),
+    true
+  );
+  assert.equal(
     publicPrepare.applicationPacket.submissionPreflight.routePolicyRecheck
       .ownerPrivateAutoApprovalRequired,
     false

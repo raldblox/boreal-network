@@ -2932,6 +2932,39 @@ async function main() {
       selectedSupplyKinds: ["video_generation"],
       selectedOutputKinds: ["video"],
     },
+    requestFlowContext: {
+      entryStageId: "request_intake",
+      cardKind: "action_card",
+      planStageIds: [
+        "request_intake",
+        "path_planning",
+        "funding_authorization",
+        "fulfillment_handoff",
+        "proof_submission",
+      ],
+      nextActionIntents: ["create_request_draft"],
+      presetPlanStageIds: [
+        "path_planning",
+        "funding_authorization",
+        "fulfillment_handoff",
+        "proof_submission",
+      ],
+      presetPlanRequiredBeforeExecution: [
+        "buyer-specific brief fields are complete",
+        "checkout or payment authority is recorded",
+        "selected Supply passes route policy",
+      ],
+      nextCanonicalBoundary: "Commitment",
+      nonAuthority: [
+        "request_flow_context_is_not_permission",
+        "no_worker_assignment_from_context",
+        "no_supply_attachment_from_context",
+        "no_fulfillment_started_from_context",
+        "no_artifact_published_from_context",
+        "no_payment_authorized_from_context",
+        "no_completion_proof_from_context",
+      ],
+    },
   });
   assert.equal(applyPreflight.status, "preflight_passed");
   assert.equal(
@@ -2946,6 +2979,12 @@ async function main() {
   assert.equal(applyPreflight.paymentAuthorized, false);
   assert.equal(applyPreflight.completionProven, false);
   assert.equal(applyPreflight.durableWriteCreated, false);
+  assert.equal(
+    applyPreflight.warnings.some((warning) =>
+      warning.includes("requestFlowContext is route-facing guidance only")
+    ),
+    true,
+  );
   assert.equal(
     applyPreflight.canonicalBoundary.preflightIsNot.includes(
       "durable RequestEvent"
@@ -2988,6 +3027,68 @@ async function main() {
     true,
   );
   assert.equal(mismatchedApplyPreflight.durableWriteCreated, false);
+
+  const invalidRequestFlowContextPreflight = validateAgentActionPreflight({
+    schemaVersion: 1,
+    actionId: "apply_to_request",
+    requestId: "req_public_video_001",
+    representedActor: {
+      kind: "resolver_agent",
+      reference: "agent:portfolio-builder",
+    },
+    hasHumanApproval: true,
+    hasIdempotencyKey: true,
+    requestedScopes: ["commitments:propose"],
+    payloadSummary: "Commitment proposal with bad request-flow context.",
+    requestFit: {
+      selectedSupplyId: "supply_video_generation_001",
+      selectedSupplyStatus: "published",
+      requestSupplyKinds: ["video_generation"],
+      requestOutputKinds: ["video"],
+      selectedSupplyKinds: ["video_generation"],
+      selectedOutputKinds: ["video"],
+    },
+    requestFlowContext: {
+      entryStageId: "made_up_stage",
+      cardKind: "made_up_card",
+      planStageIds: ["request_intake", "unknown_stage"],
+      nextActionIntents: ["create_request_draft", "assign_worker_now"],
+      nextCanonicalBoundary: "Order",
+      nonAuthority: ["request_flow_context_is_not_permission"],
+    },
+  });
+  assert.equal(invalidRequestFlowContextPreflight.status, "preflight_failed");
+  assert.equal(
+    invalidRequestFlowContextPreflight.missingRequirements.includes(
+      "requestFlowContext.entryStageId known"
+    ),
+    true,
+  );
+  assert.equal(
+    invalidRequestFlowContextPreflight.missingRequirements.includes(
+      "requestFlowContext.cardKind known"
+    ),
+    true,
+  );
+  assert.equal(
+    invalidRequestFlowContextPreflight.missingRequirements.includes(
+      "requestFlowContext.stageIds known"
+    ),
+    true,
+  );
+  assert.equal(
+    invalidRequestFlowContextPreflight.missingRequirements.includes(
+      "requestFlowContext.nextActionIntents known"
+    ),
+    true,
+  );
+  assert.equal(
+    invalidRequestFlowContextPreflight.missingRequirements.includes(
+      "requestFlowContext.nextCanonicalBoundary known"
+    ),
+    true,
+  );
+  assert.equal(invalidRequestFlowContextPreflight.durableWriteCreated, false);
 
   const ownerPrivateFulfillmentPreflight = validateAgentActionPreflight({
     schemaVersion: 1,
@@ -4323,6 +4424,25 @@ async function main() {
     Object.hasOwn(
       discoveryIndex.components.schemas.AgentActionPreflightRequest.properties,
       "requestFit"
+    ),
+    true,
+  );
+  assert.equal(
+    Object.hasOwn(
+      discoveryIndex.components.schemas.AgentActionPreflightRequest.properties,
+      "requestFlowContext"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex.components.schemas.AgentActionPreflightRequest.properties.requestFlowContext.properties.entryStageId.enum.includes(
+      "request_intake"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex.components.schemas.AgentActionPreflightRequest.properties.requestFlowContext.properties.cardKind.enum.includes(
+      "action_card"
     ),
     true,
   );

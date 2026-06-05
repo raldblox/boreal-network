@@ -2,6 +2,10 @@ import {
   buildAgentActionCatalog,
   type AgentActionAvailability,
 } from "@/lib/agent-discovery";
+import {
+  requestFlowCardKinds,
+  requestFlowStageIds,
+} from "@/lib/request-flow-taxonomy";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -25,6 +29,16 @@ export type AgentActionPreflightRequest = {
     requestOutputKinds?: string[];
     selectedSupplyKinds?: string[];
     selectedOutputKinds?: string[];
+  };
+  requestFlowContext?: {
+    entryStageId?: string | null;
+    cardKind?: string | null;
+    planStageIds?: string[];
+    nextActionIntents?: string[];
+    presetPlanStageIds?: string[];
+    presetPlanRequiredBeforeExecution?: string[];
+    nextCanonicalBoundary?: string;
+    nonAuthority?: string[];
   };
 };
 
@@ -187,6 +201,39 @@ const selectedSupplyFitActionIds: readonly AgentActionId[] = [
   "apply_to_request",
   "create_owner_private_fulfillment",
 ];
+const requestFlowContextActionIds: readonly AgentActionId[] = [
+  "apply_to_request",
+  "create_owner_private_fulfillment",
+  "submit_artifact",
+  "optimize_request_brief",
+];
+const requestFlowActionIntents = [
+  "create_request_draft",
+  "propose_commitment",
+  "authorize_funding",
+  "attach_selected_supply",
+  "start_governed_fulfillment",
+  "submit_artifact",
+  "monitor_activity",
+  "create_private_run_request",
+  "optimize_request_brief",
+] as const;
+const requestFlowCanonicalBoundaries = [
+  "Request",
+  "Commitment",
+  "Fulfillment",
+  "Artifact",
+  "NewRequestFromArtifact",
+] as const;
+const requestFlowContextNonAuthorityFlags = [
+  "request_flow_context_is_not_permission",
+  "no_worker_assignment_from_context",
+  "no_supply_attachment_from_context",
+  "no_fulfillment_started_from_context",
+  "no_artifact_published_from_context",
+  "no_payment_authorized_from_context",
+  "no_completion_proof_from_context",
+] as const;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -247,6 +294,29 @@ function normalizeRequestFit(value: unknown) {
     selectedOutputKinds: normalizeStringSet(
       getStringArray(value.selectedOutputKinds),
     ),
+  };
+}
+
+function normalizeRequestFlowContext(value: unknown) {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  return {
+    entryStageId: getString(value.entryStageId),
+    cardKind: getString(value.cardKind),
+    planStageIds: normalizeStringSet(getStringArray(value.planStageIds)),
+    nextActionIntents: normalizeStringSet(
+      getStringArray(value.nextActionIntents),
+    ),
+    presetPlanStageIds: normalizeStringSet(
+      getStringArray(value.presetPlanStageIds),
+    ),
+    presetPlanRequiredBeforeExecution: normalizeStringSet(
+      getStringArray(value.presetPlanRequiredBeforeExecution),
+    ),
+    nextCanonicalBoundary: getString(value.nextCanonicalBoundary),
+    nonAuthority: normalizeStringSet(getStringArray(value.nonAuthority)),
   };
 }
 
@@ -314,6 +384,77 @@ function validateSelectedSupplyRequestFit({
   }
 }
 
+function validateRequestFlowContext({
+  actionId,
+  missingRequirements,
+  requestFlowContext,
+}: {
+  actionId: AgentActionId | undefined;
+  missingRequirements: string[];
+  requestFlowContext: ReturnType<typeof normalizeRequestFlowContext>;
+}) {
+  if (!requestFlowContext) {
+    return;
+  }
+
+  if (!actionId || !requestFlowContextActionIds.includes(actionId)) {
+    addMissing(
+      missingRequirements,
+      "requestFlowContext used only with request-flow-aware actions",
+    );
+  }
+
+  if (
+    requestFlowContext.entryStageId &&
+    !requestFlowStageIds.includes(requestFlowContext.entryStageId as never)
+  ) {
+    addMissing(missingRequirements, "requestFlowContext.entryStageId known");
+  }
+
+  if (
+    requestFlowContext.cardKind &&
+    !requestFlowCardKinds.includes(requestFlowContext.cardKind as never)
+  ) {
+    addMissing(missingRequirements, "requestFlowContext.cardKind known");
+  }
+
+  for (const stageId of [
+    ...requestFlowContext.planStageIds,
+    ...requestFlowContext.presetPlanStageIds,
+  ]) {
+    if (!requestFlowStageIds.includes(stageId as never)) {
+      addMissing(missingRequirements, "requestFlowContext.stageIds known");
+    }
+  }
+
+  for (const actionIntent of requestFlowContext.nextActionIntents) {
+    if (!requestFlowActionIntents.includes(actionIntent as never)) {
+      addMissing(
+        missingRequirements,
+        "requestFlowContext.nextActionIntents known",
+      );
+    }
+  }
+
+  if (
+    requestFlowContext.nextCanonicalBoundary &&
+    !requestFlowCanonicalBoundaries.includes(
+      requestFlowContext.nextCanonicalBoundary as never,
+    )
+  ) {
+    addMissing(
+      missingRequirements,
+      "requestFlowContext.nextCanonicalBoundary known",
+    );
+  }
+
+  for (const flag of requestFlowContextNonAuthorityFlags) {
+    if (!requestFlowContext.nonAuthority.includes(flag)) {
+      addMissing(missingRequirements, `requestFlowContext.nonAuthority ${flag}`);
+    }
+  }
+}
+
 function addMissing(missingRequirements: string[], requirement: string) {
   if (!missingRequirements.includes(requirement)) {
     missingRequirements.push(requirement);
@@ -335,6 +476,7 @@ function normalizeInput(input: unknown) {
       representedActor: undefined,
       requestedScopes: [],
       requestFit: undefined,
+      requestFlowContext: undefined,
       requestId: undefined,
       schemaVersion: undefined,
     };
@@ -357,6 +499,7 @@ function normalizeInput(input: unknown) {
     representedActor,
     requestedScopes: getStringArray(input.requestedScopes),
     requestFit: normalizeRequestFit(input.requestFit),
+    requestFlowContext: normalizeRequestFlowContext(input.requestFlowContext),
     requestId: getString(input.requestId),
     schemaVersion: input.schemaVersion,
   };
@@ -416,6 +559,11 @@ export function validateAgentActionPreflight(
     missingRequirements,
     requestFit: normalized.requestFit,
   });
+  validateRequestFlowContext({
+    actionId,
+    missingRequirements,
+    requestFlowContext: normalized.requestFlowContext,
+  });
 
   const warnings = [
     "Action preflight is validation-only and creates no durable Boreal business truth.",
@@ -443,6 +591,12 @@ export function validateAgentActionPreflight(
   ) {
     warnings.push(
       "Without explicit buyer approval, keep the operation as a private draft and do not open, fund, or publish the Request."
+    );
+  }
+
+  if (normalized.requestFlowContext) {
+    warnings.push(
+      "requestFlowContext is route-facing guidance only; it is not permission, assignment, payment authority, proof, or completion truth.",
     );
   }
 

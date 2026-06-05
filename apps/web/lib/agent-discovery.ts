@@ -9,6 +9,10 @@ import {
   buildAgentSandboxManifest,
 } from "@/lib/agent-sandbox";
 import { listBorealAgentTemplates } from "@/lib/boreal-agents/registry";
+import {
+  requestFlowCardKinds,
+  requestFlowStageIds,
+} from "@/lib/request-flow-taxonomy";
 import { absoluteUrl } from "@/lib/seo";
 
 export type AgentDiscoveryAsset = {
@@ -1721,11 +1725,33 @@ Content-Type: application/json
     "requestOutputKinds": ["video"],
     "selectedSupplyKinds": ["video_generation"],
     "selectedOutputKinds": ["video"]
+  },
+  "requestFlowContext": {
+    "entryStageId": "request_intake",
+    "cardKind": "action_card",
+    "planStageIds": [
+      "request_intake",
+      "path_planning",
+      "funding_authorization",
+      "fulfillment_handoff",
+      "proof_submission"
+    ],
+    "nextActionIntents": ["create_request_draft"],
+    "nextCanonicalBoundary": "Commitment",
+    "nonAuthority": [
+      "request_flow_context_is_not_permission",
+      "no_worker_assignment_from_context",
+      "no_supply_attachment_from_context",
+      "no_fulfillment_started_from_context",
+      "no_artifact_published_from_context",
+      "no_payment_authorized_from_context",
+      "no_completion_proof_from_context"
+    ]
   }
 }
 \`\`\`
 
-This endpoint returns prerequisite feedback only. It does not create a commitment, artifact, request mutation, approval record, permission grant, credential, payment authorization, completion proof, or durable \`RequestEvent\`.
+When \`requestFlowContext\` is present, it is validated as route-facing guidance only. This endpoint returns prerequisite feedback only. It does not create a commitment, artifact, request mutation, approval record, permission grant, credential, payment authorization, completion proof, or durable \`RequestEvent\`.
 
 For auth planning before attempting an action, agents can post:
 
@@ -4137,6 +4163,61 @@ export function buildOpenApiDiscoveryIndex() {
                   items: { type: "string" },
                 },
                 selectedOutputKinds: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+              },
+            },
+            requestFlowContext: {
+              type: "object",
+              description:
+                "Route-facing request-flow guidance from request constraints. Validation-only; not permission, assignment, payment authority, proof, or completion truth.",
+              additionalProperties: false,
+              properties: {
+                entryStageId: {
+                  enum: [...requestFlowStageIds],
+                },
+                cardKind: {
+                  enum: [...requestFlowCardKinds],
+                },
+                planStageIds: {
+                  type: "array",
+                  items: { enum: [...requestFlowStageIds] },
+                },
+                nextActionIntents: {
+                  type: "array",
+                  items: {
+                    enum: [
+                      "create_request_draft",
+                      "propose_commitment",
+                      "authorize_funding",
+                      "attach_selected_supply",
+                      "start_governed_fulfillment",
+                      "submit_artifact",
+                      "monitor_activity",
+                      "create_private_run_request",
+                      "optimize_request_brief",
+                    ],
+                  },
+                },
+                presetPlanStageIds: {
+                  type: "array",
+                  items: { enum: [...requestFlowStageIds] },
+                },
+                presetPlanRequiredBeforeExecution: {
+                  type: "array",
+                  items: { type: "string" },
+                },
+                nextCanonicalBoundary: {
+                  enum: [
+                    "Request",
+                    "Commitment",
+                    "Fulfillment",
+                    "Artifact",
+                    "NewRequestFromArtifact",
+                  ],
+                },
+                nonAuthority: {
                   type: "array",
                   items: { type: "string" },
                 },
