@@ -232,6 +232,7 @@ Every mutation call should return:
 - Preselected supply may influence planner and matcher outputs, but those outputs must still stay read-only until a mutation tool writes the durable route or execution object.
 - Once owner-private direct fulfillment is actually being created, a valid `routing.preferredSupplyId` may attach that execution lane if no explicit `supplyId` was supplied.
 - Once accepted-commitment fulfillment is being created, a valid `Commitment.supplyId` may attach that execution lane if no explicit `supplyId` was supplied; an explicit mismatched `supplyId` must fail before fulfillment starts.
+- Worker-backed service checkout may write one private `Request`, preferred `Supply` routing, and buyer-credit `Transaction` truth for supported first-party plans, but it is still a checkout route, not a planner or execution tool; it must leave `Fulfillment`, provider calls, artifact publication, owner review, and completion proof untouched.
 
 ## Worker modality and trust context
 

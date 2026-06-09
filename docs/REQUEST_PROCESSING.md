@@ -224,6 +224,9 @@ It may persist explicit canon values from that block into `seeking.actorKinds`, 
 The request-briefing mutation normalizer should hydrate those values deterministically when the visible service block is present so the route does not rely only on model obedience.
 If the attachment mode is `request_starter_no_supply_attached`, worker selection and `Supply` attachment remain pending until checkout or request routing creates the appropriate `Commitment` or `Fulfillment` boundary.
 Human-service starters should keep human or agent actor tags and service-support supply kinds, such as `human_service`, `documentation_support`, and `operator`, so provider-only named agents skip unless a separate generated-media role is explicit.
+Worker-backed service checkout is a narrower owner-private preparation lane, not general marketplace matching.
+For supported Humanizer and Video Generation service plans, checkout may create or reuse one first-party worker `Supply`, open one private `Request`, pin that Supply through routing, and apply buyer credit.
+That checkout does not start provider execution, create `Fulfillment`, create `FulfillmentStep`, publish `Artifact`, accept review, or claim delivery; the next canonical boundary remains governed `Fulfillment` creation from the request workroom or an explicitly approved owner-private direct lane.
 
 In-house Boreal agents and humans follow the same worker-application rule:
 

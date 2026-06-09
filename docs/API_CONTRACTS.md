@@ -271,6 +271,7 @@ The first first-party payment and credit slice exposes:
 - `POST /api/paypal/create-order`
 - `GET /api/paypal/capture`
 - `POST /api/paypal/webhook`
+- `POST /api/services/checkout`
 - `POST /api/services/character-call-starter/checkout`
 - `POST /api/services/character-call-starter/session`
 - `POST /api/requests/{id}/solution-runs`
@@ -291,6 +292,8 @@ Rules:
 - buyer-credit application creates both one credit ledger debit and one request-attached `Transaction`
 - curated first-party service checkout may compose request creation, preferred `Supply` pinning, request open, and buyer-credit debit in one endpoint when the endpoint returns the same canonical `Request`, `Supply`, `Transaction`, and buyer-credit ledger projections
 - curated first-party service checkout must stay idempotency-keyed and must not introduce a separate order root object for launch-price credit spend
+- worker-backed service checkout for supported Humanizer and Video Generation plans may create or reuse one published first-party worker `Supply`, create or reuse one private `Request`, pin that Supply through `routing.preferredSupplyId`, open the Request, and apply buyer credit
+- worker-backed service checkout must return execution status as pending authorized `Fulfillment`; it must not create `Fulfillment`, create `FulfillmentStep`, call providers, publish `Artifact`, record completion proof, or accept review
 - payment idempotency replays must resolve to the same request, amount, ledger debit, and request-attached `Transaction`
 - solution-run idempotency replays must resolve to the same run request, same source artifact reference, same credit debit, and same request-attached `Transaction`
 - `POST /api/requests/{id}/solution-runs` creates or reuses one private run `Request` for the authenticated buyer, where `{id}` is the completed public source request

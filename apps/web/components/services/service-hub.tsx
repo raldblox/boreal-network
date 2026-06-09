@@ -12,6 +12,10 @@ import { Label } from "@/components/ui/label";
 import { ResourceList } from "@/components/ui/resource-list";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  getWorkerBackedServiceCheckoutConfig,
+  type WorkerBackedServiceCheckoutConfig,
+} from "@/lib/service-checkout";
+import {
   borealServiceFamilies,
   getServiceFamilyBySlug,
   type BorealServiceFamily,
@@ -217,6 +221,10 @@ function ServicePlanCard({
   const isStarterCheckout =
     family.familyKey === "character-call-starter" &&
     plan.planKey === "starter-call";
+  const workerCheckoutConfig = getWorkerBackedServiceCheckoutConfig({
+    serviceFamilyKey: family.familyKey,
+    servicePlanKey: plan.planKey,
+  });
 
   const startUrl = `/?${new URLSearchParams({
     mode: "request",
@@ -249,6 +257,12 @@ function ServicePlanCard({
       </ul>
       {isStarterCheckout ? (
         <CharacterCallStarterCheckout />
+      ) : workerCheckoutConfig ? (
+        <WorkerBackedServiceCheckout
+          config={workerCheckoutConfig}
+          family={family}
+          plan={plan}
+        />
       ) : (
         <SurfaceCardActions className="mt-7">
           <Button className="rounded-full" onClick={() => router.push(startUrl)}>
@@ -260,6 +274,45 @@ function ServicePlanCard({
     </SurfaceCard>
   );
 }
+
+type WorkerBackedServiceCheckoutForm = {
+  primaryText: string;
+  audience: string;
+  tone: string;
+  referenceAssets: string;
+  constraints: string;
+};
+
+type WorkerBackedServiceCheckoutResult = {
+  chatId: string;
+  request: {
+    id: string;
+    status: string;
+  };
+  transaction: {
+    id: string;
+    amount: string;
+    currency: string;
+    status: string;
+  };
+  ledgerEntry: {
+    id: string;
+    balanceAfter: string;
+  };
+  account: {
+    availableBalance: string;
+  };
+  supply: {
+    id: string;
+    status: string;
+  };
+  execution: {
+    status: string;
+    fulfillmentStarted: false;
+    providerCallsAllowedBeforeFulfillment: false;
+    nextAction: string;
+  };
+};
 
 type CharacterCallStarterForm = {
   characterName: string;
@@ -333,6 +386,309 @@ function moneyStringToCents(value: string | null | undefined) {
   const cents = centsPart.padEnd(2, "0").slice(0, 2);
 
   return Number(BigInt(whole) * 100n + BigInt(cents));
+}
+
+function WorkerBackedServiceCheckout({
+  config,
+  family,
+  plan,
+}: {
+  config: WorkerBackedServiceCheckoutConfig;
+  family: BorealServiceFamily;
+  plan: BorealServicePlan;
+}) {
+  const router = useRouter();
+  const [form, setForm] = useState<WorkerBackedServiceCheckoutForm>({
+    primaryText: "",
+    audience: "",
+    tone: "",
+    referenceAssets: "",
+    constraints: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingCredit, setIsLoadingCredit] = useState(true);
+  const [creditError, setCreditError] = useState<string | null>(null);
+  const [availableCredit, setAvailableCredit] = useState<string | null>(null);
+  const [checkoutResult, setCheckoutResult] =
+    useState<WorkerBackedServiceCheckoutResult | null>(null);
+  const requiredCreditCents = moneyStringToCents(config.amount);
+  const availableCreditCents = moneyStringToCents(availableCredit);
+  const hasEnoughCredit = availableCreditCents >= requiredCreditCents;
+  const fieldIdPrefix = `${config.serviceFamilyKey}-${config.servicePlanKey}`;
+
+  useEffect(() => {
+    const loadCreditSummary = async () => {
+      setIsLoadingCredit(true);
+      setCreditError(null);
+
+      try {
+        const response = await fetch("/api/buyer-credits/account", {
+          cache: "no-store",
+        });
+        const result = (await response
+          .json()
+          .catch(() => null)) as BuyerCreditSummaryResponse | null;
+
+        if (!response.ok) {
+          throw new Error("Credit balance could not be loaded.");
+        }
+
+        setAvailableCredit(result?.account?.availableBalance ?? "0.00");
+      } catch (error) {
+        setCreditError(
+          error instanceof Error
+            ? error.message
+            : "Credit balance could not be loaded."
+        );
+        setAvailableCredit(null);
+      } finally {
+        setIsLoadingCredit(false);
+      }
+    };
+
+    void loadCreditSummary();
+  }, []);
+
+  const updateField =
+    (field: keyof WorkerBackedServiceCheckoutForm) =>
+    (
+      event:
+        | ChangeEvent<HTMLInputElement>
+        | ChangeEvent<HTMLTextAreaElement>
+    ) => {
+      setForm((current) => ({
+        ...current,
+        [field]: event.target.value,
+      }));
+    };
+
+  const submitCheckout = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!form.primaryText.trim()) {
+      toast({
+        type: "error",
+        description: `${config.primaryLabel} is required.`,
+      });
+      return;
+    }
+
+    if (!hasEnoughCredit) {
+      router.push("/account/top-up?error=insufficient-credit");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const idempotencyKey = crypto.randomUUID();
+      const response = await fetch("/api/services/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKey,
+        },
+        body: JSON.stringify({
+          ...form,
+          idempotencyKey,
+          serviceFamilyKey: config.serviceFamilyKey,
+          servicePlanKey: config.servicePlanKey,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(
+          result?.cause || result?.message || "Checkout did not complete."
+        );
+      }
+
+      const checkout = result as WorkerBackedServiceCheckoutResult;
+      setCheckoutResult(checkout);
+      setAvailableCredit(checkout.account.availableBalance);
+      toast({
+        type: "success",
+        description:
+          "Created a funded Request and pinned the first-party worker Supply.",
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Checkout did not complete.";
+
+      if (message.toLowerCase().includes("insufficient buyer credit")) {
+        router.push("/account/top-up?error=insufficient-credit");
+        return;
+      }
+
+      toast({
+        type: "error",
+        description: message,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form className="mt-7 space-y-4" onSubmit={submitCheckout}>
+      <div className="rounded-3xl border border-border/70 bg-card p-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Payment
+            </p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Pay ${config.amount} from Boreal credits. This opens a private
+              Request, pins the {config.workerKey} Supply, and keeps execution
+              pending until a governed Fulfillment lane starts.
+            </p>
+          </div>
+          <div className="min-w-24 rounded-2xl border border-border/70 bg-background px-3 py-2 text-right">
+            <div className="flex items-center justify-end gap-1 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              {isLoadingCredit ? (
+                <LoaderCircleIcon className="size-3 animate-spin" />
+              ) : (
+                <WalletCardsIcon className="size-3" />
+              )}
+              Credits
+            </div>
+            <div className="mt-1 text-lg font-semibold">
+              {isLoadingCredit ? "..." : `$${availableCredit ?? "0.00"}`}
+            </div>
+          </div>
+        </div>
+
+        {creditError ? (
+          <p className="mt-3 text-xs leading-5 text-destructive">
+            {creditError}
+          </p>
+        ) : null}
+
+        {!isLoadingCredit && !hasEnoughCredit ? (
+          <div className="mt-4 rounded-2xl border border-border/70 bg-background p-3 text-sm text-muted-foreground">
+            Your available credits are below the ${config.amount} needed for
+            this service.
+            <Button
+              className="mt-3 w-full rounded-full"
+              onClick={() =>
+                router.push("/account/top-up?error=insufficient-credit")
+              }
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Top up credits
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${fieldIdPrefix}-primary`}>
+          {config.primaryLabel}
+        </Label>
+        <p className="text-xs leading-5 text-muted-foreground">
+          {config.primaryHelper}
+        </p>
+        <Textarea
+          id={`${fieldIdPrefix}-primary`}
+          onChange={updateField("primaryText")}
+          placeholder={config.primaryPlaceholder}
+          rows={5}
+          value={form.primaryText}
+        />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor={`${fieldIdPrefix}-audience`}>Audience</Label>
+          <Input
+            id={`${fieldIdPrefix}-audience`}
+            onChange={updateField("audience")}
+            placeholder="Who should this work for?"
+            value={form.audience}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${fieldIdPrefix}-tone`}>Tone</Label>
+          <Input
+            id={`${fieldIdPrefix}-tone`}
+            onChange={updateField("tone")}
+            placeholder="Direct, warm, founder-led, polished..."
+            value={form.tone}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${fieldIdPrefix}-assets`}>Reference assets</Label>
+        <Textarea
+          id={`${fieldIdPrefix}-assets`}
+          onChange={updateField("referenceAssets")}
+          placeholder="Links, uploaded assets, source docs, brand notes, or video references."
+          rows={3}
+          value={form.referenceAssets}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${fieldIdPrefix}-constraints`}>Constraints</Label>
+        <Textarea
+          id={`${fieldIdPrefix}-constraints`}
+          onChange={updateField("constraints")}
+          placeholder="What must stay unchanged, off-limits, or reviewed before delivery?"
+          rows={3}
+          value={form.constraints}
+        />
+      </div>
+
+      <Button
+        className="w-full rounded-full"
+        disabled={isSubmitting || isLoadingCredit}
+        type="submit"
+      >
+        {isSubmitting ? (
+          <LoaderCircleIcon className="size-4 animate-spin" />
+        ) : (
+          <ArrowRightIcon className="size-4" />
+        )}
+        {isLoadingCredit
+          ? "Checking credits..."
+          : hasEnoughCredit
+            ? isSubmitting
+              ? "Opening request..."
+              : config.submitLabel
+            : "Top up credits first"}
+      </Button>
+
+      {checkoutResult ? (
+        <div className="rounded-3xl border border-border/70 bg-muted/30 p-4 text-sm leading-6 text-muted-foreground">
+          <p className="font-medium text-foreground">
+            Request funded. Worker lane pinned.
+          </p>
+          <p>Request: {checkoutResult.request.status}</p>
+          <p>Supply: {checkoutResult.supply.id}</p>
+          <p>Transaction: {checkoutResult.transaction.id}</p>
+          <p>Ledger debit: {checkoutResult.ledgerEntry.id}</p>
+          <p>Credit balance: ${checkoutResult.account.availableBalance}</p>
+          <p>Execution: {checkoutResult.execution.status}</p>
+          <p className="mt-3">
+            Next: open the Request workroom. Provider calls and delivery proof
+            wait for an authorized Fulfillment lane.
+          </p>
+          <Button
+            className="mt-4 rounded-full"
+            onClick={() => router.push(`/chat/${checkoutResult.chatId}`)}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            Open Request workroom
+          </Button>
+        </div>
+      ) : null}
+    </form>
+  );
 }
 
 const starterCallGoalOptions: Array<{

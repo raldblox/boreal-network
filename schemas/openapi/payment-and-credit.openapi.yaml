@@ -252,6 +252,157 @@ paths:
           description: Session authentication required.
         "404":
           description: Source request or accepted artifact not found.
+  /api/services/checkout:
+    post:
+      summary: Create, fund, and route one worker-backed first-party service Request.
+      security:
+        - BorealAccountSession: []
+      x-boreal-auth-boundary: Account session only. Checkout composes one private Request, preferred first-party Supply routing, request-attached Transaction, and buyer-credit ledger truth while leaving Fulfillment and provider execution untouched.
+      description: >
+        Supports the first worker-backed service checkout plans for Humanizer
+        and Video Generation. The endpoint creates or reuses one private
+        Request keyed by idempotency, creates or reuses the buyer-owned
+        first-party worker Supply, pins that Supply to routing, opens the
+        Request, and applies buyer credit. It must not create Fulfillment,
+        create FulfillmentStep, call providers, publish Artifact, accept
+        review, or claim completion.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - serviceFamilyKey
+                - servicePlanKey
+                - primaryText
+              properties:
+                serviceFamilyKey:
+                  type: string
+                  enum:
+                    - human-editorial-polish
+                    - founder-avatar-clip-pack
+                servicePlanKey:
+                  type: string
+                  enum:
+                    - publish-polish
+                    - launch-copy-pass
+                    - sales-reply-pack
+                primaryText:
+                  type: string
+                  minLength: 1
+                  maxLength: 12000
+                audience:
+                  type: string
+                  maxLength: 1000
+                tone:
+                  type: string
+                  maxLength: 1000
+                referenceAssets:
+                  type: string
+                  maxLength: 2000
+                constraints:
+                  type: string
+                  maxLength: 2000
+                idempotencyKey:
+                  type:
+                    - string
+                    - "null"
+                  format: uuid
+                  description: Must match the Idempotency-Key header when both are provided.
+      responses:
+        "200":
+          description: Funded request, selected first-party worker supply, request transaction, buyer-credit ledger debit, and pending execution boundary.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - request
+                  - transaction
+                  - account
+                  - ledgerEntry
+                  - chatId
+                  - supply
+                  - checkout
+                  - execution
+                properties:
+                  request:
+                    type: object
+                  transaction:
+                    $ref: "#/components/schemas/RequestTransaction"
+                  account:
+                    $ref: "#/components/schemas/BuyerCreditAccount"
+                  ledgerEntry:
+                    $ref: "#/components/schemas/BuyerCreditLedgerEntry"
+                  chatId:
+                    type: string
+                    format: uuid
+                  supply:
+                    type: object
+                  checkout:
+                    type: object
+                    additionalProperties: false
+                    required:
+                      - amount
+                      - currency
+                      - serviceFamilyKey
+                      - servicePlanKey
+                      - workerKey
+                    properties:
+                      amount:
+                        type: string
+                        const: "1.00"
+                      currency:
+                        type: string
+                        const: USD
+                      serviceFamilyKey:
+                        type: string
+                        enum:
+                          - human-editorial-polish
+                          - founder-avatar-clip-pack
+                      servicePlanKey:
+                        type: string
+                        enum:
+                          - publish-polish
+                          - launch-copy-pass
+                          - sales-reply-pack
+                      workerKey:
+                        type: string
+                        enum:
+                          - humanizer
+                          - video-generation
+                  execution:
+                    type: object
+                    additionalProperties: false
+                    required:
+                      - status
+                      - fulfillmentStarted
+                      - providerCallsAllowedBeforeFulfillment
+                      - nextAction
+                    properties:
+                      status:
+                        type: string
+                        const: pending_authorized_fulfillment
+                      fulfillmentStarted:
+                        type: boolean
+                        const: false
+                      providerCallsAllowedBeforeFulfillment:
+                        type: boolean
+                        const: false
+                      nextAction:
+                        type: string
+                        const: open_request_workroom
+        "400":
+          description: Invalid checkout body, unsupported plan, inactive or insufficient buyer credit, request readiness failure, or idempotency conflict.
+        "401":
+          description: Session authentication required.
+        "404":
+          description: Request, Supply, or buyer-credit account not found.
   /api/services/character-call-starter/checkout:
     post:
       summary: Create and fund the $1 Character Call Starter Request from first-party buyer credit.
