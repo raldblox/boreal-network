@@ -6,6 +6,7 @@ import type {
   RequestEmbodiedConstraintSet,
   RequestExecutionMode,
   RequestExecutionProfile,
+  RequestNamedAgentCandidateHint,
   RequestPhasePlan,
   RequestPlanCollapseRisk,
   RequestRoleSlot,
@@ -16,6 +17,7 @@ import type {
 import type {
   BorealOutputKind,
   BorealRequestEvidenceClaim,
+  BorealRequestExecutionKind,
   BorealRequestMatchingMode,
   BorealRequestPhaseKey,
   BorealRequestRoleKey,
@@ -33,6 +35,10 @@ import {
   normalizeFingerprintArray,
   normalizeFingerprintValue,
 } from "./matching-fingerprints";
+import {
+  listBorealAgentTemplates,
+  type BorealAgentTemplate,
+} from "./boreal-agents/registry";
 import type { BorealSupplyDraft } from "./supply";
 
 export type RequestOutcomeClaim = {
@@ -734,7 +740,10 @@ function deriveWorkerEligibility({
       ? ["no_agent_qualification_signal"]
       : [];
 
-  return {
+  const baseEligibility: Omit<
+    RequestWorkerEligibility,
+    "namedAgentCandidates"
+  > = {
     source: "planner_projection",
     policy,
     humanRequired,
@@ -749,6 +758,16 @@ function deriveWorkerEligibility({
     wakeSignals,
     skipReasons: uniqueStringArray(skipReasons),
     nonAuthority: [...workerEligibilityNonAuthority],
+  };
+
+  return {
+    ...baseEligibility,
+    namedAgentCandidates: deriveNamedAgentCandidateHints({
+      eligibility: baseEligibility,
+      executionKind,
+      outputKinds,
+      supplyKinds,
+    }),
   };
 }
 
@@ -891,6 +910,186 @@ function collectPlannerAgentWakeSignals({
   }
 
   return uniqueStringArray(signals);
+}
+
+function deriveNamedAgentCandidateHints({
+  eligibility,
+  executionKind,
+  outputKinds,
+  supplyKinds,
+}: {
+  eligibility: Omit<RequestWorkerEligibility, "namedAgentCandidates">;
+  executionKind: string | undefined;
+  outputKinds: BorealOutputKind[];
+  supplyKinds: BorealSupplyKind[];
+}): RequestNamedAgentCandidateHint[] {
+  return listBorealAgentTemplates().map((template) =>
+    deriveNamedAgentCandidateHint({
+      eligibility,
+      executionKind,
+      outputKinds,
+      supplyKinds,
+      template,
+    }),
+  );
+}
+
+function deriveNamedAgentCandidateHint({
+  eligibility,
+  executionKind,
+  outputKinds,
+  supplyKinds,
+  template,
+}: {
+  eligibility: Omit<RequestWorkerEligibility, "namedAgentCandidates">;
+  executionKind: string | undefined;
+  outputKinds: BorealOutputKind[];
+  supplyKinds: BorealSupplyKind[];
+  template: BorealAgentTemplate;
+}): RequestNamedAgentCandidateHint {
+  const nonAuthority = [
+    "not_matching_or_assignment",
+    "no_supply_assigned",
+    "no_commitment_created",
+    "no_fulfillment_started",
+    "no_provider_call",
+    "no_payment_authorized",
+    "no_request_event_written",
+  ];
+
+  const base = {
+    agentKey: template.agentKey,
+    displayName: template.displayName,
+    workerKey: template.workerKey,
+    apiRoute: template.apiRoute,
+    requiredSupplyKind: template.supplyBinding.supplyKind,
+    nonAuthority,
+  };
+
+  if (template.status === "target_template") {
+    return {
+      ...base,
+      readiness: "target_only",
+      suggestedNextAction: "wait_for_live_template",
+      reason:
+        template.promotionGates.openBlockers[0] ??
+        "Target-only until a backed Supply, execution contract, proof path, fixtures, and route tests exist.",
+      matchedSignals: [],
+      skipReasons: [...template.promotionGates.openBlockers],
+    };
+  }
+
+  if (!eligibility.shouldWakeAgents) {
+    return {
+      ...base,
+      readiness: "skip",
+      suggestedNextAction: "skip_request",
+      reason:
+        "Planner worker eligibility does not wake named agents for this request.",
+      matchedSignals: [],
+      skipReasons: [...eligibility.skipReasons],
+    };
+  }
+
+  const matchedSignals = collectNamedAgentMatchedSignals({
+    executionKind,
+    outputKinds,
+    supplyKinds,
+    template,
+  });
+  const skipReasons = collectNamedAgentCandidateSkipReasons({
+    outputKinds,
+    supplyKinds,
+    template,
+  });
+
+  if (skipReasons.length > 0 || matchedSignals.length === 0) {
+    return {
+      ...base,
+      readiness: "skip",
+      suggestedNextAction: "skip_request",
+      reason:
+        skipReasons[0] ??
+        "No named-agent-compatible supply, output, or execution signal matched this template.",
+      matchedSignals,
+      skipReasons:
+        skipReasons.length > 0
+          ? skipReasons
+          : ["no_named_agent_template_signal"],
+    };
+  }
+
+  return {
+    ...base,
+    readiness: "can_prepare",
+    suggestedNextAction: "prepare_application",
+    reason:
+      "Planner fingerprints identify this named agent as a preparation candidate; governed routes still own authority and durable writes.",
+    matchedSignals,
+    skipReasons: [],
+  };
+}
+
+function collectNamedAgentMatchedSignals({
+  executionKind,
+  outputKinds,
+  supplyKinds,
+  template,
+}: {
+  executionKind: string | undefined;
+  outputKinds: BorealOutputKind[];
+  supplyKinds: BorealSupplyKind[];
+  template: BorealAgentTemplate;
+}) {
+  const signals: string[] = [];
+
+  for (const supplyKind of supplyKinds) {
+    if (template.qualificationTags.supplyKinds.includes(supplyKind)) {
+      signals.push(`supply:${supplyKind}`);
+    }
+  }
+
+  for (const outputKind of outputKinds) {
+    if (template.qualificationTags.outputKinds.includes(outputKind)) {
+      signals.push(`output:${outputKind}`);
+    }
+  }
+
+  if (
+    executionKind &&
+    template.qualificationTags.executionKinds.includes(
+      executionKind as BorealRequestExecutionKind,
+    )
+  ) {
+    signals.push(`execution:${executionKind}`);
+  }
+
+  return uniqueStringArray(signals);
+}
+
+function collectNamedAgentCandidateSkipReasons({
+  outputKinds,
+  supplyKinds,
+  template,
+}: {
+  outputKinds: BorealOutputKind[];
+  supplyKinds: BorealSupplyKind[];
+  template: BorealAgentTemplate;
+}) {
+  const reasons: string[] = [];
+  const hasVideoSignal =
+    supplyKinds.includes("video_generation") ||
+    outputKinds.some((kind) => kind === "video" || kind === "media");
+
+  if (template.agentKey === "mira-video" && !hasVideoSignal) {
+    reasons.push("no_video_generation_signal");
+  }
+
+  if (template.agentKey === "tala-humanizer" && hasVideoSignal) {
+    reasons.push("provider_media_generation_request");
+  }
+
+  return uniqueStringArray(reasons);
 }
 
 function uniqueStringArray(values: string[]) {

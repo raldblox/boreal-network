@@ -279,6 +279,7 @@ function testWorkerEligibility(
     roleKeys: [],
     wakeSignals: [],
     skipReasons: ["no_agent_qualification_signal"],
+    namedAgentCandidates: [],
     nonAuthority: [
       "not_matching_or_assignment",
       "no_supply_assigned",
@@ -1256,6 +1257,12 @@ assert.equal(
   ),
   false,
 );
+assert.equal(
+  outputOnlyDraft.derived.workerEligibility.namedAgentCandidates.every(
+    (candidate) => candidate.readiness === "skip",
+  ),
+  true,
+);
 
 const humanVideoOutputOnlyDraft = applyRequestPatch(
   createInitialRequestDraft({
@@ -1295,6 +1302,12 @@ assert.equal(
     "output:video",
   ),
   false,
+);
+assert.equal(
+  humanVideoOutputOnlyDraft.derived.workerEligibility.namedAgentCandidates.every(
+    (candidate) => candidate.readiness === "skip",
+  ),
+  true,
 );
 
 const generatedVideoDraft = applyRequestPatch(
@@ -1344,6 +1357,30 @@ assert.ok(
     "execution:provider_api",
   ),
 );
+const generatedVideoMiraCandidate =
+  generatedVideoDraft.derived.workerEligibility.namedAgentCandidates.find(
+    (candidate) => candidate.agentKey === "mira-video",
+  );
+assert.equal(generatedVideoMiraCandidate?.readiness, "can_prepare");
+assert.equal(
+  generatedVideoMiraCandidate?.suggestedNextAction,
+  "prepare_application",
+);
+assert.ok(
+  generatedVideoMiraCandidate?.matchedSignals.includes(
+    "supply:video_generation",
+  ),
+);
+const generatedVideoTalaCandidate =
+  generatedVideoDraft.derived.workerEligibility.namedAgentCandidates.find(
+    (candidate) => candidate.agentKey === "tala-humanizer",
+  );
+assert.equal(generatedVideoTalaCandidate?.readiness, "skip");
+assert.ok(
+  generatedVideoTalaCandidate?.skipReasons.includes(
+    "provider_media_generation_request",
+  ),
+);
 
 const humanLedVideoSupportDraft = applyRequestPatch(
   createInitialRequestDraft({
@@ -1387,6 +1424,12 @@ assert.equal(
   humanLedVideoSupportDraft.derived.workerEligibility.skipProviderOnlyAgents,
   false,
 );
+assert.equal(
+  humanLedVideoSupportDraft.derived.workerEligibility.namedAgentCandidates.find(
+    (candidate) => candidate.agentKey === "mira-video",
+  )?.readiness,
+  "can_prepare",
+);
 
 const humanizerAgentDraft = applyRequestPatch(
   createInitialRequestDraft({
@@ -1422,6 +1465,23 @@ assert.ok(
   humanizerAgentDraft.derived.workerEligibility.wakeSignals.includes(
     "supply:documentation_support",
   ),
+);
+const humanizerTalaCandidate =
+  humanizerAgentDraft.derived.workerEligibility.namedAgentCandidates.find(
+    (candidate) => candidate.agentKey === "tala-humanizer",
+  );
+assert.equal(humanizerTalaCandidate?.readiness, "can_prepare");
+assert.equal(humanizerTalaCandidate?.requiredSupplyKind, "documentation_support");
+assert.ok(
+  humanizerTalaCandidate?.matchedSignals.includes(
+    "supply:documentation_support",
+  ),
+);
+assert.equal(
+  humanizerAgentDraft.derived.workerEligibility.namedAgentCandidates.find(
+    (candidate) => candidate.agentKey === "mira-video",
+  )?.readiness,
+  "skip",
 );
 
 const rawRequestFixture = JSON.parse(

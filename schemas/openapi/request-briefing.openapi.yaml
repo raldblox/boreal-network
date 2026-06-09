@@ -2000,6 +2000,143 @@ components:
         idempotencyKey:
           type: string
           format: uuid
+    WebRequestWorkerEligibility:
+      type: object
+      additionalProperties: false
+      description: Planner-owned scanner guidance for humans and named agents. This is not matching, assignment, approval, Supply attachment, Fulfillment start, provider execution, payment authority, RequestEvent history, or completion truth.
+      required:
+        - source
+        - policy
+        - humanRequired
+        - shouldWakeAgents
+        - skipProviderOnlyAgents
+        - preferredActorKinds
+        - preferredSupplyKinds
+        - preferredOutputKinds
+        - roleKeys
+        - wakeSignals
+        - skipReasons
+        - namedAgentCandidates
+        - nonAuthority
+      properties:
+        source:
+          type: string
+          enum:
+            - planner_projection
+        policy:
+          type: string
+          enum:
+            - wake_named_agents
+            - human_first_agent_support
+            - human_first_skip_agents
+            - no_agent_signal
+            - raw_not_planned
+        humanRequired:
+          type: boolean
+        shouldWakeAgents:
+          type: boolean
+        skipProviderOnlyAgents:
+          type: boolean
+        preferredActorKinds:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - human
+              - agent
+              - tool
+              - organization
+              - runtime
+        preferredSupplyKinds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/BorealSupplyKind"
+        preferredOutputKinds:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/BorealOutputKind"
+        roleKeys:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        wakeSignals:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        skipReasons:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+        namedAgentCandidates:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - agentKey
+              - displayName
+              - workerKey
+              - apiRoute
+              - requiredSupplyKind
+              - readiness
+              - suggestedNextAction
+              - reason
+              - matchedSignals
+              - skipReasons
+              - nonAuthority
+            properties:
+              agentKey:
+                type: string
+                pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+              displayName:
+                type: string
+              workerKey:
+                type: string
+              apiRoute:
+                type: string
+                pattern: "^/api/boreal-agents/[a-z0-9]+(?:-[a-z0-9]+)*$"
+              requiredSupplyKind:
+                $ref: "#/components/schemas/BorealSupplyKind"
+              readiness:
+                type: string
+                enum:
+                  - can_prepare
+                  - skip
+                  - target_only
+              suggestedNextAction:
+                type: string
+                enum:
+                  - prepare_application
+                  - skip_request
+                  - wait_for_live_template
+              reason:
+                type: string
+              matchedSignals:
+                type: array
+                uniqueItems: true
+                items:
+                  type: string
+              skipReasons:
+                type: array
+                uniqueItems: true
+                items:
+                  type: string
+              nonAuthority:
+                type: array
+                uniqueItems: true
+                items:
+                  type: string
+        nonAuthority:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
     WebPublicRequest:
       type: object
       additionalProperties: false
@@ -2177,6 +2314,8 @@ components:
                   type: boolean
             routeSummary:
               type: string
+            workerEligibility:
+              $ref: "#/components/schemas/WebRequestWorkerEligibility"
         agentActionAffordances:
           $ref: "#/components/schemas/WebRequestAgentActionAffordanceSet"
         agentActionCardHints:

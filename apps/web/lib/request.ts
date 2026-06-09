@@ -200,6 +200,28 @@ export type RequestWorkerEligibilityPolicy =
   | "no_agent_signal"
   | "raw_not_planned";
 
+export type RequestNamedAgentCandidateReadiness =
+  | "can_prepare"
+  | "skip"
+  | "target_only";
+
+export type RequestNamedAgentCandidateHint = {
+  agentKey: string;
+  displayName: string;
+  workerKey: string;
+  apiRoute: string;
+  requiredSupplyKind: RequestSupplyKind;
+  readiness: RequestNamedAgentCandidateReadiness;
+  suggestedNextAction:
+    | "prepare_application"
+    | "skip_request"
+    | "wait_for_live_template";
+  reason: string;
+  matchedSignals: string[];
+  skipReasons: string[];
+  nonAuthority: string[];
+};
+
 export type RequestWorkerEligibility = {
   source: "planner_projection";
   policy: RequestWorkerEligibilityPolicy;
@@ -212,6 +234,7 @@ export type RequestWorkerEligibility = {
   roleKeys: RequestRoleKey[];
   wakeSignals: string[];
   skipReasons: string[];
+  namedAgentCandidates: RequestNamedAgentCandidateHint[];
   nonAuthority: string[];
 };
 
@@ -2759,6 +2782,7 @@ function createDefaultWorkerEligibility({
     roleKeys: [],
     wakeSignals: [],
     skipReasons,
+    namedAgentCandidates: [],
     nonAuthority: [
       "not_matching_or_assignment",
       "no_supply_assigned",

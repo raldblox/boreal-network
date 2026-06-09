@@ -273,7 +273,7 @@ Conceptual grouping rule:
 - intake-mode derived state includes `planningMode`, which controls whether planner projections are generated now or suppressed for raw buyer-authored intake
 - structural planning derived state includes lead role, role slots, phase plans, interpreted lead ranking, interpreted role matches, assignment proposal, and anti-microtask guardrails
 - execution and proof derived state includes embodied execution profile, verification plan, collapse risk, and clarification requirements
-- worker-routing derived state includes `workerEligibility`, a rebuildable scanner guidance object with human-required, named-agent wake, explicit human-first agent support, provider-skip, canonical fingerprint, wake-signal, skip-reason, and non-authority fields
+- worker-routing derived state includes `workerEligibility`, a rebuildable scanner guidance object with human-required, named-agent wake, explicit human-first agent support, provider-skip, canonical fingerprint, wake-signal, skip-reason, per-agent `namedAgentCandidates`, and non-authority fields
 - planner-explanation derived state includes outcome claims and replan reasons
 
 The current shape may keep these fields flat under one `derived` block for implementation compatibility.

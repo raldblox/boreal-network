@@ -144,7 +144,7 @@ Audit date: 2026-05-28.
 
 The actual codebase already reflects the core Boreal plan model in these areas:
 
-- `apps/web/lib/request.ts` defines `RequestDerived` with `planningMode`, `leadRole`, `roleSlots`, `phases`, `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `workerEligibility`, `assignmentProposal`, `replanReasons`, `executionProfile`, `embodiedConstraintSet`, `verificationPlan`, `planCollapseRisk`, and `clarificationNeeded`.
+- `apps/web/lib/request.ts` defines `RequestDerived` with `planningMode`, `leadRole`, `roleSlots`, `phases`, `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `workerEligibility` including per-agent `namedAgentCandidates`, `assignmentProposal`, `replanReasons`, `executionProfile`, `embodiedConstraintSet`, `verificationPlan`, `planCollapseRisk`, and `clarificationNeeded`.
 - `schemas/json/request.schema.json` machine-models the same derived planning projection on the canonical `Request` schema.
 - `apps/web/lib/db/schema.ts` persists `Request.derived` as request-owned JSON and has no separate `Plan` table.
 - `apps/web/lib/request-planner.ts` derives embodied execution, proof requirements, lead roles, role slots, phase plans, match candidates, worker eligibility guidance, assignment state, and replan reasons from the request plus candidate supply.

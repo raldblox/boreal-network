@@ -46,6 +46,11 @@ type ExpectedWorkerEligibility = {
   skipProviderOnlyAgents: boolean;
   preferredSupplyKindsContain: RequestSupplyKind[];
   wakeSignalsContain: string[];
+  namedAgentCandidates: Array<{
+    agentKey: string;
+    readiness: RequestWorkerEligibility["namedAgentCandidates"][number]["readiness"];
+    suggestedNextAction: RequestWorkerEligibility["namedAgentCandidates"][number]["suggestedNextAction"];
+  }>;
 };
 
 assert.ok(Array.isArray(cases));
@@ -201,6 +206,27 @@ for (const testCase of cases) {
         expectedWakeSignal,
       ),
       `${testCase.scenarioId} wake signal ${expectedWakeSignal}`,
+    );
+  }
+  for (const expectedCandidate of testCase.expectedWorkerEligibility
+    .namedAgentCandidates) {
+    const actualCandidate =
+      serviceStartedDraft.derived.workerEligibility.namedAgentCandidates.find(
+        (candidate) => candidate.agentKey === expectedCandidate.agentKey,
+      );
+    assert.equal(
+      actualCandidate?.readiness,
+      expectedCandidate.readiness,
+      `${testCase.scenarioId} ${expectedCandidate.agentKey} readiness`,
+    );
+    assert.equal(
+      actualCandidate?.suggestedNextAction,
+      expectedCandidate.suggestedNextAction,
+      `${testCase.scenarioId} ${expectedCandidate.agentKey} next action`,
+    );
+    assert.ok(
+      actualCandidate?.nonAuthority.includes("no_commitment_created"),
+      `${testCase.scenarioId} ${expectedCandidate.agentKey} is not authority`,
     );
   }
   assert.ok(

@@ -125,6 +125,7 @@ const publicRequestResponse = {
           roleKeys: ["human_lead", "video_generation"],
           wakeSignals: ["actor:agent", "supply:video_generation", "output:video"],
           skipReasons: [],
+          namedAgentCandidates: [],
           nonAuthority: [
             "not_matching_or_assignment",
             "no_supply_assigned",

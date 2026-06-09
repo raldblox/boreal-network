@@ -582,6 +582,7 @@
             "roleKeys",
             "wakeSignals",
             "skipReasons",
+            "namedAgentCandidates",
             "nonAuthority"
           ],
           "properties": {
@@ -652,6 +653,92 @@
               "items": {
                 "type": "string",
                 "minLength": 1
+              }
+            },
+            "namedAgentCandidates": {
+              "description": "Planner-owned per-agent skip or preparation hints for named Boreal agents. These hints do not assign Supply, create Commitment, start Fulfillment, call providers, write RequestEvent history, authorize payment, or prove completion.",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "agentKey",
+                  "displayName",
+                  "workerKey",
+                  "apiRoute",
+                  "requiredSupplyKind",
+                  "readiness",
+                  "suggestedNextAction",
+                  "reason",
+                  "matchedSignals",
+                  "skipReasons",
+                  "nonAuthority"
+                ],
+                "properties": {
+                  "agentKey": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "workerKey": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "apiRoute": {
+                    "type": "string",
+                    "pattern": "^/api/boreal-agents/[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  "requiredSupplyKind": {
+                    "$ref": "common.schema.json#/$defs/supplyKind"
+                  },
+                  "readiness": {
+                    "type": "string",
+                    "enum": [
+                      "can_prepare",
+                      "skip",
+                      "target_only"
+                    ]
+                  },
+                  "suggestedNextAction": {
+                    "type": "string",
+                    "enum": [
+                      "prepare_application",
+                      "skip_request",
+                      "wait_for_live_template"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "matchedSignals": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "skipReasons": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "nonAuthority": {
+                    "type": "array",
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
               }
             },
             "nonAuthority": {

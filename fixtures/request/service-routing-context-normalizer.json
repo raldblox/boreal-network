@@ -51,7 +51,19 @@
         "shouldWakeAgents": true,
         "skipProviderOnlyAgents": false,
         "preferredSupplyKindsContain": ["documentation_support", "operator"],
-        "wakeSignalsContain": ["actor:agent", "supply:documentation_support"]
+        "wakeSignalsContain": ["actor:agent", "supply:documentation_support"],
+        "namedAgentCandidates": [
+          {
+            "agentKey": "tala-humanizer",
+            "readiness": "can_prepare",
+            "suggestedNextAction": "prepare_application"
+          },
+          {
+            "agentKey": "mira-video",
+            "readiness": "skip",
+            "suggestedNextAction": "skip_request"
+          }
+        ]
       }
     },
     {
@@ -103,7 +115,19 @@
         "shouldWakeAgents": true,
         "skipProviderOnlyAgents": false,
         "preferredSupplyKindsContain": ["video_generation", "operator"],
-        "wakeSignalsContain": ["actor:agent", "supply:video_generation", "output:video"]
+        "wakeSignalsContain": ["actor:agent", "supply:video_generation", "output:video"],
+        "namedAgentCandidates": [
+          {
+            "agentKey": "mira-video",
+            "readiness": "can_prepare",
+            "suggestedNextAction": "prepare_application"
+          },
+          {
+            "agentKey": "tala-humanizer",
+            "readiness": "skip",
+            "suggestedNextAction": "skip_request"
+          }
+        ]
       }
     },
     {
@@ -155,7 +179,19 @@
         "shouldWakeAgents": true,
         "skipProviderOnlyAgents": false,
         "preferredSupplyKindsContain": ["operator"],
-        "wakeSignalsContain": ["actor:agent", "output:handoff_doc"]
+        "wakeSignalsContain": ["actor:agent", "output:handoff_doc"],
+        "namedAgentCandidates": [
+          {
+            "agentKey": "tala-humanizer",
+            "readiness": "can_prepare",
+            "suggestedNextAction": "prepare_application"
+          },
+          {
+            "agentKey": "mira-video",
+            "readiness": "skip",
+            "suggestedNextAction": "skip_request"
+          }
+        ]
       }
     }
   ],

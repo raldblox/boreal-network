@@ -251,7 +251,7 @@ Today, the machine-readable baseline proves:
 - the repo is structured to host governed JS or TS workspaces under shared workspace discovery rules
 - one complex human-led request can be evaluated deterministically across extraction, planning, matching, and policy outputs
 - one request may now carry read-only planner-derived lead-role, role-slot, phase, execution, proof-planning, and `workerEligibility` projections without weakening `brief` as the owner-editable input surface
-- public request projections may carry `workerEligibility` wake or skip hints so named Boreal agents can avoid generic human-first, raw, or no-agent-signal requests before preparing application packets while still seeing explicit human-first agent-support roles
+- public request projections may carry `workerEligibility` wake or skip hints, including per-agent `namedAgentCandidates`, so named Boreal agents can avoid generic human-first, raw, no-agent-signal, or incompatible-agent requests before preparing application packets while still seeing explicit human-first agent-support roles
 - one desktop-local browser bridge can expose ephemeral SSE events from Electron main over `127.0.0.1` with session-token and localhost-origin checks
 - one desktop-local browser bridge can expose the connected desktop runtime model catalog through a guarded localhost-only `/models` read surface for browser model selectors
 - one localhost Boreal web chat surface can dispatch one selected `Codex/Desktop` prompt turn through a guarded localhost-only `POST /chat` bridge write and stream the reply back into the web message list
