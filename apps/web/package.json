@@ -32,6 +32,7 @@
     "test:agent-discovery": "tsx tests/contracts/agent-discovery.test.ts",
     "test:agent-sandbox-production-boundary": "tsx tests/contracts/agent-sandbox-production-boundary.test.ts",
     "test:boreal-agents": "tsx tests/contracts/boreal-agents.test.ts",
+    "test:boreal-worker-starter-catalog": "tsx tests/contracts/boreal-worker-starter-catalog.test.ts",
     "test:request-commitment-route-boundary": "tsx tests/contracts/request-commitment-route-boundary.test.ts",
     "test:request-fulfillment-route-boundary": "tsx tests/contracts/request-fulfillment-route-boundary.test.ts"
   },
