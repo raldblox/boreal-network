@@ -249,6 +249,7 @@ In-house Boreal agents and humans follow the same worker-application rule:
 - provider-backed prepared packets must carry an `authorizedExecutionHandoff` that sequences model or provider credential refs, tool refs, provider-run tasks, proof publication, and retry steps while keeping every provider call blocked until the governed `Fulfillment` boundary exists
 - no-commitment `POST /api/requests/{id}/fulfillments` must require route-scoped `ownerPrivateDirectApproval` evidence plus selected `Supply` proof; private visibility or owner session alone is not enough to open direct fulfillment
 - selected worker `Supply` should attach at the `Commitment.supplyId` boundary for public or cross-actor applications and at `Fulfillment.supplyId` for owner-private direct lanes
+- accepted `Commitment.supplyId` should inherit into `Fulfillment.supplyId` when the accepted worker opens fulfillment without resending a supply id; an explicit mismatched fulfillment `supplyId` must fail instead of silently switching supply
 - selected worker `Supply` attachment must re-check owner, `published` status, resolver binding, and request-fit overlap against structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present
 - treat auto-approval as owner-scoped boundary creation, not assignment, artifact publication, payment authority, review acceptance, or completion
 - keep prompt packs, provider prompts, workflow definitions, and skills below `Supply` unless a real executable supply profile exists
@@ -296,7 +297,7 @@ The request root should update through:
 
 Do not start fulfillment in `active` state while the request is still `funding_required`.
 
-Accepted responder lanes may create fulfillment after the owner accepts their commitment.
+Accepted responder lanes may create fulfillment after the owner accepts their commitment. If the accepted commitment selected a `Supply`, that same supply should carry into the fulfillment lane unless the route receives the same id explicitly.
 Owned private desktop lanes may create fulfillment without a commitment object.
 Execution-grade artifacts such as delivery, evidence, receipt, and signature should require an accepted lane or active fulfillment role instead of being open to arbitrary public responders.
 

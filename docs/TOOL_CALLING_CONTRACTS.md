@@ -231,6 +231,7 @@ Every mutation call should return:
 - Clearing pinned supply should remove only that preferred-supply route bias and must not leave stale direct-route hints behind.
 - Preselected supply may influence planner and matcher outputs, but those outputs must still stay read-only until a mutation tool writes the durable route or execution object.
 - Once owner-private direct fulfillment is actually being created, a valid `routing.preferredSupplyId` may attach that execution lane if no explicit `supplyId` was supplied.
+- Once accepted-commitment fulfillment is being created, a valid `Commitment.supplyId` may attach that execution lane if no explicit `supplyId` was supplied; an explicit mismatched `supplyId` must fail before fulfillment starts.
 
 ## Worker modality and trust context
 

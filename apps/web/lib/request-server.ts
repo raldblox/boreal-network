@@ -78,6 +78,7 @@ import {
 import {
   assertSupplyCanAttachToCommitment,
   assertSupplyMatchesRequest,
+  resolveFulfillmentSupplyAttachment,
 } from "@/lib/request-supply-boundary";
 import type { ChatMessage } from "@/lib/types";
 import { generateUUID } from "@/lib/utils";
@@ -1737,6 +1738,9 @@ export async function acceptCommitmentForRequestById({
         return {
           requestId: requestDraft.id,
           commitmentId: acceptedCommitment.id,
+          ...(acceptedCommitment.supplyId
+            ? { supplyId: acceptedCommitment.supplyId }
+            : {}),
           summary: acceptedCommitment.summary,
           status: acceptedCommitment.status,
           terms: acceptedCommitment.terms,
@@ -1750,6 +1754,9 @@ export async function acceptCommitmentForRequestById({
     return {
       requestId: requestDraft.id,
       commitmentId: existingCommitment.id,
+      ...(existingCommitment.supplyId
+        ? { supplyId: existingCommitment.supplyId }
+        : {}),
       summary: existingCommitment.summary,
       status: existingCommitment.status,
       terms: existingCommitment.terms,
@@ -1814,6 +1821,9 @@ export async function acceptCommitmentForRequestById({
         id: updatedCommitment.id,
         kind: updatedCommitment.kind,
         status: updatedCommitment.status,
+        ...(updatedCommitment.supplyId
+          ? { supplyId: updatedCommitment.supplyId }
+          : {}),
         summary: updatedCommitment.summary,
         terms: updatedCommitment.terms,
       },
@@ -1824,6 +1834,9 @@ export async function acceptCommitmentForRequestById({
   return {
     requestId: requestDraft.id,
     commitmentId: updatedCommitment.id,
+    ...(updatedCommitment.supplyId
+      ? { supplyId: updatedCommitment.supplyId }
+      : {}),
     summary: updatedCommitment.summary,
     status: updatedCommitment.status,
     terms: updatedCommitment.terms,
@@ -1872,15 +1885,10 @@ export async function createFulfillmentForRequestById({
     commitmentId,
     request: requestDraft,
   });
-  const preferredSupplyId = requestDraft.routing.preferredSupplyId?.trim();
-  const resolvedSupplyId = supplyId?.trim() || undefined;
-  const effectiveSupplyId =
-    resolvedSupplyId ??
-    (useDirectOwnerPrivateLane && preferredSupplyId ? preferredSupplyId : undefined);
-  let matchedSupplyRecord: Awaited<ReturnType<typeof getSupplyById>> = null;
   const existingCommitment = commitmentId
     ? await getCommitmentById({ id: commitmentId })
     : null;
+  let matchedSupplyRecord: Awaited<ReturnType<typeof getSupplyById>> = null;
 
   if (commitmentId && !existingCommitment) {
     throw new Error("Request or commitment not found");
@@ -1889,6 +1897,24 @@ export async function createFulfillmentForRequestById({
   if (!commitmentId && !useDirectOwnerPrivateLane) {
     throw new Error("Owner-private direct fulfillment only");
   }
+
+  if (existingCommitment) {
+    if (existingCommitment.requestId !== requestDraft.id) {
+      throw new Error("Commitment does not belong to request");
+    }
+
+    if (existingCommitment.status !== "accepted") {
+      throw new Error("Accepted commitment required");
+    }
+  }
+
+  const effectiveSupplyId = resolveFulfillmentSupplyAttachment({
+    commitmentSupplyId: existingCommitment?.supplyId,
+    directOwnerPreferredSupplyId: useDirectOwnerPrivateLane
+      ? requestDraft.routing.preferredSupplyId
+      : undefined,
+    suppliedSupplyId: supplyId,
+  });
 
   if (!commitmentId && !effectiveSupplyId) {
     throw new Error("Owner-private direct fulfillment requires selected supply");
@@ -1928,16 +1954,6 @@ export async function createFulfillmentForRequestById({
     throw new Error(
       "Owner-private direct fulfillment requires open, funded, or active owner request"
     );
-  }
-
-  if (existingCommitment) {
-    if (existingCommitment.requestId !== requestDraft.id) {
-      throw new Error("Commitment does not belong to request");
-    }
-
-    if (existingCommitment.status !== "accepted") {
-      throw new Error("Accepted commitment required");
-    }
   }
 
   if (effectiveSupplyId) {
@@ -2096,6 +2112,7 @@ export async function createFulfillmentForRequestById({
           ? {
               mode: "accepted_commitment",
               commitmentId: existingCommitment.id,
+              ...(effectiveSupplyId ? { selectedSupplyId: effectiveSupplyId } : {}),
             }
           : {
               mode: "owner_private_direct",

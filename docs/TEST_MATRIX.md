@@ -372,6 +372,7 @@ Verify:
 - direct fulfillment create may omit commitment only for owned private requests driven by the same owner through the desktop auto-resolution lane
 - direct fulfillment create with `supplyId` should reject unpublished, wrong-owner, or wrong-resolver-binding supply rows
 - direct fulfillment create with `supplyId` should reject owned and published supply rows that do not overlap the request structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present
+- direct fulfillment create should inherit accepted `Commitment.supplyId` when `supplyId` is omitted and reject an explicit fulfillment `supplyId` that mismatches the accepted commitment
 - owner-private direct fulfillment create may attach one valid `routing.preferredSupplyId` when no explicit `supplyId` was passed
 - owner-private first-party service fulfillment may be created from an `open`, `funded`, `in_progress`, or `waiting_for_owner` request without creating a second root object
 - accepted responder lanes should be able to create fulfillment after owner acceptance
@@ -474,6 +475,7 @@ Verify:
 - public or cross-actor direct `Fulfillment` creation remains rejected before accepted commitment truth
 - owner-private direct worker fulfillment requires a private owner-controlled request and one selected published owned first-party `Supply`
 - route-level supply attachment tests reject selected supplies that are owned and published but do not overlap request structured `seeking.supplyKinds` or `brief.outputKinds` when those fields are present
+- route-level supply attachment tests keep accepted `Commitment.supplyId` visible in acceptance payloads, fulfillment inheritance, and request activity normalization
 - agent action preflight tests reject `apply_to_request` or `create_owner_private_fulfillment` attempts when visible `requestFit` omits selected published supply proof or selected supply fingerprints do not overlap the request structured supply or output fingerprints
 - named-agent preparation must reject owner-private direct fulfillment when explicit trusted-worker auto-approval, allowed worker key, eligible status, or selected supply proof is missing or mismatched
 - owner-scoped auto-approval can create or accept only the intended worker boundary and cannot publish artifacts, authorize payment, accept review, complete the request, or silently fall back to a different supply

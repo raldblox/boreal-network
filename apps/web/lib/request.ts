@@ -488,6 +488,7 @@ export type RequestActivityEntry = {
   commitment?: {
     id: string;
     kind: CommitmentKind;
+    supplyId?: string;
     status: CommitmentStatus;
     summary: string;
     terms: CommitmentTerms;
@@ -495,6 +496,7 @@ export type RequestActivityEntry = {
   fulfillment?: {
     id: string;
     commitmentId?: string;
+    supplyId?: string;
     status: FulfillmentStatus;
     summary: string;
   };

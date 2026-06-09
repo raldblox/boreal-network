@@ -49,7 +49,10 @@ import {
   getRequestFlowNodeTaxonomy,
 } from "@/lib/request-flow";
 import { buildRequestPreflightPreview } from "@/lib/request-preflight";
-import { assertSupplyCanAttachToCommitment } from "@/lib/request-supply-boundary";
+import {
+  assertSupplyCanAttachToCommitment,
+  resolveFulfillmentSupplyAttachment,
+} from "@/lib/request-supply-boundary";
 
 assert.equal(
   chatMessagesQuerySchema.safeParse({ chatId: "undefined" }).success,
@@ -941,6 +944,34 @@ assert.throws(
       },
     }),
   /Supply does not match request output kinds/
+);
+
+assert.equal(
+  resolveFulfillmentSupplyAttachment({
+    commitmentSupplyId: "11111111-1111-4111-8111-111111111111",
+  }),
+  "11111111-1111-4111-8111-111111111111",
+);
+assert.equal(
+  resolveFulfillmentSupplyAttachment({
+    commitmentSupplyId: "11111111-1111-4111-8111-111111111111",
+    suppliedSupplyId: "11111111-1111-4111-8111-111111111111",
+  }),
+  "11111111-1111-4111-8111-111111111111",
+);
+assert.equal(
+  resolveFulfillmentSupplyAttachment({
+    directOwnerPreferredSupplyId: "33333333-3333-4333-8333-333333333333",
+  }),
+  "33333333-3333-4333-8333-333333333333",
+);
+assert.throws(
+  () =>
+    resolveFulfillmentSupplyAttachment({
+      commitmentSupplyId: "11111111-1111-4111-8111-111111111111",
+      suppliedSupplyId: "22222222-2222-4222-8222-222222222222",
+    }),
+  /Commitment supply mismatch/,
 );
 
 assert.equal(

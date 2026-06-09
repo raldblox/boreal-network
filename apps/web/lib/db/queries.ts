@@ -3776,6 +3776,11 @@ function toRequestActivityEntry(
         ? {
             id: String(commitmentPayload.id),
             kind: commitmentPayload.kind as CommitmentKind,
+            ...(normalizeOptionalString(commitmentPayload.supplyId)
+              ? {
+                  supplyId: String(commitmentPayload.supplyId),
+                }
+              : {}),
             status: commitmentPayload.status as CommitmentStatus,
             summary: String(commitmentPayload.summary),
             terms: normalizeCommitmentTerms(
@@ -3796,6 +3801,11 @@ function toRequestActivityEntry(
             ...(normalizeOptionalString(fulfillmentPayload.commitmentId)
               ? {
                   commitmentId: String(fulfillmentPayload.commitmentId),
+                }
+              : {}),
+            ...(normalizeOptionalString(fulfillmentPayload.supplyId)
+              ? {
+                  supplyId: String(fulfillmentPayload.supplyId),
                 }
               : {}),
             status: fulfillmentPayload.status as FulfillmentStatus,

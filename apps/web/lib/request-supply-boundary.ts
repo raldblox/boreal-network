@@ -51,6 +51,36 @@ export function assertSupplyCanAttachToCommitment({
   }
 }
 
+export function resolveFulfillmentSupplyAttachment({
+  commitmentSupplyId,
+  directOwnerPreferredSupplyId,
+  suppliedSupplyId,
+}: {
+  commitmentSupplyId?: string | null;
+  directOwnerPreferredSupplyId?: string | null;
+  suppliedSupplyId?: string | null;
+}) {
+  const normalizedSuppliedSupplyId = suppliedSupplyId?.trim() || undefined;
+  const normalizedCommitmentSupplyId =
+    commitmentSupplyId?.trim() || undefined;
+  const normalizedDirectOwnerPreferredSupplyId =
+    directOwnerPreferredSupplyId?.trim() || undefined;
+
+  if (
+    normalizedSuppliedSupplyId &&
+    normalizedCommitmentSupplyId &&
+    normalizedSuppliedSupplyId !== normalizedCommitmentSupplyId
+  ) {
+    throw new Error("Commitment supply mismatch");
+  }
+
+  return (
+    normalizedSuppliedSupplyId ??
+    normalizedCommitmentSupplyId ??
+    normalizedDirectOwnerPreferredSupplyId
+  );
+}
+
 export function assertSupplyMatchesRequest({
   request,
   supply,

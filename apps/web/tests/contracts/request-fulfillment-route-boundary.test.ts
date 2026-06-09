@@ -6,6 +6,7 @@ const supplyId = "11111111-1111-4111-8111-111111111111";
 
 type CreateFulfillmentInput = {
   actorUserId: string;
+  commitmentId?: string;
   ownerPrivateDirectApproval?: {
     mode: "trusted_worker_auto_approval";
     approvedByOwner: true;
@@ -55,6 +56,13 @@ let lastCreateFulfillmentInput: CreateFulfillmentInput | null = null;
     return {
       createFulfillmentForRequestById: async (input: CreateFulfillmentInput) => {
         lastCreateFulfillmentInput = input;
+
+        if (
+          input.commitmentId &&
+          input.supplyId === "22222222-2222-4222-8222-222222222222"
+        ) {
+          throw new Error("Commitment supply mismatch");
+        }
 
         if (!input.ownerPrivateDirectApproval?.workerKey) {
           throw new Error("Owner-private direct approval worker key required");
@@ -121,6 +129,28 @@ async function main() {
   assert.equal(
     lastCreateFulfillmentInput?.ownerPrivateDirectApproval?.workerKey,
     undefined
+  );
+
+  const commitmentMismatchResponse = await POST(
+    fulfillmentRequest({
+      commitmentId: "33333333-3333-4333-8333-333333333333",
+      summary: "Start from an accepted commitment with the wrong supply.",
+      supplyId: "22222222-2222-4222-8222-222222222222",
+      initialStatus: "planned",
+    }),
+    routeContext()
+  );
+  assert.equal(commitmentMismatchResponse.status, 400);
+  const commitmentMismatchBody = await commitmentMismatchResponse.json();
+  assert.equal(commitmentMismatchBody.code, "bad_request:api");
+  assert.equal(commitmentMismatchBody.cause, "Commitment supply mismatch");
+  assert.equal(
+    lastCreateFulfillmentInput?.commitmentId,
+    "33333333-3333-4333-8333-333333333333"
+  );
+  assert.equal(
+    lastCreateFulfillmentInput?.supplyId,
+    "22222222-2222-4222-8222-222222222222"
   );
 
   const acceptedResponse = await POST(
