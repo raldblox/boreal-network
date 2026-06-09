@@ -519,12 +519,24 @@ function buildApplicationPacket({
     requiredNextAction: evaluation.allowedToWake
       ? "run_submission_preflight_before_authorized_mutation"
       : "fix_qualification_before_submission_preflight",
-    submissionPreflight: buildSubmissionPreflight({ input, lane, template }),
+    submissionPreflight: evaluation.allowedToWake
+      ? buildSubmissionPreflight({ input, lane, template })
+      : null,
     authorizedExecutionHandoff: buildAuthorizedExecutionHandoff({
       lane,
       template,
     }),
   } as const;
+
+  if (!evaluation.allowedToWake) {
+    return {
+      ...base,
+      mutationCall: null,
+      proposedCanonicalWrites: [],
+      proposedObject: null,
+      ownerApprovalMode: "blocked_until_qualified",
+    };
+  }
 
   if (lane === "owner_private_direct_worker_fulfillment") {
     return {

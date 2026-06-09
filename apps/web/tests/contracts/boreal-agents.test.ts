@@ -741,6 +741,8 @@ async function main() {
     "RequestEvent",
   ]);
   assert.equal(publicPrepare.applicationPacket.proposedObject, "Commitment");
+  assert.ok(publicPrepare.applicationPacket.mutationCall);
+  assert.ok(publicPrepare.applicationPacket.submissionPreflight);
   assert.equal(
     publicPrepare.applicationPacket.mutationCall.route,
     "/api/requests/req-video-001/commitments"
@@ -930,6 +932,8 @@ async function main() {
     ["Commitment", "RequestEvent"]
   );
   assert.equal(publicHumanizerPrepare.applicationPacket.proposedObject, "Commitment");
+  assert.ok(publicHumanizerPrepare.applicationPacket.mutationCall);
+  assert.ok(publicHumanizerPrepare.applicationPacket.submissionPreflight);
   assert.equal(
     publicHumanizerPrepare.applicationPacket.mutationCall.route,
     "/api/requests/req-humanizer-001/commitments"
@@ -1308,8 +1312,11 @@ async function main() {
   assert.equal(publicOpenRequestScan.scan.skipCount, 2);
   assert.equal(publicOpenRequestScan.candidates[0].allowedToWake, true);
   assert.ok(publicOpenRequestScan.candidates[0].applicationPacket);
+  const publicOpenRequestPacket =
+    publicOpenRequestScan.candidates[0].applicationPacket;
+  assert.ok(publicOpenRequestPacket.mutationCall);
   assert.equal(
-    publicOpenRequestScan.candidates[0].applicationPacket.mutationCall.route,
+    publicOpenRequestPacket.mutationCall.route,
     "/api/requests/req-public-video-001/commitments"
   );
   assert.equal(publicOpenRequestScan.candidates[1].allowedToWake, false);
@@ -1401,11 +1408,23 @@ assert.ok(
 );
 assert.equal(
   privateWithoutAutoApprovalPrepare.applicationPacket.proposedObject,
-  "Commitment"
+  null
+);
+assert.deepEqual(
+  privateWithoutAutoApprovalPrepare.applicationPacket.proposedCanonicalWrites,
+  []
+);
+assert.equal(
+  privateWithoutAutoApprovalPrepare.applicationPacket.submissionPreflight,
+  null
+);
+assert.equal(
+  privateWithoutAutoApprovalPrepare.applicationPacket.mutationCall,
+  null
 );
 assert.equal(
   privateWithoutAutoApprovalPrepare.applicationPacket.ownerApprovalMode,
-  "explicit_owner_acceptance_required"
+  "blocked_until_qualified"
 );
 
 const privatePrepare = prepareBorealAgentApplication({
@@ -1459,6 +1478,8 @@ assert.deepEqual(privatePrepare.applicationPacket.proposedCanonicalWrites, [
   "RequestEvent",
 ]);
 assert.equal(privatePrepare.applicationPacket.proposedObject, "Fulfillment");
+assert.ok(privatePrepare.applicationPacket.mutationCall);
+assert.ok(privatePrepare.applicationPacket.submissionPreflight);
 assert.equal(
   privatePrepare.applicationPacket.mutationCall.route,
   "/api/requests/req-video-001/fulfillments"
@@ -1624,6 +1645,17 @@ assert.ok(
   )
 );
 assert.deepEqual(humanRequiredPrepare.scanner.canonicalWrites, []);
+assert.equal(
+  humanRequiredPrepare.applicationPacket.packetStatus,
+  "blocked_until_qualified"
+);
+assert.equal(humanRequiredPrepare.applicationPacket.submissionPreflight, null);
+assert.equal(humanRequiredPrepare.applicationPacket.mutationCall, null);
+assert.deepEqual(
+  humanRequiredPrepare.applicationPacket.proposedCanonicalWrites,
+  []
+);
+assert.equal(humanRequiredPrepare.applicationPacket.proposedObject, null);
 
 const publicProjectionHumanPrepare = prepareBorealAgentApplication({
   input: {
@@ -1814,8 +1846,18 @@ assert.ok(
   )
 );
 assert.equal(
-  missingSupplyPrepare.applicationPacket.mutationCall.body.supplyId,
-  undefined
+  missingSupplyPrepare.applicationPacket.submissionPreflight,
+  null
+);
+assert.equal(missingSupplyPrepare.applicationPacket.mutationCall, null);
+assert.deepEqual(
+  missingSupplyPrepare.applicationPacket.proposedCanonicalWrites,
+  []
+);
+assert.equal(missingSupplyPrepare.applicationPacket.proposedObject, null);
+assert.equal(
+  missingSupplyPrepare.applicationPacket.ownerApprovalMode,
+  "blocked_until_qualified"
 );
 
 const mismatchedSupplyPrepare = prepareBorealAgentApplication({
@@ -1852,6 +1894,12 @@ assert.ok(
     "no_humanizer_text_signal"
   )
 );
+assert.equal(
+  talaVideoPrepare.applicationPacket.packetStatus,
+  "blocked_until_qualified"
+);
+assert.equal(talaVideoPrepare.applicationPacket.submissionPreflight, null);
+assert.equal(talaVideoPrepare.applicationPacket.mutationCall, null);
 
 const talaPublicPrepare = prepareBorealAgentApplication({
   input: humanizerPrepareInput,
@@ -1904,6 +1952,8 @@ assert.deepEqual(talaPrivatePrepare.applicationPacket.proposedCanonicalWrites, [
   "RequestEvent",
 ]);
 assert.equal(talaPrivatePrepare.applicationPacket.proposedObject, "Fulfillment");
+assert.ok(talaPrivatePrepare.applicationPacket.mutationCall);
+assert.ok(talaPrivatePrepare.applicationPacket.submissionPreflight);
 assert.equal(
   talaPrivatePrepare.applicationPacket.mutationCall.route,
   "/api/requests/req-humanizer-001/fulfillments"

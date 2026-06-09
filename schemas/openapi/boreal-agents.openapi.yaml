@@ -902,23 +902,30 @@ components:
             - run_submission_preflight_before_authorized_mutation
             - fix_qualification_before_submission_preflight
         submissionPreflight:
-          $ref: "#/components/schemas/SubmissionPreflight"
+          oneOf:
+            - $ref: "#/components/schemas/SubmissionPreflight"
+            - type: "null"
         authorizedExecutionHandoff:
           $ref: "#/components/schemas/AuthorizedExecutionHandoff"
         mutationCall:
-          $ref: "#/components/schemas/PreparedMutationCall"
+          oneOf:
+            - $ref: "#/components/schemas/PreparedMutationCall"
+            - type: "null"
         proposedCanonicalWrites:
           type: array
           items:
             type: string
         proposedObject:
-          enum:
-            - Commitment
-            - Fulfillment
+          oneOf:
+            - enum:
+                - Commitment
+                - Fulfillment
+            - type: "null"
         ownerApprovalMode:
           enum:
             - explicit_owner_acceptance_required
             - trusted_worker_auto_approval_required
+            - blocked_until_qualified
     QualificationGate:
       type: object
       required:
