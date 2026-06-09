@@ -39,6 +39,7 @@ import {
   isDesktopBridgeSupportedOrigin,
   tryOpenDesktopRuntimeApp,
 } from "@/lib/desktop-runtime-bridge";
+import { canStartBorealWorkerFulfillmentExecution } from "@/lib/boreal-worker-fulfillment-execution";
 import { getOwnerPrivateWorkerFulfillmentStart } from "@/lib/owner-private-worker-fulfillment";
 import type {
   BorealRequestDraft,
@@ -427,6 +428,13 @@ export function RequestTracker({
     activeFulfillment?.status === "blocked" &&
     activeFulfillmentWorkerState?.retryable === true &&
     typeof onRetryBlockedFulfillment === "function";
+  const canStartSelectedWorkerFulfillment =
+    requestViewerUserId === request.ownerId &&
+    Boolean(activeFulfillment?.status) &&
+    Boolean(activeFulfillmentWorkerState?.workerKey) &&
+    activeFulfillment !== null &&
+    canStartBorealWorkerFulfillmentExecution(activeFulfillment.status) &&
+    typeof onRetryBlockedFulfillment === "function";
   const canCheckActiveWorkerFulfillment =
     requestViewerUserId === request.ownerId &&
     activeFulfillment?.status === "active" &&
@@ -716,6 +724,32 @@ export function RequestTracker({
             />
           ) : null}
 
+          {canStartSelectedWorkerFulfillment ? (
+            <div className="rounded-[18px] border border-status-active/25 bg-status-active/[0.08] px-3.5 py-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-active">
+                Selected worker ready
+              </div>
+              <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
+                This fulfillment lane exists, but the worker has not started
+                provider execution yet.
+              </div>
+              <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                Start the same selected worker lane without opening another
+                request or changing the attached Supply.
+              </div>
+              <LoadingButton
+                className="mt-3"
+                isLoading={isRetryingBlockedFulfillment}
+                loadingText="Starting..."
+                onClick={() => void onRetryBlockedFulfillment?.()}
+                size="sm"
+                variant="outline"
+              >
+                Start selected worker
+              </LoadingButton>
+            </div>
+          ) : null}
+
           {canCheckActiveWorkerFulfillment ? (
             <div className="rounded-[18px] border border-status-active/25 bg-status-active/[0.08] px-3.5 py-3">
               <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-active">
@@ -846,6 +880,7 @@ export function RequestTracker({
     canCreateRoleplayDelivery,
     canResolveDelivery,
     canRetryBlockedFulfillment,
+    canStartSelectedWorkerFulfillment,
     currentStageId,
     request,
   });
@@ -2769,6 +2804,7 @@ function getWorkroomNextActionSummary({
   canCreateRoleplayDelivery,
   canResolveDelivery,
   canRetryBlockedFulfillment,
+  canStartSelectedWorkerFulfillment,
   currentStageId,
   request,
 }: {
@@ -2776,6 +2812,7 @@ function getWorkroomNextActionSummary({
   canCreateRoleplayDelivery: boolean;
   canResolveDelivery: boolean;
   canRetryBlockedFulfillment: boolean;
+  canStartSelectedWorkerFulfillment: boolean;
   currentStageId: TrackerStageId;
   request: BorealRequestDraft;
 }) {
@@ -2783,6 +2820,14 @@ function getWorkroomNextActionSummary({
     return {
       value: "Owner review should close the loop.",
       detail: "Confirm delivery once the proof package and result look right.",
+    };
+  }
+
+  if (canStartSelectedWorkerFulfillment) {
+    return {
+      value: "The selected worker lane is ready.",
+      detail:
+        "Start the same fulfillment lane before provider work or delivery proof can happen.",
     };
   }
 

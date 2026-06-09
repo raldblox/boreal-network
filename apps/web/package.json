@@ -34,6 +34,7 @@
     "test:boreal-agents": "tsx tests/contracts/boreal-agents.test.ts",
     "test:boreal-worker-starter-catalog": "tsx tests/contracts/boreal-worker-starter-catalog.test.ts",
     "test:owner-private-worker-fulfillment-start": "tsx tests/contracts/owner-private-worker-fulfillment-start.test.ts",
+    "test:fulfillment-retry-route-boundary": "tsx tests/contracts/fulfillment-retry-route-boundary.test.ts",
     "test:service-checkout-route-boundary": "tsx tests/contracts/service-checkout-route-boundary.test.ts",
     "test:request-commitment-route-boundary": "tsx tests/contracts/request-commitment-route-boundary.test.ts",
     "test:request-fulfillment-route-boundary": "tsx tests/contracts/request-fulfillment-route-boundary.test.ts"

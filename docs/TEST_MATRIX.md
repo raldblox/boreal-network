@@ -168,7 +168,8 @@ Verify:
 - direct fulfillment route-handler contract tests must expose missing Boreal-managed worker-key approval as `bad_request:api` instead of a generic database failure, and must pass the matching worker key through when present
 - no-commitment direct fulfillment creation must reject missing `ownerPrivateDirectApproval`, missing selected `Supply`, selected-supply mismatch, missing Boreal-managed worker key, and worker-key mismatch before creating `Fulfillment`, `FulfillmentStep`, or `RequestEvent` truth
 - worker-backed service checkout route tests must reject unsupported plans, fail insufficient buyer credit before supply or request side effects, create or reuse only the supported first-party worker `Supply`, pin that Supply on one private `Request`, apply buyer-credit transaction truth, and return pending execution without creating `Fulfillment`, creating `FulfillmentStep`, calling providers, publishing `Artifact`, or claiming completion
-- owner-private worker fulfillment start tests must prove the workroom action is visible only for owned private compatible requests with a pinned published Boreal-managed Supply, builds a `planned` fulfillment body with `ownerPrivateDirectApproval` and matching worker key, and keeps provider calls marked false before execution
+- owner-private worker fulfillment start tests must prove the workroom action is visible only for owned private compatible requests with a pinned published Boreal-managed Supply, builds a `planned` fulfillment body with `ownerPrivateDirectApproval` and matching worker key, keeps provider calls marked false before execution, and classifies `planned` or `ready` lanes as explicit owner-startable worker execution
+- fulfillment retry route boundary tests must prove the worker execution-control endpoint maps planned/ready/active/blocked eligibility errors to API bad requests and passes idempotency through to the governed start/check/retry server path
 - the public agent card and `/openapi.json` link to the workflow catalog and keep workflows below `Request` truth
 - each catalog action names canonical reads, canonical writes, availability, auth boundary, standard contract links, and guardrails
 - public request projections expose request-level `agentActionAffordances` that map concrete request ids to inspect, apply, submit, monitor, run, and optimize affordances without exposing owner-only routing or granting mutation authority
@@ -387,6 +388,7 @@ Verify:
 - specialized pinned supplies should not expand one generic worker lane into duplicate derived role slots when one worker is already selected
 - opening one owner-private request with a pinned Boreal-managed worker may auto-create one fulfillment lane and should preserve worker prompt plus provider status in fulfillment metadata
 - retryable first-party worker failures should move that same fulfillment lane to `blocked`, keep worker recovery metadata, and avoid terminally failing the request immediately
+- `POST /api/fulfillments/{id}/retry` may start the same planned or ready first-party worker fulfillment lane by promoting it through legal fulfillment transitions before provider execution
 - `POST /api/fulfillments/{id}/retry` should resume the same blocked fulfillment lane and reuse stored output when the worker already finished provider execution
 - `POST /api/fulfillments/{id}/retry` may also check the same active first-party worker lane when a queued provider task id is already saved, without spawning a second fulfillment
 - public request projections should not expose `routing.preferredSupplyId`

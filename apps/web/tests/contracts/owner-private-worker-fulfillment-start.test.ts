@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
 import {
+  canControlBorealWorkerFulfillmentExecution,
+  canStartBorealWorkerFulfillmentExecution,
+  getBorealWorkerExecutionProviderStatus,
+  getBorealWorkerExecutionSummary,
+  shouldResumeBorealWorkerExecutionFromMetadata,
+} from "@/lib/boreal-worker-fulfillment-execution";
+import {
   buildOwnerPrivateWorkerFulfillmentStartPayload,
   getOwnerPrivateWorkerFulfillmentStart,
 } from "@/lib/owner-private-worker-fulfillment";
@@ -165,5 +172,37 @@ assert.equal(
   null
 );
 assert.equal(startFor({ supply: promptOnlySupply }), null);
+
+assert.equal(canControlBorealWorkerFulfillmentExecution("planned"), true);
+assert.equal(canControlBorealWorkerFulfillmentExecution("ready"), true);
+assert.equal(canControlBorealWorkerFulfillmentExecution("active"), true);
+assert.equal(canControlBorealWorkerFulfillmentExecution("blocked"), true);
+assert.equal(canControlBorealWorkerFulfillmentExecution("delivered"), false);
+assert.equal(canStartBorealWorkerFulfillmentExecution("planned"), true);
+assert.equal(canStartBorealWorkerFulfillmentExecution("ready"), true);
+assert.equal(canStartBorealWorkerFulfillmentExecution("active"), false);
+assert.equal(canStartBorealWorkerFulfillmentExecution("blocked"), false);
+assert.equal(getBorealWorkerExecutionProviderStatus("planned"), "starting");
+assert.equal(getBorealWorkerExecutionProviderStatus("ready"), "starting");
+assert.equal(getBorealWorkerExecutionProviderStatus("active"), "running");
+assert.equal(getBorealWorkerExecutionProviderStatus("blocked"), "retrying");
+assert.equal(shouldResumeBorealWorkerExecutionFromMetadata("planned"), false);
+assert.equal(shouldResumeBorealWorkerExecutionFromMetadata("ready"), false);
+assert.equal(shouldResumeBorealWorkerExecutionFromMetadata("active"), true);
+assert.equal(shouldResumeBorealWorkerExecutionFromMetadata("blocked"), true);
+assert.equal(
+  getBorealWorkerExecutionSummary({
+    displayName: "Tala Humanizer",
+    status: "planned",
+  }),
+  "Tala Humanizer started this delivery lane."
+);
+assert.equal(
+  getBorealWorkerExecutionSummary({
+    displayName: "Tala Humanizer",
+    status: "blocked",
+  }),
+  "Tala Humanizer resumed this delivery lane."
+);
 
 console.log("owner-private worker fulfillment start contract passed");

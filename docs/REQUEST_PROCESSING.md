@@ -230,6 +230,7 @@ That checkout does not start provider execution, create `Fulfillment`, create `F
 When the owner opens that funded private workroom, the UI may expose a selected-worker start action only if the pinned `Supply` is published, Boreal-managed, request-compatible, owner-scoped, and no active fulfillment exists.
 That action writes a `planned` owner-private `Fulfillment` through `POST /api/requests/{id}/fulfillments` with `ownerPrivateDirectApproval` evidence and the matching worker key.
 It still must not call providers, start worker execution, publish artifacts, accept review, or claim completion.
+After that fulfillment boundary exists, the owner may start the selected first-party worker through `POST /api/fulfillments/{id}/retry`; the route promotes `planned -> ready -> active` before the provider call, keeps the same selected `Supply` and `Fulfillment`, and still blocks owner acceptance, payment authority, and completion until proof and review truth exist.
 
 In-house Boreal agents and humans follow the same worker-application rule:
 

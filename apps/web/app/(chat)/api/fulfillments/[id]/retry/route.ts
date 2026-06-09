@@ -77,6 +77,8 @@ export async function POST(
       (error.message === "Only blocked fulfillment can be retried" ||
         error.message ===
           "Only active or blocked Boreal worker fulfillment can be checked or retried" ||
+        error.message ===
+          "Only planned, ready, active, or blocked Boreal worker fulfillment can be started, checked, or retried" ||
         error.message === "Blocked fulfillment is not managed by a Boreal worker" ||
         error.message === "Fulfillment is not managed by a Boreal worker" ||
         error.message === "Boreal worker is unavailable" ||

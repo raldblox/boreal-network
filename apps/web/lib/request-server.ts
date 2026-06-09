@@ -35,6 +35,12 @@ import {
   parseBorealWorkerInput,
   parseBorealWorkerStoredAsset,
 } from "@/lib/boreal-workers";
+import {
+  canControlBorealWorkerFulfillmentExecution,
+  getBorealWorkerExecutionProviderStatus,
+  getBorealWorkerExecutionSummary,
+  shouldResumeBorealWorkerExecutionFromMetadata,
+} from "@/lib/boreal-worker-fulfillment-execution";
 import { getBorealWorkerKeyFromSupply } from "@/lib/boreal-workers/starter-catalog";
 import {
   applyRequestPatch,
@@ -575,11 +581,13 @@ export async function maybeAutoRunPinnedBorealWorkerForRequest({
 type AttachedBorealWorker = NonNullable<ReturnType<typeof getBorealWorker>>;
 
 function buildInitialBorealWorkerMetadata({
+  providerStatus = "starting",
   requestStatusAtStart,
   worker,
   workerInput,
   workerPrompt,
 }: {
+  providerStatus?: string;
   requestStatusAtStart: RequestStatus;
   worker: AttachedBorealWorker;
   workerInput: Record<string, unknown>;
@@ -591,7 +599,7 @@ function buildInitialBorealWorkerMetadata({
       input: workerInput,
       ...(workerPrompt ? { prompt: workerPrompt } : {}),
       provider: worker.provider,
-      providerStatus: "starting",
+      providerStatus,
       requestStatusAtStart,
       workerKey: worker.workerKey,
     },
@@ -890,12 +898,9 @@ export async function retryBlockedBorealWorkerFulfillmentById({
     throw new Error("Only request owner can retry or check worker fulfillment");
   }
 
-  if (
-    existingFulfillment.status !== "blocked" &&
-    existingFulfillment.status !== "active"
-  ) {
+  if (!canControlBorealWorkerFulfillmentExecution(existingFulfillment.status)) {
     throw new Error(
-      "Only active or blocked Boreal worker fulfillment can be checked or retried"
+      "Only planned, ready, active, or blocked Boreal worker fulfillment can be started, checked, or retried"
     );
   }
 
@@ -944,8 +949,9 @@ export async function retryBlockedBorealWorkerFulfillmentById({
     workerPrompt,
     workerProvider: worker.provider,
     workerResult: {
-      providerStatus:
-        existingFulfillment.status === "blocked" ? "retrying" : "running",
+      providerStatus: getBorealWorkerExecutionProviderStatus(
+        existingFulfillment.status
+      ),
       ...(workerState.providerTaskId
         ? { providerTaskId: workerState.providerTaskId }
         : {}),
@@ -956,14 +962,25 @@ export async function retryBlockedBorealWorkerFulfillmentById({
     },
   });
 
+  if (existingFulfillment.status === "planned") {
+    await updateFulfillmentForRequestById({
+      fulfillmentId,
+      actorUserId,
+      status: "ready",
+      summary: `${worker.displayName} is ready for explicit owner-started execution.`,
+      metadata: resumedMetadata,
+      source,
+    });
+  }
+
   await updateFulfillmentForRequestById({
     fulfillmentId,
     actorUserId,
     status: "active",
-    summary:
-      existingFulfillment.status === "blocked"
-        ? `${worker.displayName} resumed this delivery lane.`
-        : `${worker.displayName} is checking provider delivery progress.`,
+    summary: getBorealWorkerExecutionSummary({
+      displayName: worker.displayName,
+      status: existingFulfillment.status,
+    }),
     metadata: resumedMetadata,
     source,
   });
@@ -997,7 +1014,9 @@ export async function retryBlockedBorealWorkerFulfillmentById({
     currentMetadata: resumedMetadata,
     fulfillmentId,
     requestDraft,
-    resumeFromMetadata: true,
+    resumeFromMetadata: shouldResumeBorealWorkerExecutionFromMetadata(
+      existingFulfillment.status
+    ),
     source,
     worker,
     workerInput,
@@ -1984,15 +2003,44 @@ export async function createFulfillmentForRequestById({
     });
   }
 
+  const selectedBorealWorkerKey = getBorealWorkerKeyFromSupply(
+    matchedSupplyRecord ? toSupplyDraft(matchedSupplyRecord) : null
+  );
+
   if (!commitmentId && useDirectOwnerPrivateLane) {
     assertOwnerPrivateDirectFulfillmentApproval({
       approval: ownerPrivateDirectApproval,
       selectedSupplyId: effectiveSupplyId,
-      workerKey: getBorealWorkerKeyFromSupply(
-        matchedSupplyRecord ? toSupplyDraft(matchedSupplyRecord) : null
-      ) ?? undefined,
+      workerKey: selectedBorealWorkerKey ?? undefined,
     });
   }
+
+  const selectedBorealWorker =
+    !commitmentId && useDirectOwnerPrivateLane && selectedBorealWorkerKey
+      ? getBorealWorker(selectedBorealWorkerKey)
+      : null;
+  if (
+    !commitmentId &&
+    useDirectOwnerPrivateLane &&
+    selectedBorealWorkerKey &&
+    !selectedBorealWorker
+  ) {
+    throw new Error("Boreal worker is unavailable");
+  }
+  const selectedBorealWorkerMetadata = selectedBorealWorker
+    ? (() => {
+        const workerInput = selectedBorealWorker.buildInput(requestDraft);
+        const workerPrompt = extractBorealWorkerPrompt(workerInput);
+
+        return buildInitialBorealWorkerMetadata({
+          providerStatus: initialStatus === "active" ? "starting" : "planned",
+          requestStatusAtStart: requestDraft.status,
+          worker: selectedBorealWorker,
+          workerInput,
+          workerPrompt,
+        });
+      })()
+    : null;
 
   const normalizedIdempotencyKey = normalizeIdempotencyKey(idempotencyKey);
   if (normalizedIdempotencyKey) {
@@ -2027,6 +2075,13 @@ export async function createFulfillmentForRequestById({
   const now = new Date();
   const fulfillmentId = generateUUID();
   const nextLead = lead ?? toSupplyActorRef(matchedSupplyRecord) ?? actor;
+  const mergedMetadata =
+    metadata || selectedBorealWorkerMetadata
+      ? {
+          ...(metadata ?? {}),
+          ...(selectedBorealWorkerMetadata ?? {}),
+        }
+      : null;
   const seededSteps = buildSeedFulfillmentSteps({
     initialStatus,
     lead: nextLead,
@@ -2045,7 +2100,7 @@ export async function createFulfillmentForRequestById({
     summary,
     artifactIds: [],
     steps: seededSteps,
-    ...(metadata ? { metadata } : {}),
+    ...(mergedMetadata ? { metadata: mergedMetadata } : {}),
     plannedAt: now,
     ...(initialStatus === "ready" ? { readyAt: now } : {}),
     ...(initialStatus === "active" ? { startedAt: now } : {}),

@@ -45,6 +45,7 @@
     "web:test:boreal-agents": "pnpm --filter @boreal/web test:boreal-agents",
     "web:test:boreal-worker-starter-catalog": "pnpm --filter @boreal/web test:boreal-worker-starter-catalog",
     "web:test:owner-private-worker-fulfillment-start": "pnpm --filter @boreal/web test:owner-private-worker-fulfillment-start",
+    "web:test:fulfillment-retry-route-boundary": "pnpm --filter @boreal/web test:fulfillment-retry-route-boundary",
     "web:test:service-checkout-route-boundary": "pnpm --filter @boreal/web test:service-checkout-route-boundary",
     "web:test:request-commitment-route-boundary": "pnpm --filter @boreal/web test:request-commitment-route-boundary",
     "web:test:request-fulfillment-route-boundary": "pnpm --filter @boreal/web test:request-fulfillment-route-boundary",

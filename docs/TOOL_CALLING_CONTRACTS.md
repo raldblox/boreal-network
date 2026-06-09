@@ -234,6 +234,7 @@ Every mutation call should return:
 - Once accepted-commitment fulfillment is being created, a valid `Commitment.supplyId` may attach that execution lane if no explicit `supplyId` was supplied; an explicit mismatched `supplyId` must fail before fulfillment starts.
 - Worker-backed service checkout may write one private `Request`, preferred `Supply` routing, and buyer-credit `Transaction` truth for supported first-party plans, but it is still a checkout route, not a planner or execution tool; it must leave `Fulfillment`, provider calls, artifact publication, owner review, and completion proof untouched.
 - A workroom "start selected worker lane" action may create a `planned` owner-private `Fulfillment` only after the selected published Boreal-managed `Supply` is already pinned and the route body carries `ownerPrivateDirectApproval` with the matching worker key. That action is boundary creation only; provider execution still waits for the next worker run or retry path.
+- `POST /api/fulfillments/{id}/retry` may start `planned` or `ready`, check `active`, or retry `blocked` Boreal-managed worker fulfillments, but it must reuse the same `Fulfillment` lane, preserve selected `Supply` attachment, and respect legal fulfillment transitions before any provider call.
 
 ## Worker modality and trust context
 

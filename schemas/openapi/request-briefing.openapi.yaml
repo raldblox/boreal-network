@@ -609,7 +609,8 @@ paths:
                     $ref: "#/components/schemas/WebFulfillment"
   /api/fulfillments/{id}/retry:
     post:
-      summary: Resume one blocked Boreal-managed fulfillment lane from the same request lane.
+      summary: Start, check, or retry one Boreal-managed fulfillment lane from the same request lane.
+      description: Starts planned or ready first-party worker fulfillments, checks active queued provider work, or retries blocked worker handoffs without creating a second Request, Supply attachment, Fulfillment lane, payment, owner acceptance, or completion proof.
       security:
         - BorealAccountSession: []
         - ResolverBearer: []
@@ -638,7 +639,7 @@ paths:
               $ref: "#/components/schemas/WebFulfillmentRetry"
       responses:
         "200":
-          description: The resumed or idempotently replayed fulfillment.
+          description: The started, checked, retried, or idempotently replayed fulfillment.
           content:
             application/json:
               schema:
@@ -1996,6 +1997,7 @@ components:
     WebFulfillmentRetry:
       type: object
       additionalProperties: false
+      description: Optional idempotency body for the first-party worker execution-control route. The route may start planned or ready worker fulfillments, check active provider progress, or retry blocked worker handoffs while preserving the same fulfillment lane.
       properties:
         idempotencyKey:
           type: string
