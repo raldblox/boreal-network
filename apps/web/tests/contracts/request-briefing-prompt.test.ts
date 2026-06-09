@@ -35,6 +35,8 @@ for (const required of [
   "pickup_dropoff",
   "human_service",
   "video_generation",
+  "output kinds alone should not wake named agents",
+  "named-agent-compatible lane",
 ]) {
   assert.match(prompt, new RegExp(escapeRegExp(required)));
 }

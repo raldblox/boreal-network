@@ -149,6 +149,7 @@ The actual codebase already reflects the core Boreal plan model in these areas:
 - `apps/web/lib/db/schema.ts` persists `Request.derived` as request-owned JSON and has no separate `Plan` table.
 - `apps/web/lib/request-planner.ts` derives embodied execution, proof requirements, lead roles, role slots, phase plans, match candidates, worker eligibility guidance, assignment state, and replan reasons from the request plus candidate supply.
 - `apps/web/lib/request-planner.ts` keeps empty drafts from receiving fake role or phase plans until there is real request signal.
+- `apps/web/lib/request-planner.ts` treats `brief.outputKinds` as supporting qualification evidence only; named-agent wake requires an agent actor, agent-capable supply, agent execution kind, or agent role-slot signal so generic draft, file, handoff, media, or video outputs do not wake agents alone.
 - `apps/web/lib/request-server.ts` enriches request drafts with retrieved candidate supplies and persists the resulting request-owned planner projection.
 - `apps/web/lib/request-server.ts` seeds `FulfillmentStep` records from request-derived phases when a fulfillment lane is created.
 - `apps/web/lib/request-server.ts` gates delivered and accepted fulfillment states through `evaluateRequestVerificationCoverage`, so proof-heavy requests cannot close only because text was generated.

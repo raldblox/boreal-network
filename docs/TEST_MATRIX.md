@@ -452,6 +452,7 @@ Verify:
 - planner outputs stay capability-first before they imply assignment-first execution
 - additive planner outputs such as `outcomeClaims`, `matchCandidates`, `leadRanking`, `roleMatches`, `workerEligibility`, `assignmentProposal`, and `replanReasons` stay read-only and rebuildable
 - planner-derived `workerEligibility` must classify human-first skip, human-first agent-support, raw-not-planned, no-agent-signal, and wake-named-agents cases from canonical fingerprints without assigning supply, creating commitments, starting fulfillment, calling providers, authorizing payment, writing events, or proving completion
+- output-only planner hints such as `draft`, `file`, `handoff_doc`, `media`, or `video` must not wake named agents unless paired with an agent actor, agent-capable supply, agent execution kind, or agent role-slot signal
 - retrieved planner candidate snapshots should truthfully rebuild `candidatePool`, `leadRanking`, and `roleMatches` from real `Supply` rows without implying attached execution
 - planner outputs must not imply a real match is attached before matching actually happened for that request flow
 - planner outputs must preserve embodied, local-runtime, and verification-heavy work as first-class planning realities

@@ -642,6 +642,14 @@ const agentWakeOutputKinds = new Set<BorealOutputKind>([
   "workflow_map",
 ]);
 
+const agentWakeExecutionKinds = new Set([
+  "agent_request_room",
+  "hybrid_human_agent",
+  "hybrid_tool_room",
+  "provider_api",
+  "runtime_request_room",
+]);
+
 const physicalProofOutputKinds = new Set<BorealOutputKind>([
   "delivery_confirmation",
   "handoff_receipt",
@@ -841,8 +849,22 @@ function collectPlannerAgentWakeSignals({
   supplyKinds: BorealSupplyKind[];
 }) {
   const signals: string[] = [];
+  const hasAgentActorKind = actorKinds.includes("agent");
+  const hasAgentWakeSupplyKind = supplyKinds.some((kind) =>
+    agentWakeSupplyKinds.has(kind),
+  );
+  const hasAgentWakeExecutionKind =
+    executionKind !== undefined && agentWakeExecutionKinds.has(executionKind);
+  const hasAgentRoleSlot = roleSlots.some((slot) =>
+    slot.requiredActorKinds.includes("agent"),
+  );
+  const hasAgentWakeContext =
+    hasAgentActorKind ||
+    hasAgentWakeSupplyKind ||
+    hasAgentWakeExecutionKind ||
+    hasAgentRoleSlot;
 
-  if (actorKinds.includes("agent")) {
+  if (hasAgentActorKind) {
     signals.push("actor:agent");
   }
 
@@ -852,27 +874,19 @@ function collectPlannerAgentWakeSignals({
     }
   }
 
-  for (const outputKind of outputKinds) {
-    if (agentWakeOutputKinds.has(outputKind)) {
-      signals.push(`output:${outputKind}`);
+  if (hasAgentWakeContext) {
+    for (const outputKind of outputKinds) {
+      if (agentWakeOutputKinds.has(outputKind)) {
+        signals.push(`output:${outputKind}`);
+      }
     }
   }
 
-  if (
-    executionKind &&
-    [
-      "agent_request_room",
-      "hybrid_tool_room",
-      "provider_api",
-      "runtime_request_room",
-    ].includes(executionKind)
-  ) {
+  if (hasAgentWakeExecutionKind) {
     signals.push(`execution:${executionKind}`);
   }
 
-  if (
-    roleSlots.some((slot) => slot.requiredActorKinds.includes("agent"))
-  ) {
+  if (hasAgentRoleSlot) {
     signals.push("role_slot:agent_capable");
   }
 

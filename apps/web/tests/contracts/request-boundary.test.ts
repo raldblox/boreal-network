@@ -1231,6 +1231,72 @@ assert.ok(
   ),
 );
 
+const outputOnlyDraft = applyRequestPatch(
+  createInitialRequestDraft({
+    id: "req_output_only_draft",
+    chatId: "chat_output_only_draft",
+    documentId: "doc_output_only_draft",
+    userId: "buyer_1",
+    visibility: "public",
+    createdAt: "2026-06-01T00:00:00.000Z",
+  }),
+  {
+    brief: {
+      body: "Draft a short launch note.",
+      outputKinds: ["draft"],
+    },
+  },
+  "2026-06-01T00:03:00.000Z",
+);
+
+assert.equal(outputOnlyDraft.derived.workerEligibility.shouldWakeAgents, false);
+assert.equal(
+  outputOnlyDraft.derived.workerEligibility.wakeSignals.includes(
+    "output:draft",
+  ),
+  false,
+);
+
+const humanVideoOutputOnlyDraft = applyRequestPatch(
+  createInitialRequestDraft({
+    id: "req_human_video_output_only",
+    chatId: "chat_human_video_output_only",
+    documentId: "doc_human_video_output_only",
+    userId: "buyer_1",
+    visibility: "public",
+    createdAt: "2026-06-01T00:00:00.000Z",
+  }),
+  {
+    brief: {
+      body: "Have a human producer inspect footage and deliver a video review.",
+      outputKinds: ["video"],
+    },
+    seeking: {
+      actorKinds: ["human"],
+      supplyKinds: ["human_service"],
+    },
+    derived: {
+      routeFamily: "worker_market",
+    },
+  },
+  "2026-06-01T00:03:30.000Z",
+);
+
+assert.equal(
+  humanVideoOutputOnlyDraft.derived.workerEligibility.policy,
+  "human_first_skip_agents",
+);
+assert.equal(
+  humanVideoOutputOnlyDraft.derived.workerEligibility.shouldWakeAgents,
+  false,
+);
+assert.equal(
+  humanVideoOutputOnlyDraft.derived.workerEligibility.wakeSignals.includes(
+    "output:video",
+  ),
+  false,
+);
+
 const generatedVideoDraft = applyRequestPatch(
   createInitialRequestDraft({
     id: "req_generated_video",
