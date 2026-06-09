@@ -120,6 +120,7 @@ Do not expose feasibility grids, supply paths, role candidates, worker lanes, de
    The lead-first matching pipeline and the current fingerprint catalog are documented in [MATCHING_ENGINE.md](MATCHING_ENGINE.md).
    In-house Boreal worker scanning happens only as a read-only opportunity pass over opened or owner-approved requests.
    It may wake likely workers and prepare local application cards, but it must not assign workers, create approval, start fulfillment, publish proof, or complete the request.
+   Owner-private readiness may display a direct `Fulfillment` preparation lane only when selected supply, trusted-worker auto-approval, eligible status, and matching worker-key gates are present; otherwise private visibility must stay blocked instead of falling back to a public-style `Commitment` application.
 11. Commitment drafting
    Produce the commercial shape Boreal wants the owner to review.
 12. Funding gate
@@ -473,6 +474,7 @@ These objects are derived and rebuildable, not durable roots:
 - owner-private desktop auto-resolution creates one fulfillment directly without creating a commitment object first when desktop owner policy enables it
 - in-house Boreal worker scanners are read-only opportunity projections and must not be treated as assignment or completion truth
 - in-house Boreal worker applications write `Commitment` for public or cross-actor lanes, while owner-private direct worker lanes remain the narrow exception
+- owner-private direct worker readiness is a typed preflight hint only; it still cannot verify supply publication by display alone, record approval, create fulfillment, start providers, or convert a missing gate into public assignment
 - non-substitutable embodied work must not be downgraded into a digital-only plan or generated summary
 - matching, assignment, and completion must not be implied before the real route, proof, and closure conditions are satisfied
 - requests that require human presence, local access, or verification-heavy completion should not resolve until the required proof path is represented explicitly

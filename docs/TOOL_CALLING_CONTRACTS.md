@@ -219,6 +219,7 @@ Every mutation call should return:
 - Provider execution, runtime access, or polished generated output is never enough to mark completion when proof, review, or human execution still matters.
 - `digital_product` or near-instant delivery routes should not be forced into the same fulfillment-heavy request UX when the truthful path is closer to direct delivery plus durable proof.
 - `open_request`, `draft_commitment`, `create_fulfillment`, and `resolve_request` must all preserve the rule that completion outranks generation.
+- Worker-readiness tooling may expose an owner-private direct `Fulfillment` lane only as a typed preflight hint. It must require selected supply routing, trusted-worker auto-approval, eligible status, matching worker key, `create_owner_private_fulfillment` preflight, and fulfillment-route policy recheck before any durable write.
 
 ## Preselected supply behavior
 
@@ -239,6 +240,7 @@ Every mutation call should return:
 - Human-required, embodied, verification-heavy, and local-runtime-dependent work should remain first-class planning realities instead of being flattened into digital-only execution.
 - In-house Boreal worker scanner output is opportunity guidance only. Public or cross-actor application still writes `Commitment`; owner-private direct fulfillment remains the bounded exception for trusted first-party supply.
 - Owner-scoped auto-approval may create or accept the next execution boundary only when the request-specific policy explicitly enables trusted-worker auto-approval for the selected first-party supply and worker key. It must not publish artifacts, authorize payment, accept review, or complete the request.
+- Missing owner-private direct gates must block the private readiness lane instead of producing a cross-actor `Commitment` application hint.
 - Prompt packs, reusable prompts, workflow definitions, provider prompts, and skills may support worker execution, but they must not be published as starter `Supply` without a backing owner, capability, availability, fulfillment, and proof path.
 
 ## Planner and policy prompt context

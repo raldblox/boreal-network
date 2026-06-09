@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { BorealAgentTemplate } from "@/lib/boreal-agents/registry";
+import { evaluateOwnerPrivateDirectWorkerGates } from "@/lib/boreal-agents/owner-private-direct";
 import { requiresHumanOrLocalWorker } from "@/lib/boreal-agents/request-qualification";
 
 const briefSchema = z
@@ -376,65 +377,11 @@ function evaluateOwnerPrivateAutoApproval({
   input: BorealAgentPrepareApplicationInput;
   template: BorealAgentTemplate;
 }) {
-  const reasons: string[] = [];
-  const rejectedBy: string[] = [];
-
-  if (input.request.visibility !== "private") {
-    return {
-      allowed: false,
-      reasons,
-      rejectedBy: ["not_owner_private_request"],
-      selectedSupplyId: null,
-    };
-  }
-
-  const selectedSupplyId =
-    input.request.ownerApproval?.selectedSupplyId?.trim() ||
-    input.request.routing?.preferredSupplyId?.trim() ||
-    null;
-  const allowedWorkerKeys =
-    input.request.ownerApproval?.allowedWorkerKeys ?? [];
-
-  if (!isDirectOwnerPrivateStatus(input.request.status)) {
-    rejectedBy.push("private_request_status_not_direct_eligible");
-  }
-
-  if (input.request.ownerApproval?.trustedWorkerAutoApproval !== true) {
-    rejectedBy.push("owner_auto_approval_not_enabled");
-  }
-
-  if (
-    allowedWorkerKeys.length > 0 &&
-    !allowedWorkerKeys.includes(template.workerKey)
-  ) {
-    rejectedBy.push("worker_not_owner_auto_approved");
-  }
-
-  if (!selectedSupplyId) {
-    rejectedBy.push("selected_supply_required_for_auto_approval");
-  } else if (input.supply?.id && input.supply.id !== selectedSupplyId) {
-    rejectedBy.push("selected_supply_mismatch");
-  }
-
-  if (rejectedBy.length === 0) {
-    reasons.push("owner_private_auto_approval_gates_present");
-  }
-
-  return {
-    allowed: rejectedBy.length === 0,
-    reasons,
-    rejectedBy,
-    selectedSupplyId,
-  };
-}
-
-function isDirectOwnerPrivateStatus(status: string | undefined) {
-  return (
-    status === "open" ||
-    status === "funded" ||
-    status === "in_progress" ||
-    status === "waiting_for_owner"
-  );
+  return evaluateOwnerPrivateDirectWorkerGates({
+    request: input.request,
+    suppliedSupplyId: input.supply?.id,
+    workerKey: template.workerKey,
+  });
 }
 
 function hasVideoGenerationSignal(input: BorealAgentPrepareApplicationInput) {

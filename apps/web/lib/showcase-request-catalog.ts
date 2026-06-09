@@ -1026,6 +1026,10 @@ export function getHomeBetaWorkerReadinessLabel(
 
   const readiness = card.workerReadiness;
 
+  if (readiness.summary.ownerPrivateDirectCanPrepareCount > 0) {
+    return "direct fulfillment ready";
+  }
+
   if (
     readiness.summary.agentSupportExplicit &&
     readiness.summary.agentCanPrepareCount > 0
@@ -1062,6 +1066,10 @@ export function getHomeBetaWorkerReadinessDetail(
   const readyAgent = card.workerReadiness.agentLanes.find(
     (lane) => lane.readiness === "can_prepare",
   );
+
+  if (readyAgent?.ownerPrivateDirect?.allowed) {
+    return `${readyAgent.displayName} can prepare an owner-private direct Fulfillment packet for selected Supply ${readyAgent.ownerPrivateDirect.selectedSupplyId}; preflight and the fulfillment route still re-check before any write.`;
+  }
 
   if (readyAgent) {
     const plannerSignal = readyAgent.plannerCandidate?.matchedSignals[0];

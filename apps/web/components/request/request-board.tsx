@@ -434,6 +434,20 @@ function RequestBoardWorkerHints({
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5 text-[10px] text-muted-foreground/75">
               <span>{hint.actionLabel}</span>
+              {hint.proposedObject ? (
+                <>
+                  <span aria-hidden="true">/</span>
+                  <span>{hint.proposedObject}</span>
+                </>
+              ) : null}
+              {hint.ownerPrivateDirect?.allowed ? (
+                <>
+                  <span aria-hidden="true">/</span>
+                  <span>
+                    {hint.ownerPrivateDirect.requiredPreflightActionId} preflight
+                  </span>
+                </>
+              ) : null}
               <span aria-hidden="true">/</span>
               <span>{hint.apiRoute}</span>
             </div>
@@ -519,6 +533,10 @@ function getHumanHintBadgeClassName(
 }
 
 function getWorkerReadinessSummaryLabel(readiness: RequestWorkerReadiness) {
+  if (readiness.summary.ownerPrivateDirectCanPrepareCount > 0) {
+    return "direct fulfillment ready";
+  }
+
   if (
     readiness.summary.agentSupportExplicit &&
     readiness.summary.agentCanPrepareCount > 0

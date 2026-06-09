@@ -383,6 +383,7 @@ const miraVideoBoardHint = videoBoardHints.find(
 assert.ok(miraVideoBoardHint);
 assert.equal(miraVideoBoardHint.readiness, "can_prepare");
 assert.equal(miraVideoBoardHint.proposedObject, "Commitment");
+assert.equal(miraVideoBoardHint.ownerPrivateDirect, null);
 assert.deepEqual(miraVideoBoardHint.proposedWritesIfAuthorized, [
   "Commitment",
   "RequestEvent",
@@ -406,9 +407,107 @@ const videoWorkerReadiness = buildRequestWorkerReadiness(boardVideoRequest);
 assert.equal(videoWorkerReadiness.listingMode, "read_only_no_assignment");
 assert.equal(videoWorkerReadiness.humanLane.state, "not_requested");
 assert.equal(videoWorkerReadiness.summary.agentCanPrepareCount, 1);
+assert.equal(videoWorkerReadiness.summary.ownerPrivateDirectCanPrepareCount, 0);
+assert.equal(videoWorkerReadiness.summary.ownerPrivateDirectSelectedSupplyId, null);
 assert.equal(videoWorkerReadiness.summary.shouldWakeAgents, true);
 assert.ok(
   videoWorkerReadiness.nonAuthority.includes("no_commitment_created")
+);
+
+const privateDirectBoardHints = buildNamedAgentBoardReadiness({
+  ...boardVideoRequest,
+  id: "req-board-owner-private-direct-001",
+  status: "funded",
+  visibility: "private",
+  routing: {
+    preferredSupplyId: "11111111-1111-4111-8111-111111111111",
+  },
+  ownerApproval: {
+    trustedWorkerAutoApproval: true,
+    allowedWorkerKeys: ["video-generation"],
+    selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+  },
+});
+const privateDirectMiraBoardHint = privateDirectBoardHints.find(
+  (hint) => hint.agentKey === "mira-video"
+);
+assert.ok(privateDirectMiraBoardHint);
+assert.equal(privateDirectMiraBoardHint.readiness, "can_prepare");
+assert.equal(privateDirectMiraBoardHint.proposedObject, "Fulfillment");
+assert.deepEqual(privateDirectMiraBoardHint.proposedWritesIfAuthorized, [
+  "Fulfillment",
+  "FulfillmentStep",
+  "RequestEvent",
+]);
+assert.equal(privateDirectMiraBoardHint.ownerPrivateDirect?.allowed, true);
+assert.equal(
+  privateDirectMiraBoardHint.ownerPrivateDirect?.requiredPreflightActionId,
+  "create_owner_private_fulfillment"
+);
+assert.equal(
+  privateDirectMiraBoardHint.ownerPrivateDirect?.selectedSupplyId,
+  "11111111-1111-4111-8111-111111111111"
+);
+assert.ok(
+  privateDirectMiraBoardHint.ownerPrivateDirect?.nonAuthority.includes(
+    "fulfillment_route_must_recheck_owner_policy_supply_and_idempotency"
+  )
+);
+const privateDirectTalaBoardHint = privateDirectBoardHints.find(
+  (hint) => hint.agentKey === "tala-humanizer"
+);
+assert.ok(privateDirectTalaBoardHint);
+assert.equal(privateDirectTalaBoardHint.readiness, "skip");
+assert.ok(
+  privateDirectTalaBoardHint.ownerPrivateDirect?.rejectedBy.includes(
+    "worker_not_owner_auto_approved"
+  )
+);
+
+const privateDirectWorkerReadiness = buildRequestWorkerReadiness({
+  ...boardVideoRequest,
+  id: "req-worker-owner-private-direct-001",
+  status: "funded",
+  visibility: "private",
+  routing: {
+    preferredSupplyId: "11111111-1111-4111-8111-111111111111",
+  },
+  ownerApproval: {
+    trustedWorkerAutoApproval: true,
+    allowedWorkerKeys: ["video-generation"],
+    selectedSupplyId: "11111111-1111-4111-8111-111111111111",
+  },
+});
+assert.equal(
+  privateDirectWorkerReadiness.summary.ownerPrivateDirectCanPrepareCount,
+  1
+);
+assert.equal(
+  privateDirectWorkerReadiness.summary.ownerPrivateDirectSelectedSupplyId,
+  "11111111-1111-4111-8111-111111111111"
+);
+
+const privateMissingApprovalBoardHints = buildNamedAgentBoardReadiness({
+  ...boardVideoRequest,
+  id: "req-board-private-missing-auto-approval-001",
+  visibility: "private",
+  routing: {
+    preferredSupplyId: "11111111-1111-4111-8111-111111111111",
+  },
+});
+const privateMissingApprovalMiraBoardHint =
+  privateMissingApprovalBoardHints.find((hint) => hint.agentKey === "mira-video");
+assert.ok(privateMissingApprovalMiraBoardHint);
+assert.equal(privateMissingApprovalMiraBoardHint.readiness, "skip");
+assert.equal(privateMissingApprovalMiraBoardHint.proposedObject, null);
+assert.ok(
+  privateMissingApprovalMiraBoardHint.ownerPrivateDirect?.rejectedBy.includes(
+    "owner_auto_approval_not_enabled"
+  )
+);
+assert.match(
+  privateMissingApprovalMiraBoardHint.reason,
+  /Owner-private direct worker readiness/
 );
 
 const humanBoardHints = buildNamedAgentBoardReadiness({

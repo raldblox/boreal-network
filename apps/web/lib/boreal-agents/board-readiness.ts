@@ -3,6 +3,10 @@ import {
   type BorealAgentTemplate,
   listBorealAgentTemplates,
 } from "./registry";
+import {
+  evaluateOwnerPrivateDirectWorkerGates,
+  type OwnerPrivateDirectWorkerGateResult,
+} from "./owner-private-direct";
 import { requiresHumanOrLocalWorker } from "./request-qualification";
 
 export type NamedAgentBoardReadinessState =
@@ -13,6 +17,7 @@ export type NamedAgentBoardReadinessState =
 export type NamedAgentBoardRequest = {
   id: string;
   status: string;
+  visibility?: "public" | "private" | string | null;
   brief: {
     title?: string | null;
     summary?: string | null;
@@ -37,6 +42,14 @@ export type NamedAgentBoardRequest = {
       skipReasons?: readonly string[] | null;
       namedAgentCandidates?: readonly NamedAgentPlannerCandidate[] | null;
     } | null;
+  } | null;
+  routing?: {
+    preferredSupplyId?: string | null;
+  } | null;
+  ownerApproval?: {
+    trustedWorkerAutoApproval?: boolean | null;
+    allowedWorkerKeys?: readonly string[] | null;
+    selectedSupplyId?: string | null;
   } | null;
 };
 
@@ -63,8 +76,19 @@ export type NamedAgentBoardReadiness = {
   reason: string;
   actionLabel: string;
   plannerCandidate: NamedAgentPlannerCandidate | null;
+  ownerPrivateDirect: NamedAgentOwnerPrivateDirectReadiness | null;
   proposedObject: "Commitment" | "Fulfillment" | null;
   proposedWritesIfAuthorized: string[];
+  nonAuthority: string[];
+};
+
+export type NamedAgentOwnerPrivateDirectReadiness = {
+  allowed: boolean;
+  selectedSupplyId: string | null;
+  rejectedBy: string[];
+  requiredPreflightActionId: "create_owner_private_fulfillment";
+  routePolicyRecheckRequired: true;
+  proposedObject: "Fulfillment" | null;
   nonAuthority: string[];
 };
 
@@ -74,6 +98,13 @@ const boardNonAuthority = [
   "no_fulfillment_started",
   "no_provider_call",
   "no_request_event_written",
+];
+
+const ownerPrivateDirectNonAuthority = [
+  "owner_private_direct_hint_is_not_approval",
+  "selected_supply_not_verified_here",
+  "preflight_required_before_mutation",
+  "fulfillment_route_must_recheck_owner_policy_supply_and_idempotency",
 ];
 
 const videoTextSignals = [
@@ -115,6 +146,11 @@ function buildTemplateBoardReadiness({
   request: NamedAgentBoardRequest;
   template: BorealAgentTemplate;
 }): NamedAgentBoardReadiness {
+  const ownerPrivateDirect = buildOwnerPrivateDirectReadiness({
+    request,
+    template,
+  });
+
   if (template.status === "target_template") {
     const blockers = template.promotionGates.openBlockers;
     return boardHint({
@@ -124,16 +160,30 @@ function buildTemplateBoardReadiness({
           ? `Target-only: ${blockers[0]}.`
           : "Target-only until this worker supply and proof path are live.",
       actionLabel: "Target only",
+      ownerPrivateDirect,
       request,
       template,
     });
   }
 
-  if (request.status !== "open") {
+  if (isPrivateRequest(request) && !ownerPrivateDirect?.allowed) {
+    return boardHint({
+      readiness: "skip",
+      reason:
+        "Owner-private direct worker readiness requires selected Supply, trusted auto-approval, eligible status, and matching worker gates.",
+      actionLabel: "Fix owner approval gates",
+      ownerPrivateDirect,
+      request,
+      template,
+    });
+  }
+
+  if (request.status !== "open" && !ownerPrivateDirect?.allowed) {
     return boardHint({
       readiness: "skip",
       reason: "Request is not open, so public scanning should not wake an agent.",
       actionLabel: "Skip request",
+      ownerPrivateDirect,
       request,
       template,
     });
@@ -151,6 +201,7 @@ function buildTemplateBoardReadiness({
     readiness: "skip",
     reason: "No public-board readiness rule is registered for this live template.",
     actionLabel: "Skip request",
+    ownerPrivateDirect,
     request,
     template,
   });
@@ -163,12 +214,18 @@ function buildMiraBoardReadiness({
   request: NamedAgentBoardRequest;
   template: BorealAgentTemplate;
 }) {
+  const ownerPrivateDirect = buildOwnerPrivateDirectReadiness({
+    request,
+    template,
+  });
+
   if (hasHumanOrLocalSignal(request) && !hasPlannerAgentSupport(request)) {
     return boardHint({
       readiness: "skip",
       reason:
         "Public projection points to human-led or local-access execution; provider-only agents must skip.",
       actionLabel: "Skip request",
+      ownerPrivateDirect,
       request,
       template,
     });
@@ -180,6 +237,7 @@ function buildMiraBoardReadiness({
       reason:
         "Planner worker eligibility does not wake named agents for this request.",
       actionLabel: "Skip request",
+      ownerPrivateDirect,
       request,
       template,
     });
@@ -190,6 +248,7 @@ function buildMiraBoardReadiness({
       readiness: "skip",
       reason: "No public video-generation signal is present for this agent.",
       actionLabel: "Skip request",
+      ownerPrivateDirect,
       request,
       template,
     });
@@ -197,13 +256,19 @@ function buildMiraBoardReadiness({
 
   return boardHint({
     readiness: "can_prepare",
-    reason:
-      "Mira can prepare a governed application packet; the target route still owns auth and idempotency.",
-    actionLabel: "Prepare application packet",
+    reason: ownerPrivateDirect?.allowed
+      ? "Mira can prepare an owner-private direct Fulfillment packet; preflight and the fulfillment route still own approval, supply, and idempotency checks."
+      : "Mira can prepare a governed application packet; the target route still owns auth and idempotency.",
+    actionLabel: ownerPrivateDirect?.allowed
+      ? "Prepare direct fulfillment packet"
+      : "Prepare application packet",
+    ownerPrivateDirect,
     request,
     template,
-    proposedObject: "Commitment",
-    proposedWritesIfAuthorized: ["Commitment", "RequestEvent"],
+    proposedObject: ownerPrivateDirect?.allowed ? "Fulfillment" : "Commitment",
+    proposedWritesIfAuthorized: ownerPrivateDirect?.allowed
+      ? ["Fulfillment", "FulfillmentStep", "RequestEvent"]
+      : ["Commitment", "RequestEvent"],
   });
 }
 
@@ -214,12 +279,18 @@ function buildTalaBoardReadiness({
   request: NamedAgentBoardRequest;
   template: BorealAgentTemplate;
 }) {
+  const ownerPrivateDirect = buildOwnerPrivateDirectReadiness({
+    request,
+    template,
+  });
+
   if (hasHumanOrLocalSignal(request) && !hasPlannerAgentSupport(request)) {
     return boardHint({
       readiness: "skip",
       reason:
         "Public projection points to human-led or local-access execution; the humanizer worker must skip.",
       actionLabel: "Skip request",
+      ownerPrivateDirect,
       request,
       template,
     });
@@ -231,6 +302,7 @@ function buildTalaBoardReadiness({
       reason:
         "Planner worker eligibility does not wake named agents for this request.",
       actionLabel: "Skip request",
+      ownerPrivateDirect,
       request,
       template,
     });
@@ -242,6 +314,7 @@ function buildTalaBoardReadiness({
       reason:
         "Request points to media generation; the humanizer worker should not wake.",
       actionLabel: "Skip request",
+      ownerPrivateDirect,
       request,
       template,
     });
@@ -252,6 +325,7 @@ function buildTalaBoardReadiness({
       readiness: "skip",
       reason: "No public text-polish or documentation-support signal is present for this agent.",
       actionLabel: "Skip request",
+      ownerPrivateDirect,
       request,
       template,
     });
@@ -259,13 +333,19 @@ function buildTalaBoardReadiness({
 
   return boardHint({
     readiness: "can_prepare",
-    reason:
-      "Tala can prepare a governed text-polish application packet; the mutation route still owns auth and idempotency.",
-    actionLabel: "Prepare application packet",
+    reason: ownerPrivateDirect?.allowed
+      ? "Tala can prepare an owner-private direct Fulfillment packet; preflight and the fulfillment route still own approval, supply, and idempotency checks."
+      : "Tala can prepare a governed text-polish application packet; the mutation route still owns auth and idempotency.",
+    actionLabel: ownerPrivateDirect?.allowed
+      ? "Prepare direct fulfillment packet"
+      : "Prepare application packet",
+    ownerPrivateDirect,
     request,
     template,
-    proposedObject: "Commitment",
-    proposedWritesIfAuthorized: ["Commitment", "RequestEvent"],
+    proposedObject: ownerPrivateDirect?.allowed ? "Fulfillment" : "Commitment",
+    proposedWritesIfAuthorized: ownerPrivateDirect?.allowed
+      ? ["Fulfillment", "FulfillmentStep", "RequestEvent"]
+      : ["Commitment", "RequestEvent"],
   });
 }
 
@@ -273,6 +353,7 @@ function boardHint({
   actionLabel,
   proposedObject = null,
   proposedWritesIfAuthorized = [],
+  ownerPrivateDirect = null,
   readiness,
   reason,
   request,
@@ -281,6 +362,7 @@ function boardHint({
   actionLabel: string;
   proposedObject?: "Commitment" | "Fulfillment" | null;
   proposedWritesIfAuthorized?: string[];
+  ownerPrivateDirect?: NamedAgentOwnerPrivateDirectReadiness | null;
   readiness: NamedAgentBoardReadinessState;
   reason: string;
   request: NamedAgentBoardRequest;
@@ -299,10 +381,48 @@ function boardHint({
     reason,
     actionLabel,
     plannerCandidate: getPlannerCandidate(request, template.agentKey),
+    ownerPrivateDirect,
     proposedObject,
     proposedWritesIfAuthorized,
     nonAuthority: [...boardNonAuthority],
   };
+}
+
+function buildOwnerPrivateDirectReadiness({
+  request,
+  template,
+}: {
+  request: NamedAgentBoardRequest;
+  template: BorealAgentTemplate;
+}): NamedAgentOwnerPrivateDirectReadiness | null {
+  if (!isPrivateRequest(request)) {
+    return null;
+  }
+
+  return toOwnerPrivateDirectReadiness(
+    evaluateOwnerPrivateDirectWorkerGates({
+      request,
+      workerKey: template.workerKey,
+    }),
+  );
+}
+
+function toOwnerPrivateDirectReadiness(
+  result: OwnerPrivateDirectWorkerGateResult,
+): NamedAgentOwnerPrivateDirectReadiness {
+  return {
+    allowed: result.allowed,
+    selectedSupplyId: result.selectedSupplyId,
+    rejectedBy: [...result.rejectedBy],
+    requiredPreflightActionId: "create_owner_private_fulfillment",
+    routePolicyRecheckRequired: true,
+    proposedObject: result.allowed ? "Fulfillment" : null,
+    nonAuthority: [...ownerPrivateDirectNonAuthority],
+  };
+}
+
+function isPrivateRequest(request: NamedAgentBoardRequest) {
+  return request.visibility === "private";
 }
 
 function getPlannerCandidate(

@@ -49,6 +49,8 @@ export type RequestWorkerReadiness = {
     agentSupportExplicit: boolean;
     humanActionable: boolean;
     humanRequired: boolean;
+    ownerPrivateDirectCanPrepareCount: number;
+    ownerPrivateDirectSelectedSupplyId: string | null;
     shouldWakeAgents: boolean;
     workerEligibilityPolicy: string | null;
   };
@@ -73,6 +75,10 @@ export function buildRequestWorkerReadiness(
   const agentCanPrepareCount = agentLanes.filter(
     (lane) => lane.readiness === "can_prepare"
   ).length;
+  const ownerPrivateDirectCanPrepareLanes = agentLanes.filter(
+    (lane) =>
+      lane.readiness === "can_prepare" && lane.ownerPrivateDirect?.allowed
+  );
   const humanRequired = humanLane.state === "human_required";
   const plannerAllowsAgentSupport =
     request.derived?.workerEligibility?.policy === "human_first_agent_support" &&
@@ -90,6 +96,10 @@ export function buildRequestWorkerReadiness(
       humanActionable:
         humanLane.state === "can_review" || humanLane.state === "human_required",
       humanRequired,
+      ownerPrivateDirectCanPrepareCount: ownerPrivateDirectCanPrepareLanes.length,
+      ownerPrivateDirectSelectedSupplyId:
+        ownerPrivateDirectCanPrepareLanes[0]?.ownerPrivateDirect
+          ?.selectedSupplyId ?? null,
       shouldWakeAgents:
         (!humanRequired || plannerAllowsAgentSupport) &&
         agentCanPrepareCount > 0,
