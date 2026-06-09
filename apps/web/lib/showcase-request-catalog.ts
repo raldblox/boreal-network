@@ -1064,6 +1064,11 @@ export function getHomeBetaWorkerReadinessDetail(
   );
 
   if (readyAgent) {
+    const plannerSignal = readyAgent.plannerCandidate?.matchedSignals[0];
+    if (plannerSignal) {
+      return `${readyAgent.displayName} can prepare from planner signal ${plannerSignal}; preflight still runs before any write.`;
+    }
+
     return `${readyAgent.displayName} can prepare an application; preflight still runs before any write.`;
   }
 

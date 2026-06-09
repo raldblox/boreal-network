@@ -35,8 +35,19 @@ export type NamedAgentBoardRequest = {
       skipProviderOnlyAgents?: boolean;
       wakeSignals?: readonly string[] | null;
       skipReasons?: readonly string[] | null;
+      namedAgentCandidates?: readonly NamedAgentPlannerCandidate[] | null;
     } | null;
   } | null;
+};
+
+export type NamedAgentPlannerCandidate = {
+  agentKey: string;
+  readiness: NamedAgentBoardReadinessState;
+  suggestedNextAction: string;
+  reason: string;
+  matchedSignals: readonly string[];
+  skipReasons: readonly string[];
+  nonAuthority: readonly string[];
 };
 
 export type NamedAgentBoardReadiness = {
@@ -51,6 +62,7 @@ export type NamedAgentBoardReadiness = {
   readiness: NamedAgentBoardReadinessState;
   reason: string;
   actionLabel: string;
+  plannerCandidate: NamedAgentPlannerCandidate | null;
   proposedObject: "Commitment" | "Fulfillment" | null;
   proposedWritesIfAuthorized: string[];
   nonAuthority: string[];
@@ -263,6 +275,7 @@ function boardHint({
   proposedWritesIfAuthorized = [],
   readiness,
   reason,
+  request,
   template,
 }: {
   actionLabel: string;
@@ -285,10 +298,22 @@ function boardHint({
     readiness,
     reason,
     actionLabel,
+    plannerCandidate: getPlannerCandidate(request, template.agentKey),
     proposedObject,
     proposedWritesIfAuthorized,
     nonAuthority: [...boardNonAuthority],
   };
+}
+
+function getPlannerCandidate(
+  request: NamedAgentBoardRequest,
+  agentKey: string,
+) {
+  return (
+    request.derived?.workerEligibility?.namedAgentCandidates?.find(
+      (candidate) => candidate.agentKey === agentKey,
+    ) ?? null
+  );
 }
 
 function hasHumanizerSignal(request: NamedAgentBoardRequest) {

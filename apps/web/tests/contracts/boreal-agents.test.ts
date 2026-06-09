@@ -510,6 +510,27 @@ const humanAgentSupportWorkerReadiness = buildRequestWorkerReadiness({
       skipProviderOnlyAgents: false,
       wakeSignals: ["actor:agent", "supply:video_generation", "output:video"],
       skipReasons: [],
+      namedAgentCandidates: [
+        {
+          agentKey: "mira-video",
+          readiness: "can_prepare",
+          suggestedNextAction: "prepare_application",
+          reason:
+            "Planner fingerprints identify this named agent as a preparation candidate.",
+          matchedSignals: ["supply:video_generation", "output:video"],
+          skipReasons: [],
+          nonAuthority: ["not_matching_or_assignment"],
+        },
+        {
+          agentKey: "tala-humanizer",
+          readiness: "skip",
+          suggestedNextAction: "skip_request",
+          reason: "Request points to media generation.",
+          matchedSignals: ["output:handoff_doc"],
+          skipReasons: ["provider_media_generation_request"],
+          nonAuthority: ["not_matching_or_assignment"],
+        },
+      ],
     },
   },
 });
@@ -527,6 +548,25 @@ assert.equal(humanAgentSupportWorkerReadiness.summary.shouldWakeAgents, true);
 assert.equal(
   humanAgentSupportWorkerReadiness.summary.workerEligibilityPolicy,
   "human_first_agent_support"
+);
+const humanAgentSupportMiraLane =
+  humanAgentSupportWorkerReadiness.agentLanes.find(
+    (lane) => lane.agentKey === "mira-video"
+  );
+assert.equal(
+  humanAgentSupportMiraLane?.plannerCandidate?.suggestedNextAction,
+  "prepare_application"
+);
+assert.ok(
+  humanAgentSupportMiraLane?.plannerCandidate?.matchedSignals.includes(
+    "supply:video_generation"
+  )
+);
+assert.equal(
+  humanAgentSupportWorkerReadiness.agentLanes.find(
+    (lane) => lane.agentKey === "tala-humanizer"
+  )?.plannerCandidate?.readiness,
+  "skip"
 );
 
 const fieldProofWorkerReadiness = buildRequestWorkerReadiness({
