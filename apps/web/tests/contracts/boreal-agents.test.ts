@@ -1211,6 +1211,18 @@ async function main() {
                 skipProviderOnlyAgents: false,
                 wakeSignals: ["supply:video_generation", "output:video"],
                 skipReasons: [],
+                namedAgentCandidates: [
+                  {
+                    agentKey: "mira-video",
+                    readiness: "can_prepare",
+                    suggestedNextAction: "prepare_application",
+                    reason:
+                      "Planner fingerprints identify Mira as a preparation candidate.",
+                    matchedSignals: ["supply:video_generation", "output:video"],
+                    skipReasons: [],
+                    nonAuthority: ["not_matching_or_assignment"],
+                  },
+                ],
               },
             },
             agentActionAffordances: {
@@ -1281,6 +1293,18 @@ async function main() {
                 skipProviderOnlyAgents: true,
                 wakeSignals: [],
                 skipReasons: ["no_agent_qualification_signal"],
+                namedAgentCandidates: [
+                  {
+                    agentKey: "mira-video",
+                    readiness: "skip",
+                    suggestedNextAction: "skip_request",
+                    reason:
+                      "Planner found no named-agent-compatible signal for Mira.",
+                    matchedSignals: [],
+                    skipReasons: ["no_agent_qualification_signal"],
+                    nonAuthority: ["not_matching_or_assignment"],
+                  },
+                ],
               },
             },
             agentActionAffordances: {
@@ -1351,6 +1375,10 @@ async function main() {
   assert.equal(publicOpenRequestScan.scan.wakeCount, 2);
   assert.equal(publicOpenRequestScan.scan.skipCount, 2);
   assert.equal(publicOpenRequestScan.candidates[0].allowedToWake, true);
+  assert.equal(
+    publicOpenRequestScan.candidates[0].plannerCandidate?.readiness,
+    "can_prepare"
+  );
   assert.ok(publicOpenRequestScan.candidates[0].applicationPacket);
   const publicOpenRequestPacket =
     publicOpenRequestScan.candidates[0].applicationPacket;
@@ -1366,6 +1394,16 @@ async function main() {
     )
   );
   assert.equal(publicOpenRequestScan.candidates[2].allowedToWake, false);
+  assert.equal(publicOpenRequestScan.candidates[2].applicationPacket, null);
+  assert.equal(
+    publicOpenRequestScan.candidates[2].plannerCandidate?.readiness,
+    "skip"
+  );
+  assert.ok(
+    publicOpenRequestScan.candidates[2].rejectedBy.includes(
+      "planner_named_agent_candidate_skip"
+    )
+  );
   assert.ok(
     publicOpenRequestScan.candidates[2].rejectedBy.includes(
       "planner_worker_eligibility_no_agent_signal"

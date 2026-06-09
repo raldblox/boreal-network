@@ -511,6 +511,8 @@ components:
               $ref: "#/components/schemas/RequestQualificationEmbodiedConstraintSet"
             verificationPlan:
               $ref: "#/components/schemas/RequestQualificationVerificationPlan"
+            workerEligibility:
+              $ref: "#/components/schemas/RequestWorkerEligibilityHint"
         routing:
           type: object
           additionalProperties: true
@@ -535,6 +537,59 @@ components:
                 - "null"
         constraints:
           $ref: "#/components/schemas/RequestQualificationConstraints"
+    RequestWorkerEligibilityHint:
+      type: object
+      additionalProperties: true
+      properties:
+        policy:
+          type: string
+        humanRequired:
+          type: boolean
+        shouldWakeAgents:
+          type: boolean
+        skipProviderOnlyAgents:
+          type: boolean
+        wakeSignals:
+          type: array
+          items:
+            type: string
+        skipReasons:
+          type: array
+          items:
+            type: string
+        namedAgentCandidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/RequestNamedAgentCandidateHint"
+    RequestNamedAgentCandidateHint:
+      type: object
+      additionalProperties: true
+      required:
+        - agentKey
+      properties:
+        agentKey:
+          type: string
+        readiness:
+          enum:
+            - can_prepare
+            - skip
+            - target_only
+        suggestedNextAction:
+          type: string
+        reason:
+          type: string
+        matchedSignals:
+          type: array
+          items:
+            type: string
+        skipReasons:
+          type: array
+          items:
+            type: string
+        nonAuthority:
+          type: array
+          items:
+            type: string
     RequestQualificationConstraints:
       type: object
       additionalProperties: true
@@ -807,6 +862,10 @@ components:
               applicationPacket:
                 oneOf:
                   - $ref: "#/components/schemas/ApplicationPacket"
+                  - type: "null"
+              plannerCandidate:
+                oneOf:
+                  - $ref: "#/components/schemas/RequestNamedAgentCandidateHint"
                   - type: "null"
         publicRequestSource:
           type: object

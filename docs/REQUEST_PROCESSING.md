@@ -230,6 +230,7 @@ In-house Boreal agents and humans follow the same worker-application rule:
 - allow bounded `scan_public_open_requests` reads over live public open-request projections, returning only wake or skip guidance and preparation packets
 - respect `Request.derived.workerEligibility` when present, so human-required, raw, or no-agent-signal plans can skip provider-only or named-agent wake before spending inference unless the planner marks an explicit supporting agent role
 - read `Request.derived.workerEligibility.namedAgentCandidates` as planner-owned per-agent skip or preparation hints for in-house named agents such as Mira and Tala before spending scanner inference, without treating those hints as matching, assignment, approval, or write authority
+- short-circuit named-agent scans before preparation when the per-agent planner candidate is `skip` or `target_only`, preserving planner rejection reasons and a null application packet
 - treat output kinds as supporting evidence, not standalone wake authority; planner wake requires an agent actor kind, agent-capable supply kind, agent execution kind, or agent role-slot signal before named agents should spend inference
 - render open-request listing readiness as one read-only human lane plus named-agent wake, skip, and target-only hints, never as worker assignment or route authorization
 - show public-board scan hints only from already-loaded public-safe projection fields, with wake, skip, and target-only labels treated as UX guidance rather than worker activation

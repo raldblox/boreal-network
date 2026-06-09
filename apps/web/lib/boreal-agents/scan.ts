@@ -59,6 +59,45 @@ export function scanBorealAgentRequestCandidates({
   template: BorealAgentTemplate;
 }) {
   const candidates = input.requests.map((request, index) => {
+    const plannerCandidate = getPlannerCandidateHint({
+      agentKey: template.agentKey,
+      request,
+    });
+
+    if (
+      plannerCandidate?.readiness &&
+      plannerCandidate.readiness !== "can_prepare"
+    ) {
+      const rejectedBy = [
+        `planner_named_agent_candidate_${plannerCandidate.readiness}`,
+        ...(plannerCandidate.skipReasons ?? []),
+      ];
+      const policy = request.derived?.workerEligibility?.policy;
+      if (policy) {
+        rejectedBy.push(`planner_worker_eligibility_${policy}`);
+      }
+
+      return {
+        scanOrder: index + 1,
+        request: {
+          id: request.id,
+          visibility: request.visibility,
+          status: request.status ?? null,
+        },
+        allowedToWake: false,
+        recommendedLane: "do_not_wake",
+        reasons: [
+          "planner_named_agent_candidate_short_circuit",
+          plannerCandidate.reason ??
+            "Planner named-agent candidate hint says this agent should not wake.",
+        ],
+        rejectedBy: Array.from(new Set(rejectedBy)),
+        proposedCanonicalWritesIfAuthorized: [],
+        applicationPacket: null,
+        plannerCandidate,
+      };
+    }
+
     const prepared = prepareBorealAgentApplication({
       input: {
         action: "prepare_application",
@@ -82,6 +121,7 @@ export function scanBorealAgentRequestCandidates({
       applicationPacket: prepared.qualification.allowedToWake
         ? prepared.applicationPacket
         : null,
+      plannerCandidate,
     };
   });
 
@@ -129,6 +169,20 @@ export function scanBorealAgentRequestCandidates({
       requiresSeparateAuthorizedMutation: true,
     },
   };
+}
+
+function getPlannerCandidateHint({
+  agentKey,
+  request,
+}: {
+  agentKey: string;
+  request: BorealAgentScanCandidatesInput["requests"][number];
+}) {
+  return (
+    request.derived?.workerEligibility?.namedAgentCandidates?.find(
+      (candidate: { agentKey?: string }) => candidate.agentKey === agentKey,
+    ) ?? null
+  );
 }
 
 export function publicRequestPoolEntryToBorealAgentRequestSummary(

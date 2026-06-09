@@ -67,6 +67,23 @@ const derivedSchema = z
         skipProviderOnlyAgents: z.boolean().optional(),
         wakeSignals: z.array(z.string()).optional(),
         skipReasons: z.array(z.string()).optional(),
+        namedAgentCandidates: z
+          .array(
+            z
+              .object({
+                agentKey: z.string(),
+                readiness: z
+                  .enum(["can_prepare", "skip", "target_only"])
+                  .optional(),
+                suggestedNextAction: z.string().optional(),
+                reason: z.string().optional(),
+                matchedSignals: z.array(z.string()).optional(),
+                skipReasons: z.array(z.string()).optional(),
+                nonAuthority: z.array(z.string()).optional(),
+              })
+              .passthrough(),
+          )
+          .optional(),
       })
       .passthrough()
       .optional(),
