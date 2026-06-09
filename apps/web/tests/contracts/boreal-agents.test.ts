@@ -947,6 +947,64 @@ async function main() {
   assert.deepEqual(publicPrepare.scanner.canonicalWrites, []);
   assert.equal(publicPrepare.nonAuthority.canCreateCommitment, false);
 
+  const directPlannerSkipPrepare = prepareBorealAgentApplication({
+    input: {
+      ...videoPrepareInput,
+      request: {
+        ...videoPrepareInput.request,
+        id: "req-video-planner-skips-mira",
+        derived: {
+          ...videoPrepareInput.request.derived,
+          workerEligibility: {
+            policy: "wake_named_agents",
+            humanRequired: false,
+            shouldWakeAgents: true,
+            skipProviderOnlyAgents: false,
+            wakeSignals: ["supply:video_generation", "output:video"],
+            skipReasons: [],
+            namedAgentCandidates: [
+              {
+                agentKey: "mira-video",
+                readiness: "skip",
+                suggestedNextAction: "skip_request",
+                reason:
+                  "Planner assigned this request to a different named agent.",
+                matchedSignals: ["supply:video_generation", "output:video"],
+                skipReasons: ["planner_selected_different_named_agent"],
+                nonAuthority: ["not_matching_or_assignment"],
+              },
+            ],
+          },
+        },
+      },
+    },
+    template: mira!,
+  });
+  assert.equal(directPlannerSkipPrepare.qualification.allowedToWake, false);
+  assert.ok(
+    directPlannerSkipPrepare.qualification.rejectedBy.includes(
+      "planner_named_agent_candidate_skip"
+    )
+  );
+  assert.ok(
+    directPlannerSkipPrepare.qualification.rejectedBy.includes(
+      "planner_selected_different_named_agent"
+    )
+  );
+  assert.equal(
+    directPlannerSkipPrepare.applicationPacket.packetStatus,
+    "blocked_until_qualified"
+  );
+  assert.equal(
+    directPlannerSkipPrepare.applicationPacket.submissionPreflight,
+    null
+  );
+  assert.equal(directPlannerSkipPrepare.applicationPacket.mutationCall, null);
+  assert.deepEqual(
+    directPlannerSkipPrepare.applicationPacket.proposedCanonicalWrites,
+    []
+  );
+
   const publicHumanizerPrepareResponse = await POST(
     jsonRequest(humanizerPrepareInput),
     routeContext("tala-humanizer")

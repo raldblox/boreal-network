@@ -250,11 +250,26 @@ function evaluateQualification({
     template,
   });
   const workerEligibility = input.request.derived?.workerEligibility;
+  const plannerCandidate = workerEligibility?.namedAgentCandidates?.find(
+    (candidate) => candidate.agentKey === template.agentKey,
+  );
   const plannerAllowsAgentSupport =
     workerEligibility?.humanRequired === true &&
     workerEligibility.shouldWakeAgents === true;
   reasons.push(...supplyBinding.reasons);
   rejectedBy.push(...supplyBinding.rejectedBy);
+
+  if (plannerCandidate?.readiness === "can_prepare") {
+    reasons.push("planner_named_agent_candidate_can_prepare");
+  } else if (plannerCandidate?.readiness) {
+    rejectedBy.push(
+      `planner_named_agent_candidate_${plannerCandidate.readiness}`,
+    );
+    rejectedBy.push(...(plannerCandidate.skipReasons ?? []));
+    if (plannerCandidate.reason) {
+      reasons.push(plannerCandidate.reason);
+    }
+  }
 
   if (template.status !== "live_template") {
     rejectedBy.push("target_template_not_live");
@@ -298,17 +313,22 @@ function evaluateQualification({
     }
   }
 
-  const allowedToWake = rejectedBy.length === 0;
+  const uniqueRejectedBy = uniqueStringArray(rejectedBy);
+  const allowedToWake = uniqueRejectedBy.length === 0;
   if (allowedToWake) {
     reasons.push("safe_to_prepare_application_without_mutation");
   }
 
   return {
     allowedToWake,
-    reasons,
-    rejectedBy,
+    reasons: uniqueStringArray(reasons),
+    rejectedBy: uniqueRejectedBy,
     ownerPrivateAutoApproval,
   };
+}
+
+function uniqueStringArray(values: string[]) {
+  return Array.from(new Set(values.filter((value) => value.length > 0)));
 }
 
 function evaluateSupplyBinding({
