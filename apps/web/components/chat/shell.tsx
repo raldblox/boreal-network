@@ -112,6 +112,7 @@ export function ChatShell() {
     openRequest,
     updateRequestDraft,
     updateRequestPreferredSupply,
+    createOwnerPrivateWorkerFulfillment,
     retryBlockedFulfillment,
     createRoleplayDelivery,
     resolveDeliveredFulfillment,
@@ -134,6 +135,10 @@ export function ChatShell() {
     useState(false);
   const [isRetryingBlockedFulfillment, setIsRetryingBlockedFulfillment] =
     useState(false);
+  const [
+    isCreatingOwnerPrivateWorkerFulfillment,
+    setIsCreatingOwnerPrivateWorkerFulfillment,
+  ] = useState(false);
   const [isCreatingRoleplayDelivery, setIsCreatingRoleplayDelivery] =
     useState(false);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
@@ -401,6 +406,40 @@ export function ChatShell() {
     }
   }, [activeRequest?.activeRefs.activeFulfillmentId, retryBlockedFulfillment]);
 
+  const handleCreateOwnerPrivateWorkerFulfillment = useCallback(
+    async (options: {
+      supplyId: string;
+      supplyLabel?: string | null;
+      workerKey: string;
+    }) => {
+      if (!activeRequest) {
+        return;
+      }
+
+      setIsCreatingOwnerPrivateWorkerFulfillment(true);
+
+      try {
+        await createOwnerPrivateWorkerFulfillment(options);
+        toast({
+          type: "success",
+          description: "Worker fulfillment lane created for owner review.",
+        });
+        setOpenedRequestView("monitor");
+      } catch (error) {
+        toast({
+          type: "error",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to create worker fulfillment.",
+        });
+      } finally {
+        setIsCreatingOwnerPrivateWorkerFulfillment(false);
+      }
+    },
+    [activeRequest, createOwnerPrivateWorkerFulfillment]
+  );
+
   const handleCreateRoleplayDelivery = useCallback(async () => {
     if (!activeRequest) {
       return;
@@ -567,9 +606,15 @@ export function ChatShell() {
                 <RequestTracker
                   activities={activities}
                   isReadonly={isReadonly}
+                  isCreatingOwnerPrivateWorkerFulfillment={
+                    isCreatingOwnerPrivateWorkerFulfillment
+                  }
                   isRetryingBlockedFulfillment={isRetryingBlockedFulfillment}
                   isResolvingDeliveredRequest={isResolvingDeliveredRequest}
                   isCreatingRoleplayDelivery={isCreatingRoleplayDelivery}
+                  onCreateOwnerPrivateWorkerFulfillment={
+                    handleCreateOwnerPrivateWorkerFulfillment
+                  }
                   onRetryBlockedFulfillment={handleRetryBlockedFulfillment}
                   onResolveDeliveredRequest={handleResolveDeliveredRequest}
                   onCreateRoleplayDelivery={handleCreateRoleplayDelivery}

@@ -39,6 +39,7 @@ import {
   isDesktopBridgeSupportedOrigin,
   tryOpenDesktopRuntimeApp,
 } from "@/lib/desktop-runtime-bridge";
+import { getOwnerPrivateWorkerFulfillmentStart } from "@/lib/owner-private-worker-fulfillment";
 import type {
   BorealRequestDraft,
   RequestActivityEntry,
@@ -74,9 +75,13 @@ type RequestTrackerProps = {
   request: BorealRequestDraft;
   activities: RequestActivityEntry[];
   isReadonly: boolean;
+  isCreatingOwnerPrivateWorkerFulfillment: boolean;
   isCreatingRoleplayDelivery: boolean;
   isRetryingBlockedFulfillment: boolean;
   isResolvingDeliveredRequest: boolean;
+  onCreateOwnerPrivateWorkerFulfillment?: (
+    options: OwnerPrivateWorkerFulfillmentOptions
+  ) => Promise<void>;
   onCreateRoleplayDelivery?: () => Promise<void>;
   onRetryBlockedFulfillment?: (options?: { quiet?: boolean }) => Promise<void>;
   onResolveDeliveredRequest?: () => Promise<void>;
@@ -89,6 +94,12 @@ type RequestTrackerProps = {
   scrollContainerRef?: RefObject<HTMLDivElement | null>;
   selectedView: WorkroomViewId;
   workObjectViewerHost?: HTMLElement | null;
+};
+
+type OwnerPrivateWorkerFulfillmentOptions = {
+  supplyId: string;
+  supplyLabel?: string | null;
+  workerKey: string;
 };
 
 type TrackerStageId =
@@ -111,9 +122,11 @@ export function RequestTracker({
   request,
   activities,
   isReadonly,
+  isCreatingOwnerPrivateWorkerFulfillment,
   isCreatingRoleplayDelivery,
   isRetryingBlockedFulfillment,
   isResolvingDeliveredRequest,
+  onCreateOwnerPrivateWorkerFulfillment,
   onCreateRoleplayDelivery,
   onRetryBlockedFulfillment,
   onResolveDeliveredRequest,
@@ -363,6 +376,14 @@ export function RequestTracker({
     : null;
   const preferredSupplySelectionValue =
     request.routing.preferredSupplyId ?? REQUEST_ROUTE_INHERIT_DEFAULT;
+  const ownerPrivateWorkerStart = getOwnerPrivateWorkerFulfillmentStart({
+    activeFulfillment,
+    hasCreateAction: typeof onCreateOwnerPrivateWorkerFulfillment === "function",
+    isReadonly,
+    isRequestOwner,
+    request,
+    supply: preferredSupply,
+  });
 
   const orderedActivities = useMemo(
     () => [...activities].sort((left, right) => left.sequence - right.sequence),
@@ -385,6 +406,8 @@ export function RequestTracker({
       request.status === "waiting_for_owner") &&
     activeFulfillment?.status !== "delivered" &&
     activeFulfillment?.status !== "accepted";
+  const canCreateOwnerPrivateWorkerFulfillment =
+    ownerPrivateWorkerStart !== null;
   const artifactActivities = useMemo(
     () => orderedActivities.filter((activity) => Boolean(activity.artifact)),
     [orderedActivities],
@@ -665,6 +688,19 @@ export function RequestTracker({
             <RoleplayDeliveryAction
               isLoading={isCreatingRoleplayDelivery}
               onCreateRoleplayDelivery={onCreateRoleplayDelivery}
+            />
+          ) : null}
+
+          {canCreateOwnerPrivateWorkerFulfillment &&
+          ownerPrivateWorkerStart ? (
+            <OwnerPrivateWorkerFulfillmentAction
+              isLoading={isCreatingOwnerPrivateWorkerFulfillment}
+              onCreateOwnerPrivateWorkerFulfillment={
+                onCreateOwnerPrivateWorkerFulfillment
+              }
+              supplyId={ownerPrivateWorkerStart.supplyId}
+              supplyLabel={ownerPrivateWorkerStart.supplyLabel}
+              workerKey={ownerPrivateWorkerStart.workerKey}
             />
           ) : null}
 
@@ -1609,6 +1645,54 @@ function RoleplayDeliveryAction({
         variant="outline"
       >
         Create mock delivery
+      </LoadingButton>
+    </div>
+  );
+}
+
+function OwnerPrivateWorkerFulfillmentAction({
+  isLoading,
+  onCreateOwnerPrivateWorkerFulfillment,
+  supplyId,
+  supplyLabel,
+  workerKey,
+}: {
+  isLoading: boolean;
+  onCreateOwnerPrivateWorkerFulfillment?: (
+    options: OwnerPrivateWorkerFulfillmentOptions
+  ) => Promise<void>;
+  supplyId: string;
+  supplyLabel: string;
+  workerKey: string;
+}) {
+  return (
+    <div className="rounded-[18px] border border-status-active/25 bg-status-active/[0.08] px-3.5 py-3">
+      <div className="text-[11px] font-medium uppercase tracking-[0.16em] text-status-active">
+        Selected worker lane
+      </div>
+      <div className="mt-1.5 text-[13px] leading-5.5 text-foreground">
+        Start a planned owner-private fulfillment lane for {supplyLabel}.
+      </div>
+      <div className="mt-1 text-[12px] leading-5 text-muted-foreground">
+        This writes `Fulfillment` truth with owner approval and worker key{" "}
+        {workerKey}. Provider calls, artifacts, review acceptance, and
+        completion stay blocked until the next governed step.
+      </div>
+      <LoadingButton
+        className="mt-3"
+        isLoading={isLoading}
+        loadingText="Creating lane..."
+        onClick={() =>
+          void onCreateOwnerPrivateWorkerFulfillment?.({
+            supplyId,
+            supplyLabel,
+            workerKey,
+          })
+        }
+        size="sm"
+        variant="outline"
+      >
+        Create fulfillment lane
       </LoadingButton>
     </div>
   );

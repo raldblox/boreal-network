@@ -227,6 +227,9 @@ Human-service starters should keep human or agent actor tags and service-support
 Worker-backed service checkout is a narrower owner-private preparation lane, not general marketplace matching.
 For supported Humanizer and Video Generation service plans, checkout may create or reuse one first-party worker `Supply`, open one private `Request`, pin that Supply through routing, and apply buyer credit.
 That checkout does not start provider execution, create `Fulfillment`, create `FulfillmentStep`, publish `Artifact`, accept review, or claim delivery; the next canonical boundary remains governed `Fulfillment` creation from the request workroom or an explicitly approved owner-private direct lane.
+When the owner opens that funded private workroom, the UI may expose a selected-worker start action only if the pinned `Supply` is published, Boreal-managed, request-compatible, owner-scoped, and no active fulfillment exists.
+That action writes a `planned` owner-private `Fulfillment` through `POST /api/requests/{id}/fulfillments` with `ownerPrivateDirectApproval` evidence and the matching worker key.
+It still must not call providers, start worker execution, publish artifacts, accept review, or claim completion.
 
 In-house Boreal agents and humans follow the same worker-application rule:
 

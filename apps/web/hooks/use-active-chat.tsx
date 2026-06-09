@@ -33,6 +33,7 @@ import {
   isDesktopBridgeSupportedOrigin,
   readStoredDesktopBridgeUrl,
 } from "@/lib/desktop-runtime-bridge";
+import { buildOwnerPrivateWorkerFulfillmentStartPayload } from "@/lib/owner-private-worker-fulfillment";
 import type {
   BorealRequestDraft,
   RequestActivityEntry,
@@ -95,6 +96,11 @@ type ActiveChatContextValue = {
     patch: RequestDraftUpdatePatch
   ) => Promise<BorealRequestDraft | null>;
   updateRequestPreferredSupply: (preferredSupplyId: string | null) => Promise<void>;
+  createOwnerPrivateWorkerFulfillment: (options: {
+    supplyId: string;
+    supplyLabel?: string | null;
+    workerKey: string;
+  }) => Promise<void>;
   retryBlockedFulfillment: () => Promise<void>;
   createRoleplayDelivery: () => Promise<void>;
   resolveDeliveredFulfillment: () => Promise<void>;
@@ -1308,6 +1314,66 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
     ]
   );
 
+  const createOwnerPrivateWorkerFulfillment = useCallback(
+    async ({
+      supplyId,
+      supplyLabel,
+      workerKey,
+    }: {
+      supplyId: string;
+      supplyLabel?: string | null;
+      workerKey: string;
+    }) => {
+      if (!activeRequest) {
+        throw new Error("No active request is available.");
+      }
+
+      if (activeRequest.routing.preferredSupplyId !== supplyId) {
+        throw new Error("Selected Supply must be pinned before fulfillment.");
+      }
+
+      if (activeRequest.activeRefs.activeFulfillmentId) {
+        throw new Error("An active fulfillment already exists.");
+      }
+
+      const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+      const idempotencyKey = generateUUID();
+      const response = await fetchWithErrorHandlers(
+        `${basePath}/api/requests/${activeRequest.id}/fulfillments`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Idempotency-Key": idempotencyKey,
+          },
+          body: JSON.stringify(
+            buildOwnerPrivateWorkerFulfillmentStartPayload({
+              idempotencyKey,
+              supplyId,
+              supplyLabel,
+              workerKey,
+            })
+          ),
+        }
+      );
+      const data = (await response.json()) as {
+        fulfillment?: {
+          id: string;
+        };
+      };
+
+      if (requestActivityKey) {
+        await mutate(requestActivityKey);
+      }
+      if (data.fulfillment?.id) {
+        await mutate(`${basePath}/api/fulfillments/${data.fulfillment.id}`);
+      }
+      await mutate(chatDataKey);
+      await mutate(unstable_serialize(getRequestHistoryPaginationKey));
+    },
+    [activeRequest, chatDataKey, mutate, requestActivityKey]
+  );
+
   const retryBlockedFulfillment = useCallback(async () => {
     if (!activeRequest?.activeRefs.activeFulfillmentId) {
       throw new Error("No worker fulfillment is available to check.");
@@ -1565,6 +1631,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       openRequest,
       updateRequestDraft,
       updateRequestPreferredSupply,
+      createOwnerPrivateWorkerFulfillment,
       retryBlockedFulfillment,
       createRoleplayDelivery,
       resolveDeliveredFulfillment: async () => {
@@ -1626,6 +1693,7 @@ export function ActiveChatProvider({ children }: { children: ReactNode }) {
       openRequest,
       updateRequestDraft,
       updateRequestPreferredSupply,
+      createOwnerPrivateWorkerFulfillment,
       retryBlockedFulfillment,
       createRoleplayDelivery,
       mutate,
