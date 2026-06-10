@@ -88,6 +88,7 @@ Verify that richer artifact containers for file, media, PDF, audio, video, binar
 Verify that request closure is blocked when required embodied steps or proof obligations are missing.
 Verify that retryable first-party worker failures move fulfillment to `blocked`, preserve worker recovery metadata, and resume the same lane instead of forcing a fresh request.
 Verify that queued first-party provider tasks keep their task id on the active fulfillment lane, can be checked again through the same lane, and do not masquerade as completion before a durable artifact lands.
+Verify that `/agents/execution.json` exposes the first-party worker start/check/retry control route as a non-authorizing handoff that preserves one existing `Fulfillment` and selected `Supply` lane.
 Verify that public or cross-actor lanes do not inherit owner-private desktop assumptions when planner, matcher, or policy outputs are evaluated.
 Verify that in-house Boreal worker scanning is read-only and produces only opportunity guidance, not assignment, approval, fulfillment start, artifact publication, durable history, payment authority, or completion truth.
 Verify that `scan_public_open_requests` uses the live public open-request projection as input, stays bounded by limit and cursor fields, and returns only wake or skip guidance plus preparation packets without mutating request truth.

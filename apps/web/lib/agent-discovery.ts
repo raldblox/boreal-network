@@ -5869,6 +5869,12 @@ export function buildOpenApiDiscoveryIndex() {
         id: lane.id,
         status: lane.status,
       })),
+      controlRoutes: buildAgentExecutionProfile().executionControlRoutes.map(
+        (route) => ({
+          id: route.id,
+          route: route.route,
+        })
+      ),
     },
     "x-boreal-agent-human-handoffs": {
       url: absoluteUrl(agentDiscoveryPaths.agentHumanHandoffs),
@@ -8318,6 +8324,35 @@ export function buildAgentExecutionProfile() {
           "treat MCP session or A2A Task as the Boreal root",
           "use x402 settlement as work completion",
           "turn high-frequency runtime telemetry into durable RequestEvent noise",
+        ],
+      },
+    ],
+    executionControlRoutes: [
+      {
+        id: "first_party_worker_start_check_retry",
+        method: "POST",
+        route: "/api/fulfillments/{id}/retry",
+        useWhen:
+          "A Boreal-managed worker Fulfillment already exists and the request owner is explicitly starting, checking, or retrying that same lane.",
+        eligibleFulfillmentStatuses: ["planned", "ready", "active", "blocked"],
+        startsProviderOnStatuses: ["planned", "ready"],
+        checksProviderOnStatuses: ["active"],
+        retriesProviderOnStatuses: ["blocked"],
+        requiredBeforeCall: [
+          "request owner account session or owner-scoped resolver bearer",
+          "same active Fulfillment id from Request.activeRefs",
+          "Boreal-worker metadata is present on Fulfillment",
+          "selected Supply attachment remains unchanged",
+          "Idempotency-Key is available for the same semantic execution-control attempt",
+        ],
+        stateBridge:
+          "planned lanes must legally promote planned -> ready -> active before provider execution",
+        mustNotDo: [
+          "create a second Request",
+          "create a second Fulfillment lane",
+          "change selected Supply attachment",
+          "publish Artifact proof before worker output exists",
+          "claim owner acceptance, payment authority, or completion",
         ],
       },
     ],

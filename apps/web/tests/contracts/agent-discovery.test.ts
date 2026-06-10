@@ -2308,6 +2308,40 @@ async function main() {
     ),
     true,
   );
+  const workerExecutionControlRoute =
+    executionProfile.executionControlRoutes.find(
+      (route) => route.id === "first_party_worker_start_check_retry"
+    );
+  assert.ok(workerExecutionControlRoute);
+  assert.equal(
+    workerExecutionControlRoute.route,
+    "/api/fulfillments/{id}/retry"
+  );
+  assert.deepEqual(workerExecutionControlRoute.eligibleFulfillmentStatuses, [
+    "planned",
+    "ready",
+    "active",
+    "blocked",
+  ]);
+  assert.deepEqual(workerExecutionControlRoute.startsProviderOnStatuses, [
+    "planned",
+    "ready",
+  ]);
+  assert.ok(
+    workerExecutionControlRoute.requiredBeforeCall.includes(
+      "request owner account session or owner-scoped resolver bearer"
+    )
+  );
+  assert.ok(
+    workerExecutionControlRoute.stateBridge.includes(
+      "planned -> ready -> active"
+    )
+  );
+  assert.ok(
+    workerExecutionControlRoute.mustNotDo.includes(
+      "create a second Fulfillment lane"
+    )
+  );
   assert.equal(
     executionProfile.runtimeSignalRules.some(
       (rule) =>
@@ -4866,6 +4900,14 @@ async function main() {
   assert.equal(
     discoveryIndex["x-boreal-agent-execution"].lanes.some(
       (lane) => lane.id === "cross_actor_accepted_commitment"
+    ),
+    true,
+  );
+  assert.equal(
+    discoveryIndex["x-boreal-agent-execution"].controlRoutes.some(
+      (route) =>
+        route.id === "first_party_worker_start_check_retry" &&
+        route.route === "/api/fulfillments/{id}/retry"
     ),
     true,
   );
